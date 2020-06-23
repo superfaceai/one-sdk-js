@@ -57,7 +57,7 @@ jobs:
       - name: Lint
         run: yarn lint
       
-  lincense-check:
+  license-check:
     runs-on: ubuntu-latest
     steps:
       # Setup environment and checkout the project master
