@@ -26,8 +26,9 @@ export interface ProfileFunction<TParams = unknown, TResult = unknown> {
   result: FunctionResult<TResult>;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface MappingAST {}
-
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface ProfileAST {}
 
 export interface ParsedProfile {

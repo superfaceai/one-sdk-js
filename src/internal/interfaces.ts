@@ -25,6 +25,7 @@ export interface PerformContext {
   variables: object;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface ScriptAST {}
 
 export interface ScriptInterpreter {
