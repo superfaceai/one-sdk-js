@@ -7,7 +7,9 @@ export function evalScript(
   variableDefinitions?: Record<string, string>
 ): unknown {
   const vm = new VM({
-    sandbox: {},
+    sandbox: {
+      ...variableDefinitions,
+    },
     compiler: 'javascript',
     wasm: false,
     eval: false,
@@ -53,13 +55,5 @@ export function evalScript(
     `
   );
 
-  let variables = '';
-
-  if (variableDefinitions) {
-    variables = Object.entries(variableDefinitions)
-      .map(([key, value]) => `const ${key} = JSON.parse('${value}');`)
-      .join('');
-  }
-
-  return vm.run(`'use strict';${variables}${js}`);
+  return vm.run(`'use strict';${js}`);
 }

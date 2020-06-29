@@ -20,7 +20,7 @@ import {
   VariableExpressionDefinitionNode,
 } from '@superindustries/language';
 
-import { Sandbox } from '../../client/interpreter/Sandbox';
+import { evalScript } from '../../client/interpreter/Sandbox';
 import { HttpClient } from '../http';
 import { MapParameters, MapVisitor } from './interfaces';
 
@@ -136,9 +136,7 @@ export class MapInterpereter implements MapVisitor {
     node: JSExpressionNode,
     _parameters: MapParameters
   ): Promise<unknown> {
-    const sandbox = new Sandbox();
-
-    return await sandbox.evalJS(node.expression, this.variables);
+    return await evalScript(node.expression, this.variables);
   }
 
   async visitMapDefinitionNode(
