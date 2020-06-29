@@ -10,7 +10,6 @@
   "types": "dist/index.d.ts",
   "repository": "https://github.com/superindustries/superface.git",
   "author": "Superface Team",
-  "license": "MIT",
   "private": false,
   "scripts": {
     "build": "microbundle --tsconfig tsconfig.release.json",
@@ -40,6 +39,8 @@
     "typescript": "^3.9.2"
   },
   "dependencies": {
+    "cross-fetch": "^3.0.5",
+    "@superindustries/language": "^0.0.7",
     "vm2": "^3.9.2"
   }
 }

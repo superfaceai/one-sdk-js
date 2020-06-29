@@ -2,6 +2,7 @@
   "compilerOptions": {
     "declaration": true,
     "downlevelIteration": true,
+    "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "lib": [],
     "module": "ESNext",
