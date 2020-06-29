@@ -1,6 +1,6 @@
 {
-  "name": "superface",
-  "version": "0.0.0",
+  "name": "@superindustries/superface",
+  "version": "0.0.1",
   "description": "Level 5 autonomous, self-driving API client, https://superface.ai",
   "main": "dist/superface.js",
   "source": "src/index.ts",
@@ -11,6 +11,12 @@
   "repository": "https://github.com/superindustries/superface.git",
   "author": "Superface Team",
   "private": false,
+  "files": [
+    "dist/**/*"
+  ],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com/"
+  },
   "scripts": {
     "build": "microbundle --tsconfig tsconfig.release.json",
     "watch": "yarn build --watch",

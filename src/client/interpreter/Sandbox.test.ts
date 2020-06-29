@@ -1,14 +1,11 @@
-import { Sandbox } from "./Sandbox";
+import { evalScript, SCRIPT_TIMEOUT } from './Sandbox';
 
-describe("sandbox", () => {
-  let sandbox!: Sandbox;
-
+describe('sandbox', () => {
   beforeEach(() => {
-    process.env.SECRET = "MuchSecret";
-    sandbox = new Sandbox();
+    process.env.SECRET = 'MuchSecret';
   });
 
-  it("prevents string masking attackt", () => {
+  it('prevents string masking attack', () => {
     const js = `   
     // Let x be any value not in
     // (null, undefined, Object.create(null)).
@@ -28,33 +25,77 @@ describe("sandbox", () => {
     // to builtin modules like child_process, fs, and net.
     `;
 
-    expect(() => sandbox.evalJS(js)).toThrowError();
-    expect(process.env.SECRET).toEqual("MuchSecret");
+    expect(() => evalScript(js)).toThrow(
+      'Code generation from strings disallowed for this context'
+    );
+    expect(() =>
+      evalScript(
+        '(() => {}).constructor("process.env.SECRET = \'overwrite\'")()'
+      )
+    ).toThrow('Code generation from strings disallowed for this context');
+
+    expect(process.env.SECRET).toEqual('MuchSecret');
   });
 
-  it("prevents primodial types pollution", () => {
+  it('prevents primodial types pollution', () => {
     const js = `
     Array.prototype.toString = () => {
       console.log("I have been called!!!!");
-      return "Modified!!!!";
+      return "Modified!1!!!1!";
     };`;
-    sandbox.evalJS(js);
-    expect([1, 2, 3].toString()).toEqual("1,2,3");
+    evalScript(js);
+    expect([1, 2, 3].toString()).toEqual('1,2,3');
   });
 
-  it("prevents quitting the process", () => {
-    const js = `process.exit();`;
-    expect(() => sandbox.evalJS(js)).toThrowError();
+  it('no io', () => {
+    expect(() => evalScript('import fs; fs.readFileSync("secrets")')).toThrow(
+      'Cannot use import statement outside a module'
+    );
+
+    expect(() => evalScript('console.log')).toThrow('console is not defined');
+
+    expect(() => evalScript('process.exit(1)')).toThrow(
+      'process is not defined'
+    );
   });
 
-  describe("Halting problem (Stalling the event loop)", () => {
-    it("while(true)", () => {
-      expect(() => sandbox.evalJS(`while(true){1+1}`)).toThrowError(/Script execution timed out/);
+  it('Halting problem (Stalling the event loop)', () => {
+    expect(() => evalScript('while(true) { 1 + 1 }')).toThrow(
+      `Script execution timed out after ${SCRIPT_TIMEOUT}ms`
+    );
+  });
 
-    });
+  it('no Promises or async', () => {
+    expect(() => evalScript('Promise.reject().catch(() => {})')).toThrow(
+      'Promise is not defined'
+    );
 
-    it("prevents using async", () => {
-      expect(() => sandbox.evalJS(`new Promise.resolve(5)`)).toThrowError(/Promise/);
-    });
+    expect(() => evalScript('new Promise.resolve(5)')).toThrow(
+      'Promise is not defined'
+    );
+
+    expect(() => evalScript('async () => 1')).toThrow();
+  });
+
+  it('no eval or Function constructor', () => {
+    expect(() => evalScript('eval("1")')).toThrow('eval is not defined');
+
+    expect(() =>
+      evalScript('Function.call(undefined, "return 1").call(undefined)')
+    ).toThrow('Function is not defined');
+
+    expect(() =>
+      evalScript(
+        '(() => {}).constructor.call(undefined, "return 1").call(undefined)'
+      )
+    ).toThrow('Code generation from strings disallowed for this context');
+  });
+
+  it('isolation', () => {
+    expect(
+      evalScript('globalThis["prop"] = 0; globalThis["prop"]')
+    ).toStrictEqual(0);
+
+    expect(evalScript('globalThis["prop"]')).not.toBeDefined();
   });
 });

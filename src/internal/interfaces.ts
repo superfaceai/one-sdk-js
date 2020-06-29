@@ -4,7 +4,7 @@ import { FunctionParams, FunctionResult, ParsedProfile } from '../interfaces';
 import {
   ParamsValidationError,
   ScriptCompilationError,
-  ScriptInputError
+  ScriptInputError,
 } from './errors';
 
 export interface ProviderBinder {
@@ -25,6 +25,7 @@ export interface PerformContext {
   variables: object;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface ScriptAST {}
 
 export interface ScriptInterpreter {
