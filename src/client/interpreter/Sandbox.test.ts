@@ -49,7 +49,7 @@ describe('sandbox', () => {
 
   it('no io', () => {
     expect(() => evalScript('import fs; fs.readFileSync("secrets")')).toThrow(
-      'Cannot use import statement outside a module'
+      /(Cannot use import statement outside a module|Unexpected identifier)/
     );
 
     expect(() => evalScript('console.log')).toThrow('console is not defined');
