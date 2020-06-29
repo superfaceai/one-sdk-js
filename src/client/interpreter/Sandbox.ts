@@ -18,35 +18,35 @@ export function evalScript(js: string): unknown {
     `
     'use strict'
 
-    delete globalThis.require // Forbidden
-    delete globalThis.process // Forbidden
-    delete globalThis.console // Forbidden/useless
+    delete global.require // Forbidden
+    delete global.process // Forbidden
+    delete global.console // Forbidden/useless
     
-    delete globalThis.setTimeout
-    delete globalThis.setInterval
-    delete globalThis.setImmediate
-    delete globalThis.clearTimeout
-    delete globalThis.clearInterval
-    delete globalThis.clearImmediate
-    // delete globalThis.String
-    // delete globalThis.Number
-    // delete globalThis.Buffer
-    // delete globalThis.Boolean
-    // delete globalThis.Array
-    // delete globalThis.Date
-    delete globalThis.RegExp // Forbidden
-    delete globalThis.Function // Can be restored by taking .constructor of any function, but the VM protection kicks in
-    // delete globalThis.Object
-    delete globalThis.VMError // Useless
-    delete globalThis.Proxy // Forbidden
-    delete globalThis.Reflect // Forbidden
-    delete globalThis.Promise // Forbidden, also VM protection
-    delete globalThis.Symbol // Forbidden
+    delete global.setTimeout
+    delete global.setInterval
+    delete global.setImmediate
+    delete global.clearTimeout
+    delete global.clearInterval
+    delete global.clearImmediate
+    // delete global.String
+    // delete global.Number
+    // delete global.Buffer
+    // delete global.Boolean
+    // delete global.Array
+    // delete global.Date
+    delete global.RegExp // Forbidden
+    delete global.Function // Can be restored by taking .constructor of any function, but the VM protection kicks in
+    // delete global.Object
+    delete global.VMError // Useless
+    delete global.Proxy // Forbidden
+    delete global.Reflect // Forbidden
+    delete global.Promise // Forbidden, also VM protection
+    delete global.Symbol // Forbidden
 
-    delete globalThis.eval // Forbidden, also VM protects
-    delete globalThis.WebAssembly // Forbidden, also VM protects
-    delete globalThis.AsyncFunction // Forbidden, also VM protects
-    delete globalThis.SharedArrayBuffer // Just in case
+    delete global.eval // Forbidden, also VM protects
+    delete global.WebAssembly // Forbidden, also VM protects
+    delete global.AsyncFunction // Forbidden, also VM protects
+    delete global.SharedArrayBuffer // Just in case
     `
   );
 

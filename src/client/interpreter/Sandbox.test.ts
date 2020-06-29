@@ -93,9 +93,9 @@ describe('sandbox', () => {
 
   it('isolation', () => {
     expect(
-      evalScript('globalThis["prop"] = 0; globalThis["prop"]')
+      evalScript('global["prop"] = 0; global["prop"]')
     ).toStrictEqual(0);
 
-    expect(evalScript('globalThis["prop"]')).not.toBeDefined();
+    expect(evalScript('global["prop"]')).not.toBeDefined();
   });
 });
