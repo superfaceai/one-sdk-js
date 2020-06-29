@@ -4,7 +4,7 @@ import { FunctionParams, FunctionResult, ParsedProfile } from '../interfaces';
 import {
   ParamsValidationError,
   ScriptCompilationError,
-  ScriptInputError
+  ScriptInputError,
 } from './errors';
 
 export interface ProviderBinder {
