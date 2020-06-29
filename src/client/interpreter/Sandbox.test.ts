@@ -1,4 +1,4 @@
-import { evalScript, SCRIPT_TIMEOUT } from './Sandbox';
+import { evalScript } from './Sandbox';
 
 describe('sandbox', () => {
   beforeEach(() => {
@@ -61,7 +61,7 @@ describe('sandbox', () => {
 
   it('Halting problem (Stalling the event loop)', () => {
     expect(() => evalScript('while(true) { 1 + 1 }')).toThrow(
-      `Script execution timed out after ${SCRIPT_TIMEOUT}ms`
+      'Script execution timed out'
     );
   });
 
