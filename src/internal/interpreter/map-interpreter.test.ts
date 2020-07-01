@@ -31,6 +31,18 @@ const listener: RequestListener = (
       res.end();
       break;
 
+    case 'GET /first':
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.write(JSON.stringify({ firstStep: { someVar: 12 } }));
+      res.end();
+      break;
+
+    case 'GET /second':
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.write(JSON.stringify({ secondStep: 5 }));
+      res.end();
+      break;
+
     case 'POST /checkBody':
       req.on('data', data => (buffer += decoder.write(data)));
 
@@ -656,5 +668,146 @@ describe('MapInterpreter', () => {
         bodyOk: true,
       },
     });
+  });
+
+  it('should run multi step operation', async () => {
+    const result = await interpreter.visit(
+      {
+        kind: 'MapDocument',
+        map: {
+          kind: 'Map',
+          profileId: {
+            kind: 'ProfileId',
+            profileId: 'hello!',
+          },
+          provider: {
+            kind: 'Provider',
+            providerId: 'hi!',
+          },
+        },
+        definitions: [
+          {
+            kind: 'MapDefinition',
+            mapName: 'testMap',
+            usecaseName: 'multistep',
+            variableExpressionsDefinition: [],
+            stepsDefinition: [
+              {
+                kind: 'StepDefinition',
+                variableExpressionsDefinition: [],
+                stepName: 'firstStep',
+                condition: {
+                  kind: 'JSExpression',
+                  expression: 'true',
+                },
+                run: {
+                  kind: 'NetworkOperationDefinition',
+                  definition: {
+                    kind: 'HTTPOperationDefinition',
+                    variableExpressionsDefinition: [],
+                    url: `http://localhost:${port}/first`,
+                    method: 'get',
+                    requestDefinition: {
+                      queryParametersDefinition: [],
+                      security: 'other',
+                      headers: [],
+                      body: [],
+                    },
+                    responseDefinition: {
+                      statusCode: 200,
+                      contentType: 'application/json',
+                      contentLanguage: 'en_US',
+                      outcomeDefinition: {
+                        kind: 'OutcomeDefinition',
+                        setDefinition: [
+                          {
+                            kind: 'VariableExpressionsDefinition',
+                            left: 'someVariable',
+                            right: {
+                              kind: 'JSExpression',
+                              expression: 'response.firstStep.someVar',
+                            },
+                          },
+                        ],
+                      },
+                    },
+                  },
+                },
+              },
+              {
+                kind: 'StepDefinition',
+                variableExpressionsDefinition: [],
+                stepName: 'secondStep',
+                condition: {
+                  kind: 'JSExpression',
+                  expression: 'true',
+                },
+                run: {
+                  kind: 'NetworkOperationDefinition',
+                  definition: {
+                    kind: 'HTTPOperationDefinition',
+                    variableExpressionsDefinition: [],
+                    url: `http://localhost:${port}/second`,
+                    method: 'get',
+                    requestDefinition: {
+                      queryParametersDefinition: [],
+                      security: 'other',
+                      headers: [],
+                      body: [],
+                    },
+                    responseDefinition: {
+                      statusCode: 200,
+                      contentType: 'application/json',
+                      contentLanguage: 'en_US',
+                      outcomeDefinition: {
+                        kind: 'OutcomeDefinition',
+                        setDefinition: [
+                          {
+                            kind: 'VariableExpressionsDefinition',
+                            left: 'someOtherVariable',
+                            right: {
+                              kind: 'JSExpression',
+                              expression: 'response.secondStep',
+                            },
+                          },
+                        ],
+                      },
+                    },
+                  },
+                },
+              },
+              {
+                kind: 'StepDefinition',
+                condition: {
+                  kind: 'JSExpression',
+                  expression: `typeof someOtherVariable !== 'undefined' && someOtherVariable && someOtherVariable < 10 && typeof someVariable !== undefined && someVariable && someVariable > 10`,
+                },
+                variableExpressionsDefinition: [],
+                stepName: 'thirdStep',
+                run: {
+                  kind: 'EvalDefinition',
+                  outcomeDefinition: {
+                    kind: 'OutcomeDefinition',
+                    resultDefinition: [
+                      {
+                        kind: 'MapExpressionsDefinition',
+                        left: 'result',
+                        right: {
+                          kind: 'JSExpression',
+                          expression: 'someVariable * someOtherVariable',
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+            ],
+          },
+        ],
+      },
+      { usecase: 'multistep' }
+    );
+
+    expect(result).toEqual({ result: 12 * 5 });
   });
 });

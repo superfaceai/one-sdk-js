@@ -34,8 +34,8 @@ export const HttpClient = {
     };
 
     if (
-      parameters.method !== 'GET' &&
-      parameters.method !== 'HEAD' &&
+      parameters.method.toLowerCase() !== 'get' &&
+      parameters.method.toLowerCase() !== 'head' &&
       parameters.body
     ) {
       params.body = JSON.stringify(parameters.body);

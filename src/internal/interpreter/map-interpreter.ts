@@ -34,9 +34,13 @@ export class MapInterpereter implements MapVisitor {
 
   private operations: OperationDefinitionNode[] = [];
 
-  private scopedVariables: Record<string, Record<string, string>> = {};
+  private operationScopedVariables: Record<string, Record<string, string>> = {};
 
   private operationScope: string | undefined;
+
+  private mapScopedVariables: Record<string, Record<string, string>> = {};
+
+  private mapScope: string | undefined;
 
   async visit(node: MapASTNode, parameters: MapParameters): Promise<unknown> {
     switch (node.kind) {
@@ -143,22 +147,29 @@ export class MapInterpereter implements MapVisitor {
     node: MapDefinitionNode,
     parameters: MapParameters
   ): Promise<unknown> {
-    const viableSteps = node.stepsDefinition.filter(async stepDefinition => {
-      return await this.visit(stepDefinition.condition, parameters);
-    });
+    this.mapScope = node.mapName;
 
-    if (viableSteps.length < 1) {
-      throw new Error('No step satisfies condition!');
+    let result: unknown;
+    for (const step of node.stepsDefinition) {
+      const condition = await this.visit(step.condition, parameters);
+
+      if (condition) {
+        const variables = await this.processVariableExpressions(
+          node.variableExpressionsDefinition,
+          parameters
+        );
+
+        this.variableStack.push(variables);
+        const stepResult = await this.visit(step, parameters);
+        this.variableStack.pop();
+
+        if (stepResult) {
+          result = stepResult;
+        }
+      }
     }
 
-    const variables = await this.processVariableExpressions(
-      node.variableExpressionsDefinition,
-      parameters
-    );
-
-    this.variableStack.push(variables);
-    const result = await this.visit(viableSteps[0], parameters);
-    this.variableStack.pop();
+    this.mapScope = undefined;
 
     return result;
   }
@@ -254,16 +265,29 @@ export class MapInterpereter implements MapVisitor {
         parameters
       );
     } else if (node.setDefinition) {
-      if (!this.operationScope) {
-        throw new Error(
-          'Something very wrong happened. How did you even get here?'
-        );
-      }
-      this.scopedVariables[
-        this.operationScope
-      ] = await this.processVariableExpressions(node.setDefinition, parameters);
+      if (this.operationScope) {
+        this.operationScopedVariables[this.operationScope] = {
+          ...(this.operationScopedVariables[this.operationScope] || {}),
+          ...(await this.processVariableExpressions(
+            node.setDefinition,
+            parameters
+          )),
+        };
 
-      return undefined;
+        return undefined;
+      } else if (this.mapScope) {
+        this.mapScopedVariables[this.mapScope] = {
+          ...(this.mapScopedVariables[this.mapScope] || {}),
+          ...(await this.processVariableExpressions(
+            node.setDefinition,
+            parameters
+          )),
+        };
+
+        return undefined;
+      } else {
+        throw new Error('Something went very wrong, this should not happen!');
+      }
     } else if (node.resultDefinition) {
       return await this.processMapExpressions(
         node.resultDefinition,
@@ -322,10 +346,20 @@ export class MapInterpereter implements MapVisitor {
       {}
     );
 
-    if (this.operationScope && this.scopedVariables[this.operationScope]) {
+    if (this.mapScope && this.mapScopedVariables[this.mapScope]) {
       variables = {
         ...variables,
-        ...this.scopedVariables[this.operationScope],
+        ...this.mapScopedVariables[this.mapScope],
+      };
+    }
+
+    if (
+      this.operationScope &&
+      this.operationScopedVariables[this.operationScope]
+    ) {
+      variables = {
+        ...variables,
+        ...this.operationScopedVariables[this.operationScope],
       };
     }
 
