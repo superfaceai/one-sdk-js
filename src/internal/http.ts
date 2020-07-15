@@ -100,7 +100,7 @@ export const HttpClient = {
       headers.append(AUTH_HEADER_NAME, bearerAuth(parameters.bearer));
     }
 
-    const isRelative = /^\/[^\/]/.test(url);
+    const isRelative = /^\/[^/]/.test(url);
 
     if (isRelative && !parameters.baseUrl) {
       throw new Error('Relative URL specified, but base URL not provided!');
