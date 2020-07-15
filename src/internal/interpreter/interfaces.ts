@@ -8,11 +8,11 @@ import {
   MapDocumentNode,
   MapExpressionDefinitionNode,
   MapNode,
+  MapProfileIdNode,
   NetworkOperationDefinitionNode,
   OperationCallDefinitionNode,
   OperationDefinitionNode,
   OutcomeDefinitionNode,
-  ProfileIdNode,
   ProviderNode,
   StepDefinitionNode,
   VariableExpressionDefinitionNode,
@@ -20,6 +20,16 @@ import {
 
 export interface MapParameters {
   usecase?: string;
+  auth?: {
+    basic?: {
+      username: string;
+      password: string;
+    };
+    bearer?: {
+      token: string;
+    };
+  };
+  baseUrl?: string;
 }
 
 export interface MapVisitor {
@@ -76,7 +86,7 @@ export interface MapVisitor {
     parameters: MapParameters
   ): Promise<unknown> | unknown;
   visitProfileIdNode(
-    node: ProfileIdNode,
+    node: MapProfileIdNode,
     parameters: MapParameters
   ): Promise<unknown> | unknown;
   visitProviderNode(

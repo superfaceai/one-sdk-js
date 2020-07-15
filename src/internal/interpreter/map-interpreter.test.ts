@@ -1,87 +1,20 @@
 import { MapASTNode } from '@superindustries/language';
-import {
-  createServer,
-  IncomingMessage,
-  RequestListener,
-  ServerResponse,
-} from 'http';
-import { StringDecoder } from 'string_decoder';
+import { getLocal } from 'mockttp';
 
 import { MapInterpereter } from './map-interpreter';
 
-const port = Math.floor(Math.random() * 64511 + 1024);
-
-const listener: RequestListener = (
-  req: IncomingMessage,
-  res: ServerResponse
-) => {
-  const decoder = new StringDecoder('utf-8');
-  let buffer = '';
-
-  switch (`${req.method} ${req.url}`) {
-    case 'GET /twelve':
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.write(JSON.stringify({ data: 12 }));
-      res.end();
-      break;
-
-    case 'GET /twelve?page=2':
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.write(JSON.stringify({ data: 144 }));
-      res.end();
-      break;
-
-    case 'GET /first':
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.write(JSON.stringify({ firstStep: { someVar: 12 } }));
-      res.end();
-      break;
-
-    case 'GET /second':
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.write(JSON.stringify({ secondStep: 5 }));
-      res.end();
-      break;
-
-    case 'POST /checkBody':
-      req.on('data', data => (buffer += decoder.write(data)));
-
-      req.on('end', () => {
-        buffer += decoder.end();
-        const body = JSON.parse(buffer);
-        res.writeHead(201, { 'Content-Type': 'application/json' });
-        res.write(
-          JSON.stringify({
-            bodyOk: body.anArray.length === 3,
-            headerOk: req.headers['someheader'] === 'hello',
-          })
-        );
-        res.end();
-      });
-      break;
-
-    default:
-      throw new Error(
-        `Invalid combination of url and method: ${req.url}, ${req.method}`
-      );
-  }
-};
-
-const server = createServer(listener);
+const mockServer = getLocal();
 
 describe('MapInterpreter', () => {
   let interpreter: MapInterpereter;
 
-  beforeAll(() => {
-    server.listen(port);
-  });
-
-  afterAll(() => {
-    server.close();
-  });
-
-  beforeEach(() => {
+  beforeEach(async () => {
     interpreter = new MapInterpereter();
+    await mockServer.start();
+  });
+
+  afterEach(async () => {
+    await mockServer.stop();
   });
 
   it('should fail with invalid AST', async () => {
@@ -152,6 +85,119 @@ describe('MapInterpreter', () => {
     );
 
     expect(result).toEqual({ result: 12 });
+  });
+
+  it('should fail on undefined usecase', async () => {
+    await expect(
+      async () =>
+        await interpreter.visit(
+          {
+            kind: 'MapDocument',
+            map: {
+              kind: 'Map',
+              profileId: {
+                kind: 'ProfileId',
+                profileId: 'hello!',
+              },
+              provider: {
+                kind: 'Provider',
+                providerId: 'hi!',
+              },
+            },
+            definitions: [
+              {
+                kind: 'MapDefinition',
+                mapName: 'testMap',
+                usecaseName: 'testCase',
+                variableExpressionsDefinition: [],
+                stepsDefinition: [
+                  {
+                    kind: 'StepDefinition',
+                    variableExpressionsDefinition: [],
+                    stepName: 'oneAndOnlyStep',
+                    condition: {
+                      kind: 'JSExpression',
+                      expression: 'true',
+                    },
+                    iterationDefinition: {
+                      kind: 'IterationDefinition',
+                    },
+                    run: {
+                      kind: 'EvalDefinition',
+                      outcomeDefinition: {
+                        kind: 'OutcomeDefinition',
+                        returnDefinition: [
+                          {
+                            kind: 'MapExpressionsDefinition',
+                            left: 'result',
+                            right: {
+                              kind: 'JSExpression',
+                              expression: '12',
+                            },
+                          },
+                        ],
+                      },
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+          { usecase: 'nonexistent' }
+        )
+    ).rejects.toThrow('Usecase not found.');
+  });
+
+  // This should not happen in practice, as the AST will be validated beforehand
+  it('should fail when none of result/return/set are defined', async () => {
+    await expect(
+      async () =>
+        await interpreter.visit(
+          {
+            kind: 'MapDocument',
+            map: {
+              kind: 'Map',
+              profileId: {
+                kind: 'ProfileId',
+                profileId: 'hello!',
+              },
+              provider: {
+                kind: 'Provider',
+                providerId: 'hi!',
+              },
+            },
+            definitions: [
+              {
+                kind: 'MapDefinition',
+                mapName: 'testMap',
+                usecaseName: 'testCase',
+                variableExpressionsDefinition: [],
+                stepsDefinition: [
+                  {
+                    kind: 'StepDefinition',
+                    variableExpressionsDefinition: [],
+                    stepName: 'oneAndOnlyStep',
+                    condition: {
+                      kind: 'JSExpression',
+                      expression: 'true',
+                    },
+                    iterationDefinition: {
+                      kind: 'IterationDefinition',
+                    },
+                    run: {
+                      kind: 'EvalDefinition',
+                      outcomeDefinition: {
+                        kind: 'OutcomeDefinition',
+                      },
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+          { usecase: 'testCase' }
+        )
+    ).rejects.toThrow('Something went very wrong, this should not happen!');
   });
 
   it('should execute Eval definition with variables', async () => {
@@ -398,7 +444,107 @@ describe('MapInterpreter', () => {
     expect(result).toEqual({ result: 12 });
   });
 
+  it('should throw when trying to run undefined operation', async () => {
+    await expect(
+      async () =>
+        await interpreter.visit(
+          {
+            kind: 'MapDocument',
+            map: {
+              kind: 'Map',
+              profileId: {
+                kind: 'ProfileId',
+                profileId: 'hello!',
+              },
+              provider: {
+                kind: 'Provider',
+                providerId: 'hi!',
+              },
+            },
+            definitions: [
+              {
+                kind: 'MapDefinition',
+                mapName: 'testMap',
+                usecaseName: 'testCase',
+                variableExpressionsDefinition: [],
+                stepsDefinition: [
+                  {
+                    kind: 'StepDefinition',
+                    variableExpressionsDefinition: [],
+                    stepName: 'oneAndOnlyStep',
+                    condition: {
+                      kind: 'JSExpression',
+                      expression: 'true',
+                    },
+                    iterationDefinition: {
+                      kind: 'IterationDefinition',
+                    },
+                    run: {
+                      kind: 'OperationCallDefinition',
+                      arguments: [],
+                      operationName: 'my beloved operation',
+                      successOutcomeDefinition: {
+                        kind: 'OutcomeDefinition',
+                        returnDefinition: [
+                          {
+                            kind: 'MapExpressionsDefinition',
+                            left: 'result',
+                            right: {
+                              kind: 'JSExpression',
+                              expression: 'variableFromOperation',
+                            },
+                          },
+                        ],
+                      },
+                    },
+                  },
+                ],
+              },
+              {
+                kind: 'OperationDefinition',
+                operationName: 'my not-so-beloved operation',
+                variableExpressionsDefinition: [],
+                stepsDefinition: [
+                  {
+                    kind: 'StepDefinition',
+                    variableExpressionsDefinition: [],
+                    stepName: 'step',
+                    condition: {
+                      kind: 'JSExpression',
+                      expression: 'true',
+                    },
+                    iterationDefinition: {
+                      kind: 'IterationDefinition',
+                    },
+                    run: {
+                      kind: 'EvalDefinition',
+                      outcomeDefinition: {
+                        kind: 'OutcomeDefinition',
+                        setDefinition: [
+                          {
+                            kind: 'VariableExpressionsDefinition',
+                            left: 'variableFromOperation',
+                            right: {
+                              kind: 'JSExpression',
+                              expression: '12',
+                            },
+                          },
+                        ],
+                      },
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+          { usecase: 'testCase' }
+        )
+    ).rejects.toThrow('Operation my beloved operation not found');
+  });
+
   it('should call an API', async () => {
+    await mockServer.get('/twelve').thenJson(200, { data: 12 });
+    const url = mockServer.urlFor('/twelve');
     const result = await interpreter.visit(
       {
         kind: 'MapDocument',
@@ -436,12 +582,12 @@ describe('MapInterpreter', () => {
                   definition: {
                     kind: 'HTTPOperationDefinition',
                     variableExpressionsDefinition: [],
-                    url: `http://localhost:${port}/twelve`,
+                    url,
                     method: 'GET',
                     responseDefinition: {
                       statusCode: 200,
                       contentType: 'application/json',
-                      contentLanguage: 'en_US',
+                      contentLanguage: 'en-US',
                       outcomeDefinition: {
                         kind: 'OutcomeDefinition',
                         resultDefinition: [
@@ -450,13 +596,14 @@ describe('MapInterpreter', () => {
                             left: 'result',
                             right: {
                               kind: 'JSExpression',
-                              expression: 'response.data',
+                              expression: 'body.data',
                             },
                           },
                         ],
                       },
                     },
                     requestDefinition: {
+                      contentType: 'application/json',
                       body: [],
                       headers: [],
                       security: 'other',
@@ -475,7 +622,172 @@ describe('MapInterpreter', () => {
     expect(result).toEqual({ result: 12 });
   });
 
+  it('should call an API with relative URL', async () => {
+    await mockServer.get('/twelve').thenJson(200, { data: 12 });
+    const baseUrl = mockServer.urlFor('/twelve').replace('/twelve', '');
+    const result = await interpreter.visit(
+      {
+        kind: 'MapDocument',
+        map: {
+          kind: 'Map',
+          profileId: {
+            kind: 'ProfileId',
+            profileId: 'hello!',
+          },
+          provider: {
+            kind: 'Provider',
+            providerId: 'hi!',
+          },
+        },
+        definitions: [
+          {
+            kind: 'MapDefinition',
+            mapName: 'testMap',
+            usecaseName: 'testCase',
+            variableExpressionsDefinition: [],
+            stepsDefinition: [
+              {
+                kind: 'StepDefinition',
+                variableExpressionsDefinition: [],
+                stepName: 'oneAndOnlyStep',
+                condition: {
+                  kind: 'JSExpression',
+                  expression: 'true',
+                },
+                iterationDefinition: {
+                  kind: 'IterationDefinition',
+                },
+                run: {
+                  kind: 'NetworkOperationDefinition',
+                  definition: {
+                    kind: 'HTTPOperationDefinition',
+                    variableExpressionsDefinition: [],
+                    url: '/twelve',
+                    method: 'GET',
+                    responseDefinition: {
+                      statusCode: 200,
+                      contentType: 'application/json',
+                      contentLanguage: 'en-US',
+                      outcomeDefinition: {
+                        kind: 'OutcomeDefinition',
+                        resultDefinition: [
+                          {
+                            kind: 'MapExpressionsDefinition',
+                            left: 'result',
+                            right: {
+                              kind: 'JSExpression',
+                              expression: 'body.data',
+                            },
+                          },
+                        ],
+                      },
+                    },
+                    requestDefinition: {
+                      contentType: 'application/json',
+                      body: [],
+                      headers: [],
+                      security: 'other',
+                      queryParametersDefinition: [],
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        ],
+      },
+      { usecase: 'testCase', baseUrl }
+    );
+
+    expect(result).toEqual({ result: 12 });
+  });
+
+  it('should throw when calling an API with relative URL but not providing baseUrl', async () => {
+    await mockServer.get('/twelve').thenJson(200, { data: 12 });
+    await expect(
+      async () =>
+        await interpreter.visit(
+          {
+            kind: 'MapDocument',
+            map: {
+              kind: 'Map',
+              profileId: {
+                kind: 'ProfileId',
+                profileId: 'hello!',
+              },
+              provider: {
+                kind: 'Provider',
+                providerId: 'hi!',
+              },
+            },
+            definitions: [
+              {
+                kind: 'MapDefinition',
+                mapName: 'testMap',
+                usecaseName: 'testCase',
+                variableExpressionsDefinition: [],
+                stepsDefinition: [
+                  {
+                    kind: 'StepDefinition',
+                    variableExpressionsDefinition: [],
+                    stepName: 'oneAndOnlyStep',
+                    condition: {
+                      kind: 'JSExpression',
+                      expression: 'true',
+                    },
+                    iterationDefinition: {
+                      kind: 'IterationDefinition',
+                    },
+                    run: {
+                      kind: 'NetworkOperationDefinition',
+                      definition: {
+                        kind: 'HTTPOperationDefinition',
+                        variableExpressionsDefinition: [],
+                        url: '/twelve',
+                        method: 'GET',
+                        responseDefinition: {
+                          statusCode: 200,
+                          contentType: 'application/json',
+                          contentLanguage: 'en-US',
+                          outcomeDefinition: {
+                            kind: 'OutcomeDefinition',
+                            resultDefinition: [
+                              {
+                                kind: 'MapExpressionsDefinition',
+                                left: 'result',
+                                right: {
+                                  kind: 'JSExpression',
+                                  expression: 'body.data',
+                                },
+                              },
+                            ],
+                          },
+                        },
+                        requestDefinition: {
+                          contentType: 'application/json',
+                          body: [],
+                          headers: [],
+                          security: 'other',
+                          queryParametersDefinition: [],
+                        },
+                      },
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+          { usecase: 'testCase' }
+        )
+    ).rejects.toThrow('Relative URL specified, but base URL not provided!');
+  });
+
   it('should call an API with parameters', async () => {
+    await mockServer
+      .get('/twelve')
+      .withQuery({ page: 2 })
+      .thenJson(200, { data: 144 });
+    const url = mockServer.urlFor('/twelve');
     const result = await interpreter.visit(
       {
         kind: 'MapDocument',
@@ -522,12 +834,12 @@ describe('MapInterpreter', () => {
                   definition: {
                     kind: 'HTTPOperationDefinition',
                     variableExpressionsDefinition: [],
-                    url: `http://localhost:${port}/twelve`,
+                    url,
                     method: 'GET',
                     responseDefinition: {
                       statusCode: 200,
                       contentType: 'application/json',
-                      contentLanguage: 'en_US',
+                      contentLanguage: 'en-US',
                       outcomeDefinition: {
                         kind: 'OutcomeDefinition',
                         resultDefinition: [
@@ -536,13 +848,14 @@ describe('MapInterpreter', () => {
                             left: 'result',
                             right: {
                               kind: 'JSExpression',
-                              expression: 'response.data',
+                              expression: 'body.data',
                             },
                           },
                         ],
                       },
                     },
                     requestDefinition: {
+                      contentType: 'application/json',
                       body: [],
                       headers: [],
                       security: 'other',
@@ -571,6 +884,12 @@ describe('MapInterpreter', () => {
   });
 
   it('should call an API with parameters and POST request', async () => {
+    await mockServer
+      .post('/checkBody')
+      .withJsonBody({ anArray: [1, 2, 3] })
+      .withHeaders({ someheader: 'hello' })
+      .thenJson(201, { bodyOk: true, headerOk: true });
+    const url = mockServer.urlFor('/checkBody');
     const result = await interpreter.visit(
       {
         kind: 'MapDocument',
@@ -608,12 +927,12 @@ describe('MapInterpreter', () => {
                   definition: {
                     kind: 'HTTPOperationDefinition',
                     variableExpressionsDefinition: [],
-                    url: `http://localhost:${port}/checkBody`,
+                    url,
                     method: 'POST',
                     responseDefinition: {
                       statusCode: 201,
                       contentType: 'application/json',
-                      contentLanguage: 'en_US',
+                      contentLanguage: 'en-US',
                       outcomeDefinition: {
                         kind: 'OutcomeDefinition',
                         resultDefinition: [
@@ -622,13 +941,14 @@ describe('MapInterpreter', () => {
                             left: 'result',
                             right: {
                               kind: 'JSExpression',
-                              expression: 'response',
+                              expression: 'body',
                             },
                           },
                         ],
                       },
                     },
                     requestDefinition: {
+                      contentType: 'application/json',
                       body: [
                         {
                           kind: 'MapExpressionsDefinition',
@@ -671,6 +991,12 @@ describe('MapInterpreter', () => {
   });
 
   it('should run multi step operation', async () => {
+    await mockServer
+      .get('/first')
+      .thenJson(200, { firstStep: { someVar: 12 } });
+    await mockServer.get('/second').thenJson(200, { secondStep: 5 });
+    const url1 = mockServer.urlFor('/first');
+    const url2 = mockServer.urlFor('/second');
     const result = await interpreter.visit(
       {
         kind: 'MapDocument',
@@ -705,9 +1031,10 @@ describe('MapInterpreter', () => {
                   definition: {
                     kind: 'HTTPOperationDefinition',
                     variableExpressionsDefinition: [],
-                    url: `http://localhost:${port}/first`,
+                    url: url1,
                     method: 'get',
                     requestDefinition: {
+                      contentType: 'application/json',
                       queryParametersDefinition: [],
                       security: 'other',
                       headers: [],
@@ -716,7 +1043,7 @@ describe('MapInterpreter', () => {
                     responseDefinition: {
                       statusCode: 200,
                       contentType: 'application/json',
-                      contentLanguage: 'en_US',
+                      contentLanguage: 'en-US',
                       outcomeDefinition: {
                         kind: 'OutcomeDefinition',
                         setDefinition: [
@@ -725,7 +1052,7 @@ describe('MapInterpreter', () => {
                             left: 'someVariable',
                             right: {
                               kind: 'JSExpression',
-                              expression: 'response.firstStep.someVar',
+                              expression: 'body.firstStep.someVar',
                             },
                           },
                         ],
@@ -747,9 +1074,10 @@ describe('MapInterpreter', () => {
                   definition: {
                     kind: 'HTTPOperationDefinition',
                     variableExpressionsDefinition: [],
-                    url: `http://localhost:${port}/second`,
+                    url: url2,
                     method: 'get',
                     requestDefinition: {
+                      contentType: 'application/json',
                       queryParametersDefinition: [],
                       security: 'other',
                       headers: [],
@@ -758,7 +1086,7 @@ describe('MapInterpreter', () => {
                     responseDefinition: {
                       statusCode: 200,
                       contentType: 'application/json',
-                      contentLanguage: 'en_US',
+                      contentLanguage: 'en-US',
                       outcomeDefinition: {
                         kind: 'OutcomeDefinition',
                         setDefinition: [
@@ -767,7 +1095,7 @@ describe('MapInterpreter', () => {
                             left: 'someOtherVariable',
                             right: {
                               kind: 'JSExpression',
-                              expression: 'response.secondStep',
+                              expression: 'body.secondStep',
                             },
                           },
                         ],
@@ -809,5 +1137,553 @@ describe('MapInterpreter', () => {
     );
 
     expect(result).toEqual({ result: 12 * 5 });
+  });
+
+  it('should call an API with Basic auth', async () => {
+    await mockServer
+      .get('/basic')
+      .withHeaders({ Authorization: 'Basic bmFtZTpwYXNzd29yZA==' })
+      .thenJson(200, { data: 12 });
+    const url = mockServer.urlFor('/basic');
+    const result = await interpreter.visit(
+      {
+        kind: 'MapDocument',
+        map: {
+          kind: 'Map',
+          profileId: {
+            kind: 'ProfileId',
+            profileId: 'hello!',
+          },
+          provider: {
+            kind: 'Provider',
+            providerId: 'hi!',
+          },
+        },
+        definitions: [
+          {
+            kind: 'MapDefinition',
+            mapName: 'testMap',
+            usecaseName: 'testCase',
+            variableExpressionsDefinition: [],
+            stepsDefinition: [
+              {
+                kind: 'StepDefinition',
+                variableExpressionsDefinition: [],
+                stepName: 'oneAndOnlyStep',
+                condition: {
+                  kind: 'JSExpression',
+                  expression: 'true',
+                },
+                iterationDefinition: {
+                  kind: 'IterationDefinition',
+                },
+                run: {
+                  kind: 'NetworkOperationDefinition',
+                  definition: {
+                    kind: 'HTTPOperationDefinition',
+                    variableExpressionsDefinition: [],
+                    url,
+                    method: 'GET',
+                    responseDefinition: {
+                      statusCode: 200,
+                      contentType: 'application/json',
+                      contentLanguage: 'en-US',
+                      outcomeDefinition: {
+                        kind: 'OutcomeDefinition',
+                        resultDefinition: [
+                          {
+                            kind: 'MapExpressionsDefinition',
+                            left: 'result',
+                            right: {
+                              kind: 'JSExpression',
+                              expression: 'body.data',
+                            },
+                          },
+                        ],
+                      },
+                    },
+                    requestDefinition: {
+                      contentType: 'application/json',
+                      body: [],
+                      headers: [],
+                      security: 'basic',
+                      queryParametersDefinition: [],
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        ],
+      },
+      {
+        usecase: 'testCase',
+        auth: { basic: { username: 'name', password: 'password' } },
+      }
+    );
+
+    expect(result).toEqual({ result: 12 });
+  });
+
+  it('should call an API with Bearer auth', async () => {
+    await mockServer
+      .get('/bearer')
+      .withHeaders({ Authorization: 'Bearer SuperSecret' })
+      .thenJson(200, { data: 12 });
+    const url = mockServer.urlFor('/bearer');
+    const result = await interpreter.visit(
+      {
+        kind: 'MapDocument',
+        map: {
+          kind: 'Map',
+          profileId: {
+            kind: 'ProfileId',
+            profileId: 'hello!',
+          },
+          provider: {
+            kind: 'Provider',
+            providerId: 'hi!',
+          },
+        },
+        definitions: [
+          {
+            kind: 'MapDefinition',
+            mapName: 'testMap',
+            usecaseName: 'testCase',
+            variableExpressionsDefinition: [],
+            stepsDefinition: [
+              {
+                kind: 'StepDefinition',
+                variableExpressionsDefinition: [],
+                stepName: 'oneAndOnlyStep',
+                condition: {
+                  kind: 'JSExpression',
+                  expression: 'true',
+                },
+                iterationDefinition: {
+                  kind: 'IterationDefinition',
+                },
+                run: {
+                  kind: 'NetworkOperationDefinition',
+                  definition: {
+                    kind: 'HTTPOperationDefinition',
+                    variableExpressionsDefinition: [],
+                    url,
+                    method: 'GET',
+                    responseDefinition: {
+                      statusCode: 200,
+                      contentType: 'application/json',
+                      contentLanguage: 'en-US',
+                      outcomeDefinition: {
+                        kind: 'OutcomeDefinition',
+                        resultDefinition: [
+                          {
+                            kind: 'MapExpressionsDefinition',
+                            left: 'result',
+                            right: {
+                              kind: 'JSExpression',
+                              expression: 'body.data',
+                            },
+                          },
+                        ],
+                      },
+                    },
+                    requestDefinition: {
+                      contentType: 'application/json',
+                      body: [],
+                      headers: [],
+                      security: 'bearer',
+                      queryParametersDefinition: [],
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        ],
+      },
+      {
+        usecase: 'testCase',
+        auth: { bearer: { token: 'SuperSecret' } },
+      }
+    );
+
+    expect(result).toEqual({ result: 12 });
+  });
+
+  it('should call an API with multipart/form-data body', async () => {
+    await mockServer.post('/formdata').thenCallback(request => {
+      if (
+        request.body.text &&
+        request.body.text.includes('formData') &&
+        request.body.text.includes('myFormData') &&
+        request.body.text.includes('is') &&
+        request.body.text.includes('present')
+      ) {
+        return {
+          json: { data: 12 },
+          status: 201,
+        };
+      }
+
+      return { json: { failed: true }, statusCode: 400 };
+    });
+    const url = mockServer.urlFor('/formdata');
+    const result = await interpreter.visit(
+      {
+        kind: 'MapDocument',
+        map: {
+          kind: 'Map',
+          profileId: {
+            kind: 'ProfileId',
+            profileId: 'hello!',
+          },
+          provider: {
+            kind: 'Provider',
+            providerId: 'hi!',
+          },
+        },
+        definitions: [
+          {
+            kind: 'MapDefinition',
+            mapName: 'testMap',
+            usecaseName: 'testCase',
+            variableExpressionsDefinition: [],
+            stepsDefinition: [
+              {
+                kind: 'StepDefinition',
+                variableExpressionsDefinition: [],
+                stepName: 'oneAndOnlyStep',
+                condition: {
+                  kind: 'JSExpression',
+                  expression: 'true',
+                },
+                iterationDefinition: {
+                  kind: 'IterationDefinition',
+                },
+                run: {
+                  kind: 'NetworkOperationDefinition',
+                  definition: {
+                    kind: 'HTTPOperationDefinition',
+                    variableExpressionsDefinition: [],
+                    url,
+                    method: 'POST',
+                    responseDefinition: {
+                      statusCode: 201,
+                      contentType: 'application/json',
+                      contentLanguage: 'en-US',
+                      outcomeDefinition: {
+                        kind: 'OutcomeDefinition',
+                        resultDefinition: [
+                          {
+                            kind: 'MapExpressionsDefinition',
+                            left: 'result',
+                            right: {
+                              kind: 'JSExpression',
+                              expression: 'body.data',
+                            },
+                          },
+                        ],
+                      },
+                    },
+                    requestDefinition: {
+                      contentType: 'multipart/form-data',
+                      body: [
+                        {
+                          kind: 'MapExpressionsDefinition',
+                          left: 'formData',
+                          right: {
+                            kind: 'JSExpression',
+                            expression: '"myFormData"',
+                          },
+                        },
+                        {
+                          kind: 'MapExpressionsDefinition',
+                          left: 'is',
+                          right: {
+                            kind: 'JSExpression',
+                            expression: '"present"',
+                          },
+                        },
+                      ],
+                      headers: [],
+                      security: 'other',
+                      queryParametersDefinition: [],
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        ],
+      },
+      { usecase: 'testCase' }
+    );
+
+    expect(result).toEqual({ result: 12 });
+  });
+
+  it('should throw on an API with Basic auth, but without credentials', async () => {
+    await expect(
+      async () =>
+        await interpreter.visit(
+          {
+            kind: 'MapDocument',
+            map: {
+              kind: 'Map',
+              profileId: {
+                kind: 'ProfileId',
+                profileId: 'hello!',
+              },
+              provider: {
+                kind: 'Provider',
+                providerId: 'hi!',
+              },
+            },
+            definitions: [
+              {
+                kind: 'MapDefinition',
+                mapName: 'testMap',
+                usecaseName: 'testCase',
+                variableExpressionsDefinition: [],
+                stepsDefinition: [
+                  {
+                    kind: 'StepDefinition',
+                    variableExpressionsDefinition: [],
+                    stepName: 'oneAndOnlyStep',
+                    condition: {
+                      kind: 'JSExpression',
+                      expression: 'true',
+                    },
+                    iterationDefinition: {
+                      kind: 'IterationDefinition',
+                    },
+                    run: {
+                      kind: 'NetworkOperationDefinition',
+                      definition: {
+                        kind: 'HTTPOperationDefinition',
+                        variableExpressionsDefinition: [],
+                        url: '/unimportant',
+                        method: 'GET',
+                        responseDefinition: {
+                          statusCode: 200,
+                          contentType: 'application/json',
+                          contentLanguage: 'en-US',
+                          outcomeDefinition: {
+                            kind: 'OutcomeDefinition',
+                            resultDefinition: [
+                              {
+                                kind: 'MapExpressionsDefinition',
+                                left: 'result',
+                                right: {
+                                  kind: 'JSExpression',
+                                  expression: 'body.data',
+                                },
+                              },
+                            ],
+                          },
+                        },
+                        requestDefinition: {
+                          contentType: 'application/json',
+                          body: [],
+                          headers: [],
+                          security: 'basic',
+                          queryParametersDefinition: [],
+                        },
+                      },
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            usecase: 'testCase',
+          }
+        )
+    ).rejects.toThrow();
+  });
+
+  it('should throw on an API with Bearer auth, but without credentials', async () => {
+    await expect(
+      async () =>
+        await interpreter.visit(
+          {
+            kind: 'MapDocument',
+            map: {
+              kind: 'Map',
+              profileId: {
+                kind: 'ProfileId',
+                profileId: 'hello!',
+              },
+              provider: {
+                kind: 'Provider',
+                providerId: 'hi!',
+              },
+            },
+            definitions: [
+              {
+                kind: 'MapDefinition',
+                mapName: 'testMap',
+                usecaseName: 'testCase',
+                variableExpressionsDefinition: [],
+                stepsDefinition: [
+                  {
+                    kind: 'StepDefinition',
+                    variableExpressionsDefinition: [],
+                    stepName: 'oneAndOnlyStep',
+                    condition: {
+                      kind: 'JSExpression',
+                      expression: 'true',
+                    },
+                    iterationDefinition: {
+                      kind: 'IterationDefinition',
+                    },
+                    run: {
+                      kind: 'NetworkOperationDefinition',
+                      definition: {
+                        kind: 'HTTPOperationDefinition',
+                        variableExpressionsDefinition: [],
+                        url: '/unimportant',
+                        method: 'GET',
+                        responseDefinition: {
+                          statusCode: 200,
+                          contentType: 'application/json',
+                          contentLanguage: 'en-US',
+                          outcomeDefinition: {
+                            kind: 'OutcomeDefinition',
+                            resultDefinition: [
+                              {
+                                kind: 'MapExpressionsDefinition',
+                                left: 'result',
+                                right: {
+                                  kind: 'JSExpression',
+                                  expression: 'body.data',
+                                },
+                              },
+                            ],
+                          },
+                        },
+                        requestDefinition: {
+                          contentType: 'application/json',
+                          body: [],
+                          headers: [],
+                          security: 'bearer',
+                          queryParametersDefinition: [],
+                        },
+                      },
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            usecase: 'testCase',
+          }
+        )
+    ).rejects.toThrow();
+  });
+
+  it('should call an API with application/x-www-form-urlencoded', async () => {
+    await mockServer
+      .post('/urlencoded')
+      .withForm({ form: 'is', o: 'k' })
+      .thenJson(201, { data: 12 });
+    const url = mockServer.urlFor('/urlencoded');
+    const result = await interpreter.visit(
+      {
+        kind: 'MapDocument',
+        map: {
+          kind: 'Map',
+          profileId: {
+            kind: 'ProfileId',
+            profileId: 'hello!',
+          },
+          provider: {
+            kind: 'Provider',
+            providerId: 'hi!',
+          },
+        },
+        definitions: [
+          {
+            kind: 'MapDefinition',
+            mapName: 'testMap',
+            usecaseName: 'testCase',
+            variableExpressionsDefinition: [],
+            stepsDefinition: [
+              {
+                kind: 'StepDefinition',
+                variableExpressionsDefinition: [],
+                stepName: 'oneAndOnlyStep',
+                condition: {
+                  kind: 'JSExpression',
+                  expression: 'true',
+                },
+                iterationDefinition: {
+                  kind: 'IterationDefinition',
+                },
+                run: {
+                  kind: 'NetworkOperationDefinition',
+                  definition: {
+                    kind: 'HTTPOperationDefinition',
+                    variableExpressionsDefinition: [],
+                    url,
+                    method: 'POST',
+                    responseDefinition: {
+                      statusCode: 201,
+                      contentType: 'application/json',
+                      contentLanguage: 'en-US',
+                      outcomeDefinition: {
+                        kind: 'OutcomeDefinition',
+                        resultDefinition: [
+                          {
+                            kind: 'MapExpressionsDefinition',
+                            left: 'result',
+                            right: {
+                              kind: 'JSExpression',
+                              expression: 'body.data',
+                            },
+                          },
+                        ],
+                      },
+                    },
+                    requestDefinition: {
+                      contentType: 'application/x-www-form-urlencoded',
+                      body: [
+                        {
+                          kind: 'MapExpressionsDefinition',
+                          left: 'form',
+                          right: {
+                            kind: 'JSExpression',
+                            expression: '"is"',
+                          },
+                        },
+                        {
+                          kind: 'MapExpressionsDefinition',
+                          left: 'o',
+                          right: {
+                            kind: 'JSExpression',
+                            expression: '"k"',
+                          },
+                        },
+                      ],
+                      headers: [],
+                      security: 'other',
+                      queryParametersDefinition: [],
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        ],
+      },
+      { usecase: 'testCase' }
+    );
+
+    expect(result).toEqual({
+      result: 12,
+    });
   });
 });

@@ -10,11 +10,11 @@ import {
   MapDocumentNode,
   MapExpressionDefinitionNode,
   MapNode,
+  MapProfileIdNode,
   NetworkOperationDefinitionNode,
   OperationCallDefinitionNode,
   OperationDefinitionNode,
   OutcomeDefinitionNode,
-  ProfileIdNode,
   ProviderNode,
   StepDefinitionNode,
   VariableExpressionDefinitionNode,
@@ -24,21 +24,25 @@ import { evalScript } from '../../client/interpreter/Sandbox';
 import { HttpClient } from '../http';
 import { MapParameters, MapVisitor } from './interfaces';
 
-function assertUnreachable(_node: never): never;
+function assertUnreachable(node: never): never;
 function assertUnreachable(node: MapASTNode): never {
   throw new Error(`Invalid Node kind: ${node.kind}`);
 }
 
+export type Variables = {
+  [key: string]: string | Variables;
+};
+
 export class MapInterpereter implements MapVisitor {
-  private variableStack: Record<string, string>[] = [];
+  private variableStack: Variables[] = [];
 
   private operations: OperationDefinitionNode[] = [];
 
-  private operationScopedVariables: Record<string, Record<string, string>> = {};
+  private operationScopedVariables: Record<string, Variables> = {};
 
   private operationScope: string | undefined;
 
-  private mapScopedVariables: Record<string, Record<string, string>> = {};
+  private mapScopedVariables: Record<string, Variables> = {};
 
   private mapScope: string | undefined;
 
@@ -119,9 +123,18 @@ export class MapInterpereter implements MapVisitor {
       method: node.method,
       body,
       headers,
+      contentType: node.requestDefinition.contentType,
+      accept: node.responseDefinition.contentType,
+      security: node.requestDefinition.security,
+      basic: parameters.auth?.basic,
+      bearer: parameters.auth?.bearer,
+      baseUrl: parameters.baseUrl,
     });
 
-    this.variableStack.push({ response: response.body as string });
+    this.variableStack.push({
+      body: response.body as string,
+      headers: response.headers,
+    });
 
     return await this.visit(
       node.responseDefinition.outcomeDefinition,
@@ -185,7 +198,7 @@ export class MapInterpereter implements MapVisitor {
       .find(definition => definition.usecaseName === parameters.usecase);
 
     if (!operation) {
-      throw new Error('Operation not found');
+      throw new Error('Usecase not found.');
     }
 
     return await this.visit(operation, parameters);
@@ -226,8 +239,9 @@ export class MapInterpereter implements MapVisitor {
       throw new Error(`Operation ${node.operationName} not found!`);
     }
 
-    this.operationScope = operation.operationName;
     let result = await this.visit(operation, parameters);
+
+    this.operationScope = operation.operationName;
 
     if (!result) {
       result = await this.visit(node.successOutcomeDefinition, parameters);
@@ -242,15 +256,29 @@ export class MapInterpereter implements MapVisitor {
     node: OperationDefinitionNode,
     parameters: MapParameters
   ): Promise<unknown> {
-    const viableSteps = node.stepsDefinition.filter(async stepDefinition => {
-      return await this.visit(stepDefinition.condition, parameters);
-    });
+    this.operationScope = node.operationName;
 
-    if (viableSteps.length < 1) {
-      throw new Error('No step satisfies condition!');
+    let result: unknown;
+    for (const step of node.stepsDefinition) {
+      const condition = await this.visit(step.condition, parameters);
+
+      if (condition) {
+        const variables = await this.processVariableExpressions(
+          node.variableExpressionsDefinition,
+          parameters
+        );
+
+        this.variableStack.push(variables);
+        const stepResult = await this.visit(step, parameters);
+        this.variableStack.pop();
+
+        if (stepResult) {
+          result = stepResult;
+        }
+      }
     }
 
-    const result = await this.visit(viableSteps[0], parameters);
+    this.operationScope = undefined;
 
     return result;
   }
@@ -285,21 +313,18 @@ export class MapInterpereter implements MapVisitor {
         };
 
         return undefined;
-      } else {
-        throw new Error('Something went very wrong, this should not happen!');
       }
     } else if (node.resultDefinition) {
       return await this.processMapExpressions(
         node.resultDefinition,
         parameters
       );
-    } else {
-      throw new Error('Something went very wrong, this should not happen!');
     }
+    throw new Error('Something went very wrong, this should not happen!');
   }
 
   visitProfileIdNode(
-    _node: ProfileIdNode,
+    _node: MapProfileIdNode,
     _parameters: MapParameters
   ): Promise<unknown> | unknown {
     throw new Error('Method not implemented.');
@@ -337,7 +362,7 @@ export class MapInterpereter implements MapVisitor {
     };
   }
 
-  private get variables(): Record<string, string> {
+  private get variables(): Variables {
     let variables = this.variableStack.reduce(
       (acc, variableDefinition) => ({
         ...acc,
@@ -370,25 +395,31 @@ export class MapInterpereter implements MapVisitor {
     expressions: VariableExpressionDefinitionNode[],
     parameters: MapParameters
   ): Promise<Record<string, string>> {
-    return expressions.reduce(
-      async (acc, expression) => ({
-        ...acc,
-        ...((await this.visit(expression, parameters)) as {}),
-      }),
-      Promise.resolve({})
-    );
+    let variables: Record<string, string> = {};
+    for (const expression of expressions) {
+      const result = (await this.visit(expression, parameters)) as Record<
+        string,
+        string
+      >;
+      variables = { ...variables, ...result };
+    }
+
+    return variables;
   }
 
   private async processMapExpressions(
     expressions: MapExpressionDefinitionNode[],
     parameters: MapParameters
   ): Promise<Record<string, string>> {
-    return expressions.reduce(
-      async (acc, expression) => ({
-        ...acc,
-        ...((await this.visit(expression, parameters)) as {}),
-      }),
-      Promise.resolve({})
-    );
+    let variables: Record<string, string> = {};
+    for (const expression of expressions) {
+      const result = (await this.visit(expression, parameters)) as Record<
+        string,
+        string
+      >;
+      variables = { ...variables, ...result };
+    }
+
+    return variables;
   }
 }

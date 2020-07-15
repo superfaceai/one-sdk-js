@@ -1,10 +1,12 @@
 import { VM } from 'vm2';
 
+import { Variables } from '../../internal/interpreter/map-interpreter';
+
 export const SCRIPT_TIMEOUT = 100;
 
 export function evalScript(
   js: string,
-  variableDefinitions?: Record<string, string>
+  variableDefinitions?: Variables
 ): unknown {
   const vm = new VM({
     sandbox: {
@@ -26,7 +28,7 @@ export function evalScript(
     delete globalThis.require // Forbidden
     delete globalThis.process // Forbidden
     delete globalThis.console // Forbidden/useless
-    
+
     delete globalThis.setTimeout
     delete globalThis.setInterval
     delete globalThis.setImmediate

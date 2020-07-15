@@ -1,62 +1,38 @@
-import {
-  createServer,
-  IncomingMessage,
-  RequestListener,
-  ServerResponse,
-} from 'http';
+import { getLocal } from 'mockttp';
 
 import { HttpClient } from './http';
 
-const port = Math.floor(Math.random() * 64511 + 1024);
-
-const listener: RequestListener = (
-  req: IncomingMessage,
-  res: ServerResponse
-) => {
-  switch (`${req.method} ${req.url}`) {
-    case 'GET /valid':
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.write(JSON.stringify({ response: 'valid' }));
-      break;
-
-    case 'GET /invalid':
-      res.writeHead(404);
-      res.write(JSON.stringify({ error: { message: 'Not found' } }));
-      break;
-
-    default:
-      throw new Error(
-        `Invalid combination of url and method: ${req.url}, ${req.method}`
-      );
-  }
-  res.end();
-};
-
-const server = createServer(listener);
+const mockServer = getLocal();
 
 describe('HttpClient', () => {
-  beforeAll(() => {
-    server.listen(port);
+  beforeEach(async () => {
+    await mockServer.start();
   });
 
-  afterAll(() => {
-    server.close();
+  afterEach(async () => {
+    await mockServer.stop();
   });
 
   it('gets basic response', async () => {
-    const response = await HttpClient.request(
-      `http://localhost:${port}/valid`,
-      { method: 'get' }
-    );
+    await mockServer.get('/valid').thenJson(200, { response: 'valid' });
+    const url = mockServer.urlFor('/valid');
+    const response = await HttpClient.request(url, {
+      method: 'get',
+      accept: 'application/json',
+    });
     expect(response.statusCode).toEqual(200);
     expect(response.body).toEqual({ response: 'valid' });
   });
 
   it('gets error response', async () => {
-    const response = await HttpClient.request(
-      `http://localhost:${port}/invalid`,
-      { method: 'get' }
-    );
+    await mockServer
+      .get('/invalid')
+      .thenJson(404, { error: { message: 'Not found' } });
+    const url = mockServer.urlFor('/invalid');
+    const response = await HttpClient.request(url, {
+      method: 'get',
+      accept: 'application/json',
+    });
     expect(response.statusCode).toEqual(404);
     expect(response.body).toEqual({ error: { message: 'Not found' } });
   });
