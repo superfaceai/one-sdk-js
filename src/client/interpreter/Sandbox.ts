@@ -1,6 +1,6 @@
 import { VM } from 'vm2';
 
-import { Variables } from '../../internal/interpreter/map-interpreter';
+import { Variables } from '../../internal/interpreter/interfaces';
 
 export const SCRIPT_TIMEOUT = 100;
 

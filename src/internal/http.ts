@@ -2,6 +2,9 @@ import 'isomorphic-form-data';
 
 import fetch, { Headers } from 'cross-fetch';
 
+import { evalScript } from '../client/interpreter/Sandbox';
+import { Variables } from './interpreter/interfaces';
+
 export interface HttpResponse {
   statusCode: number;
   body: unknown;
@@ -50,6 +53,54 @@ const formData = (data?: Record<string, string>): FormData => {
   return formData;
 };
 
+const createUrl = async (
+  inputUrl: string,
+  parameters: {
+    baseUrl?: string;
+    pathParameters?: Variables;
+    queryParameters?: Record<string, string>;
+  }
+): Promise<string> => {
+  const query = queryParameters(parameters.queryParameters);
+  const isRelative = /^\/[^/]/.test(inputUrl);
+
+  if (isRelative && !parameters.baseUrl) {
+    throw new Error('Relative URL specified, but base URL not provided!');
+  }
+
+  let url = isRelative ? `${parameters.baseUrl}${inputUrl}` : inputUrl;
+
+  if (parameters.pathParameters) {
+    const pathParameters = Object.keys(parameters.pathParameters);
+    const replacements: string[] = [];
+
+    const regex = RegExp('{(.*?)}', 'g');
+    let replacement: RegExpExecArray | null;
+    while ((replacement = regex.exec(url)) !== null) {
+      replacements.push(replacement[1]);
+    }
+
+    const missingKeys = replacements.filter(
+      key => !pathParameters.includes(key)
+    );
+
+    if (missingKeys.length) {
+      throw new Error(
+        `Values for URL replacement keys not found: ${missingKeys.join(', ')}`
+      );
+    }
+
+    for (const param of pathParameters) {
+      url = url.replace(
+        `{${param}}`,
+        (await evalScript(param, parameters.pathParameters)) as string
+      );
+    }
+  }
+
+  return `${url}${query}`;
+};
+
 export const HttpClient = {
   request: async (
     url: string,
@@ -64,10 +115,9 @@ export const HttpClient = {
       basic?: { username: string; password: string };
       bearer?: { token: string };
       baseUrl?: string;
+      pathParameters?: Variables;
     }
   ): Promise<HttpResponse> => {
-    const query = queryParameters(parameters.queryParameters);
-
     const headers = new Headers(parameters?.headers);
     headers.append('Accept', parameters.accept ?? '*/*');
 
@@ -100,16 +150,14 @@ export const HttpClient = {
       headers.append(AUTH_HEADER_NAME, bearerAuth(parameters.bearer));
     }
 
-    const isRelative = /^\/[^/]/.test(url);
-
-    if (isRelative && !parameters.baseUrl) {
-      throw new Error('Relative URL specified, but base URL not provided!');
-    }
-
-    const urlPrefix = isRelative ? parameters.baseUrl : '';
-
     const response = await fetch(
-      encodeURI(`${urlPrefix}${url}${query}`),
+      encodeURI(
+        await createUrl(url, {
+          baseUrl: parameters.baseUrl,
+          pathParameters: parameters.pathParameters,
+          queryParameters: parameters.queryParameters,
+        })
+      ),
       params
     );
 

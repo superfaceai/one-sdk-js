@@ -18,87 +18,42 @@ import {
   VariableExpressionDefinitionNode,
 } from '@superindustries/language';
 
-export interface MapParameters {
-  usecase?: string;
-  auth?: {
-    basic?: {
-      username: string;
-      password: string;
-    };
-    bearer?: {
-      token: string;
-    };
-  };
-  baseUrl?: string;
-}
+export type Variables = {
+  [key: string]: string | Variables;
+};
 
 export interface MapVisitor {
-  visit(
-    node: MapASTNode,
-    parameters: MapParameters
-  ): Promise<unknown> | unknown;
-  visitEvalDefinitionNode(
-    node: EvalDefinitionNode,
-    parameters: MapParameters
-  ): Promise<unknown> | unknown;
+  visit(node: MapASTNode): Promise<unknown> | unknown;
+  visitEvalDefinitionNode(node: EvalDefinitionNode): Promise<unknown> | unknown;
   visitHTTPOperationDefinitionNode(
-    node: HTTPOperationDefinitionNode,
-    parameters: MapParameters
+    node: HTTPOperationDefinitionNode
   ): Promise<unknown> | unknown;
   visitIterationDefinitionNode(
-    node: IterationDefinitionNode,
-    parameters: MapParameters
+    node: IterationDefinitionNode
   ): Promise<unknown> | unknown;
-  visitJSExpressionNode(
-    node: JSExpressionNode,
-    parameters: MapParameters
-  ): Promise<unknown> | unknown;
-  visitMapDefinitionNode(
-    node: MapDefinitionNode,
-    parameters: MapParameters
-  ): Promise<unknown> | unknown;
-  visitMapDocumentNode(
-    node: MapDocumentNode,
-    parameters: MapParameters
-  ): Promise<unknown> | unknown;
+  visitJSExpressionNode(node: JSExpressionNode): Promise<unknown> | unknown;
+  visitMapDefinitionNode(node: MapDefinitionNode): Promise<unknown> | unknown;
+  visitMapDocumentNode(node: MapDocumentNode): Promise<unknown> | unknown;
   visitMapExpressionDefinitionNode(
-    node: MapExpressionDefinitionNode,
-    parameters: MapParameters
+    node: MapExpressionDefinitionNode
   ): Promise<unknown> | unknown;
-  visitMapNode(
-    node: MapNode,
-    parameters: MapParameters
-  ): Promise<unknown> | unknown;
+  visitMapNode(node: MapNode): Promise<unknown> | unknown;
   visitNetworkOperationDefinitionNode(
-    node: NetworkOperationDefinitionNode,
-    parameters: MapParameters
+    node: NetworkOperationDefinitionNode
   ): Promise<unknown> | unknown;
   visitOperationCallDefinitionNode(
-    node: OperationCallDefinitionNode,
-    parameters: MapParameters
+    node: OperationCallDefinitionNode
   ): Promise<unknown> | unknown;
   visitOperationDefinitionNode(
-    node: OperationDefinitionNode,
-    parameters: MapParameters
+    node: OperationDefinitionNode
   ): Promise<unknown> | unknown;
   visitOutcomeDefinitionNode(
-    node: OutcomeDefinitionNode,
-    parameters: MapParameters
+    node: OutcomeDefinitionNode
   ): Promise<unknown> | unknown;
-  visitProfileIdNode(
-    node: MapProfileIdNode,
-    parameters: MapParameters
-  ): Promise<unknown> | unknown;
-  visitProviderNode(
-    node: ProviderNode,
-    parameters: MapParameters
-  ): Promise<unknown> | unknown;
-  visitStepDefinitionNode(
-    node: StepDefinitionNode,
-    parameters: MapParameters
-  ): Promise<unknown> | unknown;
+  visitProfileIdNode(node: MapProfileIdNode): Promise<unknown> | unknown;
+  visitProviderNode(node: ProviderNode): Promise<unknown> | unknown;
+  visitStepDefinitionNode(node: StepDefinitionNode): Promise<unknown> | unknown;
   visitVariableExpressionDefinitionNode(
-    node: VariableExpressionDefinitionNode,
-    parameters: MapParameters
+    node: VariableExpressionDefinitionNode
   ): Promise<unknown> | unknown;
 }
