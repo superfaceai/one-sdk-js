@@ -27,6 +27,8 @@ jobs:
       # Install and run tests
       - name: Install dependencies
         run: yarn install
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.SUPERFACE_BOT_PAT }}
       - name: Test
         run: yarn test
 
@@ -54,6 +56,8 @@ jobs:
       # Install and run lint
       - name: Install dependencies
         run: yarn install
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.SUPERFACE_BOT_PAT }}
       - name: Lint
         run: yarn lint
       
@@ -81,6 +85,8 @@ jobs:
       # Install and run license checker
       - name: Install dependencies
         run:  yarn install
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.SUPERFACE_BOT_PAT }}
       - name: Install License checker
         run: |
           yarn global add license-checker
