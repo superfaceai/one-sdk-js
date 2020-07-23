@@ -9,6 +9,11 @@ jobs:
       # Setup environment and checkout the project master
       - name: Setup Node.js environment
         uses: actions/setup-node@v1.4.2
+        with:
+          registry-url: "https://npm.pkg.github.com"
+          scope: "@superindustries"
+          always-auth: true
+
       - name: Checkout
         uses: actions/checkout@v2
 
@@ -38,6 +43,11 @@ jobs:
       # Setup environment and checkout the project master
       - name: Setup Node.js environment
         uses: actions/setup-node@v1.4.2
+        with:
+          registry-url: "https://npm.pkg.github.com"
+          scope: "@superindustries"
+          always-auth: true
+
       - name: Checkout
         uses: actions/checkout@v2
 
@@ -67,6 +77,11 @@ jobs:
       # Setup environment and checkout the project master
       - name: Setup Node.js environment
         uses: actions/setup-node@v1.4.2
+        with:
+          registry-url: "https://npm.pkg.github.com"
+          scope: "@superindustries"
+          always-auth: true
+
       - name: Checkout
         uses: actions/checkout@v2
 
