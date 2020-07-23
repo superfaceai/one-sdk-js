@@ -1,4 +1,4 @@
-import { evalScript, SCRIPT_TIMEOUT } from './Sandbox';
+import { evalScript } from './Sandbox';
 
 describe('sandbox', () => {
   beforeEach(() => {
@@ -49,7 +49,7 @@ describe('sandbox', () => {
 
   it('no io', () => {
     expect(() => evalScript('import fs; fs.readFileSync("secrets")')).toThrow(
-      'Cannot use import statement outside a module'
+      /(Cannot use import statement outside a module|Unexpected identifier)/
     );
 
     expect(() => evalScript('console.log')).toThrow('console is not defined');
@@ -61,7 +61,7 @@ describe('sandbox', () => {
 
   it('Halting problem (Stalling the event loop)', () => {
     expect(() => evalScript('while(true) { 1 + 1 }')).toThrow(
-      `Script execution timed out after ${SCRIPT_TIMEOUT}ms`
+      'Script execution timed out'
     );
   });
 
@@ -93,9 +93,9 @@ describe('sandbox', () => {
 
   it('isolation', () => {
     expect(
-      evalScript('globalThis["prop"] = 0; globalThis["prop"]')
+      evalScript('global["prop"] = 0; global["prop"]')
     ).toStrictEqual(0);
 
-    expect(evalScript('globalThis["prop"]')).not.toBeDefined();
+    expect(evalScript('global["prop"]')).not.toBeDefined();
   });
 });
