@@ -1952,4 +1952,62 @@ describe('MapInterpreter', () => {
       result: 12,
     });
   });
+
+  it('should execute Eval definition with nested result', async () => {
+    const interpreter = new MapInterpereter({ usecase: 'testCase' });
+    const result = await interpreter.visit({
+      kind: 'MapDocument',
+      map: {
+        kind: 'Map',
+        profileId: {
+          kind: 'ProfileId',
+          profileId: 'hello!',
+        },
+        provider: {
+          kind: 'Provider',
+          providerId: 'hi!',
+        },
+      },
+      definitions: [
+        {
+          kind: 'MapDefinition',
+          mapName: 'testMap',
+          usecaseName: 'testCase',
+          variableExpressionsDefinition: [],
+          stepsDefinition: [
+            {
+              kind: 'StepDefinition',
+              variableExpressionsDefinition: [],
+              stepName: 'oneAndOnlyStep',
+              condition: {
+                kind: 'JSExpression',
+                expression: 'true',
+              },
+              iterationDefinition: {
+                kind: 'IterationDefinition',
+              },
+              run: {
+                kind: 'EvalDefinition',
+                outcomeDefinition: {
+                  kind: 'OutcomeDefinition',
+                  returnDefinition: [
+                    {
+                      kind: 'MapExpressionsDefinition',
+                      left: 'result.which.is.nested',
+                      right: {
+                        kind: 'JSExpression',
+                        expression: '12',
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result).toEqual({ result: { which: { is: { nested: 12 } } } });
+  });
 });

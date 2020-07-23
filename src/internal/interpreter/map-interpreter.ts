@@ -44,6 +44,32 @@ export interface MapParameters {
   input?: Variables;
 }
 
+export const mergeVariables = (
+  left: Variables,
+  right: Variables
+): Variables => {
+  const result: Variables = {};
+
+  if (typeof left === 'object') {
+    for (const key of Object.keys(left)) {
+      result[key] = left[key];
+    }
+    for (const key of Object.keys(right)) {
+      const l = left[key];
+      const r = right[key];
+      if (typeof r !== 'string' && typeof l !== 'string') {
+        result[key] = mergeVariables(l, r);
+      } else {
+        result[key] = right[key];
+      }
+    }
+  } else {
+    return right;
+  }
+
+  return result;
+};
+
 export class MapInterpereter implements MapVisitor {
   private variableStack: Variables[] = [];
 
@@ -199,9 +225,20 @@ export class MapInterpereter implements MapVisitor {
   async visitMapExpressionDefinitionNode(
     node: MapExpressionDefinitionNode
   ): Promise<unknown> {
-    return {
-      [node.left]: (await this.visit(node.right)) as string,
-    };
+    const value = (await this.visit(node.right)) as string;
+    const path = node.left.split('.');
+    const result: Variables = {};
+    let current: Variables = result;
+
+    for (let i = 0; i < path.length; ++i) {
+      if (i !== path.length - 1) {
+        current = current[path[i]] = {};
+      } else {
+        current[path[i]] = value;
+      }
+    }
+
+    return result;
   }
 
   visitMapNode(_node: MapNode): Promise<unknown> | unknown {
@@ -370,11 +407,11 @@ export class MapInterpereter implements MapVisitor {
 
   private async processMapExpressions(
     expressions: MapExpressionDefinitionNode[]
-  ): Promise<Record<string, string>> {
-    let variables: Record<string, string> = {};
+  ): Promise<Variables> {
+    let variables: Variables = {};
     for (const expression of expressions) {
-      const result = (await this.visit(expression)) as Record<string, string>;
-      variables = { ...variables, ...result };
+      const result = (await this.visit(expression)) as Variables;
+      variables = mergeVariables(variables, result);
     }
 
     return variables;

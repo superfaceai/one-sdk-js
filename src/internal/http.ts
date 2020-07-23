@@ -16,6 +16,18 @@ const JSON_CONTENT = 'application/json';
 const URLENCODED_CONTENT = 'application/x-www-form-urlencoded';
 const FORMDATA_CONTENT = 'multipart/form-data';
 
+const variablesToStrings = (variables?: Variables): Record<string, string> => {
+  const result: Record<string, string> = {};
+
+  if (variables) {
+    for (const [key, value] of Object.entries(variables)) {
+      result[key] = typeof value === 'string' ? value : JSON.stringify(value);
+    }
+  }
+
+  return result;
+};
+
 const queryParameters = (parameters?: Record<string, string>): string => {
   if (parameters && Object.keys(parameters).length) {
     return '?' + new URLSearchParams(parameters).toString();
@@ -108,7 +120,7 @@ export const HttpClient = {
       method: string;
       headers?: Record<string, string>;
       queryParameters?: Record<string, string>;
-      body?: Record<string, string>;
+      body?: Variables;
       contentType?: string;
       accept?: string;
       security?: 'basic' | 'bearer' | 'other';
@@ -135,10 +147,10 @@ export const HttpClient = {
         params.body = JSON.stringify(parameters.body);
       } else if (parameters.contentType === URLENCODED_CONTENT) {
         headers.append('Content-Type', URLENCODED_CONTENT);
-        params.body = new URLSearchParams(parameters.body);
+        params.body = new URLSearchParams(variablesToStrings(parameters.body));
       } else if (parameters.contentType === FORMDATA_CONTENT) {
         headers.append('Content-Type', FORMDATA_CONTENT);
-        params.body = formData(parameters.body);
+        params.body = formData(variablesToStrings(parameters.body));
       } else {
         throw new Error(`Unknown content type: ${parameters.contentType}`);
       }
