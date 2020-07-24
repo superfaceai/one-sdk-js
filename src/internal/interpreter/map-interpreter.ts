@@ -84,7 +84,7 @@ export class MapInterpereter implements MapVisitor {
   async visit(node: MapASTNode): Promise<unknown> {
     switch (node.kind) {
       case 'EvalDefinition':
-        return await this.visitEvalDefinitionNode(node);
+        return this.visitEvalDefinitionNode(node);
       case 'HTTPOperationDefinition':
         return this.visitHTTPOperationDefinitionNode(node);
       case 'IterationDefinition':
@@ -308,14 +308,14 @@ export class MapInterpereter implements MapVisitor {
     } else if (node.setDefinition) {
       if (this.operationScope) {
         this.operationScopedVariables[this.operationScope] = {
-          ...(this.operationScopedVariables[this.operationScope] || {}),
+          ...(this.operationScopedVariables[this.operationScope] ?? {}),
           ...(await this.processVariableExpressions(node.setDefinition)),
         };
 
         return undefined;
       } else if (this.mapScope) {
         this.mapScopedVariables[this.mapScope] = {
-          ...(this.mapScopedVariables[this.mapScope] || {}),
+          ...(this.mapScopedVariables[this.mapScope] ?? {}),
           ...(await this.processVariableExpressions(node.setDefinition)),
         };
 
