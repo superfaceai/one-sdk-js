@@ -50,21 +50,17 @@ export const mergeVariables = (
 ): Variables => {
   const result: Variables = {};
 
-  if (typeof left === 'object') {
-    for (const key of Object.keys(left)) {
-      result[key] = left[key];
+  for (const key of Object.keys(left)) {
+    result[key] = left[key];
+  }
+  for (const key of Object.keys(right)) {
+    const l = left[key];
+    const r = right[key];
+    if (typeof r !== 'string' && typeof l !== 'string') {
+      result[key] = mergeVariables(l, r);
+    } else {
+      result[key] = right[key];
     }
-    for (const key of Object.keys(right)) {
-      const l = left[key];
-      const r = right[key];
-      if (typeof r !== 'string' && typeof l !== 'string') {
-        result[key] = mergeVariables(l, r);
-      } else {
-        result[key] = right[key];
-      }
-    }
-  } else {
-    return right;
   }
 
   return result;
