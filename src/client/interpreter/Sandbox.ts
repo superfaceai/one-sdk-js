@@ -7,7 +7,7 @@ export const SCRIPT_TIMEOUT = 100;
 export function evalScript(
   js: string,
   variableDefinitions?: Variables
-): unknown {
+): string {
   const vm = new VM({
     sandbox: {
       ...variableDefinitions,
@@ -28,7 +28,7 @@ export function evalScript(
     delete global.require // Forbidden
     delete global.process // Forbidden
     delete global.console // Forbidden/useless
-    
+
     delete global.setTimeout
     delete global.setInterval
     delete global.setImmediate
