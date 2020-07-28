@@ -19,7 +19,7 @@ import {
 } from '@superindustries/language';
 
 export type Variables = {
-  [key: string]: string | Variables;
+  [key: string]: string | Variables | undefined;
 };
 
 export interface MapVisitor {

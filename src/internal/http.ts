@@ -65,14 +65,14 @@ const formData = (data?: Record<string, string>): FormData => {
   return formData;
 };
 
-const createUrl = async (
+const createUrl = (
   inputUrl: string,
   parameters: {
     baseUrl?: string;
     pathParameters?: Variables;
     queryParameters?: Record<string, string>;
   }
-): Promise<string> => {
+): string => {
   const query = queryParameters(parameters.queryParameters);
   const isRelative = /^\/[^/]/.test(inputUrl);
 
@@ -105,7 +105,7 @@ const createUrl = async (
     for (const param of pathParameters) {
       url = url.replace(
         `{${param}}`,
-        (await evalScript(param, parameters.pathParameters)) as string
+        evalScript(param, parameters.pathParameters)
       );
     }
   }
@@ -118,8 +118,8 @@ export const HttpClient = {
     url: string,
     parameters: {
       method: string;
-      headers?: Record<string, string>;
-      queryParameters?: Record<string, string>;
+      headers?: Variables;
+      queryParameters?: Variables;
       body?: Variables;
       contentType?: string;
       accept?: string;
@@ -130,7 +130,7 @@ export const HttpClient = {
       pathParameters?: Variables;
     }
   ): Promise<HttpResponse> => {
-    const headers = new Headers(parameters?.headers);
+    const headers = new Headers(variablesToStrings(parameters?.headers));
     headers.append('Accept', parameters.accept ?? '*/*');
 
     const params: RequestInit = {
@@ -164,10 +164,10 @@ export const HttpClient = {
 
     const response = await fetch(
       encodeURI(
-        await createUrl(url, {
+        createUrl(url, {
           baseUrl: parameters.baseUrl,
           pathParameters: parameters.pathParameters,
-          queryParameters: parameters.queryParameters,
+          queryParameters: variablesToStrings(parameters.queryParameters),
         })
       ),
       params

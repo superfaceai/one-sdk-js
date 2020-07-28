@@ -56,7 +56,7 @@ export const mergeVariables = (
   for (const key of Object.keys(right)) {
     const l = left[key];
     const r = right[key];
-    if (typeof r !== 'string' && typeof l === 'object') {
+    if (r && typeof r !== 'string' && typeof l === 'object') {
       result[key] = mergeVariables(l, r);
     } else {
       result[key] = right[key];
@@ -68,20 +68,22 @@ export const mergeVariables = (
 
 export class MapInterpereter implements MapVisitor {
   private variableStack: Variables[] = [];
-
   private operations: OperationDefinitionNode[] = [];
-
   private operationScopedVariables: Record<string, Variables> = {};
-
   private operationScope: string | undefined;
-
   private mapScopedVariables: Record<string, Variables> = {};
-
   private mapScope: string | undefined;
 
   constructor(private readonly parameters: MapParameters) {}
 
-  async visit(node: MapASTNode): Promise<unknown> {
+  async visit(
+    node: OutcomeDefinitionNode | HTTPOperationDefinitionNode
+  ): Promise<Variables | undefined>;
+  async visit(
+    node: VariableExpressionDefinitionNode | MapExpressionDefinitionNode
+  ): Promise<Variables>;
+  async visit(node: MapASTNode): Promise<undefined | Variables | string>;
+  async visit(node: MapASTNode): Promise<undefined | Variables | string> {
     switch (node.kind) {
       case 'EvalDefinition':
         return this.visitEvalDefinitionNode(node);
@@ -121,13 +123,15 @@ export class MapInterpereter implements MapVisitor {
     }
   }
 
-  async visitEvalDefinitionNode(node: EvalDefinitionNode): Promise<unknown> {
-    return this.visit(node.outcomeDefinition);
+  async visitEvalDefinitionNode(
+    node: EvalDefinitionNode
+  ): Promise<Variables | undefined> {
+    return await this.visit(node.outcomeDefinition);
   }
 
   async visitHTTPOperationDefinitionNode(
     node: HTTPOperationDefinitionNode
-  ): Promise<unknown> {
+  ): Promise<Variables | undefined> {
     const variables = await this.processVariableExpressions(
       node.variableExpressionsDefinition
     );
@@ -167,20 +171,20 @@ export class MapInterpereter implements MapVisitor {
     return await this.visit(node.responseDefinition.outcomeDefinition);
   }
 
-  visitIterationDefinitionNode(
-    _node: IterationDefinitionNode
-  ): Promise<unknown> | unknown {
+  visitIterationDefinitionNode(_node: IterationDefinitionNode): never {
     throw new Error('Method not implemented.');
   }
 
-  async visitJSExpressionNode(node: JSExpressionNode): Promise<unknown> {
-    return await evalScript(node.expression, this.variables);
+  visitJSExpressionNode(node: JSExpressionNode): string {
+    return evalScript(node.expression, this.variables);
   }
 
-  async visitMapDefinitionNode(node: MapDefinitionNode): Promise<unknown> {
+  async visitMapDefinitionNode(
+    node: MapDefinitionNode
+  ): Promise<string | Variables | undefined> {
     this.mapScope = node.mapName;
 
-    let result: unknown;
+    let result: string | Variables | undefined;
     for (const step of node.stepsDefinition) {
       const condition = await this.visit(step.condition);
 
@@ -204,7 +208,9 @@ export class MapInterpereter implements MapVisitor {
     return result;
   }
 
-  async visitMapDocumentNode(node: MapDocumentNode): Promise<unknown> {
+  async visitMapDocumentNode(
+    node: MapDocumentNode
+  ): Promise<string | Variables | undefined> {
     this.operations = node.definitions.filter(isOperationDefinitionNode);
 
     const operation = node.definitions
@@ -220,8 +226,8 @@ export class MapInterpereter implements MapVisitor {
 
   async visitMapExpressionDefinitionNode(
     node: MapExpressionDefinitionNode
-  ): Promise<unknown> {
-    const value = (await this.visit(node.right)) as string;
+  ): Promise<Variables> {
+    const value = await this.visit(node.right);
     const path = node.left.split('.');
     const result: Variables = {};
     let current: Variables = result;
@@ -237,19 +243,19 @@ export class MapInterpereter implements MapVisitor {
     return result;
   }
 
-  visitMapNode(_node: MapNode): Promise<unknown> | unknown {
+  visitMapNode(_node: MapNode): never {
     throw new Error('Method not implemented.');
   }
 
   visitNetworkOperationDefinitionNode(
     node: NetworkOperationDefinitionNode
-  ): Promise<unknown> | unknown {
+  ): Promise<Variables | undefined> {
     return this.visit(node.definition);
   }
 
   async visitOperationCallDefinitionNode(
     node: OperationCallDefinitionNode
-  ): Promise<unknown> {
+  ): Promise<string | Variables | undefined> {
     const operation = this.operations.find(
       operation => operation.operationName === node.operationName
     );
@@ -273,10 +279,10 @@ export class MapInterpereter implements MapVisitor {
 
   async visitOperationDefinitionNode(
     node: OperationDefinitionNode
-  ): Promise<unknown> {
+  ): Promise<string | Variables | undefined> {
     this.operationScope = node.operationName;
 
-    let result: unknown;
+    let result: string | Variables | undefined;
     for (const step of node.stepsDefinition) {
       const condition = await this.visit(step.condition);
 
@@ -302,7 +308,7 @@ export class MapInterpereter implements MapVisitor {
 
   async visitOutcomeDefinitionNode(
     node: OutcomeDefinitionNode
-  ): Promise<unknown> {
+  ): Promise<undefined | Variables> {
     if (node.returnDefinition) {
       return await this.processMapExpressions(node.returnDefinition);
     } else if (node.setDefinition) {
@@ -327,15 +333,17 @@ export class MapInterpereter implements MapVisitor {
     throw new Error('Something went very wrong, this should not happen!');
   }
 
-  visitProfileIdNode(_node: MapProfileIdNode): Promise<unknown> | unknown {
+  visitProfileIdNode(_node: MapProfileIdNode): never {
     throw new Error('Method not implemented.');
   }
 
-  visitProviderNode(_node: ProviderNode): Promise<unknown> | unknown {
+  visitProviderNode(_node: ProviderNode): never {
     throw new Error('Method not implemented.');
   }
 
-  async visitStepDefinitionNode(node: StepDefinitionNode): Promise<unknown> {
+  async visitStepDefinitionNode(
+    node: StepDefinitionNode
+  ): Promise<string | Variables | undefined> {
     const variables = await this.processVariableExpressions(
       node.variableExpressionsDefinition
     );
@@ -349,9 +357,9 @@ export class MapInterpereter implements MapVisitor {
 
   async visitVariableExpressionDefinitionNode(
     node: VariableExpressionDefinitionNode
-  ): Promise<unknown> {
+  ): Promise<Variables> {
     return {
-      [node.left]: (await this.visit(node.right)) as string,
+      [node.left]: await this.visit(node.right),
     };
   }
 
@@ -391,10 +399,10 @@ export class MapInterpereter implements MapVisitor {
 
   private async processVariableExpressions(
     expressions: VariableExpressionDefinitionNode[]
-  ): Promise<Record<string, string>> {
-    let variables: Record<string, string> = {};
+  ): Promise<Variables> {
+    let variables: Variables = {};
     for (const expression of expressions) {
-      const result = (await this.visit(expression)) as Record<string, string>;
+      const result = await this.visit(expression);
       variables = { ...variables, ...result };
     }
 
@@ -406,7 +414,7 @@ export class MapInterpereter implements MapVisitor {
   ): Promise<Variables> {
     let variables: Variables = {};
     for (const expression of expressions) {
-      const result = (await this.visit(expression)) as Variables;
+      const result = await this.visit(expression);
       variables = mergeVariables(variables, result);
     }
 
