@@ -181,6 +181,8 @@ export const HttpClient = {
       body = await response.text();
     }
 
+    console.log(body);
+
     const responseHeaders: Record<string, string> = {};
     response.headers.forEach((key, value) => {
       responseHeaders[key] = value;
