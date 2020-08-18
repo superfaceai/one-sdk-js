@@ -10,7 +10,6 @@
   "types": "dist/index.d.ts",
   "repository": "https://github.com/superindustries/superface.git",
   "author": "Superface Team",
-  "license": "MIT",
   "private": false,
   "files": [
     "dist/**/*"
@@ -40,12 +39,16 @@
     "eslint-plugin-simple-import-sort": "^5.0.3",
     "jest": "^26.0.1",
     "microbundle": "^0.12.0",
+    "mockttp": "^0.20.3",
     "prettier": "^2.0.5",
     "rimraf": "^3.0.2",
     "ts-jest": "^26.1.0",
-    "typescript": "^3.9.2"
+    "typescript": "^3.9.6"
   },
   "dependencies": {
+    "@superindustries/language": "^0.0.10",
+    "cross-fetch": "^3.0.5",
+    "isomorphic-form-data": "^2.0.0",
     "vm2": "^3.9.2"
   }
 }

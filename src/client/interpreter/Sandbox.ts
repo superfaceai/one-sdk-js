@@ -1,10 +1,17 @@
 import { VM } from 'vm2';
 
+import { Variables } from '../../internal/interpreter/interfaces';
+
 export const SCRIPT_TIMEOUT = 100;
 
-export function evalScript(js: string): unknown {
+export function evalScript(
+  js: string,
+  variableDefinitions?: Variables
+): string {
   const vm = new VM({
-    sandbox: {},
+    sandbox: {
+      ...variableDefinitions,
+    },
     compiler: 'javascript',
     wasm: false,
     eval: false,
@@ -21,7 +28,7 @@ export function evalScript(js: string): unknown {
     delete global.require // Forbidden
     delete global.process // Forbidden
     delete global.console // Forbidden/useless
-    
+
     delete global.setTimeout
     delete global.setInterval
     delete global.setImmediate
@@ -50,5 +57,5 @@ export function evalScript(js: string): unknown {
     `
   );
 
-  return vm.run(`'use strict'; ${js}`);
+  return vm.run(`'use strict';${js}`);
 }

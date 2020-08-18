@@ -29,6 +29,8 @@ module.exports = {
     'import/newline-after-import': 'error',
     'import/no-duplicates': 'error',
     'no-multiple-empty-lines': 'error',
+    'lines-between-class-members': 'off',
+    '@typescript-eslint/lines-between-class-members': ['error', 'always', { exceptAfterSingleLine: true, exceptAfterOverload: true }],
   },
   settings: {
     'import/parsers': {

@@ -20,6 +20,8 @@ jobs:
       # Install dependencies and run test
       - name: Install dependencies
         run: yarn install
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.SUPERFACE_BOT_PAT }}
       - name: Test
         run: yarn test
 
