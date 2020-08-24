@@ -57,5 +57,5 @@ export function evalScript(
     `
   );
 
-  return vm.run(`'use strict';${js}`);
+  return vm.run(`'use strict';${js}`) as string;
 }
