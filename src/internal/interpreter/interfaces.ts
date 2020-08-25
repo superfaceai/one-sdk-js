@@ -63,20 +63,56 @@ export interface MapVisitor {
 }
 
 export interface ProfileVisitor {
-  visit(node: ProfileASTNode): unknown;
-  visitEnumDefinitionNode(node: EnumDefinitionNode): unknown;
-  visitEnumValueNode(node: EnumValueNode): unknown;
-  visitFieldDefinitionNode(node: FieldDefinitionNode): unknown;
-  visitListDefinitionNode(node: ListDefinitionNode): unknown;
-  visitModelTypeNameNode(node: ModelTypeNameNode): unknown;
-  visitNamedFieldDefinitionNode(node: NamedFieldDefinitionNode): unknown;
-  visitNamedModelDefinitionNode(node: NamedModelDefinitionNode): unknown;
-  visitNonNullDefinitionNode(node: NonNullDefinitionNode): unknown;
-  visitObjectDefinitionNode(node: ObjectDefinitionNode): unknown;
-  visitPrimitiveTypeNameNode(node: PrimitiveTypeNameNode): unknown;
-  visitProfileDocumentNode(node: ProfileDocumentNode): unknown;
-  visitProfileIdNode(node: ProfileIdNode): unknown;
-  visitProfileNode(node: ProfileNode): unknown;
-  visitUnionDefinitionNode(node: UnionDefinitionNode): unknown;
-  visitUseCaseDefinitionNode(node: UseCaseDefinitionNode): unknown;
+  visit(node: ProfileASTNode, ...parameters: unknown[]): unknown;
+  visitEnumDefinitionNode(
+    node: EnumDefinitionNode,
+    ...parameters: unknown[]
+  ): unknown;
+  visitEnumValueNode(node: EnumValueNode, ...parameters: unknown[]): unknown;
+  visitFieldDefinitionNode(
+    node: FieldDefinitionNode,
+    ...parameters: unknown[]
+  ): unknown;
+  visitListDefinitionNode(
+    node: ListDefinitionNode,
+    ...parameters: unknown[]
+  ): unknown;
+  visitModelTypeNameNode(
+    node: ModelTypeNameNode,
+    ...parameters: unknown[]
+  ): unknown;
+  visitNamedFieldDefinitionNode(
+    node: NamedFieldDefinitionNode,
+    ...parameters: unknown[]
+  ): unknown;
+  visitNamedModelDefinitionNode(
+    node: NamedModelDefinitionNode,
+    ...parameters: unknown[]
+  ): unknown;
+  visitNonNullDefinitionNode(
+    node: NonNullDefinitionNode,
+    ...parameters: unknown[]
+  ): unknown;
+  visitObjectDefinitionNode(
+    node: ObjectDefinitionNode,
+    ...parameters: unknown[]
+  ): unknown;
+  visitPrimitiveTypeNameNode(
+    node: PrimitiveTypeNameNode,
+    ...parameters: unknown[]
+  ): unknown;
+  visitProfileDocumentNode(
+    node: ProfileDocumentNode,
+    ...parameters: unknown[]
+  ): unknown;
+  visitProfileIdNode(node: ProfileIdNode, ...parameters: unknown[]): unknown;
+  visitProfileNode(node: ProfileNode, ...parameters: unknown[]): unknown;
+  visitUnionDefinitionNode(
+    node: UnionDefinitionNode,
+    ...parameters: unknown[]
+  ): unknown;
+  visitUseCaseDefinitionNode(
+    node: UseCaseDefinitionNode,
+    ...parameters: unknown[]
+  ): unknown;
 }

@@ -27,14 +27,16 @@ describe('ProfileParameterValidator', () => {
       };
       const parameterValidator = new ProfileParameterValidator<
         Record<never, never>
-      >(ast, 'input', 'Test');
+      >(ast);
 
       it('should pass with empty input', () => {
-        expect(parameterValidator.validate({})).toEqual(true);
+        expect(parameterValidator.validate({}, 'input', 'Test')).toEqual(true);
       });
 
       it('should pass with unused input', () => {
-        expect(parameterValidator.validate({ extra: 'input' })).toEqual(true);
+        expect(
+          parameterValidator.validate({ extra: 'input' }, 'input', 'Test')
+        ).toEqual(true);
       });
     });
 
@@ -66,22 +68,32 @@ describe('ProfileParameterValidator', () => {
       };
       const parameterValidator = new ProfileParameterValidator<{
         test?: string;
-      }>(ast, 'input', 'Test');
+      }>(ast);
 
       it('should pass with or without optional prop', () => {
-        expect(parameterValidator.validate({ test: 'hello' })).toEqual(true);
-        expect(parameterValidator.validate({})).toEqual(true);
+        expect(
+          parameterValidator.validate({ test: 'hello' }, 'input', 'Test')
+        ).toEqual(true);
+        expect(parameterValidator.validate({}, 'input', 'Test')).toEqual(true);
       });
 
       it('should pass with unused input', () => {
         expect(
-          parameterValidator.validate({
-            test: 'hello',
-            another: 'input',
-          } as any)
+          parameterValidator.validate(
+            {
+              test: 'hello',
+              another: 'input',
+            } as any,
+            'input',
+            'Test'
+          )
         ).toEqual(true);
         expect(
-          parameterValidator.validate({ another: 'input' } as any)
+          parameterValidator.validate(
+            { another: 'input' } as any,
+            'input',
+            'Test'
+          )
         ).toEqual(true);
       });
     });
@@ -117,21 +129,23 @@ describe('ProfileParameterValidator', () => {
         ],
       };
       const parameterValidator = new ProfileParameterValidator<{
-        test: string;
-      }>(ast, 'input', 'Test');
+        test?: string;
+      }>(ast);
 
       it('should pass with missing optional input', () => {
-        expect(parameterValidator.validate({} as any)).toEqual(true);
+        expect(parameterValidator.validate({}, 'input', 'Test')).toEqual(true);
       });
 
       it('should pass with correct input type', () => {
-        expect(parameterValidator.validate({ test: 'hello' })).toEqual(true);
+        expect(
+          parameterValidator.validate({ test: 'hello' }, 'input', 'Test')
+        ).toEqual(true);
       });
 
       it('should fail with incorrect type', () => {
-        expect(() => parameterValidator.validate({ test: 7 } as any)).toThrow(
-          '[input.test] Wrong type: expected string, but got number'
-        );
+        expect(() =>
+          parameterValidator.validate({ test: 7 } as any, 'input', 'Test')
+        ).toThrow('[input.test] Wrong type: expected string, but got number');
       });
     });
 
@@ -170,22 +184,24 @@ describe('ProfileParameterValidator', () => {
       };
       const parameterValidator = new ProfileParameterValidator<{
         test: string;
-      }>(ast, 'input', 'Test');
+      }>(ast);
 
       it('should pass with correct type', () => {
-        expect(parameterValidator.validate({ test: 'hello' })).toEqual(true);
+        expect(
+          parameterValidator.validate({ test: 'hello' }, 'input', 'Test')
+        ).toEqual(true);
       });
 
       it('should fail with incorrect type', () => {
-        expect(() => parameterValidator.validate({ test: 7 } as any)).toThrow(
-          '[input.test] Wrong type: expected string, but got number'
-        );
+        expect(() =>
+          parameterValidator.validate({ test: 7 } as any, 'input', 'Test')
+        ).toThrow('[input.test] Wrong type: expected string, but got number');
       });
 
       it('should fail with missing field', () => {
-        expect(() => parameterValidator.validate({} as any)).toThrow(
-          '[input.test] Missing required field'
-        );
+        expect(() =>
+          parameterValidator.validate({} as any, 'input', 'Test')
+        ).toThrow('[input.test] Missing required field');
       });
     });
 
@@ -238,42 +254,64 @@ describe('ProfileParameterValidator', () => {
         test: string;
         untyped?: unknown;
         another?: number;
-      }>(ast, 'input', 'Test');
+      }>(ast);
 
       it('should pass with valid input', () => {
-        expect(parameterValidator.validate({ test: 'hello' })).toEqual(true);
         expect(
-          parameterValidator.validate({ test: 'hello', untyped: 'hello' })
+          parameterValidator.validate({ test: 'hello' }, 'input', 'Test')
         ).toEqual(true);
         expect(
-          parameterValidator.validate({ test: 'hello', another: 7 })
+          parameterValidator.validate(
+            { test: 'hello', untyped: 'hello' },
+            'input',
+            'Test'
+          )
         ).toEqual(true);
         expect(
-          parameterValidator.validate({
-            test: 'hello',
-            untyped: false,
-            another: 7,
-          })
+          parameterValidator.validate(
+            { test: 'hello', another: 7 },
+            'input',
+            'Test'
+          )
+        ).toEqual(true);
+        expect(
+          parameterValidator.validate(
+            {
+              test: 'hello',
+              untyped: false,
+              another: 7,
+            },
+            'input',
+            'Test'
+          )
         ).toEqual(true);
       });
 
       it('should fail with invalid input', () => {
-        expect(() => parameterValidator.validate({} as any)).toThrow(
-          '[input.test] Missing required field'
-        );
-        expect(() => parameterValidator.validate({ test: 7 } as any)).toThrow(
-          '[input.test] Wrong type: expected string, but got number'
-        );
         expect(() =>
-          parameterValidator.validate({ test: 7, another: 'hello' } as any)
+          parameterValidator.validate({} as any, 'input', 'Test')
+        ).toThrow('[input.test] Missing required field');
+        expect(() =>
+          parameterValidator.validate({ test: 7 } as any, 'input', 'Test')
+        ).toThrow('[input.test] Wrong type: expected string, but got number');
+        expect(() =>
+          parameterValidator.validate(
+            { test: 7, another: 'hello' } as any,
+            'input',
+            'Test'
+          )
         ).toThrow(
           '[input.test] Wrong type: expected string, but got number\n[input.another] Wrong type: expected number, but got string'
         );
         expect(() =>
-          parameterValidator.validate({
-            test: 'hello',
-            another: 'hello',
-          } as any)
+          parameterValidator.validate(
+            {
+              test: 'hello',
+              another: 'hello',
+            } as any,
+            'input',
+            'Test'
+          )
         ).toThrow(
           '[input.another] Wrong type: expected number, but got string'
         );
@@ -316,17 +354,19 @@ describe('ProfileParameterValidator', () => {
       };
       const parameterValidator = new ProfileParameterValidator<{
         test?: string;
-      }>(ast, 'input', 'Test');
+      }>(ast);
 
       it('should pass with valid input', () => {
-        expect(parameterValidator.validate({})).toEqual(true);
-        expect(parameterValidator.validate({ test: 'hello' })).toEqual(true);
+        expect(parameterValidator.validate({}, 'input', 'Test')).toEqual(true);
+        expect(
+          parameterValidator.validate({ test: 'hello' }, 'input', 'Test')
+        ).toEqual(true);
       });
 
       it('should fail with invalid input', () => {
-        expect(() => parameterValidator.validate({ test: 7 } as any)).toThrow(
-          '[input.test] Wrong type: expected string, but got number'
-        );
+        expect(() =>
+          parameterValidator.validate({ test: 7 } as any, 'input', 'Test')
+        ).toThrow('[input.test] Wrong type: expected string, but got number');
       });
     });
 
@@ -371,19 +411,25 @@ describe('ProfileParameterValidator', () => {
       };
       const parameterValidator = new ProfileParameterValidator<{
         test?: 'hello' | 'goodbye';
-      }>(ast, 'input', 'Test');
+      }>(ast);
 
       it('should pass with valid input', () => {
-        expect(parameterValidator.validate({ test: 'hello' })).toEqual(true);
+        expect(
+          parameterValidator.validate({ test: 'hello' }, 'input', 'Test')
+        ).toEqual(true);
       });
 
       it('should fail with invalid input', () => {
         expect(() =>
-          parameterValidator.validate({ test: 'none of your business' } as any)
+          parameterValidator.validate(
+            { test: 'none of your business' } as any,
+            'input',
+            'Test'
+          )
         ).toThrow('[input.test] Invalid enum value');
-        expect(() => parameterValidator.validate({ test: 7 } as any)).toThrow(
-          '[input.test] Invalid enum value'
-        );
+        expect(() =>
+          parameterValidator.validate({ test: 7 } as any, 'input', 'Test')
+        ).toThrow('[input.test] Invalid enum value');
       });
     });
 
@@ -432,19 +478,25 @@ describe('ProfileParameterValidator', () => {
       };
       const parameterValidator = new ProfileParameterValidator<{
         test?: 'hello' | 'goodbye';
-      }>(ast, 'input', 'Test');
+      }>(ast);
 
       it('should pass with valid input', () => {
-        expect(parameterValidator.validate({ test: 'hello' })).toEqual(true);
+        expect(
+          parameterValidator.validate({ test: 'hello' }, 'input', 'Test')
+        ).toEqual(true);
       });
 
       it('should fail with invalid input', () => {
         expect(() =>
-          parameterValidator.validate({ test: 'none of your business' } as any)
+          parameterValidator.validate(
+            { test: 'none of your business' } as any,
+            'input',
+            'Test'
+          )
         ).toThrow('[input.test] Invalid enum value');
-        expect(() => parameterValidator.validate({ test: 7 } as any)).toThrow(
-          '[input.test] Invalid enum value'
-        );
+        expect(() =>
+          parameterValidator.validate({ test: 7 } as any, 'input', 'Test')
+        ).toThrow('[input.test] Invalid enum value');
       });
     });
 
@@ -492,23 +544,35 @@ describe('ProfileParameterValidator', () => {
       };
       const parameterValidator = new ProfileParameterValidator<{
         test?: { hello: string };
-      }>(ast, 'input', 'Test');
+      }>(ast);
 
       it('should pass with valid input', () => {
         expect(
-          parameterValidator.validate({ test: { hello: 'world!' } })
+          parameterValidator.validate(
+            { test: { hello: 'world!' } },
+            'input',
+            'Test'
+          )
         ).toEqual(true);
       });
 
       it('should fail with invalid input', () => {
         expect(() =>
-          parameterValidator.validate({ test: 'hello!' } as any)
+          parameterValidator.validate(
+            { test: 'hello!' } as any,
+            'input',
+            'Test'
+          )
         ).toThrow('[input.test] Wrong type: expected object, but got string');
-        expect(() => parameterValidator.validate({ test: {} } as any)).toThrow(
-          '[input.test.hello] Missing required field'
-        );
         expect(() =>
-          parameterValidator.validate({ test: { hello: 7 } } as any)
+          parameterValidator.validate({ test: {} } as any, 'input', 'Test')
+        ).toThrow('[input.test.hello] Missing required field');
+        expect(() =>
+          parameterValidator.validate(
+            { test: { hello: 7 } } as any,
+            'input',
+            'Test'
+          )
         ).toThrow(
           '[input.test.hello] Wrong type: expected string, but got number'
         );
@@ -565,35 +629,53 @@ describe('ProfileParameterValidator', () => {
       };
       const parameterValidator = new ProfileParameterValidator<{
         test?: { hello?: { goodbye?: boolean } };
-      }>(ast, 'input', 'Test');
+      }>(ast);
 
       it('should pass with valid input', () => {
-        expect(parameterValidator.validate({})).toEqual(true);
-        expect(parameterValidator.validate({ test: {} })).toEqual(true);
-        expect(parameterValidator.validate({ test: { hello: {} } })).toEqual(
-          true
-        );
+        expect(parameterValidator.validate({}, 'input', 'Test')).toEqual(true);
         expect(
-          parameterValidator.validate({ test: { hello: { goodbye: false } } })
+          parameterValidator.validate({ test: {} }, 'input', 'Test')
+        ).toEqual(true);
+        expect(
+          parameterValidator.validate({ test: { hello: {} } }, 'input', 'Test')
+        ).toEqual(true);
+        expect(
+          parameterValidator.validate(
+            { test: { hello: { goodbye: false } } },
+            'input',
+            'Test'
+          )
         ).toEqual(true);
       });
 
       it('should fail with invalid input', () => {
-        expect(() => parameterValidator.validate('hello!' as any)).toThrow(
-          '[input] Wrong type: expected object, but got string'
-        );
         expect(() =>
-          parameterValidator.validate({ test: 'hello!' } as any)
+          parameterValidator.validate('hello!' as any, 'input', 'Test')
+        ).toThrow('[input] Wrong type: expected object, but got string');
+        expect(() =>
+          parameterValidator.validate(
+            { test: 'hello!' } as any,
+            'input',
+            'Test'
+          )
         ).toThrow('[input.test] Wrong type: expected object, but got string');
         expect(() =>
-          parameterValidator.validate({ test: { hello: 'goodbye!' } } as any)
+          parameterValidator.validate(
+            { test: { hello: 'goodbye!' } } as any,
+            'input',
+            'Test'
+          )
         ).toThrow(
           '[input.test.hello] Wrong type: expected object, but got string'
         );
         expect(() =>
-          parameterValidator.validate({
-            test: { hello: { goodbye: 'true' } },
-          } as any)
+          parameterValidator.validate(
+            {
+              test: { hello: { goodbye: 'true' } },
+            } as any,
+            'input',
+            'Test'
+          )
         ).toThrow(
           '[input.test.hello.goodbye] Wrong type: expected boolean, but got string'
         );
@@ -648,23 +730,35 @@ describe('ProfileParameterValidator', () => {
       };
       const parameterValidator = new ProfileParameterValidator<{
         test: { hello: string };
-      }>(ast, 'input', 'Test');
+      }>(ast);
 
       it('should pass with valid input', () => {
         expect(
-          parameterValidator.validate({ test: { hello: 'world!' } })
+          parameterValidator.validate(
+            { test: { hello: 'world!' } },
+            'input',
+            'Test'
+          )
         ).toEqual(true);
       });
 
       it('should fail with invalid input', () => {
         expect(() =>
-          parameterValidator.validate({ test: 'hello!' } as any)
+          parameterValidator.validate(
+            { test: 'hello!' } as any,
+            'input',
+            'Test'
+          )
         ).toThrow('[input.test] Wrong type: expected object, but got string');
-        expect(() => parameterValidator.validate({ test: {} } as any)).toThrow(
-          '[input.test.hello] Missing required field'
-        );
         expect(() =>
-          parameterValidator.validate({ test: { hello: 7 } } as any)
+          parameterValidator.validate({ test: {} } as any, 'input', 'Test')
+        ).toThrow('[input.test.hello] Missing required field');
+        expect(() =>
+          parameterValidator.validate(
+            { test: { hello: 7 } } as any,
+            'input',
+            'Test'
+          )
         ).toThrow(
           '[input.test.hello] Wrong type: expected string, but got number'
         );
@@ -712,17 +806,21 @@ describe('ProfileParameterValidator', () => {
       };
       const parameterValidator = new ProfileParameterValidator<{
         test?: string | number;
-      }>(ast, 'input', 'Test');
+      }>(ast);
 
       it('should pass with valid input', () => {
-        expect(parameterValidator.validate({})).toEqual(true);
-        expect(parameterValidator.validate({ test: 'hello' })).toEqual(true);
-        expect(parameterValidator.validate({ test: 7 })).toEqual(true);
+        expect(parameterValidator.validate({}, 'input', 'Test')).toEqual(true);
+        expect(
+          parameterValidator.validate({ test: 'hello' }, 'input', 'Test')
+        ).toEqual(true);
+        expect(
+          parameterValidator.validate({ test: 7 }, 'input', 'Test')
+        ).toEqual(true);
       });
 
       it('should fail with invalid input', () => {
         expect(() =>
-          parameterValidator.validate({ test: true } as any)
+          parameterValidator.validate({ test: true } as any, 'input', 'Test')
         ).toThrow(
           '[input.test] Result does not satisfy union: expected one of: string, number'
         );
@@ -781,19 +879,23 @@ describe('ProfileParameterValidator', () => {
       };
       const parameterValidator = new ProfileParameterValidator<{
         test: string | number;
-      }>(ast, 'input', 'Test');
+      }>(ast);
 
       it('should pass with valid input', () => {
-        expect(parameterValidator.validate({ test: 'hello' })).toEqual(true);
-        expect(parameterValidator.validate({ test: 7 })).toEqual(true);
+        expect(
+          parameterValidator.validate({ test: 'hello' }, 'input', 'Test')
+        ).toEqual(true);
+        expect(
+          parameterValidator.validate({ test: 7 }, 'input', 'Test')
+        ).toEqual(true);
       });
 
       it('should fail with invalid input', () => {
-        expect(() => parameterValidator.validate({} as any)).toThrow(
-          '[input.test] Missing required field'
-        );
         expect(() =>
-          parameterValidator.validate({ test: true } as any)
+          parameterValidator.validate({} as any, 'input', 'Test')
+        ).toThrow('[input.test] Missing required field');
+        expect(() =>
+          parameterValidator.validate({ test: true } as any, 'input', 'Test')
         ).toThrow(
           '[input.test] Result does not satisfy union: expected one of: string, number'
         );
@@ -835,24 +937,32 @@ describe('ProfileParameterValidator', () => {
       };
       const parameterValidator = new ProfileParameterValidator<{
         test?: string[];
-      }>(ast, 'input', 'Test');
+      }>(ast);
 
       it('should pass with valid input', () => {
-        expect(parameterValidator.validate({})).toEqual(true);
-        expect(parameterValidator.validate({ test: [] })).toEqual(true);
-        expect(parameterValidator.validate({ test: ['hello'] })).toEqual(true);
+        expect(parameterValidator.validate({}, 'input', 'Test')).toEqual(true);
         expect(
-          parameterValidator.validate({ test: ['hello', 'goodbye'] })
+          parameterValidator.validate({ test: [] }, 'input', 'Test')
+        ).toEqual(true);
+        expect(
+          parameterValidator.validate({ test: ['hello'] }, 'input', 'Test')
+        ).toEqual(true);
+        expect(
+          parameterValidator.validate(
+            { test: ['hello', 'goodbye'] },
+            'input',
+            'Test'
+          )
         ).toEqual(true);
       });
 
       it('should fail with invalid input', () => {
-        expect(() => parameterValidator.validate({ test: 7 } as any)).toThrow(
-          /is not an array/
-        );
-        expect(() => parameterValidator.validate({ test: [7] } as any)).toThrow(
-          /expected string, but got number/
-        );
+        expect(() =>
+          parameterValidator.validate({ test: 7 } as any, 'input', 'Test')
+        ).toThrow(/is not an array/);
+        expect(() =>
+          parameterValidator.validate({ test: [7] } as any, 'input', 'Test')
+        ).toThrow(/expected string, but got number/);
       });
     });
 
@@ -894,24 +1004,34 @@ describe('ProfileParameterValidator', () => {
       };
       const parameterValidator = new ProfileParameterValidator<{
         test: string[];
-      }>(ast, 'input', 'Test');
+      }>(ast);
 
       it('should pass with valid input', () => {
-        expect(parameterValidator.validate({ test: [] })).toEqual(true);
-        expect(parameterValidator.validate({ test: ['hello'] })).toEqual(true);
         expect(
-          parameterValidator.validate({ test: ['hello', 'goodbye'] })
+          parameterValidator.validate({ test: [] }, 'input', 'Test')
+        ).toEqual(true);
+        expect(
+          parameterValidator.validate({ test: ['hello'] }, 'input', 'Test')
+        ).toEqual(true);
+        expect(
+          parameterValidator.validate(
+            { test: ['hello', 'goodbye'] },
+            'input',
+            'Test'
+          )
         ).toEqual(true);
       });
 
       it('should fail with invalid input', () => {
-        expect(() => parameterValidator.validate({} as any)).toThrow(
-          '[input.test] Missing required field'
-        );
-        expect(() => parameterValidator.validate({ test: 7 } as any)).toThrow(
-          '[input.test] 7 is not an array'
-        );
-        expect(() => parameterValidator.validate({ test: [7] } as any)).toThrow(
+        expect(() =>
+          parameterValidator.validate({} as any, 'input', 'Test')
+        ).toThrow('[input.test] Missing required field');
+        expect(() =>
+          parameterValidator.validate({ test: 7 } as any, 'input', 'Test')
+        ).toThrow('[input.test] 7 is not an array');
+        expect(() =>
+          parameterValidator.validate({ test: [7] } as any, 'input', 'Test')
+        ).toThrow(
           '[input.test] Some elements in array do not match criteria:\nWrong type: expected string, but got number'
         );
       });
@@ -969,35 +1089,53 @@ describe('ProfileParameterValidator', () => {
       };
       const parameterValidator = new ProfileParameterValidator<{
         test?: { hello?: { goodbye?: boolean } };
-      }>(ast, 'result', 'Test');
+      }>(ast);
 
       it('should pass with valid input', () => {
-        expect(parameterValidator.validate({})).toEqual(true);
-        expect(parameterValidator.validate({ test: {} })).toEqual(true);
-        expect(parameterValidator.validate({ test: { hello: {} } })).toEqual(
-          true
-        );
+        expect(parameterValidator.validate({}, 'result', 'Test')).toEqual(true);
         expect(
-          parameterValidator.validate({ test: { hello: { goodbye: false } } })
+          parameterValidator.validate({ test: {} }, 'result', 'Test')
+        ).toEqual(true);
+        expect(
+          parameterValidator.validate({ test: { hello: {} } }, 'result', 'Test')
+        ).toEqual(true);
+        expect(
+          parameterValidator.validate(
+            { test: { hello: { goodbye: false } } },
+            'result',
+            'Test'
+          )
         ).toEqual(true);
       });
 
       it('should fail with invalid input', () => {
-        expect(() => parameterValidator.validate('hello!' as any)).toThrow(
-          '[result] Wrong type: expected object, but got string'
-        );
         expect(() =>
-          parameterValidator.validate({ test: 'hello!' } as any)
+          parameterValidator.validate('hello!' as any, 'result', 'Test')
+        ).toThrow('[result] Wrong type: expected object, but got string');
+        expect(() =>
+          parameterValidator.validate(
+            { test: 'hello!' } as any,
+            'result',
+            'Test'
+          )
         ).toThrow('[result.test] Wrong type: expected object, but got string');
         expect(() =>
-          parameterValidator.validate({ test: { hello: 'goodbye!' } } as any)
+          parameterValidator.validate(
+            { test: { hello: 'goodbye!' } } as any,
+            'result',
+            'Test'
+          )
         ).toThrow(
           '[result.test.hello] Wrong type: expected object, but got string'
         );
         expect(() =>
-          parameterValidator.validate({
-            test: { hello: { goodbye: 'true' } },
-          } as any)
+          parameterValidator.validate(
+            {
+              test: { hello: { goodbye: 'true' } },
+            } as any,
+            'result',
+            'Test'
+          )
         ).toThrow(
           '[result.test.hello.goodbye] Wrong type: expected boolean, but got string'
         );
@@ -1057,25 +1195,31 @@ describe('ProfileParameterValidator', () => {
       };
       const parameterValidator = new ProfileParameterValidator<{
         test?: 7 | true | 'c';
-      }>(ast, 'result', 'Test');
+      }>(ast);
 
       it('should pass with valid input', () => {
-        expect(parameterValidator.validate({})).toEqual(true);
-        expect(parameterValidator.validate({ test: 7 })).toEqual(true);
-        expect(parameterValidator.validate({ test: true })).toEqual(true);
-        expect(parameterValidator.validate({ test: 'c' })).toEqual(true);
+        expect(parameterValidator.validate({}, 'result', 'Test')).toEqual(true);
+        expect(
+          parameterValidator.validate({ test: 7 }, 'result', 'Test')
+        ).toEqual(true);
+        expect(
+          parameterValidator.validate({ test: true }, 'result', 'Test')
+        ).toEqual(true);
+        expect(
+          parameterValidator.validate({ test: 'c' }, 'result', 'Test')
+        ).toEqual(true);
       });
 
       it('should fail with invalid input', () => {
-        expect(() => parameterValidator.validate({ test: 8 } as any)).toThrow(
-          '[result.test] Invalid enum value'
-        );
         expect(() =>
-          parameterValidator.validate({ test: false } as any)
+          parameterValidator.validate({ test: 8 } as any, 'result', 'Test')
         ).toThrow('[result.test] Invalid enum value');
-        expect(() => parameterValidator.validate({ test: 'd' } as any)).toThrow(
-          '[result.test] Invalid enum value'
-        );
+        expect(() =>
+          parameterValidator.validate({ test: false } as any, 'result', 'Test')
+        ).toThrow('[result.test] Invalid enum value');
+        expect(() =>
+          parameterValidator.validate({ test: 'd' } as any, 'result', 'Test')
+        ).toThrow('[result.test] Invalid enum value');
       });
     });
   });

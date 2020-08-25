@@ -153,18 +153,17 @@ function formatErrors(errors?: ValidationError[]): string {
     .join('\n');
 }
 
+type ProfileParameterKind = 'input' | 'result';
+
 export class ProfileParameterValidator<T> implements ProfileVisitor {
   private namedFieldDefinitions: Record<string, ValidationFunction> = {};
   private namedModelDefinitions: Record<string, ValidationFunction> = {};
+  private namedDefinitionsInitialized = false;
 
-  constructor(
-    private readonly ast: ProfileASTNode,
-    private readonly kind: 'input' | 'result',
-    private readonly usecase: string
-  ) {}
+  constructor(private readonly ast: ProfileASTNode) {}
 
-  validate(input: T): input is T {
-    const validator = this.visit(this.ast);
+  validate(input: T, kind: ProfileParameterKind, usecase: string): input is T {
+    const validator = this.visit(this.ast, kind, usecase);
     const [result, errors] = validator(input);
 
     if (result === true) {
@@ -174,52 +173,60 @@ export class ProfileParameterValidator<T> implements ProfileVisitor {
     }
   }
 
-  visit(node: ProfileASTNode): ValidationFunction {
+  visit(
+    node: ProfileASTNode,
+    kind: ProfileParameterKind,
+    usecase: string
+  ): ValidationFunction {
     switch (node.kind) {
       case 'EnumDefinition':
-        return this.visitEnumDefinitionNode(node);
+        return this.visitEnumDefinitionNode(node, kind, usecase);
       case 'EnumValue':
-        return this.visitEnumValueNode(node);
+        return this.visitEnumValueNode(node, kind, usecase);
       case 'FieldDefinition':
-        return this.visitFieldDefinitionNode(node);
+        return this.visitFieldDefinitionNode(node, kind, usecase);
       case 'ListDefinition':
-        return this.visitListDefinitionNode(node);
+        return this.visitListDefinitionNode(node, kind, usecase);
       case 'ModelTypeName':
-        return this.visitModelTypeNameNode(node);
+        return this.visitModelTypeNameNode(node, kind, usecase);
       case 'NamedFieldDefinition':
-        return this.visitNamedFieldDefinitionNode(node);
+        return this.visitNamedFieldDefinitionNode(node, kind, usecase);
       case 'NamedModelDefinition':
-        return this.visitNamedModelDefinitionNode(node);
+        return this.visitNamedModelDefinitionNode(node, kind, usecase);
       case 'NonNullDefinition':
-        return this.visitNonNullDefinitionNode(node);
+        return this.visitNonNullDefinitionNode(node, kind, usecase);
       case 'ObjectDefinition':
-        return this.visitObjectDefinitionNode(node);
+        return this.visitObjectDefinitionNode(node, kind, usecase);
       case 'PrimitiveTypeName':
-        return this.visitPrimitiveTypeNameNode(node);
+        return this.visitPrimitiveTypeNameNode(node, kind, usecase);
       case 'ProfileDocument':
-        return this.visitProfileDocumentNode(node);
+        return this.visitProfileDocumentNode(node, kind, usecase);
       case 'ProfileId':
-        return this.visitProfileIdNode(node);
+        return this.visitProfileIdNode(node, kind, usecase);
       case 'Profile':
-        return this.visitProfileNode(node);
+        return this.visitProfileNode(node, kind, usecase);
       case 'UnionDefinition':
-        return this.visitUnionDefinitionNode(node);
+        return this.visitUnionDefinitionNode(node, kind, usecase);
       case 'UseCaseDefinition':
-        return this.visitUseCaseDefinitionNode(node);
+        return this.visitUseCaseDefinitionNode(node, kind, usecase);
 
       default:
         assertUnreachable(node);
     }
   }
 
-  visitEnumDefinitionNode(node: EnumDefinitionNode): ValidationFunction {
+  visitEnumDefinitionNode(
+    node: EnumDefinitionNode,
+    kind: ProfileParameterKind,
+    usecase: string
+  ): ValidationFunction {
     return (input: unknown): ValidationResult => {
       if (input === undefined) {
         return [true];
       }
 
       for (const value of node.values) {
-        if (this.visit(value)(input)[0]) {
+        if (this.visit(value, kind, usecase)(input)[0]) {
           return [true];
         }
       }
@@ -228,7 +235,11 @@ export class ProfileParameterValidator<T> implements ProfileVisitor {
     };
   }
 
-  visitEnumValueNode(node: EnumValueNode): ValidationFunction {
+  visitEnumValueNode(
+    node: EnumValueNode,
+    _kind: ProfileParameterKind,
+    _usecase: string
+  ): ValidationFunction {
     return (input: unknown): ValidationResult => {
       if (input === node.value) {
         return [true];
@@ -238,7 +249,11 @@ export class ProfileParameterValidator<T> implements ProfileVisitor {
     };
   }
 
-  visitFieldDefinitionNode(node: FieldDefinitionNode): ValidationFunction {
+  visitFieldDefinitionNode(
+    node: FieldDefinitionNode,
+    kind: ProfileParameterKind,
+    usecase: string
+  ): ValidationFunction {
     return (input: unknown): ValidationResult => {
       const field = objectHasKey(input, node.fieldName)
         ? input[node.fieldName]
@@ -252,11 +267,15 @@ export class ProfileParameterValidator<T> implements ProfileVisitor {
         return [true];
       }
 
-      return this.visit(node.type)(field);
+      return this.visit(node.type, kind, usecase)(field);
     };
   }
 
-  visitListDefinitionNode(node: ListDefinitionNode): ValidationFunction {
+  visitListDefinitionNode(
+    node: ListDefinitionNode,
+    kind: ProfileParameterKind,
+    usecase: string
+  ): ValidationFunction {
     return (input: unknown): ValidationResult => {
       if (input === undefined) {
         return [true];
@@ -269,7 +288,7 @@ export class ProfileParameterValidator<T> implements ProfileVisitor {
       const errors: ValidationError[] = [];
 
       const result = input.every(item => {
-        const result = this.visit(node.elementType)(item);
+        const result = this.visit(node.elementType, kind, usecase)(item);
 
         if (result[1]) {
           errors.push(...result[1]);
@@ -294,7 +313,11 @@ export class ProfileParameterValidator<T> implements ProfileVisitor {
     };
   }
 
-  visitModelTypeNameNode(node: ModelTypeNameNode): ValidationFunction {
+  visitModelTypeNameNode(
+    node: ModelTypeNameNode,
+    _kind: ProfileParameterKind,
+    _usecase: string
+  ): ValidationFunction {
     if (this.namedModelDefinitions[node.name]) {
       return this.namedModelDefinitions[node.name];
     }
@@ -303,36 +326,48 @@ export class ProfileParameterValidator<T> implements ProfileVisitor {
   }
 
   visitNamedFieldDefinitionNode(
-    node: NamedFieldDefinitionNode
+    node: NamedFieldDefinitionNode,
+    kind: ProfileParameterKind,
+    usecase: string
   ): ValidationFunction {
     if (node.type) {
-      return this.visit(node.type);
+      return this.visit(node.type, kind, usecase);
     } else {
       return (): ValidationResult => [true];
     }
   }
 
   visitNamedModelDefinitionNode(
-    node: NamedModelDefinitionNode
+    node: NamedModelDefinitionNode,
+    kind: ProfileParameterKind,
+    usecase: string
   ): ValidationFunction {
     if (node.type) {
-      return this.visit(node.type);
+      return this.visit(node.type, kind, usecase);
     } else {
       return (): ValidationResult => [true];
     }
   }
 
-  visitNonNullDefinitionNode(node: NonNullDefinitionNode): ValidationFunction {
+  visitNonNullDefinitionNode(
+    node: NonNullDefinitionNode,
+    kind: ProfileParameterKind,
+    usecase: string
+  ): ValidationFunction {
     return (input: unknown): ValidationResult => {
       if (input === undefined) {
         return [false, [{ kind: 'missingRequired' }]];
       }
 
-      return this.visit(node.type)(input);
+      return this.visit(node.type, kind, usecase)(input);
     };
   }
 
-  visitObjectDefinitionNode(node: ObjectDefinitionNode): ValidationFunction {
+  visitObjectDefinitionNode(
+    node: ObjectDefinitionNode,
+    kind: ProfileParameterKind,
+    usecase: string
+  ): ValidationFunction {
     return (input: unknown): ValidationResult => {
       if (input === undefined) {
         return [true];
@@ -352,7 +387,10 @@ export class ProfileParameterValidator<T> implements ProfileVisitor {
 
       return node.fields.reduce<ValidationResult>(
         (result, field) => {
-          const subresult = addPath(this.visit(field), field.fieldName)(input);
+          const subresult = addPath(
+            this.visit(field, kind, usecase),
+            field.fieldName
+          )(input);
 
           if (subresult[0] === false) {
             if (result[1]) {
@@ -375,7 +413,11 @@ export class ProfileParameterValidator<T> implements ProfileVisitor {
     };
   }
 
-  visitPrimitiveTypeNameNode(node: PrimitiveTypeNameNode): ValidationFunction {
+  visitPrimitiveTypeNameNode(
+    node: PrimitiveTypeNameNode,
+    _kind: ProfileParameterKind,
+    _usecase: string
+  ): ValidationFunction {
     return (input: unknown): ValidationResult => {
       if (input === undefined) {
         return [true];
@@ -430,58 +472,82 @@ export class ProfileParameterValidator<T> implements ProfileVisitor {
     };
   }
 
-  visitProfileDocumentNode(node: ProfileDocumentNode): ValidationFunction {
+  visitProfileDocumentNode(
+    node: ProfileDocumentNode,
+    kind: ProfileParameterKind,
+    usecase: string
+  ): ValidationFunction {
     const usecaseNode = node.definitions.find(
       definition =>
         definition.kind === 'UseCaseDefinition' &&
-        definition.useCaseName === this.usecase
+        definition.useCaseName === usecase
     );
 
     if (!usecaseNode) {
-      throw new Error(`Usecase ${this.usecase} not found!`);
+      throw new Error(`Usecase ${usecase} not found!`);
     }
 
-    node.definitions
-      .filter(
-        (definition): definition is NamedFieldDefinitionNode =>
-          definition.kind === 'NamedFieldDefinition'
-      )
-      .forEach(
-        definition =>
-          (this.namedFieldDefinitions[definition.fieldName] = this.visit(
-            definition
-          ))
-      );
+    if (!this.namedDefinitionsInitialized) {
+      node.definitions
+        .filter(
+          (definition): definition is NamedFieldDefinitionNode =>
+            definition.kind === 'NamedFieldDefinition'
+        )
+        .forEach(
+          definition =>
+            (this.namedFieldDefinitions[definition.fieldName] = this.visit(
+              definition,
+              kind,
+              usecase
+            ))
+        );
 
-    node.definitions
-      .filter(
-        (definition): definition is NamedModelDefinitionNode =>
-          definition.kind === 'NamedModelDefinition'
-      )
-      .forEach(
-        definition =>
-          (this.namedModelDefinitions[definition.modelName] = this.visit(
-            definition
-          ))
-      );
+      node.definitions
+        .filter(
+          (definition): definition is NamedModelDefinitionNode =>
+            definition.kind === 'NamedModelDefinition'
+        )
+        .forEach(
+          definition =>
+            (this.namedModelDefinitions[definition.modelName] = this.visit(
+              definition,
+              kind,
+              usecase
+            ))
+        );
 
-    return this.visit(usecaseNode);
+      this.namedDefinitionsInitialized = true;
+    }
+
+    return this.visit(usecaseNode, kind, usecase);
   }
 
-  visitProfileIdNode(_node: ProfileIdNode): ValidationFunction {
+  visitProfileIdNode(
+    _node: ProfileIdNode,
+    _kind: ProfileParameterKind,
+    _usecase: string
+  ): ValidationFunction {
     throw new Error('Method not implemented.');
   }
 
-  visitProfileNode(_node: ProfileNode): ValidationFunction {
+  visitProfileNode(
+    _node: ProfileNode,
+    _kind: ProfileParameterKind,
+    _usecase: string
+  ): ValidationFunction {
     throw new Error('Method not implemented.');
   }
 
-  visitUnionDefinitionNode(node: UnionDefinitionNode): ValidationFunction {
+  visitUnionDefinitionNode(
+    node: UnionDefinitionNode,
+    kind: ProfileParameterKind,
+    usecase: string
+  ): ValidationFunction {
     return (input: unknown): ValidationResult => {
       const errors: ValidationError[] = [];
 
       for (const type of node.types) {
-        const result = this.visit(type)(input);
+        const result = this.visit(type, kind, usecase)(input);
         if (result[0]) {
           return [true];
         } else {
@@ -497,11 +563,15 @@ export class ProfileParameterValidator<T> implements ProfileVisitor {
     };
   }
 
-  visitUseCaseDefinitionNode(node: UseCaseDefinitionNode): ValidationFunction {
-    if (this.kind === 'input' && node.input) {
-      return addPath(this.visit(node.input), 'input');
-    } else if (this.kind === 'result' && node.result) {
-      return addPath(this.visit(node.result), 'result');
+  visitUseCaseDefinitionNode(
+    node: UseCaseDefinitionNode,
+    kind: ProfileParameterKind,
+    usecase: string
+  ): ValidationFunction {
+    if (kind === 'input' && node.input) {
+      return addPath(this.visit(node.input, kind, usecase), 'input');
+    } else if (kind === 'result' && node.result) {
+      return addPath(this.visit(node.result, kind, usecase), 'result');
     }
 
     return (input: unknown): ValidationResult => {
