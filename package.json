@@ -2,13 +2,11 @@
   "name": "@superindustries/superface",
   "version": "0.0.1",
   "description": "Level 5 autonomous, self-driving API client, https://superface.ai",
-  "main": "dist/superface.js",
-  "source": "src/index.ts",
-  "module": "dist/superface.modern.js",
-  "unpkg": "dist/superface.umd.js",
-  "browser": "dist/superface.umd.js",
-  "types": "dist/index.d.ts",
   "repository": "https://github.com/superindustries/superface.git",
+  "source": "lib/index.js",
+  "main": "dist/superface.js",
+  "module": "dist/superface.es.js",
+  "browser": "dist/superface.browser.js",
   "author": "Superface Team",
   "private": false,
   "files": [
@@ -18,10 +16,11 @@
     "registry": "https://npm.pkg.github.com/"
   },
   "scripts": {
-    "build": "microbundle --tsconfig tsconfig.release.json",
-    "watch": "yarn build --watch",
-    "clean": "rimraf dist/",
+    "watch": "yarn build_tsc && parcel serve lib/index.ts --detailed-report",
+    "build": "yarn build_tsc && parcel build lib/index.js --detailed-report",
+    "build_tsc": "tsc -p tsconfig.release.json",
     "prebuild": "yarn clean",
+    "clean": "rimraf dist/ && rimraf lib/",
     "test": "jest",
     "lint": "eslint src/",
     "format": "prettier -c src/",
@@ -38,8 +37,8 @@
     "eslint-plugin-jest": "^23.13.1",
     "eslint-plugin-simple-import-sort": "^5.0.3",
     "jest": "^26.0.1",
-    "microbundle": "^0.12.0",
     "mockttp": "^0.20.3",
+    "parcel": "^2.0.0-beta.1",
     "prettier": "^2.0.5",
     "rimraf": "^3.0.2",
     "ts-jest": "^26.1.0",
@@ -50,5 +49,35 @@
     "cross-fetch": "^3.0.5",
     "isomorphic-form-data": "^2.0.0",
     "vm2": "^3.9.2"
-  }
+  },
+  "targets": {
+    "main": {
+      "context": "node",
+      "outputFormat": "esmodule",
+      "engines": {
+        "node": ">=12.x"
+      },
+      "includeNodeModules": false,
+      "isLibrary": true
+    },
+    "module": {
+      "context": "node",
+      "outputFormat": "commonjs",
+      "engines": {
+        "node": ">=4.x"
+      },
+      "includeNodeModules": false,
+      "isLibrary": true
+    },
+    "browser": {
+      "context": "browser",
+      "outputFormat": "commonjs",
+      "includeNodeModules": false,
+      "isLibrary": true
+    }
+  },
+  "browserslist": [
+    "> 0.2%",
+    "not dead"
+  ]
 }

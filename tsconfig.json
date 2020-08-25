@@ -6,6 +6,8 @@
     "forceConsistentCasingInFileNames": true,
     "lib": [],
     "module": "ESNext",
+    "rootDir": "./src",
+    "outDir": "./lib",
     "moduleResolution": "node",
     "noFallthroughCasesInSwitch": true,
     "noImplicitReturns": true,
