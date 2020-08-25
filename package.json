@@ -7,6 +7,7 @@
   "main": "dist/superface.js",
   "module": "dist/superface.es.js",
   "browser": "dist/superface.browser.js",
+  "types": "dist/index.d.ts",
   "author": "Superface Team",
   "private": false,
   "files": [
@@ -51,6 +52,7 @@
     "vm2": "^3.9.2"
   },
   "targets": {
+    "types": false,
     "main": {
       "context": "node",
       "outputFormat": "esmodule",
