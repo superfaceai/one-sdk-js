@@ -28,13 +28,15 @@ describe('ProfileParameterValidator', () => {
       const parameterValidator = new ProfileParameterValidator(ast);
 
       it('should pass with empty input', () => {
-        expect(parameterValidator.validate({}, 'input', 'Test')).toEqual(true);
+        expect(() =>
+          parameterValidator.validate({}, 'input', 'Test')
+        ).not.toThrow();
       });
 
       it('should pass with unused input', () => {
-        expect(
+        expect(() =>
           parameterValidator.validate({ extra: 'input' }, 'input', 'Test')
-        ).toEqual(true);
+        ).not.toThrow();
       });
     });
 
@@ -67,14 +69,16 @@ describe('ProfileParameterValidator', () => {
       const parameterValidator = new ProfileParameterValidator(ast);
 
       it('should pass with or without optional prop', () => {
-        expect(
+        expect(() =>
           parameterValidator.validate({ test: 'hello' }, 'input', 'Test')
-        ).toEqual(true);
-        expect(parameterValidator.validate({}, 'input', 'Test')).toEqual(true);
+        ).not.toThrow();
+        expect(() =>
+          parameterValidator.validate({}, 'input', 'Test')
+        ).not.toThrow();
       });
 
       it('should pass with unused input', () => {
-        expect(
+        expect(() =>
           parameterValidator.validate(
             {
               test: 'hello',
@@ -83,14 +87,14 @@ describe('ProfileParameterValidator', () => {
             'input',
             'Test'
           )
-        ).toEqual(true);
-        expect(
+        ).not.toThrow();
+        expect(() =>
           parameterValidator.validate(
             { another: 'input' } as any,
             'input',
             'Test'
           )
-        ).toEqual(true);
+        ).not.toThrow();
       });
     });
 
@@ -127,13 +131,15 @@ describe('ProfileParameterValidator', () => {
       const parameterValidator = new ProfileParameterValidator(ast);
 
       it('should pass with missing optional input', () => {
-        expect(parameterValidator.validate({}, 'input', 'Test')).toEqual(true);
+        expect(() =>
+          parameterValidator.validate({}, 'input', 'Test')
+        ).not.toThrow();
       });
 
       it('should pass with correct input type', () => {
-        expect(
+        expect(() =>
           parameterValidator.validate({ test: 'hello' }, 'input', 'Test')
-        ).toEqual(true);
+        ).not.toThrow();
       });
 
       it('should fail with incorrect type', () => {
@@ -179,9 +185,9 @@ describe('ProfileParameterValidator', () => {
       const parameterValidator = new ProfileParameterValidator(ast);
 
       it('should pass with correct type', () => {
-        expect(
+        expect(() =>
           parameterValidator.validate({ test: 'hello' }, 'input', 'Test')
-        ).toEqual(true);
+        ).not.toThrow();
       });
 
       it('should fail with incorrect type', () => {
@@ -245,24 +251,24 @@ describe('ProfileParameterValidator', () => {
       const parameterValidator = new ProfileParameterValidator(ast);
 
       it('should pass with valid input', () => {
-        expect(
+        expect(() =>
           parameterValidator.validate({ test: 'hello' }, 'input', 'Test')
-        ).toEqual(true);
-        expect(
+        ).not.toThrow();
+        expect(() =>
           parameterValidator.validate(
             { test: 'hello', untyped: 'hello' },
             'input',
             'Test'
           )
-        ).toEqual(true);
-        expect(
+        ).not.toThrow();
+        expect(() =>
           parameterValidator.validate(
             { test: 'hello', another: 7 },
             'input',
             'Test'
           )
-        ).toEqual(true);
-        expect(
+        ).not.toThrow();
+        expect(() =>
           parameterValidator.validate(
             {
               test: 'hello',
@@ -272,7 +278,7 @@ describe('ProfileParameterValidator', () => {
             'input',
             'Test'
           )
-        ).toEqual(true);
+        ).not.toThrow();
       });
 
       it('should fail with invalid input', () => {
@@ -343,10 +349,12 @@ describe('ProfileParameterValidator', () => {
       const parameterValidator = new ProfileParameterValidator(ast);
 
       it('should pass with valid input', () => {
-        expect(parameterValidator.validate({}, 'input', 'Test')).toEqual(true);
-        expect(
+        expect(() =>
+          parameterValidator.validate({}, 'input', 'Test')
+        ).not.toThrow();
+        expect(() =>
           parameterValidator.validate({ test: 'hello' }, 'input', 'Test')
-        ).toEqual(true);
+        ).not.toThrow();
       });
 
       it('should fail with invalid input', () => {
@@ -398,9 +406,9 @@ describe('ProfileParameterValidator', () => {
       const parameterValidator = new ProfileParameterValidator(ast);
 
       it('should pass with valid input', () => {
-        expect(
+        expect(() =>
           parameterValidator.validate({ test: 'hello' }, 'input', 'Test')
-        ).toEqual(true);
+        ).not.toThrow();
       });
 
       it('should fail with invalid input', () => {
@@ -463,9 +471,9 @@ describe('ProfileParameterValidator', () => {
       const parameterValidator = new ProfileParameterValidator(ast);
 
       it('should pass with valid input', () => {
-        expect(
+        expect(() =>
           parameterValidator.validate({ test: 'hello' }, 'input', 'Test')
-        ).toEqual(true);
+        ).not.toThrow();
       });
 
       it('should fail with invalid input', () => {
@@ -527,13 +535,13 @@ describe('ProfileParameterValidator', () => {
       const parameterValidator = new ProfileParameterValidator(ast);
 
       it('should pass with valid input', () => {
-        expect(
+        expect(() =>
           parameterValidator.validate(
             { test: { hello: 'world!' } },
             'input',
             'Test'
           )
-        ).toEqual(true);
+        ).not.toThrow();
       });
 
       it('should fail with invalid input', () => {
@@ -610,20 +618,22 @@ describe('ProfileParameterValidator', () => {
       const parameterValidator = new ProfileParameterValidator(ast);
 
       it('should pass with valid input', () => {
-        expect(parameterValidator.validate({}, 'input', 'Test')).toEqual(true);
-        expect(
+        expect(() =>
+          parameterValidator.validate({}, 'input', 'Test')
+        ).not.toThrow();
+        expect(() =>
           parameterValidator.validate({ test: {} }, 'input', 'Test')
-        ).toEqual(true);
-        expect(
+        ).not.toThrow();
+        expect(() =>
           parameterValidator.validate({ test: { hello: {} } }, 'input', 'Test')
-        ).toEqual(true);
-        expect(
+        ).not.toThrow();
+        expect(() =>
           parameterValidator.validate(
             { test: { hello: { goodbye: false } } },
             'input',
             'Test'
           )
-        ).toEqual(true);
+        ).not.toThrow();
       });
 
       it('should fail with invalid input', () => {
@@ -709,13 +719,13 @@ describe('ProfileParameterValidator', () => {
       const parameterValidator = new ProfileParameterValidator(ast);
 
       it('should pass with valid input', () => {
-        expect(
+        expect(() =>
           parameterValidator.validate(
             { test: { hello: 'world!' } },
             'input',
             'Test'
           )
-        ).toEqual(true);
+        ).not.toThrow();
       });
 
       it('should fail with invalid input', () => {
@@ -783,13 +793,15 @@ describe('ProfileParameterValidator', () => {
       const parameterValidator = new ProfileParameterValidator(ast);
 
       it('should pass with valid input', () => {
-        expect(parameterValidator.validate({}, 'input', 'Test')).toEqual(true);
-        expect(
+        expect(() =>
+          parameterValidator.validate({}, 'input', 'Test')
+        ).not.toThrow();
+        expect(() =>
           parameterValidator.validate({ test: 'hello' }, 'input', 'Test')
-        ).toEqual(true);
-        expect(
+        ).not.toThrow();
+        expect(() =>
           parameterValidator.validate({ test: 7 }, 'input', 'Test')
-        ).toEqual(true);
+        ).not.toThrow();
       });
 
       it('should fail with invalid input', () => {
@@ -854,12 +866,12 @@ describe('ProfileParameterValidator', () => {
       const parameterValidator = new ProfileParameterValidator(ast);
 
       it('should pass with valid input', () => {
-        expect(
+        expect(() =>
           parameterValidator.validate({ test: 'hello' }, 'input', 'Test')
-        ).toEqual(true);
-        expect(
+        ).not.toThrow();
+        expect(() =>
           parameterValidator.validate({ test: 7 }, 'input', 'Test')
-        ).toEqual(true);
+        ).not.toThrow();
       });
 
       it('should fail with invalid input', () => {
@@ -910,20 +922,22 @@ describe('ProfileParameterValidator', () => {
       const parameterValidator = new ProfileParameterValidator(ast);
 
       it('should pass with valid input', () => {
-        expect(parameterValidator.validate({}, 'input', 'Test')).toEqual(true);
-        expect(
+        expect(() =>
+          parameterValidator.validate({}, 'input', 'Test')
+        ).not.toThrow();
+        expect(() =>
           parameterValidator.validate({ test: [] }, 'input', 'Test')
-        ).toEqual(true);
-        expect(
+        ).not.toThrow();
+        expect(() =>
           parameterValidator.validate({ test: ['hello'] }, 'input', 'Test')
-        ).toEqual(true);
-        expect(
+        ).not.toThrow();
+        expect(() =>
           parameterValidator.validate(
             { test: ['hello', 'goodbye'] },
             'input',
             'Test'
           )
-        ).toEqual(true);
+        ).not.toThrow();
       });
 
       it('should fail with invalid input', () => {
@@ -975,19 +989,19 @@ describe('ProfileParameterValidator', () => {
       const parameterValidator = new ProfileParameterValidator(ast);
 
       it('should pass with valid input', () => {
-        expect(
+        expect(() =>
           parameterValidator.validate({ test: [] }, 'input', 'Test')
-        ).toEqual(true);
-        expect(
+        ).not.toThrow();
+        expect(() =>
           parameterValidator.validate({ test: ['hello'] }, 'input', 'Test')
-        ).toEqual(true);
-        expect(
+        ).not.toThrow();
+        expect(() =>
           parameterValidator.validate(
             { test: ['hello', 'goodbye'] },
             'input',
             'Test'
           )
-        ).toEqual(true);
+        ).not.toThrow();
       });
 
       it('should fail with invalid input', () => {
@@ -1058,20 +1072,22 @@ describe('ProfileParameterValidator', () => {
       const parameterValidator = new ProfileParameterValidator(ast);
 
       it('should pass with valid input', () => {
-        expect(parameterValidator.validate({}, 'result', 'Test')).toEqual(true);
-        expect(
+        expect(() =>
+          parameterValidator.validate({}, 'result', 'Test')
+        ).not.toThrow();
+        expect(() =>
           parameterValidator.validate({ test: {} }, 'result', 'Test')
-        ).toEqual(true);
-        expect(
+        ).not.toThrow();
+        expect(() =>
           parameterValidator.validate({ test: { hello: {} } }, 'result', 'Test')
-        ).toEqual(true);
-        expect(
+        ).not.toThrow();
+        expect(() =>
           parameterValidator.validate(
             { test: { hello: { goodbye: false } } },
             'result',
             'Test'
           )
-        ).toEqual(true);
+        ).not.toThrow();
       });
 
       it('should fail with invalid input', () => {
@@ -1162,16 +1178,18 @@ describe('ProfileParameterValidator', () => {
       const parameterValidator = new ProfileParameterValidator(ast);
 
       it('should pass with valid input', () => {
-        expect(parameterValidator.validate({}, 'result', 'Test')).toEqual(true);
-        expect(
+        expect(() =>
+          parameterValidator.validate({}, 'result', 'Test')
+        ).not.toThrow();
+        expect(() =>
           parameterValidator.validate({ test: 7 }, 'result', 'Test')
-        ).toEqual(true);
-        expect(
+        ).not.toThrow();
+        expect(() =>
           parameterValidator.validate({ test: true }, 'result', 'Test')
-        ).toEqual(true);
-        expect(
+        ).not.toThrow();
+        expect(() =>
           parameterValidator.validate({ test: 'c' }, 'result', 'Test')
-        ).toEqual(true);
+        ).not.toThrow();
       });
 
       it('should fail with invalid input', () => {
