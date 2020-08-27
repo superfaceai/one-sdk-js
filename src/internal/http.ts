@@ -76,11 +76,17 @@ const createUrl = (
   const query = queryParameters(parameters.queryParameters);
   const isRelative = /^\/[^/]/.test(inputUrl);
 
-  if (isRelative && !parameters.baseUrl) {
-    throw new Error('Relative URL specified, but base URL not provided!');
-  }
+  let url: string;
 
-  let url = isRelative ? `${parameters.baseUrl}${inputUrl}` : inputUrl;
+  if (isRelative) {
+    if (!parameters.baseUrl) {
+      throw new Error('Relative URL specified, but base URL not provided!');
+    } else {
+      url = `${parameters.baseUrl}${inputUrl}`;
+    }
+  } else {
+    url = inputUrl;
+  }
 
   if (parameters.pathParameters) {
     const pathParameters = Object.keys(parameters.pathParameters);
@@ -152,7 +158,9 @@ export const HttpClient = {
         headers.append('Content-Type', FORMDATA_CONTENT);
         params.body = formData(variablesToStrings(parameters.body));
       } else {
-        throw new Error(`Unknown content type: ${parameters.contentType}`);
+        throw new Error(
+          `Unknown content type: ${parameters.contentType ?? ''}`
+        );
       }
     }
 
