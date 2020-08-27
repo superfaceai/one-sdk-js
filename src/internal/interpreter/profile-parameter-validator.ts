@@ -162,7 +162,11 @@ export class ProfileParameterValidator<T> implements ProfileVisitor {
 
   constructor(private readonly ast: ProfileASTNode) {}
 
-  validate(input: T, kind: ProfileParameterKind, usecase: string): input is T {
+  validate(
+    input: unknown,
+    kind: ProfileParameterKind,
+    usecase: string
+  ): input is T {
     const validator = this.visit(this.ast, kind, usecase);
     const [result, errors] = validator(input);
 
