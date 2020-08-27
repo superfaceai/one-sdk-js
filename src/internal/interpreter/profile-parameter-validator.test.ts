@@ -25,9 +25,7 @@ describe('ProfileParameterValidator', () => {
           },
         ],
       };
-      const parameterValidator = new ProfileParameterValidator<
-        Record<never, never>
-      >(ast);
+      const parameterValidator = new ProfileParameterValidator(ast);
 
       it('should pass with empty input', () => {
         expect(parameterValidator.validate({}, 'input', 'Test')).toEqual(true);
@@ -66,9 +64,7 @@ describe('ProfileParameterValidator', () => {
           },
         ],
       };
-      const parameterValidator = new ProfileParameterValidator<{
-        test?: string;
-      }>(ast);
+      const parameterValidator = new ProfileParameterValidator(ast);
 
       it('should pass with or without optional prop', () => {
         expect(
@@ -128,9 +124,7 @@ describe('ProfileParameterValidator', () => {
           },
         ],
       };
-      const parameterValidator = new ProfileParameterValidator<{
-        test?: string;
-      }>(ast);
+      const parameterValidator = new ProfileParameterValidator(ast);
 
       it('should pass with missing optional input', () => {
         expect(parameterValidator.validate({}, 'input', 'Test')).toEqual(true);
@@ -182,9 +176,7 @@ describe('ProfileParameterValidator', () => {
           },
         ],
       };
-      const parameterValidator = new ProfileParameterValidator<{
-        test: string;
-      }>(ast);
+      const parameterValidator = new ProfileParameterValidator(ast);
 
       it('should pass with correct type', () => {
         expect(
@@ -250,11 +242,7 @@ describe('ProfileParameterValidator', () => {
           },
         ],
       };
-      const parameterValidator = new ProfileParameterValidator<{
-        test: string;
-        untyped?: unknown;
-        another?: number;
-      }>(ast);
+      const parameterValidator = new ProfileParameterValidator(ast);
 
       it('should pass with valid input', () => {
         expect(
@@ -352,9 +340,7 @@ describe('ProfileParameterValidator', () => {
           },
         ],
       };
-      const parameterValidator = new ProfileParameterValidator<{
-        test?: string;
-      }>(ast);
+      const parameterValidator = new ProfileParameterValidator(ast);
 
       it('should pass with valid input', () => {
         expect(parameterValidator.validate({}, 'input', 'Test')).toEqual(true);
@@ -409,9 +395,7 @@ describe('ProfileParameterValidator', () => {
           },
         ],
       };
-      const parameterValidator = new ProfileParameterValidator<{
-        test?: 'hello' | 'goodbye';
-      }>(ast);
+      const parameterValidator = new ProfileParameterValidator(ast);
 
       it('should pass with valid input', () => {
         expect(
@@ -476,9 +460,7 @@ describe('ProfileParameterValidator', () => {
           },
         ],
       };
-      const parameterValidator = new ProfileParameterValidator<{
-        test?: 'hello' | 'goodbye';
-      }>(ast);
+      const parameterValidator = new ProfileParameterValidator(ast);
 
       it('should pass with valid input', () => {
         expect(
@@ -542,9 +524,7 @@ describe('ProfileParameterValidator', () => {
           },
         ],
       };
-      const parameterValidator = new ProfileParameterValidator<{
-        test?: { hello: string };
-      }>(ast);
+      const parameterValidator = new ProfileParameterValidator(ast);
 
       it('should pass with valid input', () => {
         expect(
@@ -627,9 +607,7 @@ describe('ProfileParameterValidator', () => {
           },
         ],
       };
-      const parameterValidator = new ProfileParameterValidator<{
-        test?: { hello?: { goodbye?: boolean } };
-      }>(ast);
+      const parameterValidator = new ProfileParameterValidator(ast);
 
       it('should pass with valid input', () => {
         expect(parameterValidator.validate({}, 'input', 'Test')).toEqual(true);
@@ -728,9 +706,7 @@ describe('ProfileParameterValidator', () => {
           },
         ],
       };
-      const parameterValidator = new ProfileParameterValidator<{
-        test: { hello: string };
-      }>(ast);
+      const parameterValidator = new ProfileParameterValidator(ast);
 
       it('should pass with valid input', () => {
         expect(
@@ -804,9 +780,7 @@ describe('ProfileParameterValidator', () => {
           },
         ],
       };
-      const parameterValidator = new ProfileParameterValidator<{
-        test?: string | number;
-      }>(ast);
+      const parameterValidator = new ProfileParameterValidator(ast);
 
       it('should pass with valid input', () => {
         expect(parameterValidator.validate({}, 'input', 'Test')).toEqual(true);
@@ -877,9 +851,7 @@ describe('ProfileParameterValidator', () => {
           },
         ],
       };
-      const parameterValidator = new ProfileParameterValidator<{
-        test: string | number;
-      }>(ast);
+      const parameterValidator = new ProfileParameterValidator(ast);
 
       it('should pass with valid input', () => {
         expect(
@@ -935,9 +907,7 @@ describe('ProfileParameterValidator', () => {
           },
         ],
       };
-      const parameterValidator = new ProfileParameterValidator<{
-        test?: string[];
-      }>(ast);
+      const parameterValidator = new ProfileParameterValidator(ast);
 
       it('should pass with valid input', () => {
         expect(parameterValidator.validate({}, 'input', 'Test')).toEqual(true);
@@ -1002,9 +972,7 @@ describe('ProfileParameterValidator', () => {
           },
         ],
       };
-      const parameterValidator = new ProfileParameterValidator<{
-        test: string[];
-      }>(ast);
+      const parameterValidator = new ProfileParameterValidator(ast);
 
       it('should pass with valid input', () => {
         expect(
@@ -1087,9 +1055,7 @@ describe('ProfileParameterValidator', () => {
           },
         ],
       };
-      const parameterValidator = new ProfileParameterValidator<{
-        test?: { hello?: { goodbye?: boolean } };
-      }>(ast);
+      const parameterValidator = new ProfileParameterValidator(ast);
 
       it('should pass with valid input', () => {
         expect(parameterValidator.validate({}, 'result', 'Test')).toEqual(true);
@@ -1193,9 +1159,7 @@ describe('ProfileParameterValidator', () => {
           },
         ],
       };
-      const parameterValidator = new ProfileParameterValidator<{
-        test?: 7 | true | 'c';
-      }>(ast);
+      const parameterValidator = new ProfileParameterValidator(ast);
 
       it('should pass with valid input', () => {
         expect(parameterValidator.validate({}, 'result', 'Test')).toEqual(true);

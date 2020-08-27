@@ -155,18 +155,14 @@ function formatErrors(errors?: ValidationError[]): string {
 
 type ProfileParameterKind = 'input' | 'result';
 
-export class ProfileParameterValidator<T> implements ProfileVisitor {
+export class ProfileParameterValidator implements ProfileVisitor {
   private namedFieldDefinitions: Record<string, ValidationFunction> = {};
   private namedModelDefinitions: Record<string, ValidationFunction> = {};
   private namedDefinitionsInitialized = false;
 
   constructor(private readonly ast: ProfileASTNode) {}
 
-  validate(
-    input: unknown,
-    kind: ProfileParameterKind,
-    usecase: string
-  ): input is T {
+  validate(input: unknown, kind: ProfileParameterKind, usecase: string): true {
     const validator = this.visit(this.ast, kind, usecase);
     const [result, errors] = validator(input);
 
