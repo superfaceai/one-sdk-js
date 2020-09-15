@@ -20,6 +20,7 @@ import {
   VariableExpressionDefinitionNode,
 } from '@superindustries/language';
 
+import { Config } from '../../client';
 import { evalScript } from '../../client/interpreter/Sandbox';
 import { HttpClient } from '../http';
 import { MapVisitor, Variables } from './interfaces';
@@ -29,19 +30,11 @@ function assertUnreachable(node: MapASTNode): never {
   throw new Error(`Invalid Node kind: ${node.kind}`);
 }
 
-export interface MapParameters {
+export interface MapParameters<T> {
   usecase?: string;
-  auth?: {
-    basic?: {
-      username: string;
-      password: string;
-    };
-    bearer?: {
-      token: string;
-    };
-  };
+  auth?: Config['auth'];
   baseUrl?: string;
-  input?: Variables;
+  input?: Variables | T;
 }
 
 export const mergeVariables = (
@@ -66,7 +59,7 @@ export const mergeVariables = (
   return result;
 };
 
-export class MapInterpereter implements MapVisitor {
+export class MapInterpreter<T> implements MapVisitor {
   private variableStack: Variables[] = [];
   private operations: OperationDefinitionNode[] = [];
   private operationScopedVariables: Record<string, Variables> = {};
@@ -74,7 +67,7 @@ export class MapInterpereter implements MapVisitor {
   private mapScopedVariables: Record<string, Variables> = {};
   private mapScope: string | undefined;
 
-  constructor(private readonly parameters: MapParameters) {}
+  constructor(private readonly parameters: MapParameters<T>) {}
 
   async visit(
     node: OutcomeDefinitionNode | HTTPOperationDefinitionNode
@@ -155,8 +148,7 @@ export class MapInterpereter implements MapVisitor {
       contentType: node.requestDefinition.contentType,
       accept: node.responseDefinition.contentType,
       security: node.requestDefinition.security,
-      basic: this.parameters.auth?.basic,
-      bearer: this.parameters.auth?.bearer,
+      auth: this.parameters.auth,
       baseUrl: this.parameters.baseUrl,
       pathParameters: this.mapScope
         ? this.mapScopedVariables[this.mapScope]
@@ -183,6 +175,13 @@ export class MapInterpereter implements MapVisitor {
     node: MapDefinitionNode
   ): Promise<string | Variables | undefined> {
     this.mapScope = node.mapName;
+
+    this.mapScopedVariables[this.mapScope] = {
+      ...(this.mapScopedVariables[this.mapScope] ?? {}),
+      ...(await this.processVariableExpressions(
+        node.variableExpressionsDefinition
+      )),
+    };
 
     let result: string | Variables | undefined;
     for (const step of node.stepsDefinition) {
@@ -364,14 +363,7 @@ export class MapInterpereter implements MapVisitor {
   }
 
   private get variables(): Variables {
-    let variables = this.variableStack.reduce(
-      (acc, variableDefinition) => ({
-        ...acc,
-        ...variableDefinition,
-      }),
-      {}
-    );
-
+    let variables: Variables = {};
     if (this.mapScope && this.mapScopedVariables[this.mapScope]) {
       variables = {
         ...variables,
@@ -388,10 +380,23 @@ export class MapInterpereter implements MapVisitor {
         ...this.operationScopedVariables[this.operationScope],
       };
     }
+    variables = {
+      ...variables,
+      ...this.variableStack.reduce(
+        (acc, variableDefinition) => ({
+          ...acc,
+          ...variableDefinition,
+        }),
+        {}
+      ),
+    };
 
     variables = {
       ...variables,
-      input: this.parameters.input ?? {},
+      input: {
+        ...(this.parameters.input ?? {}),
+        auth: this.parameters.auth ?? {},
+      },
     };
 
     return variables;

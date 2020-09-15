@@ -1,11 +1,14 @@
 export interface Config {
-  credentials?: {
+  auth?: {
     basic?: {
       username: string;
       password: string;
     };
     bearer?: {
       token: string;
+    };
+    apikey?: {
+      key: string;
     };
   };
 }
