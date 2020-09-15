@@ -69,4 +69,8 @@ export class Provider<TParams, TResult = unknown> {
       this.validationFunction
     );
   }
+
+  public get serviceId(): string {
+    return this.baseUrl;
+  }
 }
