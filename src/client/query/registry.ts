@@ -51,14 +51,12 @@ export async function fetchMapAST(url: string): Promise<MapDocumentNode> {
     accept: 'application/json',
   });
 
-  // assertIsMapDocumentNode(body as MapASTNode);
-
   return body as MapDocumentNode;
 }
 
 export async function fetchProviders(
   profileId: string,
-  registryUrl = 'https://registry.superface.dev/api/registry'
+  registryUrl: string
 ): Promise<RegistryProviderInfo[]> {
   const { body } = await HttpClient.request(registryUrl, {
     method: 'GET',

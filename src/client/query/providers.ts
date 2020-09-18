@@ -26,6 +26,9 @@ export class BoundProvider<TInput, TResult = unknown> {
     this.profileValidator = new ProfileParameterValidator(this.profileAST);
   }
 
+  /**
+    Performs the usecase
+  */
   async perform(input: TInput): Promise<Result<TResult, unknown>> {
     this.profileValidator.validate(input, 'input', this.usecase);
 
@@ -46,6 +49,10 @@ export class BoundProvider<TInput, TResult = unknown> {
 
     return err('Result did not validate correctly');
   }
+
+  public get serviceId(): string {
+    return this.baseUrl;
+  }
 }
 
 export class Provider<TParams, TResult = unknown> {
@@ -57,6 +64,11 @@ export class Provider<TParams, TResult = unknown> {
     private validationFunction?: (input: unknown) => input is TResult
   ) {}
 
+  /**
+   * Binds the provider.
+   *
+   * This fetches the map and allows to perform.
+   */
   public async bind(config: Config): Promise<BoundProvider<TParams, TResult>> {
     const mapAST = await fetchMapAST(this.mapUrl);
 

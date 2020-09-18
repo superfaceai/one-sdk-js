@@ -14,42 +14,24 @@ import {
 import { Provider } from './providers';
 import { fetchProviders, RegistryProviderInfo } from './registry';
 
-export class ServiceFinderQuery<TInput, TResult> {
-  private inputConstraints: InputConstraint[] = [];
-  private resultConstraints: ResultConstraint[] = [];
+export class ServiceFinderQuery<TInput = unknown, TResult = unknown> {
   private providerConstraints: ProviderConstraint[] = [];
   private providerConstraintBuilder = providerConstraint;
 
   constructor(
-    private inputConstraintBuilder: InputConstraintsObject<TInput>,
-    private resultConstraintBuilder: ResultConstraintsObject<TResult>,
-    private profileId: string,
-    private profileAST: ProfileDocumentNode,
-    private usecase: string,
-    private validationFunction?: (input: unknown) => input is TResult
+    /** ID of the profile */
+    protected profileId: string,
+    /** Compiled profile AST */
+    protected profileAST: ProfileDocumentNode,
+    /** Usecase to execute */
+    protected usecase: string,
+    /** Url of registry from which to fetch service providers */
+    private registryUrl = 'https://registry.superface.dev/api/registry'
   ) {}
 
-  async find(): Promise<Provider<TInput, TResult>[]> {
-    const providers = await fetchProviders(this.profileId);
-
-    return providers
-      .filter(this.filterByProvider)
-      .map(
-        provider =>
-          new Provider(
-            this.profileAST,
-            provider.mappingUrl,
-            this.usecase,
-            provider.serviceUrl,
-            this.validationFunction
-          )
-      );
-  }
-
-  async findFirst(): Promise<Provider<TInput, TResult>> {
-    return (await this.find())[0];
-  }
-
+  /**
+    Adds a filter for limiting what the service provider can be
+   */
   serviceProvider(
     constraint: (serviceProvider: ProviderQueryConstraint) => ProviderConstraint
   ): this {
@@ -58,22 +40,18 @@ export class ServiceFinderQuery<TInput, TResult> {
     return this;
   }
 
-  inputParameter(
-    constraint: (parameters: InputConstraintsObject<TInput>) => InputConstraint
-  ): this {
-    this.inputConstraints.push(constraint(this.inputConstraintBuilder));
-
-    return this;
+  /**
+    Finds Providers matching given criteria
+   */
+  async find(): Promise<Provider<TInput, TResult>[]> {
+    return (await this.findProviders()).map(this.createProvider);
   }
 
-  resultParameter(
-    constraint: (
-      parameters: ResultConstraintsObject<TResult>
-    ) => ResultConstraint
-  ): this {
-    this.resultConstraints.push(constraint(this.resultConstraintBuilder));
-
-    return this;
+  /**
+    Finds first Provider matching given criteria
+   */
+  async findFirst(): Promise<Provider<TInput, TResult>> {
+    return (await this.find())[0];
   }
 
   private filterByProvider = (providerInfo: RegistryProviderInfo): boolean => {
@@ -96,5 +74,78 @@ export class ServiceFinderQuery<TInput, TResult> {
     }
 
     throw new Error('Unreachable code reached😱');
+  };
+
+  protected createProvider = (
+    providerInfo: RegistryProviderInfo
+  ): Provider<TInput, TResult> =>
+    new Provider(
+      this.profileAST,
+      providerInfo.mappingUrl,
+      this.usecase,
+      providerInfo.serviceUrl
+    );
+
+  protected async findProviders(): Promise<RegistryProviderInfo[]> {
+    const providers = await fetchProviders(this.profileId, this.registryUrl);
+
+    return providers.filter(this.filterByProvider);
+  }
+}
+
+export class TypedServiceFinderQuery<
+  TInput,
+  TResult
+> extends ServiceFinderQuery<TInput, TResult> {
+  private inputConstraints: InputConstraint[] = [];
+  private resultConstraints: ResultConstraint[] = [];
+
+  constructor(
+    private inputConstraintBuilder: InputConstraintsObject<TInput>,
+    private resultConstraintBuilder: ResultConstraintsObject<TResult>,
+    profileId: string,
+    profileAST: ProfileDocumentNode,
+    usecase: string,
+    private validationFunction?: (input: unknown) => input is TResult
+  ) {
+    super(profileId, profileAST, usecase);
+  }
+
+  inputParameter(
+    constraint: (parameters: InputConstraintsObject<TInput>) => InputConstraint
+  ): this {
+    this.inputConstraints.push(constraint(this.inputConstraintBuilder));
+
+    return this;
+  }
+
+  resultParameter(
+    constraint: (
+      parameters: ResultConstraintsObject<TResult>
+    ) => ResultConstraint
+  ): this {
+    this.resultConstraints.push(constraint(this.resultConstraintBuilder));
+
+    return this;
+  }
+
+  async find(): Promise<Provider<TInput, TResult>[]> {
+    return (await this.findProviders()).map(this.createProvider);
+  }
+
+  async findFirst(): Promise<Provider<TInput, TResult>> {
+    return (await this.find())[0];
+  }
+
+  protected createProvider = (
+    providerInfo: RegistryProviderInfo
+  ): Provider<TInput, TResult> => {
+    return new Provider(
+      this.profileAST,
+      providerInfo.mappingUrl,
+      this.usecase,
+      providerInfo.serviceUrl,
+      this.validationFunction
+    );
   };
 }

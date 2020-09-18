@@ -143,7 +143,9 @@ export function isProviderMustBeOneOfConstraint(
 }
 
 export interface ProviderQueryConstraint {
+  /** Adds a filter to provider so that it must be the specified value */
   mustBe(value: string): ProviderConstraint;
+  /** Adds a filter to provider so that it must be one of specified values */
   mustBeOneOf(values: string[]): ProviderConstraint;
 }
 
