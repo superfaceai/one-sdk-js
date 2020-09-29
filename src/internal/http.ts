@@ -2,6 +2,7 @@ import 'isomorphic-form-data';
 
 import fetch, { Headers } from 'cross-fetch';
 
+import { Config } from '../client';
 import { evalScript } from '../client/interpreter/Sandbox';
 import { Variables } from './interpreter/interfaces';
 
@@ -130,8 +131,7 @@ export const HttpClient = {
       contentType?: string;
       accept?: string;
       security?: 'basic' | 'bearer' | 'other';
-      basic?: { username: string; password: string };
-      bearer?: { token: string };
+      auth?: Config['auth'];
       baseUrl?: string;
       pathParameters?: Variables;
     }
@@ -165,19 +165,17 @@ export const HttpClient = {
     }
 
     if (parameters.security === 'basic') {
-      headers.append(AUTH_HEADER_NAME, basicAuth(parameters.basic));
+      headers.append(AUTH_HEADER_NAME, basicAuth(parameters.auth?.basic));
     } else if (parameters.security === 'bearer') {
-      headers.append(AUTH_HEADER_NAME, bearerAuth(parameters.bearer));
+      headers.append(AUTH_HEADER_NAME, bearerAuth(parameters.auth?.bearer));
     }
 
     const response = await fetch(
-      encodeURI(
-        createUrl(url, {
-          baseUrl: parameters.baseUrl,
-          pathParameters: parameters.pathParameters,
-          queryParameters: variablesToStrings(parameters.queryParameters),
-        })
-      ),
+      createUrl(url, {
+        baseUrl: parameters.baseUrl,
+        pathParameters: parameters.pathParameters,
+        queryParameters: variablesToStrings(parameters.queryParameters),
+      }),
       params
     );
 
@@ -191,7 +189,7 @@ export const HttpClient = {
 
     const responseHeaders: Record<string, string> = {};
     response.headers.forEach((key, value) => {
-      responseHeaders[key] = value;
+      responseHeaders[value] = key;
     });
 
     return {

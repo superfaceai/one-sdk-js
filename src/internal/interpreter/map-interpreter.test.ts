@@ -1,7 +1,7 @@
 import { MapASTNode } from '@superindustries/language';
 import { getLocal } from 'mockttp';
 
-import { MapInterpereter } from './map-interpreter';
+import { MapInterpreter } from './map-interpreter';
 
 const mockServer = getLocal();
 
@@ -15,7 +15,7 @@ describe('MapInterpreter', () => {
   });
 
   it('should fail with invalid AST', async () => {
-    const interpreter = new MapInterpereter({});
+    const interpreter = new MapInterpreter({});
     await expect(
       async () =>
         await interpreter.visit(({ kind: 'Invalid' } as unknown) as MapASTNode)
@@ -23,7 +23,7 @@ describe('MapInterpreter', () => {
   });
 
   it('should execute minimal Eval definition', async () => {
-    const interpreter = new MapInterpereter({ usecase: 'testCase' });
+    const interpreter = new MapInterpreter({ usecase: 'testCase' });
     const result = await interpreter.visit({
       kind: 'MapDocument',
       map: {
@@ -81,7 +81,7 @@ describe('MapInterpreter', () => {
   });
 
   it('should fail on undefined usecase', async () => {
-    const interpreter = new MapInterpereter({ usecase: 'nonexistent' });
+    const interpreter = new MapInterpreter({ usecase: 'nonexistent' });
     await expect(
       async () =>
         await interpreter.visit({
@@ -141,7 +141,7 @@ describe('MapInterpreter', () => {
 
   // This should not happen in practice, as the AST will be validated beforehand
   it('should fail when none of result/return/set are defined', async () => {
-    const interpreter = new MapInterpereter({ usecase: 'testCase' });
+    const interpreter = new MapInterpreter({ usecase: 'testCase' });
     await expect(
       async () =>
         await interpreter.visit({
@@ -190,7 +190,7 @@ describe('MapInterpreter', () => {
   });
 
   it('should execute Eval definition with variables', async () => {
-    const interpreter = new MapInterpereter({ usecase: 'testCase' });
+    const interpreter = new MapInterpreter({ usecase: 'testCase' });
     const result = await interpreter.visit({
       kind: 'MapDocument',
       map: {
@@ -257,7 +257,7 @@ describe('MapInterpreter', () => {
   });
 
   it('should correctly resolve variable scope', async () => {
-    const interpreter = new MapInterpereter({ usecase: 'testCase' });
+    const interpreter = new MapInterpreter({ usecase: 'testCase' });
     const result = await interpreter.visit({
       kind: 'MapDocument',
       map: {
@@ -333,7 +333,7 @@ describe('MapInterpreter', () => {
   });
 
   it('should run predefined operation', async () => {
-    const interpreter = new MapInterpereter({ usecase: 'testCase' });
+    const interpreter = new MapInterpreter({ usecase: 'testCase' });
     const result = await interpreter.visit({
       kind: 'MapDocument',
       map: {
@@ -428,7 +428,7 @@ describe('MapInterpreter', () => {
   });
 
   it('should throw when trying to run undefined operation', async () => {
-    const interpreter = new MapInterpereter({ usecase: 'testCase' });
+    const interpreter = new MapInterpreter({ usecase: 'testCase' });
     await expect(
       async () =>
         await interpreter.visit({
@@ -526,7 +526,7 @@ describe('MapInterpreter', () => {
   it('should call an API', async () => {
     await mockServer.get('/twelve').thenJson(200, { data: 12 });
     const url = mockServer.urlFor('/twelve');
-    const interpreter = new MapInterpereter({ usecase: 'testCase' });
+    const interpreter = new MapInterpreter({ usecase: 'testCase' });
     const result = await interpreter.visit({
       kind: 'MapDocument',
       map: {
@@ -604,7 +604,7 @@ describe('MapInterpreter', () => {
   it('should call an API with relative URL', async () => {
     await mockServer.get('/twelve').thenJson(200, { data: 12 });
     const baseUrl = mockServer.urlFor('/twelve').replace('/twelve', '');
-    const interpreter = new MapInterpereter({ usecase: 'testCase', baseUrl });
+    const interpreter = new MapInterpreter({ usecase: 'testCase', baseUrl });
     const result = await interpreter.visit({
       kind: 'MapDocument',
       map: {
@@ -681,7 +681,7 @@ describe('MapInterpreter', () => {
 
   it('should throw when calling an API with relative URL but not providing baseUrl', async () => {
     await mockServer.get('/twelve').thenJson(200, { data: 12 });
-    const interpreter = new MapInterpereter({ usecase: 'testCase' });
+    const interpreter = new MapInterpreter({ usecase: 'testCase' });
     await expect(
       async () =>
         await interpreter.visit({
@@ -760,7 +760,7 @@ describe('MapInterpreter', () => {
   it('should call an API with path parameters', async () => {
     await mockServer.get('/twelve/2').thenJson(200, { data: 144 });
     const url = mockServer.urlFor('/twelve');
-    const interpreter = new MapInterpereter({
+    const interpreter = new MapInterpreter({
       usecase: 'testCase',
       input: { page: '2' },
     });
@@ -861,7 +861,7 @@ describe('MapInterpreter', () => {
   });
 
   it('should throw when calling an API with path parameters and some are missing', async () => {
-    const interpreter = new MapInterpereter({
+    const interpreter = new MapInterpreter({
       usecase: 'testCase',
     });
 
@@ -970,7 +970,7 @@ describe('MapInterpreter', () => {
       .withQuery({ page: 2 })
       .thenJson(200, { data: 144 });
     const url = mockServer.urlFor('/twelve');
-    const interpreter = new MapInterpereter({ usecase: 'testCase' });
+    const interpreter = new MapInterpreter({ usecase: 'testCase' });
     const result = await interpreter.visit({
       kind: 'MapDocument',
       map: {
@@ -1069,7 +1069,7 @@ describe('MapInterpreter', () => {
       .withQuery({ page: 2 })
       .thenJson(200, { data: 144 });
     const url = mockServer.urlFor('/twelve');
-    const interpreter = new MapInterpereter({
+    const interpreter = new MapInterpreter({
       usecase: 'testCase',
       input: { page: '2' },
     });
@@ -1172,7 +1172,7 @@ describe('MapInterpreter', () => {
       .withHeaders({ someheader: 'hello' })
       .thenJson(201, { bodyOk: true, headerOk: true });
     const url = mockServer.urlFor('/checkBody');
-    const interpreter = new MapInterpereter({ usecase: 'testCase' });
+    const interpreter = new MapInterpreter({ usecase: 'testCase' });
     const result = await interpreter.visit({
       kind: 'MapDocument',
       map: {
@@ -1277,7 +1277,7 @@ describe('MapInterpreter', () => {
     await mockServer.get('/second').thenJson(200, { secondStep: 5 });
     const url1 = mockServer.urlFor('/first');
     const url2 = mockServer.urlFor('/second');
-    const interpreter = new MapInterpereter({ usecase: 'multistep' });
+    const interpreter = new MapInterpreter({ usecase: 'multistep' });
     const result = await interpreter.visit({
       kind: 'MapDocument',
       map: {
@@ -1423,7 +1423,7 @@ describe('MapInterpreter', () => {
       .withHeaders({ Authorization: 'Basic bmFtZTpwYXNzd29yZA==' })
       .thenJson(200, { data: 12 });
     const url = mockServer.urlFor('/basic');
-    const interpreter = new MapInterpereter({
+    const interpreter = new MapInterpreter({
       usecase: 'testCase',
       auth: { basic: { username: 'name', password: 'password' } },
     });
@@ -1507,7 +1507,7 @@ describe('MapInterpreter', () => {
       .withHeaders({ Authorization: 'Bearer SuperSecret' })
       .thenJson(200, { data: 12 });
     const url = mockServer.urlFor('/bearer');
-    const interpreter = new MapInterpereter({
+    const interpreter = new MapInterpreter({
       usecase: 'testCase',
       auth: { bearer: { token: 'SuperSecret' } },
     });
@@ -1603,7 +1603,7 @@ describe('MapInterpreter', () => {
       return { json: { failed: true }, statusCode: 400 };
     });
     const url = mockServer.urlFor('/formdata');
-    const interpreter = new MapInterpereter({ usecase: 'testCase' });
+    const interpreter = new MapInterpreter({ usecase: 'testCase' });
     const result = await interpreter.visit({
       kind: 'MapDocument',
       map: {
@@ -1696,7 +1696,7 @@ describe('MapInterpreter', () => {
   });
 
   it('should throw on an API with Basic auth, but without credentials', async () => {
-    const interpreter = new MapInterpereter({
+    const interpreter = new MapInterpreter({
       usecase: 'testCase',
     });
     await expect(
@@ -1775,7 +1775,7 @@ describe('MapInterpreter', () => {
   });
 
   it('should throw on an API with Bearer auth, but without credentials', async () => {
-    const interpreter = new MapInterpereter({
+    const interpreter = new MapInterpreter({
       usecase: 'testCase',
     });
     await expect(
@@ -1859,7 +1859,7 @@ describe('MapInterpreter', () => {
       .withForm({ form: 'is', o: 'k' })
       .thenJson(201, { data: 12 });
     const url = mockServer.urlFor('/urlencoded');
-    const interpreter = new MapInterpereter({ usecase: 'testCase' });
+    const interpreter = new MapInterpreter({ usecase: 'testCase' });
     const result = await interpreter.visit({
       kind: 'MapDocument',
       map: {
@@ -1954,7 +1954,7 @@ describe('MapInterpreter', () => {
   });
 
   it('should execute Eval definition with nested result', async () => {
-    const interpreter = new MapInterpereter({ usecase: 'testCase' });
+    const interpreter = new MapInterpreter({ usecase: 'testCase' });
     const result = await interpreter.visit({
       kind: 'MapDocument',
       map: {

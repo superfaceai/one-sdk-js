@@ -1,12 +1,12 @@
 export class Ok<T, E> {
   constructor(readonly value: T) {}
 
-  isOK(): this is Ok<T, E> {
+  isOk(): this is Ok<T, E> {
     return true;
   }
 
   isErr(): this is Err<T, E> {
-    return !this.isOK();
+    return !this.isOk();
   }
 
   map<A>(f: (t: T) => A): Result<A, E> {
