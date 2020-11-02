@@ -15,7 +15,7 @@ jobs:
         with:
           registry-url: "https://npm.pkg.github.com"
           # Defaults to the user or organization that owns the workflow file
-          scope: "@superindustries"
+          scope: "@superfaceai"
 
       # Install dependencies and run test
       - name: Install dependencies

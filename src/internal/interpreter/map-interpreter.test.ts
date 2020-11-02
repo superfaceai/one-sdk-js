@@ -1,4 +1,4 @@
-import { MapASTNode } from '@superindustries/language';
+import { MapASTNode } from '@superfaceai/language';
 import { getLocal } from 'mockttp';
 
 import { MapInterpreter } from './map-interpreter';

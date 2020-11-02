@@ -5,7 +5,7 @@
 To install the package, first create `.npmrc` file in your project root and put the following line into it.
 
 ```
-@superindustries:registry=https://npm.pkg.github.com
+@superfaceai:registry=https://npm.pkg.github.com
 ```
 
 Then authenticate to github npm package registry. Use your github name as your login and generate a personal access token with at least the `read:packages` permission in Github to use as password:
@@ -17,18 +17,18 @@ npm login --registry=https://npm.pkg.github.com
 After doing this, you should be able to install the package by calling:
 
 ```
-yarn add @superindustries/superface
+yarn add @superfaceai/superface
 ```
 
 ## Publishing a new version
 
 Package publishing is done through GitHub release functionality.
 
-[Draft a new release](https://github.com/superindustries/superface/releases/new) to publish a new version of the package.
+[Draft a new release](https://github.com/superfaceai/superface/releases/new) to publish a new version of the package.
 
 Use semver for the version tag. It must be in format of `v<major>.<minor>.<patch>`.
 
-Github Actions workflow will pick up the release and publish it as one of the [packages](https://github.com/superindustries/superface/packages).
+Github Actions workflow will pick up the release and publish it as one of the [packages](https://github.com/superfaceai/superface/packages).
 
 ## Licensing
 

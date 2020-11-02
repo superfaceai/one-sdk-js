@@ -32,7 +32,7 @@ import {
   UnionDefinitionNode,
   UseCaseDefinitionNode,
   VariableExpressionDefinitionNode,
-} from '@superindustries/language';
+} from '@superfaceai/language';
 
 export type Variables = {
   [key: string]: string | Variables | undefined;

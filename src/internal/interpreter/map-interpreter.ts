@@ -18,7 +18,7 @@ import {
   ProviderNode,
   StepDefinitionNode,
   VariableExpressionDefinitionNode,
-} from '@superindustries/language';
+} from '@superfaceai/language';
 
 import { Config } from '../../client';
 import { evalScript } from '../../client/interpreter/Sandbox';
