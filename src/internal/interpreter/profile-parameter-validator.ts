@@ -15,7 +15,7 @@ import {
   ProfileNode,
   UnionDefinitionNode,
   UseCaseDefinitionNode,
-} from '@superindustries/language';
+} from '@superfaceai/language';
 
 import { ProfileVisitor } from './interfaces';
 
@@ -207,6 +207,8 @@ export class ProfileParameterValidator implements ProfileVisitor {
         return this.visitUnionDefinitionNode(node, kind, usecase);
       case 'UseCaseDefinition':
         return this.visitUseCaseDefinitionNode(node, kind, usecase);
+      case 'UseCaseSlotDefinition':
+        throw 'TODO';
 
       default:
         assertUnreachable(node);
@@ -566,10 +568,10 @@ export class ProfileParameterValidator implements ProfileVisitor {
     kind: ProfileParameterKind,
     usecase: string
   ): ValidationFunction {
-    if (kind === 'input' && node.input) {
-      return addPath(this.visit(node.input, kind, usecase), 'input');
-    } else if (kind === 'result' && node.result) {
-      return addPath(this.visit(node.result, kind, usecase), 'result');
+    if (kind === 'input' && node.input && node.input.type) {
+      return addPath(this.visit(node.input.type, kind, usecase), 'input');
+    } else if (kind === 'result' && node.result && node.result.type) {
+      return addPath(this.visit(node.result.type, kind, usecase), 'result');
     }
 
     return (input: unknown): ValidationResult => {

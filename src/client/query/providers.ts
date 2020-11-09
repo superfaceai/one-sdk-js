@@ -1,4 +1,4 @@
-import { MapASTNode, ProfileASTNode } from '@superindustries/language';
+import { MapASTNode, ProfileASTNode } from '@superfaceai/language';
 
 import {
   MapInterpreter,

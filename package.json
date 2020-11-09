@@ -1,5 +1,5 @@
 {
-  "name": "@superindustries/superface",
+  "name": "@superfaceai/superface",
   "version": "0.0.1",
   "description": "Level 5 autonomous, self-driving API client, https://superface.ai",
   "main": "dist/index.js",
@@ -8,7 +8,7 @@
   "unpkg": "dist/superface.umd.js",
   "browser": "dist/superface.umd.js",
   "types": "dist/index.d.ts",
-  "repository": "https://github.com/superindustries/superface.git",
+  "repository": "https://github.com/superfaceai/superface.git",
   "author": "Superface Team",
   "private": false,
   "files": [
@@ -24,10 +24,11 @@
     "clean": "rimraf dist/",
     "prebuild": "yarn clean",
     "test": "jest",
+    "test:clean": "jest --clear-cache && jest",
     "lint": "eslint src/",
     "format": "prettier -c src/",
     "format:fix": "prettier --write src/",
-    "prepush": "yarn test && yarn lint && yarn format"
+    "prepush": "yarn test:clean && yarn lint && yarn format"
   },
   "devDependencies": {
     "@types/jest": "^26.0.10",
@@ -43,11 +44,11 @@
     "mockttp": "^0.20.3",
     "prettier": "^2.0.5",
     "rimraf": "^3.0.2",
-    "ts-jest": "^26.3.0",
+    "ts-jest": "^26.4.0",
     "typescript": "^4.0.2"
   },
   "dependencies": {
-    "@superindustries/language": "^0.0.12",
+    "@superfaceai/language": "^0.0.15",
     "cross-fetch": "^3.0.5",
     "isomorphic-form-data": "^2.0.0",
     "vm2": "^3.9.2"

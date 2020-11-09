@@ -11,7 +11,7 @@ jobs:
         uses: actions/setup-node@v1.4.2
         with:
           registry-url: "https://npm.pkg.github.com"
-          scope: "@superindustries"
+          scope: "@superfaceai"
           always-auth: true
 
       - name: Checkout
@@ -45,7 +45,7 @@ jobs:
         uses: actions/setup-node@v1.4.2
         with:
           registry-url: "https://npm.pkg.github.com"
-          scope: "@superindustries"
+          scope: "@superfaceai"
           always-auth: true
 
       - name: Checkout
@@ -79,7 +79,7 @@ jobs:
         uses: actions/setup-node@v1.4.2
         with:
           registry-url: "https://npm.pkg.github.com"
-          scope: "@superindustries"
+          scope: "@superfaceai"
           always-auth: true
 
       - name: Checkout

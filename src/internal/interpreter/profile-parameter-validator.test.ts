@@ -1,4 +1,4 @@
-import { ProfileDocumentNode } from '@superindustries/language';
+import { ProfileDocumentNode } from '@superfaceai/language';
 
 import { ProfileParameterValidator } from './profile-parameter-validator';
 
@@ -19,8 +19,11 @@ describe('ProfileParameterValidator', () => {
             kind: 'UseCaseDefinition',
             useCaseName: 'Test',
             input: {
-              kind: 'ObjectDefinition',
-              fields: [],
+              kind: 'UseCaseSlotDefinition',
+              type: {
+                kind: 'ObjectDefinition',
+                fields: [],
+              },
             },
           },
         ],
@@ -55,13 +58,17 @@ describe('ProfileParameterValidator', () => {
             kind: 'UseCaseDefinition',
             useCaseName: 'Test',
             input: {
-              kind: 'ObjectDefinition',
-              fields: [
-                {
-                  kind: 'FieldDefinition',
-                  fieldName: 'test',
-                },
-              ],
+              kind: 'UseCaseSlotDefinition',
+              type: {
+                kind: 'ObjectDefinition',
+                fields: [
+                  {
+                    kind: 'FieldDefinition',
+                    required: false,
+                    fieldName: 'test',
+                  },
+                ],
+              },
             },
           },
         ],
@@ -113,17 +120,21 @@ describe('ProfileParameterValidator', () => {
             kind: 'UseCaseDefinition',
             useCaseName: 'Test',
             input: {
-              kind: 'ObjectDefinition',
-              fields: [
-                {
-                  kind: 'FieldDefinition',
-                  fieldName: 'test',
-                  type: {
-                    kind: 'PrimitiveTypeName',
-                    name: 'string',
+              kind: 'UseCaseSlotDefinition',
+              type: {
+                kind: 'ObjectDefinition',
+                fields: [
+                  {
+                    kind: 'FieldDefinition',
+                    fieldName: 'test',
+                    required: false,
+                    type: {
+                      kind: 'PrimitiveTypeName',
+                      name: 'string',
+                    },
                   },
-                },
-              ],
+                ],
+              },
             },
           },
         ],
@@ -164,20 +175,24 @@ describe('ProfileParameterValidator', () => {
             kind: 'UseCaseDefinition',
             useCaseName: 'Test',
             input: {
-              kind: 'ObjectDefinition',
-              fields: [
-                {
-                  kind: 'FieldDefinition',
-                  fieldName: 'test',
-                  type: {
-                    kind: 'NonNullDefinition',
+              kind: 'UseCaseSlotDefinition',
+              type: {
+                kind: 'ObjectDefinition',
+                fields: [
+                  {
+                    kind: 'FieldDefinition',
+                    fieldName: 'test',
+                    required: false,
                     type: {
-                      kind: 'PrimitiveTypeName',
-                      name: 'string',
+                      kind: 'NonNullDefinition',
+                      type: {
+                        kind: 'PrimitiveTypeName',
+                        name: 'string',
+                      },
                     },
                   },
-                },
-              ],
+                ],
+              },
             },
           },
         ],
@@ -218,32 +233,38 @@ describe('ProfileParameterValidator', () => {
             kind: 'UseCaseDefinition',
             useCaseName: 'Test',
             input: {
-              kind: 'ObjectDefinition',
-              fields: [
-                {
-                  kind: 'FieldDefinition',
-                  fieldName: 'test',
-                  type: {
-                    kind: 'NonNullDefinition',
+              kind: 'UseCaseSlotDefinition',
+              type: {
+                kind: 'ObjectDefinition',
+                fields: [
+                  {
+                    kind: 'FieldDefinition',
+                    fieldName: 'test',
+                    required: false,
                     type: {
-                      kind: 'PrimitiveTypeName',
-                      name: 'string',
+                      kind: 'NonNullDefinition',
+                      type: {
+                        kind: 'PrimitiveTypeName',
+                        name: 'string',
+                      },
                     },
                   },
-                },
-                {
-                  kind: 'FieldDefinition',
-                  fieldName: 'untyped',
-                },
-                {
-                  kind: 'FieldDefinition',
-                  fieldName: 'another',
-                  type: {
-                    kind: 'PrimitiveTypeName',
-                    name: 'number',
+                  {
+                    kind: 'FieldDefinition',
+                    required: false,
+                    fieldName: 'untyped',
                   },
-                },
-              ],
+                  {
+                    kind: 'FieldDefinition',
+                    required: false,
+                    fieldName: 'another',
+                    type: {
+                      kind: 'PrimitiveTypeName',
+                      name: 'number',
+                    },
+                  },
+                ],
+              },
             },
           },
         ],
@@ -327,13 +348,17 @@ describe('ProfileParameterValidator', () => {
             kind: 'UseCaseDefinition',
             useCaseName: 'Test',
             input: {
-              kind: 'ObjectDefinition',
-              fields: [
-                {
-                  kind: 'FieldDefinition',
-                  fieldName: 'test',
-                },
-              ],
+              kind: 'UseCaseSlotDefinition',
+              type: {
+                kind: 'ObjectDefinition',
+                fields: [
+                  {
+                    kind: 'FieldDefinition',
+                    required: false,
+                    fieldName: 'test',
+                  },
+                ],
+              },
             },
           },
           {
@@ -379,26 +404,30 @@ describe('ProfileParameterValidator', () => {
             kind: 'UseCaseDefinition',
             useCaseName: 'Test',
             input: {
-              kind: 'ObjectDefinition',
-              fields: [
-                {
-                  kind: 'FieldDefinition',
-                  fieldName: 'test',
-                  type: {
-                    kind: 'EnumDefinition',
-                    values: [
-                      {
-                        kind: 'EnumValue',
-                        value: 'hello',
-                      },
-                      {
-                        kind: 'EnumValue',
-                        value: 'goodbye',
-                      },
-                    ],
+              kind: 'UseCaseSlotDefinition',
+              type: {
+                kind: 'ObjectDefinition',
+                fields: [
+                  {
+                    kind: 'FieldDefinition',
+                    required: false,
+                    fieldName: 'test',
+                    type: {
+                      kind: 'EnumDefinition',
+                      values: [
+                        {
+                          kind: 'EnumValue',
+                          value: 'hello',
+                        },
+                        {
+                          kind: 'EnumValue',
+                          value: 'goodbye',
+                        },
+                      ],
+                    },
                   },
-                },
-              ],
+                ],
+              },
             },
           },
         ],
@@ -440,13 +469,17 @@ describe('ProfileParameterValidator', () => {
             kind: 'UseCaseDefinition',
             useCaseName: 'Test',
             input: {
-              kind: 'ObjectDefinition',
-              fields: [
-                {
-                  kind: 'FieldDefinition',
-                  fieldName: 'test',
-                },
-              ],
+              kind: 'UseCaseSlotDefinition',
+              type: {
+                kind: 'ObjectDefinition',
+                fields: [
+                  {
+                    kind: 'FieldDefinition',
+                    required: false,
+                    fieldName: 'test',
+                  },
+                ],
+              },
             },
           },
           {
@@ -505,29 +538,34 @@ describe('ProfileParameterValidator', () => {
             kind: 'UseCaseDefinition',
             useCaseName: 'Test',
             input: {
-              kind: 'ObjectDefinition',
-              fields: [
-                {
-                  kind: 'FieldDefinition',
-                  fieldName: 'test',
-                  type: {
-                    kind: 'ObjectDefinition',
-                    fields: [
-                      {
-                        kind: 'FieldDefinition',
-                        fieldName: 'hello',
-                        type: {
-                          kind: 'NonNullDefinition',
+              kind: 'UseCaseSlotDefinition',
+              type: {
+                kind: 'ObjectDefinition',
+                fields: [
+                  {
+                    kind: 'FieldDefinition',
+                    required: false,
+                    fieldName: 'test',
+                    type: {
+                      kind: 'ObjectDefinition',
+                      fields: [
+                        {
+                          kind: 'FieldDefinition',
+                          required: false,
+                          fieldName: 'hello',
                           type: {
-                            kind: 'PrimitiveTypeName',
-                            name: 'string',
+                            kind: 'NonNullDefinition',
+                            type: {
+                              kind: 'PrimitiveTypeName',
+                              name: 'string',
+                            },
                           },
                         },
-                      },
-                    ],
+                      ],
+                    },
                   },
-                },
-              ],
+                ],
+              },
             },
           },
         ],
@@ -582,35 +620,41 @@ describe('ProfileParameterValidator', () => {
             kind: 'UseCaseDefinition',
             useCaseName: 'Test',
             input: {
-              kind: 'ObjectDefinition',
-              fields: [
-                {
-                  kind: 'FieldDefinition',
-                  fieldName: 'test',
-                  type: {
-                    kind: 'ObjectDefinition',
-                    fields: [
-                      {
-                        kind: 'FieldDefinition',
-                        fieldName: 'hello',
-                        type: {
-                          kind: 'ObjectDefinition',
-                          fields: [
-                            {
-                              kind: 'FieldDefinition',
-                              fieldName: 'goodbye',
-                              type: {
-                                kind: 'PrimitiveTypeName',
-                                name: 'boolean',
+              kind: 'UseCaseSlotDefinition',
+              type: {
+                kind: 'ObjectDefinition',
+                fields: [
+                  {
+                    kind: 'FieldDefinition',
+                    required: false,
+                    fieldName: 'test',
+                    type: {
+                      kind: 'ObjectDefinition',
+                      fields: [
+                        {
+                          kind: 'FieldDefinition',
+                          required: false,
+                          fieldName: 'hello',
+                          type: {
+                            kind: 'ObjectDefinition',
+                            fields: [
+                              {
+                                kind: 'FieldDefinition',
+                                required: false,
+                                fieldName: 'goodbye',
+                                type: {
+                                  kind: 'PrimitiveTypeName',
+                                  name: 'boolean',
+                                },
                               },
-                            },
-                          ],
+                            ],
+                          },
                         },
-                      },
-                    ],
+                      ],
+                    },
                   },
-                },
-              ],
+                ],
+              },
             },
           },
         ],
@@ -685,13 +729,17 @@ describe('ProfileParameterValidator', () => {
             kind: 'UseCaseDefinition',
             useCaseName: 'Test',
             input: {
-              kind: 'ObjectDefinition',
-              fields: [
-                {
-                  kind: 'FieldDefinition',
-                  fieldName: 'test',
-                },
-              ],
+              kind: 'UseCaseSlotDefinition',
+              type: {
+                kind: 'ObjectDefinition',
+                fields: [
+                  {
+                    kind: 'FieldDefinition',
+                    required: false,
+                    fieldName: 'test',
+                  },
+                ],
+              },
             },
           },
           {
@@ -702,6 +750,7 @@ describe('ProfileParameterValidator', () => {
               fields: [
                 {
                   kind: 'FieldDefinition',
+                  required: false,
                   fieldName: 'hello',
                   type: {
                     kind: 'NonNullDefinition',
@@ -766,26 +815,30 @@ describe('ProfileParameterValidator', () => {
             kind: 'UseCaseDefinition',
             useCaseName: 'Test',
             input: {
-              kind: 'ObjectDefinition',
-              fields: [
-                {
-                  kind: 'FieldDefinition',
-                  fieldName: 'test',
-                  type: {
-                    kind: 'UnionDefinition',
-                    types: [
-                      {
-                        kind: 'PrimitiveTypeName',
-                        name: 'string',
-                      },
-                      {
-                        kind: 'PrimitiveTypeName',
-                        name: 'number',
-                      },
-                    ],
+              kind: 'UseCaseSlotDefinition',
+              type: {
+                kind: 'ObjectDefinition',
+                fields: [
+                  {
+                    kind: 'FieldDefinition',
+                    required: false,
+                    fieldName: 'test',
+                    type: {
+                      kind: 'UnionDefinition',
+                      types: [
+                        {
+                          kind: 'PrimitiveTypeName',
+                          name: 'string',
+                        },
+                        {
+                          kind: 'PrimitiveTypeName',
+                          name: 'number',
+                        },
+                      ],
+                    },
                   },
-                },
-              ],
+                ],
+              },
             },
           },
         ],
@@ -828,20 +881,24 @@ describe('ProfileParameterValidator', () => {
             kind: 'UseCaseDefinition',
             useCaseName: 'Test',
             input: {
-              kind: 'ObjectDefinition',
-              fields: [
-                {
-                  kind: 'FieldDefinition',
-                  fieldName: 'test',
-                  type: {
-                    kind: 'NonNullDefinition',
+              kind: 'UseCaseSlotDefinition',
+              type: {
+                kind: 'ObjectDefinition',
+                fields: [
+                  {
+                    kind: 'FieldDefinition',
+                    required: false,
+                    fieldName: 'test',
                     type: {
-                      kind: 'ModelTypeName',
-                      name: 'TestUnion',
+                      kind: 'NonNullDefinition',
+                      type: {
+                        kind: 'ModelTypeName',
+                        name: 'TestUnion',
+                      },
                     },
                   },
-                },
-              ],
+                ],
+              },
             },
           },
           {
@@ -901,20 +958,24 @@ describe('ProfileParameterValidator', () => {
             kind: 'UseCaseDefinition',
             useCaseName: 'Test',
             input: {
-              kind: 'ObjectDefinition',
-              fields: [
-                {
-                  kind: 'FieldDefinition',
-                  fieldName: 'test',
-                  type: {
-                    kind: 'ListDefinition',
-                    elementType: {
-                      kind: 'PrimitiveTypeName',
-                      name: 'string',
+              kind: 'UseCaseSlotDefinition',
+              type: {
+                kind: 'ObjectDefinition',
+                fields: [
+                  {
+                    kind: 'FieldDefinition',
+                    required: false,
+                    fieldName: 'test',
+                    type: {
+                      kind: 'ListDefinition',
+                      elementType: {
+                        kind: 'PrimitiveTypeName',
+                        name: 'string',
+                      },
                     },
                   },
-                },
-              ],
+                ],
+              },
             },
           },
         ],
@@ -965,23 +1026,27 @@ describe('ProfileParameterValidator', () => {
             kind: 'UseCaseDefinition',
             useCaseName: 'Test',
             input: {
-              kind: 'ObjectDefinition',
-              fields: [
-                {
-                  kind: 'FieldDefinition',
-                  fieldName: 'test',
-                  type: {
-                    kind: 'NonNullDefinition',
+              kind: 'UseCaseSlotDefinition',
+              type: {
+                kind: 'ObjectDefinition',
+                fields: [
+                  {
+                    kind: 'FieldDefinition',
+                    required: false,
+                    fieldName: 'test',
                     type: {
-                      kind: 'ListDefinition',
-                      elementType: {
-                        kind: 'PrimitiveTypeName',
-                        name: 'string',
+                      kind: 'NonNullDefinition',
+                      type: {
+                        kind: 'ListDefinition',
+                        elementType: {
+                          kind: 'PrimitiveTypeName',
+                          name: 'string',
+                        },
                       },
                     },
                   },
-                },
-              ],
+                ],
+              },
             },
           },
         ],
@@ -1036,35 +1101,41 @@ describe('ProfileParameterValidator', () => {
             kind: 'UseCaseDefinition',
             useCaseName: 'Test',
             result: {
-              kind: 'ObjectDefinition',
-              fields: [
-                {
-                  kind: 'FieldDefinition',
-                  fieldName: 'test',
-                  type: {
-                    kind: 'ObjectDefinition',
-                    fields: [
-                      {
-                        kind: 'FieldDefinition',
-                        fieldName: 'hello',
-                        type: {
-                          kind: 'ObjectDefinition',
-                          fields: [
-                            {
-                              kind: 'FieldDefinition',
-                              fieldName: 'goodbye',
-                              type: {
-                                kind: 'PrimitiveTypeName',
-                                name: 'boolean',
+              kind: 'UseCaseSlotDefinition',
+              type: {
+                kind: 'ObjectDefinition',
+                fields: [
+                  {
+                    kind: 'FieldDefinition',
+                    required: false,
+                    fieldName: 'test',
+                    type: {
+                      kind: 'ObjectDefinition',
+                      fields: [
+                        {
+                          kind: 'FieldDefinition',
+                          required: false,
+                          fieldName: 'hello',
+                          type: {
+                            kind: 'ObjectDefinition',
+                            fields: [
+                              {
+                                kind: 'FieldDefinition',
+                                required: false,
+                                fieldName: 'goodbye',
+                                type: {
+                                  kind: 'PrimitiveTypeName',
+                                  name: 'boolean',
+                                },
                               },
-                            },
-                          ],
+                            ],
+                          },
                         },
-                      },
-                    ],
+                      ],
+                    },
                   },
-                },
-              ],
+                ],
+              },
             },
           },
         ],
@@ -1139,17 +1210,21 @@ describe('ProfileParameterValidator', () => {
             kind: 'UseCaseDefinition',
             useCaseName: 'Test',
             result: {
-              kind: 'ObjectDefinition',
-              fields: [
-                {
-                  kind: 'FieldDefinition',
-                  fieldName: 'test',
-                  type: {
-                    kind: 'ModelTypeName',
-                    name: 'TestEnum',
+              kind: 'UseCaseSlotDefinition',
+              type: {
+                kind: 'ObjectDefinition',
+                fields: [
+                  {
+                    kind: 'FieldDefinition',
+                    required: false,
+                    fieldName: 'test',
+                    type: {
+                      kind: 'ModelTypeName',
+                      name: 'TestEnum',
+                    },
                   },
-                },
-              ],
+                ],
+              },
             },
           },
           {
