@@ -1,8 +1,6 @@
 import {
   isMapDocumentNode,
-  MapASTNode,
   MapDocumentNode,
-  ProfileASTNode,
   ProfileDocumentNode,
 } from '@superfaceai/language';
 
@@ -23,8 +21,8 @@ export class BoundProvider<TInput extends NonPrimitive, TResult = unknown> {
   private profileValidator: ProfileParameterValidator;
 
   constructor(
-    private profileAST: ProfileASTNode,
-    private mapAST: MapASTNode,
+    private profileAST: ProfileDocumentNode,
+    private mapAST: MapDocumentNode,
     private config: Config,
     private usecase: string,
     private baseUrl?: string,
@@ -91,7 +89,7 @@ export class Provider<TParams extends NonPrimitive, TResult = unknown> {
 
   /**
    * If mapUrlOrMapAST is string, interpret it as URL and fetch map from there.
-   * Otherwise, interpret it as MapASTNode
+   * Otherwise, interpret it as MapDocumentNode
    */
   private async obtainMapAST(): Promise<MapDocumentNode> {
     if (typeof this.mapUrlOrMapAST === 'string') {
