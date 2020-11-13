@@ -58,11 +58,11 @@ export class BoundProvider<TInput, TResult = unknown> {
 export class Provider<TParams, TResult = unknown> {
   constructor(
     private profileAST: ProfileASTNode,
-    private mapUrl: string,
+    private mapUrlOrMapAST: string | MapASTNode,
     private usecase: string,
     private baseUrl: string,
     private validationFunction?: (input: unknown) => input is TResult
-  ) {}
+  ) { }
 
   /**
    * Binds the provider.
@@ -70,7 +70,7 @@ export class Provider<TParams, TResult = unknown> {
    * This fetches the map and allows to perform.
    */
   public async bind(config: Config): Promise<BoundProvider<TParams, TResult>> {
-    const mapAST = await fetchMapAST(this.mapUrl);
+    const mapAST = await this.obtainMapAST();
 
     return new BoundProvider<TParams, TResult>(
       this.profileAST,
@@ -80,6 +80,18 @@ export class Provider<TParams, TResult = unknown> {
       this.baseUrl,
       this.validationFunction
     );
+  }
+
+  /**
+   * If mapUrlOrMapAST is string, interpret it as URL and fetch map from there.
+   * Otherwise, interpret it as MapASTNode
+   */
+  private async obtainMapAST() {
+    if (typeof this.mapUrlOrMapAST === 'string' || this.mapUrlOrMapAST instanceof String) {
+      return fetchMapAST(this.mapUrlOrMapAST as string);
+    } else {
+      return this.mapUrlOrMapAST;
+    }
   }
 
   public get serviceId(): string {
