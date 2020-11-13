@@ -8,7 +8,7 @@ To install the package, first create `.npmrc` file in your project root and put 
 @superfaceai:registry=https://npm.pkg.github.com
 ```
 
-Then authenticate to github npm package registry. Use your github name as your login and generate a personal access token with at least the `read:packages` permission in Github to use as password:
+Then authenticate to github npm package registry. Use your github name as your login and generate a personal access token with at least `repo` and `read:packages` permissions in Github to use as password:
 
 ```
 npm login --registry=https://npm.pkg.github.com
