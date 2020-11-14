@@ -1,28 +1,31 @@
 import { evalScript } from './Sandbox';
 
 describe('sandbox', () => {
-  beforeEach(() => {
-    process.env.SECRET = 'MuchSecret';
-  });
-
   it('prevents string masking attack', () => {
-    const js = `   
-    // Let x be any value not in
-    // (null, undefined, Object.create(null)).
-    var x = {},
+    process.env.SECRET = 'MuchSecret';
+
+    const js = `
+    (() => {
+      // Let x be any value not in
+      // (null, undefined, Object.create(null)).
+      var x = {};
+
       // If the attacker can control three strings
-      a = "constructor",
-      b = "constructor",
-      s = "process.env.SECRET = 'overwrite'";
-    // and trick code into doing two property lookups
-    // they control, a call with a string they control,
-    // and one more call with any argument
-    x[a][b](s)();
-    // then they can cause any side-effect achievable
-    // solely via objects reachable from the global scope.
-    // This includes full access to any exported module APIs,
-    // all declarations in the current module, and access
-    // to builtin modules like child_process, fs, and net.
+      var a = "constructor";
+      var b = "constructor";
+      var s = "process.env.SECRET = 'overwrite'";
+
+      // and trick code into doing two property lookups
+      // they control, a call with a string they control,
+      // and one more call with any argument
+      x[a][b](s)();
+
+      // then they can cause any side-effect achievable
+      // solely via objects reachable from the global scope.
+      // This includes full access to any exported module APIs,
+      // all declarations in the current module, and access
+      // to builtin modules like child_process, fs, and net.
+    })()
     `;
 
     expect(() => evalScript(js)).toThrow(
@@ -60,18 +63,18 @@ describe('sandbox', () => {
   });
 
   it('Halting problem (Stalling the event loop)', () => {
-    expect(() => evalScript('while(true) { 1 + 1 }')).toThrow(
+    expect(() => evalScript('(() => { while(true) { 1 + 1 } })()')).toThrow(
       'Script execution timed out'
     );
   });
 
   it('no Promises or async', () => {
     expect(() => evalScript('Promise.reject().catch(() => {})')).toThrow(
-      'Promise is not defined'
+      'Async not available'
     );
 
     expect(() => evalScript('new Promise.resolve(5)')).toThrow(
-      'Promise is not defined'
+      'Promise.resolve is not a constructor'
     );
 
     expect(() => evalScript('async () => 1')).toThrow();
@@ -92,10 +95,15 @@ describe('sandbox', () => {
   });
 
   it('isolation', () => {
-    expect(
-      evalScript('global["prop"] = 0; global["prop"]')
-    ).toStrictEqual(0);
+    expect(evalScript('global["prop"] = 0; global["prop"]')).toStrictEqual(0);
 
     expect(evalScript('global["prop"]')).not.toBeDefined();
+  });
+
+  it('correctly evaluates object literal', () => {
+    expect(evalScript('{ foo: 1, bar: 2 }')).toStrictEqual({
+      foo: 1,
+      bar: 2,
+    });
   });
 });

@@ -105,6 +105,7 @@ export class MapInterpreter<T> implements MapVisitor {
   async visit(node: StatementConditionNode): Promise<boolean>;
   async visit(node: HttpRequestNode): Promise<HttpRequest>;
   visit(node: HttpResponseHandlerNode): HttpResponseHandler;
+  visit(node: JessieExpressionNode): unknown;
   async visit(
     node: MapASTNode
   ): Promise<undefined | Variables | string | boolean>;
@@ -124,7 +125,9 @@ export class MapInterpreter<T> implements MapVisitor {
     | number
     | boolean
     | Variables
-    | HttpResponseHandler {
+    | HttpResponseHandler
+    | unknown
+  {
     switch (node.kind) {
       case 'Assignment':
         return this.visitAssignmentNode(node);
@@ -277,7 +280,7 @@ export class MapInterpreter<T> implements MapVisitor {
     };
   }
 
-  visitJessieExpressionNode(node: JessieExpressionNode): string {
+  visitJessieExpressionNode(node: JessieExpressionNode): unknown {
     return evalScript(node.expression, this.variables);
   }
 
