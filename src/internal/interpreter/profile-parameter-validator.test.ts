@@ -1,5 +1,4 @@
 import { ProfileDocumentNode } from '@superfaceai/language';
-
 import { ProfileParameterValidator } from './profile-parameter-validator';
 
 describe('ProfileParameterValidator', () => {

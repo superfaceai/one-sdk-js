@@ -1,28 +1,33 @@
 import {
-  EvalDefinitionNode,
-  HTTPOperationDefinitionNode,
+  AssignmentNode,
+  CallStatementNode,
+  HttpCallStatementNode,
+  HttpRequestNode,
+  HttpResponseHandlerNode,
+  HttpSecurity,
+  InlineCallNode,
   isMapDefinitionNode,
   isOperationDefinitionNode,
-  IterationDefinitionNode,
-  JSExpressionNode,
+  JessieExpressionNode,
+  LiteralNode,
   MapASTNode,
   MapDefinitionNode,
   MapDocumentNode,
-  MapExpressionDefinitionNode,
   MapNode,
   MapProfileIdNode,
-  NetworkOperationDefinitionNode,
-  OperationCallDefinitionNode,
+  ObjectLiteralNode,
   OperationDefinitionNode,
-  OutcomeDefinitionNode,
+  OutcomeStatementNode,
+  PrimitiveLiteralNode,
   ProviderNode,
-  StepDefinitionNode,
-  VariableExpressionDefinitionNode,
+  SetStatementNode,
+  StatementConditionNode,
+  Substatement,
 } from '@superfaceai/language';
 
 import { Config } from '../../client';
 import { evalScript } from '../../client/interpreter/Sandbox';
-import { HttpClient } from '../http';
+import { HttpClient, HttpResponse } from '../http';
 import { MapVisitor, Variables } from './interfaces';
 
 function assertUnreachable(node: never): never;
@@ -49,7 +54,12 @@ export const mergeVariables = (
   for (const key of Object.keys(right)) {
     const l = left[key];
     const r = right[key];
-    if (r && typeof r !== 'string' && typeof l === 'object') {
+    if (
+      r &&
+      typeof r !== 'string' &&
+      typeof r !== 'boolean' &&
+      typeof l === 'object'
+    ) {
       result[key] = mergeVariables(l, r);
     } else {
       result[key] = right[key];
@@ -59,159 +69,283 @@ export const mergeVariables = (
   return result;
 };
 
+type HttpResponseHandler = (
+  response: HttpResponse
+) => Promise<[true, Variables | boolean | string | undefined] | [false]>;
+
+interface OutcomeDefinition {
+  result?: Variables | string | boolean;
+  error: boolean;
+  terminateFlow: boolean;
+}
+
+interface HttpRequest {
+  contentType?: string;
+  contentLanguage?: string;
+  headers?: Variables;
+  queryParameters?: Variables;
+  body?: Variables;
+  security?: HttpSecurity;
+}
+
 export class MapInterpreter<T> implements MapVisitor {
-  private variableStack: Variables[] = [];
   private operations: OperationDefinitionNode[] = [];
   private operationScopedVariables: Record<string, Variables> = {};
   private operationScope: string | undefined;
-  private mapScopedVariables: Record<string, Variables> = {};
-  private mapScope: string | undefined;
+  private stack: [type: 'map' | 'operation', variables: Variables, result: Variables | undefined | string | boolean][] = [];
 
   constructor(private readonly parameters: MapParameters<T>) {}
 
+  visit(node: PrimitiveLiteralNode): string | number | boolean;
+  async visit(node: SetStatementNode): Promise<void>;
   async visit(
-    node: OutcomeDefinitionNode | HTTPOperationDefinitionNode
-  ): Promise<Variables | undefined>;
+    node: OutcomeStatementNode
+  ): Promise<OutcomeDefinition | undefined>;
+  async visit(node: AssignmentNode | LiteralNode): Promise<Variables>;
+  async visit(node: StatementConditionNode): Promise<boolean>;
+  async visit(node: HttpRequestNode): Promise<HttpRequest>;
+  visit(node: HttpResponseHandlerNode): HttpResponseHandler;
   async visit(
-    node: VariableExpressionDefinitionNode | MapExpressionDefinitionNode
-  ): Promise<Variables>;
-  async visit(node: MapASTNode): Promise<undefined | Variables | string>;
-  async visit(node: MapASTNode): Promise<undefined | Variables | string> {
+    node: MapASTNode
+  ): Promise<undefined | Variables | string | boolean>;
+  visit(
+    node: MapASTNode
+  ):
+    | Promise<
+        | undefined
+        | Variables
+        | string
+        | boolean
+        | void
+        | HttpRequest
+        | OutcomeDefinition
+      >
+    | string
+    | number
+    | boolean
+    | Variables
+    | HttpResponseHandler {
     switch (node.kind) {
-      case 'EvalDefinition':
-        return this.visitEvalDefinitionNode(node);
-      case 'HTTPOperationDefinition':
-        return this.visitHTTPOperationDefinitionNode(node);
-      case 'IterationDefinition':
-        return this.visitIterationDefinitionNode(node);
-      case 'JSExpression':
-        return this.visitJSExpressionNode(node);
+      case 'Assignment':
+        return this.visitAssignmentNode(node);
+      case 'CallStatement':
+        return this.visitCallStatementNode(node);
+      case 'HttpCallStatement':
+        return this.visitHttpCallStatementNode(node);
+      case 'HttpRequest':
+        return this.visitHttpRequestNode(node);
+      case 'HttpResponseHandler':
+        return this.visitHttpResponseHandlerNode(node);
+      case 'InlineCall':
+        return this.visitInlineCallNode(node);
+      case 'JessieExpression':
+        return this.visitJessieExpressionNode(node);
       case 'Map':
         return this.visitMapNode(node);
       case 'MapDefinition':
         return this.visitMapDefinitionNode(node);
       case 'MapDocument':
         return this.visitMapDocumentNode(node);
-      case 'MapExpressionsDefinition':
-        return this.visitMapExpressionDefinitionNode(node);
-      case 'NetworkOperationDefinition':
-        return this.visitNetworkOperationDefinitionNode(node);
-      case 'OperationCallDefinition':
-        return this.visitOperationCallDefinitionNode(node);
+      case 'ProfileId':
+        return this.visitMapProfileIdNode(node);
+      case 'ObjectLiteral':
+        return this.visitObjectLiteralNode(node);
       case 'OperationDefinition':
         return this.visitOperationDefinitionNode(node);
-      case 'OutcomeDefinition':
-        return this.visitOutcomeDefinitionNode(node);
-      case 'ProfileId':
-        return this.visitProfileIdNode(node);
+      case 'OutcomeStatement':
+        return this.visitOutcomeStatementNode(node);
+      case 'PrimitiveLiteral':
+        return this.visitPrimitiveLiteralNode(node);
       case 'Provider':
         return this.visitProviderNode(node);
-      case 'StepDefinition':
-        return this.visitStepDefinitionNode(node);
-      case 'VariableExpressionsDefinition':
-        return this.visitVariableExpressionDefinitionNode(node);
+      case 'SetStatement':
+        return this.visitSetStatementNode(node);
+      case 'StatementCondition':
+        return this.visitStatementConditionNode(node);
 
       default:
         assertUnreachable(node);
     }
   }
 
-  async visitEvalDefinitionNode(
-    node: EvalDefinitionNode
-  ): Promise<Variables | undefined> {
-    return await this.visit(node.outcomeDefinition);
+  async visitAssignmentNode(node: AssignmentNode): Promise<Variables> {
+    const result: Variables = {};
+    let current = result;
+
+    for (const key of node.key) {
+      current = current[key] =
+        key === node.key[node.key.length - 1]
+          ? await this.visit(node.value)
+          : {};
+    }
+
+    return result;
   }
 
-  async visitHTTPOperationDefinitionNode(
-    node: HTTPOperationDefinitionNode
-  ): Promise<Variables | undefined> {
-    const variables = await this.processVariableExpressions(
-      node.variableExpressionsDefinition
+  async visitInlineCallNode(
+    node: InlineCallNode
+  ): Promise<string | boolean | Variables | undefined> {
+    const operation = this.operations.find(
+      op => op.name === node.operationName
     );
-    this.variableStack.push(variables);
+    if (!operation) {
+      throw new Error(`Operation not found: ${node.operationName}`);
+    }
 
-    const queryParameters = await this.processVariableExpressions(
-      node.requestDefinition.queryParametersDefinition
+    return this.visit(operation);
+  }
+
+  async visitCallStatementNode(node: CallStatementNode): Promise<void> {
+    const operation = this.operations.find(
+      op => op.name === node.operationName
     );
 
-    const body = await this.processMapExpressions(node.requestDefinition.body);
+    if (!operation) {
+      throw new Error(`Calling undefined operation: ${node.operationName}`);
+    }
 
-    const headers = await this.processVariableExpressions(
-      node.requestDefinition.headers
-    );
+    this.stack.push(['operation', {}, {}]);
+    const result = await this.visit(operation);
+    this.addVariableToStack({ outcome: { data: result } });
+
+    const secondResult = await this.processStatements(node.statements);
+
+    const last = this.stack.pop();
+    if (this.stack.length && last) {
+      this.stack[this.stack.length - 1][2] = secondResult ?? last[1]['result'];
+    }
+  }
+
+  async visitHttpCallStatementNode(node: HttpCallStatementNode): Promise<void> {
+    const request = node.request && (await this.visit(node.request));
 
     const response = await HttpClient.request(node.url, {
-      queryParameters,
       method: node.method,
-      body,
-      headers,
-      contentType: node.requestDefinition.contentType,
-      accept: node.responseDefinition.contentType,
-      security: node.requestDefinition.security,
-      auth: this.parameters.auth,
+      headers: request?.headers,
+      contentType: request?.contentType ?? 'application/json',
+      accept: 'application/json',
       baseUrl: this.parameters.baseUrl,
-      pathParameters: this.mapScope
-        ? this.mapScopedVariables[this.mapScope]
-        : undefined,
+      queryParameters: request?.queryParameters,
+      pathParameters: this.variables,
+      body: request?.body,
+      security: request?.security,
+      auth: this.parameters.auth,
     });
 
-    this.variableStack.push({
-      body: response.body as string,
-      headers: response.headers,
-    });
+    for (const responseHandler of node.responseHandlers) {
+      const handler = this.visit(responseHandler);
+      const [match, result] = await handler(response);
 
-    return await this.visit(node.responseDefinition.outcomeDefinition);
+      if (match && result) {
+        this.addVariableToStack({ result });
+
+        return;
+      }
+    }
   }
 
-  visitIterationDefinitionNode(_node: IterationDefinitionNode): never {
-    throw new Error('Method not implemented.');
+  async visitHttpRequestNode(node: HttpRequestNode): Promise<HttpRequest> {
+    return {
+      contentType: node.contentType,
+      contentLanguage: node.contentLanguage,
+      headers: node.headers && (await this.visit(node.headers)),
+      queryParameters: node.query && (await this.visit(node.query)),
+      body: node.body && (await this.visit(node.body)),
+      security: node.security,
+    };
   }
 
-  visitJSExpressionNode(node: JSExpressionNode): string {
+  visitHttpResponseHandlerNode(
+    node: HttpResponseHandlerNode
+  ): HttpResponseHandler {
+    return async (response: HttpResponse) => {
+      if (node.statusCode && node.statusCode !== response.statusCode) {
+        return [false];
+      }
+
+      if (
+        node.contentType &&
+        response.headers['content-type'] &&
+        node.contentType !== response.headers['content-type']
+      ) {
+        return [false];
+      }
+
+      if (
+        node.contentLanguage &&
+        response.headers['content-language'] &&
+        response.headers['content-language'].includes(node.contentLanguage)
+      ) {
+        return [false];
+      }
+
+      this.addVariableToStack({ body: response.body as Variables });
+
+      const result = await this.processStatements(node.statements);
+
+      return [true, result];
+    };
+  }
+
+  visitJessieExpressionNode(node: JessieExpressionNode): string {
     return evalScript(node.expression, this.variables);
   }
 
-  async visitMapDefinitionNode(
-    node: MapDefinitionNode
-  ): Promise<string | Variables | undefined> {
-    this.mapScope = node.mapName;
+  visitPrimitiveLiteralNode(
+    node: PrimitiveLiteralNode
+  ): string | number | boolean {
+    return node.value;
+  }
 
-    this.mapScopedVariables[this.mapScope] = {
-      ...(this.mapScopedVariables[this.mapScope] ?? {}),
-      ...(await this.processVariableExpressions(
-        node.variableExpressionsDefinition
-      )),
-    };
+  private async processStatements(
+    statements: Substatement[]
+  ): Promise<Variables | string | boolean | undefined> {
+    let result: Variables | boolean | string | undefined;
+    for (const statement of statements) {
+      switch (statement.kind) {
+        case 'SetStatement':
+        case 'HttpCallStatement':
+        case 'CallStatement':
+          result = await this.visit(statement);
+          break;
 
-    let result: string | Variables | undefined;
-    for (const step of node.stepsDefinition) {
-      const condition = await this.visit(step.condition);
-
-      if (condition) {
-        const variables = await this.processVariableExpressions(
-          node.variableExpressionsDefinition
-        );
-
-        this.variableStack.push(variables);
-        const stepResult = await this.visit(step);
-        this.variableStack.pop();
-
-        if (stepResult) {
-          result = stepResult;
+        case 'OutcomeStatement': {
+          const outcome = await this.visit(statement);
+          result = outcome?.result ?? result;
+          if (outcome?.terminateFlow) {
+            return result;
+          } else {
+            this.addVariableToStack(
+              this.stack[this.stack.length - 1][0] === 'map'
+                ? { result }
+                : { outcome: { data: result } }
+            );
+          }
+          break;
         }
       }
     }
 
-    this.mapScope = undefined;
+    return result;
+  }
+
+  async visitMapDefinitionNode(
+    node: MapDefinitionNode
+  ): Promise<Variables | string | boolean | undefined> {
+    this.stack.push(['map', {}, {}]);
+    let result = await this.processStatements(node.statements);
+
+    result = {
+      result: result ?? this.stack[this.stack.length - 1][1]['result'] ?? this.stack[this.stack.length - 1][2],
+    };
 
     return result;
   }
 
   async visitMapDocumentNode(
     node: MapDocumentNode
-  ): Promise<string | Variables | undefined> {
+  ): Promise<string | Variables | undefined | boolean> {
     this.operations = node.definitions.filter(isOperationDefinitionNode);
-
     const operation = node.definitions
       .filter(isMapDefinitionNode)
       .find(definition => definition.usecaseName === this.parameters.usecase);
@@ -223,113 +357,50 @@ export class MapInterpreter<T> implements MapVisitor {
     return await this.visit(operation);
   }
 
-  async visitMapExpressionDefinitionNode(
-    node: MapExpressionDefinitionNode
-  ): Promise<Variables> {
-    const value = await this.visit(node.right);
-    const path = node.left.split('.');
-    const result: Variables = {};
-    let current: Variables = result;
-
-    for (let i = 0; i < path.length; ++i) {
-      if (i !== path.length - 1) {
-        current = current[path[i]] = {};
-      } else {
-        current[path[i]] = value;
-      }
-    }
-
-    return result;
+  visitMapProfileIdNode(_node: MapProfileIdNode): never {
+    throw new Error('Method not implemented.');
   }
 
   visitMapNode(_node: MapNode): never {
     throw new Error('Method not implemented.');
   }
 
-  visitNetworkOperationDefinitionNode(
-    node: NetworkOperationDefinitionNode
-  ): Promise<Variables | undefined> {
-    return this.visit(node.definition);
-  }
+  async visitObjectLiteralNode(node: ObjectLiteralNode): Promise<Variables> {
+    let result: Variables = {};
 
-  async visitOperationCallDefinitionNode(
-    node: OperationCallDefinitionNode
-  ): Promise<string | Variables | undefined> {
-    const operation = this.operations.find(
-      operation => operation.operationName === node.operationName
-    );
-
-    if (!operation) {
-      throw new Error(`Operation ${node.operationName} not found!`);
+    for (const field of node.fields) {
+      result = mergeVariables(result, {
+        [field.key[0]]: await this.visit(field.value),
+      });
     }
-
-    let result = await this.visit(operation);
-
-    this.operationScope = operation.operationName;
-
-    if (!result) {
-      result = await this.visit(node.successOutcomeDefinition);
-    }
-
-    this.operationScope = undefined;
 
     return result;
   }
 
   async visitOperationDefinitionNode(
     node: OperationDefinitionNode
-  ): Promise<string | Variables | undefined> {
-    this.operationScope = node.operationName;
-
-    let result: string | Variables | undefined;
-    for (const step of node.stepsDefinition) {
-      const condition = await this.visit(step.condition);
-
-      if (condition) {
-        const variables = await this.processVariableExpressions(
-          node.variableExpressionsDefinition
-        );
-
-        this.variableStack.push(variables);
-        const stepResult = await this.visit(step);
-        this.variableStack.pop();
-
-        if (stepResult) {
-          result = stepResult;
-        }
-      }
-    }
-
-    this.operationScope = undefined;
+  ): Promise<string | boolean | Variables | undefined> {
+    const result = await this.processStatements(node.statements);
 
     return result;
   }
 
-  async visitOutcomeDefinitionNode(
-    node: OutcomeDefinitionNode
-  ): Promise<undefined | Variables> {
-    if (node.returnDefinition) {
-      return await this.processMapExpressions(node.returnDefinition);
-    } else if (node.setDefinition) {
-      if (this.operationScope) {
-        this.operationScopedVariables[this.operationScope] = {
-          ...(this.operationScopedVariables[this.operationScope] ?? {}),
-          ...(await this.processVariableExpressions(node.setDefinition)),
-        };
+  async visitOutcomeStatementNode(
+    node: OutcomeStatementNode
+  ): Promise<OutcomeDefinition | undefined> {
+    if (node.condition) {
+      const condition = await this.visit(node.condition);
 
-        return undefined;
-      } else if (this.mapScope) {
-        this.mapScopedVariables[this.mapScope] = {
-          ...(this.mapScopedVariables[this.mapScope] ?? {}),
-          ...(await this.processVariableExpressions(node.setDefinition)),
-        };
-
+      if (condition === false) {
         return undefined;
       }
-    } else if (node.resultDefinition) {
-      return await this.processMapExpressions(node.resultDefinition);
     }
-    throw new Error('Something went very wrong, this should not happen!');
+
+    return {
+      result: await this.visit(node.value),
+      error: node.isError,
+      terminateFlow: node.terminateFlow,
+    };
   }
 
   visitProfileIdNode(_node: MapProfileIdNode): never {
@@ -340,36 +411,28 @@ export class MapInterpreter<T> implements MapVisitor {
     throw new Error('Method not implemented.');
   }
 
-  async visitStepDefinitionNode(
-    node: StepDefinitionNode
-  ): Promise<string | Variables | undefined> {
-    const variables = await this.processVariableExpressions(
-      node.variableExpressionsDefinition
-    );
+  async visitSetStatementNode(node: SetStatementNode): Promise<void> {
+    const condition = node.condition ? await this.visit(node.condition) : true;
 
-    this.variableStack.push(variables);
-    const result = await this.visit(node.run);
-    this.variableStack.pop();
+    if (condition === false) {
+      return;
+    }
 
-    return result;
+    let result: Variables = {};
+    for (const assignment of node.assignments) {
+      result = mergeVariables(result, await this.visit(assignment));
+    }
+    this.addVariableToStack(result);
   }
 
-  async visitVariableExpressionDefinitionNode(
-    node: VariableExpressionDefinitionNode
-  ): Promise<Variables> {
-    return {
-      [node.left]: await this.visit(node.right),
-    };
+  async visitStatementConditionNode(node: StatementConditionNode): Promise<boolean> {
+    const result = await this.visit(node.expression);
+
+    return result ? true : false;
   }
 
   private get variables(): Variables {
     let variables: Variables = {};
-    if (this.mapScope && this.mapScopedVariables[this.mapScope]) {
-      variables = {
-        ...variables,
-        ...this.mapScopedVariables[this.mapScope],
-      };
-    }
 
     if (
       this.operationScope &&
@@ -380,16 +443,10 @@ export class MapInterpreter<T> implements MapVisitor {
         ...this.operationScopedVariables[this.operationScope],
       };
     }
-    variables = {
-      ...variables,
-      ...this.variableStack.reduce(
-        (acc, variableDefinition) => ({
-          ...acc,
-          ...variableDefinition,
-        }),
-        {}
-      ),
-    };
+
+    for (const stacktop of this.stack) {
+      variables = mergeVariables(variables, stacktop[1]);
+    }
 
     variables = {
       ...variables,
@@ -402,27 +459,13 @@ export class MapInterpreter<T> implements MapVisitor {
     return variables;
   }
 
-  private async processVariableExpressions(
-    expressions: VariableExpressionDefinitionNode[]
-  ): Promise<Variables> {
-    let variables: Variables = {};
-    for (const expression of expressions) {
-      const result = await this.visit(expression);
-      variables = { ...variables, ...result };
+  private addVariableToStack(variables: Variables): void {
+    if (!this.stack.length) {
+      throw new Error('Trying to set variables out of scope!');
     }
-
-    return variables;
-  }
-
-  private async processMapExpressions(
-    expressions: MapExpressionDefinitionNode[]
-  ): Promise<Variables> {
-    let variables: Variables = {};
-    for (const expression of expressions) {
-      const result = await this.visit(expression);
-      variables = mergeVariables(variables, result);
-    }
-
-    return variables;
+    this.stack[this.stack.length - 1][1] = mergeVariables(
+      this.stack[this.stack.length - 1][1],
+      variables
+    );
   }
 }
