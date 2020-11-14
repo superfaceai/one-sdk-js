@@ -390,7 +390,16 @@ describe('MapInterpreter', () => {
   });
 
   it('should call an API', async () => {
-    await mockServer.get('/twelve').thenJson(200, { data: 12 });
+    await mockServer
+      .get('/twelve')
+      .thenJson(
+        200,
+        { data: 12 },
+        {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Content-Language': 'en-US, en-CA',
+        }
+      );
     const url = mockServer.urlFor('/twelve');
     const interpreter = new MapInterpreter({ usecase: 'Test' });
     const result = await interpreter.visit({
@@ -1229,7 +1238,7 @@ describe('MapInterpreter', () => {
     expect(result).toEqual({ result: 12 });
   });
 
-  it('throw when calling an API with Basic auth, but with no credentials', async () => {
+  it('should throw when calling an API with Basic auth, but with no credentials', async () => {
     const interpreter = new MapInterpreter({
       usecase: 'testCase',
     });

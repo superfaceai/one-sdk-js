@@ -120,10 +120,12 @@ const createUrl = (
     }
 
     for (const param of pathParameters) {
-      url = url.replace(
-        `{${param}}`,
-        evalScript(param, parameters.pathParameters)
-      );
+      // TODO: Check type?
+      const replacement = evalScript(
+        param,
+        parameters.pathParameters
+      ) as string;
+      url = url.replace(`{${param}}`, replacement);
     }
   }
 
