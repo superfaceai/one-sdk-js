@@ -33,7 +33,6 @@ import {
   StatementConditionNode,
   UnionDefinitionNode,
   UseCaseDefinitionNode,
-  VariableExpressionDefinitionNode,
 } from '@superfaceai/language';
 
 export type Variables = {
