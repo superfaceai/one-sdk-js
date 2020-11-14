@@ -1821,6 +1821,14 @@ describe('MapInterpreter', () => {
                     value: 12,
                   },
                 },
+                {
+                  kind: 'Assignment',
+                  key: ['result', 'which', 'is', 'also', 'nested'],
+                  value: {
+                    kind: 'PrimitiveLiteral',
+                    value: 13,
+                  },
+                },
               ],
             },
           ],
@@ -1828,7 +1836,9 @@ describe('MapInterpreter', () => {
       ],
     });
 
-    expect(result).toEqual({ result: { which: { is: { nested: 12 } } } });
+    expect(result).toEqual({
+      result: { which: { is: { nested: 12, also: { nested: 13 } } } },
+    });
   });
 
   it('should execute based on condition', async () => {
@@ -1839,34 +1849,10 @@ describe('MapInterpreter', () => {
         profileId: {
           kind: 'ProfileId',
           profileId: 'http://example.com/profile',
-          location: {
-            line: 1,
-            column: 1,
-          },
-          span: {
-            start: 0,
-            end: 38,
-          },
         },
         provider: {
           kind: 'Provider',
           providerId: 'http://example.com/provider',
-          location: {
-            line: 2,
-            column: 1,
-          },
-          span: {
-            start: 39,
-            end: 79,
-          },
-        },
-        location: {
-          line: 1,
-          column: 1,
-        },
-        span: {
-          start: 0,
-          end: 79,
         },
       },
       definitions: [
@@ -1921,5 +1907,60 @@ describe('MapInterpreter', () => {
     });
     expect(await interpreter1.visit(ast)).toEqual({ result: 7 });
     expect(await interpreter2.visit(ast)).toEqual({ result: 8 });
+  });
+
+  it('should correctly construct result object', async () => {
+    const interpreter = new MapInterpreter({ usecase: 'Test' });
+    expect(
+      await interpreter.visit({
+        kind: 'MapDocument',
+        map: {
+          kind: 'Map',
+          profileId: {
+            kind: 'ProfileId',
+            profileId: 'http://example.com/profile',
+          },
+          provider: {
+            kind: 'Provider',
+            providerId: 'http://example.com/provider',
+          },
+        },
+        definitions: [
+          {
+            kind: 'MapDefinition',
+            name: 'Test',
+            usecaseName: 'Test',
+            statements: [
+              {
+                kind: 'OutcomeStatement',
+                isError: false,
+                terminateFlow: false,
+                value: {
+                  kind: 'ObjectLiteral',
+                  fields: [
+                    {
+                      kind: 'Assignment',
+                      key: ['test', 'x'],
+                      value: {
+                        kind: 'PrimitiveLiteral',
+                        value: 1,
+                      },
+                    },
+                    {
+                      kind: 'Assignment',
+                      key: ['test', 'y'],
+                      value: {
+                        kind: 'PrimitiveLiteral',
+                        value: 2,
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+      })
+    ).toEqual({ result: { test: { x: 1, y: 2 } } });
   });
 });

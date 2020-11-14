@@ -169,17 +169,7 @@ export class MapInterpreter<T> implements MapVisitor {
   }
 
   async visitAssignmentNode(node: AssignmentNode): Promise<Variables> {
-    const result: Variables = {};
-    let current = result;
-
-    for (const key of node.key) {
-      current = current[key] =
-        key === node.key[node.key.length - 1]
-          ? await this.visit(node.value)
-          : {};
-    }
-
-    return result;
+    return this.constructObject(node.key, await this.visit(node.value));
   }
 
   async visitInlineCallNode(
@@ -369,9 +359,7 @@ export class MapInterpreter<T> implements MapVisitor {
     let result: Variables = {};
 
     for (const field of node.fields) {
-      result = mergeVariables(result, {
-        [field.key[0]]: await this.visit(field.value),
-      });
+      result = mergeVariables(result, this.constructObject(field.key, await this.visit(field.value)));
     }
 
     return result;
@@ -468,4 +456,16 @@ export class MapInterpreter<T> implements MapVisitor {
       variables
     );
   }
+
+  private constructObject(keys: string[], value: Variables): Variables {
+    const result: Variables = {};
+    let current = result;
+
+    for (const key of keys) {
+      current = current[key] = key === keys[keys.length - 1] ? value : {};
+    }
+
+    return result;
+  }
+
 }
