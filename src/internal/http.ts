@@ -1,5 +1,6 @@
 import 'isomorphic-form-data';
 
+import { HttpSecurity } from '@superfaceai/language';
 import fetch, { Headers } from 'cross-fetch';
 
 import { Config } from '../client';
@@ -31,6 +32,15 @@ const variablesToStrings = (variables?: Variables): Record<string, string> => {
 
 const queryParameters = (parameters?: Record<string, string>): string => {
   if (parameters && Object.keys(parameters).length) {
+    const undefinedKeys: string[] = Object.keys(parameters).filter(
+      key => parameters[key] === undefined
+    );
+    if (undefinedKeys.length > 0) {
+      throw new Error(
+        `Invalid or missing parameters: ${undefinedKeys.join(', ')}`
+      );
+    }
+
     return '?' + new URLSearchParams(parameters).toString();
   }
 
@@ -39,7 +49,7 @@ const queryParameters = (parameters?: Record<string, string>): string => {
 
 const basicAuth = (auth?: { username: string; password: string }): string => {
   if (!auth || !auth.username || !auth.password) {
-    throw new Error('Missing credentials for Basic Auth!');
+    throw new Error('Missing credentials for Basic auth!');
   }
 
   return (
@@ -50,7 +60,7 @@ const basicAuth = (auth?: { username: string; password: string }): string => {
 
 const bearerAuth = (auth?: { token: string }): string => {
   if (!auth || !auth.token) {
-    throw new Error('Missing token for Bearer Auth!');
+    throw new Error('Missing credentials for Bearer auth!');
   }
 
   return `Bearer ${auth.token}`;
@@ -130,7 +140,7 @@ export const HttpClient = {
       body?: Variables;
       contentType?: string;
       accept?: string;
-      security?: 'basic' | 'bearer' | 'other';
+      security?: HttpSecurity;
       auth?: Config['auth'];
       baseUrl?: string;
       pathParameters?: Variables;
@@ -164,20 +174,32 @@ export const HttpClient = {
       }
     }
 
-    if (parameters.security === 'basic') {
+    let queryAuth: Record<string, string> = {};
+    if (parameters.security?.scheme === 'basic') {
       headers.append(AUTH_HEADER_NAME, basicAuth(parameters.auth?.basic));
-    } else if (parameters.security === 'bearer') {
+    } else if (parameters.security?.scheme === 'bearer') {
       headers.append(AUTH_HEADER_NAME, bearerAuth(parameters.auth?.bearer));
+    } else if (parameters.security?.scheme === 'apikey') {
+      if (!parameters.auth?.apikey?.key) {
+        throw new Error('Missing credentials for Apikey auth!');
+      }
+      if (parameters.security.placement === 'header') {
+        headers.append(parameters.security.name, parameters.auth.apikey.key);
+      } else if (parameters.security.placement === 'query') {
+        queryAuth = { [parameters.security.name]: parameters.auth.apikey.key };
+      }
     }
 
-    const response = await fetch(
-      createUrl(url, {
-        baseUrl: parameters.baseUrl,
-        pathParameters: parameters.pathParameters,
-        queryParameters: variablesToStrings(parameters.queryParameters),
-      }),
-      params
-    );
+    const finalUrl = createUrl(url, {
+      baseUrl: parameters.baseUrl,
+      pathParameters: parameters.pathParameters,
+      queryParameters: {
+        ...variablesToStrings(parameters.queryParameters),
+        ...queryAuth,
+      },
+    });
+
+    const response = await fetch(finalUrl, params);
 
     let body: unknown;
 

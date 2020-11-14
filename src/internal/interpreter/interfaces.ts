@@ -1,65 +1,64 @@
 import {
+  AssignmentNode,
+  CallStatementNode,
   EnumDefinitionNode,
   EnumValueNode,
-  EvalDefinitionNode,
   FieldDefinitionNode,
-  HTTPOperationDefinitionNode,
-  IterationDefinitionNode,
-  JSExpressionNode,
+  HttpCallStatementNode,
+  HttpResponseHandlerNode,
+  InlineCallNode,
+  JessieExpressionNode,
   ListDefinitionNode,
   MapASTNode,
   MapDefinitionNode,
   MapDocumentNode,
-  MapExpressionDefinitionNode,
   MapNode,
   MapProfileIdNode,
   ModelTypeNameNode,
   NamedFieldDefinitionNode,
   NamedModelDefinitionNode,
-  NetworkOperationDefinitionNode,
   NonNullDefinitionNode,
   ObjectDefinitionNode,
-  OperationCallDefinitionNode,
+  ObjectLiteralNode,
   OperationDefinitionNode,
-  OutcomeDefinitionNode,
+  OutcomeStatementNode,
+  PrimitiveLiteralNode,
   PrimitiveTypeNameNode,
   ProfileASTNode,
   ProfileDocumentNode,
   ProfileIdNode,
   ProfileNode,
   ProviderNode,
-  StepDefinitionNode,
+  SetStatementNode,
+  StatementConditionNode,
   UnionDefinitionNode,
   UseCaseDefinitionNode,
-  VariableExpressionDefinitionNode,
 } from '@superfaceai/language';
 
 export type Variables = {
-  [key: string]: string | Variables | undefined;
+  [key: string]: string | boolean | Variables | undefined;
 };
 
 export interface MapVisitor {
   visit(node: MapASTNode): unknown;
-  visitEvalDefinitionNode(node: EvalDefinitionNode): unknown;
-  visitHTTPOperationDefinitionNode(node: HTTPOperationDefinitionNode): unknown;
-  visitIterationDefinitionNode(node: IterationDefinitionNode): unknown;
-  visitJSExpressionNode(node: JSExpressionNode): unknown;
+
+  visitPrimitiveLiteralNode(node: PrimitiveLiteralNode): unknown;
+  visitObjectLiteralNode(node: ObjectLiteralNode): unknown;
+  visitJessieExpressionNode(node: JessieExpressionNode): unknown;
+  visitAssignmentNode(node: AssignmentNode): unknown;
+  visitStatementConditionNode(node: StatementConditionNode): unknown;
+  visitSetStatementNode(node: SetStatementNode): unknown;
+  visitCallStatementNode(node: CallStatementNode): unknown;
+  visitHttpResponseHandlerNode(node: HttpResponseHandlerNode): unknown;
+  visitHttpCallStatementNode(node: HttpCallStatementNode): unknown;
   visitMapDefinitionNode(node: MapDefinitionNode): unknown;
-  visitMapDocumentNode(node: MapDocumentNode): unknown;
-  visitMapExpressionDefinitionNode(node: MapExpressionDefinitionNode): unknown;
-  visitMapNode(node: MapNode): unknown;
-  visitNetworkOperationDefinitionNode(
-    node: NetworkOperationDefinitionNode
-  ): unknown;
-  visitOperationCallDefinitionNode(node: OperationCallDefinitionNode): unknown;
   visitOperationDefinitionNode(node: OperationDefinitionNode): unknown;
-  visitOutcomeDefinitionNode(node: OutcomeDefinitionNode): unknown;
-  visitProfileIdNode(node: MapProfileIdNode): unknown;
+  visitOutcomeStatementNode(node: OutcomeStatementNode): unknown;
+  visitInlineCallNode(node: InlineCallNode): unknown;
+  visitMapProfileIdNode(node: MapProfileIdNode): unknown;
   visitProviderNode(node: ProviderNode): unknown;
-  visitStepDefinitionNode(node: StepDefinitionNode): unknown;
-  visitVariableExpressionDefinitionNode(
-    node: VariableExpressionDefinitionNode
-  ): unknown;
+  visitMapNode(node: MapNode): unknown;
+  visitMapDocumentNode(node: MapDocumentNode): unknown;
 }
 
 export interface ProfileVisitor {
