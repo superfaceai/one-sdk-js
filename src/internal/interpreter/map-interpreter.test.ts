@@ -1831,7 +1831,7 @@ describe('MapInterpreter', () => {
     expect(result).toEqual({ result: { which: { is: { nested: 12 } } } });
   });
 
-  it.only('should execute based on condition', async () => {
+  it('should execute based on condition', async () => {
     const ast: MapDocumentNode = {
       kind: 'MapDocument',
       map: {
