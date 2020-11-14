@@ -256,7 +256,7 @@ export class MapInterpreter<T> implements MapVisitor {
       if (
         node.contentType &&
         response.headers['content-type'] &&
-        node.contentType !== response.headers['content-type']
+        !response.headers['content-type'].includes(node.contentType)
       ) {
         return [false];
       }
@@ -264,7 +264,7 @@ export class MapInterpreter<T> implements MapVisitor {
       if (
         node.contentLanguage &&
         response.headers['content-language'] &&
-        response.headers['content-language'].includes(node.contentLanguage)
+        !response.headers['content-language'].includes(node.contentLanguage)
       ) {
         return [false];
       }
