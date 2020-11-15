@@ -31,20 +31,20 @@
     "prepush": "yarn test:clean && yarn lint && yarn format"
   },
   "devDependencies": {
-    "@types/jest": "^26.0.10",
+    "@types/jest": "^26.0.15",
     "@typescript-eslint/eslint-plugin": "^3.10.1",
     "@typescript-eslint/parser": "^3.10.1",
     "eslint": "^7.7.0",
     "eslint-config-prettier": "^6.11.0",
     "eslint-import-resolver-typescript": "^2.2.1",
     "eslint-plugin-import": "^2.22.0",
-    "eslint-plugin-jest": "^23.20.0",
+    "eslint-plugin-jest": "^24.1.3",
     "eslint-plugin-simple-import-sort": "^5.0.3",
-    "jest": "^26.4.2",
+    "jest": "^26.6.3",
     "mockttp": "^0.20.3",
     "prettier": "^2.0.5",
     "rimraf": "^3.0.2",
-    "ts-jest": "^26.4.0",
+    "ts-jest": "^26.4.4",
     "typescript": "^4.0.2"
   },
   "dependencies": {
