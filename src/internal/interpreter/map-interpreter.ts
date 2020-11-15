@@ -88,11 +88,17 @@ interface HttpRequest {
   security?: HttpSecurity;
 }
 
+interface Stack {
+  type: 'map' | 'operation';
+  variables: Variables;
+  result?: Variables | string | boolean;
+}
+
 export class MapInterpreter<T> implements MapVisitor {
   private operations: OperationDefinitionNode[] = [];
   private operationScopedVariables: Record<string, Variables> = {};
   private operationScope: string | undefined;
-  private stack: [type: 'map' | 'operation', variables: Variables, result: Variables | undefined | string | boolean][] = [];
+  private stack: Stack[] = [];
 
   constructor(private readonly parameters: MapParameters<T>) {}
 
@@ -126,8 +132,7 @@ export class MapInterpreter<T> implements MapVisitor {
     | boolean
     | Variables
     | HttpResponseHandler
-    | unknown
-  {
+    | unknown {
     switch (node.kind) {
       case 'Assignment':
         return this.visitAssignmentNode(node);
@@ -197,16 +202,12 @@ export class MapInterpreter<T> implements MapVisitor {
       throw new Error(`Calling undefined operation: ${node.operationName}`);
     }
 
-    this.stack.push(['operation', {}, {}]);
+    this.newStack('operation');
     const result = await this.visit(operation);
     this.addVariableToStack({ outcome: { data: result } });
 
     const secondResult = await this.processStatements(node.statements);
-
-    const last = this.stack.pop();
-    if (this.stack.length && last) {
-      this.stack[this.stack.length - 1][2] = secondResult ?? last[1]['result'];
-    }
+    this.popStack(secondResult);
   }
 
   async visitHttpCallStatementNode(node: HttpCallStatementNode): Promise<void> {
@@ -309,7 +310,7 @@ export class MapInterpreter<T> implements MapVisitor {
             return result;
           } else {
             this.addVariableToStack(
-              this.stack[this.stack.length - 1][0] === 'map'
+              this.stackTop.type === 'map'
                 ? { result }
                 : { outcome: { data: result } }
             );
@@ -325,11 +326,12 @@ export class MapInterpreter<T> implements MapVisitor {
   async visitMapDefinitionNode(
     node: MapDefinitionNode
   ): Promise<Variables | string | boolean | undefined> {
-    this.stack.push(['map', {}, {}]);
+    this.newStack('map');
     let result = await this.processStatements(node.statements);
 
     result = {
-      result: result ?? this.stack[this.stack.length - 1][1]['result'] ?? this.stack[this.stack.length - 1][2],
+      result:
+        result ?? this.stackTop.variables['result'] ?? this.stackTop.result,
     };
 
     return result;
@@ -362,7 +364,10 @@ export class MapInterpreter<T> implements MapVisitor {
     let result: Variables = {};
 
     for (const field of node.fields) {
-      result = mergeVariables(result, this.constructObject(field.key, await this.visit(field.value)));
+      result = mergeVariables(
+        result,
+        this.constructObject(field.key, await this.visit(field.value))
+      );
     }
 
     return result;
@@ -416,7 +421,9 @@ export class MapInterpreter<T> implements MapVisitor {
     this.addVariableToStack(result);
   }
 
-  async visitStatementConditionNode(node: StatementConditionNode): Promise<boolean> {
+  async visitStatementConditionNode(
+    node: StatementConditionNode
+  ): Promise<boolean> {
     const result = await this.visit(node.expression);
 
     return result ? true : false;
@@ -436,7 +443,7 @@ export class MapInterpreter<T> implements MapVisitor {
     }
 
     for (const stacktop of this.stack) {
-      variables = mergeVariables(variables, stacktop[1]);
+      variables = mergeVariables(variables, stacktop.variables);
     }
 
     variables = {
@@ -454,8 +461,8 @@ export class MapInterpreter<T> implements MapVisitor {
     if (!this.stack.length) {
       throw new Error('Trying to set variables out of scope!');
     }
-    this.stack[this.stack.length - 1][1] = mergeVariables(
-      this.stack[this.stack.length - 1][1],
+    this.stackTop.variables = mergeVariables(
+      this.stackTop.variables,
       variables
     );
   }
@@ -471,4 +478,22 @@ export class MapInterpreter<T> implements MapVisitor {
     return result;
   }
 
+  private newStack(type: Stack['type']): void {
+    this.stack.push({ type, variables: {}, result: {} });
+  }
+
+  private popStack(result?: Variables | boolean | string): void {
+    const last = this.stack.pop();
+    if (this.stack.length && last) {
+      this.stackTop.result = result ?? last.variables['result'];
+    }
+  }
+
+  private get stackTop(): Stack {
+    if (!this.stack.length) {
+      throw new Error('Trying to get variables out of scope!');
+    }
+
+    return this.stack[this.stack.length - 1];
+  }
 }
