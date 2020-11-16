@@ -390,16 +390,14 @@ describe('MapInterpreter', () => {
   });
 
   it('should call an API', async () => {
-    await mockServer
-      .get('/twelve')
-      .thenJson(
-        200,
-        { data: 12 },
-        {
-          'Content-Type': 'application/json; charset=utf-8',
-          'Content-Language': 'en-US, en-CA',
-        }
-      );
+    await mockServer.get('/twelve').thenJson(
+      200,
+      { data: 12 },
+      {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Content-Language': 'en-US, en-CA',
+      }
+    );
     const url = mockServer.urlFor('/twelve');
     const interpreter = new MapInterpreter({ usecase: 'Test' });
     const result = await interpreter.visit({

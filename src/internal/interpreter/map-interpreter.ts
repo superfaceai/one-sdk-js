@@ -28,53 +28,34 @@ import {
 import { Config } from '../../client';
 import { evalScript } from '../../client/interpreter/Sandbox';
 import { HttpClient, HttpResponse } from '../http';
-import { MapVisitor, Variables } from './interfaces';
+import { MapVisitor } from './interfaces';
+import {
+  castToVariables,
+  isPrimitive,
+  mergeVariables,
+  NonPrimitive,
+  Primitive,
+  Variables,
+} from './variables';
 
 function assertUnreachable(node: never): never;
 function assertUnreachable(node: MapASTNode): never {
   throw new Error(`Invalid Node kind: ${node.kind}`);
 }
 
-export interface MapParameters<T> {
+export interface MapParameters {
   usecase?: string;
   auth?: Config['auth'];
   baseUrl?: string;
-  input?: Variables | T;
+  input?: NonPrimitive;
 }
-
-export const mergeVariables = (
-  left: Variables,
-  right: Variables
-): Variables => {
-  const result: Variables = {};
-
-  for (const key of Object.keys(left)) {
-    result[key] = left[key];
-  }
-  for (const key of Object.keys(right)) {
-    const l = left[key];
-    const r = right[key];
-    if (
-      r &&
-      typeof r !== 'string' &&
-      typeof r !== 'boolean' &&
-      typeof l === 'object'
-    ) {
-      result[key] = mergeVariables(l, r);
-    } else {
-      result[key] = right[key];
-    }
-  }
-
-  return result;
-};
 
 type HttpResponseHandler = (
   response: HttpResponse
-) => Promise<[true, Variables | boolean | string | undefined] | [false]>;
+) => Promise<[true, Variables | undefined] | [false]>;
 
 interface OutcomeDefinition {
-  result?: Variables | string | boolean;
+  result?: Variables;
   error: boolean;
   terminateFlow: boolean;
 }
@@ -90,49 +71,43 @@ interface HttpRequest {
 
 interface Stack {
   type: 'map' | 'operation';
-  variables: Variables;
-  result?: Variables | string | boolean;
+  variables: NonPrimitive;
+  result?: Variables;
 }
 
-export class MapInterpreter<T> implements MapVisitor {
+export class MapInterpreter implements MapVisitor {
   private operations: OperationDefinitionNode[] = [];
-  private operationScopedVariables: Record<string, Variables> = {};
-  private operationScope: string | undefined;
   private stack: Stack[] = [];
 
-  constructor(private readonly parameters: MapParameters<T>) {}
+  constructor(private readonly parameters: MapParameters) {}
 
-  visit(node: PrimitiveLiteralNode): string | number | boolean;
+  visit(node: PrimitiveLiteralNode): Primitive;
   async visit(node: SetStatementNode): Promise<void>;
   async visit(
     node: OutcomeStatementNode
   ): Promise<OutcomeDefinition | undefined>;
-  async visit(node: AssignmentNode | LiteralNode): Promise<Variables>;
+  async visit(node: AssignmentNode): Promise<NonPrimitive>;
+  async visit(node: LiteralNode): Promise<Variables>;
   async visit(node: StatementConditionNode): Promise<boolean>;
   async visit(node: HttpRequestNode): Promise<HttpRequest>;
   visit(node: HttpResponseHandlerNode): HttpResponseHandler;
-  visit(node: JessieExpressionNode): unknown;
-  async visit(
-    node: MapASTNode
-  ): Promise<undefined | Variables | string | boolean>;
+  visit(node: JessieExpressionNode): Variables | Primitive | undefined;
+  async visit(node: MapASTNode): Promise<undefined | Variables | Primitive>;
   visit(
     node: MapASTNode
   ):
     | Promise<
         | undefined
         | Variables
-        | string
-        | boolean
+        | Primitive
         | void
         | HttpRequest
         | OutcomeDefinition
       >
-    | string
-    | number
-    | boolean
+    | Primitive
     | Variables
     | HttpResponseHandler
-    | unknown {
+    | undefined {
     switch (node.kind) {
       case 'Assignment':
         return this.visitAssignmentNode(node);
@@ -176,13 +151,13 @@ export class MapInterpreter<T> implements MapVisitor {
     }
   }
 
-  async visitAssignmentNode(node: AssignmentNode): Promise<Variables> {
+  async visitAssignmentNode(node: AssignmentNode): Promise<NonPrimitive> {
     return this.constructObject(node.key, await this.visit(node.value));
   }
 
   async visitInlineCallNode(
     node: InlineCallNode
-  ): Promise<string | boolean | Variables | undefined> {
+  ): Promise<Primitive | Variables | undefined> {
     const operation = this.operations.find(
       op => op.name === node.operationName
     );
@@ -273,7 +248,7 @@ export class MapInterpreter<T> implements MapVisitor {
         return [false];
       }
 
-      this.addVariableToStack({ body: response.body as Variables });
+      this.addVariableToStack({ body: castToVariables(response.body) });
 
       const result = await this.processStatements(node.statements);
 
@@ -281,20 +256,20 @@ export class MapInterpreter<T> implements MapVisitor {
     };
   }
 
-  visitJessieExpressionNode(node: JessieExpressionNode): unknown {
-    return evalScript(node.expression, this.variables);
+  visitJessieExpressionNode(node: JessieExpressionNode): Variables | undefined {
+    const result = evalScript(node.expression, this.variables);
+
+    return castToVariables(result);
   }
 
-  visitPrimitiveLiteralNode(
-    node: PrimitiveLiteralNode
-  ): string | number | boolean {
+  visitPrimitiveLiteralNode(node: PrimitiveLiteralNode): Primitive {
     return node.value;
   }
 
   private async processStatements(
     statements: Substatement[]
-  ): Promise<Variables | string | boolean | undefined> {
-    let result: Variables | boolean | string | undefined;
+  ): Promise<Variables | undefined> {
+    let result: Variables | undefined;
     for (const statement of statements) {
       switch (statement.kind) {
         case 'SetStatement':
@@ -325,13 +300,16 @@ export class MapInterpreter<T> implements MapVisitor {
 
   async visitMapDefinitionNode(
     node: MapDefinitionNode
-  ): Promise<Variables | string | boolean | undefined> {
+  ): Promise<Variables | undefined> {
     this.newStack('map');
     let result = await this.processStatements(node.statements);
 
     result = {
       result:
-        result ?? this.stackTop.variables['result'] ?? this.stackTop.result,
+        result ??
+        (!isPrimitive(this.stackTop.variables) &&
+          this.stackTop.variables['result']) ??
+        this.stackTop.result,
     };
 
     return result;
@@ -339,7 +317,7 @@ export class MapInterpreter<T> implements MapVisitor {
 
   async visitMapDocumentNode(
     node: MapDocumentNode
-  ): Promise<string | Variables | undefined | boolean> {
+  ): Promise<Variables | undefined> {
     this.operations = node.definitions.filter(isOperationDefinitionNode);
     const operation = node.definitions
       .filter(isMapDefinitionNode)
@@ -361,7 +339,7 @@ export class MapInterpreter<T> implements MapVisitor {
   }
 
   async visitObjectLiteralNode(node: ObjectLiteralNode): Promise<Variables> {
-    let result: Variables = {};
+    let result: NonPrimitive = {};
 
     for (const field of node.fields) {
       result = mergeVariables(
@@ -375,7 +353,7 @@ export class MapInterpreter<T> implements MapVisitor {
 
   async visitOperationDefinitionNode(
     node: OperationDefinitionNode
-  ): Promise<string | boolean | Variables | undefined> {
+  ): Promise<Variables | undefined> {
     const result = await this.processStatements(node.statements);
 
     return result;
@@ -432,16 +410,6 @@ export class MapInterpreter<T> implements MapVisitor {
   private get variables(): Variables {
     let variables: Variables = {};
 
-    if (
-      this.operationScope &&
-      this.operationScopedVariables[this.operationScope]
-    ) {
-      variables = {
-        ...variables,
-        ...this.operationScopedVariables[this.operationScope],
-      };
-    }
-
     for (const stacktop of this.stack) {
       variables = mergeVariables(variables, stacktop.variables);
     }
@@ -457,7 +425,7 @@ export class MapInterpreter<T> implements MapVisitor {
     return variables;
   }
 
-  private addVariableToStack(variables: Variables): void {
+  private addVariableToStack(variables: NonPrimitive): void {
     if (!this.stack.length) {
       throw new Error('Trying to set variables out of scope!');
     }
@@ -467,12 +435,16 @@ export class MapInterpreter<T> implements MapVisitor {
     );
   }
 
-  private constructObject(keys: string[], value: Variables): Variables {
-    const result: Variables = {};
+  private constructObject(keys: string[], value: Variables): NonPrimitive {
+    const result: NonPrimitive = {};
     let current = result;
 
     for (const key of keys) {
-      current = current[key] = key === keys[keys.length - 1] ? value : {};
+      if (key === keys[keys.length - 1]) {
+        current[key] = value;
+      } else {
+        current = current[key] = {};
+      }
     }
 
     return result;
@@ -482,7 +454,7 @@ export class MapInterpreter<T> implements MapVisitor {
     this.stack.push({ type, variables: {}, result: {} });
   }
 
-  private popStack(result?: Variables | boolean | string): void {
+  private popStack(result?: Variables): void {
     const last = this.stack.pop();
     if (this.stack.length && last) {
       this.stackTop.result = result ?? last.variables['result'];

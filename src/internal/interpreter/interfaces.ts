@@ -35,10 +35,6 @@ import {
   UseCaseDefinitionNode,
 } from '@superfaceai/language';
 
-export type Variables = {
-  [key: string]: string | boolean | Variables | undefined;
-};
-
 export interface MapVisitor {
   visit(node: MapASTNode): unknown;
 
