@@ -54,6 +54,8 @@ type HttpResponseHandler = (
   response: HttpResponse
 ) => Promise<[true, Variables | undefined] | [false]>;
 
+type HttpResponseHandlerDefinition = [handler: HttpResponseHandler, accept?: string];
+
 interface OutcomeDefinition {
   result?: Variables;
   error: boolean;
@@ -90,7 +92,7 @@ export class MapInterpreter implements MapVisitor {
   async visit(node: LiteralNode): Promise<Variables>;
   async visit(node: StatementConditionNode): Promise<boolean>;
   async visit(node: HttpRequestNode): Promise<HttpRequest>;
-  visit(node: HttpResponseHandlerNode): HttpResponseHandler;
+  visit(node: HttpResponseHandlerNode): HttpResponseHandlerDefinition;
   visit(node: JessieExpressionNode): Variables | Primitive | undefined;
   async visit(node: MapASTNode): Promise<undefined | Variables | Primitive>;
   visit(
@@ -106,7 +108,7 @@ export class MapInterpreter implements MapVisitor {
       >
     | Primitive
     | Variables
-    | HttpResponseHandler
+    | HttpResponseHandlerDefinition
     | undefined {
     switch (node.kind) {
       case 'Assignment':
@@ -187,12 +189,23 @@ export class MapInterpreter implements MapVisitor {
 
   async visitHttpCallStatementNode(node: HttpCallStatementNode): Promise<void> {
     const request = node.request && (await this.visit(node.request));
+    const responseHandlers = node.responseHandlers.map(responseHandler =>
+      this.visit(responseHandler)
+    );
+
+    let accept = '';
+    if (responseHandlers.some(([, accept]) => accept === undefined)) {
+      accept = '*/*';
+    } else {
+      const accepts = responseHandlers.map((([, accept]) => accept));
+      accept = accepts.filter((accept, index) => accepts.indexOf(accept) === index).join(', ');
+    }
 
     const response = await HttpClient.request(node.url, {
       method: node.method,
       headers: request?.headers,
       contentType: request?.contentType ?? 'application/json',
-      accept: 'application/json',
+      accept,
       baseUrl: this.parameters.baseUrl,
       queryParameters: request?.queryParameters,
       pathParameters: this.variables,
@@ -201,8 +214,7 @@ export class MapInterpreter implements MapVisitor {
       auth: this.parameters.auth,
     });
 
-    for (const responseHandler of node.responseHandlers) {
-      const handler = this.visit(responseHandler);
+    for (const [handler] of responseHandlers) {
       const [match, result] = await handler(response);
 
       if (match && result) {
@@ -226,8 +238,8 @@ export class MapInterpreter implements MapVisitor {
 
   visitHttpResponseHandlerNode(
     node: HttpResponseHandlerNode
-  ): HttpResponseHandler {
-    return async (response: HttpResponse) => {
+  ): HttpResponseHandlerDefinition {
+    const handler: HttpResponseHandler = async (response: HttpResponse) => {
       if (node.statusCode && node.statusCode !== response.statusCode) {
         return [false];
       }
@@ -254,6 +266,8 @@ export class MapInterpreter implements MapVisitor {
 
       return [true, result];
     };
+
+    return [handler, node.contentType];
   }
 
   visitJessieExpressionNode(node: JessieExpressionNode): Variables | undefined {

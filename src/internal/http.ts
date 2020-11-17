@@ -5,7 +5,7 @@ import fetch, { Headers } from 'cross-fetch';
 
 import { Config } from '../client';
 import { evalScript } from '../client/interpreter/Sandbox';
-import { Variables } from './interpreter/interfaces';
+import { Variables } from './interpreter/variables';
 
 export interface HttpResponse {
   statusCode: number;
@@ -205,16 +205,20 @@ export const HttpClient = {
 
     let body: unknown;
 
-    if (parameters.accept === JSON_CONTENT) {
-      body = await response.json();
-    } else {
-      body = await response.text();
-    }
-
     const responseHeaders: Record<string, string> = {};
     response.headers.forEach((key, value) => {
       responseHeaders[value] = key;
     });
+
+    if (
+      (responseHeaders['content-type'] &&
+        responseHeaders['content-type'].includes(JSON_CONTENT)) ||
+      parameters.accept?.includes(JSON_CONTENT)
+    ) {
+      body = await response.json();
+    } else {
+      body = await response.text();
+    }
 
     return {
       statusCode: response.status,
