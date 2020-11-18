@@ -32,16 +32,21 @@ const variablesToStrings = (variables?: Variables): Record<string, string> => {
 
 const queryParameters = (parameters?: Record<string, string>): string => {
   if (parameters && Object.keys(parameters).length) {
-    const undefinedKeys: string[] = Object.keys(parameters).filter(
-      key => parameters[key] === undefined
-    );
-    if (undefinedKeys.length > 0) {
-      throw new Error(
-        `Invalid or missing parameters: ${undefinedKeys.join(', ')}`
-      );
-    }
+    const definedParameters = Object.entries(parameters).reduce(
+      (result, [key, value]) => {
+        if (value === undefined) {
+          return result;
+        }
 
-    return '?' + new URLSearchParams(parameters).toString();
+        return {
+          ...result,
+          [key]: value,
+        };
+      },
+      {}
+    );
+
+    return '?' + new URLSearchParams(definedParameters).toString();
   }
 
   return '';
