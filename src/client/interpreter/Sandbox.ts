@@ -1,12 +1,12 @@
 import { VM } from 'vm2';
 
-import { Variables } from '../../internal/interpreter/interfaces';
+import { NonPrimitive } from '../../internal/interpreter/variables';
 
 export const SCRIPT_TIMEOUT = 100;
 
 export function evalScript(
   js: string,
-  variableDefinitions?: Variables
+  variableDefinitions?: NonPrimitive
 ): unknown {
   const vm = new VM({
     sandbox: {

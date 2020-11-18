@@ -5,7 +5,7 @@ import fetch, { Headers } from 'cross-fetch';
 
 import { Config } from '../client';
 import { evalScript } from '../client/interpreter/Sandbox';
-import { Variables } from './interpreter/variables';
+import { NonPrimitive, Variables } from './interpreter/variables';
 
 export interface HttpResponse {
   statusCode: number;
@@ -85,7 +85,7 @@ const createUrl = (
   inputUrl: string,
   parameters: {
     baseUrl?: string;
-    pathParameters?: Variables;
+    pathParameters?: NonPrimitive;
     queryParameters?: Record<string, string>;
   }
 ): string => {
@@ -150,7 +150,7 @@ export const HttpClient = {
       security?: HttpSecurity;
       auth?: Config['auth'];
       baseUrl?: string;
-      pathParameters?: Variables;
+      pathParameters?: NonPrimitive;
     }
   ): Promise<HttpResponse> => {
     const headers = new Headers(variablesToStrings(parameters?.headers));

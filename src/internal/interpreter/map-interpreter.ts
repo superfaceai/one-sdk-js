@@ -43,11 +43,11 @@ function assertUnreachable(node: MapASTNode): never {
   throw new Error(`Invalid Node kind: ${node.kind}`);
 }
 
-export interface MapParameters {
+export interface MapParameters<TInput extends NonPrimitive> {
   usecase?: string;
   auth?: Config['auth'];
   baseUrl?: string;
-  input?: NonPrimitive;
+  input?: TInput;
 }
 
 type HttpResponseHandler = (
@@ -77,11 +77,11 @@ interface Stack {
   result?: Variables;
 }
 
-export class MapInterpreter implements MapVisitor {
+export class MapInterpreter<TInput extends NonPrimitive> implements MapVisitor {
   private operations: OperationDefinitionNode[] = [];
   private stack: Stack[] = [];
 
-  constructor(private readonly parameters: MapParameters) {}
+  constructor(private readonly parameters: MapParameters<TInput>) {}
 
   visit(node: PrimitiveLiteralNode): Primitive;
   async visit(node: SetStatementNode): Promise<void>;
@@ -421,8 +421,8 @@ export class MapInterpreter implements MapVisitor {
     return result ? true : false;
   }
 
-  private get variables(): Variables {
-    let variables: Variables = {};
+  private get variables(): NonPrimitive {
+    let variables: NonPrimitive = {};
 
     for (const stacktop of this.stack) {
       variables = mergeVariables(variables, stacktop.variables);

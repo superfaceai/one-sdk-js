@@ -1,5 +1,6 @@
 import { ProfileDocumentNode } from '@superfaceai/language';
 
+import { NonPrimitive } from '../../internal/interpreter/variables';
 import {
   InputConstraint,
   InputConstraintsObject,
@@ -14,7 +15,10 @@ import {
 import { Provider } from './providers';
 import { fetchProviders, RegistryProviderInfo } from './registry';
 
-export class ServiceFinderQuery<TInput = unknown, TResult = unknown> {
+export class ServiceFinderQuery<
+  TInput extends NonPrimitive,
+  TResult = unknown
+> {
   private providerConstraints: ProviderConstraint[] = [];
   private providerConstraintBuilder = providerConstraint;
 
@@ -94,7 +98,7 @@ export class ServiceFinderQuery<TInput = unknown, TResult = unknown> {
 }
 
 export class TypedServiceFinderQuery<
-  TInput,
+  TInput extends NonPrimitive,
   TResult
 > extends ServiceFinderQuery<TInput, TResult> {
   private inputConstraints: InputConstraint[] = [];
