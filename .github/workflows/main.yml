@@ -42,7 +42,7 @@ jobs:
     steps:
       # Setup environment and checkout the project master
       - name: Setup Node.js environment
-        uses: actions/setup-node@v1.4.2
+        uses: actions/setup-node@v1.4.4
         with:
           registry-url: "https://npm.pkg.github.com"
           scope: "@superfaceai"
