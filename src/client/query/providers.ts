@@ -1,4 +1,10 @@
-import { MapASTNode, ProfileASTNode } from '@superfaceai/language';
+import {
+  isMapDocumentNode,
+  MapASTNode,
+  MapDocumentNode,
+  ProfileASTNode,
+  ProfileDocumentNode,
+} from '@superfaceai/language';
 
 import {
   MapInterpreter,
@@ -21,7 +27,7 @@ export class BoundProvider<TInput extends NonPrimitive, TResult = unknown> {
     private mapAST: MapASTNode,
     private config: Config,
     private usecase: string,
-    private baseUrl: string,
+    private baseUrl?: string,
     private validationFunction: (input: unknown) => input is TResult = isUnknown
   ) {
     this.profileValidator = new ProfileParameterValidator(this.profileAST);
@@ -51,19 +57,19 @@ export class BoundProvider<TInput extends NonPrimitive, TResult = unknown> {
     return err('Result did not validate correctly');
   }
 
-  public get serviceId(): string {
+  public get serviceId(): string | undefined {
     return this.baseUrl;
   }
 }
 
 export class Provider<TParams extends NonPrimitive, TResult = unknown> {
   constructor(
-    private profileAST: ProfileASTNode,
-    private mapUrlOrMapAST: string | MapASTNode,
+    private profileAST: ProfileDocumentNode,
+    private mapUrlOrMapAST: string | MapDocumentNode,
     private usecase: string,
-    private baseUrl: string,
+    private baseUrl?: string,
     private validationFunction?: (input: unknown) => input is TResult
-  ) { }
+  ) {}
 
   /**
    * Binds the provider.
@@ -87,15 +93,17 @@ export class Provider<TParams extends NonPrimitive, TResult = unknown> {
    * If mapUrlOrMapAST is string, interpret it as URL and fetch map from there.
    * Otherwise, interpret it as MapASTNode
    */
-  private async obtainMapAST() {
-    if (typeof this.mapUrlOrMapAST === 'string' || this.mapUrlOrMapAST instanceof String) {
-      return fetchMapAST(this.mapUrlOrMapAST as string);
-    } else {
+  private async obtainMapAST(): Promise<MapDocumentNode> {
+    if (typeof this.mapUrlOrMapAST === 'string') {
+      return fetchMapAST(this.mapUrlOrMapAST);
+    } else if (isMapDocumentNode(this.mapUrlOrMapAST)) {
       return this.mapUrlOrMapAST;
     }
+
+    throw new Error('Invalid Map AST or URL!');
   }
 
-  public get serviceId(): string {
+  public get serviceId(): string | undefined {
     return this.baseUrl;
   }
 }
