@@ -25,7 +25,6 @@ To install the package, first create `.npmrc` file in your project root and put 
 ```
 
 Then authenticate to github npm package registry. Use your github name as your login and generate a personal access token with at least the `repo` and `read:packages` permission in Github to use as password:
-
 ```
 npm login --registry=https://npm.pkg.github.com
 ```
