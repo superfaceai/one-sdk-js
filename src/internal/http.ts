@@ -1,10 +1,11 @@
 import 'isomorphic-form-data';
 
+import { HttpSecurity } from '@superfaceai/language';
 import fetch, { Headers } from 'cross-fetch';
 
 import { Config } from '../client';
 import { evalScript } from '../client/interpreter/Sandbox';
-import { Variables } from './interpreter/interfaces';
+import { NonPrimitive, Variables } from './interpreter/variables';
 
 export interface HttpResponse {
   statusCode: number;
@@ -31,7 +32,21 @@ const variablesToStrings = (variables?: Variables): Record<string, string> => {
 
 const queryParameters = (parameters?: Record<string, string>): string => {
   if (parameters && Object.keys(parameters).length) {
-    return '?' + new URLSearchParams(parameters).toString();
+    const definedParameters = Object.entries(parameters).reduce(
+      (result, [key, value]) => {
+        if (value === undefined) {
+          return result;
+        }
+
+        return {
+          ...result,
+          [key]: value,
+        };
+      },
+      {}
+    );
+
+    return '?' + new URLSearchParams(definedParameters).toString();
   }
 
   return '';
@@ -39,7 +54,7 @@ const queryParameters = (parameters?: Record<string, string>): string => {
 
 const basicAuth = (auth?: { username: string; password: string }): string => {
   if (!auth || !auth.username || !auth.password) {
-    throw new Error('Missing credentials for Basic Auth!');
+    throw new Error('Missing credentials for Basic auth!');
   }
 
   return (
@@ -50,7 +65,7 @@ const basicAuth = (auth?: { username: string; password: string }): string => {
 
 const bearerAuth = (auth?: { token: string }): string => {
   if (!auth || !auth.token) {
-    throw new Error('Missing token for Bearer Auth!');
+    throw new Error('Missing credentials for Bearer auth!');
   }
 
   return `Bearer ${auth.token}`;
@@ -70,7 +85,7 @@ const createUrl = (
   inputUrl: string,
   parameters: {
     baseUrl?: string;
-    pathParameters?: Variables;
+    pathParameters?: NonPrimitive;
     queryParameters?: Record<string, string>;
   }
 ): string => {
@@ -110,10 +125,12 @@ const createUrl = (
     }
 
     for (const param of pathParameters) {
-      url = url.replace(
-        `{${param}}`,
-        evalScript(param, parameters.pathParameters)
-      );
+      // TODO: Check type?
+      const replacement = evalScript(
+        param,
+        parameters.pathParameters
+      ) as string;
+      url = url.replace(`{${param}}`, replacement);
     }
   }
 
@@ -130,10 +147,10 @@ export const HttpClient = {
       body?: Variables;
       contentType?: string;
       accept?: string;
-      security?: 'basic' | 'bearer' | 'other';
+      security?: HttpSecurity;
       auth?: Config['auth'];
       baseUrl?: string;
-      pathParameters?: Variables;
+      pathParameters?: NonPrimitive;
     }
   ): Promise<HttpResponse> => {
     const headers = new Headers(variablesToStrings(parameters?.headers));
@@ -164,33 +181,49 @@ export const HttpClient = {
       }
     }
 
-    if (parameters.security === 'basic') {
+    let queryAuth: Record<string, string> = {};
+    if (parameters.security?.scheme === 'basic') {
       headers.append(AUTH_HEADER_NAME, basicAuth(parameters.auth?.basic));
-    } else if (parameters.security === 'bearer') {
+    } else if (parameters.security?.scheme === 'bearer') {
       headers.append(AUTH_HEADER_NAME, bearerAuth(parameters.auth?.bearer));
+    } else if (parameters.security?.scheme === 'apikey') {
+      if (!parameters.auth?.apikey?.key) {
+        throw new Error('Missing credentials for Apikey auth!');
+      }
+      if (parameters.security.placement === 'header') {
+        headers.append(parameters.security.name, parameters.auth.apikey.key);
+      } else if (parameters.security.placement === 'query') {
+        queryAuth = { [parameters.security.name]: parameters.auth.apikey.key };
+      }
     }
 
-    const response = await fetch(
-      createUrl(url, {
-        baseUrl: parameters.baseUrl,
-        pathParameters: parameters.pathParameters,
-        queryParameters: variablesToStrings(parameters.queryParameters),
-      }),
-      params
-    );
+    const finalUrl = createUrl(url, {
+      baseUrl: parameters.baseUrl,
+      pathParameters: parameters.pathParameters,
+      queryParameters: {
+        ...variablesToStrings(parameters.queryParameters),
+        ...queryAuth,
+      },
+    });
+
+    const response = await fetch(finalUrl, params);
 
     let body: unknown;
-
-    if (parameters.accept === JSON_CONTENT) {
-      body = await response.json();
-    } else {
-      body = await response.text();
-    }
 
     const responseHeaders: Record<string, string> = {};
     response.headers.forEach((key, value) => {
       responseHeaders[value] = key;
     });
+
+    if (
+      (responseHeaders['content-type'] &&
+        responseHeaders['content-type'].includes(JSON_CONTENT)) ||
+      parameters.accept?.includes(JSON_CONTENT)
+    ) {
+      body = await response.json();
+    } else {
+      body = await response.text();
+    }
 
     return {
       statusCode: response.status,

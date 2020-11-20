@@ -1,13 +1,13 @@
 import { VM } from 'vm2';
 
-import { Variables } from '../../internal/interpreter/interfaces';
+import { NonPrimitive } from '../../internal/interpreter/variables';
 
 export const SCRIPT_TIMEOUT = 100;
 
 export function evalScript(
   js: string,
-  variableDefinitions?: Variables
-): string {
+  variableDefinitions?: NonPrimitive
+): unknown {
   const vm = new VM({
     sandbox: {
       ...variableDefinitions,
@@ -41,13 +41,13 @@ export function evalScript(
     // delete global.Boolean
     // delete global.Array
     // delete global.Date
-    delete global.RegExp // Forbidden
+    // delete global.RegExp // Forbidden - needed for object literals to work, weirdly
     delete global.Function // Can be restored by taking .constructor of any function, but the VM protection kicks in
     // delete global.Object
     delete global.VMError // Useless
     delete global.Proxy // Forbidden
     delete global.Reflect // Forbidden
-    delete global.Promise // Forbidden, also VM protection
+    // delete global.Promise // Forbidden, also VM protection - BUT needed for object literals to work, weirdly
     delete global.Symbol // Forbidden
 
     delete global.eval // Forbidden, also VM protects
@@ -57,5 +57,5 @@ export function evalScript(
     `
   );
 
-  return vm.run(`'use strict';${js}`) as string;
+  return vm.run(`'use strict';const vmResult = ${js};vmResult`);
 }
