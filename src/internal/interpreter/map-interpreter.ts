@@ -78,7 +78,7 @@ interface Stack {
 }
 
 export class MapInterpreter<TInput extends NonPrimitive> implements MapVisitor {
-  private operations: OperationDefinitionNode[] = [];
+  private operations: Record<string, OperationDefinitionNode | undefined> = {};
   private stack: Stack[] = [];
 
   constructor(private readonly parameters: MapParameters<TInput>) {}
@@ -160,9 +160,7 @@ export class MapInterpreter<TInput extends NonPrimitive> implements MapVisitor {
   async visitInlineCallNode(
     node: InlineCallNode
   ): Promise<Primitive | Variables | undefined> {
-    const operation = this.operations.find(
-      op => op.name === node.operationName
-    );
+    const operation = this.operations[node.operationName];
     if (!operation) {
       throw new Error(`Operation not found: ${node.operationName}`);
     }
@@ -171,9 +169,7 @@ export class MapInterpreter<TInput extends NonPrimitive> implements MapVisitor {
   }
 
   async visitCallStatementNode(node: CallStatementNode): Promise<void> {
-    const operation = this.operations.find(
-      op => op.name === node.operationName
-    );
+    const operation = this.operations[node.operationName];
 
     if (!operation) {
       throw new Error(`Calling undefined operation: ${node.operationName}`);
@@ -321,9 +317,9 @@ export class MapInterpreter<TInput extends NonPrimitive> implements MapVisitor {
     result = {
       result:
         result ??
-        (!isPrimitive(this.stackTop.variables) &&
-          this.stackTop.variables['result']) ??
-        this.stackTop.result,
+        ((!isPrimitive(this.stackTop.variables) &&
+          this.stackTop.variables['result']) ||
+        this.stackTop.result),
     };
 
     return result;
@@ -332,7 +328,9 @@ export class MapInterpreter<TInput extends NonPrimitive> implements MapVisitor {
   async visitMapDocumentNode(
     node: MapDocumentNode
   ): Promise<Variables | undefined> {
-    this.operations = node.definitions.filter(isOperationDefinitionNode);
+    for (const operation of node.definitions.filter(isOperationDefinitionNode)) {
+      this.operations[operation.name] = operation;
+    }
     const operation = node.definitions
       .filter(isMapDefinitionNode)
       .find(definition => definition.usecaseName === this.parameters.usecase);
@@ -400,10 +398,12 @@ export class MapInterpreter<TInput extends NonPrimitive> implements MapVisitor {
   }
 
   async visitSetStatementNode(node: SetStatementNode): Promise<void> {
-    const condition = node.condition ? await this.visit(node.condition) : true;
+    if (node.condition) {
+      const condition = await this.visit(node.condition);
 
-    if (condition === false) {
-      return;
+      if (condition === false) {
+        return;
+      }
     }
 
     let result: Variables = {};
@@ -440,9 +440,6 @@ export class MapInterpreter<TInput extends NonPrimitive> implements MapVisitor {
   }
 
   private addVariableToStack(variables: NonPrimitive): void {
-    if (!this.stack.length) {
-      throw new Error('Trying to set variables out of scope!');
-    }
     this.stackTop.variables = mergeVariables(
       this.stackTop.variables,
       variables
@@ -470,13 +467,13 @@ export class MapInterpreter<TInput extends NonPrimitive> implements MapVisitor {
 
   private popStack(result?: Variables): void {
     const last = this.stack.pop();
-    if (this.stack.length && last) {
+    if (this.stack.length > 0 && last) {
       this.stackTop.result = result ?? last.variables['result'];
     }
   }
 
   private get stackTop(): Stack {
-    if (!this.stack.length) {
+    if (this.stack.length === 0) {
       throw new Error('Trying to get variables out of scope!');
     }
 
