@@ -143,6 +143,49 @@ describe('MapInterpreter', () => {
     expect(result).toEqual({ result: 12 });
   });
 
+  it('should execute eval definition with jessie array', async () => {
+    const interpreter = new MapInterpreter({ usecase: 'Test' });
+    const result = await interpreter.visit({
+      kind: 'MapDocument',
+      map: {
+        kind: 'Map',
+        profileId: {
+          kind: 'ProfileId',
+          profileId: 'hello!',
+        },
+        provider: {
+          kind: 'Provider',
+          providerId: 'hi!',
+        },
+      },
+      definitions: [
+        {
+          kind: 'MapDefinition',
+          name: 'Test',
+          usecaseName: 'Test',
+          statements: [
+            {
+              kind: 'SetStatement',
+              assignments: [
+                {
+                  kind: 'Assignment',
+                  key: ['result'],
+                  value: {
+                    kind: 'JessieExpression',
+                    expression: '[1, 2, 3]',
+                    source: '[1, 2, 3]',
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result).toEqual({ result: [1, 2, 3] });
+  });
+
   it('should inline call predefined operation', async () => {
     const interpreter = new MapInterpreter({ usecase: 'Test' });
     const result = await interpreter.visit({

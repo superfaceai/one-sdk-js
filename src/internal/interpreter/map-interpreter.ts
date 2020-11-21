@@ -24,6 +24,7 @@ import {
   StatementConditionNode,
   Substatement,
 } from '@superfaceai/language';
+import { debug as createDebug } from 'debug';
 
 import { Config } from '../../client';
 import { evalScript } from '../../client/interpreter/Sandbox';
@@ -37,6 +38,8 @@ import {
   Primitive,
   Variables,
 } from './variables';
+
+const debug = createDebug("superface:map-interpreter");
 
 function assertUnreachable(node: never): never;
 function assertUnreachable(node: MapASTNode): never {
@@ -110,6 +113,7 @@ export class MapInterpreter<TInput extends NonPrimitive> implements MapVisitor {
     | Variables
     | HttpResponseHandlerDefinition
     | undefined {
+      debug("Visiting node:", node.kind);
     switch (node.kind) {
       case 'Assignment':
         return this.visitAssignmentNode(node);
@@ -175,6 +179,8 @@ export class MapInterpreter<TInput extends NonPrimitive> implements MapVisitor {
       throw new Error(`Calling undefined operation: ${node.operationName}`);
     }
 
+    debug("Calling operation:", operation.name);
+
     this.newStack('operation');
     const result = await this.visit(operation);
     this.addVariableToStack({ outcome: { data: result } });
@@ -196,6 +202,8 @@ export class MapInterpreter<TInput extends NonPrimitive> implements MapVisitor {
       const accepts = responseHandlers.map((([, accept]) => accept));
       accept = accepts.filter((accept, index) => accepts.indexOf(accept) === index).join(', ');
     }
+
+    debug("Performing http request:", node.url);
 
     const response = await HttpClient.request(node.url, {
       method: node.method,
@@ -257,6 +265,20 @@ export class MapInterpreter<TInput extends NonPrimitive> implements MapVisitor {
       }
 
       this.addVariableToStack({ body: castToVariables(response.body) });
+
+      if (debug.enabled) {
+        let debugString = 'Running http handler:';
+        if (node.contentType) {
+          debugString += ` content-type: "${node.contentType}"`;
+        }
+        if (node.contentLanguage) {
+          debugString += ` content-language: "${node.contentLanguage}"`;
+        }
+        if (node.statusCode) {
+          debugString += ` code: "${node.statusCode}"`;
+        }
+        debug(debugString);
+      }
 
       const result = await this.processStatements(node.statements);
 
@@ -457,12 +479,14 @@ export class MapInterpreter<TInput extends NonPrimitive> implements MapVisitor {
         current = current[key] = {};
       }
     }
+    debug('Constructing object:', keys.join('.'), '=', value);
 
     return result;
   }
 
   private newStack(type: Stack['type']): void {
     this.stack.push({ type, variables: {}, result: {} });
+    debug('New stack:', this.stackTop);
   }
 
   private popStack(result?: Variables): void {
@@ -470,6 +494,8 @@ export class MapInterpreter<TInput extends NonPrimitive> implements MapVisitor {
     if (this.stack.length > 0 && last) {
       this.stackTop.result = result ?? last.variables['result'];
     }
+
+    debug('Popping stack:', last);
   }
 
   private get stackTop(): Stack {
