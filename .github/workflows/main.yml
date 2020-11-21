@@ -8,27 +8,27 @@ jobs:
     steps:
       # Setup environment and checkout the project master
       - name: Setup Node.js environment
-        uses: actions/setup-node@v1.4.2
+        uses: actions/setup-node@v1.4.4
         with:
           registry-url: "https://npm.pkg.github.com"
           scope: "@superfaceai"
           always-auth: true
 
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v2.3.4
 
       # Setup yarn cache
       - name: Get yarn cache directory path
         id: yarn-cache-dir-path
         run: echo "::set-output name=dir::$(yarn cache dir)"
-      - uses: actions/cache@v2
+      - uses: actions/cache@v2.1.3
         id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
         with:
           path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
           key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
           restore-keys: |
             ${{ runner.os }}-yarn-
-    
+
       # Install and run tests
       - name: Install dependencies
         run: yarn install
@@ -42,20 +42,20 @@ jobs:
     steps:
       # Setup environment and checkout the project master
       - name: Setup Node.js environment
-        uses: actions/setup-node@v1.4.2
+        uses: actions/setup-node@v1.4.4
         with:
           registry-url: "https://npm.pkg.github.com"
           scope: "@superfaceai"
           always-auth: true
 
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v2.3.4
 
       # Setup yarn cache
       - name: Get yarn cache directory path
         id: yarn-cache-dir-path
         run: echo "::set-output name=dir::$(yarn cache dir)"
-      - uses: actions/cache@v2
+      - uses: actions/cache@v2.1.3
         id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
         with:
           path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
@@ -76,20 +76,20 @@ jobs:
     steps:
       # Setup environment and checkout the project master
       - name: Setup Node.js environment
-        uses: actions/setup-node@v1.4.2
+        uses: actions/setup-node@v1.4.4
         with:
           registry-url: "https://npm.pkg.github.com"
           scope: "@superfaceai"
           always-auth: true
 
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v2.3.4
 
       # Setup yarn cache
       - name: Get yarn cache directory path
         id: yarn-cache-dir-path
         run: echo "::set-output name=dir::$(yarn cache dir)"
-      - uses: actions/cache@v2
+      - uses: actions/cache@v2.1.3
         id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
         with:
           path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
@@ -105,6 +105,6 @@ jobs:
       - name: Install License checker
         run: |
           yarn global add license-checker
-          echo "::add-path::$(yarn global bin)"    
+          echo "$(yarn global bin)" >> $GITHUB_PATH
       - name: Check licenses
         run: "license-checker --onlyAllow '0BDS;MIT;Apache-2.0;ISC;BSD-3-Clause;BSD-2-Clause;CC-BY-4.0;CC-BY-3.0;BSD;CC0-1.0;Unlicense;UNLICENSED' --summary"

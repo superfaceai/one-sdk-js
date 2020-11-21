@@ -5,7 +5,7 @@ import fetch, { Headers } from 'cross-fetch';
 
 import { Config } from '../client';
 import { evalScript } from '../client/interpreter/Sandbox';
-import { Variables } from './interpreter/interfaces';
+import { NonPrimitive, Variables } from './interpreter/variables';
 
 export interface HttpResponse {
   statusCode: number;
@@ -32,16 +32,21 @@ const variablesToStrings = (variables?: Variables): Record<string, string> => {
 
 const queryParameters = (parameters?: Record<string, string>): string => {
   if (parameters && Object.keys(parameters).length) {
-    const undefinedKeys: string[] = Object.keys(parameters).filter(
-      key => parameters[key] === undefined
-    );
-    if (undefinedKeys.length > 0) {
-      throw new Error(
-        `Invalid or missing parameters: ${undefinedKeys.join(', ')}`
-      );
-    }
+    const definedParameters = Object.entries(parameters).reduce(
+      (result, [key, value]) => {
+        if (value === undefined) {
+          return result;
+        }
 
-    return '?' + new URLSearchParams(parameters).toString();
+        return {
+          ...result,
+          [key]: value,
+        };
+      },
+      {}
+    );
+
+    return '?' + new URLSearchParams(definedParameters).toString();
   }
 
   return '';
@@ -80,7 +85,7 @@ const createUrl = (
   inputUrl: string,
   parameters: {
     baseUrl?: string;
-    pathParameters?: Variables;
+    pathParameters?: NonPrimitive;
     queryParameters?: Record<string, string>;
   }
 ): string => {
@@ -145,7 +150,7 @@ export const HttpClient = {
       security?: HttpSecurity;
       auth?: Config['auth'];
       baseUrl?: string;
-      pathParameters?: Variables;
+      pathParameters?: NonPrimitive;
     }
   ): Promise<HttpResponse> => {
     const headers = new Headers(variablesToStrings(parameters?.headers));
@@ -205,16 +210,20 @@ export const HttpClient = {
 
     let body: unknown;
 
-    if (parameters.accept === JSON_CONTENT) {
-      body = await response.json();
-    } else {
-      body = await response.text();
-    }
-
     const responseHeaders: Record<string, string> = {};
     response.headers.forEach((key, value) => {
       responseHeaders[value] = key;
     });
+
+    if (
+      (responseHeaders['content-type'] &&
+        responseHeaders['content-type'].includes(JSON_CONTENT)) ||
+      parameters.accept?.includes(JSON_CONTENT)
+    ) {
+      body = await response.json();
+    } else {
+      body = await response.text();
+    }
 
     return {
       statusCode: response.status,

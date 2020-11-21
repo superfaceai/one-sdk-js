@@ -4,6 +4,7 @@ import {
   MapInterpreter,
   ProfileParameterValidator,
 } from '../../internal/interpreter';
+import { NonPrimitive } from '../../internal/interpreter/variables';
 import { err, ok, Result } from '../../lib';
 import { Config } from '../config';
 import { fetchMapAST } from './registry';
@@ -12,7 +13,7 @@ function isUnknown<T>(_: unknown): _ is T {
   return true;
 }
 
-export class BoundProvider<TInput, TResult = unknown> {
+export class BoundProvider<TInput extends NonPrimitive, TResult = unknown> {
   private profileValidator: ProfileParameterValidator;
 
   constructor(
@@ -55,7 +56,7 @@ export class BoundProvider<TInput, TResult = unknown> {
   }
 }
 
-export class Provider<TParams, TResult = unknown> {
+export class Provider<TParams extends NonPrimitive, TResult = unknown> {
   constructor(
     private profileAST: ProfileASTNode,
     private mapUrlOrMapAST: string | MapASTNode,
