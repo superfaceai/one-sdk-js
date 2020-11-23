@@ -46,10 +46,10 @@ export class BoundProvider<TInput extends NonPrimitive, TResult = unknown> {
 
     const result = await interpreter.visit(this.mapAST);
 
-    this.profileValidator.validate(result, 'result', this.usecase);
+    this.profileValidator.validate(result.result, 'result', this.usecase);
 
-    if (this.validationFunction(result)) {
-      return ok(result);
+    if (this.validationFunction(result.result)) {
+      return ok(result.result);
     }
 
     return err('Result did not validate correctly');
