@@ -94,7 +94,7 @@ export class MapInterpreter<TInput extends NonPrimitive> implements MapVisitor {
   async visit(node: HttpRequestNode): Promise<HttpRequest>;
   visit(node: HttpResponseHandlerNode): HttpResponseHandlerDefinition;
   visit(node: JessieExpressionNode): Variables | Primitive | undefined;
-  async visit(node: MapASTNode): Promise<undefined | Variables | Primitive>;
+  async visit(node: MapASTNode): Promise<{ result?: Variables }>;
   visit(
     node: MapASTNode
   ):
