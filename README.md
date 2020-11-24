@@ -42,11 +42,13 @@ Package publishing is done through GitHub release functionality.
 
 Draft a new release to publish a new version of the package.
 
-Use semver for the version tag. It must be in format of v<major>.<minor>.<patch>.
+Use semver for the version tag. It must be in format of `v<major>.<minor>.<patch>`.
 
 Github Actions workflow will pick up the release and publish it as one of the packages.
 
 ## Usage
+
+To perform a usecase, you need a Provider instance. You can either fetch one from registry, or create your own.
 
 ### ServiceFinderQuery
 To perform a usecase by fetching ASTs from registry, use `ServiceFinderQuery`:
@@ -71,6 +73,23 @@ You can then get first or all available providers:
 const provider = await serviceFinder.serviceProvider(service => service.mustBe(providerId)).findFirst();
 const providers = await serviceFinder.serviceProvider(service => service.mustBeOnOf([providerId1, providerId2])).find();
 ```
+
+### Without ServiceFinder
+If you don't use the registry, you can also construct `Provider` directly, providing Map AST or URL.
+
+```typescript
+  const provider = new Provider(
+    profileAST,
+    mapUrlOrMapAST,
+    usecase,
+    baseUrl,
+  );
+```
+
+Where `profileAST` is the compiled AST of profile, `mapUrlOrMapAST` is either URL or AST of the Map, `usecase` is the name of the usecase you want to perform and (optional) `baseUrl` is the base URL of the service, in case your Map uses relative paths. After creating the `Provider`, you can continue with binding as above.
+
+
+### Performing the usecase
 
 To fetch Map and be able to perform your usecase, the Provider must be bound:
 ```typescript
@@ -104,26 +123,12 @@ if (result.ok) {
 ```
 where `input` depends on your usecase.
 
-### Without ServiceFinder
-If you don't use the registry, you can also construct `Provider` directly, providing Map AST or URL.
-
-```
-  const provider = new Provider(
-    profileAST,
-    mapUrlOrMapAST,
-    usecase,
-    baseUrl,
-  );
-```
-
-Where `profileAST` is the compiled AST of profile, `mapUrlOrMapAST` is either URL or AST of the Map, `usecase` is the name of the usecase you want to perform and (optional) `baseUrl` is the base URL of the service, in case your Map uses relative paths. After creating the `Provider`, you can continue with binding as above.
-
 ## Maintainers
 
-[@Lukáš Valenta](https://github.com/lukas-valenta)
-[@Edward](https://github.com/TheEdward162)
-[@Vratislav Kalenda](https://github.com/Vratislav)
-[@Z](https://github.com/zdne)
+- [@Lukáš Valenta](https://github.com/lukas-valenta)
+- [@Edward](https://github.com/TheEdward162)
+- [@Vratislav Kalenda](https://github.com/Vratislav)
+- [@Z](https://github.com/zdne)
 
 ## Contributing
 
