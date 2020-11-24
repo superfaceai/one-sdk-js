@@ -40,15 +40,15 @@ yarn add @superfaceai/superface
 
 Package publishing is done through GitHub release functionality.
 
-Draft a new release to publish a new version of the package.
+[Draft a new release](https://github.com/superfaceai/superface/releases/new) to publish a new version of the package.
 
 Use semver for the version tag. It must be in format of `v<major>.<minor>.<patch>`.
 
-Github Actions workflow will pick up the release and publish it as one of the packages.
+Github Actions workflow will pick up the release and publish it as one of the [packages](https://github.com/superfaceai/superface/packages).
 
 ## Usage
 
-To perform a usecase, you need a Provider instance. You can either fetch one from registry, or create your own.
+To perform a usecase you need a Provider instance. You can either fetch one from registry, or create your own.
 
 ### ServiceFinderQuery
 To perform a usecase by fetching ASTs from registry, use `ServiceFinderQuery`:
