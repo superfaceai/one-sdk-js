@@ -1,4 +1,10 @@
-import { MapASTNode, ProfileASTNode } from '@superfaceai/language';
+import {
+  isMapDocumentNode,
+  MapASTNode,
+  MapDocumentNode,
+  ProfileASTNode,
+  ProfileDocumentNode,
+} from '@superfaceai/language';
 
 import {
   MapInterpreter,
@@ -21,7 +27,7 @@ export class BoundProvider<TInput extends NonPrimitive, TResult = unknown> {
     private mapAST: MapASTNode,
     private config: Config,
     private usecase: string,
-    private baseUrl: string,
+    private baseUrl?: string,
     private validationFunction: (input: unknown) => input is TResult = isUnknown
   ) {
     this.profileValidator = new ProfileParameterValidator(this.profileAST);
@@ -42,26 +48,26 @@ export class BoundProvider<TInput extends NonPrimitive, TResult = unknown> {
 
     const result = await interpreter.visit(this.mapAST);
 
-    this.profileValidator.validate(result, 'result', this.usecase);
+    this.profileValidator.validate(result.result, 'result', this.usecase);
 
-    if (this.validationFunction(result)) {
-      return ok(result);
+    if (this.validationFunction(result.result)) {
+      return ok(result.result);
     }
 
     return err('Result did not validate correctly');
   }
 
-  public get serviceId(): string {
+  public get serviceId(): string | undefined {
     return this.baseUrl;
   }
 }
 
 export class Provider<TParams extends NonPrimitive, TResult = unknown> {
   constructor(
-    private profileAST: ProfileASTNode,
-    private mapUrl: string,
+    private profileAST: ProfileDocumentNode,
+    private mapUrlOrMapAST: string | MapDocumentNode,
     private usecase: string,
-    private baseUrl: string,
+    private baseUrl?: string,
     private validationFunction?: (input: unknown) => input is TResult
   ) {}
 
@@ -71,7 +77,7 @@ export class Provider<TParams extends NonPrimitive, TResult = unknown> {
    * This fetches the map and allows to perform.
    */
   public async bind(config: Config): Promise<BoundProvider<TParams, TResult>> {
-    const mapAST = await fetchMapAST(this.mapUrl);
+    const mapAST = await this.obtainMapAST();
 
     return new BoundProvider<TParams, TResult>(
       this.profileAST,
@@ -83,7 +89,21 @@ export class Provider<TParams extends NonPrimitive, TResult = unknown> {
     );
   }
 
-  public get serviceId(): string {
+  /**
+   * If mapUrlOrMapAST is string, interpret it as URL and fetch map from there.
+   * Otherwise, interpret it as MapASTNode
+   */
+  private async obtainMapAST(): Promise<MapDocumentNode> {
+    if (typeof this.mapUrlOrMapAST === 'string') {
+      return fetchMapAST(this.mapUrlOrMapAST);
+    } else if (isMapDocumentNode(this.mapUrlOrMapAST)) {
+      return this.mapUrlOrMapAST;
+    }
+
+    throw new Error('Invalid Map AST or URL!');
+  }
+
+  public get serviceId(): string | undefined {
     return this.baseUrl;
   }
 }

@@ -577,7 +577,8 @@ export class ProfileParameterValidator implements ProfileVisitor {
     return (input: unknown): ValidationResult => {
       if (
         typeof input === undefined ||
-        (typeof input === 'object' && input === {})
+        (typeof input === 'object' &&
+          (input === null || Object.keys(input).length === 0))
       ) {
         return [true];
       }
