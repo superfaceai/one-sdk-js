@@ -1,5 +1,5 @@
 {
-  "name": "@superfaceai/superface",
+  "name": "@superfaceai/sdk",
   "version": "0.0.1",
   "description": "Level 5 autonomous, self-driving API client, https://superface.ai",
   "main": "dist/index.js",
@@ -8,7 +8,7 @@
   "unpkg": "dist/superface.umd.js",
   "browser": "dist/superface.umd.js",
   "types": "dist/index.d.ts",
-  "repository": "https://github.com/superfaceai/superface.git",
+  "repository": "https://github.com/superfaceai/sdk-js.git",
   "author": "Superface Team",
   "private": false,
   "files": [
