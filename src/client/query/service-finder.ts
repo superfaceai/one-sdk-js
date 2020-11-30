@@ -1,4 +1,4 @@
-import { ProfileDocumentNode } from '@superfaceai/language';
+import { ProfileDocumentNode } from '@superfaceai/ast';
 
 import { NonPrimitive } from '../../internal/interpreter/variables';
 import {

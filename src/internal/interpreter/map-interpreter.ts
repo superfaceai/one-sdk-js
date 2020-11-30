@@ -23,7 +23,7 @@ import {
   SetStatementNode,
   StatementConditionNode,
   Substatement,
-} from '@superfaceai/language';
+} from '@superfaceai/ast';
 
 import { Config } from '../../client';
 import { evalScript } from '../../client/interpreter/Sandbox';

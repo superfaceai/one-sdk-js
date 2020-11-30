@@ -15,7 +15,7 @@ import {
   ProfileNode,
   UnionDefinitionNode,
   UseCaseDefinitionNode,
-} from '@superfaceai/language';
+} from '@superfaceai/ast';
 
 import { ProfileVisitor } from './interfaces';
 
