@@ -48,7 +48,7 @@
     "typescript": "^4.0.2"
   },
   "dependencies": {
-    "@superfaceai/language": "^0.0.17-alpha3",
+    "@superfaceai/ast": "0.0.18",
     "cross-fetch": "^3.0.5",
     "isomorphic-form-data": "^2.0.0",
     "vm2": "^3.9.2"

@@ -33,7 +33,7 @@ import {
   StatementConditionNode,
   UnionDefinitionNode,
   UseCaseDefinitionNode,
-} from '@superfaceai/language';
+} from '@superfaceai/ast';
 
 export interface MapVisitor {
   visit(node: MapASTNode): unknown;

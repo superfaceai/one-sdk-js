@@ -4,7 +4,7 @@ import {
   MapDocumentNode,
   ProfileASTNode,
   ProfileDocumentNode,
-} from '@superfaceai/language';
+} from '@superfaceai/ast';
 
 import {
   MapInterpreter,

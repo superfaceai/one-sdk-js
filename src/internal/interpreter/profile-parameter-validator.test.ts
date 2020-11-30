@@ -1,4 +1,4 @@
-import { ProfileDocumentNode } from '@superfaceai/language';
+import { ProfileDocumentNode } from '@superfaceai/ast';
 
 import { ProfileParameterValidator } from './profile-parameter-validator';
 
