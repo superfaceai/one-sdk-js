@@ -1,6 +1,6 @@
 import 'isomorphic-form-data';
 
-import { HttpSecurity } from '@superfaceai/language';
+import { HttpSecurity } from '@superfaceai/ast';
 import fetch, { Headers } from 'cross-fetch';
 
 import { Config } from '../client';

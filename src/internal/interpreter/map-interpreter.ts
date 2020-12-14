@@ -23,7 +23,7 @@ import {
   SetStatementNode,
   StatementConditionNode,
   Substatement,
-} from '@superfaceai/language';
+} from '@superfaceai/ast';
 import createDebug from 'debug';
 
 import { Config } from '../../client';

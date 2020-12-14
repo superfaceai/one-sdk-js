@@ -2,7 +2,7 @@ import {
   isMapDocumentNode,
   MapDocumentNode,
   ProfileDocumentNode,
-} from '@superfaceai/language';
+} from '@superfaceai/ast';
 
 import { UnexpectedError } from '../../internal/errors';
 import {

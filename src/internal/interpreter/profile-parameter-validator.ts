@@ -15,7 +15,7 @@ import {
   ProfileNode,
   UnionDefinitionNode,
   UseCaseDefinitionNode,
-} from '@superfaceai/language';
+} from '@superfaceai/ast';
 import createDebug from 'debug';
 
 import { err, ok, Result } from '../../lib';

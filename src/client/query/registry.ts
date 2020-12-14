@@ -1,4 +1,4 @@
-import { MapDocumentNode } from '@superfaceai/language';
+import { MapDocumentNode } from '@superfaceai/ast';
 
 import { HttpClient } from '../../internal/http';
 
