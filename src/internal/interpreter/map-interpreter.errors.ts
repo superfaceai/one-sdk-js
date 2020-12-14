@@ -1,4 +1,4 @@
-import { MapASTNode, MapDocumentNode } from '@superfaceai/language';
+import { MapASTNode, MapDocumentNode } from '@superfaceai/ast';
 
 import { ErrorBase } from '../errors';
 
