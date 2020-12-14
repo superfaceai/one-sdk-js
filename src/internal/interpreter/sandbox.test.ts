@@ -1,4 +1,4 @@
-import { evalScript } from './Sandbox';
+import { evalScript } from './sandbox';
 
 describe('sandbox', () => {
   it('prevents string masking attack', () => {

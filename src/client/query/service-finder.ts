@@ -15,10 +15,7 @@ import {
 import { Provider } from './providers';
 import { fetchProviders, RegistryProviderInfo } from './registry';
 
-export class ServiceFinderQuery<
-  TInput extends NonPrimitive,
-  TResult = unknown
-> {
+export class ServiceFinderQuery {
   private providerConstraints: ProviderConstraint[] = [];
   private providerConstraintBuilder = providerConstraint;
 
@@ -28,7 +25,7 @@ export class ServiceFinderQuery<
     /** Compiled profile AST */
     protected profileAST: ProfileDocumentNode,
     /** Usecase to execute */
-    protected usecase: string,
+    // protected usecase: string,
     /** Url of registry from which to fetch service providers */
     private registryUrl = 'https://registry.superface.dev/api/registry'
   ) {}
@@ -47,14 +44,14 @@ export class ServiceFinderQuery<
   /**
     Finds Providers matching given criteria
    */
-  async find(): Promise<Provider<TInput, TResult>[]> {
+  async find(): Promise<Provider[]> {
     return (await this.findProviders()).map(this.createProvider);
   }
 
   /**
     Finds first Provider matching given criteria
    */
-  async findFirst(): Promise<Provider<TInput, TResult>> {
+  async findFirst(): Promise<Provider> {
     return (await this.find())[0];
   }
 
@@ -80,13 +77,11 @@ export class ServiceFinderQuery<
     throw new Error('Unreachable code reached😱');
   };
 
-  protected createProvider = (
-    providerInfo: RegistryProviderInfo
-  ): Provider<TInput, TResult> =>
+  protected createProvider = (providerInfo: RegistryProviderInfo): Provider =>
     new Provider(
       this.profileAST,
       providerInfo.mappingUrl,
-      this.usecase,
+      // this.usecase,
       providerInfo.serviceUrl
     );
 
@@ -100,7 +95,7 @@ export class ServiceFinderQuery<
 export class TypedServiceFinderQuery<
   TInput extends NonPrimitive,
   TResult
-> extends ServiceFinderQuery<TInput, TResult> {
+> extends ServiceFinderQuery {
   private inputConstraints: InputConstraint[] = [];
   private resultConstraints: ResultConstraint[] = [];
 
@@ -108,11 +103,11 @@ export class TypedServiceFinderQuery<
     private inputConstraintBuilder: InputConstraintsObject<TInput>,
     private resultConstraintBuilder: ResultConstraintsObject<TResult>,
     profileId: string,
-    profileAST: ProfileDocumentNode,
-    usecase: string,
-    private validationFunction?: (input: unknown) => input is TResult
+    profileAST: ProfileDocumentNode
+    // usecase: string,
+    // private validationFunction?: (input: unknown) => input is TResult
   ) {
-    super(profileId, profileAST, usecase);
+    super(profileId, profileAST /* usecase */);
   }
 
   inputParameter(
@@ -133,23 +128,21 @@ export class TypedServiceFinderQuery<
     return this;
   }
 
-  async find(): Promise<Provider<TInput, TResult>[]> {
+  async find(): Promise<Provider[]> {
     return (await this.findProviders()).map(this.createProvider);
   }
 
-  async findFirst(): Promise<Provider<TInput, TResult>> {
+  async findFirst(): Promise<Provider> {
     return (await this.find())[0];
   }
 
-  protected createProvider = (
-    providerInfo: RegistryProviderInfo
-  ): Provider<TInput, TResult> => {
+  protected createProvider = (providerInfo: RegistryProviderInfo): Provider => {
     return new Provider(
       this.profileAST,
       providerInfo.mappingUrl,
-      this.usecase,
-      providerInfo.serviceUrl,
-      this.validationFunction
+      // this.usecase,
+      providerInfo.serviceUrl
+      // this.validationFunction
     );
   };
 }

@@ -1,4 +1,4 @@
-import { debug as createDebug } from 'debug';
+import createDebug from 'debug';
 import { VM } from 'vm2';
 
 import { NonPrimitive } from '../../internal/interpreter/variables';

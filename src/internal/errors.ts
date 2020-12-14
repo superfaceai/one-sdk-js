@@ -1,4 +1,9 @@
-export type ScriptInputError = Error;
-export type ScriptCompilationError = Error;
+export class ErrorBase {
+  constructor(public kind: string, public message: string) {}
+}
 
-export type ParamsValidationError = Error;
+export class UnexpectedError extends ErrorBase {
+  constructor(public message: string) {
+    super('UnexpectedError', message);
+  }
+}

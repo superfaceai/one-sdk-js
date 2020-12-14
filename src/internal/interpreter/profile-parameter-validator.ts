@@ -16,50 +16,43 @@ import {
   UnionDefinitionNode,
   UseCaseDefinitionNode,
 } from '@superfaceai/language';
+import createDebug from 'debug';
 
+import { err, ok, Result } from '../../lib';
 import { ProfileVisitor } from './interfaces';
+import {
+  addFieldToErrors,
+  InputValidationError,
+  isWrongTypeError,
+  ProfileParameterError,
+  ResultValidationError,
+  ValidationError,
+} from './profile-parameter-validator.errors';
 
-type ErrorContext = { path?: string[] };
-type ValidationError =
-  | {
-      kind: 'wrongInput' | 'enumValue';
-      context?: ErrorContext;
-    }
-  | {
-      kind: 'wrongType';
-      context: ErrorContext & { expected: string; actual: string };
-    }
-  | { kind: 'notArray'; context: ErrorContext & { input: unknown } }
-  | { kind: 'wrongUnion'; context: ErrorContext & { expected: string[] } }
-  | {
-      kind: 'elementsInArrayWrong';
-      context: ErrorContext & { suberrors: ValidationError[] };
-    }
-  | {
-      kind: 'missingRequired';
-      context?: ErrorContext & { field: string };
-    };
-type ValidationResult = [true] | [false, ValidationError[]];
-type ValidationFunction = <T>(input: T) => ValidationResult;
+const debug = createDebug('superface:profile-parameter-validator');
 
-function isWrongTypeError(
-  err: ValidationError
-): err is {
-  kind: 'wrongType';
-  context: { expected: string; actual: string };
-} {
-  return err.kind === 'wrongType';
+function assertUnreachable(node: never): never;
+function assertUnreachable(node: ProfileASTNode): never {
+  throw new Error(`Invalid Node kind: ${node.kind}`);
 }
 
-function addFieldToErrors(
-  errors: ValidationError[],
-  field: string
-): ValidationError[] {
-  return errors.map(err =>
-    err.kind === 'missingRequired'
-      ? { ...err, context: { ...err.context, field } }
-      : err
-  );
+function objectHasKey<K extends string>(
+  obj: unknown,
+  key: K
+): obj is Record<K, unknown> {
+  if (typeof obj !== 'object') {
+    return false;
+  }
+
+  if (obj === null) {
+    return false;
+  }
+
+  if (!(key in obj)) {
+    return false;
+  }
+
+  return true;
 }
 
 function addPath(
@@ -87,72 +80,8 @@ function addPath(
   };
 }
 
-function assertUnreachable(node: never): never;
-function assertUnreachable(node: ProfileASTNode): never {
-  throw new Error(`Invalid Node kind: ${node.kind}`);
-}
-
-function objectHasKey<K extends string>(
-  obj: unknown,
-  key: K
-): obj is Record<K, unknown> {
-  if (typeof obj !== 'object') {
-    return false;
-  }
-
-  if (obj === null) {
-    return false;
-  }
-
-  if (!(key in obj)) {
-    return false;
-  }
-
-  return true;
-}
-
-function formatErrors(errors?: ValidationError[]): string {
-  if (!errors) {
-    return 'Unknown error';
-  }
-
-  return errors
-    .map(err => {
-      const prefix = err.context?.path
-        ? `[${err.context.path.join('.')}] `
-        : '';
-      switch (err.kind) {
-        case 'wrongType':
-          return `${prefix}Wrong type: expected ${err.context.expected}, but got ${err.context.actual}`;
-
-        case 'notArray':
-          return `${prefix}${JSON.stringify(
-            err.context.input
-          )} is not an array`;
-
-        case 'missingRequired':
-          return `${prefix}Missing required field`;
-
-        case 'wrongUnion':
-          return `${prefix}Result does not satisfy union: expected one of: ${err.context.expected.join(
-            ', '
-          )}`;
-
-        case 'elementsInArrayWrong':
-          return `${prefix}Some elements in array do not match criteria:\n${formatErrors(
-            err.context.suberrors
-          )}`;
-
-        case 'enumValue':
-          return `${prefix}Invalid enum value`;
-
-        default:
-          throw new Error('Invalid error!');
-      }
-    })
-    .join('\n');
-}
-
+type ValidationResult = [true] | [false, ValidationError[]];
+type ValidationFunction = <T>(input: T) => ValidationResult;
 type ProfileParameterKind = 'input' | 'result';
 
 export class ProfileParameterValidator implements ProfileVisitor {
@@ -162,13 +91,22 @@ export class ProfileParameterValidator implements ProfileVisitor {
 
   constructor(private readonly ast: ProfileASTNode) {}
 
-  validate(input: unknown, kind: ProfileParameterKind, usecase: string): void {
+  validate(
+    input: unknown,
+    kind: ProfileParameterKind,
+    usecase: string
+  ): Result<undefined, ProfileParameterError> {
     const validator = this.visit(this.ast, kind, usecase);
     const [result, errors] = validator(input);
 
     if (result !== true) {
-      throw new Error(formatErrors(errors));
+      const error =
+        kind === 'input' ? InputValidationError : ResultValidationError;
+
+      return err(new error(errors));
     }
+
+    return ok(undefined);
   }
 
   visit(
@@ -176,6 +114,7 @@ export class ProfileParameterValidator implements ProfileVisitor {
     kind: ProfileParameterKind,
     usecase: string
   ): ValidationFunction {
+    debug('Visiting node:', node.kind);
     switch (node.kind) {
       case 'EnumDefinition':
         return this.visitEnumDefinitionNode(node, kind, usecase);
