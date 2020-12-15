@@ -4,7 +4,6 @@ import {
   ProfileDocumentNode,
 } from '@superfaceai/ast';
 
-import { UnexpectedError } from '../../internal/errors';
 import {
   MapInterpreter,
   ProfileParameterValidator,
@@ -14,9 +13,7 @@ import { err, ok, Result } from '../../lib';
 import { Config } from '../config';
 import { fetchMapAST } from './registry';
 
-function forceCast<T>(_: unknown): _ is T {
-  return true;
-}
+function forceCast<T>(_: unknown): asserts _ is T {}
 
 export class BoundProvider {
   private profileValidator: ProfileParameterValidator;
@@ -25,8 +22,7 @@ export class BoundProvider {
     private profileAST: ProfileDocumentNode,
     private mapAST: MapDocumentNode,
     private config: Config,
-    // private usecase: string,
-    private baseUrl?: string // private validationFunction: (input: unknown) => input is TResult = isUnknown
+    private baseUrl?: string
   ) {
     this.profileValidator = new ProfileParameterValidator(this.profileAST);
   }
@@ -34,10 +30,10 @@ export class BoundProvider {
   /**
     Performs the usecase
   */
-  async perform<TInput extends NonPrimitive, TResult = unknown>(
-    input: TInput,
-    usecase: string
-  ): Promise<Result<TResult, unknown>> {
+  async perform<
+    TInput extends NonPrimitive | undefined = undefined,
+    TResult = unknown
+  >(usecase: string, input?: TInput): Promise<Result<TResult, unknown>> {
     const inputValidation = this.profileValidator.validate(
       input,
       'input',
@@ -71,15 +67,9 @@ export class BoundProvider {
       return err(resultValidation.error);
     }
 
-    if (forceCast<TResult>(result.value)) {
-      return ok(result.value);
-    }
+    forceCast<TResult>(result.value);
 
-    return err(
-      new UnexpectedError(
-        'This should be unreachable; how did you reach it? Are you magic?'
-      )
-    );
+    return ok(result.value);
   }
 
   public get serviceId(): string | undefined {

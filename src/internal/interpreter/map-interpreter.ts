@@ -55,7 +55,9 @@ function assertUnreachable(node: MapASTNode): never {
   throw new UnexpectedError(`Invalid Node kind: ${node.kind}`);
 }
 
-export interface MapParameters<TInput extends NonPrimitive> {
+export interface MapParameters<
+  TInput extends NonPrimitive | undefined = undefined
+> {
   usecase?: string;
   auth?: Config['auth'];
   baseUrl?: string;
@@ -93,7 +95,8 @@ interface Stack {
   error?: MapInterpreterError;
 }
 
-export class MapInterpreter<TInput extends NonPrimitive> implements MapVisitor {
+export class MapInterpreter<TInput extends NonPrimitive | undefined>
+  implements MapVisitor {
   private operations: Record<string, OperationDefinitionNode | undefined> = {};
   private stack: Stack[] = [];
   private ast?: MapDocumentNode;

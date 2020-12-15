@@ -19,6 +19,7 @@ import {
 import createDebug from 'debug';
 
 import { err, ok, Result } from '../../lib';
+import { UnexpectedError } from '../errors';
 import { ProfileVisitor } from './interfaces';
 import {
   addFieldToErrors,
@@ -96,17 +97,21 @@ export class ProfileParameterValidator implements ProfileVisitor {
     kind: ProfileParameterKind,
     usecase: string
   ): Result<undefined, ProfileParameterError> {
-    const validator = this.visit(this.ast, kind, usecase);
-    const [result, errors] = validator(input);
+    try {
+      const validator = this.visit(this.ast, kind, usecase);
+      const [result, errors] = validator(input);
 
-    if (result !== true) {
-      const error =
-        kind === 'input' ? InputValidationError : ResultValidationError;
+      if (result !== true) {
+        const error =
+          kind === 'input' ? InputValidationError : ResultValidationError;
 
-      return err(new error(errors));
+        return err(new error(errors));
+      }
+
+      return ok(undefined);
+    } catch (e) {
+      return err(new UnexpectedError('Unknown error from validator', e));
     }
-
-    return ok(undefined);
   }
 
   visit(
@@ -515,7 +520,7 @@ export class ProfileParameterValidator implements ProfileVisitor {
 
     return (input: unknown): ValidationResult => {
       if (
-        typeof input === undefined ||
+        typeof input === 'undefined' ||
         (typeof input === 'object' &&
           (input === null || Object.keys(input).length === 0))
       ) {
