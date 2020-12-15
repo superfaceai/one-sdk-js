@@ -1,4 +1,4 @@
-import { MapASTNode, MapDocumentNode } from '@superfaceai/ast';
+import { MapDocumentNode } from '@superfaceai/ast';
 import { getLocal } from 'mockttp';
 
 import { MapInterpreter } from './map-interpreter';
@@ -12,14 +12,6 @@ describe('MapInterpreter', () => {
 
   afterEach(async () => {
     await mockServer.stop();
-  });
-
-  it('should fail with invalid AST', async () => {
-    const interpreter = new MapInterpreter({});
-    await expect(
-      async () =>
-        await interpreter.visit(({ kind: 'Invalid' } as unknown) as MapASTNode)
-    ).rejects.toThrow();
   });
 
   it('should execute minimal Eval definition', async () => {
@@ -60,36 +52,14 @@ describe('MapInterpreter', () => {
         },
       ],
     };
-    const result = await interpreter.visit(ast);
+    const result = await interpreter.perform(ast);
 
-    expect(result).toEqual({ result: 3 });
-  });
-
-  it('should fail on undefined usecase', async () => {
-    const interpreter = new MapInterpreter({ usecase: 'nonexistent' });
-    await expect(
-      async () =>
-        await interpreter.visit({
-          kind: 'MapDocument',
-          map: {
-            kind: 'Map',
-            profileId: {
-              kind: 'ProfileId',
-              profileId: 'hello!',
-            },
-            provider: {
-              kind: 'Provider',
-              providerId: 'hi!',
-            },
-          },
-          definitions: [],
-        })
-    ).rejects.toThrow('Usecase not found.');
+    expect(result.isOk() && result.value).toEqual(3);
   });
 
   it('should execute Eval definition with variables', async () => {
     const interpreter = new MapInterpreter({ usecase: 'Test' });
-    const result = await interpreter.visit({
+    const result = await interpreter.perform({
       kind: 'MapDocument',
       map: {
         kind: 'Map',
@@ -140,12 +110,55 @@ describe('MapInterpreter', () => {
       ],
     });
 
-    expect(result).toEqual({ result: 12 });
+    expect(result.isOk() && result.value).toEqual(12);
+  });
+
+  it('should execute eval definition with jessie array', async () => {
+    const interpreter = new MapInterpreter({ usecase: 'Test' });
+    const result = await interpreter.perform({
+      kind: 'MapDocument',
+      map: {
+        kind: 'Map',
+        profileId: {
+          kind: 'ProfileId',
+          profileId: 'hello!',
+        },
+        provider: {
+          kind: 'Provider',
+          providerId: 'hi!',
+        },
+      },
+      definitions: [
+        {
+          kind: 'MapDefinition',
+          name: 'Test',
+          usecaseName: 'Test',
+          statements: [
+            {
+              kind: 'SetStatement',
+              assignments: [
+                {
+                  kind: 'Assignment',
+                  key: ['result'],
+                  value: {
+                    kind: 'JessieExpression',
+                    expression: '[1, 2, 3]',
+                    source: '[1, 2, 3]',
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.isOk() && result.value).toEqual([1, 2, 3]);
   });
 
   it('should inline call predefined operation', async () => {
     const interpreter = new MapInterpreter({ usecase: 'Test' });
-    const result = await interpreter.visit({
+    const result = await interpreter.perform({
       kind: 'MapDocument',
       map: {
         kind: 'Map',
@@ -198,12 +211,12 @@ describe('MapInterpreter', () => {
       ],
     });
 
-    expect(result).toEqual({ result: 12 });
+    expect(result.isOk() && result.value).toEqual(12);
   });
 
   it('should call predefined operation', async () => {
     const interpreter = new MapInterpreter({ usecase: 'Test' });
-    const result = await interpreter.visit({
+    const result = await interpreter.perform({
       kind: 'MapDocument',
       map: {
         kind: 'Map',
@@ -258,12 +271,12 @@ describe('MapInterpreter', () => {
       ],
     });
 
-    expect(result).toEqual({ result: 12 });
+    expect(result.isOk() && result.value).toEqual(12);
   });
 
   it('should correctly resolve scope', async () => {
     const interpreter = new MapInterpreter({ usecase: 'Test' });
-    const result = await interpreter.visit({
+    const result = await interpreter.perform({
       kind: 'MapDocument',
       map: {
         kind: 'Map',
@@ -342,51 +355,7 @@ describe('MapInterpreter', () => {
       ],
     });
 
-    expect(result).toEqual({ result: 12 });
-  });
-
-  it('should throw when trying to run undefined operation', async () => {
-    const interpreter = new MapInterpreter({ usecase: 'Test' });
-    await expect(
-      async () =>
-        await interpreter.visit({
-          kind: 'MapDocument',
-          map: {
-            kind: 'Map',
-            profileId: {
-              kind: 'ProfileId',
-              profileId: 'hello!',
-            },
-            provider: {
-              kind: 'Provider',
-              providerId: 'hi!',
-            },
-          },
-          definitions: [
-            {
-              kind: 'MapDefinition',
-              name: 'Test',
-              usecaseName: 'Test',
-              statements: [
-                {
-                  kind: 'SetStatement',
-                  assignments: [
-                    {
-                      kind: 'Assignment',
-                      key: ['result'],
-                      value: {
-                        kind: 'InlineCall',
-                        arguments: [],
-                        operationName: 'my beloved operation',
-                      },
-                    },
-                  ],
-                },
-              ],
-            },
-          ],
-        })
-    ).rejects.toThrow('Operation not found: my beloved operation');
+    expect(result.isOk() && result.value).toEqual(12);
   });
 
   it('should call an API', async () => {
@@ -400,7 +369,7 @@ describe('MapInterpreter', () => {
     );
     const url = mockServer.urlFor('/twelve');
     const interpreter = new MapInterpreter({ usecase: 'Test' });
-    const result = await interpreter.visit({
+    const result = await interpreter.perform({
       kind: 'MapDocument',
       map: {
         kind: 'Map',
@@ -468,14 +437,14 @@ describe('MapInterpreter', () => {
       ],
     });
 
-    expect(result).toEqual({ result: 12 });
+    expect(result.isOk() && result.value).toEqual(12);
   });
 
   it('should call an API with relative URL', async () => {
     await mockServer.get('/twelve').thenJson(200, { data: 12 });
     const baseUrl = mockServer.urlFor('/twelve').replace('/twelve', '');
     const interpreter = new MapInterpreter({ usecase: 'Test', baseUrl });
-    const result = await interpreter.visit({
+    const result = await interpreter.perform({
       kind: 'MapDocument',
       map: {
         kind: 'Map',
@@ -543,82 +512,7 @@ describe('MapInterpreter', () => {
       ],
     });
 
-    expect(result).toEqual({ result: 12 });
-  });
-
-  it('should throw when calling an API with relative URL but not providing baseUrl', async () => {
-    await mockServer.get('/twelve').thenJson(200, { data: 12 });
-    const interpreter = new MapInterpreter({ usecase: 'Test' });
-    await expect(
-      async () =>
-        await interpreter.visit({
-          kind: 'MapDocument',
-          map: {
-            kind: 'Map',
-            profileId: {
-              kind: 'ProfileId',
-              profileId: 'hello!',
-            },
-            provider: {
-              kind: 'Provider',
-              providerId: 'hi!',
-            },
-          },
-          definitions: [
-            {
-              kind: 'MapDefinition',
-              name: 'Test',
-              usecaseName: 'Test',
-              statements: [
-                {
-                  kind: 'HttpCallStatement',
-                  method: 'GET',
-                  url: '/twelve',
-                  request: {
-                    kind: 'HttpRequest',
-                    headers: {
-                      kind: 'ObjectLiteral',
-                      fields: [
-                        {
-                          kind: 'Assignment',
-                          key: ['content-type'],
-                          value: {
-                            kind: 'PrimitiveLiteral',
-                            value: 'application/json',
-                          },
-                        },
-                      ],
-                    },
-                  },
-                  responseHandlers: [
-                    {
-                      kind: 'HttpResponseHandler',
-                      statusCode: 200,
-                      contentType: 'application/json',
-                      contentLanguage: 'en-US',
-                      statements: [
-                        {
-                          kind: 'SetStatement',
-                          assignments: [
-                            {
-                              kind: 'Assignment',
-                              key: ['result'],
-                              value: {
-                                kind: 'JessieExpression',
-                                expression: 'body.data',
-                              },
-                            },
-                          ],
-                        },
-                      ],
-                    },
-                  ],
-                },
-              ],
-            },
-          ],
-        })
-    ).rejects.toThrow('Relative URL specified, but base URL not provided!');
+    expect(result.isOk() && result.value).toEqual(12);
   });
 
   it('should call an API with path parameters', async () => {
@@ -628,7 +522,7 @@ describe('MapInterpreter', () => {
       usecase: 'Test',
       input: { page: '2' },
     });
-    const result = await interpreter.visit({
+    const result = await interpreter.perform({
       kind: 'MapDocument',
       map: {
         kind: 'Map',
@@ -709,99 +603,7 @@ describe('MapInterpreter', () => {
       ],
     });
 
-    expect(result).toEqual({ result: 144 });
-  });
-
-  it('should throw when calling an API with path parameters and some are missing', async () => {
-    const interpreter = new MapInterpreter({
-      usecase: 'Test',
-    });
-
-    await expect(
-      async () =>
-        await interpreter.visit({
-          kind: 'MapDocument',
-          map: {
-            kind: 'Map',
-            profileId: {
-              kind: 'ProfileId',
-              profileId: 'hello!',
-            },
-            provider: {
-              kind: 'Provider',
-              providerId: 'hi!',
-            },
-          },
-          definitions: [
-            {
-              kind: 'MapDefinition',
-              name: 'Test',
-              usecaseName: 'Test',
-              statements: [
-                {
-                  kind: 'SetStatement',
-                  assignments: [
-                    {
-                      kind: 'Assignment',
-                      key: ['page'],
-                      value: {
-                        kind: 'JessieExpression',
-                        expression: 'input.page',
-                      },
-                    },
-                  ],
-                },
-                {
-                  kind: 'HttpCallStatement',
-                  method: 'GET',
-                  url: `some.url/{missing}/{alsoMissing}`,
-                  request: {
-                    kind: 'HttpRequest',
-                    headers: {
-                      kind: 'ObjectLiteral',
-                      fields: [
-                        {
-                          kind: 'Assignment',
-                          key: ['content-type'],
-                          value: {
-                            kind: 'PrimitiveLiteral',
-                            value: 'application/json',
-                          },
-                        },
-                      ],
-                    },
-                  },
-                  responseHandlers: [
-                    {
-                      kind: 'HttpResponseHandler',
-                      statusCode: 200,
-                      contentType: 'application/json',
-                      contentLanguage: 'en-US',
-                      statements: [
-                        {
-                          kind: 'SetStatement',
-                          assignments: [
-                            {
-                              kind: 'Assignment',
-                              key: ['result'],
-                              value: {
-                                kind: 'JessieExpression',
-                                expression: 'body.data',
-                              },
-                            },
-                          ],
-                        },
-                      ],
-                    },
-                  ],
-                },
-              ],
-            },
-          ],
-        })
-    ).rejects.toThrow(
-      'Values for URL replacement keys not found: missing, alsoMissing'
-    );
+    expect(result.isOk() && result.value).toEqual(144);
   });
 
   it('should call an API with parameters', async () => {
@@ -814,7 +616,7 @@ describe('MapInterpreter', () => {
       usecase: 'Test',
       input: { page: 2 },
     });
-    const result = await interpreter.visit({
+    const result = await interpreter.perform({
       kind: 'MapDocument',
       map: {
         kind: 'Map',
@@ -895,7 +697,7 @@ describe('MapInterpreter', () => {
       ],
     });
 
-    expect(result).toEqual({ result: 144 });
+    expect(result.isOk() && result.value).toEqual(144);
   });
 
   it('should call an API with parameters and POST request', async () => {
@@ -905,60 +707,76 @@ describe('MapInterpreter', () => {
       .withHeaders({ someheader: 'hello' })
       .thenJson(201, { bodyOk: true, headerOk: true });
     const url = mockServer.urlFor('/checkBody');
-    const interpreter = new MapInterpreter({ usecase: 'testCase' });
-    const result = await interpreter.visit({
-      kind: 'MapDefinition',
-      name: 'Test',
-      usecaseName: 'Test',
-      statements: [
+    const interpreter = new MapInterpreter({ usecase: 'Test' });
+    const result = await interpreter.perform({
+      kind: 'MapDocument',
+      map: {
+        kind: 'Map',
+        profileId: {
+          kind: 'ProfileId',
+          profileId: 'https://example.com',
+        },
+        provider: {
+          kind: 'Provider',
+          providerId: 'https://example.com',
+        },
+      },
+      definitions: [
         {
-          kind: 'HttpCallStatement',
-          method: 'POST',
-          url,
-          request: {
-            kind: 'HttpRequest',
-            headers: {
-              kind: 'ObjectLiteral',
-              fields: [
-                {
-                  kind: 'Assignment',
-                  key: ['someheader'],
-                  value: {
-                    kind: 'PrimitiveLiteral',
-                    value: 'hello',
-                  },
-                },
-              ],
-            },
-            body: {
-              kind: 'ObjectLiteral',
-              fields: [
-                {
-                  kind: 'Assignment',
-                  key: ['anArray'],
-                  value: {
-                    kind: 'JessieExpression',
-                    expression: '[1, 2, 3]',
-                  },
-                },
-              ],
-            },
-          },
-          responseHandlers: [
+          kind: 'MapDefinition',
+          name: 'Test',
+          usecaseName: 'Test',
+          statements: [
             {
-              kind: 'HttpResponseHandler',
-              statusCode: 201,
-              statements: [
-                {
-                  kind: 'SetStatement',
-                  assignments: [
+              kind: 'HttpCallStatement',
+              method: 'POST',
+              url,
+              request: {
+                kind: 'HttpRequest',
+                headers: {
+                  kind: 'ObjectLiteral',
+                  fields: [
                     {
                       kind: 'Assignment',
-                      key: ['result'],
+                      key: ['someheader'],
+                      value: {
+                        kind: 'PrimitiveLiteral',
+                        value: 'hello',
+                      },
+                    },
+                  ],
+                },
+                body: {
+                  kind: 'ObjectLiteral',
+                  fields: [
+                    {
+                      kind: 'Assignment',
+                      key: ['anArray'],
                       value: {
                         kind: 'JessieExpression',
-                        expression: 'body',
+                        expression: '[1, 2, 3]',
                       },
+                    },
+                  ],
+                },
+              },
+              responseHandlers: [
+                {
+                  kind: 'HttpResponseHandler',
+                  statusCode: 201,
+                  statements: [
+                    {
+                      kind: 'SetStatement',
+                      assignments: [
+                        {
+                          kind: 'Assignment',
+                          key: ['result'],
+                          value: {
+                            kind: 'JessieExpression',
+                            expression: 'body',
+                          },
+                        },
+                      ],
                     },
                   ],
                 },
@@ -969,11 +787,9 @@ describe('MapInterpreter', () => {
       ],
     });
 
-    expect(result).toEqual({
-      result: {
-        headerOk: true,
-        bodyOk: true,
-      },
+    expect(result.isOk() && result.value).toEqual({
+      headerOk: true,
+      bodyOk: true,
     });
   });
 
@@ -985,7 +801,7 @@ describe('MapInterpreter', () => {
     const url1 = mockServer.urlFor('/first');
     const url2 = mockServer.urlFor('/second');
     const interpreter = new MapInterpreter({ usecase: 'Test' });
-    const result = await interpreter.visit({
+    const result = await interpreter.perform({
       kind: 'MapDocument',
       map: {
         kind: 'Map',
@@ -1076,7 +892,7 @@ describe('MapInterpreter', () => {
       ],
     });
 
-    expect(result).toEqual({ result: 12 * 5 });
+    expect(result.isOk() && result.value).toEqual(12 * 5);
   });
 
   it('should call an API with Basic auth', async () => {
@@ -1089,7 +905,7 @@ describe('MapInterpreter', () => {
       usecase: 'testCase',
       auth: { basic: { username: 'name', password: 'password' } },
     });
-    const result = await interpreter.visit({
+    const result = await interpreter.perform({
       kind: 'MapDocument',
       map: {
         kind: 'Map',
@@ -1141,67 +957,7 @@ describe('MapInterpreter', () => {
       ],
     });
 
-    expect(result).toEqual({ result: 12 });
-  });
-
-  it('should throw when calling an API with Basic auth, but with no credentials', async () => {
-    const interpreter = new MapInterpreter({
-      usecase: 'testCase',
-    });
-    await expect(
-      async () =>
-        await interpreter.visit({
-          kind: 'MapDocument',
-          map: {
-            kind: 'Map',
-            profileId: {
-              kind: 'ProfileId',
-              profileId: 'hello!',
-            },
-            provider: {
-              kind: 'Provider',
-              providerId: 'hi!',
-            },
-          },
-          definitions: [
-            {
-              kind: 'MapDefinition',
-              name: 'testMap',
-              usecaseName: 'testCase',
-              statements: [
-                {
-                  kind: 'HttpCallStatement',
-                  method: 'GET',
-                  url: 'not really relevant',
-                  request: {
-                    kind: 'HttpRequest',
-                    security: {
-                      scheme: 'basic',
-                    },
-                  },
-                  responseHandlers: [
-                    {
-                      kind: 'HttpResponseHandler',
-                      statusCode: 200,
-                      statements: [
-                        {
-                          kind: 'OutcomeStatement',
-                          terminateFlow: true,
-                          isError: false,
-                          value: {
-                            kind: 'JessieExpression',
-                            expression: 'body.data',
-                          },
-                        },
-                      ],
-                    },
-                  ],
-                },
-              ],
-            },
-          ],
-        })
-    ).rejects.toThrow('Missing credentials for Basic auth!');
+    expect(result.isOk() && result.value).toEqual(12);
   });
 
   it('should call an API with Bearer auth', async () => {
@@ -1214,7 +970,7 @@ describe('MapInterpreter', () => {
       usecase: 'testCase',
       auth: { bearer: { token: 'SuperSecret' } },
     });
-    const result = await interpreter.visit({
+    const result = await interpreter.perform({
       kind: 'MapDocument',
       map: {
         kind: 'Map',
@@ -1266,67 +1022,7 @@ describe('MapInterpreter', () => {
       ],
     });
 
-    expect(result).toEqual({ result: 12 });
-  });
-
-  it('should throw when calling an API with Bearer auth, but with no credentials', async () => {
-    const interpreter = new MapInterpreter({
-      usecase: 'testCase',
-    });
-    await expect(
-      async () =>
-        await interpreter.visit({
-          kind: 'MapDocument',
-          map: {
-            kind: 'Map',
-            profileId: {
-              kind: 'ProfileId',
-              profileId: 'hello!',
-            },
-            provider: {
-              kind: 'Provider',
-              providerId: 'hi!',
-            },
-          },
-          definitions: [
-            {
-              kind: 'MapDefinition',
-              name: 'testMap',
-              usecaseName: 'testCase',
-              statements: [
-                {
-                  kind: 'HttpCallStatement',
-                  method: 'GET',
-                  url: 'not really relevant',
-                  request: {
-                    kind: 'HttpRequest',
-                    security: {
-                      scheme: 'bearer',
-                    },
-                  },
-                  responseHandlers: [
-                    {
-                      kind: 'HttpResponseHandler',
-                      statusCode: 200,
-                      statements: [
-                        {
-                          kind: 'OutcomeStatement',
-                          terminateFlow: true,
-                          isError: false,
-                          value: {
-                            kind: 'JessieExpression',
-                            expression: 'body.data',
-                          },
-                        },
-                      ],
-                    },
-                  ],
-                },
-              ],
-            },
-          ],
-        })
-    ).rejects.toThrow('Missing credentials for Bearer auth!');
+    expect(result.isOk() && result.value).toEqual(12);
   });
 
   it('should call an API with Apikey auth in header', async () => {
@@ -1339,7 +1035,7 @@ describe('MapInterpreter', () => {
       usecase: 'testCase',
       auth: { apikey: { key: 'SuperSecret' } },
     });
-    const result = await interpreter.visit({
+    const result = await interpreter.perform({
       kind: 'MapDocument',
       map: {
         kind: 'Map',
@@ -1393,7 +1089,7 @@ describe('MapInterpreter', () => {
       ],
     });
 
-    expect(result).toEqual({ result: 12 });
+    expect(result.isOk() && result.value).toEqual(12);
   });
 
   it('should call an API with Apikey auth in query', async () => {
@@ -1406,7 +1102,7 @@ describe('MapInterpreter', () => {
       usecase: 'testCase',
       auth: { apikey: { key: 'SuperSecret' } },
     });
-    const result = await interpreter.visit({
+    const result = await interpreter.perform({
       kind: 'MapDocument',
       map: {
         kind: 'Map',
@@ -1460,69 +1156,7 @@ describe('MapInterpreter', () => {
       ],
     });
 
-    expect(result).toEqual({ result: 12 });
-  });
-
-  it('should throw when calling an API with Apikey auth, but with no credentials', async () => {
-    const interpreter = new MapInterpreter({
-      usecase: 'testCase',
-    });
-    await expect(
-      async () =>
-        await interpreter.visit({
-          kind: 'MapDocument',
-          map: {
-            kind: 'Map',
-            profileId: {
-              kind: 'ProfileId',
-              profileId: 'hello!',
-            },
-            provider: {
-              kind: 'Provider',
-              providerId: 'hi!',
-            },
-          },
-          definitions: [
-            {
-              kind: 'MapDefinition',
-              name: 'testMap',
-              usecaseName: 'testCase',
-              statements: [
-                {
-                  kind: 'HttpCallStatement',
-                  method: 'GET',
-                  url: 'not really relevant',
-                  request: {
-                    kind: 'HttpRequest',
-                    security: {
-                      scheme: 'apikey',
-                      name: 'not relevant either',
-                      placement: 'query',
-                    },
-                  },
-                  responseHandlers: [
-                    {
-                      kind: 'HttpResponseHandler',
-                      statusCode: 200,
-                      statements: [
-                        {
-                          kind: 'OutcomeStatement',
-                          terminateFlow: true,
-                          isError: false,
-                          value: {
-                            kind: 'JessieExpression',
-                            expression: 'body.data',
-                          },
-                        },
-                      ],
-                    },
-                  ],
-                },
-              ],
-            },
-          ],
-        })
-    ).rejects.toThrow('Missing credentials for Apikey auth!');
+    expect(result.isOk() && result.value).toEqual(12);
   });
 
   it('should call an API with multipart/form-data body', async () => {
@@ -1544,7 +1178,7 @@ describe('MapInterpreter', () => {
     });
     const url = mockServer.urlFor('/formdata');
     const interpreter = new MapInterpreter({ usecase: 'testCase' });
-    const result = await interpreter.visit({
+    const result = await interpreter.perform({
       kind: 'MapDocument',
       map: {
         kind: 'Map',
@@ -1616,7 +1250,7 @@ describe('MapInterpreter', () => {
       ],
     });
 
-    expect(result).toEqual({ result: 12 });
+    expect(result.isOk() && result.value).toEqual(12);
   });
 
   it('should call an API with application/x-www-form-urlencoded', async () => {
@@ -1626,7 +1260,7 @@ describe('MapInterpreter', () => {
       .thenJson(201, { data: 12 });
     const url = mockServer.urlFor('/urlencoded');
     const interpreter = new MapInterpreter({ usecase: 'testCase' });
-    const result = await interpreter.visit({
+    const result = await interpreter.perform({
       kind: 'MapDocument',
       map: {
         kind: 'Map',
@@ -1699,14 +1333,12 @@ describe('MapInterpreter', () => {
       ],
     });
 
-    expect(result).toEqual({
-      result: 12,
-    });
+    expect(result.isOk() && result.value).toEqual(12);
   });
 
   it('should execute Eval definition with nested result', async () => {
     const interpreter = new MapInterpreter({ usecase: 'testCase' });
-    const result = await interpreter.visit({
+    const result = await interpreter.perform({
       kind: 'MapDocument',
       map: {
         kind: 'Map',
@@ -1751,8 +1383,8 @@ describe('MapInterpreter', () => {
       ],
     });
 
-    expect(result).toEqual({
-      result: { which: { is: { nested: 12, also: { nested: 13 } } } },
+    expect(result.isOk() && result.value).toEqual({
+      which: { is: { nested: 12, also: { nested: 13 } } },
     });
   });
 
@@ -1820,62 +1452,63 @@ describe('MapInterpreter', () => {
       usecase: 'Test',
       input: { condition: false },
     });
-    expect(await interpreter1.visit(ast)).toEqual({ result: 7 });
-    expect(await interpreter2.visit(ast)).toEqual({ result: 8 });
+    const result1 = await interpreter1.perform(ast);
+    const result2 = await interpreter2.perform(ast);
+    expect(result1.isOk() && result1.value).toEqual(7);
+    expect(result2.isOk() && result2.value).toEqual(8);
   });
 
   it('should correctly construct result object', async () => {
     const interpreter = new MapInterpreter({ usecase: 'Test' });
-    expect(
-      await interpreter.visit({
-        kind: 'MapDocument',
-        map: {
-          kind: 'Map',
-          profileId: {
-            kind: 'ProfileId',
-            profileId: 'http://example.com/profile',
-          },
-          provider: {
-            kind: 'Provider',
-            providerId: 'http://example.com/provider',
-          },
+    const result = await interpreter.perform({
+      kind: 'MapDocument',
+      map: {
+        kind: 'Map',
+        profileId: {
+          kind: 'ProfileId',
+          profileId: 'http://example.com/profile',
         },
-        definitions: [
-          {
-            kind: 'MapDefinition',
-            name: 'Test',
-            usecaseName: 'Test',
-            statements: [
-              {
-                kind: 'OutcomeStatement',
-                isError: false,
-                terminateFlow: false,
-                value: {
-                  kind: 'ObjectLiteral',
-                  fields: [
-                    {
-                      kind: 'Assignment',
-                      key: ['test', 'x'],
-                      value: {
-                        kind: 'PrimitiveLiteral',
-                        value: 1,
-                      },
+        provider: {
+          kind: 'Provider',
+          providerId: 'http://example.com/provider',
+        },
+      },
+      definitions: [
+        {
+          kind: 'MapDefinition',
+          name: 'Test',
+          usecaseName: 'Test',
+          statements: [
+            {
+              kind: 'OutcomeStatement',
+              isError: false,
+              terminateFlow: true,
+              value: {
+                kind: 'ObjectLiteral',
+                fields: [
+                  {
+                    kind: 'Assignment',
+                    key: ['test', 'x'],
+                    value: {
+                      kind: 'PrimitiveLiteral',
+                      value: 1,
                     },
-                    {
-                      kind: 'Assignment',
-                      key: ['test', 'y'],
-                      value: {
-                        kind: 'PrimitiveLiteral',
-                        value: 2,
-                      },
+                  },
+                  {
+                    kind: 'Assignment',
+                    key: ['test', 'y'],
+                    value: {
+                      kind: 'PrimitiveLiteral',
+                      value: 2,
                     },
-                  ],
-                },
+                  },
+                ],
               },
-            ],
-          },
-        ],
-      })
-    ).toEqual({ result: { test: { x: 1, y: 2 } } });
+            },
+          ],
+        },
+      ],
+    });
+    expect(result.isOk() && result.value).toEqual({ test: { x: 1, y: 2 } });
   });
 });

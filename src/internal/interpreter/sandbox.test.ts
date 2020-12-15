@@ -1,4 +1,4 @@
-import { evalScript } from './Sandbox';
+import { evalScript } from './sandbox';
 
 describe('sandbox', () => {
   it('prevents string masking attack', () => {
@@ -69,7 +69,7 @@ describe('sandbox', () => {
   });
 
   it('no Promises or async', () => {
-    expect(() => evalScript('Promise.reject().catch(() => {})')).toThrow(
+    expect(() => evalScript('Promise.resolve().then(x => 1)')).toThrow(
       'Async not available'
     );
 
@@ -105,5 +105,11 @@ describe('sandbox', () => {
       foo: 1,
       bar: 2,
     });
+  });
+
+  it('correctly evaluates array literal', () => {
+    const v = evalScript('[1, 2, 3]');
+    expect(v).toStrictEqual([1, 2, 3]);
+    expect(Array.isArray(v)).toBe(true);
   });
 });

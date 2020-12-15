@@ -4,7 +4,7 @@ import { HttpSecurity } from '@superfaceai/ast';
 import fetch, { Headers } from 'cross-fetch';
 
 import { Config } from '../client';
-import { evalScript } from '../client/interpreter/Sandbox';
+import { evalScript } from './interpreter/sandbox';
 import { NonPrimitive, Variables } from './interpreter/variables';
 
 export interface HttpResponse {

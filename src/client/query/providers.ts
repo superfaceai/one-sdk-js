@@ -1,11 +1,10 @@
 import {
   isMapDocumentNode,
-  MapASTNode,
   MapDocumentNode,
-  ProfileASTNode,
   ProfileDocumentNode,
 } from '@superfaceai/ast';
 
+import { UnexpectedError } from '../../internal/errors';
 import {
   MapInterpreter,
   ProfileParameterValidator,
@@ -15,20 +14,19 @@ import { err, ok, Result } from '../../lib';
 import { Config } from '../config';
 import { fetchMapAST } from './registry';
 
-function isUnknown<T>(_: unknown): _ is T {
+function forceCast<T>(_: unknown): _ is T {
   return true;
 }
 
-export class BoundProvider<TInput extends NonPrimitive, TResult = unknown> {
+export class BoundProvider {
   private profileValidator: ProfileParameterValidator;
 
   constructor(
-    private profileAST: ProfileASTNode,
-    private mapAST: MapASTNode,
+    private profileAST: ProfileDocumentNode,
+    private mapAST: MapDocumentNode,
     private config: Config,
-    private usecase: string,
-    private baseUrl?: string,
-    private validationFunction: (input: unknown) => input is TResult = isUnknown
+    // private usecase: string,
+    private baseUrl?: string // private validationFunction: (input: unknown) => input is TResult = isUnknown
   ) {
     this.profileValidator = new ProfileParameterValidator(this.profileAST);
   }
@@ -36,25 +34,52 @@ export class BoundProvider<TInput extends NonPrimitive, TResult = unknown> {
   /**
     Performs the usecase
   */
-  async perform(input: TInput): Promise<Result<TResult, unknown>> {
-    this.profileValidator.validate(input, 'input', this.usecase);
+  async perform<TInput extends NonPrimitive, TResult = unknown>(
+    input: TInput,
+    usecase: string
+  ): Promise<Result<TResult, unknown>> {
+    const inputValidation = this.profileValidator.validate(
+      input,
+      'input',
+      usecase
+    );
+
+    if (inputValidation.isErr()) {
+      return err(inputValidation.error);
+    }
 
     const interpreter = new MapInterpreter<TInput>({
       input,
       auth: this.config.auth,
-      usecase: this.usecase,
+      usecase,
       baseUrl: this.baseUrl,
     });
 
-    const result = await interpreter.visit(this.mapAST);
+    const result = await interpreter.perform(this.mapAST);
 
-    this.profileValidator.validate(result.result, 'result', this.usecase);
-
-    if (this.validationFunction(result.result)) {
-      return ok(result.result);
+    if (result.isErr()) {
+      return err(result.error);
     }
 
-    return err('Result did not validate correctly');
+    const resultValidation = this.profileValidator.validate(
+      result.value,
+      'result',
+      usecase
+    );
+
+    if (resultValidation.isErr()) {
+      return err(resultValidation.error);
+    }
+
+    if (forceCast<TResult>(result.value)) {
+      return ok(result.value);
+    }
+
+    return err(
+      new UnexpectedError(
+        'This should be unreachable; how did you reach it? Are you magic?'
+      )
+    );
   }
 
   public get serviceId(): string | undefined {
@@ -62,13 +87,12 @@ export class BoundProvider<TInput extends NonPrimitive, TResult = unknown> {
   }
 }
 
-export class Provider<TParams extends NonPrimitive, TResult = unknown> {
+export class Provider {
   constructor(
     private profileAST: ProfileDocumentNode,
     private mapUrlOrMapAST: string | MapDocumentNode,
-    private usecase: string,
-    private baseUrl?: string,
-    private validationFunction?: (input: unknown) => input is TResult
+    // private usecase: string,
+    private baseUrl?: string // private validationFunction?: (input: unknown) => input is TResult
   ) {}
 
   /**
@@ -76,16 +100,16 @@ export class Provider<TParams extends NonPrimitive, TResult = unknown> {
    *
    * This fetches the map and allows to perform.
    */
-  public async bind(config: Config): Promise<BoundProvider<TParams, TResult>> {
+  public async bind(config: Config): Promise<BoundProvider> {
     const mapAST = await this.obtainMapAST();
 
-    return new BoundProvider<TParams, TResult>(
+    return new BoundProvider(
       this.profileAST,
       mapAST,
       config,
-      this.usecase,
-      this.baseUrl,
-      this.validationFunction
+      // this.usecase,
+      this.baseUrl
+      // this.validationFunction
     );
   }
 

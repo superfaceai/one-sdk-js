@@ -24,11 +24,21 @@ import {
   StatementConditionNode,
   Substatement,
 } from '@superfaceai/ast';
+import createDebug from 'debug';
 
 import { Config } from '../../client';
-import { evalScript } from '../../client/interpreter/Sandbox';
+import { err, ok, Result } from '../../lib';
+import { UnexpectedError } from '../errors';
 import { HttpClient, HttpResponse } from '../http';
 import { MapVisitor } from './interfaces';
+import {
+  HTTPError,
+  JessieError,
+  MapASTError,
+  MapInterpreterError,
+  MappedHTTPError,
+} from './map-interpreter.errors';
+import { evalScript } from './sandbox';
 import {
   castToVariables,
   isPrimitive,
@@ -38,9 +48,11 @@ import {
   Variables,
 } from './variables';
 
+const debug = createDebug('superface:map-interpreter');
+
 function assertUnreachable(node: never): never;
 function assertUnreachable(node: MapASTNode): never {
-  throw new Error(`Invalid Node kind: ${node.kind}`);
+  throw new UnexpectedError(`Invalid Node kind: ${node.kind}`);
 }
 
 export interface MapParameters<TInput extends NonPrimitive> {
@@ -54,7 +66,10 @@ type HttpResponseHandler = (
   response: HttpResponse
 ) => Promise<[true, Variables | undefined] | [false]>;
 
-type HttpResponseHandlerDefinition = [handler: HttpResponseHandler, accept?: string];
+type HttpResponseHandlerDefinition = [
+  handler: HttpResponseHandler,
+  accept?: string
+];
 
 interface OutcomeDefinition {
   result?: Variables;
@@ -75,13 +90,32 @@ interface Stack {
   type: 'map' | 'operation';
   variables: NonPrimitive;
   result?: Variables;
+  error?: MapInterpreterError;
 }
 
 export class MapInterpreter<TInput extends NonPrimitive> implements MapVisitor {
   private operations: Record<string, OperationDefinitionNode | undefined> = {};
   private stack: Stack[] = [];
+  private ast?: MapDocumentNode;
 
   constructor(private readonly parameters: MapParameters<TInput>) {}
+
+  async perform(
+    ast: MapDocumentNode
+  ): Promise<Result<Variables | undefined, MapInterpreterError>> {
+    this.ast = ast;
+    try {
+      const result = await this.visit(ast);
+
+      if (result.error) {
+        return err(result.error);
+      }
+
+      return ok(result.result);
+    } catch (e) {
+      return err(e);
+    }
+  }
 
   visit(node: PrimitiveLiteralNode): Primitive;
   async visit(node: SetStatementNode): Promise<void>;
@@ -92,9 +126,13 @@ export class MapInterpreter<TInput extends NonPrimitive> implements MapVisitor {
   async visit(node: LiteralNode): Promise<Variables>;
   async visit(node: StatementConditionNode): Promise<boolean>;
   async visit(node: HttpRequestNode): Promise<HttpRequest>;
+  async visit(node: InlineCallNode): Promise<Variables | undefined>;
   visit(node: HttpResponseHandlerNode): HttpResponseHandlerDefinition;
   visit(node: JessieExpressionNode): Variables | Primitive | undefined;
-  async visit(node: MapASTNode): Promise<{ result?: Variables }>;
+  async visit(
+    node: MapDocumentNode
+  ): Promise<{ result?: Variables; error?: MapInterpreterError }>;
+  async visit(node: MapASTNode): Promise<Variables | undefined>;
   visit(
     node: MapASTNode
   ):
@@ -105,11 +143,13 @@ export class MapInterpreter<TInput extends NonPrimitive> implements MapVisitor {
         | void
         | HttpRequest
         | OutcomeDefinition
+        | { result?: Variables; error?: MapInterpreterError }
       >
     | Primitive
     | Variables
     | HttpResponseHandlerDefinition
     | undefined {
+    debug('Visiting node:', node.kind);
     switch (node.kind) {
       case 'Assignment':
         return this.visitAssignmentNode(node);
@@ -154,26 +194,38 @@ export class MapInterpreter<TInput extends NonPrimitive> implements MapVisitor {
   }
 
   async visitAssignmentNode(node: AssignmentNode): Promise<NonPrimitive> {
-    return this.constructObject(node.key, await this.visit(node.value));
+    const result = await this.visit(node.value);
+
+    return this.constructObject(node.key, result);
   }
 
   async visitInlineCallNode(
     node: InlineCallNode
-  ): Promise<Primitive | Variables | undefined> {
+  ): Promise<Variables | undefined> {
     const operation = this.operations[node.operationName];
     if (!operation) {
-      throw new Error(`Operation not found: ${node.operationName}`);
+      throw new MapASTError(`Operation not found: ${node.operationName}`, {
+        node,
+        ast: this.ast,
+      });
     }
 
-    return this.visit(operation);
+    const result = await this.visit(operation);
+
+    return result;
   }
 
   async visitCallStatementNode(node: CallStatementNode): Promise<void> {
     const operation = this.operations[node.operationName];
 
     if (!operation) {
-      throw new Error(`Calling undefined operation: ${node.operationName}`);
+      throw new MapASTError(`Operation not found: ${node.operationName}`, {
+        node,
+        ast: this.ast,
+      });
     }
+
+    debug('Calling operation:', operation.name);
 
     this.newStack('operation');
     const result = await this.visit(operation);
@@ -193,9 +245,13 @@ export class MapInterpreter<TInput extends NonPrimitive> implements MapVisitor {
     if (responseHandlers.some(([, accept]) => accept === undefined)) {
       accept = '*/*';
     } else {
-      const accepts = responseHandlers.map((([, accept]) => accept));
-      accept = accepts.filter((accept, index) => accepts.indexOf(accept) === index).join(', ');
+      const accepts = responseHandlers.map(([, accept]) => accept);
+      accept = accepts
+        .filter((accept, index) => accepts.indexOf(accept) === index)
+        .join(', ');
     }
+
+    debug('Performing http request:', node.url);
 
     const response = await HttpClient.request(node.url, {
       method: node.method,
@@ -213,11 +269,20 @@ export class MapInterpreter<TInput extends NonPrimitive> implements MapVisitor {
     for (const [handler] of responseHandlers) {
       const [match, result] = await handler(response);
 
-      if (match && result) {
-        this.addVariableToStack({ result });
+      if (match) {
+        if (result) {
+          this.addVariableToStack({ result });
+        }
 
         return;
       }
+    }
+    if (response.statusCode >= 400) {
+      throw new HTTPError(
+        'HTTP Error',
+        { node, ast: this.ast },
+        response.statusCode
+      );
     }
   }
 
@@ -258,6 +323,20 @@ export class MapInterpreter<TInput extends NonPrimitive> implements MapVisitor {
 
       this.addVariableToStack({ body: castToVariables(response.body) });
 
+      if (debug.enabled) {
+        let debugString = 'Running http handler:';
+        if (node.contentType) {
+          debugString += ` content-type: "${node.contentType}"`;
+        }
+        if (node.contentLanguage) {
+          debugString += ` content-language: "${node.contentLanguage}"`;
+        }
+        if (node.statusCode) {
+          debugString += ` code: "${node.statusCode}"`;
+        }
+        debug(debugString);
+      }
+
       const result = await this.processStatements(node.statements);
 
       return [true, result];
@@ -267,9 +346,16 @@ export class MapInterpreter<TInput extends NonPrimitive> implements MapVisitor {
   }
 
   visitJessieExpressionNode(node: JessieExpressionNode): Variables | undefined {
-    const result = evalScript(node.expression, this.variables);
+    try {
+      const result = evalScript(node.expression, this.variables);
 
-    return castToVariables(result);
+      return castToVariables(result);
+    } catch (e) {
+      throw new JessieError('Error in Jessie script', e, {
+        node,
+        ast: this.ast,
+      });
+    }
   }
 
   visitPrimitiveLiteralNode(node: PrimitiveLiteralNode): Primitive {
@@ -290,6 +376,15 @@ export class MapInterpreter<TInput extends NonPrimitive> implements MapVisitor {
 
         case 'OutcomeStatement': {
           const outcome = await this.visit(statement);
+          if (outcome?.error) {
+            const error = new MappedHTTPError(
+              'Expected HTTP error',
+              undefined,
+              { node: statement, ast: this.ast },
+              outcome?.result
+            );
+            this.stackTop.error = error;
+          }
           result = outcome?.result ?? result;
           if (outcome?.terminateFlow) {
             return result;
@@ -314,12 +409,16 @@ export class MapInterpreter<TInput extends NonPrimitive> implements MapVisitor {
     this.newStack('map');
     let result = await this.processStatements(node.statements);
 
+    if (this.stackTop.error) {
+      throw this.stackTop.error;
+    }
+
     result = {
       result:
         result ??
         ((!isPrimitive(this.stackTop.variables) &&
           this.stackTop.variables['result']) ||
-        this.stackTop.result),
+          this.stackTop.result),
     };
 
     return result;
@@ -328,7 +427,9 @@ export class MapInterpreter<TInput extends NonPrimitive> implements MapVisitor {
   async visitMapDocumentNode(
     node: MapDocumentNode
   ): Promise<Variables | undefined> {
-    for (const operation of node.definitions.filter(isOperationDefinitionNode)) {
+    for (const operation of node.definitions.filter(
+      isOperationDefinitionNode
+    )) {
       this.operations[operation.name] = operation;
     }
     const operation = node.definitions
@@ -336,18 +437,21 @@ export class MapInterpreter<TInput extends NonPrimitive> implements MapVisitor {
       .find(definition => definition.usecaseName === this.parameters.usecase);
 
     if (!operation) {
-      throw new Error('Usecase not found.');
+      throw new MapASTError(`Usecase not found!`, {
+        node,
+        ast: this.ast,
+      });
     }
 
     return await this.visit(operation);
   }
 
   visitMapProfileIdNode(_node: MapProfileIdNode): never {
-    throw new Error('Method not implemented.');
+    throw new UnexpectedError('Method not implemented.');
   }
 
   visitMapNode(_node: MapNode): never {
-    throw new Error('Method not implemented.');
+    throw new UnexpectedError('Method not implemented.');
   }
 
   async visitObjectLiteralNode(node: ObjectLiteralNode): Promise<Variables> {
@@ -390,11 +494,11 @@ export class MapInterpreter<TInput extends NonPrimitive> implements MapVisitor {
   }
 
   visitProfileIdNode(_node: MapProfileIdNode): never {
-    throw new Error('Method not implemented.');
+    throw new UnexpectedError('Method not implemented.');
   }
 
   visitProviderNode(_node: ProviderNode): never {
-    throw new Error('Method not implemented.');
+    throw new UnexpectedError('Method not implemented.');
   }
 
   async visitSetStatementNode(node: SetStatementNode): Promise<void> {
@@ -457,12 +561,14 @@ export class MapInterpreter<TInput extends NonPrimitive> implements MapVisitor {
         current = current[key] = {};
       }
     }
+    debug('Constructing object:', keys.join('.'), '=', value);
 
     return result;
   }
 
   private newStack(type: Stack['type']): void {
     this.stack.push({ type, variables: {}, result: {} });
+    debug('New stack:', this.stackTop);
   }
 
   private popStack(result?: Variables): void {
@@ -470,11 +576,13 @@ export class MapInterpreter<TInput extends NonPrimitive> implements MapVisitor {
     if (this.stack.length > 0 && last) {
       this.stackTop.result = result ?? last.variables['result'];
     }
+
+    debug('Popping stack:', last);
   }
 
   private get stackTop(): Stack {
     if (this.stack.length === 0) {
-      throw new Error('Trying to get variables out of scope!');
+      throw new UnexpectedError('Trying to get variables out of scope!');
     }
 
     return this.stack[this.stack.length - 1];

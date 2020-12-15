@@ -1,6 +1,9 @@
+import createDebug from 'debug';
 import { VM } from 'vm2';
 
 import { NonPrimitive } from '../../internal/interpreter/variables';
+
+const debug = createDebug('superface:sandbox');
 
 export const SCRIPT_TIMEOUT = 100;
 
@@ -57,5 +60,11 @@ export function evalScript(
     `
   );
 
-  return vm.run(`'use strict';const vmResult = ${js};vmResult`);
+  debug('Evaluating:', js);
+  const result = vm.run(
+    `'use strict';const vmResult = ${js};vmResult`
+  ) as unknown;
+  debug('Result:', result);
+
+  return result;
 }
