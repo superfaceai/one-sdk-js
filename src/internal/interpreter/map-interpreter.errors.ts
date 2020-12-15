@@ -27,7 +27,7 @@ export class MapInterpreterErrorBase extends ErrorBase {
       return undefined;
     }
 
-    const bfs = (
+    const dfs = (
       current: MapASTNode,
       path: string[] = []
     ): string[] | undefined => {
@@ -44,7 +44,7 @@ export class MapInterpreterErrorBase extends ErrorBase {
           return newPath(key);
         } else {
           if (typeof value === 'object') {
-            const next = bfs(value, newPath(key));
+            const next = dfs(value, newPath(key));
             if (next !== undefined) {
               return next;
             }
@@ -55,7 +55,7 @@ export class MapInterpreterErrorBase extends ErrorBase {
       return undefined;
     };
 
-    this.path = bfs(this.metadata.ast);
+    this.path = dfs(this.metadata.ast);
 
     return this.path;
   }
