@@ -76,6 +76,9 @@ export function formatErrors(errors?: ValidationError[]): string {
         case 'enumValue':
           return `${prefix}Invalid enum value`;
 
+        case 'wrongInput':
+          return `Wrong input`;
+
         default:
           throw new Error('Invalid error!');
       }
