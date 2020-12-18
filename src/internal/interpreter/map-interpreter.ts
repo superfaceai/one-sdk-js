@@ -285,7 +285,8 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
         'HTTP Error',
         { node, ast: this.ast },
         response.statusCode,
-        response.debug.request
+        response.debug.request,
+        { body: response.body, headers: response.headers }
       );
     }
   }

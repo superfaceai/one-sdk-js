@@ -88,6 +88,10 @@ export class HTTPError extends MapInterpreterErrorBase {
       body?: unknown;
       headers?: Record<string, string>;
       url?: string;
+    },
+    public response?: {
+      body?: unknown;
+      headers?: Record<string, string>;
     }
   ) {
     super('HTTPError', message, metadata);
