@@ -2,15 +2,25 @@ import 'isomorphic-form-data';
 
 import { HttpSecurity } from '@superfaceai/ast';
 import fetch, { Headers } from 'cross-fetch';
+import createDebug from 'debug';
 
 import { Config } from '../client';
 import { evalScript } from './interpreter/sandbox';
 import { NonPrimitive, Variables } from './interpreter/variables';
 
+const debug = createDebug('http');
+
 export interface HttpResponse {
   statusCode: number;
   body: unknown;
   headers: Record<string, string>;
+  debug: {
+    request: {
+      headers: Record<string, string>;
+      url: string;
+      body: unknown;
+    };
+  };
 }
 
 const AUTH_HEADER_NAME = 'Authorization';
@@ -206,7 +216,9 @@ export const HttpClient = {
       },
     });
 
+    debug('Executing HTTP Call to %s: %O', finalUrl, params);
     const response = await fetch(finalUrl, params);
+    debug('Received response: %O', response);
 
     let body: unknown;
 
@@ -214,6 +226,12 @@ export const HttpClient = {
     response.headers.forEach((key, value) => {
       responseHeaders[value] = key;
     });
+    const requestHeaders: Record<string, string> = {};
+    if (headers) {
+      headers.forEach((key, value) => {
+        requestHeaders[value] = key;
+      });
+    }
 
     if (
       (responseHeaders['content-type'] &&
@@ -229,6 +247,13 @@ export const HttpClient = {
       statusCode: response.status,
       body,
       headers: responseHeaders,
+      debug: {
+        request: {
+          url: finalUrl,
+          headers: requestHeaders,
+          body: params.body,
+        },
+      },
     };
   },
 };
