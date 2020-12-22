@@ -216,9 +216,21 @@ export const HttpClient = {
       },
     });
 
-    debug('Executing HTTP Call to %s: %O', finalUrl, params);
+    const requestHeaders: Record<string, string> = {};
+    if (headers) {
+      headers.forEach((value, headerName) => {
+        requestHeaders[headerName] = value;
+      });
+    }
+    debug('Executing HTTP Call');
+    debug(`\t${params.method} ${finalUrl} HTTP/1.1`);
+    Object.entries(requestHeaders).forEach(([headerName, value]) =>
+      debug(`\t${headerName}: ${value}`)
+    );
+    if (params.body) {
+      debug(`\n\t${params.body}`);
+    }
     const response = await fetch(finalUrl, params);
-    debug('Received response: %O', response);
 
     let body: unknown;
 
@@ -226,12 +238,6 @@ export const HttpClient = {
     response.headers.forEach((value, headerName) => {
       responseHeaders[headerName] = value;
     });
-    const requestHeaders: Record<string, string> = {};
-    if (headers) {
-      headers.forEach((value, headerName) => {
-        requestHeaders[headerName] = value;
-      });
-    }
 
     if (
       (responseHeaders['content-type'] &&
@@ -242,6 +248,13 @@ export const HttpClient = {
     } else {
       body = await response.text();
     }
+
+    debug('Received response');
+    debug(`\tHTTP/1.1 ${response.status} ${response.statusText}`);
+    Object.entries(responseHeaders).forEach(([headerName, value]) =>
+      debug(`\t${headerName}: ${value}`)
+    );
+    debug('\n\t%j', body);
 
     return {
       statusCode: response.status,
