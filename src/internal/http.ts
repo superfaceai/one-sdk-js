@@ -223,13 +223,13 @@ export const HttpClient = {
     let body: unknown;
 
     const responseHeaders: Record<string, string> = {};
-    response.headers.forEach((key, value) => {
-      responseHeaders[value] = key;
+    response.headers.forEach((value, headerName) => {
+      responseHeaders[headerName] = value;
     });
     const requestHeaders: Record<string, string> = {};
     if (headers) {
-      headers.forEach((key, value) => {
-        requestHeaders[value] = key;
+      headers.forEach((value, headerName) => {
+        requestHeaders[headerName] = value;
       });
     }
 
