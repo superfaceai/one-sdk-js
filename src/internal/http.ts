@@ -223,12 +223,12 @@ export const HttpClient = {
       });
     }
     debug('Executing HTTP Call');
-    debug(`\t${params.method} ${finalUrl} HTTP/1.1`);
+    debug(`\t${params.method || 'UNKNOWN METHOD'} ${finalUrl} HTTP/1.1`);
     Object.entries(requestHeaders).forEach(([headerName, value]) =>
       debug(`\t${headerName}: ${value}`)
     );
     if (params.body) {
-      debug(`\n\t${params.body}`);
+      debug(`\n\t${params.body.toString()}`);
     }
     const response = await fetch(finalUrl, params);
 
