@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+### Changed
+* Enhanced logging of HTTP Errors
+
 ## [0.0.4] - 2020-12-15
 
 ### Added

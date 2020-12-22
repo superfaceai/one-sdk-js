@@ -83,7 +83,16 @@ export class HTTPError extends MapInterpreterErrorBase {
   constructor(
     public message: string,
     public metadata?: ErrorMetadata,
-    public statusCode?: number
+    public statusCode?: number,
+    public request?: {
+      body?: unknown;
+      headers?: Record<string, string>;
+      url?: string;
+    },
+    public response?: {
+      body?: unknown;
+      headers?: Record<string, string>;
+    }
   ) {
     super('HTTPError', message, metadata);
   }

@@ -2,15 +2,25 @@ import 'isomorphic-form-data';
 
 import { HttpSecurity } from '@superfaceai/ast';
 import fetch, { Headers } from 'cross-fetch';
+import createDebug from 'debug';
 
 import { Config } from '../client';
 import { evalScript } from './interpreter/sandbox';
 import { NonPrimitive, Variables } from './interpreter/variables';
 
+const debug = createDebug('superface:http');
+
 export interface HttpResponse {
   statusCode: number;
   body: unknown;
   headers: Record<string, string>;
+  debug: {
+    request: {
+      headers: Record<string, string>;
+      url: string;
+      body: unknown;
+    };
+  };
 }
 
 const AUTH_HEADER_NAME = 'Authorization';
@@ -206,13 +216,27 @@ export const HttpClient = {
       },
     });
 
+    const requestHeaders: Record<string, string> = {};
+    if (headers) {
+      headers.forEach((value, headerName) => {
+        requestHeaders[headerName] = value;
+      });
+    }
+    debug('Executing HTTP Call');
+    debug(`\t${params.method || 'UNKNOWN METHOD'} ${finalUrl} HTTP/1.1`);
+    Object.entries(requestHeaders).forEach(([headerName, value]) =>
+      debug(`\t${headerName}: ${value}`)
+    );
+    if (params.body) {
+      debug(`\n\t${params.body.toString()}`);
+    }
     const response = await fetch(finalUrl, params);
 
     let body: unknown;
 
     const responseHeaders: Record<string, string> = {};
-    response.headers.forEach((key, value) => {
-      responseHeaders[value] = key;
+    response.headers.forEach((value, headerName) => {
+      responseHeaders[headerName] = value;
     });
 
     if (
@@ -225,10 +249,24 @@ export const HttpClient = {
       body = await response.text();
     }
 
+    debug('Received response');
+    debug(`\tHTTP/1.1 ${response.status} ${response.statusText}`);
+    Object.entries(responseHeaders).forEach(([headerName, value]) =>
+      debug(`\t${headerName}: ${value}`)
+    );
+    debug('\n\t%j', body);
+
     return {
       statusCode: response.status,
       body,
       headers: responseHeaders,
+      debug: {
+        request: {
+          url: finalUrl,
+          headers: requestHeaders,
+          body: params.body,
+        },
+      },
     };
   },
 };

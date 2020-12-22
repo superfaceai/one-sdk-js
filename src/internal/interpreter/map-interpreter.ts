@@ -284,7 +284,9 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
       throw new HTTPError(
         'HTTP Error',
         { node, ast: this.ast },
-        response.statusCode
+        response.statusCode,
+        response.debug.request,
+        { body: response.body, headers: response.headers }
       );
     }
   }
