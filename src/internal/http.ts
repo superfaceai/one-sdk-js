@@ -8,7 +8,7 @@ import { Config } from '../client';
 import { evalScript } from './interpreter/sandbox';
 import { NonPrimitive, Variables } from './interpreter/variables';
 
-const debug = createDebug('http');
+const debug = createDebug('superface:http');
 
 export interface HttpResponse {
   statusCode: number;
