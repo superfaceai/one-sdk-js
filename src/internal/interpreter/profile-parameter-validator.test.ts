@@ -1,4 +1,4 @@
-import { ProfileDocumentNode } from '@superfaceai/ast';
+import { ProfileDocumentNode, ProfileHeaderNode } from '@superfaceai/ast';
 
 import { Result } from '../../lib';
 import { ProfileParameterValidator } from './profile-parameter-validator';
@@ -6,6 +6,16 @@ import {
   isInputValidationError,
   isResultValidationError,
 } from './profile-parameter-validator.errors';
+
+const header: ProfileHeaderNode = {
+  kind: 'ProfileHeader',
+  name: 'example',
+  version: {
+    major: 0,
+    minor: 0,
+    patch: 0,
+  },
+};
 
 const checkErrorKind = (result: Result<unknown, unknown>) =>
   result.isErr() &&
@@ -26,13 +36,7 @@ describe('ProfileParameterValidator', () => {
     describe('AST with no input', () => {
       const ast: ProfileDocumentNode = {
         kind: 'ProfileDocument',
-        profile: {
-          kind: 'Profile',
-          profileId: {
-            kind: 'ProfileId',
-            profileId: 'whatever',
-          },
-        },
+        header,
         definitions: [
           {
             kind: 'UseCaseDefinition',
@@ -67,13 +71,7 @@ describe('ProfileParameterValidator', () => {
     describe('AST with one optional input prop', () => {
       const ast: ProfileDocumentNode = {
         kind: 'ProfileDocument',
-        profile: {
-          kind: 'Profile',
-          profileId: {
-            kind: 'ProfileId',
-            profileId: 'whatever',
-          },
-        },
+        header,
         definitions: [
           {
             kind: 'UseCaseDefinition',
@@ -129,13 +127,7 @@ describe('ProfileParameterValidator', () => {
     describe('AST with one optional primitive typed input prop', () => {
       const ast: ProfileDocumentNode = {
         kind: 'ProfileDocument',
-        profile: {
-          kind: 'Profile',
-          profileId: {
-            kind: 'ProfileId',
-            profileId: 'whatever',
-          },
-        },
+        header,
         definitions: [
           {
             kind: 'UseCaseDefinition',
@@ -189,13 +181,7 @@ describe('ProfileParameterValidator', () => {
     describe('AST with one nonnullable primitive typed input prop', () => {
       const ast: ProfileDocumentNode = {
         kind: 'ProfileDocument',
-        profile: {
-          kind: 'Profile',
-          profileId: {
-            kind: 'ProfileId',
-            profileId: 'whatever',
-          },
-        },
+        header,
         definitions: [
           {
             kind: 'UseCaseDefinition',
@@ -252,13 +238,7 @@ describe('ProfileParameterValidator', () => {
     describe('AST with multiple input props', () => {
       const ast: ProfileDocumentNode = {
         kind: 'ProfileDocument',
-        profile: {
-          kind: 'Profile',
-          profileId: {
-            kind: 'ProfileId',
-            profileId: 'whatever',
-          },
-        },
+        header,
         definitions: [
           {
             kind: 'UseCaseDefinition',
@@ -368,13 +348,7 @@ describe('ProfileParameterValidator', () => {
     describe('AST with predefined field', () => {
       const ast: ProfileDocumentNode = {
         kind: 'ProfileDocument',
-        profile: {
-          kind: 'Profile',
-          profileId: {
-            kind: 'ProfileId',
-            profileId: 'whatever',
-          },
-        },
+        header,
         definitions: [
           {
             kind: 'UseCaseDefinition',
@@ -428,13 +402,7 @@ describe('ProfileParameterValidator', () => {
     describe('AST with an enum', () => {
       const ast: ProfileDocumentNode = {
         kind: 'ProfileDocument',
-        profile: {
-          kind: 'Profile',
-          profileId: {
-            kind: 'ProfileId',
-            profileId: 'whatever',
-          },
-        },
+        header,
         definitions: [
           {
             kind: 'UseCaseDefinition',
@@ -497,13 +465,7 @@ describe('ProfileParameterValidator', () => {
     describe('AST with predefined enum', () => {
       const ast: ProfileDocumentNode = {
         kind: 'ProfileDocument',
-        profile: {
-          kind: 'Profile',
-          profileId: {
-            kind: 'ProfileId',
-            profileId: 'whatever',
-          },
-        },
+        header,
         definitions: [
           {
             kind: 'UseCaseDefinition',
@@ -570,13 +532,7 @@ describe('ProfileParameterValidator', () => {
     describe('AST with object', () => {
       const ast: ProfileDocumentNode = {
         kind: 'ProfileDocument',
-        profile: {
-          kind: 'Profile',
-          profileId: {
-            kind: 'ProfileId',
-            profileId: 'whatever',
-          },
-        },
+        header,
         definitions: [
           {
             kind: 'UseCaseDefinition',
@@ -652,13 +608,7 @@ describe('ProfileParameterValidator', () => {
     describe('AST with nested object', () => {
       const ast: ProfileDocumentNode = {
         kind: 'ProfileDocument',
-        profile: {
-          kind: 'Profile',
-          profileId: {
-            kind: 'ProfileId',
-            profileId: 'whatever',
-          },
-        },
+        header,
         definitions: [
           {
             kind: 'UseCaseDefinition',
@@ -763,13 +713,7 @@ describe('ProfileParameterValidator', () => {
     describe('AST with predefined object', () => {
       const ast: ProfileDocumentNode = {
         kind: 'ProfileDocument',
-        profile: {
-          kind: 'Profile',
-          profileId: {
-            kind: 'ProfileId',
-            profileId: 'whatever',
-          },
-        },
+        header,
         definitions: [
           {
             kind: 'UseCaseDefinition',
@@ -849,13 +793,7 @@ describe('ProfileParameterValidator', () => {
     describe('AST with union', () => {
       const ast: ProfileDocumentNode = {
         kind: 'ProfileDocument',
-        profile: {
-          kind: 'Profile',
-          profileId: {
-            kind: 'ProfileId',
-            profileId: 'whatever',
-          },
-        },
+        header,
         definitions: [
           {
             kind: 'UseCaseDefinition',
@@ -917,13 +855,7 @@ describe('ProfileParameterValidator', () => {
     describe('AST with predefined non-nullable union', () => {
       const ast: ProfileDocumentNode = {
         kind: 'ProfileDocument',
-        profile: {
-          kind: 'Profile',
-          profileId: {
-            kind: 'ProfileId',
-            profileId: 'whatever',
-          },
-        },
+        header,
         definitions: [
           {
             kind: 'UseCaseDefinition',
@@ -996,13 +928,7 @@ describe('ProfileParameterValidator', () => {
     describe('AST with string array', () => {
       const ast: ProfileDocumentNode = {
         kind: 'ProfileDocument',
-        profile: {
-          kind: 'Profile',
-          profileId: {
-            kind: 'ProfileId',
-            profileId: 'whatever',
-          },
-        },
+        header,
         definitions: [
           {
             kind: 'UseCaseDefinition',
@@ -1072,13 +998,7 @@ describe('ProfileParameterValidator', () => {
     describe('AST with non-nullable array of nullable items', () => {
       const ast: ProfileDocumentNode = {
         kind: 'ProfileDocument',
-        profile: {
-          kind: 'Profile',
-          profileId: {
-            kind: 'ProfileId',
-            profileId: 'whatever',
-          },
-        },
+        header,
         definitions: [
           {
             kind: 'UseCaseDefinition',
@@ -1162,13 +1082,7 @@ describe('ProfileParameterValidator', () => {
     describe('AST with nested object', () => {
       const ast: ProfileDocumentNode = {
         kind: 'ProfileDocument',
-        profile: {
-          kind: 'Profile',
-          profileId: {
-            kind: 'ProfileId',
-            profileId: 'whatever',
-          },
-        },
+        header,
         definitions: [
           {
             kind: 'UseCaseDefinition',
@@ -1285,13 +1199,7 @@ describe('ProfileParameterValidator', () => {
     describe('AST with multi-typed Enum', () => {
       const ast: ProfileDocumentNode = {
         kind: 'ProfileDocument',
-        profile: {
-          kind: 'Profile',
-          profileId: {
-            kind: 'ProfileId',
-            profileId: 'whatever',
-          },
-        },
+        header,
         definitions: [
           {
             kind: 'UseCaseDefinition',

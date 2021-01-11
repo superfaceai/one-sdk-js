@@ -13,13 +13,11 @@ import {
   MapASTNode,
   MapDefinitionNode,
   MapDocumentNode,
-  MapNode,
-  MapProfileIdNode,
+  MapHeaderNode,
   ObjectLiteralNode,
   OperationDefinitionNode,
   OutcomeStatementNode,
   PrimitiveLiteralNode,
-  ProviderNode,
   SetStatementNode,
   StatementConditionNode,
   Substatement,
@@ -168,14 +166,12 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
         return this.visitInlineCallNode(node);
       case 'JessieExpression':
         return this.visitJessieExpressionNode(node);
-      case 'Map':
-        return this.visitMapNode(node);
       case 'MapDefinition':
         return this.visitMapDefinitionNode(node);
+      case 'MapHeader':
+        return this.visitMapHeaderNode(node);
       case 'MapDocument':
         return this.visitMapDocumentNode(node);
-      case 'ProfileId':
-        return this.visitMapProfileIdNode(node);
       case 'ObjectLiteral':
         return this.visitObjectLiteralNode(node);
       case 'OperationDefinition':
@@ -184,8 +180,6 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
         return this.visitOutcomeStatementNode(node);
       case 'PrimitiveLiteral':
         return this.visitPrimitiveLiteralNode(node);
-      case 'Provider':
-        return this.visitProviderNode(node);
       case 'SetStatement':
         return this.visitSetStatementNode(node);
       case 'StatementCondition':
@@ -451,11 +445,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
     return await this.visit(operation);
   }
 
-  visitMapProfileIdNode(_node: MapProfileIdNode): never {
-    throw new UnexpectedError('Method not implemented.');
-  }
-
-  visitMapNode(_node: MapNode): never {
+  visitMapHeaderNode(_node: MapHeaderNode): never {
     throw new UnexpectedError('Method not implemented.');
   }
 
@@ -496,14 +486,6 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
       error: node.isError,
       terminateFlow: node.terminateFlow,
     };
-  }
-
-  visitProfileIdNode(_node: MapProfileIdNode): never {
-    throw new UnexpectedError('Method not implemented.');
-  }
-
-  visitProviderNode(_node: ProviderNode): never {
-    throw new UnexpectedError('Method not implemented.');
   }
 
   async visitSetStatementNode(node: SetStatementNode): Promise<void> {

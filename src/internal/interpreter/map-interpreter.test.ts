@@ -1,9 +1,21 @@
-import { MapDocumentNode } from '@superfaceai/ast';
+import { MapDocumentNode, MapHeaderNode } from '@superfaceai/ast';
 import { getLocal } from 'mockttp';
 
 import { MapInterpreter } from './map-interpreter';
 
 const mockServer = getLocal();
+const header: MapHeaderNode = {
+  kind: 'MapHeader',
+  profile: {
+    name: 'example',
+    version: {
+      major: 0,
+      minor: 0,
+      patch: 0,
+    },
+  },
+  provider: 'example',
+};
 
 describe('MapInterpreter', () => {
   beforeEach(async () => {
@@ -18,17 +30,7 @@ describe('MapInterpreter', () => {
     const interpreter = new MapInterpreter({ usecase: 'testCase' });
     const ast: MapDocumentNode = {
       kind: 'MapDocument',
-      map: {
-        kind: 'Map',
-        profileId: {
-          kind: 'ProfileId',
-          profileId: 'hello!',
-        },
-        provider: {
-          kind: 'Provider',
-          providerId: 'hi!',
-        },
-      },
+      header,
       definitions: [
         {
           kind: 'MapDefinition',
@@ -61,17 +63,7 @@ describe('MapInterpreter', () => {
     const interpreter = new MapInterpreter({ usecase: 'Test' });
     const result = await interpreter.perform({
       kind: 'MapDocument',
-      map: {
-        kind: 'Map',
-        profileId: {
-          kind: 'ProfileId',
-          profileId: 'hello!',
-        },
-        provider: {
-          kind: 'Provider',
-          providerId: 'hi!',
-        },
-      },
+      header,
       definitions: [
         {
           kind: 'MapDefinition',
@@ -117,17 +109,7 @@ describe('MapInterpreter', () => {
     const interpreter = new MapInterpreter({ usecase: 'Test' });
     const result = await interpreter.perform({
       kind: 'MapDocument',
-      map: {
-        kind: 'Map',
-        profileId: {
-          kind: 'ProfileId',
-          profileId: 'hello!',
-        },
-        provider: {
-          kind: 'Provider',
-          providerId: 'hi!',
-        },
-      },
+      header,
       definitions: [
         {
           kind: 'MapDefinition',
@@ -160,17 +142,7 @@ describe('MapInterpreter', () => {
     const interpreter = new MapInterpreter({ usecase: 'Test' });
     const result = await interpreter.perform({
       kind: 'MapDocument',
-      map: {
-        kind: 'Map',
-        profileId: {
-          kind: 'ProfileId',
-          profileId: 'hello!',
-        },
-        provider: {
-          kind: 'Provider',
-          providerId: 'hi!',
-        },
-      },
+      header,
       definitions: [
         {
           kind: 'OperationDefinition',
@@ -218,17 +190,7 @@ describe('MapInterpreter', () => {
     const interpreter = new MapInterpreter({ usecase: 'Test' });
     const result = await interpreter.perform({
       kind: 'MapDocument',
-      map: {
-        kind: 'Map',
-        profileId: {
-          kind: 'ProfileId',
-          profileId: 'http://example.com/profile',
-        },
-        provider: {
-          kind: 'Provider',
-          providerId: 'http://example.com/provider',
-        },
-      },
+      header,
       definitions: [
         {
           kind: 'OperationDefinition',
@@ -278,17 +240,7 @@ describe('MapInterpreter', () => {
     const interpreter = new MapInterpreter({ usecase: 'Test' });
     const result = await interpreter.perform({
       kind: 'MapDocument',
-      map: {
-        kind: 'Map',
-        profileId: {
-          kind: 'ProfileId',
-          profileId: 'hello!',
-        },
-        provider: {
-          kind: 'Provider',
-          providerId: 'hi!',
-        },
-      },
+      header,
       definitions: [
         {
           kind: 'OperationDefinition',
@@ -371,17 +323,7 @@ describe('MapInterpreter', () => {
     const interpreter = new MapInterpreter({ usecase: 'Test' });
     const result = await interpreter.perform({
       kind: 'MapDocument',
-      map: {
-        kind: 'Map',
-        profileId: {
-          kind: 'ProfileId',
-          profileId: 'hello!',
-        },
-        provider: {
-          kind: 'Provider',
-          providerId: 'hi!',
-        },
-      },
+      header,
       definitions: [
         {
           kind: 'MapDefinition',
@@ -446,17 +388,7 @@ describe('MapInterpreter', () => {
     const interpreter = new MapInterpreter({ usecase: 'Test', baseUrl });
     const result = await interpreter.perform({
       kind: 'MapDocument',
-      map: {
-        kind: 'Map',
-        profileId: {
-          kind: 'ProfileId',
-          profileId: 'hello!',
-        },
-        provider: {
-          kind: 'Provider',
-          providerId: 'hi!',
-        },
-      },
+      header,
       definitions: [
         {
           kind: 'MapDefinition',
@@ -524,17 +456,7 @@ describe('MapInterpreter', () => {
     });
     const result = await interpreter.perform({
       kind: 'MapDocument',
-      map: {
-        kind: 'Map',
-        profileId: {
-          kind: 'ProfileId',
-          profileId: 'hello!',
-        },
-        provider: {
-          kind: 'Provider',
-          providerId: 'hi!',
-        },
-      },
+      header,
       definitions: [
         {
           kind: 'MapDefinition',
@@ -618,17 +540,7 @@ describe('MapInterpreter', () => {
     });
     const result = await interpreter.perform({
       kind: 'MapDocument',
-      map: {
-        kind: 'Map',
-        profileId: {
-          kind: 'ProfileId',
-          profileId: 'hello!',
-        },
-        provider: {
-          kind: 'Provider',
-          providerId: 'hi!',
-        },
-      },
+      header,
       definitions: [
         {
           kind: 'MapDefinition',
@@ -710,17 +622,7 @@ describe('MapInterpreter', () => {
     const interpreter = new MapInterpreter({ usecase: 'Test' });
     const result = await interpreter.perform({
       kind: 'MapDocument',
-      map: {
-        kind: 'Map',
-        profileId: {
-          kind: 'ProfileId',
-          profileId: 'https://example.com',
-        },
-        provider: {
-          kind: 'Provider',
-          providerId: 'https://example.com',
-        },
-      },
+      header,
       definitions: [
         {
           kind: 'MapDefinition',
@@ -803,17 +705,7 @@ describe('MapInterpreter', () => {
     const interpreter = new MapInterpreter({ usecase: 'Test' });
     const result = await interpreter.perform({
       kind: 'MapDocument',
-      map: {
-        kind: 'Map',
-        profileId: {
-          kind: 'ProfileId',
-          profileId: 'hello!',
-        },
-        provider: {
-          kind: 'Provider',
-          providerId: 'hi!',
-        },
-      },
+      header,
       definitions: [
         {
           kind: 'MapDefinition',
@@ -907,17 +799,7 @@ describe('MapInterpreter', () => {
     });
     const result = await interpreter.perform({
       kind: 'MapDocument',
-      map: {
-        kind: 'Map',
-        profileId: {
-          kind: 'ProfileId',
-          profileId: 'hello!',
-        },
-        provider: {
-          kind: 'Provider',
-          providerId: 'hi!',
-        },
-      },
+      header,
       definitions: [
         {
           kind: 'MapDefinition',
@@ -972,17 +854,7 @@ describe('MapInterpreter', () => {
     });
     const result = await interpreter.perform({
       kind: 'MapDocument',
-      map: {
-        kind: 'Map',
-        profileId: {
-          kind: 'ProfileId',
-          profileId: 'hello!',
-        },
-        provider: {
-          kind: 'Provider',
-          providerId: 'hi!',
-        },
-      },
+      header,
       definitions: [
         {
           kind: 'MapDefinition',
@@ -1037,17 +909,7 @@ describe('MapInterpreter', () => {
     });
     const result = await interpreter.perform({
       kind: 'MapDocument',
-      map: {
-        kind: 'Map',
-        profileId: {
-          kind: 'ProfileId',
-          profileId: 'hello!',
-        },
-        provider: {
-          kind: 'Provider',
-          providerId: 'hi!',
-        },
-      },
+      header,
       definitions: [
         {
           kind: 'MapDefinition',
@@ -1104,17 +966,7 @@ describe('MapInterpreter', () => {
     });
     const result = await interpreter.perform({
       kind: 'MapDocument',
-      map: {
-        kind: 'Map',
-        profileId: {
-          kind: 'ProfileId',
-          profileId: 'hello!',
-        },
-        provider: {
-          kind: 'Provider',
-          providerId: 'hi!',
-        },
-      },
+      header,
       definitions: [
         {
           kind: 'MapDefinition',
@@ -1180,17 +1032,7 @@ describe('MapInterpreter', () => {
     const interpreter = new MapInterpreter({ usecase: 'testCase' });
     const result = await interpreter.perform({
       kind: 'MapDocument',
-      map: {
-        kind: 'Map',
-        profileId: {
-          kind: 'ProfileId',
-          profileId: 'hello!',
-        },
-        provider: {
-          kind: 'Provider',
-          providerId: 'hi!',
-        },
-      },
+      header,
       definitions: [
         {
           kind: 'MapDefinition',
@@ -1262,17 +1104,7 @@ describe('MapInterpreter', () => {
     const interpreter = new MapInterpreter({ usecase: 'testCase' });
     const result = await interpreter.perform({
       kind: 'MapDocument',
-      map: {
-        kind: 'Map',
-        profileId: {
-          kind: 'ProfileId',
-          profileId: 'hello!',
-        },
-        provider: {
-          kind: 'Provider',
-          providerId: 'hi!',
-        },
-      },
+      header,
       definitions: [
         {
           kind: 'MapDefinition',
@@ -1340,17 +1172,7 @@ describe('MapInterpreter', () => {
     const interpreter = new MapInterpreter({ usecase: 'testCase' });
     const result = await interpreter.perform({
       kind: 'MapDocument',
-      map: {
-        kind: 'Map',
-        profileId: {
-          kind: 'ProfileId',
-          profileId: 'hello!',
-        },
-        provider: {
-          kind: 'Provider',
-          providerId: 'hi!',
-        },
-      },
+      header,
       definitions: [
         {
           kind: 'MapDefinition',
@@ -1391,17 +1213,7 @@ describe('MapInterpreter', () => {
   it('should execute based on condition', async () => {
     const ast: MapDocumentNode = {
       kind: 'MapDocument',
-      map: {
-        kind: 'Map',
-        profileId: {
-          kind: 'ProfileId',
-          profileId: 'http://example.com/profile',
-        },
-        provider: {
-          kind: 'Provider',
-          providerId: 'http://example.com/provider',
-        },
-      },
+      header,
       definitions: [
         {
           kind: 'MapDefinition',
@@ -1462,17 +1274,7 @@ describe('MapInterpreter', () => {
     const interpreter = new MapInterpreter({ usecase: 'Test' });
     const result = await interpreter.perform({
       kind: 'MapDocument',
-      map: {
-        kind: 'Map',
-        profileId: {
-          kind: 'ProfileId',
-          profileId: 'http://example.com/profile',
-        },
-        provider: {
-          kind: 'Provider',
-          providerId: 'http://example.com/provider',
-        },
-      },
+      header,
       definitions: [
         {
           kind: 'MapDefinition',

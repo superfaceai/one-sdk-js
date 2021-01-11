@@ -1,4 +1,4 @@
-import { MapASTNode, MapDocumentNode } from '@superfaceai/ast';
+import { MapASTNode, MapDocumentNode, MapHeaderNode } from '@superfaceai/ast';
 import { getLocal } from 'mockttp';
 
 import { UnexpectedError } from '../errors';
@@ -11,6 +11,18 @@ import {
 } from './map-interpreter.errors';
 
 const mockServer = getLocal();
+const header: MapHeaderNode = {
+  kind: 'MapHeader',
+  profile: {
+    name: 'example',
+    version: {
+      major: 0,
+      minor: 0,
+      patch: 0,
+    },
+  },
+  provider: 'example',
+};
 
 describe('MapInterpreter errors', () => {
   describe('MapASTError', () => {
@@ -21,17 +33,7 @@ describe('MapInterpreter errors', () => {
       };
       const ast: MapDocumentNode = {
         kind: 'MapDocument',
-        map: {
-          kind: 'Map',
-          profileId: {
-            kind: 'ProfileId',
-            profileId: 'hello!',
-          },
-          provider: {
-            kind: 'Provider',
-            providerId: 'hi!',
-          },
-        },
+        header,
         definitions: [
           {
             kind: 'MapDefinition',
@@ -86,17 +88,7 @@ describe('MapInterpreter errors', () => {
       const interpreter = new MapInterpreter({ usecase: 'nonexistent' });
       const result = await interpreter.perform({
         kind: 'MapDocument',
-        map: {
-          kind: 'Map',
-          profileId: {
-            kind: 'ProfileId',
-            profileId: 'hello!',
-          },
-          provider: {
-            kind: 'Provider',
-            providerId: 'hi!',
-          },
-        },
+        header,
         definitions: [],
       });
       expect(result.isErr()).toEqual(true);
@@ -106,17 +98,7 @@ describe('MapInterpreter errors', () => {
       const interpreter = new MapInterpreter({ usecase: 'Test' });
       const result = await interpreter.perform({
         kind: 'MapDocument',
-        map: {
-          kind: 'Map',
-          profileId: {
-            kind: 'ProfileId',
-            profileId: 'hello!',
-          },
-          provider: {
-            kind: 'Provider',
-            providerId: 'hi!',
-          },
-        },
+        header,
         definitions: [
           {
             kind: 'MapDefinition',
@@ -153,17 +135,7 @@ describe('MapInterpreter errors', () => {
       const interpreter = new MapInterpreter({ usecase: 'Test' });
       const result = await interpreter.perform({
         kind: 'MapDocument',
-        map: {
-          kind: 'Map',
-          profileId: {
-            kind: 'ProfileId',
-            profileId: 'hello!',
-          },
-          provider: {
-            kind: 'Provider',
-            providerId: 'hi!',
-          },
-        },
+        header,
         definitions: [
           {
             kind: 'MapDefinition',
@@ -229,17 +201,7 @@ describe('MapInterpreter errors', () => {
 
       const result = await interpreter.perform({
         kind: 'MapDocument',
-        map: {
-          kind: 'Map',
-          profileId: {
-            kind: 'ProfileId',
-            profileId: 'hello!',
-          },
-          provider: {
-            kind: 'Provider',
-            providerId: 'hi!',
-          },
-        },
+        header,
         definitions: [
           {
             kind: 'MapDefinition',
@@ -319,17 +281,7 @@ describe('MapInterpreter errors', () => {
       });
       const result = await interpreter.perform({
         kind: 'MapDocument',
-        map: {
-          kind: 'Map',
-          profileId: {
-            kind: 'ProfileId',
-            profileId: 'hello!',
-          },
-          provider: {
-            kind: 'Provider',
-            providerId: 'hi!',
-          },
-        },
+        header,
         definitions: [
           {
             kind: 'MapDefinition',
@@ -377,17 +329,7 @@ describe('MapInterpreter errors', () => {
       });
       const result = await interpreter.perform({
         kind: 'MapDocument',
-        map: {
-          kind: 'Map',
-          profileId: {
-            kind: 'ProfileId',
-            profileId: 'hello!',
-          },
-          provider: {
-            kind: 'Provider',
-            providerId: 'hi!',
-          },
-        },
+        header,
         definitions: [
           {
             kind: 'MapDefinition',
@@ -436,17 +378,7 @@ describe('MapInterpreter errors', () => {
       });
       const result = await interpreter.perform({
         kind: 'MapDocument',
-        map: {
-          kind: 'Map',
-          profileId: {
-            kind: 'ProfileId',
-            profileId: 'hello!',
-          },
-          provider: {
-            kind: 'Provider',
-            providerId: 'hi!',
-          },
-        },
+        header,
         definitions: [
           {
             kind: 'MapDefinition',
@@ -499,17 +431,7 @@ describe('MapInterpreter errors', () => {
       const interpreter = new MapInterpreter({ usecase: 'Test' });
       const result = await interpreter.perform({
         kind: 'MapDocument',
-        map: {
-          kind: 'Map',
-          profileId: {
-            kind: 'ProfileId',
-            profileId: 'https://example.com',
-          },
-          provider: {
-            kind: 'Provider',
-            providerId: 'https://example.com',
-          },
-        },
+        header,
         definitions: [
           {
             kind: 'MapDefinition',
@@ -565,17 +487,7 @@ describe('MapInterpreter errors', () => {
       const interpreter = new MapInterpreter({ usecase: 'Test' });
       const result = await interpreter.perform({
         kind: 'MapDocument',
-        map: {
-          kind: 'Map',
-          profileId: {
-            kind: 'ProfileId',
-            profileId: 'https://example.com',
-          },
-          provider: {
-            kind: 'Provider',
-            providerId: 'https://example.com',
-          },
-        },
+        header,
         definitions: [
           {
             kind: 'MapDefinition',
@@ -615,17 +527,7 @@ describe('MapInterpreter errors', () => {
       const interpreter = new MapInterpreter({ usecase: 'Test' });
       const result = await interpreter.perform({
         kind: 'MapDocument',
-        map: {
-          kind: 'Map',
-          profileId: {
-            kind: 'ProfileId',
-            profileId: 'https://example.com',
-          },
-          provider: {
-            kind: 'Provider',
-            providerId: 'https://example.com',
-          },
-        },
+        header,
         definitions: [
           {
             kind: 'MapDefinition',
@@ -686,17 +588,7 @@ describe('MapInterpreter errors', () => {
       const interpreter = new MapInterpreter({ usecase: 'Test' });
       const ast: MapDocumentNode = {
         kind: 'MapDocument',
-        map: {
-          kind: 'Map',
-          profileId: {
-            kind: 'ProfileId',
-            profileId: 'https://example.com',
-          },
-          provider: {
-            kind: 'Provider',
-            providerId: 'https://example.com',
-          },
-        },
+        header,
         definitions: [
           {
             kind: 'MapDefinition',

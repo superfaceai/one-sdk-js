@@ -12,8 +12,7 @@ import {
   MapASTNode,
   MapDefinitionNode,
   MapDocumentNode,
-  MapNode,
-  MapProfileIdNode,
+  MapHeaderNode,
   ModelTypeNameNode,
   NamedFieldDefinitionNode,
   NamedModelDefinitionNode,
@@ -26,9 +25,7 @@ import {
   PrimitiveTypeNameNode,
   ProfileASTNode,
   ProfileDocumentNode,
-  ProfileIdNode,
-  ProfileNode,
-  ProviderNode,
+  ProfileHeaderNode,
   SetStatementNode,
   StatementConditionNode,
   UnionDefinitionNode,
@@ -48,12 +45,10 @@ export interface MapVisitor {
   visitHttpResponseHandlerNode(node: HttpResponseHandlerNode): unknown;
   visitHttpCallStatementNode(node: HttpCallStatementNode): unknown;
   visitMapDefinitionNode(node: MapDefinitionNode): unknown;
+  visitMapHeaderNode(node: MapHeaderNode): unknown;
   visitOperationDefinitionNode(node: OperationDefinitionNode): unknown;
   visitOutcomeStatementNode(node: OutcomeStatementNode): unknown;
   visitInlineCallNode(node: InlineCallNode): unknown;
-  visitMapProfileIdNode(node: MapProfileIdNode): unknown;
-  visitProviderNode(node: ProviderNode): unknown;
-  visitMapNode(node: MapNode): unknown;
   visitMapDocumentNode(node: MapDocumentNode): unknown;
 }
 
@@ -100,8 +95,10 @@ export interface ProfileVisitor {
     node: ProfileDocumentNode,
     ...parameters: unknown[]
   ): unknown;
-  visitProfileIdNode(node: ProfileIdNode, ...parameters: unknown[]): unknown;
-  visitProfileNode(node: ProfileNode, ...parameters: unknown[]): unknown;
+  visitProfileHeaderNode(
+    node: ProfileHeaderNode,
+    ...parameters: unknown[]
+  ): unknown;
   visitUnionDefinitionNode(
     node: UnionDefinitionNode,
     ...parameters: unknown[]

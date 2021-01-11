@@ -11,8 +11,7 @@ import {
   PrimitiveTypeNameNode,
   ProfileASTNode,
   ProfileDocumentNode,
-  ProfileIdNode,
-  ProfileNode,
+  ProfileHeaderNode,
   UnionDefinitionNode,
   UseCaseDefinitionNode,
 } from '@superfaceai/ast';
@@ -143,10 +142,8 @@ export class ProfileParameterValidator implements ProfileVisitor {
         return this.visitPrimitiveTypeNameNode(node, kind, usecase);
       case 'ProfileDocument':
         return this.visitProfileDocumentNode(node, kind, usecase);
-      case 'ProfileId':
-        return this.visitProfileIdNode(node, kind, usecase);
-      case 'Profile':
-        return this.visitProfileNode(node, kind, usecase);
+      case 'ProfileHeader':
+        return this.visitProfileHeaderNode(node, kind, usecase);
       case 'UnionDefinition':
         return this.visitUnionDefinitionNode(node, kind, usecase);
       case 'UseCaseDefinition':
@@ -466,16 +463,8 @@ export class ProfileParameterValidator implements ProfileVisitor {
     return this.visit(usecaseNode, kind, usecase);
   }
 
-  visitProfileIdNode(
-    _node: ProfileIdNode,
-    _kind: ProfileParameterKind,
-    _usecase: string
-  ): ValidationFunction {
-    throw new Error('Method not implemented.');
-  }
-
-  visitProfileNode(
-    _node: ProfileNode,
+  visitProfileHeaderNode(
+    _node: ProfileHeaderNode,
     _kind: ProfileParameterKind,
     _usecase: string
   ): ValidationFunction {
