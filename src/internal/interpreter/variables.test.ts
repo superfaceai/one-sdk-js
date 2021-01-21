@@ -1,4 +1,9 @@
-import { assertIsVariables, mergeVariables } from './variables';
+import {
+  assertIsVariables,
+  isNonPrimitive,
+  isPrimitive,
+  mergeVariables,
+} from './variables';
 
 describe('Variables', () => {
   test('assertIsVariables works correctly', () => {
@@ -9,6 +14,22 @@ describe('Variables', () => {
     expect(() => assertIsVariables(undefined)).not.toThrow();
     expect(() => assertIsVariables(['heeelo'])).not.toThrow();
     expect(() => assertIsVariables(() => 'boom!')).toThrow();
+  });
+
+  test('isPrimitive works correctly', () => {
+    expect(isPrimitive('string')).toBe(true);
+    expect(isPrimitive(123)).toBe(true);
+    expect(isPrimitive(false)).toBe(true);
+    expect(isPrimitive(['heeeelo'])).toBe(true);
+    expect(isPrimitive({ x: 1 })).toBe(false);
+  });
+
+  test('isNonPrimitive works correctly', () => {
+    expect(isNonPrimitive('string')).toBe(false);
+    expect(isNonPrimitive(123)).toBe(false);
+    expect(isNonPrimitive(false)).toBe(false);
+    expect(isNonPrimitive(['heeeelo'])).toBe(false);
+    expect(isNonPrimitive({ x: 1 })).toBe(true);
   });
 
   describe('mergeVariables', () => {

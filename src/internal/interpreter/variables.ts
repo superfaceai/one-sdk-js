@@ -24,11 +24,14 @@ export function castToVariables(input: unknown): Variables | undefined {
 }
 
 export function isPrimitive(input: Variables): input is Primitive {
-  return ['string', 'number', 'boolean'].includes(typeof input);
+  return (
+    ['string', 'number', 'boolean'].includes(typeof input) ||
+    Array.isArray(input)
+  );
 }
 
 export function isNonPrimitive(input: Variables): input is NonPrimitive {
-  return typeof input === 'object';
+  return typeof input === 'object' && !Array.isArray(input);
 }
 
 export const mergeVariables = (
@@ -43,7 +46,7 @@ export const mergeVariables = (
   for (const key of Object.keys(right)) {
     const l = left[key];
     const r = right[key];
-    if (r && l && isNonPrimitive(r) && isNonPrimitive(l) && !Array.isArray(r)) {
+    if (r && l && isNonPrimitive(r) && isNonPrimitive(l)) {
       result[key] = mergeVariables(l, r);
     } else {
       result[key] = right[key];
