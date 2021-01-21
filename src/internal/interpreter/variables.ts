@@ -1,4 +1,5 @@
-export type Primitive = string | boolean | number;
+// Arrays should be considered opaque value and therefore act as a primitive
+export type Primitive = string | boolean | number | unknown[];
 export type NonPrimitive = {
   [key: string]: Primitive | NonPrimitive | undefined;
 };
@@ -23,11 +24,14 @@ export function castToVariables(input: unknown): Variables | undefined {
 }
 
 export function isPrimitive(input: Variables): input is Primitive {
-  return ['string', 'number', 'boolean'].includes(typeof input);
+  return (
+    ['string', 'number', 'boolean'].includes(typeof input) ||
+    Array.isArray(input)
+  );
 }
 
 export function isNonPrimitive(input: Variables): input is NonPrimitive {
-  return typeof input === 'object';
+  return typeof input === 'object' && !Array.isArray(input);
 }
 
 export const mergeVariables = (

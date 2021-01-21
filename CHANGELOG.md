@@ -1,5 +1,12 @@
 ## [Unreleased]
+### Fixed
+* Array handling in mergeVariables function
 
+## [0.0.6] - 2021-01-11
+### Changed
+* Updated AST version
+
+## [0.0.5] - 2020-12-22
 ### Changed
 * Enhanced logging of HTTP Errors
 
