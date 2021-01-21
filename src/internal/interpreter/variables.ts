@@ -1,4 +1,5 @@
-export type Primitive = string | boolean | number;
+// Arrays should be considered opaque value and therefore act as a primitive
+export type Primitive = string | boolean | number | unknown[];
 export type NonPrimitive = {
   [key: string]: Primitive | NonPrimitive | undefined;
 };
@@ -42,7 +43,7 @@ export const mergeVariables = (
   for (const key of Object.keys(right)) {
     const l = left[key];
     const r = right[key];
-    if (r && l && isNonPrimitive(r) && isNonPrimitive(l)) {
+    if (r && l && isNonPrimitive(r) && isNonPrimitive(l) && !Array.isArray(r)) {
       result[key] = mergeVariables(l, r);
     } else {
       result[key] = right[key];
