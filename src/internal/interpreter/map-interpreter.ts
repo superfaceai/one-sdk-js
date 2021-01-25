@@ -196,25 +196,10 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
     return this.constructObject(node.key, result);
   }
 
-  async visitInlineCallNode(
-    node: InlineCallNode
+  private async visitCallCommon(
+    node: InlineCallNode | CallStatementNode
   ): Promise<Variables | undefined> {
     const operation = this.operations[node.operationName];
-    if (!operation) {
-      throw new MapASTError(`Operation not found: ${node.operationName}`, {
-        node,
-        ast: this.ast,
-      });
-    }
-
-    const result = await this.visit(operation);
-
-    return result;
-  }
-
-  async visitCallStatementNode(node: CallStatementNode): Promise<void> {
-    const operation = this.operations[node.operationName];
-
     if (!operation) {
       throw new MapASTError(`Operation not found: ${node.operationName}`, {
         node,
@@ -225,9 +210,29 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
     debug('Calling operation:', operation.name);
 
     this.newStack('operation');
-    const result = await this.visit(operation);
-    this.addVariableToStack({ outcome: { data: result } });
+    let args: Variables = {};
+    for (const assignment of node.arguments) {
+      args = mergeVariables(args, await this.visit(assignment));
+    }
+    this.addVariableToStack({ args });
 
+    const result = await this.visit(operation);
+    this.popStack();
+
+    return result;
+  }
+
+  async visitInlineCallNode(
+    node: InlineCallNode
+  ): Promise<Variables | undefined> {
+    return this.visitCallCommon(node);
+  }
+
+  async visitCallStatementNode(node: CallStatementNode): Promise<void> {
+    const result = await this.visitCallCommon(node);
+
+    this.newStack('operation');
+    this.addVariableToStack({ outcome: { data: result } });
     const secondResult = await this.processStatements(node.statements);
     this.popStack(secondResult);
   }
@@ -535,6 +540,8 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
       this.stackTop.variables,
       variables
     );
+
+    debug('Updated stack:', this.stackTop);
   }
 
   private constructObject(keys: string[], value: Variables): NonPrimitive {
@@ -564,7 +571,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
       this.stackTop.result = result ?? last.variables['result'];
     }
 
-    debug('Popping stack:', last);
+    debug('Popped stack:', last);
   }
 
   private get stackTop(): Stack {
