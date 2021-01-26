@@ -153,8 +153,8 @@ describe('MapInterpreter', () => {
               terminateFlow: true,
               isError: false,
               value: {
-                kind: 'PrimitiveLiteral',
-                value: 12,
+                kind: 'JessieExpression',
+                expression: 'args.foo',
               },
             },
           ],
@@ -172,7 +172,16 @@ describe('MapInterpreter', () => {
                   key: ['result'],
                   value: {
                     kind: 'InlineCall',
-                    arguments: [],
+                    arguments: [
+                      {
+                        kind: 'Assignment',
+                        key: ['foo'],
+                        value: {
+                          kind: 'PrimitiveLiteral',
+                          value: 12,
+                        },
+                      },
+                    ],
                     operationName: 'TestOp',
                   },
                 },
@@ -201,8 +210,8 @@ describe('MapInterpreter', () => {
               isError: false,
               terminateFlow: true,
               value: {
-                kind: 'PrimitiveLiteral',
-                value: 5,
+                kind: 'JessieExpression',
+                expression: 'args.hey.now.length',
               },
             },
           ],
@@ -215,7 +224,16 @@ describe('MapInterpreter', () => {
             {
               kind: 'CallStatement',
               operationName: 'TestOp',
-              arguments: [],
+              arguments: [
+                {
+                  kind: 'Assignment',
+                  key: ['hey', 'now'],
+                  value: {
+                    kind: 'PrimitiveLiteral',
+                    value: 'you are a rock star',
+                  },
+                },
+              ],
               statements: [
                 {
                   kind: 'OutcomeStatement',
@@ -233,7 +251,7 @@ describe('MapInterpreter', () => {
       ],
     });
 
-    expect(result.isOk() && result.value).toEqual(12);
+    expect(result.isOk() && result.value).toEqual(26);
   });
 
   it('should correctly resolve scope', async () => {
