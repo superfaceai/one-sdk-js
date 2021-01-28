@@ -1,4 +1,6 @@
 ## [Unreleased]
+### Added
+* super.json support
 
 ### Added
 * Iteration support in Maps
@@ -8,8 +10,11 @@
 
 ## [0.0.7] - 2021-01-21
 ### Fixed
-* Array handling in mergeVariables function
 * Inline call and call statement not correctly handling call stack arguments
+
+## [0.0.7]
+### Fixed
+* Array handling in mergeVariables function
 
 ## [0.0.6] - 2021-01-11
 ### Changed
@@ -58,7 +63,8 @@
 * CI/CD workflows
 
 
-[Unreleased]: https://github.com/superfaceai/sdk-js/compare/v0.0.6...HEAD
+[Unreleased]: https://github.com/superfaceai/sdk-js/compare/v0.0.7...HEAD
+[0.0.7]: https://github.com/superfaceai/sdk-js/compare/v0.0.6...v0.0.7
 [0.0.6]: https://github.com/superfaceai/sdk-js/compare/v0.0.5...v0.0.6
 [0.0.5]: https://github.com/superfaceai/sdk-js/compare/v0.0.6...v0.0.5
 [0.0.4]: https://github.com/superfaceai/sdk-js/compare/v0.0.3...v0.0.4
