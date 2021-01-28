@@ -4,9 +4,9 @@ import { HttpSecurity } from '@superfaceai/ast';
 import fetch, { Headers } from 'cross-fetch';
 import createDebug from 'debug';
 
-import { Config } from '../client';
 import { evalScript } from './interpreter/sandbox';
 import { NonPrimitive, Variables } from './interpreter/variables';
+import { Auth } from './superjson';
 
 const debug = createDebug('superface:http');
 
@@ -62,23 +62,27 @@ const queryParameters = (parameters?: Record<string, string>): string => {
   return '';
 };
 
-const basicAuth = (auth?: { username: string; password: string }): string => {
-  if (!auth || !auth.username || !auth.password) {
+const basicAuth = (auth: Auth): string => {
+  if (!('BasicAuth' in auth)) {
     throw new Error('Missing credentials for Basic auth!');
   }
 
   return (
     'Basic ' +
-    Buffer.from(`${auth.username}:${auth.password}`).toString('base64')
+    Buffer.from(
+      `${auth.BasicAuth.username}:${auth.BasicAuth.password}`
+    ).toString('base64')
   );
 };
 
-const bearerAuth = (auth?: { token: string }): string => {
-  if (!auth || !auth.token) {
+const apiKeyAuth = (auth: Auth): string => {
+  if (!('ApiKey' in auth)) {
     throw new Error('Missing credentials for Bearer auth!');
   }
 
-  return `Bearer ${auth.token}`;
+  return `${auth.ApiKey.type === 'bearer' ? 'Bearer ' : ''}${
+    auth.ApiKey.value
+  }`;
 };
 
 const formData = (data?: Record<string, string>): FormData => {
@@ -158,7 +162,7 @@ export const HttpClient = {
       contentType?: string;
       accept?: string;
       security?: HttpSecurity;
-      auth?: Config['auth'];
+      auth?: Auth;
       baseUrl?: string;
       pathParameters?: NonPrimitive;
     }
@@ -171,19 +175,57 @@ export const HttpClient = {
       method: parameters.method,
     };
 
+    const queryAuth: Record<string, string> = {};
+    const requestBody = parameters.body;
+    const pathParameters = { ...parameters.pathParameters };
+    if (parameters.auth !== undefined) {
+      if ('BasicAuth' in parameters.auth) {
+        headers.append(AUTH_HEADER_NAME, basicAuth(parameters.auth));
+      } else if ('ApiKey' in parameters.auth) {
+        switch (parameters.auth.ApiKey.in) {
+          case 'header':
+            headers.append(
+              parameters.auth.ApiKey.header ?? AUTH_HEADER_NAME,
+              apiKeyAuth(parameters.auth)
+            );
+            break;
+          case 'query':
+            queryAuth[parameters.auth.ApiKey.parameter] = apiKeyAuth(
+              parameters.auth
+            );
+            break;
+          case 'body':
+            if (typeof requestBody !== 'object' || Array.isArray(requestBody)) {
+              throw new Error(
+                'ApiKey in body can be used only when body is an object.'
+              );
+            }
+            requestBody[parameters.auth.ApiKey.field] = apiKeyAuth(
+              parameters.auth
+            );
+            break;
+          case 'path':
+            pathParameters[parameters.auth.ApiKey.name] = apiKeyAuth(
+              parameters.auth
+            );
+            break;
+        }
+      }
+    }
+
     if (
       parameters.body &&
       ['post', 'put', 'patch'].includes(parameters.method.toLowerCase())
     ) {
       if (parameters.contentType === JSON_CONTENT) {
         headers.append('Content-Type', JSON_CONTENT);
-        params.body = JSON.stringify(parameters.body);
+        params.body = JSON.stringify(requestBody);
       } else if (parameters.contentType === URLENCODED_CONTENT) {
         headers.append('Content-Type', URLENCODED_CONTENT);
-        params.body = new URLSearchParams(variablesToStrings(parameters.body));
+        params.body = new URLSearchParams(variablesToStrings(requestBody));
       } else if (parameters.contentType === FORMDATA_CONTENT) {
         headers.append('Content-Type', FORMDATA_CONTENT);
-        params.body = formData(variablesToStrings(parameters.body));
+        params.body = formData(variablesToStrings(requestBody));
       } else {
         throw new Error(
           `Unknown content type: ${parameters.contentType ?? ''}`
@@ -191,25 +233,9 @@ export const HttpClient = {
       }
     }
 
-    let queryAuth: Record<string, string> = {};
-    if (parameters.security?.scheme === 'basic') {
-      headers.append(AUTH_HEADER_NAME, basicAuth(parameters.auth?.basic));
-    } else if (parameters.security?.scheme === 'bearer') {
-      headers.append(AUTH_HEADER_NAME, bearerAuth(parameters.auth?.bearer));
-    } else if (parameters.security?.scheme === 'apikey') {
-      if (!parameters.auth?.apikey?.key) {
-        throw new Error('Missing credentials for Apikey auth!');
-      }
-      if (parameters.security.placement === 'header') {
-        headers.append(parameters.security.name, parameters.auth.apikey.key);
-      } else if (parameters.security.placement === 'query') {
-        queryAuth = { [parameters.security.name]: parameters.auth.apikey.key };
-      }
-    }
-
     const finalUrl = createUrl(url, {
       baseUrl: parameters.baseUrl,
-      pathParameters: parameters.pathParameters,
+      pathParameters,
       queryParameters: {
         ...variablesToStrings(parameters.queryParameters),
         ...queryAuth,
@@ -227,12 +253,12 @@ export const HttpClient = {
     Object.entries(requestHeaders).forEach(([headerName, value]) =>
       debug(`\t${headerName}: ${value}`)
     );
-    if (params.body) {
-      debug(`\n\t${params.body.toString()}`);
+    if (requestBody !== undefined) {
+      debug(`\n\t${requestBody?.toString()}`);
     }
     const response = await fetch(finalUrl, params);
 
-    let body: unknown;
+    let responseBody: unknown;
 
     const responseHeaders: Record<string, string> = {};
     response.headers.forEach((value, headerName) => {
@@ -244,9 +270,9 @@ export const HttpClient = {
         responseHeaders['content-type'].includes(JSON_CONTENT)) ||
       parameters.accept?.includes(JSON_CONTENT)
     ) {
-      body = await response.json();
+      responseBody = await response.json();
     } else {
-      body = await response.text();
+      responseBody = await response.text();
     }
 
     debug('Received response');
@@ -254,17 +280,17 @@ export const HttpClient = {
     Object.entries(responseHeaders).forEach(([headerName, value]) =>
       debug(`\t${headerName}: ${value}`)
     );
-    debug('\n\t%j', body);
+    debug('\n\t%j', responseBody);
 
     return {
       statusCode: response.status,
-      body,
+      body: responseBody,
       headers: responseHeaders,
       debug: {
         request: {
           url: finalUrl,
           headers: requestHeaders,
-          body: params.body,
+          body: requestBody,
         },
       },
     };

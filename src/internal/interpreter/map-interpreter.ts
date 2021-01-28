@@ -24,10 +24,10 @@ import {
 } from '@superfaceai/ast';
 import createDebug from 'debug';
 
-import { Config } from '../../client';
 import { err, ok, Result } from '../../lib';
 import { UnexpectedError } from '../errors';
 import { HttpClient, HttpResponse } from '../http';
+import { SuperJSONDocument } from '../superjson';
 import { MapVisitor } from './interfaces';
 import {
   HTTPError,
@@ -57,9 +57,10 @@ export interface MapParameters<
   TInput extends NonPrimitive | undefined = undefined
 > {
   usecase?: string;
-  auth?: Config['auth'];
-  baseUrl?: string;
   input?: TInput;
+  superJson?: SuperJSONDocument;
+  provider: string;
+  deployment: string;
 }
 
 type HttpResponseHandler = (
@@ -260,12 +261,13 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
       headers: request?.headers,
       contentType: request?.contentType ?? 'application/json',
       accept,
-      baseUrl: this.parameters.baseUrl,
+      baseUrl: this.baseUrl,
       queryParameters: request?.queryParameters,
       pathParameters: this.variables,
       body: request?.body,
       security: request?.security,
-      auth: this.parameters.auth,
+      auth: this.parameters.superJson?.providers?.[this.parameters.provider]
+        .auth,
     });
 
     for (const [handler] of responseHandlers) {
@@ -528,7 +530,6 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
       ...variables,
       input: {
         ...(this.parameters.input ?? {}),
-        auth: this.parameters.auth ?? {},
       },
     };
 
@@ -580,5 +581,10 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
     }
 
     return this.stack[this.stack.length - 1];
+  }
+
+  private get baseUrl(): string | undefined {
+    return this.parameters.superJson?.providers?.[this.parameters.provider]
+      .deployments?.[this.parameters.deployment].baseUrl;
   }
 }
