@@ -3,7 +3,7 @@ import { promises as fspromises } from 'fs';
 import { join as joinPath } from 'path';
 import * as zod from 'zod';
 
-const { lstat, readFile } = fspromises;
+const { stat, readFile } = fspromises;
 const debug = createDebug('superface:superjson');
 
 // 'Official' regex https://semver.org/#is-there-a-suggested-regular-expression-regex-to-check-a-semver-string
@@ -22,7 +22,7 @@ export function isFileURIString(input: unknown): boolean {
 const semanticVersion = zod.string().regex(SEMVER_REGEX, {
   message: 'Should be valid semver',
 });
-const localPath = zod.string().regex(/^file:.*$/, {
+const localPath = zod.string().regex(FILE_URI_REGEX, {
   message: 'Should be valid file URI',
 });
 
@@ -52,10 +52,6 @@ const profileSettings = zod.union([
 ]);
 const profile = zod.union([semanticVersion, localPath, profileSettings]);
 
-const apikey = zod.object({
-  type: zod.union([zod.literal('apikey'), zod.literal('bearer')]),
-  value: zod.string(),
-});
 const auth = zod.union([
   zod.object({
     BasicAuth: zod.object({
@@ -64,15 +60,22 @@ const auth = zod.union([
     }),
   }),
   zod.object({
-    ApiKey: zod.union([
-      apikey.extend({
-        in: zod.literal('header'),
-        header: zod.string().optional(),
-      }),
-      apikey.extend({ in: zod.literal('body'), field: zod.string() }),
-      apikey.extend({ in: zod.literal('query'), parameter: zod.string() }),
-      apikey.extend({ in: zod.literal('path'), name: zod.string() }),
-    ]),
+    ApiKey: zod.object({
+      in: zod.union([
+        zod.literal('header'),
+        zod.literal('body'),
+        zod.literal('query'),
+        zod.literal('path'),
+      ]),
+      name: zod.string().default('Authorization'),
+      value: zod.string(),
+    }),
+  }),
+  zod.object({
+    Bearer: zod.object({
+      name: zod.string().default('Authorization'),
+      value: zod.string(),
+    }),
   }),
 ]);
 
@@ -106,9 +109,9 @@ export async function loadSuperJSON(): Promise<SuperJSONDocument | undefined> {
   const superfile = joinPath(superdir, 'super.json');
 
   try {
-    const lstatInfo = await lstat(superdir);
+    const statInfo = await stat(superdir);
 
-    if (!lstatInfo.isDirectory()) {
+    if (!statInfo.isDirectory()) {
       debug(`${superdir} is not a directory.`);
 
       return undefined;
@@ -120,9 +123,9 @@ export async function loadSuperJSON(): Promise<SuperJSONDocument | undefined> {
   }
 
   try {
-    const lstatInfo = await lstat(superfile);
+    const statInfo = await stat(superfile);
 
-    if (!lstatInfo.isFile()) {
+    if (!statInfo.isFile()) {
       debug(`${superfile} is not a file.`);
 
       return undefined;

@@ -942,9 +942,8 @@ describe('MapInterpreter', () => {
         providers: {
           test: {
             auth: {
-              ApiKey: {
-                in: 'header',
-                type: 'bearer',
+              Bearer: {
+                name: 'Authorization',
                 value: 'SuperSecret',
               },
             },
@@ -1014,8 +1013,7 @@ describe('MapInterpreter', () => {
             auth: {
               ApiKey: {
                 in: 'header',
-                header: 'key',
-                type: 'apikey',
+                name: 'key',
                 value: 'SuperSecret',
               },
             },
@@ -1086,8 +1084,7 @@ describe('MapInterpreter', () => {
             auth: {
               ApiKey: {
                 in: 'query',
-                parameter: 'key',
-                type: 'apikey',
+                name: 'key',
                 value: 'SuperSecret',
               },
             },
