@@ -75,16 +75,6 @@ const basicAuth = (auth: Auth): string => {
   );
 };
 
-const apiKeyAuth = (auth: Auth): string => {
-  if (!('ApiKey' in auth)) {
-    throw new Error('Missing credentials for Bearer auth!');
-  }
-
-  return `${auth.ApiKey.type === 'bearer' ? 'Bearer ' : ''}${
-    auth.ApiKey.value
-  }`;
-};
-
 const formData = (data?: Record<string, string>): FormData => {
   const formData = new FormData();
 
@@ -185,14 +175,13 @@ export const HttpClient = {
         switch (parameters.auth.ApiKey.in) {
           case 'header':
             headers.append(
-              parameters.auth.ApiKey.header ?? AUTH_HEADER_NAME,
-              apiKeyAuth(parameters.auth)
+              parameters.auth.ApiKey.name,
+              parameters.auth.ApiKey.value
             );
             break;
           case 'query':
-            queryAuth[parameters.auth.ApiKey.parameter] = apiKeyAuth(
-              parameters.auth
-            );
+            queryAuth[parameters.auth.ApiKey.name] =
+              parameters.auth.ApiKey.value;
             break;
           case 'body':
             if (typeof requestBody !== 'object' || Array.isArray(requestBody)) {
@@ -200,16 +189,19 @@ export const HttpClient = {
                 'ApiKey in body can be used only when body is an object.'
               );
             }
-            requestBody[parameters.auth.ApiKey.field] = apiKeyAuth(
-              parameters.auth
-            );
+            requestBody[parameters.auth.ApiKey.name] =
+              parameters.auth.ApiKey.value;
             break;
           case 'path':
-            pathParameters[parameters.auth.ApiKey.name] = apiKeyAuth(
-              parameters.auth
-            );
+            pathParameters[parameters.auth.ApiKey.name] =
+              parameters.auth.ApiKey.value;
             break;
         }
+      } else if ('Bearer' in parameters.auth) {
+        headers.append(
+          parameters.auth.Bearer.name,
+          `Bearer ${parameters.auth.Bearer.value}`
+        );
       }
     }
 
