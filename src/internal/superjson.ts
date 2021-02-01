@@ -11,11 +11,11 @@ const SEMVER_REGEX = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d
 // NOT comprehensive at all
 const FILE_URI_REGEX = /^file:.*$/;
 
-export function isVersionString(input: unknown): boolean {
+export function isVersionString(input: unknown): input is string {
   return typeof input === 'string' && SEMVER_REGEX.test(input);
 }
 
-export function isFileURIString(input: unknown): boolean {
+export function isFileURIString(input: unknown): input is string {
   return typeof input === 'string' && FILE_URI_REGEX.test(input);
 }
 
