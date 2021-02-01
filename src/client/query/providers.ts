@@ -7,6 +7,7 @@ import {
 import {
   MapInterpreter,
   ProfileParameterValidator,
+  ProviderConfig,
 } from '../../internal/interpreter';
 import { NonPrimitive } from '../../internal/interpreter/variables';
 import { loadSuperJSON, SuperJSONDocument } from '../../internal/superjson';
@@ -23,7 +24,8 @@ export class BoundProvider {
     private mapAST: MapDocumentNode,
     private provider: string,
     private deployment: string,
-    private superJson?: SuperJSONDocument
+    private superJson?: SuperJSONDocument,
+    private config?: ProviderConfig
   ) {
     this.profileValidator = new ProfileParameterValidator(this.profileAST);
   }
@@ -51,6 +53,7 @@ export class BoundProvider {
       provider: this.provider,
       superJson: this.superJson,
       deployment: this.deployment,
+      config: this.config,
     });
 
     const result = await interpreter.perform(this.mapAST);
@@ -88,7 +91,7 @@ export class Provider {
    *
    * This fetches the map and allows to perform.
    */
-  public async bind(): Promise<BoundProvider> {
+  public async bind(config?: ProviderConfig): Promise<BoundProvider> {
     const superJson = await loadSuperJSON();
     const mapAST = await this.obtainMapAST();
 
@@ -97,7 +100,8 @@ export class Provider {
       mapAST,
       this.provider,
       this.deployment,
-      superJson
+      superJson,
+      config
     );
   }
 

@@ -948,7 +948,6 @@ describe('MapInterpreter', () => {
           },
         },
       },
-      // auth: { bearer: { token: 'SuperSecret' } },
     });
     const result = await interpreter.perform({
       kind: 'MapDocument',
@@ -1064,6 +1063,110 @@ describe('MapInterpreter', () => {
     });
 
     expect(result.isOk() && result.value).toEqual(12);
+  });
+
+  it('should override super.json auth with parameter', async () => {
+    await mockServer
+      .get('/apikey')
+      .withHeaders({ Key: 'SuperSecret' })
+      .thenJson(200, { data: 12 });
+    const url = mockServer.urlFor('/apikey');
+    const interpreter = new MapInterpreter({
+      usecase: 'testCase',
+      provider: 'test',
+      deployment: 'default',
+      superJson: {
+        providers: {
+          test: {
+            auth: {
+              ApiKey: {
+                in: 'header',
+                name: 'key',
+                value: 'WrongPassword',
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const ast: MapDocumentNode = {
+      kind: 'MapDocument',
+      header,
+      definitions: [
+        {
+          kind: 'MapDefinition',
+          name: 'testMap',
+          usecaseName: 'testCase',
+          statements: [
+            {
+              kind: 'HttpCallStatement',
+              method: 'GET',
+              url,
+              request: {
+                kind: 'HttpRequest',
+                security: {
+                  scheme: 'apikey',
+                  name: 'key',
+                  placement: 'header',
+                },
+              },
+              responseHandlers: [
+                {
+                  kind: 'HttpResponseHandler',
+                  statusCode: 200,
+                  statements: [
+                    {
+                      kind: 'OutcomeStatement',
+                      terminateFlow: true,
+                      isError: false,
+                      value: {
+                        kind: 'JessieExpression',
+                        expression: 'body.data',
+                      },
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    const result = await interpreter.perform(ast);
+    expect(result.isErr()).toBe(true);
+
+    const interpreter2 = new MapInterpreter({
+      usecase: 'testCase',
+      provider: 'test',
+      deployment: 'default',
+      superJson: {
+        providers: {
+          test: {
+            auth: {
+              ApiKey: {
+                in: 'header',
+                name: 'key',
+                value: 'WrongPassword',
+              },
+            },
+          },
+        },
+      },
+      config: {
+        auth: {
+          ApiKey: {
+            in: 'header',
+            name: 'key',
+            value: 'SuperSecret',
+          },
+        },
+      },
+    });
+
+    const result2 = await interpreter2.perform(ast);
+    expect(result2.isOk() && result2.value).toEqual(12);
   });
 
   it('should call an API with Apikey auth in query', async () => {

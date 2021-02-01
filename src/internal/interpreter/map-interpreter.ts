@@ -29,7 +29,7 @@ import createDebug from 'debug';
 import { err, ok, Result } from '../../lib';
 import { UnexpectedError } from '../errors';
 import { HttpClient, HttpResponse } from '../http';
-import { SuperJSONDocument } from '../superjson';
+import { Auth, SuperJSONDocument } from '../superjson';
 import {
   HTTPError,
   JessieError,
@@ -66,6 +66,10 @@ function hasIteration<T extends CallStatementNode | InlineCallNode>(
   return node.iteration !== undefined;
 }
 
+export type ProviderConfig = {
+  auth?: Auth;
+};
+
 export interface MapParameters<
   TInput extends NonPrimitive | undefined = undefined
 > {
@@ -74,6 +78,7 @@ export interface MapParameters<
   superJson?: SuperJSONDocument;
   provider: string;
   deployment: string;
+  config?: ProviderConfig;
 }
 
 type HttpResponseHandler = (
@@ -281,8 +286,9 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
       pathParameters: this.variables,
       body: request?.body,
       security: request?.security,
-      auth: this.parameters.superJson?.providers?.[this.parameters.provider]
-        .auth,
+      auth:
+        this.parameters.config?.auth ??
+        this.parameters.superJson?.providers?.[this.parameters.provider].auth,
     });
 
     for (const [handler] of responseHandlers) {
