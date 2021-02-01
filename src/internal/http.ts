@@ -168,10 +168,22 @@ export const HttpClient = {
     const queryAuth: Record<string, string> = {};
     const requestBody = parameters.body;
     const pathParameters = { ...parameters.pathParameters };
-    if (parameters.auth !== undefined) {
-      if ('BasicAuth' in parameters.auth) {
+    if (
+      parameters.security !== undefined &&
+      parameters.security.scheme !== 'none'
+    ) {
+      if (parameters.auth === undefined) {
+        throw new Error('Credentials not present.');
+      }
+      if (parameters.security.scheme === 'basic') {
+        if (!('BasicAuth' in parameters.auth)) {
+          throw new Error('Basic Auth credentials not present.');
+        }
         headers.append(AUTH_HEADER_NAME, basicAuth(parameters.auth));
-      } else if ('ApiKey' in parameters.auth) {
+      } else if (parameters.security.scheme === 'apikey') {
+        if (!('ApiKey' in parameters.auth)) {
+          throw new Error('Api Key credentials not present.');
+        }
         switch (parameters.auth.ApiKey.in) {
           case 'header':
             headers.append(
@@ -197,7 +209,10 @@ export const HttpClient = {
               parameters.auth.ApiKey.value;
             break;
         }
-      } else if ('Bearer' in parameters.auth) {
+      } else if (parameters.security.scheme === 'bearer') {
+        if (!('Bearer' in parameters.auth)) {
+          throw new Error('Bearer credentials not present.');
+        }
         headers.append(
           parameters.auth.Bearer.name,
           `Bearer ${parameters.auth.Bearer.value}`
