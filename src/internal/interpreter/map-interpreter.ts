@@ -151,6 +151,9 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
     | HttpResponseHandlerDefinition
     | undefined {
     debug('Visiting node:', node.kind);
+    if (node.location) {
+      debug('Location: ', node.location.line, ':', node.location.column);
+    }
     switch (node.kind) {
       case 'Assignment':
         return this.visitAssignmentNode(node);
