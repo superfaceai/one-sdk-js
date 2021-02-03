@@ -231,10 +231,10 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
   async visitCallStatementNode(node: CallStatementNode): Promise<void> {
     const result = await this.visitCallCommon(node);
 
-    this.newStack('operation');
+    // this.newStack('operation');
     this.addVariableToStack({ outcome: { data: result } });
-    const secondResult = await this.processStatements(node.statements);
-    this.popStack(secondResult);
+    this.stackTop.result = await this.processStatements(node.statements);
+    // this.popStack(secondResult);
   }
 
   async visitHttpCallStatementNode(node: HttpCallStatementNode): Promise<void> {
@@ -486,8 +486,11 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
       }
     }
 
+    // this.addVariableToStack({ outcome: { data: this.stackTop.result } });
+    const result = await this.visit(node.value);
+
     return {
-      result: await this.visit(node.value),
+      result,
       error: node.isError,
       terminateFlow: node.terminateFlow,
     };
@@ -522,6 +525,15 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
 
     for (const stacktop of this.stack) {
       variables = mergeVariables(variables, stacktop.variables);
+    }
+
+    if (this.stackTop.result) {
+      variables = {
+        ...variables,
+        outcome: {
+          data: this.stackTop.result,
+        },
+      };
     }
 
     variables = {
