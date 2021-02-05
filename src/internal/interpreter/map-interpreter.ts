@@ -244,6 +244,12 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
         await this.processStatements(node.statements);
       }
     } else {
+      if (node.condition) {
+        const condition = await this.visit(node.condition);
+        if (condition === false) {
+          return;
+        }
+      }
       const result = await this.visitCallCommon(node);
 
       // this.newStack('operation');
@@ -386,6 +392,13 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
       }
 
       return results;
+    }
+
+    if (node.condition) {
+      const condition = await this.visit(node.condition);
+      if (condition === false) {
+        return undefined;
+      }
     }
 
     return this.visitCallCommon(node);
