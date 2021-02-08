@@ -99,6 +99,7 @@ interface HttpRequest {
 interface Stack {
   type: 'map' | 'operation';
   variables: NonPrimitive;
+  terminate: boolean;
   result?: Variables;
   error?: MapInterpreterError;
 }
@@ -170,8 +171,9 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
     debug(
       'Visiting node:',
       node.kind,
-      node.location &&
-        `Line: ${node.location.line}, Column: ${node.location.line}`
+      node.location
+        ? `Line: ${node.location.line}, Column: ${node.location.line}`
+        : ''
     );
     switch (node.kind) {
       case 'Assignment':
@@ -226,6 +228,14 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
     return result ? true : false;
   }
 
+  // async visitInlineCallNode(
+  //   node: InlineCallNode
+  // ): Promise<Variables | undefined> {
+  //   const result = await this.visitCallCommon(node);
+
+  //   return result;
+  // }
+
   async visitCallStatementNode(node: CallStatementNode): Promise<void> {
     if (node.iteration) {
       const iterationParams = await this.visit(node.iteration);
@@ -252,10 +262,8 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
       }
       const result = await this.visitCallCommon(node);
 
-      // this.newStack('operation');
       this.addVariableToStack({ outcome: { data: result } });
       this.stackTop.result = await this.processStatements(node.statements);
-      // this.popStack(secondResult);
     }
   }
 
@@ -295,7 +303,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
 
       if (match) {
         if (result) {
-          this.addVariableToStack({ result });
+          this.stackTop.result = result;
         }
 
         return;
@@ -448,6 +456,9 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
         case 'HttpCallStatement':
         case 'CallStatement':
           result = await this.visit(statement);
+          if (this.stackTop.terminate) {
+            return this.stackTop.result;
+          }
           break;
 
         case 'OutcomeStatement': {
@@ -463,6 +474,8 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
           }
           result = outcome?.result ?? result;
           if (outcome?.terminateFlow) {
+            this.stackTop.terminate = true;
+
             return result;
           } else {
             this.addVariableToStack(
@@ -637,7 +650,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
   }
 
   private newStack(type: Stack['type']): void {
-    this.stack.push({ type, variables: {}, result: {} });
+    this.stack.push({ type, variables: {}, result: {}, terminate: false });
     debug('New stack:', this.stackTop);
   }
 
