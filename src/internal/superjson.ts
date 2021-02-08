@@ -53,6 +53,8 @@ const profileSettings = zod.union([
 const profile = zod.union([semanticVersion, localPath, profileSettings]);
 
 const auth = zod.union([
+  // allow empty object
+  zod.object({}),
   zod.object({
     BasicAuth: zod.object({
       username: zod.string(),
@@ -79,13 +81,14 @@ const auth = zod.union([
   }),
 ]);
 
-const deployment = zod.object({
+const providerService = zod.object({
+  id: zod.string(),
   baseUrl: zod.string().url(),
 });
 
 const providerSettings = zod.object({
   auth: auth.optional(),
-  deployments: zod.record(deployment).optional(),
+  services: zod.array(providerService).optional(),
 });
 
 const schema = zod.object({

@@ -66,6 +66,15 @@ function hasIteration<T extends CallStatementNode | InlineCallNode>(
   return node.iteration !== undefined;
 }
 
+// TODO: Probably deserves own module and zod parser?
+export type ProviderInfo = {
+  name: string,
+  services: {
+    id: string,
+    baseUrl: string
+  }[],
+  defaultService: string
+};
 export type ProviderConfig = {
   auth?: Auth;
 };
@@ -76,8 +85,8 @@ export interface MapParameters<
   usecase?: string;
   input?: TInput;
   superJson?: SuperJSONDocument;
-  provider: string;
-  deployment: string;
+  provider: ProviderInfo;
+  serviceId: string;
   config?: ProviderConfig;
 }
 
@@ -288,7 +297,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
       security: request?.security,
       auth:
         this.parameters.config?.auth ??
-        this.parameters.superJson?.providers?.[this.parameters.provider].auth,
+        this.parameters.superJson?.providers?.[this.parameters.provider.name].auth,
     });
 
     for (const [handler] of responseHandlers) {
@@ -700,7 +709,17 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
   }
 
   private get baseUrl(): string | undefined {
-    return this.parameters.superJson?.providers?.[this.parameters.provider]
-      .deployments?.[this.parameters.deployment].baseUrl;
+    const prov = this.parameters.provider;
+
+    const superOverride = this.parameters.superJson?.providers?.[prov.name].services?.find(
+      service => service.id === this.parameters.serviceId
+    )?.baseUrl;
+    if (superOverride !== undefined) {
+      return superOverride;
+    }
+
+    return prov.services.find(
+      service => service.id === this.parameters.serviceId
+    )?.baseUrl;
   }
 }
