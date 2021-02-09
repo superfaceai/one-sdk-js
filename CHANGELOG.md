@@ -1,6 +1,10 @@
 ## [Unreleased]
 
 ### Fixed
+* Incorrect scoping
+
+## [0.0.7] - 2021-01-21
+### Fixed
 * Array handling in mergeVariables function
 * Inline call and call statement not correctly handling call stack arguments
 
