@@ -56,11 +56,14 @@ function assertUnreachable(node: MapASTNode): never {
 
 function isIterable(input: unknown): input is Iterable<Variables> {
   return (
-    typeof input === 'object' &&
-    input !== null &&
-    input !== undefined &&
-    Symbol.iterator in input
+    typeof input === 'object' && input !== null && Symbol.iterator in input
   );
+}
+
+function hasIteration<T extends CallStatementNode | InlineCallNode>(
+  node: T
+): node is T & { iteration: IterationAtomNode } {
+  return node.iteration !== undefined;
 }
 
 export interface MapParameters<
@@ -228,31 +231,13 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
     return result ? true : false;
   }
 
-  // async visitInlineCallNode(
-  //   node: InlineCallNode
-  // ): Promise<Variables | undefined> {
-  //   const result = await this.visitCallCommon(node);
-
-  //   return result;
-  // }
-
   async visitCallStatementNode(node: CallStatementNode): Promise<void> {
-    if (node.iteration) {
-      const iterationParams = await this.visit(node.iteration);
-      for (const variable of iterationParams.iterable) {
-        this.addVariableToStack({
-          [iterationParams.iterationVariable]: variable,
-        });
-        if (node.condition) {
-          const condition = await this.visit(node.condition);
-          if (condition === false) {
-            continue;
-          }
-        }
-        const result = await this.visitCallCommon(node);
+    if (hasIteration(node)) {
+      const processResults = async (result?: Variables) => {
         this.addVariableToStack({ outcome: { data: result } });
         await this.processStatements(node.statements);
-      }
+      };
+      await this.iterate(node, processResults);
     } else {
       if (node.condition) {
         const condition = await this.visit(node.condition);
@@ -382,22 +367,12 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
   async visitInlineCallNode(
     node: InlineCallNode
   ): Promise<Variables | undefined> {
-    if (node.iteration) {
-      const iterationParams = await this.visit(node.iteration);
-      const results = [];
-      for (const variable of iterationParams.iterable) {
-        this.addVariableToStack({
-          [iterationParams.iterationVariable]: variable,
-        });
-        if (node.condition) {
-          const condition = await this.visit(node.condition);
-          if (condition === false) {
-            continue;
-          }
-        }
-        const result = await this.visitCallCommon(node);
+    if (hasIteration(node)) {
+      const results: (Variables | undefined)[] = [];
+      const processResult = (result?: Variables) => {
         results.push(result);
-      }
+      };
+      await this.iterate(node, processResult);
 
       return results;
     }
@@ -695,5 +670,25 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
     this.popStack();
 
     return result;
+  }
+
+  private async iterate<T extends CallStatementNode | InlineCallNode>(
+    node: T & { iteration: IterationAtomNode },
+    processResult: (result?: Variables) => unknown | Promise<unknown>
+  ): Promise<void> {
+    const iterationParams = await this.visit(node.iteration);
+    for (const variable of iterationParams.iterable) {
+      this.addVariableToStack({
+        [iterationParams.iterationVariable]: variable,
+      });
+      if (node.condition) {
+        const condition = await this.visit(node.condition);
+        if (condition === false) {
+          continue;
+        }
+      }
+      const result = await this.visitCallCommon(node);
+      await processResult(result);
+    }
   }
 }
