@@ -23,6 +23,19 @@ export function castToVariables(input: unknown): Variables | undefined {
   return input;
 }
 
+export function castToNonPrimitive(input: unknown): NonPrimitive | undefined {
+  const variables = castToVariables(input);
+  if (variables === undefined) {
+    return undefined;
+  }
+
+  if (!isNonPrimitive(variables)) {
+    throw new Error('Input is not NonPrimitive');
+  }
+
+  return variables;
+}
+
 export function isPrimitive(input: Variables): input is Primitive {
   return (
     ['string', 'number', 'boolean'].includes(typeof input) ||

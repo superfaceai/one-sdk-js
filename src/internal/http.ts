@@ -6,7 +6,7 @@ import createDebug from 'debug';
 
 import { evalScript } from './interpreter/sandbox';
 import { NonPrimitive, Variables } from './interpreter/variables';
-import { Auth } from './superjson';
+import { Auth, resolveEnv } from './superjson';
 
 const debug = createDebug('superface:http');
 
@@ -62,35 +62,13 @@ const queryParameters = (parameters?: Record<string, string>): string => {
   return '';
 };
 
-/**
- * Attempts to resolve auth value.
- *
- * If the value starts with `$` character, it attempts to look it up in the environment variables.
- * If the value is not in environment or doesn't start with `$` it is returned as is.
- */
-const resolveAuthValue = (str: string): string => {
-  let value = str;
-
-  if (str.startsWith('$')) {
-    const variable = str.slice(1);
-    const env = process.env[variable];
-    if (env !== undefined) {
-      value = env;
-    } else {
-      console.warn('Enviroment variable', variable, 'not found');
-    }
-  }
-
-  return value;
-};
-
 const basicAuth = (auth: Auth, headers: Headers): void => {
   if (!('BasicAuth' in auth)) {
     throw new Error('Missing credentials for Basic auth!');
   }
 
-  const name = resolveAuthValue(auth.BasicAuth.username);
-  const password = resolveAuthValue(auth.BasicAuth.password);
+  const name = resolveEnv(auth.BasicAuth.username);
+  const password = resolveEnv(auth.BasicAuth.password);
 
   const value =
     'Basic ' + Buffer.from(`${name}:${password}`).toString('base64');
@@ -109,8 +87,8 @@ const apikeyAuth = (
   }
 
   // TODO: Should we be resolving the name?
-  const name = resolveAuthValue(auth.ApiKey.name);
-  const value = resolveAuthValue(auth.ApiKey.value);
+  const name = resolveEnv(auth.ApiKey.name);
+  const value = resolveEnv(auth.ApiKey.value);
 
   switch (auth.ApiKey.in) {
     case 'header':
@@ -139,8 +117,8 @@ const bearerAuth = (auth: Auth, headers: Headers): void => {
   }
 
   // TODO: Should we be resolving the name?
-  const name = resolveAuthValue(auth.Bearer.name);
-  const value = resolveAuthValue(auth.Bearer.value);
+  const name = resolveEnv(auth.Bearer.name);
+  const value = resolveEnv(auth.Bearer.value);
 
   headers.append(name, `Bearer ${value}`);
 };

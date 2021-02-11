@@ -34,7 +34,20 @@ const lock = zod.object({
   astIntegrity: zod.string(),
 });
 
-const defaults = zod.record(zod.unknown());
+/*
+{
+  "$usecase": {
+    "input": {
+      "$field": $value
+    }
+  }
+}
+*/
+const defaults = zod.record(
+  zod.object({
+    input: zod.record(zod.unknown()),
+  })
+);
 
 const profileProvider = zod.object({
   mapVariant: zod.string().optional(),
@@ -151,4 +164,69 @@ export async function loadSuperJSON(): Promise<SuperJSONDocument | undefined> {
   }
 
   return parseSuperJSON(superjson);
+}
+
+export function normalizedProfileSettings(
+  superJson: SuperJSONDocument,
+  name: string
+): zod.infer<typeof profileSettings> | undefined {
+  const profile = superJson?.profiles?.[name];
+  if (profile === undefined) {
+    return undefined;
+  }
+
+  if (typeof profile === 'string') {
+    if (isVersionString(profile)) {
+      return {
+        version: profile,
+      };
+    } else {
+      return {
+        file: profile,
+      };
+    }
+  }
+
+  return profile;
+}
+
+/**
+ * Attempts to resolve environment value.
+ *
+ * If the value starts with `$` character, it attempts to look it up in the environment variables.
+ * If the value is not in environment or doesn't start with `$` it is returned as is.
+ */
+export function resolveEnv(str: string): string {
+  let value = str;
+
+  if (str.startsWith('$')) {
+    const variable = str.slice(1);
+    const env = process.env[variable];
+    if (env !== undefined) {
+      value = env;
+    } else {
+      console.warn('Enviroment variable', variable, 'not found');
+    }
+  }
+
+  return value;
+}
+
+export function resolveEnvRecord<T extends Record<string, unknown>>(
+  record: T
+): T {
+  const result: Partial<T> = {};
+
+  for (const [key, value] of Object.entries(record)) {
+    if (typeof value === 'string') {
+      // TODO: What the hell does "Type 'string' cannot be used to index type 'Partial<T>'. ts(2536)" even mean
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-explicit-any
+      (result as any)[key] = resolveEnv(value);
+    } else if (typeof value === 'object' && value !== null) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-explicit-any
+      (result as any)[key] = resolveEnvRecord(value as Record<string, unknown>);
+    }
+  }
+
+  return result as T;
 }

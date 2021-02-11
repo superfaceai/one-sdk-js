@@ -12,10 +12,16 @@ import {
   ProviderConfig,
   ProviderInfo,
 } from '../../internal/interpreter';
-import { NonPrimitive } from '../../internal/interpreter/variables';
+import {
+  castToNonPrimitive,
+  mergeVariables,
+  NonPrimitive,
+} from '../../internal/interpreter/variables';
 import {
   isFileURIString,
   loadSuperJSON,
+  normalizedProfileSettings,
+  resolveEnvRecord,
   SuperJSONDocument,
 } from '../../internal/superjson';
 import { err, ok, Result } from '../../lib';
@@ -37,6 +43,43 @@ export class BoundProvider {
     this.profileValidator = new ProfileParameterValidator(this.profileAST);
   }
 
+  private composeInput(
+    usecase: string,
+    input?: NonPrimitive | undefined
+  ): NonPrimitive | undefined {
+    let profileId = this.profileAST.header.name;
+    if (this.profileAST.header.scope !== undefined) {
+      profileId = this.profileAST.header.scope + '/' + profileId;
+    }
+    const profileSettings = normalizedProfileSettings(
+      this.superJson ?? {},
+      profileId
+    );
+
+    const defaultInput = castToNonPrimitive(
+      profileSettings?.defaults?.[usecase]?.input
+    );
+    const providerDefaultInput = castToNonPrimitive(
+      profileSettings?.providers?.[this.provider.name]?.defaults?.[usecase]
+        ?.input
+    );
+
+    let defaults = defaultInput ?? providerDefaultInput;
+    if (defaultInput !== undefined && providerDefaultInput !== undefined) {
+      defaults = mergeVariables(defaultInput, providerDefaultInput);
+    }
+    if (defaults !== undefined) {
+      defaults = resolveEnvRecord(defaults);
+    }
+
+    let composed = input ?? defaults;
+    if (defaults !== undefined && input !== undefined) {
+      composed = { ...defaults, ...input };
+    }
+
+    return composed;
+  }
+
   /**
     Performs the usecase
   */
@@ -44,18 +87,19 @@ export class BoundProvider {
     TInput extends NonPrimitive | undefined = undefined,
     TResult = unknown
   >(usecase: string, input?: TInput): Promise<Result<TResult, unknown>> {
+    const composedInput = this.composeInput(usecase, input);
     const inputValidation = this.profileValidator.validate(
-      input,
+      composedInput,
       'input',
       usecase
     );
-
     if (inputValidation.isErr()) {
       return err(inputValidation.error);
     }
+    forceCast<TInput>(composedInput);
 
     const interpreter = new MapInterpreter<TInput>({
-      input,
+      input: composedInput,
       usecase,
       provider: this.provider,
       superJson: this.superJson,
