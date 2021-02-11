@@ -285,6 +285,22 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
 
     debug('Performing http request:', node.url);
 
+    // TODO: Merge the auth?
+    /*
+    // merge auth from bind with auth from super.json
+    let auth = this.parameters.superJson?.providers?.[this.parameters.provider.name].auth;
+    if (this.parameters.config?.auth !== undefined) {
+      if (auth === undefined) {
+        auth = this.parameters.config.auth;
+      } else {
+        auth = {
+          ...auth,
+          ...this.parameters.config.auth
+        }
+      }
+    }
+    */
+
     const response = await HttpClient.request(node.url, {
       method: node.method,
       headers: request?.headers,

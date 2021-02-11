@@ -199,8 +199,9 @@ export class Provider {
         // read in files
         return parseFile(
           await fsp.readFile(input.slice('file:'.length), { encoding: 'utf-8' })
-          );
-        } else if (false) { // eslint-disable-line no-constant-condition
+        );
+        // eslint-disable-next-line no-constant-condition
+      } else if (false) {
         // TODO: detect remote url and fetch it, or call a callback
       } else {
         // unpack nested and recursively process them
