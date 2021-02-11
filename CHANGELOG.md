@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+### Added
+* Iteration support in Maps
+
 ### Fixed
 * Incorrect scoping
 

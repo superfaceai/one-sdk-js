@@ -1,6 +1,7 @@
 import {
   AssignmentNode,
   CallStatementNode,
+  ConditionAtomNode,
   HttpCallStatementNode,
   HttpRequestNode,
   HttpResponseHandlerNode,
@@ -8,9 +9,11 @@ import {
   InlineCallNode,
   isMapDefinitionNode,
   isOperationDefinitionNode,
+  IterationAtomNode,
   JessieExpressionNode,
   LiteralNode,
   MapASTNode,
+  MapAstVisitor,
   MapDefinitionNode,
   MapDocumentNode,
   MapHeaderNode,
@@ -19,7 +22,6 @@ import {
   OutcomeStatementNode,
   PrimitiveLiteralNode,
   SetStatementNode,
-  StatementConditionNode,
   Substatement,
 } from '@superfaceai/ast';
 import createDebug from 'debug';
@@ -28,7 +30,6 @@ import { Config } from '../../client';
 import { err, ok, Result } from '../../lib';
 import { UnexpectedError } from '../errors';
 import { HttpClient, HttpResponse } from '../http';
-import { MapVisitor } from './interfaces';
 import {
   HTTPError,
   JessieError,
@@ -51,6 +52,18 @@ const debug = createDebug('superface:map-interpreter');
 function assertUnreachable(node: never): never;
 function assertUnreachable(node: MapASTNode): never {
   throw new UnexpectedError(`Invalid Node kind: ${node.kind}`);
+}
+
+function isIterable(input: unknown): input is Iterable<Variables> {
+  return (
+    typeof input === 'object' && input !== null && Symbol.iterator in input
+  );
+}
+
+function hasIteration<T extends CallStatementNode | InlineCallNode>(
+  node: T
+): node is T & { iteration: IterationAtomNode } {
+  return node.iteration !== undefined;
 }
 
 export interface MapParameters<
@@ -94,8 +107,13 @@ interface Stack {
   error?: MapInterpreterError;
 }
 
+type IterationDefinition = {
+  iterationVariable: string;
+  iterable: Iterable<Variables>;
+};
+
 export class MapInterpreter<TInput extends NonPrimitive | undefined>
-  implements MapVisitor {
+  implements MapAstVisitor {
   private operations: Record<string, OperationDefinitionNode | undefined> = {};
   private stack: Stack[] = [];
   private ast?: MapDocumentNode;
@@ -126,9 +144,10 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
   ): Promise<OutcomeDefinition | undefined>;
   async visit(node: AssignmentNode): Promise<NonPrimitive>;
   async visit(node: LiteralNode): Promise<Variables>;
-  async visit(node: StatementConditionNode): Promise<boolean>;
+  async visit(node: ConditionAtomNode): Promise<boolean>;
   async visit(node: HttpRequestNode): Promise<HttpRequest>;
   async visit(node: InlineCallNode): Promise<Variables | undefined>;
+  async visit(node: IterationAtomNode): Promise<IterationDefinition>;
   visit(node: HttpResponseHandlerNode): HttpResponseHandlerDefinition;
   visit(node: JessieExpressionNode): Variables | Primitive | undefined;
   async visit(
@@ -146,6 +165,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
         | HttpRequest
         | OutcomeDefinition
         | { result?: Variables; error?: MapInterpreterError }
+        | IterationDefinition
       >
     | Primitive
     | Variables
@@ -163,6 +183,8 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
         return this.visitAssignmentNode(node);
       case 'CallStatement':
         return this.visitCallStatementNode(node);
+      case 'ConditionAtom':
+        return this.visitConditionAtomNode(node);
       case 'HttpCallStatement':
         return this.visitHttpCallStatementNode(node);
       case 'HttpRequest':
@@ -171,6 +193,8 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
         return this.visitHttpResponseHandlerNode(node);
       case 'InlineCall':
         return this.visitInlineCallNode(node);
+      case 'IterationAtom':
+        return this.visitIterationAtomNode(node);
       case 'JessieExpression':
         return this.visitJessieExpressionNode(node);
       case 'MapDefinition':
@@ -189,8 +213,6 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
         return this.visitPrimitiveLiteralNode(node);
       case 'SetStatement':
         return this.visitSetStatementNode(node);
-      case 'StatementCondition':
-        return this.visitStatementConditionNode(node);
 
       default:
         assertUnreachable(node);
@@ -203,45 +225,31 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
     return this.constructObject(node.key, result);
   }
 
-  private async visitCallCommon(
-    node: InlineCallNode | CallStatementNode
-  ): Promise<Variables | undefined> {
-    const operation = this.operations[node.operationName];
-    if (!operation) {
-      throw new MapASTError(`Operation not found: ${node.operationName}`, {
-        node,
-        ast: this.ast,
-      });
-    }
+  async visitConditionAtomNode(node: ConditionAtomNode): Promise<boolean> {
+    const result = await this.visit(node.expression);
 
-    debug('Calling operation:', operation.name);
-
-    this.newStack('operation');
-    let args: Variables = {};
-    for (const assignment of node.arguments) {
-      args = mergeVariables(args, await this.visit(assignment));
-    }
-    this.addVariableToStack({ args });
-
-    const result = await this.visit(operation);
-    this.popStack();
-
-    return result;
-  }
-
-  async visitInlineCallNode(
-    node: InlineCallNode
-  ): Promise<Variables | undefined> {
-    const result = await this.visitCallCommon(node);
-
-    return result;
+    return result ? true : false;
   }
 
   async visitCallStatementNode(node: CallStatementNode): Promise<void> {
-    const result = await this.visitCallCommon(node);
+    if (hasIteration(node)) {
+      const processResults = async (result?: Variables) => {
+        this.addVariableToStack({ outcome: { data: result } });
+        await this.processStatements(node.statements);
+      };
+      await this.iterate(node, processResults);
+    } else {
+      if (node.condition) {
+        const condition = await this.visit(node.condition);
+        if (condition === false) {
+          return;
+        }
+      }
+      const result = await this.visitCallCommon(node);
 
-    this.addVariableToStack({ outcome: { data: result } });
-    this.stackTop.result = await this.processStatements(node.statements);
+      this.addVariableToStack({ outcome: { data: result } });
+      this.stackTop.result = await this.processStatements(node.statements);
+    }
   }
 
   async visitHttpCallStatementNode(node: HttpCallStatementNode): Promise<void> {
@@ -354,6 +362,46 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
     };
 
     return [handler, node.contentType];
+  }
+
+  async visitInlineCallNode(
+    node: InlineCallNode
+  ): Promise<Variables | undefined> {
+    if (hasIteration(node)) {
+      const results: (Variables | undefined)[] = [];
+      const processResult = (result?: Variables) => {
+        results.push(result);
+      };
+      await this.iterate(node, processResult);
+
+      return results;
+    }
+
+    if (node.condition) {
+      const condition = await this.visit(node.condition);
+      if (condition === false) {
+        return undefined;
+      }
+    }
+
+    return this.visitCallCommon(node);
+  }
+
+  async visitIterationAtomNode(
+    node: IterationAtomNode
+  ): Promise<IterationDefinition> {
+    const iterable = await this.visit(node.iterable);
+    if (isIterable(iterable)) {
+      return {
+        iterationVariable: node.iterationVariable,
+        iterable,
+      };
+    } else {
+      throw new MapASTError(
+        `Result of expression: ${node.iterable.expression} is not iterable.`,
+        { node, ast: this.ast }
+      );
+    }
   }
 
   visitJessieExpressionNode(node: JessieExpressionNode): Variables | undefined {
@@ -524,14 +572,6 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
     this.addVariableToStack(result);
   }
 
-  async visitStatementConditionNode(
-    node: StatementConditionNode
-  ): Promise<boolean> {
-    const result = await this.visit(node.expression);
-
-    return result ? true : false;
-  }
-
   private get variables(): NonPrimitive {
     let variables: NonPrimitive = {};
 
@@ -604,5 +644,51 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
     }
 
     return this.stack[this.stack.length - 1];
+  }
+
+  private async visitCallCommon(
+    node: InlineCallNode | CallStatementNode
+  ): Promise<Variables | undefined> {
+    const operation = this.operations[node.operationName];
+    if (!operation) {
+      throw new MapASTError(`Operation not found: ${node.operationName}`, {
+        node,
+        ast: this.ast,
+      });
+    }
+
+    debug('Calling operation:', operation.name);
+
+    this.newStack('operation');
+    let args: Variables = {};
+    for (const assignment of node.arguments) {
+      args = mergeVariables(args, await this.visit(assignment));
+    }
+    this.addVariableToStack({ args });
+
+    const result = await this.visit(operation);
+    this.popStack();
+
+    return result;
+  }
+
+  private async iterate<T extends CallStatementNode | InlineCallNode>(
+    node: T & { iteration: IterationAtomNode },
+    processResult: (result?: Variables) => unknown | Promise<unknown>
+  ): Promise<void> {
+    const iterationParams = await this.visit(node.iteration);
+    for (const variable of iterationParams.iterable) {
+      this.addVariableToStack({
+        [iterationParams.iterationVariable]: variable,
+      });
+      if (node.condition) {
+        const condition = await this.visit(node.condition);
+        if (condition === false) {
+          continue;
+        }
+      }
+      const result = await this.visitCallCommon(node);
+      await processResult(result);
+    }
   }
 }

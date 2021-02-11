@@ -560,10 +560,10 @@
   dependencies:
     "@sinonjs/commons" "^1.7.0"
 
-"@superfaceai/ast@0.0.20":
-  version "0.0.20"
-  resolved "https://npm.pkg.github.com/download/@superfaceai/ast/0.0.20/957dff9bf72e8a26c1ddf4cf4e82726c47edc9b3d91e3b8d576f7c1e9862a7b7#394e1a92cb14c9c62da41c2cdcd8070653e93f47"
-  integrity sha512-vE6D7SXn72Y3PvvLWTFttyt34FRbQbEUlNUpb3wtn9yQrplEWoOw1rcwmoHaAKemRHGQMEWjTcHE9KKW4ocY8A==
+"@superfaceai/ast@0.0.21":
+  version "0.0.21"
+  resolved "https://npm.pkg.github.com/download/@superfaceai/ast/0.0.21/48ebed3cda17c82fb3722a6baf649a4b0d6fdbdb6a349962915f705922e68d4e#0db4167b99a4d84f8f43c7651cca6df930d65f6d"
+  integrity sha512-/jsi46JAIbWc1MG+wk5BcejwVvvCjuHXdzJBlU56rkpEgvGR4IMtlPGKVLmXKTK87EkyXOevOhCuUHQpEcfqSg==
 
 "@types/babel__core@^7.0.0":
   version "7.1.9"

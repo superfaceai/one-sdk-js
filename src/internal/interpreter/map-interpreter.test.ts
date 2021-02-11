@@ -1241,7 +1241,7 @@ describe('MapInterpreter', () => {
               isError: false,
               terminateFlow: false,
               condition: {
-                kind: 'StatementCondition',
+                kind: 'ConditionAtom',
                 expression: {
                   kind: 'JessieExpression',
                   expression: 'input.condition',
@@ -1257,7 +1257,7 @@ describe('MapInterpreter', () => {
               isError: false,
               terminateFlow: false,
               condition: {
-                kind: 'StatementCondition',
+                kind: 'ConditionAtom',
                 expression: {
                   kind: 'JessieExpression',
                   expression: '!input.condition',
@@ -1774,7 +1774,7 @@ describe('MapInterpreter', () => {
                         key: ['answer'],
                         value: {
                           kind: 'JessieExpression',
-                          expression: 'outcome.data.a',
+                          expression: 'outcome.data',
                         },
                       },
                     ],
@@ -1812,7 +1812,7 @@ describe('MapInterpreter', () => {
     };
     const interpreter = new MapInterpreter({ usecase: 'test' });
     const result = await interpreter.perform(ast);
-    expect(result.isOk() && result.value).toEqual({ answer: 42 });
+    expect(result.isOk() && result.value).toEqual({ answer: { a: 42 } });
   });
 
   it('should properly resolve nested calls', async () => {
@@ -1898,5 +1898,447 @@ describe('MapInterpreter', () => {
       console.log(result.error);
     }
     expect(result.isOk() && result.value).toEqual({ x: 42 });
+  });
+
+  it('should perform an iteration', async () => {
+    const ast: MapDocumentNode = {
+      kind: 'MapDocument',
+      header,
+      definitions: [
+        {
+          kind: 'MapDefinition',
+          name: 'Test',
+          usecaseName: 'Test',
+          statements: [
+            {
+              kind: 'SetStatement',
+              assignments: [
+                {
+                  kind: 'Assignment',
+                  key: ['letters'],
+                  value: {
+                    kind: 'JessieExpression',
+                    expression: "['x', 'y', 'z']",
+                  },
+                },
+              ],
+            },
+            {
+              kind: 'SetStatement',
+              assignments: [
+                {
+                  kind: 'Assignment',
+                  key: ['results'],
+                  value: {
+                    kind: 'JessieExpression',
+                    expression: '[]',
+                  },
+                },
+              ],
+            },
+            {
+              kind: 'CallStatement',
+              operationName: 'TestOp',
+              iteration: {
+                kind: 'IterationAtom',
+                iterationVariable: 'letter',
+                iterable: {
+                  kind: 'JessieExpression',
+                  expression: 'letters.reverse()',
+                },
+              },
+              arguments: [
+                {
+                  kind: 'Assignment',
+                  key: ['letter'],
+                  value: {
+                    kind: 'JessieExpression',
+                    expression: 'letter',
+                  },
+                },
+              ],
+              statements: [
+                {
+                  kind: 'SetStatement',
+                  assignments: [
+                    {
+                      kind: 'Assignment',
+                      key: ['results'],
+                      value: {
+                        kind: 'JessieExpression',
+                        expression: 'results.concat(outcome.data)',
+                      },
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              kind: 'OutcomeStatement',
+              isError: false,
+              terminateFlow: false,
+              value: {
+                kind: 'ObjectLiteral',
+                fields: [
+                  {
+                    kind: 'Assignment',
+                    key: ['results'],
+                    value: {
+                      kind: 'JessieExpression',
+                      expression: 'results',
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+        },
+        {
+          kind: 'OperationDefinition',
+          name: 'TestOp',
+          statements: [
+            {
+              kind: 'OutcomeStatement',
+              isError: false,
+              terminateFlow: true,
+              value: {
+                kind: 'JessieExpression',
+                expression: 'args.letter.toUpperCase()',
+              },
+            },
+          ],
+        },
+      ],
+    };
+    const interpreter = new MapInterpreter({ usecase: 'Test' });
+    const result = await interpreter.perform(ast);
+
+    expect(result.isOk() && result.value).toEqual({ results: ['Z', 'Y', 'X'] });
+  });
+
+  it('should perform an inline iterating call', async () => {
+    const ast: MapDocumentNode = {
+      kind: 'MapDocument',
+      header,
+      definitions: [
+        {
+          kind: 'MapDefinition',
+          name: 'Test',
+          usecaseName: 'Test',
+          statements: [
+            {
+              kind: 'SetStatement',
+              assignments: [
+                {
+                  kind: 'Assignment',
+                  key: ['letters'],
+                  value: {
+                    kind: 'JessieExpression',
+                    expression: "['x', 'y', 'z']",
+                  },
+                },
+              ],
+            },
+            {
+              kind: 'SetStatement',
+              assignments: [
+                {
+                  kind: 'Assignment',
+                  key: ['results'],
+                  value: {
+                    kind: 'InlineCall',
+                    operationName: 'TestOp',
+                    iteration: {
+                      kind: 'IterationAtom',
+                      iterationVariable: 'letter',
+                      iterable: {
+                        kind: 'JessieExpression',
+                        expression: 'letters.reverse()',
+                      },
+                    },
+                    arguments: [
+                      {
+                        kind: 'Assignment',
+                        key: ['letter'],
+                        value: {
+                          kind: 'JessieExpression',
+                          expression: 'letter',
+                        },
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+            {
+              kind: 'OutcomeStatement',
+              isError: false,
+              terminateFlow: false,
+              value: {
+                kind: 'ObjectLiteral',
+                fields: [
+                  {
+                    kind: 'Assignment',
+                    key: ['results'],
+                    value: {
+                      kind: 'JessieExpression',
+                      expression: 'results',
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+        },
+        {
+          kind: 'OperationDefinition',
+          name: 'TestOp',
+          statements: [
+            {
+              kind: 'OutcomeStatement',
+              isError: false,
+              terminateFlow: true,
+              value: {
+                kind: 'JessieExpression',
+                expression: 'args.letter.toUpperCase()',
+              },
+            },
+          ],
+        },
+      ],
+    };
+
+    const interpreter = new MapInterpreter({ usecase: 'Test' });
+    const result = await interpreter.perform(ast);
+
+    expect(result.isOk() && result.value).toEqual({ results: ['Z', 'Y', 'X'] });
+  });
+
+  it('should perform an iteration with condition', async () => {
+    const ast: MapDocumentNode = {
+      kind: 'MapDocument',
+      header,
+      definitions: [
+        {
+          kind: 'MapDefinition',
+          name: 'Test',
+          usecaseName: 'Test',
+          statements: [
+            {
+              kind: 'SetStatement',
+              assignments: [
+                {
+                  kind: 'Assignment',
+                  key: ['letters'],
+                  value: {
+                    kind: 'JessieExpression',
+                    expression: "['x', 'y', 'z']",
+                  },
+                },
+              ],
+            },
+            {
+              kind: 'SetStatement',
+              assignments: [
+                {
+                  kind: 'Assignment',
+                  key: ['results'],
+                  value: {
+                    kind: 'JessieExpression',
+                    expression: '[]',
+                  },
+                },
+              ],
+            },
+            {
+              kind: 'CallStatement',
+              operationName: 'TestOp',
+              iteration: {
+                kind: 'IterationAtom',
+                iterationVariable: 'letter',
+                iterable: {
+                  kind: 'JessieExpression',
+                  expression: 'letters.reverse()',
+                },
+              },
+              condition: {
+                kind: 'ConditionAtom',
+                expression: {
+                  kind: 'JessieExpression',
+                  expression: "letter === 'x'",
+                },
+              },
+              arguments: [
+                {
+                  kind: 'Assignment',
+                  key: ['letter'],
+                  value: {
+                    kind: 'JessieExpression',
+                    expression: 'letter',
+                  },
+                },
+              ],
+              statements: [
+                {
+                  kind: 'SetStatement',
+                  assignments: [
+                    {
+                      kind: 'Assignment',
+                      key: ['results'],
+                      value: {
+                        kind: 'JessieExpression',
+                        expression: 'results.concat(outcome.data)',
+                      },
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              kind: 'OutcomeStatement',
+              isError: false,
+              terminateFlow: false,
+              value: {
+                kind: 'ObjectLiteral',
+                fields: [
+                  {
+                    kind: 'Assignment',
+                    key: ['results'],
+                    value: {
+                      kind: 'JessieExpression',
+                      expression: 'results',
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+        },
+        {
+          kind: 'OperationDefinition',
+          name: 'TestOp',
+          statements: [
+            {
+              kind: 'OutcomeStatement',
+              isError: false,
+              terminateFlow: true,
+              value: {
+                kind: 'JessieExpression',
+                expression: 'args.letter.toUpperCase()',
+              },
+            },
+          ],
+        },
+      ],
+    };
+    const interpreter = new MapInterpreter({ usecase: 'Test' });
+    const result = await interpreter.perform(ast);
+
+    expect(result.isOk() && result.value).toEqual({ results: ['X'] });
+  });
+
+  it('should perform an inline iterating call with condition', async () => {
+    const ast: MapDocumentNode = {
+      kind: 'MapDocument',
+      header,
+      definitions: [
+        {
+          kind: 'MapDefinition',
+          name: 'Test',
+          usecaseName: 'Test',
+          statements: [
+            {
+              kind: 'SetStatement',
+              assignments: [
+                {
+                  kind: 'Assignment',
+                  key: ['numbers'],
+                  value: {
+                    kind: 'JessieExpression',
+                    expression: '[1, 2, 3]',
+                  },
+                },
+              ],
+            },
+            {
+              kind: 'SetStatement',
+              assignments: [
+                {
+                  kind: 'Assignment',
+                  key: ['results'],
+                  value: {
+                    kind: 'InlineCall',
+                    operationName: 'TestOp',
+                    iteration: {
+                      kind: 'IterationAtom',
+                      iterationVariable: 'number',
+                      iterable: {
+                        kind: 'JessieExpression',
+                        expression: 'numbers',
+                      },
+                    },
+                    condition: {
+                      kind: 'ConditionAtom',
+                      expression: {
+                        kind: 'JessieExpression',
+                        expression: 'number % 2 !== 0',
+                      },
+                    },
+                    arguments: [
+                      {
+                        kind: 'Assignment',
+                        key: ['number'],
+                        value: {
+                          kind: 'JessieExpression',
+                          expression: 'number',
+                        },
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+            {
+              kind: 'OutcomeStatement',
+              isError: false,
+              terminateFlow: false,
+              value: {
+                kind: 'ObjectLiteral',
+                fields: [
+                  {
+                    kind: 'Assignment',
+                    key: ['results'],
+                    value: {
+                      kind: 'JessieExpression',
+                      expression: 'results',
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+        },
+        {
+          kind: 'OperationDefinition',
+          name: 'TestOp',
+          statements: [
+            {
+              kind: 'OutcomeStatement',
+              isError: false,
+              terminateFlow: true,
+              value: {
+                kind: 'JessieExpression',
+                expression: 'args.number * 2',
+              },
+            },
+          ],
+        },
+      ],
+    };
+
+    const interpreter = new MapInterpreter({ usecase: 'Test' });
+    const result = await interpreter.perform(ast);
+
+    expect(result.isOk() && result.value).toEqual({ results: [2, 6] });
   });
 });
