@@ -69,7 +69,7 @@ describe('MapInterpreter errors', () => {
     const providerInfo = {
       name: 'test',
       services: [],
-      defaultService: 'default'
+      defaultService: 'default',
     };
 
     beforeEach(async () => {

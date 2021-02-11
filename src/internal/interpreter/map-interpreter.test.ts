@@ -21,7 +21,7 @@ describe('MapInterpreter', () => {
   const providerInfo = {
     name: 'test',
     services: [],
-    defaultService: 'default'
+    defaultService: 'default',
   };
 
   beforeEach(async () => {
@@ -443,9 +443,9 @@ describe('MapInterpreter', () => {
         services: [
           {
             id: 'default',
-            baseUrl: 'override me'
-          }
-        ]
+            baseUrl: 'override me',
+          },
+        ],
       },
       superJson: {
         providers: {
@@ -453,7 +453,7 @@ describe('MapInterpreter', () => {
             services: [
               {
                 id: 'default',
-                baseUrl
+                baseUrl,
               },
             ],
           },
@@ -1581,7 +1581,11 @@ describe('MapInterpreter', () => {
   it('should correctly return from operation', async () => {
     await mockServer.get('/test').thenJson(200, {});
     const url = mockServer.urlFor('/test');
-    const interpreter = new MapInterpreter({ usecase: 'Test' });
+    const interpreter = new MapInterpreter({
+      usecase: 'Test',
+      provider: providerInfo,
+      serviceId: 'default',
+    });
     const ast: MapDocumentNode = {
       kind: 'MapDocument',
       header,
@@ -1735,7 +1739,11 @@ describe('MapInterpreter', () => {
         },
       ],
     };
-    const interpreter = new MapInterpreter({ usecase: 'test' });
+    const interpreter = new MapInterpreter({
+      usecase: 'test',
+      provider: providerInfo,
+      serviceId: 'default',
+    });
     const result = await interpreter.perform(ast);
     expect(result.isOk() && result.value).toEqual({ answer: 42 });
   });
@@ -1814,7 +1822,11 @@ describe('MapInterpreter', () => {
         },
       ],
     };
-    const interpreter = new MapInterpreter({ usecase: 'test' });
+    const interpreter = new MapInterpreter({
+      usecase: 'test',
+      provider: providerInfo,
+      serviceId: 'default',
+    });
     const result = await interpreter.perform(ast);
     expect(result.isOk() && result.value).toEqual({ a: 41, b: 42 });
   });
@@ -1965,7 +1977,11 @@ describe('MapInterpreter', () => {
         },
       ],
     };
-    const interpreter = new MapInterpreter({ usecase: 'Test' });
+    const interpreter = new MapInterpreter({
+      usecase: 'Test',
+      provider: providerInfo,
+      serviceId: 'default',
+    });
     const result = await interpreter.perform(ast);
     expect(result.isOk() && result.value).toEqual({
       f: { a: 41 },
@@ -2058,7 +2074,11 @@ describe('MapInterpreter', () => {
         },
       ],
     };
-    const interpreter = new MapInterpreter({ usecase: 'test' });
+    const interpreter = new MapInterpreter({
+      usecase: 'test',
+      provider: providerInfo,
+      serviceId: 'default',
+    });
     const result = await interpreter.perform(ast);
     expect(result.isOk() && result.value).toEqual({ answer: { a: 42 } });
   });
@@ -2140,7 +2160,11 @@ describe('MapInterpreter', () => {
         },
       ],
     };
-    const interpreter = new MapInterpreter({ usecase: 'Test' });
+    const interpreter = new MapInterpreter({
+      usecase: 'Test',
+      provider: providerInfo,
+      serviceId: 'default',
+    });
     const result = await interpreter.perform(ast);
     if (result.isErr()) {
       console.log(result.error);
@@ -2258,7 +2282,11 @@ describe('MapInterpreter', () => {
         },
       ],
     };
-    const interpreter = new MapInterpreter({ usecase: 'Test' });
+    const interpreter = new MapInterpreter({
+      usecase: 'Test',
+      provider: providerInfo,
+      serviceId: 'default',
+    });
     const result = await interpreter.perform(ast);
 
     expect(result.isOk() && result.value).toEqual({ results: ['Z', 'Y', 'X'] });
@@ -2356,7 +2384,11 @@ describe('MapInterpreter', () => {
       ],
     };
 
-    const interpreter = new MapInterpreter({ usecase: 'Test' });
+    const interpreter = new MapInterpreter({
+      usecase: 'Test',
+      provider: providerInfo,
+      serviceId: 'default',
+    });
     const result = await interpreter.perform(ast);
 
     expect(result.isOk() && result.value).toEqual({ results: ['Z', 'Y', 'X'] });
@@ -2479,7 +2511,11 @@ describe('MapInterpreter', () => {
         },
       ],
     };
-    const interpreter = new MapInterpreter({ usecase: 'Test' });
+    const interpreter = new MapInterpreter({
+      usecase: 'Test',
+      provider: providerInfo,
+      serviceId: 'default',
+    });
     const result = await interpreter.perform(ast);
 
     expect(result.isOk() && result.value).toEqual({ results: ['X'] });
@@ -2584,7 +2620,11 @@ describe('MapInterpreter', () => {
       ],
     };
 
-    const interpreter = new MapInterpreter({ usecase: 'Test' });
+    const interpreter = new MapInterpreter({
+      usecase: 'Test',
+      provider: providerInfo,
+      serviceId: 'default',
+    });
     const result = await interpreter.perform(ast);
 
     expect(result.isOk() && result.value).toEqual({ results: [2, 6] });

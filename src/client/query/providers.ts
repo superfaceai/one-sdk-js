@@ -1,20 +1,23 @@
-import { readFile } from 'fs/promises';
-import { join as joinPath } from 'path';
-
 import {
   // isMapDocumentNode,
   MapDocumentNode,
   ProfileDocumentNode,
 } from '@superfaceai/ast';
+import { promises as fsp } from 'fs';
+import { join as joinPath } from 'path';
 
 import {
   MapInterpreter,
   ProfileParameterValidator,
   ProviderConfig,
-  ProviderInfo
+  ProviderInfo,
 } from '../../internal/interpreter';
 import { NonPrimitive } from '../../internal/interpreter/variables';
-import { isFileURIString, loadSuperJSON, SuperJSONDocument } from '../../internal/superjson';
+import {
+  isFileURIString,
+  loadSuperJSON,
+  SuperJSONDocument,
+} from '../../internal/superjson';
 import { err, ok, Result } from '../../lib';
 // import { fetchMapAST } from './registry';
 
@@ -82,10 +85,9 @@ export class BoundProvider {
   }
 }
 
-
 export type BindConfig = {
-  auth?: ProviderConfig['auth'],
-  service?: string
+  auth?: ProviderConfig['auth'];
+  service?: string;
 };
 
 export class Provider {
@@ -115,12 +117,16 @@ export class Provider {
           return undefined;
         } else {
           // TODO: I really have no idea if this is correct
-          return 'file:' + joinPath(process.cwd(), 'superface', 'build', profileId) + '.supr.ast.json';
+          return (
+            'file:' +
+            joinPath(process.cwd(), 'superface', 'build', profileId) +
+            '.supr.ast.json'
+          );
         }
       }
     );
     if (profileAst === undefined) {
-      throw new Error('Invalid profile')
+      throw new Error('Invalid profile');
     }
 
     const providerInfo = await Provider.resolveValue(
@@ -129,7 +135,7 @@ export class Provider {
       _input => undefined // TODO: take from registry
     );
     if (providerInfo === undefined) {
-      throw new Error('Invalid provider info')
+      throw new Error('Invalid provider info');
     }
 
     const mapAst = await Provider.resolveValue(
@@ -148,11 +154,18 @@ export class Provider {
         }
 
         // TODO: I really have no idea if this is correct
-        return 'file:' + joinPath(process.cwd(), 'superface', 'build', baseName) + '.' + providerInfo.name + variant + '.suma.ast.json';
+        return (
+          'file:' +
+          joinPath(process.cwd(), 'superface', 'build', baseName) +
+          '.' +
+          providerInfo.name +
+          variant +
+          '.suma.ast.json'
+        );
       }
     );
     if (mapAst === undefined) {
-      throw new Error('Invalid map')
+      throw new Error('Invalid map');
     }
 
     return new BoundProvider(
@@ -169,7 +182,7 @@ export class Provider {
   // TODO: Put in appropriate place
   /**
    * Returns the value resolved from the input.
-   * 
+   *
    * The recognized input values are:
    * * The value itself, returned straight away
    * * `undefined`, returned straight away
@@ -184,13 +197,16 @@ export class Provider {
     if (typeof input === 'string') {
       if (isFileURIString(input)) {
         // read in files
-        return parseFile(await readFile(input.slice('file:'.length), { encoding: 'utf-8' }))
-      } else if (false) {
+        return parseFile(
+          await fsp.readFile(input.slice('file:'.length), { encoding: 'utf-8' })
+          );
+        } else if (false) { // eslint-disable-line no-constant-condition
         // TODO: detect remote url and fetch it, or call a callback
       } else {
         // unpack nested and recursively process them
-        const nested = unpackNested(input)
-        return Provider.resolveValue(nested, parseFile, unpackNested)
+        const nested = unpackNested(input);
+
+        return Provider.resolveValue(nested, parseFile, unpackNested);
       }
     } else {
       // return undefined and T

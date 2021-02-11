@@ -68,12 +68,12 @@ function hasIteration<T extends CallStatementNode | InlineCallNode>(
 
 // TODO: Probably deserves own module and zod parser?
 export type ProviderInfo = {
-  name: string,
+  name: string;
   services: {
-    id: string,
-    baseUrl: string
-  }[],
-  defaultService: string
+    id: string;
+    baseUrl: string;
+  }[];
+  defaultService: string;
 };
 export type ProviderConfig = {
   auth?: Auth;
@@ -297,7 +297,8 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
       security: request?.security,
       auth:
         this.parameters.config?.auth ??
-        this.parameters.superJson?.providers?.[this.parameters.provider.name].auth,
+        this.parameters.superJson?.providers?.[this.parameters.provider.name]
+          .auth,
     });
 
     for (const [handler] of responseHandlers) {
@@ -711,9 +712,10 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
   private get baseUrl(): string | undefined {
     const prov = this.parameters.provider;
 
-    const superOverride = this.parameters.superJson?.providers?.[prov.name].services?.find(
-      service => service.id === this.parameters.serviceId
-    )?.baseUrl;
+    const superOverride = this.parameters.superJson?.providers?.[
+      prov.name
+    ].services?.find(service => service.id === this.parameters.serviceId)
+      ?.baseUrl;
     if (superOverride !== undefined) {
       return superOverride;
     }
