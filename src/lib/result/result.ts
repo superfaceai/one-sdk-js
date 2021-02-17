@@ -26,6 +26,10 @@ export class Ok<T, E> {
   match<A>(ok: (t: T) => A, _err: (e: E) => A): A {
     return ok(this.value);
   }
+
+  unwrap(): T {
+    return this.value;
+  }
 }
 
 export class Err<T, E> {
@@ -57,6 +61,10 @@ export class Err<T, E> {
 
   match<A>(_ok: (t: T) => A, err: (e: E) => A): A {
     return err(this.error);
+  }
+
+  unwrap(): T {
+    throw this.error;
   }
 }
 

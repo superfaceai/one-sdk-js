@@ -1,16 +1,11 @@
-import {
-  // isMapDocumentNode,
-  MapDocumentNode,
-  ProfileDocumentNode,
-} from '@superfaceai/ast';
+import { MapDocumentNode, ProfileDocumentNode } from '@superfaceai/ast';
+import createDebug from 'debug';
 import { promises as fsp } from 'fs';
 import { join as joinPath } from 'path';
 
 import {
   MapInterpreter,
   ProfileParameterValidator,
-  ProviderConfig,
-  ProviderInfo,
 } from '../../internal/interpreter';
 import {
   castToNonPrimitive,
@@ -18,63 +13,77 @@ import {
   NonPrimitive,
 } from '../../internal/interpreter/variables';
 import {
+  AuthVariables,
   isFileURIString,
-  loadSuperJSON,
-  normalizedProfileSettings,
-  resolveEnvRecord,
-  SuperJSONDocument,
+  NormalizedProfileProviderSettings,
+  NormalizedSuperJsonDocument,
+  SuperJson,
 } from '../../internal/superjson';
 import { err, ok, Result } from '../../lib';
-// import { fetchMapAST } from './registry';
+import clone from '../../lib/clone';
+import { fetchBind, ProviderJson } from './registry';
 
 function forceCast<T>(_: unknown): asserts _ is T {}
+
+function profileAstId(ast: ProfileDocumentNode): string {
+  return ast.header.scope !== undefined
+    ? ast.header.scope + '/' + ast.header.name
+    : ast.header.name;
+}
+
+export type BindConfig = {
+  serviceId?: string;
+  auth?: AuthVariables;
+};
 
 export class BoundProvider {
   private profileValidator: ProfileParameterValidator;
 
   constructor(
-    private profileAST: ProfileDocumentNode,
-    private mapAST: MapDocumentNode,
-    private provider: ProviderInfo,
-    private serviceId: string,
-    private superJson?: SuperJSONDocument,
-    private config?: ProviderConfig
+    private superJson: NormalizedSuperJsonDocument,
+    private profileAst: ProfileDocumentNode,
+    private provider: ProviderJson,
+    private mapAst: MapDocumentNode,
+    private bindConfig: BindConfig
   ) {
-    this.profileValidator = new ProfileParameterValidator(this.profileAST);
+    this.profileValidator = new ProfileParameterValidator(this.profileAst);
   }
 
   private composeInput(
     usecase: string,
     input?: NonPrimitive | undefined
   ): NonPrimitive | undefined {
-    let profileId = this.profileAST.header.name;
-    if (this.profileAST.header.scope !== undefined) {
-      profileId = this.profileAST.header.scope + '/' + profileId;
-    }
-    const profileSettings = normalizedProfileSettings(
-      this.superJson ?? {},
-      profileId
-    );
+    const profileId = profileAstId(this.profileAst);
+    const profileSettings = this.superJson.profiles[profileId];
 
+    // obtain default from normalized super.json
     const defaultInput = castToNonPrimitive(
-      profileSettings?.defaults?.[usecase]?.input
-    );
-    const providerDefaultInput = castToNonPrimitive(
-      profileSettings?.providers?.[this.provider.name]?.defaults?.[usecase]
-        ?.input
+      profileSettings.providers[this.provider.name]?.defaults[usecase]?.input
     );
 
-    let defaults = defaultInput ?? providerDefaultInput;
-    if (defaultInput !== undefined && providerDefaultInput !== undefined) {
-      defaults = mergeVariables(defaultInput, providerDefaultInput);
-    }
-    if (defaults !== undefined) {
-      defaults = resolveEnvRecord(defaults);
+    let composed = input;
+    if (defaultInput !== undefined) {
+      // clone so we don't mutate super.json and resolve env for super.json values only
+      const cloned = SuperJson.resolveEnvRecord(clone(defaultInput));
+
+      // merge with input
+      composed = mergeVariables(cloned, input ?? {});
     }
 
-    let composed = input ?? defaults;
-    if (defaults !== undefined && input !== undefined) {
-      composed = { ...defaults, ...input };
+    return composed;
+  }
+
+  private composeAuth(): AuthVariables {
+    const providerSettings = this.superJson.providers[this.provider.name];
+    const defaultAuth = castToNonPrimitive(providerSettings?.auth);
+
+    let composed = this.bindConfig.auth ?? {};
+    if (defaultAuth !== undefined) {
+      // clone so we don't mutate super.json and resolve env for super.json values only
+      const cloned = SuperJson.resolveEnvRecord(clone(defaultAuth));
+
+      // merge with provided auth
+      composed = mergeVariables(cloned, composed);
     }
 
     return composed;
@@ -88,6 +97,7 @@ export class BoundProvider {
     TResult = unknown
   >(usecase: string, input?: TInput): Promise<Result<TResult, unknown>> {
     const composedInput = this.composeInput(usecase, input);
+
     const inputValidation = this.profileValidator.validate(
       composedInput,
       'input',
@@ -101,13 +111,13 @@ export class BoundProvider {
     const interpreter = new MapInterpreter<TInput>({
       input: composedInput,
       usecase,
-      provider: this.provider,
-      superJson: this.superJson,
-      serviceId: this.serviceId,
-      config: this.config,
+      serviceBaseUrl: this.provider.services.find(
+        s => s.id == this.bindConfig.serviceId
+      )?.baseUrl,
+      auth: this.composeAuth(),
     });
 
-    const result = await interpreter.perform(this.mapAST);
+    const result = await interpreter.perform(this.mapAst);
 
     if (result.isErr()) {
       return err(result.error);
@@ -129,18 +139,14 @@ export class BoundProvider {
   }
 }
 
-export type BindConfig = {
-  auth?: ProviderConfig['auth'];
-  service?: string;
-};
-
+const providerDebug = createDebug('superface:Provider');
 export class Provider {
   constructor(
     /** profile id, url or ast node */
     private profile: string | ProfileDocumentNode,
     /** provider name, url or config object */
-    private provider: string | ProviderInfo,
-    /** map variant, url or ast node */
+    private provider: string | ProviderJson,
+    /** url or ast node */
     private map?: string | MapDocumentNode
   ) {}
 
@@ -150,80 +156,160 @@ export class Provider {
    * This fetches the map and allows to perform.
    */
   public async bind(config?: BindConfig): Promise<BoundProvider> {
-    const superJson = await loadSuperJSON();
+    const superJson = new SuperJson(
+      (await SuperJson.loadSuperJson()).match(
+        v => v,
+        err => {
+          providerDebug(err);
 
+          return {};
+        }
+      )
+    );
+    const normalizedSuper = superJson.normalized;
+
+    // resolve profile locally
+    const profileAst = await this.resolveProfileAst(normalizedSuper);
+    if (profileAst === undefined) {
+      throw new Error('Invalid profile');
+    }
+    const profileId = profileAstId(profileAst);
+
+    // resolve provider from parameters or defer until later
+    // eslint-disable-next-line prefer-const
+    let { providerInfo, providerName } = await this.resolveProviderInfo(
+      normalizedSuper
+    );
+
+    // resolve map from parameters or defer until later
+    const profileProviderSettings =
+      normalizedSuper.profiles[profileId].providers[providerName];
+
+    // eslint-disable-next-line prefer-const
+    let { mapAst, mapVariant, mapRevision } = await this.resolveMapAst(
+      profileProviderSettings
+    );
+
+    // resolve map ast using bind and fill in provider info if not specified
+    if (mapAst === undefined) {
+      // TODO: call registry bind
+      const fetchResponse = await fetchBind(
+        'TODO: registry url',
+        profileId +
+          `@${profileAst.header.version.major}.${profileAst.header.version.minor}.${profileAst.header.version.patch}`,
+        providerName,
+        mapVariant,
+        mapRevision
+      );
+
+      providerInfo ??= fetchResponse.provider;
+      mapAst = fetchResponse.mapAst;
+    } else if (providerInfo === undefined) {
+      // resolve only provider info if map is specified locally
+      // TODO: call registry provider getter
+      throw 'NOT IMPLEMENTED: map provided locally but provider is not';
+    }
+
+    return new BoundProvider(
+      normalizedSuper,
+      profileAst,
+      providerInfo,
+      mapAst,
+      config ?? {}
+    );
+  }
+
+  private async resolveProfileAst(
+    normalizedSuper: NormalizedSuperJsonDocument
+  ): Promise<ProfileDocumentNode | undefined> {
+    const superfaceGrid = joinPath(process.cwd(), 'superface', 'grid');
     const profileAst = await Provider.resolveValue(
       this.profile,
-      fileContents => JSON.parse(fileContents) as ProfileDocumentNode, // TODO: validate?
+      fileContents => JSON.parse(fileContents) as ProfileDocumentNode, // TODO: validate
       profileId => {
-        const entry = superJson?.profiles?.[profileId];
-        if (entry === undefined) {
+        const profileSettings = normalizedSuper.profiles[profileId];
+        if (profileSettings === undefined) {
+          // not found at all
           return undefined;
+        } else if ('file' in profileSettings) {
+          // assumed right next to source file
+          return profileSettings.file + '.ast.json';
         } else {
-          // TODO: I really have no idea if this is correct
+          // assumed to be in grid folder
           return (
-            'file:' +
-            joinPath(process.cwd(), 'superface', 'build', profileId) +
-            '.supr.ast.json'
+            'file://' +
+            joinPath(
+              superfaceGrid,
+              profileId + `@${profileSettings.version}.supr.ast.json`
+            )
           );
         }
       }
     );
-    if (profileAst === undefined) {
-      throw new Error('Invalid profile');
-    }
 
-    const providerInfo = await Provider.resolveValue(
-      this.provider,
-      fileContents => JSON.parse(fileContents) as ProviderInfo, // TODO: validate?
-      _input => undefined // TODO: take from registry
-    );
-    if (providerInfo === undefined) {
-      throw new Error('Invalid provider info');
-    }
-
-    const mapAst = await Provider.resolveValue(
-      this.map ?? 'default',
-      fileContents => JSON.parse(fileContents) as MapDocumentNode, // TODO: validate?
-      mapVariant => {
-        let baseName = profileAst.header.name;
-        if (profileAst.header.scope !== undefined) {
-          baseName = joinPath(profileAst.header.scope, baseName);
-        }
-
-        // TODO: Where does the revision fit in here?
-        let variant = '';
-        if (mapVariant !== 'default') {
-          variant = '.' + mapVariant;
-        }
-
-        // TODO: I really have no idea if this is correct
-        return (
-          'file:' +
-          joinPath(process.cwd(), 'superface', 'build', baseName) +
-          '.' +
-          providerInfo.name +
-          variant +
-          '.suma.ast.json'
-        );
-      }
-    );
-    if (mapAst === undefined) {
-      throw new Error('Invalid map');
-    }
-
-    return new BoundProvider(
-      profileAst,
-      mapAst,
-      providerInfo,
-      config?.service ?? providerInfo.defaultService,
-      superJson,
-      config
-    );
+    return profileAst;
   }
 
-  // TODO: Maybe too much abstraction?
-  // TODO: Put in appropriate place
+  private async resolveProviderInfo(
+    normalizedSuper: NormalizedSuperJsonDocument
+  ): Promise<{ providerInfo?: ProviderJson; providerName: string }> {
+    const providerInfo = await Provider.resolveValue<ProviderJson>(
+      this.provider,
+      fileContents => JSON.parse(fileContents) as ProviderJson, // TODO: validate
+      providerName => {
+        const providerSettings = normalizedSuper.providers[providerName];
+        if (providerSettings !== undefined && 'file' in providerSettings) {
+          // local file is resolved
+          return providerSettings.file;
+        } else {
+          // local file not specified
+          return undefined;
+        }
+      }
+    );
+
+    if (providerInfo === undefined) {
+      // if the providerInfo is undefined then this must be a string that resolveValue returned undefined for.
+      forceCast<string>(this.provider);
+
+      return { providerName: this.provider };
+    } else {
+      return { providerInfo, providerName: providerInfo.name };
+    }
+  }
+
+  private async resolveMapAst(
+    profileProviderSettings: NormalizedProfileProviderSettings | undefined
+  ): Promise<{
+    mapAst?: MapDocumentNode;
+    mapVariant?: string;
+    mapRevision?: string;
+  }> {
+    let localMapPath;
+    if (
+      profileProviderSettings !== undefined &&
+      'file' in profileProviderSettings
+    ) {
+      localMapPath = 'file://' + profileProviderSettings.file + '.ast.json';
+    }
+    // nice job typescript, you really deduced that one
+    forceCast<
+      undefined | Exclude<NormalizedProfileProviderSettings, { file: string }>
+    >(profileProviderSettings);
+
+    const mapAst = await Provider.resolveValue<MapDocumentNode>(
+      this.map ?? localMapPath,
+      fileContents => JSON.parse(fileContents) as MapDocumentNode, // TODO: validate
+      _ => undefined
+    );
+
+    return {
+      mapAst,
+      mapVariant: profileProviderSettings?.mapVariant,
+      mapRevision: profileProviderSettings?.mapRevision,
+    };
+  }
+
   /**
    * Returns the value resolved from the input.
    *
@@ -231,7 +317,7 @@ export class Provider {
    * * The value itself, returned straight away
    * * `undefined`, returned straight away
    * * File URI that is read and the contents are passed to the `parseFile` function
-   * * For other values, the function is called recursively with `unpackNested(input)`
+   * * For other values `unpackNested(input)` is called recursively with
    */
   private static async resolveValue<T>(
     input: T | string | undefined,
@@ -246,7 +332,7 @@ export class Provider {
         );
         // eslint-disable-next-line no-constant-condition
       } else if (false) {
-        // TODO: detect remote url and fetch it, or call a callback
+        // TODO: detect remote url and fetch it, or call a callback?
       } else {
         // unpack nested and recursively process them
         const nested = unpackNested(input);

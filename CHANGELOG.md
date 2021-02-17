@@ -1,9 +1,15 @@
 ## [Unreleased]
-### Added
-* super.json support
 
 ### Added
+* super.json support
 * Iteration support in Maps
+* Environment variable resolution from super.json
+* Normalized super.json representation
+
+### Changed
+* `Provider` class interface simplified
+* File uris to use `file://` protocol prefix
+* Simplified the parameters to MapInterpreter
 
 ### Fixed
 * Incorrect scoping

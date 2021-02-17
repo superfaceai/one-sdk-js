@@ -29,7 +29,7 @@ import createDebug from 'debug';
 import { err, ok, Result } from '../../lib';
 import { UnexpectedError } from '../errors';
 import { HttpClient, HttpResponse } from '../http';
-import { Auth, SuperJSONDocument } from '../superjson';
+import { AuthVariables } from '../superjson';
 import {
   HTTPError,
   JessieError,
@@ -66,28 +66,13 @@ function hasIteration<T extends CallStatementNode | InlineCallNode>(
   return node.iteration !== undefined;
 }
 
-// TODO: Probably deserves own module and zod parser?
-export type ProviderInfo = {
-  name: string;
-  services: {
-    id: string;
-    baseUrl: string;
-  }[];
-  defaultService: string;
-};
-export type ProviderConfig = {
-  auth?: Auth;
-};
-
 export interface MapParameters<
   TInput extends NonPrimitive | undefined = undefined
 > {
   usecase?: string;
   input?: TInput;
-  superJson?: SuperJSONDocument;
-  provider: ProviderInfo;
-  serviceId: string;
-  config?: ProviderConfig;
+  serviceBaseUrl?: string;
+  auth?: AuthVariables;
 }
 
 type HttpResponseHandler = (
@@ -284,37 +269,17 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
     }
 
     debug('Performing http request:', node.url);
-
-    // TODO: Merge the auth?
-    /*
-    // merge auth from bind with auth from super.json
-    let auth = this.parameters.superJson?.providers?.[this.parameters.provider.name].auth;
-    if (this.parameters.config?.auth !== undefined) {
-      if (auth === undefined) {
-        auth = this.parameters.config.auth;
-      } else {
-        auth = {
-          ...auth,
-          ...this.parameters.config.auth
-        }
-      }
-    }
-    */
-
     const response = await HttpClient.request(node.url, {
       method: node.method,
       headers: request?.headers,
       contentType: request?.contentType ?? 'application/json',
       accept,
-      baseUrl: this.baseUrl,
+      baseUrl: this.parameters.serviceBaseUrl,
       queryParameters: request?.queryParameters,
       pathParameters: this.variables,
       body: request?.body,
       security: request?.security,
-      auth:
-        this.parameters.config?.auth ??
-        this.parameters.superJson?.providers?.[this.parameters.provider.name]
-          .auth,
+      auth: this.parameters.auth,
     });
 
     for (const [handler] of responseHandlers) {
@@ -723,21 +688,5 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
       const result = await this.visitCallCommon(node);
       await processResult(result);
     }
-  }
-
-  private get baseUrl(): string | undefined {
-    const prov = this.parameters.provider;
-
-    const superOverride = this.parameters.superJson?.providers?.[
-      prov.name
-    ].services?.find(service => service.id === this.parameters.serviceId)
-      ?.baseUrl;
-    if (superOverride !== undefined) {
-      return superOverride;
-    }
-
-    return prov.services.find(
-      service => service.id === this.parameters.serviceId
-    )?.baseUrl;
   }
 }

@@ -6,7 +6,7 @@ import createDebug from 'debug';
 
 import { evalScript } from './interpreter/sandbox';
 import { NonPrimitive, Variables } from './interpreter/variables';
-import { Auth, resolveEnv } from './superjson';
+import { AuthVariables, SuperJson } from './superjson';
 
 const debug = createDebug('superface:http');
 
@@ -62,13 +62,13 @@ const queryParameters = (parameters?: Record<string, string>): string => {
   return '';
 };
 
-const basicAuth = (auth: Auth, headers: Headers): void => {
+const basicAuth = (auth: AuthVariables, headers: Headers): void => {
   if (!('BasicAuth' in auth)) {
     throw new Error('Missing credentials for Basic auth!');
   }
 
-  const name = resolveEnv(auth.BasicAuth.username);
-  const password = resolveEnv(auth.BasicAuth.password);
+  const name = SuperJson.resolveEnv(auth.BasicAuth.username);
+  const password = SuperJson.resolveEnv(auth.BasicAuth.password);
 
   const value =
     'Basic ' + Buffer.from(`${name}:${password}`).toString('base64');
@@ -76,7 +76,7 @@ const basicAuth = (auth: Auth, headers: Headers): void => {
 };
 
 const apikeyAuth = (
-  auth: Auth,
+  auth: AuthVariables,
   pathParameters: NonPrimitive,
   queryAuth: Record<string, string>,
   headers: Headers,
@@ -87,8 +87,8 @@ const apikeyAuth = (
   }
 
   // TODO: Should we be resolving the name?
-  const name = resolveEnv(auth.ApiKey.name);
-  const value = resolveEnv(auth.ApiKey.value);
+  const name = SuperJson.resolveEnv(auth.ApiKey.name);
+  const value = SuperJson.resolveEnv(auth.ApiKey.value);
 
   switch (auth.ApiKey.in) {
     case 'header':
@@ -111,14 +111,14 @@ const apikeyAuth = (
   }
 };
 
-const bearerAuth = (auth: Auth, headers: Headers): void => {
+const bearerAuth = (auth: AuthVariables, headers: Headers): void => {
   if (!('Bearer' in auth)) {
     throw new Error('Bearer credentials not present.');
   }
 
   // TODO: Should we be resolving the name?
-  const name = resolveEnv(auth.Bearer.name);
-  const value = resolveEnv(auth.Bearer.value);
+  const name = SuperJson.resolveEnv(auth.Bearer.name);
+  const value = SuperJson.resolveEnv(auth.Bearer.value);
 
   headers.append(name, `Bearer ${value}`);
 };
@@ -200,7 +200,7 @@ export const HttpClient = {
       contentType?: string;
       accept?: string;
       security?: HttpSecurity;
-      auth?: Auth;
+      auth?: AuthVariables;
       baseUrl?: string;
       pathParameters?: NonPrimitive;
     }

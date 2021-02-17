@@ -1,17 +1,12 @@
 import { promises } from 'fs';
 import { join as joinPath } from 'path';
 
-import {
-  isFileURIString,
-  isVersionString,
-  loadSuperJSON,
-  parseSuperJSON,
-} from './superjson';
+import { isFileURIString, isVersionString, SuperJson } from './superjson';
 
 const { unlink, rmdir, mkdir, writeFile } = promises;
 const basedir = process.cwd();
 
-describe('SuperJSONDocument', () => {
+describe('SuperJsonDocument', () => {
   it('parses valid super.json', () => {
     {
       const superJson = `{
@@ -39,7 +34,7 @@ describe('SuperJSONDocument', () => {
           }
         }
       }`;
-      expect(() => parseSuperJSON(JSON.parse(superJson))).not.toThrow();
+      expect(SuperJson.parseSuperJson(JSON.parse(superJson)).isOk()).toBe(true);
     }
     {
       const superJson = `{
@@ -98,15 +93,11 @@ describe('SuperJSONDocument', () => {
           }
         }
       }`;
-      expect(() => parseSuperJSON(JSON.parse(superJson))).not.toThrow();
+      expect(SuperJson.parseSuperJson(JSON.parse(superJson)).isOk()).toBe(true);
     }
   });
 
-  it('throws on invalid document', () => {
-    {
-      const superJson = `{ invalid: json }`;
-      expect(() => parseSuperJSON(JSON.parse(superJson))).toThrow();
-    }
+  it('returns error on invalid document', () => {
     {
       const superJson = `{
         "profiles": {
@@ -133,7 +124,9 @@ describe('SuperJSONDocument', () => {
           }
         }
       }`;
-      expect(() => parseSuperJSON(JSON.parse(superJson))).toThrow();
+      expect(SuperJson.parseSuperJson(JSON.parse(superJson)).isErr()).toBe(
+        true
+      );
     }
     {
       const superJson = `{
@@ -161,17 +154,216 @@ describe('SuperJSONDocument', () => {
           }
         }
       }`;
-      expect(() => parseSuperJSON(JSON.parse(superJson))).toThrow();
+      expect(SuperJson.parseSuperJson(JSON.parse(superJson)).isErr()).toBe(
+        true
+      );
     }
     {
       const superJson = `"hello"`;
-      expect(() => parseSuperJSON(JSON.parse(superJson))).toThrow();
+      expect(SuperJson.parseSuperJson(JSON.parse(superJson)).isErr()).toBe(
+        true
+      );
     }
   });
 
-  it('returns undefined when super.json does not exist', async () => {
-    const result = await loadSuperJSON();
-    expect(result).toBeUndefined();
+  it('returns error when super.json does not exist', async () => {
+    const result = await SuperJson.loadSuperJson();
+    expect(result.isErr()).toBe(true);
+  });
+
+  it('normalizes super.json correctly', () => {
+    const superJson = `{
+      "profiles": {
+        "a": "file://a.supr",
+        "b": "0.1.0",
+        "x/a": {
+          "file": "x/a.supr"
+        },
+        "x/b": {
+          "version": "0.2.1",
+          "defaults": {
+            "Test": {}
+          }
+        },
+        "y/a": {
+          "version": "1.2.3",
+          "providers": {
+            "foo": "file://y/a.suma",
+            "baz": {
+              "mapVariant": "bugfix"
+            }
+          }
+        },
+        "y/b": {
+          "version": "1.2.3",
+          "defaults": {
+            "Usecase": {
+              "input": {
+                "a": 1,
+                "b": {
+                  "x": 1,
+                  "y": true
+                }
+              }
+            }
+          },
+          "providers": {
+            "foo": {
+              "defaults": {
+                "Usecase": {
+                  "input": {}
+                }
+              }
+            },
+            "bar": {
+              "defaults": {
+                "Usecase": {
+                  "input": {
+                    "a": 12,
+                    "b": {
+                      "x": {}
+                    },
+                    "c": {
+                      "hello": 17
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "providers": {
+        "foo": "file:///foo.provider.json",
+        "bar": {
+          "file": "./bar.provider.json",
+          "auth": {}
+        },
+        "baz": {
+          "auth": {
+            "BasicAuth": {
+              "username": "hi",
+              "password": "heya"
+            }
+          }
+        }
+      }
+    }`;
+
+    const doc = new SuperJson(
+      SuperJson.parseSuperJson(JSON.parse(superJson)).unwrap()
+    );
+    expect(doc.normalized).toStrictEqual({
+      profiles: {
+        a: {
+          defaults: {},
+          providers: {},
+          file: 'a.supr',
+        },
+        b: {
+          defaults: {},
+          providers: {},
+          version: '0.1.0',
+        },
+        'x/a': {
+          defaults: {},
+          providers: {},
+          file: 'x/a.supr',
+        },
+        'x/b': {
+          defaults: {
+            Test: {
+              input: {},
+            },
+          },
+          providers: {},
+          version: '0.2.1',
+        },
+        'y/a': {
+          defaults: {},
+          providers: {
+            foo: {
+              file: 'y/a.suma',
+              defaults: {},
+            },
+            baz: {
+              mapVariant: 'bugfix',
+              mapRevision: undefined,
+              defaults: {},
+            },
+          },
+          version: '1.2.3',
+        },
+        'y/b': {
+          defaults: {
+            Usecase: {
+              input: {
+                a: 1,
+                b: {
+                  x: 1,
+                  y: true,
+                },
+              },
+            },
+          },
+          providers: {
+            foo: {
+              defaults: {
+                Usecase: {
+                  input: {
+                    a: 1,
+                    b: {
+                      x: 1,
+                      y: true,
+                    },
+                  },
+                },
+              },
+              mapVariant: undefined,
+              mapRevision: undefined,
+            },
+            bar: {
+              defaults: {
+                Usecase: {
+                  input: {
+                    a: 12,
+                    b: {
+                      x: {},
+                      y: true,
+                    },
+                    c: {
+                      hello: 17,
+                    },
+                  },
+                },
+              },
+              mapVariant: undefined,
+              mapRevision: undefined,
+            },
+          },
+          version: '1.2.3',
+        },
+      },
+      providers: {
+        foo: {
+          file: '/foo.provider.json',
+          auth: {},
+        },
+        bar: {
+          file: './bar.provider.json',
+          auth: {},
+        },
+        baz: {
+          file: undefined,
+          auth: {
+            BasicAuth: {
+              username: 'hi',
+              password: 'heya',
+            },
+          },
+        },
+      },
+    });
   });
 
   describe('super.json present', () => {
@@ -212,8 +404,8 @@ describe('SuperJSONDocument', () => {
     });
 
     it('correctly parses super.json when it is present', async () => {
-      const result = await loadSuperJSON();
-      expect(result).toBeTruthy();
+      const result = await SuperJson.loadSuperJson();
+      expect(result.isOk()).toBe(true);
     });
   });
 
@@ -224,14 +416,12 @@ describe('SuperJSONDocument', () => {
     expect(isVersionString('1')).toBe(false);
     expect(isVersionString('^1.0.0')).toBe(false);
     expect(isVersionString('hippopotamus')).toBe(false);
-    expect(isVersionString(true)).toBe(false);
   });
 
   it('checks file URI string validity', () => {
-    expect(isFileURIString('file:../superface.suma')).toBe(true);
-    expect(isFileURIString('file:/superface.suma')).toBe(true);
-    expect(isFileURIString('file:superface.suma')).toBe(true);
+    expect(isFileURIString('file://../superface.suma')).toBe(true);
+    expect(isFileURIString('file:///superface.suma')).toBe(true);
+    expect(isFileURIString('file://superface.suma')).toBe(true);
     expect(isFileURIString('a banana daiquiri')).toBe(false);
-    expect(isFileURIString(false)).toBe(false);
   });
 });
