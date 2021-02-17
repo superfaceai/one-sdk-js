@@ -1,56 +1,20 @@
 import {
-  AssignmentNode,
-  CallStatementNode,
   EnumDefinitionNode,
   EnumValueNode,
   FieldDefinitionNode,
-  HttpCallStatementNode,
-  HttpResponseHandlerNode,
-  InlineCallNode,
-  JessieExpressionNode,
   ListDefinitionNode,
-  MapASTNode,
-  MapDefinitionNode,
-  MapDocumentNode,
-  MapHeaderNode,
   ModelTypeNameNode,
   NamedFieldDefinitionNode,
   NamedModelDefinitionNode,
   NonNullDefinitionNode,
   ObjectDefinitionNode,
-  ObjectLiteralNode,
-  OperationDefinitionNode,
-  OutcomeStatementNode,
-  PrimitiveLiteralNode,
   PrimitiveTypeNameNode,
   ProfileASTNode,
   ProfileDocumentNode,
   ProfileHeaderNode,
-  SetStatementNode,
-  StatementConditionNode,
   UnionDefinitionNode,
   UseCaseDefinitionNode,
 } from '@superfaceai/ast';
-
-export interface MapVisitor {
-  visit(node: MapASTNode): unknown;
-
-  visitPrimitiveLiteralNode(node: PrimitiveLiteralNode): unknown;
-  visitObjectLiteralNode(node: ObjectLiteralNode): unknown;
-  visitJessieExpressionNode(node: JessieExpressionNode): unknown;
-  visitAssignmentNode(node: AssignmentNode): unknown;
-  visitStatementConditionNode(node: StatementConditionNode): unknown;
-  visitSetStatementNode(node: SetStatementNode): unknown;
-  visitCallStatementNode(node: CallStatementNode): unknown;
-  visitHttpResponseHandlerNode(node: HttpResponseHandlerNode): unknown;
-  visitHttpCallStatementNode(node: HttpCallStatementNode): unknown;
-  visitMapDefinitionNode(node: MapDefinitionNode): unknown;
-  visitMapHeaderNode(node: MapHeaderNode): unknown;
-  visitOperationDefinitionNode(node: OperationDefinitionNode): unknown;
-  visitOutcomeStatementNode(node: OutcomeStatementNode): unknown;
-  visitInlineCallNode(node: InlineCallNode): unknown;
-  visitMapDocumentNode(node: MapDocumentNode): unknown;
-}
 
 export interface ProfileVisitor {
   visit(node: ProfileASTNode, ...parameters: unknown[]): unknown;

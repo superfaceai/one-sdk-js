@@ -2,6 +2,13 @@
 ### Added
 * super.json support
 
+### Added
+* Iteration support in Maps
+
+### Fixed
+* Incorrect scoping
+
+## [0.0.7] - 2021-01-21
 ### Fixed
 * Inline call and call statement not correctly handling call stack arguments
 
