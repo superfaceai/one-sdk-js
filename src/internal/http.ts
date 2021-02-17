@@ -6,7 +6,7 @@ import createDebug from 'debug';
 
 import { evalScript } from './interpreter/sandbox';
 import { NonPrimitive, Variables } from './interpreter/variables';
-import { Auth } from './superjson';
+import { Auth, resolveEnv } from './superjson';
 
 const debug = createDebug('superface:http');
 
@@ -62,17 +62,65 @@ const queryParameters = (parameters?: Record<string, string>): string => {
   return '';
 };
 
-const basicAuth = (auth: Auth): string => {
+const basicAuth = (auth: Auth, headers: Headers): void => {
   if (!('BasicAuth' in auth)) {
     throw new Error('Missing credentials for Basic auth!');
   }
 
-  return (
-    'Basic ' +
-    Buffer.from(
-      `${auth.BasicAuth.username}:${auth.BasicAuth.password}`
-    ).toString('base64')
-  );
+  const name = resolveEnv(auth.BasicAuth.username);
+  const password = resolveEnv(auth.BasicAuth.password);
+
+  const value =
+    'Basic ' + Buffer.from(`${name}:${password}`).toString('base64');
+  headers.append(AUTH_HEADER_NAME, value);
+};
+
+const apikeyAuth = (
+  auth: Auth,
+  pathParameters: NonPrimitive,
+  queryAuth: Record<string, string>,
+  headers: Headers,
+  requestBody: Variables | undefined
+): void => {
+  if (!('ApiKey' in auth)) {
+    throw new Error('Api Key credentials not present.');
+  }
+
+  // TODO: Should we be resolving the name?
+  const name = resolveEnv(auth.ApiKey.name);
+  const value = resolveEnv(auth.ApiKey.value);
+
+  switch (auth.ApiKey.in) {
+    case 'header':
+      headers.append(name, value);
+      break;
+    case 'query':
+      queryAuth[name] = value;
+      break;
+    case 'body':
+      if (typeof requestBody !== 'object' || Array.isArray(requestBody)) {
+        throw new Error(
+          'ApiKey in body can be used only when body is an object.'
+        );
+      }
+      requestBody[name] = value;
+      break;
+    case 'path':
+      pathParameters[name] = value;
+      break;
+  }
+};
+
+const bearerAuth = (auth: Auth, headers: Headers): void => {
+  if (!('Bearer' in auth)) {
+    throw new Error('Bearer credentials not present.');
+  }
+
+  // TODO: Should we be resolving the name?
+  const name = resolveEnv(auth.Bearer.name);
+  const value = resolveEnv(auth.Bearer.value);
+
+  headers.append(name, `Bearer ${value}`);
 };
 
 const formData = (data?: Record<string, string>): FormData => {
@@ -175,48 +223,23 @@ export const HttpClient = {
       if (parameters.auth === undefined) {
         throw new Error('Credentials not present.');
       }
-      if (parameters.security.scheme === 'basic') {
-        if (!('BasicAuth' in parameters.auth)) {
-          throw new Error('Basic Auth credentials not present.');
-        }
-        headers.append(AUTH_HEADER_NAME, basicAuth(parameters.auth));
-      } else if (parameters.security.scheme === 'apikey') {
-        if (!('ApiKey' in parameters.auth)) {
-          throw new Error('Api Key credentials not present.');
-        }
-        switch (parameters.auth.ApiKey.in) {
-          case 'header':
-            headers.append(
-              parameters.auth.ApiKey.name,
-              parameters.auth.ApiKey.value
-            );
-            break;
-          case 'query':
-            queryAuth[parameters.auth.ApiKey.name] =
-              parameters.auth.ApiKey.value;
-            break;
-          case 'body':
-            if (typeof requestBody !== 'object' || Array.isArray(requestBody)) {
-              throw new Error(
-                'ApiKey in body can be used only when body is an object.'
-              );
-            }
-            requestBody[parameters.auth.ApiKey.name] =
-              parameters.auth.ApiKey.value;
-            break;
-          case 'path':
-            pathParameters[parameters.auth.ApiKey.name] =
-              parameters.auth.ApiKey.value;
-            break;
-        }
-      } else if (parameters.security.scheme === 'bearer') {
-        if (!('Bearer' in parameters.auth)) {
-          throw new Error('Bearer credentials not present.');
-        }
-        headers.append(
-          parameters.auth.Bearer.name,
-          `Bearer ${parameters.auth.Bearer.value}`
-        );
+
+      switch (parameters.security.scheme) {
+        case 'basic':
+          basicAuth(parameters.auth, headers);
+          break;
+        case 'apikey':
+          apikeyAuth(
+            parameters.auth,
+            pathParameters,
+            queryAuth,
+            headers,
+            requestBody
+          );
+          break;
+        case 'bearer':
+          bearerAuth(parameters.auth, headers);
+          break;
       }
     }
 

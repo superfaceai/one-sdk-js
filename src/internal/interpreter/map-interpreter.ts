@@ -54,10 +54,6 @@ function assertUnreachable(node: MapASTNode): never {
   throw new UnexpectedError(`Invalid Node kind: ${node.kind}`);
 }
 
-export type ProviderConfig = {
-  auth?: Auth;
-};
-
 function isIterable(input: unknown): input is Iterable<Variables> {
   return (
     typeof input === 'object' && input !== null && Symbol.iterator in input
@@ -70,14 +66,27 @@ function hasIteration<T extends CallStatementNode | InlineCallNode>(
   return node.iteration !== undefined;
 }
 
+// TODO: Probably deserves own module and zod parser?
+export type ProviderInfo = {
+  name: string;
+  services: {
+    id: string;
+    baseUrl: string;
+  }[];
+  defaultService: string;
+};
+export type ProviderConfig = {
+  auth?: Auth;
+};
+
 export interface MapParameters<
   TInput extends NonPrimitive | undefined = undefined
 > {
   usecase?: string;
   input?: TInput;
   superJson?: SuperJSONDocument;
-  provider: string;
-  deployment: string;
+  provider: ProviderInfo;
+  serviceId: string;
   config?: ProviderConfig;
 }
 
@@ -276,6 +285,22 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
 
     debug('Performing http request:', node.url);
 
+    // TODO: Merge the auth?
+    /*
+    // merge auth from bind with auth from super.json
+    let auth = this.parameters.superJson?.providers?.[this.parameters.provider.name].auth;
+    if (this.parameters.config?.auth !== undefined) {
+      if (auth === undefined) {
+        auth = this.parameters.config.auth;
+      } else {
+        auth = {
+          ...auth,
+          ...this.parameters.config.auth
+        }
+      }
+    }
+    */
+
     const response = await HttpClient.request(node.url, {
       method: node.method,
       headers: request?.headers,
@@ -288,7 +313,8 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
       security: request?.security,
       auth:
         this.parameters.config?.auth ??
-        this.parameters.superJson?.providers?.[this.parameters.provider].auth,
+        this.parameters.superJson?.providers?.[this.parameters.provider.name]
+          .auth,
     });
 
     for (const [handler] of responseHandlers) {
@@ -653,11 +679,6 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
     return this.stack[this.stack.length - 1];
   }
 
-  private get baseUrl(): string | undefined {
-    return this.parameters.superJson?.providers?.[this.parameters.provider]
-      .deployments?.[this.parameters.deployment].baseUrl;
-  }
-
   private async visitCallCommon(
     node: InlineCallNode | CallStatementNode
   ): Promise<Variables | undefined> {
@@ -702,5 +723,21 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
       const result = await this.visitCallCommon(node);
       await processResult(result);
     }
+  }
+
+  private get baseUrl(): string | undefined {
+    const prov = this.parameters.provider;
+
+    const superOverride = this.parameters.superJson?.providers?.[
+      prov.name
+    ].services?.find(service => service.id === this.parameters.serviceId)
+      ?.baseUrl;
+    if (superOverride !== undefined) {
+      return superOverride;
+    }
+
+    return prov.services.find(
+      service => service.id === this.parameters.serviceId
+    )?.baseUrl;
   }
 }
