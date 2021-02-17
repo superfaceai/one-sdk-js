@@ -75,7 +75,10 @@ describe('MapInterpreter errors', () => {
     });
 
     it('should fail with invalid AST', async () => {
-      const interpreter = new MapInterpreter({});
+      const interpreter = new MapInterpreter({
+        provider: 'test',
+        deployment: 'default',
+      });
       const result = await interpreter.perform(({
         kind: 'Invalid',
       } as unknown) as MapDocumentNode);
@@ -85,7 +88,11 @@ describe('MapInterpreter errors', () => {
     });
 
     it('should fail on undefined usecase', async () => {
-      const interpreter = new MapInterpreter({ usecase: 'nonexistent' });
+      const interpreter = new MapInterpreter({
+        usecase: 'nonexistent',
+        provider: 'test',
+        deployment: 'default',
+      });
       const result = await interpreter.perform({
         kind: 'MapDocument',
         header,
@@ -95,7 +102,11 @@ describe('MapInterpreter errors', () => {
     });
 
     it('should fail when trying to run undefined operation', async () => {
-      const interpreter = new MapInterpreter({ usecase: 'Test' });
+      const interpreter = new MapInterpreter({
+        usecase: 'Test',
+        provider: 'test',
+        deployment: 'default',
+      });
       const result = await interpreter.perform({
         kind: 'MapDocument',
         header,
@@ -132,7 +143,11 @@ describe('MapInterpreter errors', () => {
 
     it('should fail when calling an API with relative URL but not providing baseUrl', async () => {
       await mockServer.get('/twelve').thenJson(200, { data: 12 });
-      const interpreter = new MapInterpreter({ usecase: 'Test' });
+      const interpreter = new MapInterpreter({
+        usecase: 'Test',
+        provider: 'test',
+        deployment: 'default',
+      });
       const result = await interpreter.perform({
         kind: 'MapDocument',
         header,
@@ -197,6 +212,8 @@ describe('MapInterpreter errors', () => {
     it('should fail when calling an API with path parameters and some are missing', async () => {
       const interpreter = new MapInterpreter({
         usecase: 'Test',
+        provider: 'test',
+        deployment: 'default',
       });
 
       const result = await interpreter.perform({
@@ -278,6 +295,8 @@ describe('MapInterpreter errors', () => {
     it('should fail when calling an API with Basic auth, but with no credentials', async () => {
       const interpreter = new MapInterpreter({
         usecase: 'testCase',
+        provider: 'test',
+        deployment: 'default',
       });
       const result = await interpreter.perform({
         kind: 'MapDocument',
@@ -326,6 +345,8 @@ describe('MapInterpreter errors', () => {
     it('should fail when calling an API with Bearer auth, but with no credentials', async () => {
       const interpreter = new MapInterpreter({
         usecase: 'testCase',
+        provider: 'test',
+        deployment: 'default',
       });
       const result = await interpreter.perform({
         kind: 'MapDocument',
@@ -375,6 +396,8 @@ describe('MapInterpreter errors', () => {
     it('should fail when calling an API with Apikey auth, but with no credentials', async () => {
       const interpreter = new MapInterpreter({
         usecase: 'testCase',
+        provider: 'test',
+        deployment: 'default',
       });
       const result = await interpreter.perform({
         kind: 'MapDocument',
@@ -428,7 +451,11 @@ describe('MapInterpreter errors', () => {
         .get('/error')
         .thenJson(404, { 'Content-Type': 'application/json; charset=utf-8' });
       const url = mockServer.urlFor('/error');
-      const interpreter = new MapInterpreter({ usecase: 'Test' });
+      const interpreter = new MapInterpreter({
+        usecase: 'Test',
+        provider: 'test',
+        deployment: 'default',
+      });
       const result = await interpreter.perform({
         kind: 'MapDocument',
         header,
@@ -484,7 +511,11 @@ describe('MapInterpreter errors', () => {
         .get('/error')
         .thenJson(404, { 'Content-Type': 'application/json; charset=utf-8' });
       const url = mockServer.urlFor('/error');
-      const interpreter = new MapInterpreter({ usecase: 'Test' });
+      const interpreter = new MapInterpreter({
+        usecase: 'Test',
+        provider: 'test',
+        deployment: 'default',
+      });
       const result = await interpreter.perform({
         kind: 'MapDocument',
         header,
@@ -524,7 +555,11 @@ describe('MapInterpreter errors', () => {
       });
       const url = mockServer.urlFor('/error');
       const url2 = mockServer.urlFor('/cleanup');
-      const interpreter = new MapInterpreter({ usecase: 'Test' });
+      const interpreter = new MapInterpreter({
+        usecase: 'Test',
+        provider: 'test',
+        deployment: 'default',
+      });
       const result = await interpreter.perform({
         kind: 'MapDocument',
         header,
@@ -585,7 +620,11 @@ describe('MapInterpreter errors', () => {
     });
 
     it('should return Jessie error when there is error in Jessie (duh)', async () => {
-      const interpreter = new MapInterpreter({ usecase: 'Test' });
+      const interpreter = new MapInterpreter({
+        usecase: 'Test',
+        provider: 'test',
+        deployment: 'default',
+      });
       const ast: MapDocumentNode = {
         kind: 'MapDocument',
         header,

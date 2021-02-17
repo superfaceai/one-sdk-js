@@ -7,10 +7,11 @@ import {
 import {
   MapInterpreter,
   ProfileParameterValidator,
+  ProviderConfig,
 } from '../../internal/interpreter';
 import { NonPrimitive } from '../../internal/interpreter/variables';
+import { loadSuperJSON, SuperJSONDocument } from '../../internal/superjson';
 import { err, ok, Result } from '../../lib';
-import { Config } from '../config';
 import { fetchMapAST } from './registry';
 
 function forceCast<T>(_: unknown): asserts _ is T {}
@@ -21,8 +22,10 @@ export class BoundProvider {
   constructor(
     private profileAST: ProfileDocumentNode,
     private mapAST: MapDocumentNode,
-    private config: Config,
-    private baseUrl?: string
+    private provider: string,
+    private deployment: string,
+    private superJson?: SuperJSONDocument,
+    private config?: ProviderConfig
   ) {
     this.profileValidator = new ProfileParameterValidator(this.profileAST);
   }
@@ -46,9 +49,11 @@ export class BoundProvider {
 
     const interpreter = new MapInterpreter<TInput>({
       input,
-      auth: this.config.auth,
       usecase,
-      baseUrl: this.baseUrl,
+      provider: this.provider,
+      superJson: this.superJson,
+      deployment: this.deployment,
+      config: this.config,
     });
 
     const result = await interpreter.perform(this.mapAST);
@@ -71,18 +76,14 @@ export class BoundProvider {
 
     return ok(result.value);
   }
-
-  public get serviceId(): string | undefined {
-    return this.baseUrl;
-  }
 }
 
 export class Provider {
   constructor(
     private profileAST: ProfileDocumentNode,
     private mapUrlOrMapAST: string | MapDocumentNode,
-    // private usecase: string,
-    private baseUrl?: string // private validationFunction?: (input: unknown) => input is TResult
+    private provider: string,
+    private deployment: string = 'default'
   ) {}
 
   /**
@@ -90,16 +91,17 @@ export class Provider {
    *
    * This fetches the map and allows to perform.
    */
-  public async bind(config: Config): Promise<BoundProvider> {
+  public async bind(config?: ProviderConfig): Promise<BoundProvider> {
+    const superJson = await loadSuperJSON();
     const mapAST = await this.obtainMapAST();
 
     return new BoundProvider(
       this.profileAST,
       mapAST,
-      config,
-      // this.usecase,
-      this.baseUrl
-      // this.validationFunction
+      this.provider,
+      this.deployment,
+      superJson,
+      config
     );
   }
 
@@ -115,9 +117,5 @@ export class Provider {
     }
 
     throw new Error('Invalid Map AST or URL!');
-  }
-
-  public get serviceId(): string | undefined {
-    return this.baseUrl;
   }
 }
