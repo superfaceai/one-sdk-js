@@ -14,7 +14,7 @@ const debug = createDebug('superface:superjson');
 const SEMVER_REGEX = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/;
 
 // NOT comprehensive at all
-const FILE_URI_PROTOCOL = 'file://';
+export const FILE_URI_PROTOCOL = 'file://';
 const FILE_URI_REGEX = /^file:\/\/.*$/;
 
 export function isVersionString(input: string): boolean {

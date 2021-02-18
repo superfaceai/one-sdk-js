@@ -18,6 +18,7 @@ import {
   NormalizedProfileProviderSettings,
   NormalizedSuperJsonDocument,
   SuperJson,
+  FILE_URI_PROTOCOL
 } from '../../internal/superjson';
 import { err, ok, Result } from '../../lib';
 import clone from '../../lib/clone';
@@ -233,11 +234,11 @@ export class Provider {
           return undefined;
         } else if ('file' in profileSettings) {
           // assumed right next to source file
-          return profileSettings.file + '.ast.json';
+          return FILE_URI_PROTOCOL + profileSettings.file + '.ast.json';
         } else {
           // assumed to be in grid folder
           return (
-            'file://' +
+            FILE_URI_PROTOCOL +
             joinPath(
               superfaceGrid,
               profileId + `@${profileSettings.version}.supr.ast.json`
@@ -260,7 +261,7 @@ export class Provider {
         const providerSettings = normalizedSuper.providers[providerName];
         if (providerSettings !== undefined && 'file' in providerSettings) {
           // local file is resolved
-          return providerSettings.file;
+          return FILE_URI_PROTOCOL + providerSettings.file;
         } else {
           // local file not specified
           return undefined;
@@ -290,7 +291,7 @@ export class Provider {
       profileProviderSettings !== undefined &&
       'file' in profileProviderSettings
     ) {
-      localMapPath = 'file://' + profileProviderSettings.file + '.ast.json';
+      localMapPath = FILE_URI_PROTOCOL + profileProviderSettings.file + '.ast.json';
     }
     // nice job typescript, you really deduced that one
     forceCast<
@@ -328,7 +329,7 @@ export class Provider {
       if (isFileURIString(input)) {
         // read in files
         return parseFile(
-          await fsp.readFile(input.slice('file:'.length), { encoding: 'utf-8' })
+          await fsp.readFile(input.slice(FILE_URI_PROTOCOL.length), { encoding: 'utf-8' })
         );
         // eslint-disable-next-line no-constant-condition
       } else if (false) {
