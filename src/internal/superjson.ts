@@ -413,15 +413,15 @@ export class SuperJson {
     }
 
     let normalizedSettings: NormalizedProfileSettings;
-    if ('version' in profileEntry) {
+    if ('file' in profileEntry) {
       normalizedSettings = {
-        version: profileEntry.version,
+        file: profileEntry.file,
         defaults: {},
         providers: {},
       };
     } else {
       normalizedSettings = {
-        file: profileEntry.file,
+        version: profileEntry.version,
         defaults: {},
         providers: {},
       };
