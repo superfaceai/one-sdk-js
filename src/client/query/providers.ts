@@ -109,12 +109,14 @@ export class BoundProvider {
     }
     forceCast<TInput>(composedInput);
 
+    const serviceId = this.bindConfig.serviceId ?? this.provider.defaultService;
+    const serviceBaseUrl = this.provider.services.find(
+      s => s.id === serviceId
+    )?.baseUrl;
     const interpreter = new MapInterpreter<TInput>({
       input: composedInput,
       usecase,
-      serviceBaseUrl: this.provider.services.find(
-        s => s.id == this.bindConfig.serviceId
-      )?.baseUrl,
+      serviceBaseUrl,
       auth: this.composeAuth(),
     });
 
