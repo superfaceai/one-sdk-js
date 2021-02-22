@@ -156,7 +156,8 @@ export class Provider {
    * This fetches the map and allows to perform.
    */
   public async bind(config?: BindConfig): Promise<BoundProvider> {
-    const superJson = (await SuperJson.loadSuperJson()).match(
+    const loadedResult = await SuperJson.loadSuperJson();
+    const superJson = loadedResult.match(
       v => v,
       err => {
         providerDebug(err);

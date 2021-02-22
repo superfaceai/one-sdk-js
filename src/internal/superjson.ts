@@ -15,7 +15,7 @@ const SEMVER_REGEX = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d
 
 // NOT comprehensive at all
 const FILE_URI_PROTOCOL = 'file://';
-const FILE_URI_REGEX = /^file:\/\/.*$/;
+const FILE_URI_REGEX = /^file:\/\//;
 
 export function isVersionString(input: string): boolean {
   return SEMVER_REGEX.test(input);
@@ -33,12 +33,17 @@ const uriPath = zod.string().regex(FILE_URI_REGEX, {
 });
 
 export const trimFileURI = (path: string): string =>
-  normalize(path.slice('file://'.length));
+  normalize(path.replace(FILE_URI_REGEX, ''));
 
 export const composeFileURI = (path: string): string => {
-  const np = normalize(path);
+  if (isFileURIString(path)) {
+    return path;
+  }
+  const normalizedPath = normalize(path);
 
-  return np.startsWith('../') ? `file://${np}` : `file://./${np}`;
+  return normalizedPath.startsWith('../')
+    ? `${FILE_URI_PROTOCOL}${normalizedPath}`
+    : `${FILE_URI_PROTOCOL}./${normalizedPath}`;
 };
 
 // const lock = zod.object({
@@ -263,29 +268,6 @@ export type NormalizedProfileProviderSettings = zod.infer<
 export type NormalizedProviderSettings = zod.infer<
   typeof normalizedProviderSettings
 >;
-
-function isObject(input: unknown): input is Record<string, unknown> {
-  return typeof input === 'object' && !Array.isArray(input);
-}
-
-function mergeObjects<T extends Record<string, unknown>>(left: T, right: T): T {
-  const result: Record<string, unknown> = {};
-
-  for (const key of Object.keys(left)) {
-    result[key] = left[key];
-  }
-  for (const key of Object.keys(right)) {
-    const l = left[key];
-    const r = right[key];
-    if (r && l && isObject(r) && isObject(l)) {
-      result[key] = mergeObjects(l, r);
-    } else {
-      result[key] = right[key];
-    }
-  }
-
-  return result as T;
-}
 
 export class SuperJson {
   constructor(public document: SuperJsonDocument) {}
@@ -530,16 +512,20 @@ export class SuperJson {
   addProfileProvider(
     profileName: string,
     providerName: string,
-    payload: ProfileProviderSettings
+    payload: ProfileProviderEntry
   ): boolean {
     let targetedProfile = this.document.profiles?.[profileName];
 
-    if (!targetedProfile) {
+    if (!targetedProfile || !this.document.profiles?.[profileName]) {
       throw new Error(`Profile ${profileName} does not exist`);
     }
 
+    // if specified profile has shorthand notation
     if (typeof targetedProfile === 'string') {
-      targetedProfile = SuperJson.normalizeProfileSettings(targetedProfile);
+      this.document.profiles[
+        profileName
+      ] = targetedProfile = SuperJson.normalizeProfileSettings(targetedProfile);
+
       targetedProfile.providers = {
         [providerName]: payload,
       };
@@ -547,10 +533,10 @@ export class SuperJson {
       return true;
     }
 
-    let profileProvider = targetedProfile.providers?.[providerName];
+    const profileProvider = targetedProfile.providers?.[providerName];
 
     // if no profile provider is found
-    if (!profileProvider) {
+    if (!profileProvider || !targetedProfile.providers?.[providerName]) {
       targetedProfile.providers = {
         ...targetedProfile.providers,
         [providerName]: payload,
@@ -561,54 +547,64 @@ export class SuperJson {
 
     // Priority #1: shorthand notation - file URI
     if (typeof payload === 'string') {
-      if (typeof profileProvider === 'string') {
-        profileProvider = isFileURIString(payload)
-          ? payload
-          : composeFileURI(payload);
+      if (typeof profileProvider === 'string' || !profileProvider.defaults) {
+        targetedProfile.providers[providerName] = composeFileURI(payload);
 
         return true;
       }
-      if ('file' in profileProvider && !profileProvider.defaults) {
-        profileProvider = isFileURIString(payload)
-          ? payload
-          : composeFileURI(payload);
 
-        return true;
-      }
+      targetedProfile.providers[providerName] = {
+        file: trimFileURI(payload),
+        defaults: profileProvider.defaults,
+      };
+
+      return true;
     }
 
     // Priority #2: keep previous structure, and merge
-    if ('defaults' in payload && payload.defaults) {
-      if ('file' in payload) {
-        profileProvider = {
-          file: payload.file,
-          defaults:
-            typeof profileProvider !== 'string'
-              ? mergeObjects(
-                  profileProvider.defaults ?? {},
-                  payload.defaults ?? {}
-                )
-              : payload.defaults,
+    const defaults =
+      typeof profileProvider !== 'string' && profileProvider.defaults
+        ? SuperJson.normalizeUsecaseDefaults(
+            payload.defaults,
+            SuperJson.normalizeUsecaseDefaults(profileProvider.defaults)
+          )
+        : payload.defaults;
+
+    if ('file' in payload) {
+      targetedProfile.providers[providerName] = {
+        file: payload.file,
+        defaults,
+      };
+
+      return true;
+    }
+
+    if ('mapVariant' in payload || 'mapRevision' in payload) {
+      if (typeof profileProvider === 'string') {
+        targetedProfile.providers[providerName] = {
+          ...payload,
+          defaults,
         };
 
         return true;
       }
 
-      if ('mapVariant' in payload) {
-        profileProvider = {
-          mapVariant: payload.mapVariant,
-          mapRevision: payload.mapRevision,
-          defaults:
-            typeof profileProvider !== 'string'
-              ? mergeObjects(
-                  profileProvider.defaults ?? {},
-                  payload.defaults ?? {}
-                )
-              : payload.defaults,
-        };
+      const mapVariant =
+        'mapVariant' in profileProvider
+          ? profileProvider.mapVariant
+          : undefined;
+      const mapRevision =
+        'mapRevision' in profileProvider
+          ? profileProvider.mapRevision
+          : undefined;
 
-        return true;
-      }
+      targetedProfile.providers[providerName] = {
+        mapVariant: payload.mapVariant ?? mapVariant,
+        mapRevision: payload.mapRevision ?? mapRevision,
+        defaults,
+      };
+
+      return true;
     }
 
     return false;
