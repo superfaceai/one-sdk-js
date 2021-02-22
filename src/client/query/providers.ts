@@ -156,16 +156,15 @@ export class Provider {
    * This fetches the map and allows to perform.
    */
   public async bind(config?: BindConfig): Promise<BoundProvider> {
-    const superJson = new SuperJson(
-      (await SuperJson.loadSuperJson()).match(
-        v => v,
-        err => {
-          providerDebug(err);
+    const superJson = (await SuperJson.loadSuperJson()).match(
+      v => v,
+      err => {
+        providerDebug(err);
 
-          return {};
-        }
-      )
+        return new SuperJson({});
+      }
     );
+
     const normalizedSuper = superJson.normalized;
 
     // resolve profile locally

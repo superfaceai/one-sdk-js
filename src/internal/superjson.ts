@@ -1,6 +1,6 @@
 import createDebug from 'debug';
 import { promises as fspromises } from 'fs';
-import { join as joinPath } from 'path';
+import { join as joinPath, normalize } from 'path';
 import * as zod from 'zod';
 
 import { err, ok, Result } from '../lib';
@@ -31,6 +31,15 @@ const semanticVersion = zod.string().regex(SEMVER_REGEX, {
 const uriPath = zod.string().regex(FILE_URI_REGEX, {
   message: 'Should be valid file URI',
 });
+
+export const trimFileURI = (path: string): string =>
+  normalize(path.slice('file://'.length));
+
+export const composeFileURI = (path: string): string => {
+  const np = normalize(path);
+
+  return np.startsWith('../') ? `file://${np}` : `file://./${np}`;
+};
 
 // const lock = zod.object({
 //   version: semanticVersion,
@@ -232,12 +241,12 @@ const normalizedSchema = zod.object({
 });
 
 export type SuperJsonDocument = zod.infer<typeof schema>;
-type ProfileEntry = zod.infer<typeof profileEntry>;
+export type ProfileEntry = zod.infer<typeof profileEntry>;
 export type ProfileSettings = zod.infer<typeof profileSettings>;
 export type UsecaseDefaults = zod.infer<typeof usecaseDefaults>;
-type ProfileProviderEntry = zod.infer<typeof profileProviderEntry>;
+export type ProfileProviderEntry = zod.infer<typeof profileProviderEntry>;
 export type ProfileProviderSettings = zod.infer<typeof profileProviderSettings>;
-type ProviderEntry = zod.infer<typeof providerEntry>;
+export type ProviderEntry = zod.infer<typeof providerEntry>;
 export type ProviderSettings = zod.infer<typeof providerSettings>;
 export type AuthVariables = zod.infer<typeof auth>;
 
@@ -254,6 +263,29 @@ export type NormalizedProfileProviderSettings = zod.infer<
 export type NormalizedProviderSettings = zod.infer<
   typeof normalizedProviderSettings
 >;
+
+function isObject(input: unknown): input is Record<string, unknown> {
+  return typeof input === 'object' && !Array.isArray(input);
+}
+
+function mergeObjects<T extends Record<string, unknown>>(left: T, right: T): T {
+  const result: Record<string, unknown> = {};
+
+  for (const key of Object.keys(left)) {
+    result[key] = left[key];
+  }
+  for (const key of Object.keys(right)) {
+    const l = left[key];
+    const r = right[key];
+    if (r && l && isObject(r) && isObject(l)) {
+      result[key] = mergeObjects(l, r);
+    } else {
+      result[key] = right[key];
+    }
+  }
+
+  return result as T;
+}
 
 export class SuperJson {
   constructor(public document: SuperJsonDocument) {}
@@ -272,7 +304,7 @@ export class SuperJson {
   /**
    * Attempts to load super.json file from expected location `cwd/superface/super.json`
    */
-  static async loadSuperJson(): Promise<Result<SuperJsonDocument, string>> {
+  static async loadSuperJson(): Promise<Result<SuperJson, string>> {
     const basedir = process.cwd();
     const superdir = joinPath(basedir, 'superface');
     const superfile = joinPath(superdir, 'super.json');
@@ -310,12 +342,12 @@ export class SuperJson {
 
     const superdocument = SuperJson.parseSuperJson(superjson);
     if (superdocument.isErr()) {
-      return superdocument;
+      return err(superdocument.error);
     }
 
     debug(`loaded super.json from ${superfile}`);
 
-    return superdocument;
+    return ok(new SuperJson(superdocument.value));
   }
 
   static normalizeProfileProviderSettings(
@@ -493,6 +525,93 @@ export class SuperJson {
     };
 
     return normalized;
+  }
+
+  addProfileProvider(
+    profileName: string,
+    providerName: string,
+    payload: ProfileProviderSettings
+  ): boolean {
+    let targetedProfile = this.document.profiles?.[profileName];
+
+    if (!targetedProfile) {
+      throw new Error(`Profile ${profileName} does not exist`);
+    }
+
+    if (typeof targetedProfile === 'string') {
+      targetedProfile = SuperJson.normalizeProfileSettings(targetedProfile);
+      targetedProfile.providers = {
+        [providerName]: payload,
+      };
+
+      return true;
+    }
+
+    let profileProvider = targetedProfile.providers?.[providerName];
+
+    // if no profile provider is found
+    if (!profileProvider) {
+      targetedProfile.providers = {
+        ...targetedProfile.providers,
+        [providerName]: payload,
+      };
+
+      return true;
+    }
+
+    // Priority #1: shorthand notation - file URI
+    if (typeof payload === 'string') {
+      if (typeof profileProvider === 'string') {
+        profileProvider = isFileURIString(payload)
+          ? payload
+          : composeFileURI(payload);
+
+        return true;
+      }
+      if ('file' in profileProvider && !profileProvider.defaults) {
+        profileProvider = isFileURIString(payload)
+          ? payload
+          : composeFileURI(payload);
+
+        return true;
+      }
+    }
+
+    // Priority #2: keep previous structure, and merge
+    if ('defaults' in payload && payload.defaults) {
+      if ('file' in payload) {
+        profileProvider = {
+          file: payload.file,
+          defaults:
+            typeof profileProvider !== 'string'
+              ? mergeObjects(
+                  profileProvider.defaults ?? {},
+                  payload.defaults ?? {}
+                )
+              : payload.defaults,
+        };
+
+        return true;
+      }
+
+      if ('mapVariant' in payload) {
+        profileProvider = {
+          mapVariant: payload.mapVariant,
+          mapRevision: payload.mapRevision,
+          defaults:
+            typeof profileProvider !== 'string'
+              ? mergeObjects(
+                  profileProvider.defaults ?? {},
+                  payload.defaults ?? {}
+                )
+              : payload.defaults,
+        };
+
+        return true;
+      }
+    }
+
+    return false;
   }
 
   /**
