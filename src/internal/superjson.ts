@@ -509,6 +509,109 @@ export class SuperJson {
     return normalized;
   }
 
+  // addProfile(profileId: string): boolean {
+  // }
+
+  addProfile(profileName: string, payload: ProfileEntry): boolean {
+    const superJson = this.document;
+    const targetedProfile = superJson.profiles?.[profileName];
+
+    if (!superJson.profiles) {
+      throw new Error(`No profiles found`);
+    }
+
+    // if specified profile is not found
+    if (!targetedProfile || !superJson.profiles[profileName]) {
+      superJson.profiles = {
+        ...superJson.profiles,
+        [profileName]: payload,
+      };
+
+      return true;
+    }
+
+    // Priority #1: shorthand notation - file URI or semantic version
+    if (typeof payload === 'string') {
+      // when specified profile is file URI in shorthand notation
+      if (isFileURIString(composeFileURI(payload))) {
+        if (
+          typeof targetedProfile === 'string' ||
+          (Object.entries(targetedProfile.defaults ?? {}).length === 0 &&
+            Object.entries(targetedProfile.providers ?? {}).length === 0)
+        ) {
+          superJson.profiles[profileName] = payload;
+
+          return true;
+        }
+
+        superJson.profiles[profileName] = {
+          file: trimFileURI(payload),
+          defaults: targetedProfile.defaults,
+          providers: targetedProfile.providers,
+        };
+
+        return true;
+      }
+
+      // when specified profile is version in shorthand notation
+      if (isVersionString(payload)) {
+        if (
+          typeof targetedProfile === 'string' ||
+          (Object.entries(targetedProfile.defaults ?? {}).length === 0 &&
+            Object.entries(targetedProfile.providers ?? {}).length === 0)
+        ) {
+          superJson.profiles[profileName] = payload;
+
+          return true;
+        }
+
+        superJson.profiles[profileName] = {
+          version: payload,
+          defaults: targetedProfile.defaults,
+          providers: targetedProfile.providers,
+        };
+
+        return true;
+      }
+
+      throw 'unreachable';
+    }
+
+    // Priority #2: keep previous structure and merge
+    let defaults: UsecaseDefaults | undefined;
+    if (typeof targetedProfile === 'string') {
+      defaults = payload.defaults;
+    } else if (targetedProfile.defaults) {
+      defaults = SuperJson.normalizeUsecaseDefaults(
+        payload.defaults,
+        SuperJson.normalizeUsecaseDefaults(targetedProfile.defaults)
+      );
+    }
+
+    let providers: Record<string, ProfileProviderEntry> | undefined;
+    if (typeof targetedProfile === 'string') {
+      providers = payload.providers;
+    } else if (targetedProfile.providers) {
+      providers = mergeVariables(
+        castToNonPrimitive(targetedProfile.providers) ?? {},
+        castToNonPrimitive(payload.providers) ?? {}
+      ) as Record<string, ProfileProviderEntry> | undefined;
+    }
+
+    // when specified profile has defaults, providers and file or version, 
+    if ('file' in payload || 'version' in payload) {
+      superJson.profiles[profileName] = {
+        ...payload,
+        defaults,
+        providers,
+      };
+
+      return true;
+    }
+
+    return false;
+  }
+
   addProfileProvider(
     profileName: string,
     providerName: string,
@@ -535,7 +638,7 @@ export class SuperJson {
 
     const profileProvider = targetedProfile.providers?.[providerName];
 
-    // if no profile provider is found
+    // if specified profile provider is not found
     if (!profileProvider || !targetedProfile.providers?.[providerName]) {
       targetedProfile.providers = {
         ...targetedProfile.providers,
@@ -546,8 +649,12 @@ export class SuperJson {
     }
 
     // Priority #1: shorthand notation - file URI
+    // when specified profile provider is file URI shorthand notation
     if (typeof payload === 'string') {
-      if (typeof profileProvider === 'string' || !profileProvider.defaults) {
+      if (
+        typeof profileProvider === 'string' ||
+        Object.entries(profileProvider.defaults ?? {}).length === 0
+      ) {
         targetedProfile.providers[providerName] = composeFileURI(payload);
 
         return true;
@@ -561,24 +668,28 @@ export class SuperJson {
       return true;
     }
 
-    // Priority #2: keep previous structure, and merge
-    const defaults =
-      typeof profileProvider !== 'string' && profileProvider.defaults
-        ? SuperJson.normalizeUsecaseDefaults(
-            payload.defaults,
-            SuperJson.normalizeUsecaseDefaults(profileProvider.defaults)
-          )
-        : payload.defaults;
+    // Priority #2: keep previous structure and merge
+    let defaults: UsecaseDefaults | undefined;
+    if (typeof profileProvider === 'string') {
+      defaults = payload.defaults;
+    } else if (profileProvider.defaults) {
+      defaults = SuperJson.normalizeUsecaseDefaults(
+        payload.defaults,
+        SuperJson.normalizeUsecaseDefaults(profileProvider.defaults)
+      );
+    }
 
+    // when specified profile provider has file & defaults
     if ('file' in payload) {
       targetedProfile.providers[providerName] = {
-        file: payload.file,
+        ...payload,
         defaults,
       };
 
       return true;
     }
 
+    // when specified profile provider has mapVariant, mapRevision & defaults
     if ('mapVariant' in payload || 'mapRevision' in payload) {
       if (typeof profileProvider === 'string') {
         targetedProfile.providers[providerName] = {
