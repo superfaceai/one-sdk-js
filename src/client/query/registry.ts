@@ -72,6 +72,8 @@ export async function fetchProviders(
   return body.disco;
 }
 
+export const DEFAULT_REGISTRY_URL = 'https://superface.dev';
+
 const providerJson = zod.object({
   name: zod.string(),
   services: zod.array(
@@ -83,26 +85,25 @@ const providerJson = zod.object({
   defaultService: zod.string(),
 });
 export type ProviderJson = zod.infer<typeof providerJson>;
+// TODO: refine validator
 const bindResponseValidator = zod.object({
   provider: providerJson,
-  map_id: zod.string(),
   map_ast: zod.string(),
 });
 
 export async function fetchBind(
-  registryUrl: string,
   profileId: string,
   provider?: string,
   mapVariant?: string,
-  mapRevision?: string
+  mapRevision?: string,
+  registryUrl?: string
 ): Promise<{
   provider: ProviderJson;
-  mapId: string;
   mapAst: MapDocumentNode;
 }> {
   const { body } = await HttpClient.request('/registry/bind', {
     method: 'POST',
-    baseUrl: registryUrl,
+    baseUrl: registryUrl ?? DEFAULT_REGISTRY_URL,
     accept: 'application/json',
     contentType: 'application/json',
     headers: {
@@ -116,12 +117,11 @@ export async function fetchBind(
     },
   });
   if (!bindResponseValidator.check(body)) {
-    throw '';
+    throw new Error('registry responded with invalid body');
   }
 
   return {
     provider: body.provider,
-    mapId: body.map_id,
     // TODO: Validate
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     mapAst: JSON.parse(body.map_ast),

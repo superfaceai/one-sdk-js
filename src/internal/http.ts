@@ -7,6 +7,7 @@ import createDebug from 'debug';
 import { evalScript } from './interpreter/sandbox';
 import { NonPrimitive, Variables } from './interpreter/variables';
 import { AuthVariables, SuperJson } from './superjson';
+import { inspect } from 'util';
 
 const debug = createDebug('superface:http');
 
@@ -284,7 +285,7 @@ export const HttpClient = {
       debug(`\t${headerName}: ${value}`)
     );
     if (requestBody !== undefined) {
-      debug(`\n\t${requestBody?.toString()}`);
+      debug(`\n${inspect(requestBody, true, 5)}`);
     }
     const response = await fetch(finalUrl, params);
 
