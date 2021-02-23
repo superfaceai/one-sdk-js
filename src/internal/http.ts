@@ -3,11 +3,11 @@ import 'isomorphic-form-data';
 import { HttpSecurity } from '@superfaceai/ast';
 import fetch, { Headers } from 'cross-fetch';
 import createDebug from 'debug';
+import { inspect } from 'util';
 
 import { evalScript } from './interpreter/sandbox';
 import { NonPrimitive, Variables } from './interpreter/variables';
 import { AuthVariables, SuperJson } from './superjson';
-import { inspect } from 'util';
 
 const debug = createDebug('superface:http');
 
