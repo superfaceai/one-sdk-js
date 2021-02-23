@@ -515,12 +515,8 @@ export class SuperJson {
   addProfile(profileName: string, payload: ProfileEntry): boolean {
     const superJson = this.document;
 
-    if (!superJson.profiles) {
-      throw new Error(`No profiles found`);
-    }
-
     // if specified profile is not found
-    if (!superJson.profiles[profileName]) {
+    if (!superJson.profiles || !superJson.profiles[profileName]) {
       superJson.profiles = {
         ...superJson.profiles,
         [profileName]: payload,
@@ -533,13 +529,24 @@ export class SuperJson {
 
     // Priority #1: shorthand notation - file URI or semantic version
     if (typeof payload === 'string') {
+      const isShorthandAvailable =
+        typeof targetedProfile === 'string' ||
+        (Object.entries(targetedProfile.defaults ?? {}).length === 0 &&
+          Object.entries(targetedProfile.providers ?? {}).length === 0);
+
+      const commonProperties: Partial<ProfileSettings> = {};
+      if (typeof targetedProfile !== 'string') {
+        if (targetedProfile.providers) {
+          commonProperties.providers = targetedProfile.providers;
+        }
+        if (targetedProfile.defaults) {
+          commonProperties.defaults = targetedProfile.defaults;
+        }
+      }
+
       // when specified profile is file URI in shorthand notation
       if (isFileURIString(composeFileURI(payload))) {
-        if (
-          typeof targetedProfile === 'string' ||
-          (Object.entries(targetedProfile.defaults ?? {}).length === 0 &&
-            Object.entries(targetedProfile.providers ?? {}).length === 0)
-        ) {
+        if (isShorthandAvailable) {
           superJson.profiles[profileName] = payload;
 
           return true;
@@ -547,8 +554,7 @@ export class SuperJson {
 
         superJson.profiles[profileName] = {
           file: trimFileURI(payload),
-          defaults: targetedProfile.defaults,
-          providers: targetedProfile.providers,
+          ...commonProperties,
         };
 
         return true;
@@ -556,11 +562,7 @@ export class SuperJson {
 
       // when specified profile is version in shorthand notation
       if (isVersionString(payload)) {
-        if (
-          typeof targetedProfile === 'string' ||
-          (Object.entries(targetedProfile.defaults ?? {}).length === 0 &&
-            Object.entries(targetedProfile.providers ?? {}).length === 0)
-        ) {
+        if (isShorthandAvailable) {
           superJson.profiles[profileName] = payload;
 
           return true;
@@ -568,8 +570,7 @@ export class SuperJson {
 
         superJson.profiles[profileName] = {
           version: payload,
-          defaults: targetedProfile.defaults,
-          providers: targetedProfile.providers,
+          ...commonProperties,
         };
 
         return true;
@@ -593,10 +594,12 @@ export class SuperJson {
     if (typeof targetedProfile === 'string') {
       providers = payload.providers;
     } else if (targetedProfile.providers) {
-      providers = mergeVariables(
-        castToNonPrimitive(targetedProfile.providers) ?? {},
-        castToNonPrimitive(payload.providers) ?? {}
-      ) as Record<string, ProfileProviderEntry> | undefined;
+      for (const [providerName, entry] of Object.entries(
+        payload.providers ?? {}
+      )) {
+        this.addProfileProvider(profileName, providerName, entry);
+      }
+      providers = targetedProfile.providers;
     }
 
     // when specified profile has defaults, providers and file or version,
