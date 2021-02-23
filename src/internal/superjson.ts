@@ -514,14 +514,13 @@ export class SuperJson {
 
   addProfile(profileName: string, payload: ProfileEntry): boolean {
     const superJson = this.document;
-    const targetedProfile = superJson.profiles?.[profileName];
 
     if (!superJson.profiles) {
       throw new Error(`No profiles found`);
     }
 
     // if specified profile is not found
-    if (!targetedProfile || !superJson.profiles[profileName]) {
+    if (!superJson.profiles[profileName]) {
       superJson.profiles = {
         ...superJson.profiles,
         [profileName]: payload,
@@ -529,6 +528,8 @@ export class SuperJson {
 
       return true;
     }
+
+    const targetedProfile = superJson.profiles[profileName];
 
     // Priority #1: shorthand notation - file URI or semantic version
     if (typeof payload === 'string') {
@@ -598,7 +599,7 @@ export class SuperJson {
       ) as Record<string, ProfileProviderEntry> | undefined;
     }
 
-    // when specified profile has defaults, providers and file or version, 
+    // when specified profile has defaults, providers and file or version,
     if ('file' in payload || 'version' in payload) {
       superJson.profiles[profileName] = {
         ...payload,
@@ -617,11 +618,11 @@ export class SuperJson {
     providerName: string,
     payload: ProfileProviderEntry
   ): boolean {
-    let targetedProfile = this.document.profiles?.[profileName];
-
-    if (!targetedProfile || !this.document.profiles?.[profileName]) {
+    if (!this.document.profiles?.[profileName]) {
       throw new Error(`Profile ${profileName} does not exist`);
     }
+
+    let targetedProfile = this.document.profiles[profileName];
 
     // if specified profile has shorthand notation
     if (typeof targetedProfile === 'string') {
