@@ -1,11 +1,20 @@
 import createDebug from 'debug';
 import { promises as fspromises } from 'fs';
-import { join as joinPath, normalize } from 'path';
+import {
+  dirname,
+  join as joinPath,
+  normalize,
+  resolve as resolvePath,
+} from 'path';
 import * as zod from 'zod';
 
 import { err, ok, Result } from '../lib';
 import clone from '../lib/clone';
-import { castToNonPrimitive, mergeVariables } from './interpreter/variables';
+import {
+  castToNonPrimitive,
+  isEmptyRecord,
+  mergeVariables,
+} from './interpreter/variables';
 
 const { stat, readFile } = fspromises;
 const debug = createDebug('superface:superjson');
@@ -270,9 +279,20 @@ export type NormalizedProviderSettings = zod.infer<
 >;
 
 export class SuperJson {
-  constructor(public document: SuperJsonDocument) {}
+  private normalizedCache?: NormalizedSuperJsonDocument;
+  public document: SuperJsonDocument;
+  public readonly path: string;
 
-  static parseSuperJson(input: unknown): Result<SuperJsonDocument, string> {
+  constructor(document?: SuperJsonDocument, path?: string) {
+    this.document = document ?? {};
+    this.path = path ?? '';
+  }
+
+  get stringified(): string {
+    return JSON.stringify(this.document, undefined, 2);
+  }
+
+  static parse(input: unknown): Result<SuperJsonDocument, string> {
     try {
       const superdocument = schema.parse(input);
 
@@ -286,27 +306,31 @@ export class SuperJson {
   /**
    * Attempts to load super.json file from expected location `cwd/superface/super.json`
    */
-  static async loadSuperJson(): Promise<Result<SuperJson, string>> {
+  static async load(path?: string): Promise<Result<SuperJson, string>> {
     const basedir = process.cwd();
-    const superdir = joinPath(basedir, 'superface');
-    const superfile = joinPath(superdir, 'super.json');
 
-    try {
-      const statInfo = await stat(superdir);
+    let superfile = path;
+    if (superfile === undefined) {
+      const superdir = joinPath(basedir, 'superface');
+      try {
+        const statInfo = await stat(superdir);
 
-      if (!statInfo.isDirectory()) {
-        return err(`${superdir} is not a directory`);
+        if (!statInfo.isDirectory()) {
+          return err(`${superdir} is not a directory`);
+        }
+      } catch (e: unknown) {
+        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+        return err(`unable to open ${superdir}: ${e}`);
       }
-    } catch (e: unknown) {
-      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-      return err(`unable to open ${superdir}: ${e}`);
+
+      superfile = joinPath(superdir, 'super.json');
     }
 
     try {
       const statInfo = await stat(superfile);
 
       if (!statInfo.isFile()) {
-        return err(`${superfile} is not a file`);
+        return err(`'${superfile}' is not a file`);
       }
     } catch (e: unknown) {
       // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
@@ -322,14 +346,14 @@ export class SuperJson {
       return err(`unable to read ${superfile}: ${e}`);
     }
 
-    const superdocument = SuperJson.parseSuperJson(superjson);
+    const superdocument = SuperJson.parse(superjson);
     if (superdocument.isErr()) {
       return err(superdocument.error);
     }
 
     debug(`loaded super.json from ${superfile}`);
 
-    return ok(new SuperJson(superdocument.value));
+    return ok(new SuperJson(superdocument.value, superfile));
   }
 
   static normalizeProfileProviderSettings(
@@ -350,7 +374,9 @@ export class SuperJson {
         };
       }
 
-      throw 'unreachable';
+      throw new Error(
+        'invalid profile provider entry format: ' + profileProviderSettings
+      );
     }
 
     let normalizedSettings: NormalizedProfileProviderSettings;
@@ -423,7 +449,7 @@ export class SuperJson {
         };
       }
 
-      throw 'unreachable';
+      throw new Error('invalid profile entry format: ' + profileEntry);
     }
 
     let normalizedSettings: NormalizedProfileSettings;
@@ -469,7 +495,7 @@ export class SuperJson {
         };
       }
 
-      throw 'unreachable';
+      throw new Error('invalid provider entry format: ' + providerEntry);
     }
 
     return {
@@ -478,12 +504,15 @@ export class SuperJson {
     };
   }
 
-  /** Returns a normalized clone of the document */
+  /** Returns a cached normalized clone of the document. */
   get normalized(): NormalizedSuperJsonDocument {
+    if (this.normalizedCache !== undefined) {
+      return this.normalizedCache;
+    }
+
     // clone
     const document: SuperJsonDocument = clone(this.document);
 
-    // TODO: Do not mutate the original
     const profiles = document.profiles ?? {};
     const normalizedProfiles: Record<string, NormalizedProfileSettings> = {};
     for (const [profileId, profileEntry] of Object.entries(profiles)) {
@@ -492,7 +521,6 @@ export class SuperJson {
       );
     }
 
-    // TODO: Do not mutate the original
     const providers = document.providers ?? {};
     const normalizedProviders: Record<string, NormalizedProviderSettings> = {};
     for (const [providerName, providerEntry] of Object.entries(providers)) {
@@ -501,12 +529,12 @@ export class SuperJson {
       );
     }
 
-    const normalized = {
+    this.normalizedCache = {
       profiles: normalizedProfiles,
       providers: normalizedProviders,
     };
 
-    return normalized;
+    return this.normalizedCache;
   }
 
   addProfile(profileName: string, payload: ProfileEntry): boolean {
@@ -528,8 +556,8 @@ export class SuperJson {
     if (typeof payload === 'string') {
       const isShorthandAvailable =
         typeof targetedProfile === 'string' ||
-        (Object.entries(targetedProfile.defaults ?? {}).length === 0 &&
-          Object.entries(targetedProfile.providers ?? {}).length === 0);
+        (isEmptyRecord(targetedProfile.defaults ?? {}) &&
+          isEmptyRecord(targetedProfile.providers ?? {}));
 
       const commonProperties: Partial<ProfileSettings> = {};
       if (typeof targetedProfile !== 'string') {
@@ -573,7 +601,7 @@ export class SuperJson {
         return true;
       }
 
-      throw 'unreachable';
+      throw new Error('Invalid string payload format');
     }
 
     // Priority #2: keep previous structure and merge
@@ -611,15 +639,20 @@ export class SuperJson {
     providerName: string,
     payload: ProfileProviderEntry
   ): boolean {
-    if (!this.document.profiles?.[profileName]) {
-      throw new Error(`Profile ${profileName} does not exist`);
+    const superJson = this.document;
+
+    if (superJson.profiles === undefined) {
+      superJson.profiles = {};
+    }
+    if (superJson.profiles[profileName] === undefined) {
+      superJson.profiles[profileName] = '0.0.0';
     }
 
-    let targetedProfile = this.document.profiles[profileName];
+    let targetedProfile = superJson.profiles[profileName];
 
     // if specified profile has shorthand notation
     if (typeof targetedProfile === 'string') {
-      this.document.profiles[
+      superJson.profiles[
         profileName
       ] = targetedProfile = SuperJson.normalizeProfileSettings(targetedProfile);
 
@@ -647,7 +680,7 @@ export class SuperJson {
     if (typeof payload === 'string') {
       if (
         typeof profileProvider === 'string' ||
-        Object.entries(profileProvider.defaults ?? {}).length === 0
+        isEmptyRecord(profileProvider.defaults ?? {})
       ) {
         targetedProfile.providers[providerName] = composeFileURI(payload);
 
@@ -714,6 +747,55 @@ export class SuperJson {
     }
 
     return false;
+  }
+
+  addProvider(providerName: string, payload: ProviderEntry): void {
+    const superJson = this.document;
+    if (superJson.providers === undefined) {
+      superJson.providers = {};
+    }
+
+    const targetProvider = superJson.providers[providerName] ?? {};
+    if (typeof payload === 'string') {
+      const isShorthandAvailable =
+        typeof targetProvider === 'string' ||
+        isEmptyRecord(targetProvider.auth ?? {});
+
+      if (isFileURIString(payload)) {
+        if (isShorthandAvailable) {
+          superJson.providers[providerName] = composeFileURI(payload);
+        } else {
+          superJson.providers[providerName] = {
+            file: trimFileURI(payload),
+            // has to be an object because isShorthandAvailable is false
+            auth: (targetProvider as ProviderSettings).auth,
+          };
+        }
+
+        return;
+      }
+
+      throw new Error('Invalid string payload format');
+    }
+
+    if (typeof targetProvider === 'string') {
+      superJson.providers[providerName] = {
+        file: targetProvider,
+        ...payload,
+      };
+    } else {
+      superJson.providers[providerName] = {
+        file: payload.file ?? targetProvider.file,
+        auth: mergeVariables(targetProvider.auth ?? {}, payload.auth ?? {}),
+      };
+    }
+  }
+
+  /**
+   * Resolves relative paths as relative to `dirname(this.path)`.
+   */
+  resolvePath(path: string): string {
+    return resolvePath(dirname(this.path), path);
   }
 
   /**
