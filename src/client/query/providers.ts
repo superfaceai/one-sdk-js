@@ -35,6 +35,7 @@ function profileAstId(ast: ProfileDocumentNode): string {
 export type BindConfig = {
   serviceId?: string;
   auth?: AuthVariables;
+  registryUrl?: string;
 };
 
 export class BoundProvider {
@@ -110,9 +111,8 @@ export class BoundProvider {
     forceCast<TInput>(composedInput);
 
     const serviceId = this.bindConfig.serviceId ?? this.provider.defaultService;
-    const serviceBaseUrl = this.provider.services.find(
-      s => s.id === serviceId
-    )?.baseUrl;
+    const serviceBaseUrl = this.provider.services.find(s => s.id === serviceId)
+      ?.baseUrl;
     const interpreter = new MapInterpreter<TInput>({
       input: composedInput,
       usecase,
@@ -197,12 +197,12 @@ export class Provider {
     if (mapAst === undefined) {
       // TODO: call registry bind
       const fetchResponse = await fetchBind(
-        'TODO: registry url',
         profileId +
           `@${profileAst.header.version.major}.${profileAst.header.version.minor}.${profileAst.header.version.patch}`,
         providerName,
         mapVariant,
-        mapRevision
+        mapRevision,
+        config?.registryUrl
       );
 
       providerInfo ??= fetchResponse.provider;

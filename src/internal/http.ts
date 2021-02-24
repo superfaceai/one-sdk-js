@@ -3,6 +3,7 @@ import 'isomorphic-form-data';
 import { HttpSecurity } from '@superfaceai/ast';
 import fetch, { Headers } from 'cross-fetch';
 import createDebug from 'debug';
+import { inspect } from 'util';
 
 import { evalScript } from './interpreter/sandbox';
 import { NonPrimitive, Variables } from './interpreter/variables';
@@ -284,7 +285,7 @@ export const HttpClient = {
       debug(`\t${headerName}: ${value}`)
     );
     if (requestBody !== undefined) {
-      debug(`\n\t${requestBody?.toString()}`);
+      debug(`\n${inspect(requestBody, true, 5)}`);
     }
     const response = await fetch(finalUrl, params);
 
