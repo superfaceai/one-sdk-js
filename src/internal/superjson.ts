@@ -542,9 +542,9 @@ export class SuperJson {
       }
 
       // when specified profile is file URI in shorthand notation
-      if (isFileURIString(composeFileURI(payload))) {
+      if (isFileURIString(payload)) {
         if (isShorthandAvailable) {
-          superJson.profiles[profileName] = payload;
+          superJson.profiles[profileName] = composeFileURI(payload);
 
           return true;
         }
