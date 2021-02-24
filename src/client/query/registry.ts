@@ -92,28 +92,32 @@ const bindResponseValidator = zod.object({
 });
 
 export async function fetchBind(
-  profileId: string,
-  provider?: string,
-  mapVariant?: string,
-  mapRevision?: string,
-  registryUrl?: string
+  request: {
+    profileId: string,
+    provider?: string,
+    mapVariant?: string,
+    mapRevision?: string,
+  },
+  options?: {
+    registryUrl?: string
+  }
 ): Promise<{
   provider: ProviderJson;
   mapAst: MapDocumentNode;
 }> {
   const { body } = await HttpClient.request('/registry/bind', {
     method: 'POST',
-    baseUrl: registryUrl ?? DEFAULT_REGISTRY_URL,
+    baseUrl: options?.registryUrl ?? DEFAULT_REGISTRY_URL,
     accept: 'application/json',
     contentType: 'application/json',
     headers: {
       'User-agent': 'superface sdk-js', // TODO: add version?
     },
     body: {
-      profile_id: profileId,
-      provider,
-      map_variant: mapVariant,
-      map_revision: mapRevision,
+      profile_id: request.profileId,
+      provider: request.provider,
+      map_variant: request.mapVariant,
+      map_revision: request.mapRevision,
     },
   });
   if (!bindResponseValidator.check(body)) {
