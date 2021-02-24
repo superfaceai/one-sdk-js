@@ -93,13 +93,13 @@ const bindResponseValidator = zod.object({
 
 export async function fetchBind(
   request: {
-    profileId: string,
-    provider?: string,
-    mapVariant?: string,
-    mapRevision?: string,
+    profileId: string;
+    provider?: string;
+    mapVariant?: string;
+    mapRevision?: string;
   },
   options?: {
-    registryUrl?: string
+    registryUrl?: string;
   }
 ): Promise<{
   provider: ProviderJson;

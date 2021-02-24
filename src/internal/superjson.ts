@@ -1,6 +1,6 @@
 import createDebug from 'debug';
 import { promises as fspromises } from 'fs';
-import { join as joinPath } from 'path';
+import { join as joinPath, normalize } from 'path';
 import * as zod from 'zod';
 
 import { err, ok, Result } from '../lib';
@@ -15,7 +15,7 @@ const SEMVER_REGEX = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d
 
 // NOT comprehensive at all
 export const FILE_URI_PROTOCOL = 'file://';
-const FILE_URI_REGEX = /^file:\/\/.*$/;
+const FILE_URI_REGEX = /^file:\/\//;
 
 export function isVersionString(input: string): boolean {
   return SEMVER_REGEX.test(input);
@@ -31,6 +31,20 @@ const semanticVersion = zod.string().regex(SEMVER_REGEX, {
 const uriPath = zod.string().regex(FILE_URI_REGEX, {
   message: 'Should be valid file URI',
 });
+
+export const trimFileURI = (path: string): string =>
+  normalize(path.replace(FILE_URI_REGEX, ''));
+
+export const composeFileURI = (path: string): string => {
+  if (isFileURIString(path)) {
+    return path;
+  }
+  const normalizedPath = normalize(path);
+
+  return normalizedPath.startsWith('../')
+    ? `${FILE_URI_PROTOCOL}${normalizedPath}`
+    : `${FILE_URI_PROTOCOL}./${normalizedPath}`;
+};
 
 // const lock = zod.object({
 //   version: semanticVersion,
@@ -232,12 +246,12 @@ const normalizedSchema = zod.object({
 });
 
 export type SuperJsonDocument = zod.infer<typeof schema>;
-type ProfileEntry = zod.infer<typeof profileEntry>;
+export type ProfileEntry = zod.infer<typeof profileEntry>;
 export type ProfileSettings = zod.infer<typeof profileSettings>;
 export type UsecaseDefaults = zod.infer<typeof usecaseDefaults>;
-type ProfileProviderEntry = zod.infer<typeof profileProviderEntry>;
+export type ProfileProviderEntry = zod.infer<typeof profileProviderEntry>;
 export type ProfileProviderSettings = zod.infer<typeof profileProviderSettings>;
-type ProviderEntry = zod.infer<typeof providerEntry>;
+export type ProviderEntry = zod.infer<typeof providerEntry>;
 export type ProviderSettings = zod.infer<typeof providerSettings>;
 export type AuthVariables = zod.infer<typeof auth>;
 
@@ -272,7 +286,7 @@ export class SuperJson {
   /**
    * Attempts to load super.json file from expected location `cwd/superface/super.json`
    */
-  static async loadSuperJson(): Promise<Result<SuperJsonDocument, string>> {
+  static async loadSuperJson(): Promise<Result<SuperJson, string>> {
     const basedir = process.cwd();
     const superdir = joinPath(basedir, 'superface');
     const superfile = joinPath(superdir, 'super.json');
@@ -310,12 +324,12 @@ export class SuperJson {
 
     const superdocument = SuperJson.parseSuperJson(superjson);
     if (superdocument.isErr()) {
-      return superdocument;
+      return err(superdocument.error);
     }
 
     debug(`loaded super.json from ${superfile}`);
 
-    return superdocument;
+    return ok(new SuperJson(superdocument.value));
   }
 
   static normalizeProfileProviderSettings(
@@ -493,6 +507,213 @@ export class SuperJson {
     };
 
     return normalized;
+  }
+
+  addProfile(profileName: string, payload: ProfileEntry): boolean {
+    const superJson = this.document;
+
+    // if specified profile is not found
+    if (!superJson.profiles || !superJson.profiles[profileName]) {
+      superJson.profiles = {
+        ...superJson.profiles,
+        [profileName]: payload,
+      };
+
+      return true;
+    }
+
+    const targetedProfile = superJson.profiles[profileName];
+
+    // Priority #1: shorthand notation - file URI or semantic version
+    if (typeof payload === 'string') {
+      const isShorthandAvailable =
+        typeof targetedProfile === 'string' ||
+        (Object.entries(targetedProfile.defaults ?? {}).length === 0 &&
+          Object.entries(targetedProfile.providers ?? {}).length === 0);
+
+      const commonProperties: Partial<ProfileSettings> = {};
+      if (typeof targetedProfile !== 'string') {
+        if (targetedProfile.providers) {
+          commonProperties.providers = targetedProfile.providers;
+        }
+        if (targetedProfile.defaults) {
+          commonProperties.defaults = targetedProfile.defaults;
+        }
+      }
+
+      // when specified profile is file URI in shorthand notation
+      if (isFileURIString(payload)) {
+        if (isShorthandAvailable) {
+          superJson.profiles[profileName] = composeFileURI(payload);
+
+          return true;
+        }
+
+        superJson.profiles[profileName] = {
+          file: trimFileURI(payload),
+          ...commonProperties,
+        };
+
+        return true;
+      }
+
+      // when specified profile is version in shorthand notation
+      if (isVersionString(payload)) {
+        if (isShorthandAvailable) {
+          superJson.profiles[profileName] = payload;
+
+          return true;
+        }
+
+        superJson.profiles[profileName] = {
+          version: payload,
+          ...commonProperties,
+        };
+
+        return true;
+      }
+
+      throw 'unreachable';
+    }
+
+    // Priority #2: keep previous structure and merge
+    let defaults: UsecaseDefaults | undefined;
+    if (typeof targetedProfile === 'string') {
+      defaults = payload.defaults;
+    } else if (targetedProfile.defaults) {
+      defaults = SuperJson.normalizeUsecaseDefaults(
+        payload.defaults,
+        SuperJson.normalizeUsecaseDefaults(targetedProfile.defaults)
+      );
+    }
+
+    let providers: Record<string, ProfileProviderEntry> | undefined;
+    if (typeof targetedProfile === 'string') {
+      providers = payload.providers;
+    } else if (targetedProfile.providers) {
+      Object.entries(payload.providers ?? {}).forEach(([providerName, entry]) =>
+        this.addProfileProvider(profileName, providerName, entry)
+      );
+      providers = targetedProfile.providers;
+    }
+
+    superJson.profiles[profileName] = {
+      ...payload,
+      defaults,
+      providers,
+    };
+
+    return true;
+  }
+
+  addProfileProvider(
+    profileName: string,
+    providerName: string,
+    payload: ProfileProviderEntry
+  ): boolean {
+    if (!this.document.profiles?.[profileName]) {
+      throw new Error(`Profile ${profileName} does not exist`);
+    }
+
+    let targetedProfile = this.document.profiles[profileName];
+
+    // if specified profile has shorthand notation
+    if (typeof targetedProfile === 'string') {
+      this.document.profiles[
+        profileName
+      ] = targetedProfile = SuperJson.normalizeProfileSettings(targetedProfile);
+
+      targetedProfile.providers = {
+        [providerName]: payload,
+      };
+
+      return true;
+    }
+
+    const profileProvider = targetedProfile.providers?.[providerName];
+
+    // if specified profile provider is not found
+    if (!profileProvider || !targetedProfile.providers?.[providerName]) {
+      targetedProfile.providers = {
+        ...targetedProfile.providers,
+        [providerName]: payload,
+      };
+
+      return true;
+    }
+
+    // Priority #1: shorthand notation - file URI
+    // when specified profile provider is file URI shorthand notation
+    if (typeof payload === 'string') {
+      if (
+        typeof profileProvider === 'string' ||
+        Object.entries(profileProvider.defaults ?? {}).length === 0
+      ) {
+        targetedProfile.providers[providerName] = composeFileURI(payload);
+
+        return true;
+      }
+
+      targetedProfile.providers[providerName] = {
+        file: trimFileURI(payload),
+        defaults: profileProvider.defaults,
+      };
+
+      return true;
+    }
+
+    // Priority #2: keep previous structure and merge
+    let defaults: UsecaseDefaults | undefined;
+    if (typeof profileProvider === 'string') {
+      defaults = payload.defaults;
+    } else if (profileProvider.defaults) {
+      defaults = SuperJson.normalizeUsecaseDefaults(
+        payload.defaults,
+        SuperJson.normalizeUsecaseDefaults(profileProvider.defaults)
+      );
+    }
+
+    // when specified profile provider has file & defaults
+    if ('file' in payload) {
+      targetedProfile.providers[providerName] = {
+        ...payload,
+        defaults,
+      };
+
+      return true;
+    }
+
+    // when specified profile provider has mapVariant, mapRevision & defaults
+    if ('mapVariant' in payload || 'mapRevision' in payload) {
+      if (typeof profileProvider === 'string') {
+        targetedProfile.providers[providerName] = {
+          ...payload,
+          defaults,
+        };
+
+        return true;
+      }
+
+      const mapProperties: Partial<
+        Extract<ProfileProviderSettings, { mapVariant?: string }>
+      > = 'file' in profileProvider ? {} : profileProvider;
+
+      if (payload.mapVariant) {
+        mapProperties.mapVariant = payload.mapVariant;
+      }
+      if (payload.mapRevision) {
+        mapProperties.mapRevision = payload.mapRevision;
+      }
+
+      targetedProfile.providers[providerName] = {
+        ...mapProperties,
+        defaults,
+      };
+
+      return true;
+    }
+
+    return false;
   }
 
   /**
