@@ -14,6 +14,7 @@ import {
 } from '../../internal/interpreter/variables';
 import {
   AuthVariables,
+  FILE_URI_PROTOCOL,
   isFileURIString,
   NormalizedProfileProviderSettings,
   NormalizedSuperJsonDocument,
@@ -34,6 +35,7 @@ function profileAstId(ast: ProfileDocumentNode): string {
 export type BindConfig = {
   serviceId?: string;
   auth?: AuthVariables;
+  registryUrl?: string;
 };
 
 export class BoundProvider {
@@ -108,12 +110,13 @@ export class BoundProvider {
     }
     forceCast<TInput>(composedInput);
 
+    const serviceId = this.bindConfig.serviceId ?? this.provider.defaultService;
+    const serviceBaseUrl = this.provider.services.find(s => s.id === serviceId)
+      ?.baseUrl;
     const interpreter = new MapInterpreter<TInput>({
       input: composedInput,
       usecase,
-      serviceBaseUrl: this.provider.services.find(
-        s => s.id == this.bindConfig.serviceId
-      )?.baseUrl,
+      serviceBaseUrl,
       auth: this.composeAuth(),
     });
 
@@ -194,12 +197,12 @@ export class Provider {
     if (mapAst === undefined) {
       // TODO: call registry bind
       const fetchResponse = await fetchBind(
-        'TODO: registry url',
         profileId +
           `@${profileAst.header.version.major}.${profileAst.header.version.minor}.${profileAst.header.version.patch}`,
         providerName,
         mapVariant,
-        mapRevision
+        mapRevision,
+        config?.registryUrl
       );
 
       providerInfo ??= fetchResponse.provider;
@@ -233,11 +236,11 @@ export class Provider {
           return undefined;
         } else if ('file' in profileSettings) {
           // assumed right next to source file
-          return profileSettings.file + '.ast.json';
+          return FILE_URI_PROTOCOL + profileSettings.file + '.ast.json';
         } else {
           // assumed to be in grid folder
           return (
-            'file://' +
+            FILE_URI_PROTOCOL +
             joinPath(
               superfaceGrid,
               profileId + `@${profileSettings.version}.supr.ast.json`
@@ -258,9 +261,12 @@ export class Provider {
       fileContents => JSON.parse(fileContents) as ProviderJson, // TODO: validate
       providerName => {
         const providerSettings = normalizedSuper.providers[providerName];
-        if (providerSettings !== undefined && 'file' in providerSettings) {
+        if (
+          providerSettings !== undefined &&
+          providerSettings.file !== undefined
+        ) {
           // local file is resolved
-          return providerSettings.file;
+          return FILE_URI_PROTOCOL + providerSettings.file;
         } else {
           // local file not specified
           return undefined;
@@ -290,7 +296,8 @@ export class Provider {
       profileProviderSettings !== undefined &&
       'file' in profileProviderSettings
     ) {
-      localMapPath = 'file://' + profileProviderSettings.file + '.ast.json';
+      localMapPath =
+        FILE_URI_PROTOCOL + profileProviderSettings.file + '.ast.json';
     }
     // nice job typescript, you really deduced that one
     forceCast<
@@ -328,7 +335,9 @@ export class Provider {
       if (isFileURIString(input)) {
         // read in files
         return parseFile(
-          await fsp.readFile(input.slice('file:'.length), { encoding: 'utf-8' })
+          await fsp.readFile(input.slice(FILE_URI_PROTOCOL.length), {
+            encoding: 'utf-8',
+          })
         );
         // eslint-disable-next-line no-constant-condition
       } else if (false) {
