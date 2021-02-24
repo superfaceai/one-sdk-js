@@ -509,9 +509,6 @@ export class SuperJson {
     return normalized;
   }
 
-  // addProfile(profileId: string): boolean {
-  // }
-
   addProfile(profileName: string, payload: ProfileEntry): boolean {
     const superJson = this.document;
 
@@ -594,26 +591,19 @@ export class SuperJson {
     if (typeof targetedProfile === 'string') {
       providers = payload.providers;
     } else if (targetedProfile.providers) {
-      for (const [providerName, entry] of Object.entries(
-        payload.providers ?? {}
-      )) {
-        this.addProfileProvider(profileName, providerName, entry);
-      }
+      Object.entries(payload.providers ?? {}).forEach(([providerName, entry]) =>
+        this.addProfileProvider(profileName, providerName, entry)
+      );
       providers = targetedProfile.providers;
     }
 
-    // when specified profile has defaults, providers and file or version,
-    if ('file' in payload || 'version' in payload) {
-      superJson.profiles[profileName] = {
-        ...payload,
-        defaults,
-        providers,
-      };
+    superJson.profiles[profileName] = {
+      ...payload,
+      defaults,
+      providers,
+    };
 
-      return true;
-    }
-
-    return false;
+    return true;
   }
 
   addProfileProvider(
@@ -704,18 +694,19 @@ export class SuperJson {
         return true;
       }
 
-      const mapVariant =
-        'mapVariant' in profileProvider
-          ? profileProvider.mapVariant
-          : undefined;
-      const mapRevision =
-        'mapRevision' in profileProvider
-          ? profileProvider.mapRevision
-          : undefined;
+      const mapProperties: Partial<
+        Extract<ProfileProviderSettings, { mapVariant?: string }>
+      > = 'file' in profileProvider ? {} : profileProvider;
+
+      if (payload.mapVariant) {
+        mapProperties.mapVariant = payload.mapVariant;
+      }
+      if (payload.mapRevision) {
+        mapProperties.mapRevision = payload.mapRevision;
+      }
 
       targetedProfile.providers[providerName] = {
-        mapVariant: payload.mapVariant ?? mapVariant,
-        mapRevision: payload.mapRevision ?? mapRevision,
+        ...mapProperties,
         defaults,
       };
 
