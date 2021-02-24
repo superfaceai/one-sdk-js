@@ -195,14 +195,16 @@ export class Provider {
 
     // resolve map ast using bind and fill in provider info if not specified
     if (mapAst === undefined) {
-      // TODO: call registry bind
       const fetchResponse = await fetchBind(
-        profileId +
-          `@${profileAst.header.version.major}.${profileAst.header.version.minor}.${profileAst.header.version.patch}`,
-        providerName,
-        mapVariant,
-        mapRevision,
-        config?.registryUrl
+        {
+          profileId: profileId + `@${profileAst.header.version.major}.${profileAst.header.version.minor}.${profileAst.header.version.patch}`,
+          provider: providerName,
+          mapVariant,
+          mapRevision,
+        },
+        {
+          registryUrl: config?.registryUrl
+        }
       );
 
       providerInfo ??= fetchResponse.provider;
