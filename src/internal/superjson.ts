@@ -5,6 +5,7 @@ import {
   join as joinPath,
   normalize,
   resolve as resolvePath,
+  relative as relativePath
 } from 'path';
 import * as zod from 'zod';
 
@@ -789,6 +790,13 @@ export class SuperJson {
         auth: mergeVariables(targetProvider.auth ?? {}, payload.auth ?? {}),
       };
     }
+  }
+
+  /**
+   * Returns a relative path relative to `dirname(this.path)` based on `process.cwd()`
+   */
+  relativePath(path: string): string {
+    return relativePath(dirname(this.path), path)
   }
 
   /**
