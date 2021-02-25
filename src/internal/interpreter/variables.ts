@@ -47,6 +47,14 @@ export function isNonPrimitive(input: Variables): input is NonPrimitive {
   return typeof input === 'object' && !Array.isArray(input);
 }
 
+export function isEmptyRecord(
+  input: Record<string, unknown>
+): input is Record<never, never> {
+  assertIsVariables(input);
+
+  return isNonPrimitive(input) && Object.keys(input).length === 0;
+}
+
 export const mergeVariables = (
   left: NonPrimitive,
   right: NonPrimitive

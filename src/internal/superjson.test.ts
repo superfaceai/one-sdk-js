@@ -34,7 +34,7 @@ describe('SuperJsonDocument', () => {
           }
         }
       }`;
-      expect(SuperJson.parseSuperJson(JSON.parse(superJson)).isOk()).toBe(true);
+      expect(SuperJson.parse(JSON.parse(superJson)).isOk()).toBe(true);
     }
     {
       const superJson = `{
@@ -93,7 +93,7 @@ describe('SuperJsonDocument', () => {
           }
         }
       }`;
-      expect(SuperJson.parseSuperJson(JSON.parse(superJson)).isOk()).toBe(true);
+      expect(SuperJson.parse(JSON.parse(superJson)).isOk()).toBe(true);
     }
   });
 
@@ -124,9 +124,7 @@ describe('SuperJsonDocument', () => {
           }
         }
       }`;
-      expect(SuperJson.parseSuperJson(JSON.parse(superJson)).isErr()).toBe(
-        true
-      );
+      expect(SuperJson.parse(JSON.parse(superJson)).isErr()).toBe(true);
     }
     {
       const superJson = `{
@@ -154,20 +152,16 @@ describe('SuperJsonDocument', () => {
           }
         }
       }`;
-      expect(SuperJson.parseSuperJson(JSON.parse(superJson)).isErr()).toBe(
-        true
-      );
+      expect(SuperJson.parse(JSON.parse(superJson)).isErr()).toBe(true);
     }
     {
       const superJson = `"hello"`;
-      expect(SuperJson.parseSuperJson(JSON.parse(superJson)).isErr()).toBe(
-        true
-      );
+      expect(SuperJson.parse(JSON.parse(superJson)).isErr()).toBe(true);
     }
   });
 
   it('returns error when super.json does not exist', async () => {
-    const result = await SuperJson.loadSuperJson();
+    const result = await SuperJson.load();
     expect(result.isErr()).toBe(true);
   });
 
@@ -250,9 +244,7 @@ describe('SuperJsonDocument', () => {
       }
     }`;
 
-    const doc = new SuperJson(
-      SuperJson.parseSuperJson(JSON.parse(superJson)).unwrap()
-    );
+    const doc = new SuperJson(SuperJson.parse(JSON.parse(superJson)).unwrap());
     expect(doc.normalized).toStrictEqual({
       profiles: {
         a: {
@@ -404,7 +396,7 @@ describe('SuperJsonDocument', () => {
     });
 
     it('correctly parses super.json when it is present', async () => {
-      const result = await SuperJson.loadSuperJson();
+      const result = await SuperJson.load();
       expect(result.isOk()).toBe(true);
     });
   });

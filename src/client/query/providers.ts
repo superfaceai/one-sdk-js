@@ -16,7 +16,6 @@ import {
   AuthVariables,
   FILE_URI_PROTOCOL,
   isFileURIString,
-  NormalizedProfileProviderSettings,
   NormalizedSuperJsonDocument,
   SuperJson,
 } from '../../internal/superjson';
@@ -159,20 +158,18 @@ export class Provider {
    * This fetches the map and allows to perform.
    */
   public async bind(config?: BindConfig): Promise<BoundProvider> {
-    const loadedResult = await SuperJson.loadSuperJson();
+    const loadedResult = await SuperJson.load();
     const superJson = loadedResult.match(
       v => v,
       err => {
         providerDebug(err);
 
-        return new SuperJson({});
+        return new SuperJson();
       }
     );
 
-    const normalizedSuper = superJson.normalized;
-
     // resolve profile locally
-    const profileAst = await this.resolveProfileAst(normalizedSuper);
+    const profileAst = await this.resolveProfileAst(superJson);
     if (profileAst === undefined) {
       throw new Error('Invalid profile');
     }
@@ -181,29 +178,29 @@ export class Provider {
     // resolve provider from parameters or defer until later
     // eslint-disable-next-line prefer-const
     let { providerInfo, providerName } = await this.resolveProviderInfo(
-      normalizedSuper
+      superJson
     );
 
     // resolve map from parameters or defer until later
-    const profileProviderSettings =
-      normalizedSuper.profiles[profileId].providers[providerName];
-
     // eslint-disable-next-line prefer-const
     let { mapAst, mapVariant, mapRevision } = await this.resolveMapAst(
-      profileProviderSettings
+      superJson,
+      `${profileId}.${providerName}`
     );
 
     // resolve map ast using bind and fill in provider info if not specified
     if (mapAst === undefined) {
       const fetchResponse = await fetchBind(
         {
-          profileId: profileId + `@${profileAst.header.version.major}.${profileAst.header.version.minor}.${profileAst.header.version.patch}`,
+          profileId:
+            profileId +
+            `@${profileAst.header.version.major}.${profileAst.header.version.minor}.${profileAst.header.version.patch}`,
           provider: providerName,
           mapVariant,
           mapRevision,
         },
         {
-          registryUrl: config?.registryUrl
+          registryUrl: config?.registryUrl,
         }
       );
 
@@ -216,7 +213,7 @@ export class Provider {
     }
 
     return new BoundProvider(
-      normalizedSuper,
+      superJson.normalized,
       profileAst,
       providerInfo,
       mapAst,
@@ -225,27 +222,32 @@ export class Provider {
   }
 
   private async resolveProfileAst(
-    normalizedSuper: NormalizedSuperJsonDocument
+    superJson: SuperJson
   ): Promise<ProfileDocumentNode | undefined> {
-    const superfaceGrid = joinPath(process.cwd(), 'superface', 'grid');
     const profileAst = await Provider.resolveValue(
       this.profile,
       fileContents => JSON.parse(fileContents) as ProfileDocumentNode, // TODO: validate
       profileId => {
-        const profileSettings = normalizedSuper.profiles[profileId];
+        const profileSettings = superJson.normalized.profiles[profileId];
         if (profileSettings === undefined) {
           // not found at all
           return undefined;
         } else if ('file' in profileSettings) {
           // assumed right next to source file
-          return FILE_URI_PROTOCOL + profileSettings.file + '.ast.json';
+          return (
+            FILE_URI_PROTOCOL +
+            superJson.resolvePath(profileSettings.file) +
+            '.ast.json'
+          );
         } else {
           // assumed to be in grid folder
           return (
             FILE_URI_PROTOCOL +
-            joinPath(
-              superfaceGrid,
-              profileId + `@${profileSettings.version}.supr.ast.json`
+            superJson.resolvePath(
+              joinPath(
+                'grid',
+                profileId + `@${profileSettings.version}.supr.ast.json`
+              )
             )
           );
         }
@@ -256,19 +258,18 @@ export class Provider {
   }
 
   private async resolveProviderInfo(
-    normalizedSuper: NormalizedSuperJsonDocument
+    superJson: SuperJson
   ): Promise<{ providerInfo?: ProviderJson; providerName: string }> {
     const providerInfo = await Provider.resolveValue<ProviderJson>(
       this.provider,
       fileContents => JSON.parse(fileContents) as ProviderJson, // TODO: validate
       providerName => {
-        const providerSettings = normalizedSuper.providers[providerName];
-        if (
-          providerSettings !== undefined &&
-          providerSettings.file !== undefined
-        ) {
+        const providerSettings = superJson.normalized.providers[providerName];
+        if (providerSettings?.file !== undefined) {
           // local file is resolved
-          return FILE_URI_PROTOCOL + providerSettings.file;
+          return (
+            FILE_URI_PROTOCOL + superJson.resolvePath(providerSettings.file)
+          );
         } else {
           // local file not specified
           return undefined;
@@ -287,35 +288,42 @@ export class Provider {
   }
 
   private async resolveMapAst(
-    profileProviderSettings: NormalizedProfileProviderSettings | undefined
+    superJson: SuperJson,
+    mapId: string
   ): Promise<{
     mapAst?: MapDocumentNode;
     mapVariant?: string;
     mapRevision?: string;
   }> {
-    let localMapPath;
-    if (
-      profileProviderSettings !== undefined &&
-      'file' in profileProviderSettings
-    ) {
-      localMapPath =
-        FILE_URI_PROTOCOL + profileProviderSettings.file + '.ast.json';
-    }
-    // nice job typescript, you really deduced that one
-    forceCast<
-      undefined | Exclude<NormalizedProfileProviderSettings, { file: string }>
-    >(profileProviderSettings);
-
+    const mapInfo: { mapVariant?: string; mapRevision?: string } = {};
     const mapAst = await Provider.resolveValue<MapDocumentNode>(
-      this.map ?? localMapPath,
+      this.map ?? mapId,
       fileContents => JSON.parse(fileContents) as MapDocumentNode, // TODO: validate
-      _ => undefined
+      mapId => {
+        const [profileId, providerName] = mapId.split('.');
+        const profileProviderSettings =
+          superJson.normalized.profiles[profileId].providers[providerName];
+
+        if (profileProviderSettings === undefined) {
+          return undefined;
+        } else if ('file' in profileProviderSettings) {
+          return (
+            FILE_URI_PROTOCOL +
+            superJson.resolvePath(profileProviderSettings.file) +
+            '.ast.json'
+          );
+        } else {
+          mapInfo.mapVariant = profileProviderSettings.mapVariant;
+          mapInfo.mapRevision = profileProviderSettings.mapRevision;
+
+          return undefined;
+        }
+      }
     );
 
     return {
       mapAst,
-      mapVariant: profileProviderSettings?.mapVariant,
-      mapRevision: profileProviderSettings?.mapRevision,
+      ...mapInfo,
     };
   }
 
