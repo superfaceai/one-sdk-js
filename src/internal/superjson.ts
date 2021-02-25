@@ -4,8 +4,8 @@ import {
   dirname,
   join as joinPath,
   normalize,
+  relative as relativePath,
   resolve as resolvePath,
-  relative as relativePath
 } from 'path';
 import * as zod from 'zod';
 
@@ -796,7 +796,7 @@ export class SuperJson {
    * Returns a relative path relative to `dirname(this.path)` based on `process.cwd()`
    */
   relativePath(path: string): string {
-    return relativePath(dirname(this.path), path)
+    return relativePath(dirname(this.path), path);
   }
 
   /**
