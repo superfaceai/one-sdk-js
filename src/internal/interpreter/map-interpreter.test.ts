@@ -834,6 +834,8 @@ describe('MapInterpreter', () => {
       usecase: 'testCase',
       auth: {
         BasicAuth: {
+          type: 'http',
+          scheme: 'basic',
           username: 'name',
           password: 'password',
         },
@@ -894,6 +896,8 @@ describe('MapInterpreter', () => {
       usecase: 'testCase',
       auth: {
         Bearer: {
+          type: 'http',
+          scheme: 'bearer',
           name: 'Authorization',
           value: 'SuperSecret',
         },
@@ -954,6 +958,7 @@ describe('MapInterpreter', () => {
       usecase: 'testCase',
       auth: {
         ApiKey: {
+          type: 'apikey',
           in: 'header',
           name: 'key',
           value: 'SuperSecret',
@@ -1017,6 +1022,7 @@ describe('MapInterpreter', () => {
       usecase: 'testCase',
       auth: {
         ApiKey: {
+          type: 'apikey',
           in: 'query',
           name: 'key',
           value: 'SuperSecret',
