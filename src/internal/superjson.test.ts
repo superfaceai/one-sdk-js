@@ -6,7 +6,7 @@ import { isFileURIString, isVersionString, SuperJson } from './superjson';
 const { unlink, rmdir, mkdir, writeFile } = promises;
 const basedir = process.cwd();
 
-describe('SuperJsonDocument', () => {
+describe('class SuperJson', () => {
   it('parses valid super.json', () => {
     {
       const superJson = `{
@@ -77,10 +77,25 @@ describe('SuperJsonDocument', () => {
             },
             "auth": {
               "BasicAuth": {
+                "type": "http",
+                "scheme": "basic",
                 "username": "johndoe",
                 "password": "$SF_SWAPIDEW_BASICAUTH_PASSWORD"
+              },
+              "ApiKey": {
+                "type": "apikey",
+                "value": "SECRET",
+                "in": "header",
+                "header": "x-api-key"
+              },
+              "CustomScheme": {
+                "type": "digest",
+                "value": "SECRET"
               }
             }
+          },
+          "twillio": {
+            "auth": {}
           }
         },
         "lock": {
@@ -143,10 +158,15 @@ describe('SuperJsonDocument', () => {
           "acme": {
             "auth": {
               "ApiKey": {
-                "type": "apikey",
+                "type": "http",
                 "value": "SECRET",
                 "in": "header",
                 "field": "x-api-key"
+              },
+              "Digest": {
+                "type": "http",
+                "scheme": "basic",
+                "value": "SECRET"
               }
             }
           }
@@ -236,6 +256,8 @@ describe('SuperJsonDocument', () => {
         "baz": {
           "auth": {
             "BasicAuth": {
+              "type": "http",
+              "scheme": "basic",
               "username": "hi",
               "password": "heya"
             }
@@ -349,6 +371,8 @@ describe('SuperJsonDocument', () => {
           file: undefined,
           auth: {
             BasicAuth: {
+              type: 'http',
+              scheme: 'basic',
               username: 'hi',
               password: 'heya',
             },
