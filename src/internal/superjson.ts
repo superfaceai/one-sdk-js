@@ -171,57 +171,74 @@ const normalizedProfileSettings = zod.union([
  */
 const profileEntry = zod.union([semanticVersion, uriPath, profileSettings]);
 
+const basicAuth = zod.object({
+  type: zod.literal('http'),
+  scheme: zod.literal('basic'),
+  username: zod.string(),
+  password: zod.string(),
+});
+
+const apiKey = zod.object({
+  type: zod.literal('apikey'),
+  in: zod.union([
+    zod.literal('header'),
+    zod.literal('body'),
+    zod.literal('query'),
+    zod.literal('path'),
+  ]),
+  name: zod.string().default('Authorization'),
+  value: zod.string(),
+});
+
+const bearer = zod.object({
+  type: zod.literal('http'),
+  scheme: zod.literal('bearer'),
+  name: zod.string().default('Authorization'),
+  value: zod.string(),
+});
+
+const digest = zod.object({
+  type: zod.literal('http'),
+  scheme: zod.literal('digest'),
+  value: zod.string(),
+});
+
 /**
  * Authorization variables.
  * ```
  * {
  *   "BasicAuth": {
+ *     "type": "http",
+ *     "scheme": "basic"
  *     "username": "$username",
  *     "password": "$password"
- *   }
- * } | {
+ *   },
  *   "ApiKey": {
+ *     "type": "apiKey",
  *     "in": "header | body | query | path",
  *     "name": "$name", // def: Authorization
  *     "value": "$value"
- *   }
- * } | {
+ *   },
  *   "Bearer": {
+ *     "type": "http",
+ *     "scheme": "bearer"
  *     "name": "$name", // def: Authorization
+ *     "value": "$value"
+ *   },
+ *   "Digest": {
+ *     "type": "http",
+ *     "scheme": "digest",
  *     "value": "$value"
  *   }
  * } | {}
  * ```
  */
-const auth = zod.union([
-  zod.object({
-    BasicAuth: zod.object({
-      username: zod.string(),
-      password: zod.string(),
-    }),
-  }),
-  zod.object({
-    ApiKey: zod.object({
-      in: zod.union([
-        zod.literal('header'),
-        zod.literal('body'),
-        zod.literal('query'),
-        zod.literal('path'),
-      ]),
-      name: zod.string().default('Authorization'),
-      value: zod.string(),
-    }),
-  }),
-  zod.object({
-    Bearer: zod.object({
-      name: zod.string().default('Authorization'),
-      value: zod.string(),
-    }),
-  }),
-  // allow empty object
-  // note: Zod is order sensitive, so this has to come last
-  zod.object({}),
-]);
+const auth = zod.object({
+  BasicAuth: basicAuth.optional(),
+  ApiKey: apiKey.optional(),
+  Bearer: bearer.optional(),
+  Digest: digest.optional(),
+});
 
 /**
  * Expanded provider settings for one provider name.

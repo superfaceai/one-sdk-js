@@ -63,7 +63,7 @@ const queryParameters = (parameters?: Record<string, string>): string => {
 };
 
 const basicAuth = (auth: AuthVariables, headers: Headers): void => {
-  if (!('BasicAuth' in auth)) {
+  if (auth.BasicAuth === undefined) {
     throw new Error('Missing credentials for Basic auth!');
   }
 
@@ -82,7 +82,7 @@ const apikeyAuth = (
   headers: Headers,
   requestBody: Variables | undefined
 ): void => {
-  if (!('ApiKey' in auth)) {
+  if (auth.ApiKey === undefined) {
     throw new Error('Api Key credentials not present.');
   }
 
@@ -112,7 +112,7 @@ const apikeyAuth = (
 };
 
 const bearerAuth = (auth: AuthVariables, headers: Headers): void => {
-  if (!('Bearer' in auth)) {
+  if (auth.Bearer === undefined) {
     throw new Error('Bearer credentials not present.');
   }
 
