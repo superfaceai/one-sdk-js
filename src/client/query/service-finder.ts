@@ -12,7 +12,7 @@ import {
   ResultConstraint,
   ResultConstraintsObject,
 } from './constraints';
-import { Provider } from './providers';
+import { ProfileProvider } from './profile-provider';
 import { fetchProviders, RegistryProviderInfo } from './registry';
 
 export class ServiceFinderQuery {
@@ -44,14 +44,14 @@ export class ServiceFinderQuery {
   /**
     Finds Providers matching given criteria
    */
-  async find(): Promise<Provider[]> {
+  async find(): Promise<ProfileProvider[]> {
     return (await this.findProviders()).map(this.createProvider);
   }
 
   /**
     Finds first Provider matching given criteria
    */
-  async findFirst(): Promise<Provider> {
+  async findFirst(): Promise<ProfileProvider> {
     return (await this.find())[0];
   }
 
@@ -77,8 +77,8 @@ export class ServiceFinderQuery {
     throw new Error('Unreachable code reached😱');
   };
 
-  protected createProvider = (providerInfo: RegistryProviderInfo): Provider =>
-    new Provider(
+  protected createProvider = (providerInfo: RegistryProviderInfo): ProfileProvider =>
+    new ProfileProvider(
       this.profileAST,
       providerInfo.mappingUrl,
       // this.usecase,
@@ -128,16 +128,16 @@ export class TypedServiceFinderQuery<
     return this;
   }
 
-  async find(): Promise<Provider[]> {
+  async find(): Promise<ProfileProvider[]> {
     return (await this.findProviders()).map(this.createProvider);
   }
 
-  async findFirst(): Promise<Provider> {
+  async findFirst(): Promise<ProfileProvider> {
     return (await this.find())[0];
   }
 
-  protected createProvider = (providerInfo: RegistryProviderInfo): Provider => {
-    return new Provider(
+  protected createProvider = (providerInfo: RegistryProviderInfo): ProfileProvider => {
+    return new ProfileProvider(
       this.profileAST,
       providerInfo.mappingUrl,
       // this.usecase,

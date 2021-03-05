@@ -252,7 +252,7 @@ const schema = zod.object({
 
 const normalizedSchema = zod.object({
   profiles: zod.record(normalizedProfileSettings),
-  providers: zod.record(providerSettings),
+  providers: zod.record(normalizedProviderSettings),
 });
 
 export type SuperJsonDocument = zod.infer<typeof schema>;

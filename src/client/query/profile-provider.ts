@@ -5,6 +5,8 @@ import { join as joinPath } from 'path';
 
 import {
   MapInterpreter,
+  MapInterpreterError,
+  ProfileParameterError,
   ProfileParameterValidator,
 } from '../../internal/interpreter';
 import {
@@ -37,7 +39,7 @@ export type BindConfig = {
   registryUrl?: string;
 };
 
-export class BoundProvider {
+export class BoundProfileProvider {
   private profileValidator: ProfileParameterValidator;
 
   constructor(
@@ -96,7 +98,7 @@ export class BoundProvider {
   async perform<
     TInput extends NonPrimitive | undefined = undefined,
     TResult = unknown
-  >(usecase: string, input?: TInput): Promise<Result<TResult, unknown>> {
+  >(usecase: string, input?: TInput): Promise<Result<TResult, ProfileParameterError | MapInterpreterError>> {
     const composedInput = this.composeInput(usecase, input);
 
     const inputValidation = this.profileValidator.validate(
@@ -142,7 +144,7 @@ export class BoundProvider {
 }
 
 const providerDebug = createDebug('superface:Provider');
-export class Provider {
+export class ProfileProvider {
   constructor(
     /** profile id, url or ast node */
     private profile: string | ProfileDocumentNode,
@@ -157,7 +159,7 @@ export class Provider {
    *
    * This fetches the map and allows to perform.
    */
-  public async bind(config?: BindConfig): Promise<BoundProvider> {
+  public async bind(config?: BindConfig): Promise<BoundProfileProvider> {
     const loadedResult = await SuperJson.load();
     const superJson = loadedResult.match(
       v => v,
@@ -212,7 +214,7 @@ export class Provider {
       throw 'NOT IMPLEMENTED: map provided locally but provider is not';
     }
 
-    return new BoundProvider(
+    return new BoundProfileProvider(
       superJson.normalized,
       profileAst,
       providerInfo,
@@ -224,7 +226,7 @@ export class Provider {
   private async resolveProfileAst(
     superJson: SuperJson
   ): Promise<ProfileDocumentNode | undefined> {
-    const profileAst = await Provider.resolveValue(
+    const profileAst = await ProfileProvider.resolveValue(
       this.profile,
       fileContents => JSON.parse(fileContents) as ProfileDocumentNode, // TODO: validate
       profileId => {
@@ -260,7 +262,7 @@ export class Provider {
   private async resolveProviderInfo(
     superJson: SuperJson
   ): Promise<{ providerInfo?: ProviderJson; providerName: string }> {
-    const providerInfo = await Provider.resolveValue<ProviderJson>(
+    const providerInfo = await ProfileProvider.resolveValue<ProviderJson>(
       this.provider,
       fileContents => JSON.parse(fileContents) as ProviderJson, // TODO: validate
       providerName => {
@@ -296,7 +298,7 @@ export class Provider {
     mapRevision?: string;
   }> {
     const mapInfo: { mapVariant?: string; mapRevision?: string } = {};
-    const mapAst = await Provider.resolveValue<MapDocumentNode>(
+    const mapAst = await ProfileProvider.resolveValue<MapDocumentNode>(
       this.map ?? mapId,
       fileContents => JSON.parse(fileContents) as MapDocumentNode, // TODO: validate
       mapId => {
@@ -356,7 +358,7 @@ export class Provider {
         // unpack nested and recursively process them
         const nested = unpackNested(input);
 
-        return Provider.resolveValue(nested, parseFile, unpackNested);
+        return ProfileProvider.resolveValue(nested, parseFile, unpackNested);
       }
     } else {
       // return undefined and T
