@@ -23,12 +23,9 @@ describe('class SuperJson', () => {
         },
         "providers": {
           "acme": {
-            "auth": {
-              "ApiKey": {
-                "type": "apikey",
-                "value": "SECRET",
-                "in": "header",
-                "header": "x-api-key"
+            "security": {
+              "myApiKey": {
+                "apikey": "SECRET"
               }
             }
           }
@@ -75,27 +72,21 @@ describe('class SuperJson', () => {
                 "baseUrl": "https://www.some.differentUrl"
               }
             },
-            "auth": {
-              "BasicAuth": {
-                "type": "http",
-                "scheme": "basic",
+            "security": {
+              "myBasicAuth": {
                 "username": "johndoe",
                 "password": "$SF_SWAPIDEW_BASICAUTH_PASSWORD"
               },
-              "ApiKey": {
-                "type": "apikey",
-                "value": "SECRET",
-                "in": "header",
-                "header": "x-api-key"
+              "myApiKey": {
+                "apikey": "SECRET"
               },
-              "CustomScheme": {
-                "type": "digest",
-                "value": "SECRET"
+              "myCustomScheme": {
+                "digest": "SECRET"
               }
             }
           },
           "twillio": {
-            "auth": {}
+            "security": {}
           }
         },
         "lock": {
@@ -128,12 +119,9 @@ describe('class SuperJson', () => {
         },
         "providers": {
           "acme": {
-            "auth": {
-              "ApiKey": {
-                "type": "apikey",
-                "value": "SECRET",
-                "in": "header",
-                "header": "x-api-key"
+            "security": {
+              "myApiKey": {
+                "apikey": "SECRET"
               }
             }
           }
@@ -156,17 +144,13 @@ describe('class SuperJson', () => {
         },
         "providers": {
           "acme": {
-            "auth": {
-              "ApiKey": {
-                "type": "http",
-                "value": "SECRET",
-                "in": "header",
-                "field": "x-api-key"
+            "security": {
+              "myApiKey": {
+                "apikey": "SECRET",
+                "username": "username"
               },
-              "Digest": {
-                "type": "http",
-                "scheme": "basic",
-                "value": "SECRET"
+              "myDigest": {
+                "digest": "SECRET"
               }
             }
           }
@@ -251,13 +235,11 @@ describe('class SuperJson', () => {
         "foo": "file:///foo.provider.json",
         "bar": {
           "file": "./bar.provider.json",
-          "auth": {}
+          "security": {}
         },
         "baz": {
-          "auth": {
-            "BasicAuth": {
-              "type": "http",
-              "scheme": "basic",
+          "security": {
+            "myBasicAuth": {
               "username": "hi",
               "password": "heya"
             }
@@ -361,18 +343,16 @@ describe('class SuperJson', () => {
       providers: {
         foo: {
           file: '/foo.provider.json',
-          auth: {},
+          security: {},
         },
         bar: {
           file: './bar.provider.json',
-          auth: {},
+          security: {},
         },
         baz: {
           file: undefined,
-          auth: {
-            BasicAuth: {
-              type: 'http',
-              scheme: 'basic',
+          security: {
+            myBasicAuth: {
               username: 'hi',
               password: 'heya',
             },
@@ -398,10 +378,9 @@ describe('class SuperJson', () => {
       },
       "providers": {
         "acme": {
-          "auth": {
-            "ApiKey": {
-              "type": "apikey",
-              "value": "SECRET",
+          "security": {
+            "myApiKey": {
+              "apikey": "SECRET",
               "in": "header",
               "header": "x-api-key"
             }

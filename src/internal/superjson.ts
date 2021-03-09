@@ -171,74 +171,42 @@ const normalizedProfileSettings = zod.union([
  */
 const profileEntry = zod.union([semanticVersion, uriPath, profileSettings]);
 
-const basicAuth = zod.object({
-  type: zod.literal('http'),
-  scheme: zod.literal('basic'),
-  username: zod.string(),
-  password: zod.string(),
-});
-
-const apiKey = zod.object({
-  type: zod.literal('apikey'),
-  in: zod.union([
-    zod.literal('header'),
-    zod.literal('body'),
-    zod.literal('query'),
-    zod.literal('path'),
-  ]),
-  name: zod.string().default('Authorization'),
-  value: zod.string(),
-});
-
-const bearer = zod.object({
-  type: zod.literal('http'),
-  scheme: zod.literal('bearer'),
-  name: zod.string().default('Authorization'),
-  value: zod.string(),
-});
-
-const digest = zod.object({
-  type: zod.literal('http'),
-  scheme: zod.literal('digest'),
-  value: zod.string(),
-});
-
 /**
  * Authorization variables.
  * ```
  * {
- *   "BasicAuth": {
- *     "type": "http",
- *     "scheme": "basic"
+ *   "$schemeId": {
  *     "username": "$username",
  *     "password": "$password"
- *   },
- *   "ApiKey": {
- *     "type": "apiKey",
- *     "in": "header | body | query | path",
+ *   } | {
+ *     "in": "header" | "body" | "query" | "path",
  *     "name": "$name", // def: Authorization
- *     "value": "$value"
- *   },
- *   "Bearer": {
- *     "type": "http",
- *     "scheme": "bearer"
+ *     "apikey": "$value"
+ *   } | {
  *     "name": "$name", // def: Authorization
- *     "value": "$value"
- *   },
- *   "Digest": {
- *     "type": "http",
- *     "scheme": "digest",
- *     "value": "$value"
+ *     "token": "$value"
+ *   } | {
+ *     "digest": "$value"
  *   }
- * } | {}
+ * }
  * ```
  */
-const auth = zod.object({
-  BasicAuth: basicAuth.optional(),
-  ApiKey: apiKey.optional(),
-  Bearer: bearer.optional(),
-  Digest: digest.optional(),
-});
+const authVariable = zod.union([
+  zod.object({
+    username: zod.string(),
+    password: zod.string(),
+  }),
+  zod.object({
+    apikey: zod.string(),
+  }),
+  zod.object({
+    token: zod.string(),
+  }),
+  zod.object({
+    digest: zod.string(),
+  }),
+]);
+const authVariables = zod.record(authVariable);
 
 /**
  * Expanded provider settings for one provider name.
@@ -251,11 +219,11 @@ const auth = zod.object({
  */
 const providerSettings = zod.object({
   file: zod.string().optional(),
-  auth: auth.optional(),
+  security: authVariables.optional(),
 });
 const normalizedProviderSettings = zod.object({
   file: zod.string().optional(),
-  auth: auth,
+  security: authVariables,
 });
 
 const providerEntry = zod.union([uriPath, providerSettings]);
@@ -279,7 +247,8 @@ export type ProfileProviderEntry = zod.infer<typeof profileProviderEntry>;
 export type ProfileProviderSettings = zod.infer<typeof profileProviderSettings>;
 export type ProviderEntry = zod.infer<typeof providerEntry>;
 export type ProviderSettings = zod.infer<typeof providerSettings>;
-export type AuthVariables = zod.infer<typeof auth>;
+export type AuthVariable = zod.infer<typeof authVariable>;
+export type AuthVariables = zod.infer<typeof authVariables>;
 
 export type NormalizedSuperJsonDocument = zod.infer<typeof normalizedSchema>;
 export type NormalizedProfileSettings = zod.infer<
@@ -531,7 +500,7 @@ export class SuperJson {
       if (isFileURIString(providerEntry)) {
         return {
           file: providerEntry.slice(FILE_URI_PROTOCOL.length),
-          auth: {},
+          security: {},
         };
       }
 
@@ -540,7 +509,7 @@ export class SuperJson {
 
     return {
       file: providerEntry.file,
-      auth: providerEntry.auth ?? {},
+      security: providerEntry.security ?? {},
     };
   }
 
@@ -799,7 +768,7 @@ export class SuperJson {
     if (typeof payload === 'string') {
       const isShorthandAvailable =
         typeof targetProvider === 'string' ||
-        isEmptyRecord(targetProvider.auth ?? {});
+        isEmptyRecord(targetProvider.security ?? {});
 
       if (isFileURIString(payload)) {
         if (isShorthandAvailable) {
@@ -808,7 +777,7 @@ export class SuperJson {
           superJson.providers[providerName] = {
             file: trimFileURI(payload),
             // has to be an object because isShorthandAvailable is false
-            auth: (targetProvider as ProviderSettings).auth,
+            security: (targetProvider as ProviderSettings).security,
           };
         }
 
@@ -826,7 +795,10 @@ export class SuperJson {
     } else {
       superJson.providers[providerName] = {
         file: payload.file ?? targetProvider.file,
-        auth: mergeVariables(targetProvider.auth ?? {}, payload.auth ?? {}),
+        security: mergeVariables(
+          targetProvider.security ?? {},
+          payload.security ?? {}
+        ) as AuthVariables,
       };
     }
   }

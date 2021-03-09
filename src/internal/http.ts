@@ -5,8 +5,9 @@ import fetch, { Headers } from 'cross-fetch';
 import createDebug from 'debug';
 import { inspect } from 'util';
 
-import { getValue, NonPrimitive, Variables } from './interpreter/variables';
-import { AuthVariables, SuperJson } from './superjson';
+import { evalScript } from './interpreter/sandbox';
+import { NonPrimitive, Variables } from './interpreter/variables';
+import { AuthVariable, SuperJson } from './superjson';
 
 const debug = createDebug('superface:http');
 
@@ -62,13 +63,13 @@ const queryParameters = (parameters?: Record<string, string>): string => {
   return '';
 };
 
-const basicAuth = (auth: AuthVariables, headers: Headers): void => {
-  if (auth.BasicAuth === undefined) {
+const basicAuth = (auth: AuthVariable, headers: Headers): void => {
+  if (!('username' in auth)) {
     throw new Error('Missing credentials for Basic auth!');
   }
 
-  const name = SuperJson.resolveEnv(auth.BasicAuth.username);
-  const password = SuperJson.resolveEnv(auth.BasicAuth.password);
+  const name = SuperJson.resolveEnv(auth.username);
+  const password = SuperJson.resolveEnv(auth.password);
 
   const value =
     'Basic ' + Buffer.from(`${name}:${password}`).toString('base64');
@@ -76,21 +77,20 @@ const basicAuth = (auth: AuthVariables, headers: Headers): void => {
 };
 
 const apikeyAuth = (
-  auth: AuthVariables,
+  auth: AuthVariable,
   pathParameters: NonPrimitive,
   queryAuth: Record<string, string>,
   headers: Headers,
   requestBody: Variables | undefined
 ): void => {
-  if (auth.ApiKey === undefined) {
+  if (!('apikey' in auth)) {
     throw new Error('Api Key credentials not present.');
   }
 
-  // TODO: Should we be resolving the name?
-  const name = SuperJson.resolveEnv(auth.ApiKey.name);
-  const value = SuperJson.resolveEnv(auth.ApiKey.value);
+  const value = SuperJson.resolveEnv(auth.apikey);
 
-  switch (auth.ApiKey.in) {
+  // TODO: take `in` & `name` property from provider specification
+  switch (auth.in) {
     case 'header':
       headers.append(name, value);
       break;
@@ -111,16 +111,15 @@ const apikeyAuth = (
   }
 };
 
-const bearerAuth = (auth: AuthVariables, headers: Headers): void => {
-  if (auth.Bearer === undefined) {
+const bearerAuth = (auth: AuthVariable, headers: Headers): void => {
+  if (!('token' in auth)) {
     throw new Error('Bearer credentials not present.');
   }
 
-  // TODO: Should we be resolving the name?
-  const name = SuperJson.resolveEnv(auth.Bearer.name);
-  const value = SuperJson.resolveEnv(auth.Bearer.value);
+  const value = SuperJson.resolveEnv(auth.token);
 
-  headers.append(name, `Bearer ${value}`);
+  // TODO: take `name` property from provider specification
+  headers.append(auth.name, `Bearer ${value}`);
 };
 
 const formData = (data?: Record<string, string>): FormData => {
@@ -202,7 +201,7 @@ export const HttpClient = {
       contentType?: string;
       accept?: string;
       security?: HttpSecurity;
-      auth?: AuthVariables;
+      auth?: AuthVariable;
       baseUrl?: string;
       pathParameters?: NonPrimitive;
     }

@@ -833,9 +833,7 @@ describe('MapInterpreter', () => {
     const interpreter = new MapInterpreter({
       usecase: 'testCase',
       auth: {
-        BasicAuth: {
-          type: 'http',
-          scheme: 'basic',
+        myBasicAuth: {
           username: 'name',
           password: 'password',
         },
@@ -895,11 +893,8 @@ describe('MapInterpreter', () => {
     const interpreter = new MapInterpreter({
       usecase: 'testCase',
       auth: {
-        Bearer: {
-          type: 'http',
-          scheme: 'bearer',
-          name: 'Authorization',
-          value: 'SuperSecret',
+        myBearer: {
+          token: 'SuperSecret',
         },
       },
     });
@@ -957,11 +952,8 @@ describe('MapInterpreter', () => {
     const interpreter = new MapInterpreter({
       usecase: 'testCase',
       auth: {
-        ApiKey: {
-          type: 'apikey',
-          in: 'header',
-          name: 'key',
-          value: 'SuperSecret',
+        myApiKey: {
+          apikey: 'SuperSecret',
         },
       },
     });
@@ -1021,11 +1013,8 @@ describe('MapInterpreter', () => {
     const interpreter = new MapInterpreter({
       usecase: 'testCase',
       auth: {
-        ApiKey: {
-          type: 'apikey',
-          in: 'query',
-          name: 'key',
-          value: 'SuperSecret',
+        myApiKey: {
+          apikey: 'SuperSecret',
         },
       },
     });
