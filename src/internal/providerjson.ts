@@ -8,30 +8,31 @@ const providerJson = zod.object({
       baseUrl: zod.string(),
     })
   ),
-  securitySchemes: zod.array(zod.union([
-    zod.object({
-      // BasicAuth
-      id: zod.string(),
-      type: zod.literal('http'),
-      scheme: zod.literal('basic'),
-    }),
-    zod.object({
-      // ApiKey
-      id: zod.string(),
-      type: zod.literal('apiKey'),
-      in: zod.literal('query'),
-      name: zod.string().default('Authorization'),
-    }),
-    zod.object({
-      // Bearer
-      id: zod.string(),
-      type: zod.literal('http'),
-      scheme: zod.literal('bearer'),
-    }),
-    // allow empty object
-    // note: Zod is order sensitive, so this has to come last
-    zod.object({}),
-  ])).optional(),
+  securitySchemes: zod
+    .array(
+      zod.union([
+        zod.object({
+          // BasicAuth
+          id: zod.string(),
+          type: zod.literal('http'),
+          scheme: zod.literal('basic'),
+        }),
+        zod.object({
+          // ApiKey
+          id: zod.string(),
+          type: zod.literal('apiKey'),
+          in: zod.literal('header'),
+          name: zod.string().default('Authorization'),
+        }),
+        zod.object({
+          // Bearer
+          id: zod.string(),
+          type: zod.literal('http'),
+          scheme: zod.literal('bearer'),
+        }),
+      ])
+    )
+    .optional(),
   defaultService: zod.string(),
 });
 
