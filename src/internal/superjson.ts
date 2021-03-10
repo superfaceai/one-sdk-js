@@ -828,19 +828,29 @@ export class SuperJson {
     return value;
   }
 
+  /**
+   * Resolve environment values in a record recursively.
+   * 
+   * Returns a clone of the of the original record with every string field replaced by the result of `resolveEnd(field)`.
+   */
   static resolveEnvRecord<T extends Record<string, unknown>>(record: T): T {
-    const result: Partial<T> = {};
+    // If typed as `Partial<T>` typescript complains with "Type 'string' cannot be used to index type 'Partial<T>'. ts(2536)"
+    const result: Partial<Record<string, unknown>> = {};
 
     for (const [key, value] of Object.entries(record)) {
       if (typeof value === 'string') {
-        // TODO: What the hell does "Type 'string' cannot be used to index type 'Partial<T>'. ts(2536)" even mean
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-explicit-any
-        (result as any)[key] = SuperJson.resolveEnv(value);
+        // replace strings
+        // // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-explicit-any
+        result[key] = SuperJson.resolveEnv(value);
       } else if (typeof value === 'object' && value !== null) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-explicit-any
-        (result as any)[key] = SuperJson.resolveEnvRecord(
+        // recurse objects
+        // // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-explicit-any
+        result[key] = SuperJson.resolveEnvRecord(
           value as Record<string, unknown>
         );
+      } else {
+        // clone everything else
+        result[key] = clone(value);
       }
     }
 

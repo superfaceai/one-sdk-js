@@ -5,7 +5,7 @@ import { Profile, ProfileConfiguration } from "./profile";
 import { Provider, ProviderConfiguration } from './provider';
 
 /**
- * Cache for loaded super.json files so that they aren't reparser each time a new superface client is created.
+ * Cache for loaded super.json files so that they aren't reparsed each time a new superface client is created.
  */
 const SUPER_CACHE: { [path: string]: SuperJson } = {};
 
@@ -57,11 +57,11 @@ export class SuperfaceClient {
 		);
 	}
 
-	get profiles() {
+	get profiles(): never {
 		throw 'TODO'
 	}
 
-	get providers() {
+	get providers(): never {
 		throw 'TODO'
 	}
 
@@ -69,18 +69,18 @@ export class SuperfaceClient {
 		profileConfig: ProfileConfiguration,
 		providerConfig: ProviderConfiguration
 	): Promise<BoundProfileProvider> {
-		const key = profileConfig.hashkey + providerConfig.hashkey;
+		const cacheKey = profileConfig.cacheKey + providerConfig.cacheKey;
 
-		const bound = this.boundCache[key];
+		const bound = this.boundCache[cacheKey];
 		if (bound === undefined) {
 			const profileProvider = new ProfileProvider(
 				profileConfig,
 				providerConfig
 			);
 			const boundProfileProvider = await profileProvider.bind();
-			this.boundCache[key] = boundProfileProvider;
+			this.boundCache[cacheKey] = boundProfileProvider;
 		}
 
-		return this.boundCache[key];
+		return this.boundCache[cacheKey];
 	}
 }
