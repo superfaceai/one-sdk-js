@@ -140,6 +140,7 @@ describe('ProviderJsonDocument', () => {
             id: 'swapidev',
             type: 'apiKey',
             in: 'header',
+            //Name has a default value
             name: 'Authorization',
           },
         ],
