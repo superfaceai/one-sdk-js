@@ -171,6 +171,10 @@ const normalizedProfileSettings = zod.union([
  */
 const profileEntry = zod.union([semanticVersion, uriPath, profileSettings]);
 
+const idBase = zod.object({
+  id: zod.number(),
+});
+
 /**
  * Authorization variables.
  * ```
@@ -192,21 +196,29 @@ const profileEntry = zod.union([semanticVersion, uriPath, profileSettings]);
  * ```
  */
 const authVariable = zod.union([
-  zod.object({
-    username: zod.string(),
-    password: zod.string(),
-  }),
-  zod.object({
-    apikey: zod.string(),
-  }),
-  zod.object({
-    token: zod.string(),
-  }),
-  zod.object({
-    digest: zod.string(),
-  }),
+  idBase.merge(
+    zod.object({
+      username: zod.string(),
+      password: zod.string(),
+    })
+  ),
+  idBase.merge(
+    zod.object({
+      apikey: zod.string(),
+    })
+  ),
+  idBase.merge(
+    zod.object({
+      token: zod.string(),
+    })
+  ),
+  idBase.merge(
+    zod.object({
+      digest: zod.string(),
+    })
+  ),
 ]);
-const authVariables = zod.record(authVariable);
+const authVariables = zod.array(authVariable);
 
 /**
  * Expanded provider settings for one provider name.
@@ -500,7 +512,7 @@ export class SuperJson {
       if (isFileURIString(providerEntry)) {
         return {
           file: providerEntry.slice(FILE_URI_PROTOCOL.length),
-          security: {},
+          security: [],
         };
       }
 
@@ -509,7 +521,7 @@ export class SuperJson {
 
     return {
       file: providerEntry.file,
-      security: providerEntry.security ?? {},
+      security: providerEntry.security ?? [],
     };
   }
 
@@ -768,7 +780,7 @@ export class SuperJson {
     if (typeof payload === 'string') {
       const isShorthandAvailable =
         typeof targetProvider === 'string' ||
-        isEmptyRecord(targetProvider.security ?? {});
+        targetProvider.security?.length === 0;
 
       if (isFileURIString(payload)) {
         if (isShorthandAvailable) {
@@ -795,10 +807,10 @@ export class SuperJson {
     } else {
       superJson.providers[providerName] = {
         file: payload.file ?? targetProvider.file,
-        security: mergeVariables(
-          targetProvider.security ?? {},
-          payload.security ?? {}
-        ) as AuthVariables,
+        security: mergeAuthVariables(
+          targetProvider.security ?? [],
+          payload.security ?? []
+        ),
       };
     }
   }
@@ -867,4 +879,27 @@ export class SuperJson {
 
     return result as T;
   }
+}
+
+export function mergeAuthVariables(
+  left: AuthVariables,
+  right: AuthVariables
+): AuthVariables {
+  const result: AuthVariables = [];
+
+  for (const variable of left) {
+    result.push(variable);
+  }
+
+  for (const variable of right) {
+    const index = result.findIndex(item => item.id === variable.id);
+
+    if (index !== -1) {
+      result[index] = variable;
+    } else {
+      result.push(variable);
+    }
+  }
+
+  return result;
 }
