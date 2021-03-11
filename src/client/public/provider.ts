@@ -1,12 +1,12 @@
-import { AuthVariables } from "../../internal";
-import { SuperfaceClient } from "./client";
+import { AuthVariables } from '../../internal';
+import { SuperfaceClient } from './client';
 
 export class ProviderConfiguration {
   constructor(
     public readonly name: string,
     public readonly auth: AuthVariables,
     public readonly serviceId?: string
-  ) { }
+  ) {}
 
   get cacheKey(): string {
     // TOOD: Research a better way?
@@ -20,9 +20,8 @@ export class Provider {
     public readonly configuration: ProviderConfiguration
   ) {}
 
-  async configure(
-    _: object
-  ): Promise<Provider> {
-    throw 'TODO'
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async configure(_: Record<string, unknown>): Promise<Provider> {
+    throw 'TODO';
   }
 }

@@ -7,4 +7,4 @@ export * from './lib';
 export * from './internal';
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-export const VERSION = packageJson.version;
+export const VERSION: string = packageJson.version;

@@ -1,6 +1,6 @@
 import { ProfileDocumentNode } from '@superfaceai/ast';
-import { SuperJson } from '../../internal';
 
+import { SuperJson } from '../../internal';
 import { NonPrimitive } from '../../internal/interpreter/variables';
 import {
   InputConstraint,
@@ -78,7 +78,9 @@ export class ServiceFinderQuery {
     throw new Error('Unreachable code reached😱');
   };
 
-  protected createProvider = (providerInfo: RegistryProviderInfo): ProfileProvider =>
+  protected createProvider = (
+    providerInfo: RegistryProviderInfo
+  ): ProfileProvider =>
     new ProfileProvider(
       new SuperJson({}), // TODO
       this.profileAST,
@@ -138,7 +140,9 @@ export class TypedServiceFinderQuery<
     return (await this.find())[0];
   }
 
-  protected createProvider = (providerInfo: RegistryProviderInfo): ProfileProvider => {
+  protected createProvider = (
+    providerInfo: RegistryProviderInfo
+  ): ProfileProvider => {
     return new ProfileProvider(
       new SuperJson({}), // TODO
       this.profileAST,

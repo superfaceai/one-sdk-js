@@ -47,6 +47,7 @@ module.exports = {
     files: '*.test.ts',
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off'
     }
   }],
 };

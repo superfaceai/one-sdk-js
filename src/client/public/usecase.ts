@@ -1,25 +1,25 @@
-import { NonPrimitive } from "../../internal/interpreter/variables";
-import { Result } from "../../lib";
-import { Provider, ProviderConfiguration } from "./provider";
+import { MapInterpreterError, ProfileParameterError } from '../../internal';
+import { NonPrimitive, Primitive } from '../../internal/interpreter/variables';
+import { Result } from '../../lib';
 import { BoundProfileProvider } from '../query/profile-provider';
-import { Profile } from "./profile";
-import { MapInterpreterError, ProfileParameterError } from "../../internal";
+import { Profile } from './profile';
+import { Provider, ProviderConfiguration } from './provider';
 
 export type PerformOptions = {
-  provider?: Provider
+  provider?: Provider;
 };
 
 // TODO
 export type PerformError = ProfileParameterError | MapInterpreterError;
 
 export class UseCase<
-  TInput extends NonPrimitive = Record<string, any>,
+  TInput extends NonPrimitive = Record<
+    string,
+    Primitive | NonPrimitive | undefined
+  >,
   TOutput = unknown
 > {
-  constructor(
-    public readonly profile: Profile,
-    public readonly name: string
-  ) {}
+  constructor(public readonly profile: Profile, public readonly name: string) {}
 
   async perform(
     inputs?: TInput,
@@ -36,9 +36,6 @@ export class UseCase<
     );
 
     // TOOD: rewrap the errors for public consumption?
-    return boundProfileProvider.perform(
-      this.name,
-      inputs
-    );
+    return boundProfileProvider.perform(this.name, inputs);
   }
 }

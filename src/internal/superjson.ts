@@ -1,5 +1,5 @@
 import createDebug from 'debug';
-import { promises as fsp, statSync, readFileSync } from 'fs';
+import { promises as fsp, readFileSync, statSync } from 'fs';
 import {
   dirname,
   join as joinPath,
@@ -311,7 +311,7 @@ export class SuperJson {
   }
 
   static loadSync(path?: string): Result<SuperJson, string> {
-    let superfile = path ?? SuperJson.defaultPath();
+    const superfile = path ?? SuperJson.defaultPath();
 
     try {
       const statInfo = statSync(superfile);
@@ -347,7 +347,7 @@ export class SuperJson {
    * Attempts to load super.json file from expected location `cwd/superface/super.json`
    */
   static async load(path?: string): Promise<Result<SuperJson, string>> {
-    let superfile = path ?? SuperJson.defaultPath();
+    const superfile = path ?? SuperJson.defaultPath();
 
     try {
       const statInfo = await fsp.stat(superfile);
@@ -362,7 +362,7 @@ export class SuperJson {
 
     let superjson: unknown;
     try {
-      const superraw = (await fsp.readFile(superfile, { encoding: 'utf-8' }));
+      const superraw = await fsp.readFile(superfile, { encoding: 'utf-8' });
       superjson = JSON.parse(superraw);
     } catch (e: unknown) {
       // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
@@ -852,7 +852,7 @@ export class SuperJson {
 
   /**
    * Resolve environment values in a record recursively.
-   * 
+   *
    * Returns a clone of the of the original record with every string field replaced by the result of `resolveEnd(field)`.
    */
   static resolveEnvRecord<T extends Record<string, unknown>>(record: T): T {
