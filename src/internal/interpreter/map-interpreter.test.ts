@@ -2469,4 +2469,75 @@ describe('MapInterpreter', () => {
 
     expect(result.isOk() && result.value).toEqual({ result: 12 });
   });
+
+  it('should strip trailing slash from baseUrl', async () => {
+    await mockServer.get('/thirteen').thenJson(200, { data: 12 });
+    const baseUrl = mockServer.urlFor('/thirteen').replace('thirteen', '');
+    expect(baseUrl.split('')[baseUrl.length - 1]).toEqual('/');
+    const ast: MapDocumentNode = {
+      kind: 'MapDocument',
+      header,
+      definitions: [
+        {
+          kind: 'MapDefinition',
+          name: 'Test',
+          usecaseName: 'Test',
+          statements: [
+            {
+              kind: 'SetStatement',
+              assignments: [
+                {
+                  kind: 'Assignment',
+                  key: ['username'],
+                  value: {
+                    kind: 'JessieExpression',
+                    expression: 'input.user',
+                  },
+                },
+              ],
+            },
+            {
+              kind: 'HttpCallStatement',
+              method: 'GET',
+              url: '/thirteen',
+              responseHandlers: [
+                {
+                  kind: 'HttpResponseHandler',
+                  statusCode: 200,
+                  contentType: 'application/json',
+                  statements: [
+                    {
+                      kind: 'OutcomeStatement',
+                      isError: false,
+                      terminateFlow: false,
+                      value: {
+                        kind: 'ObjectLiteral',
+                        fields: [
+                          {
+                            kind: 'Assignment',
+                            key: ['result'],
+                            value: {
+                              kind: 'PrimitiveLiteral',
+                              value: 13,
+                            },
+                          },
+                        ],
+                      },
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    const interpreter = new MapInterpreter({
+      usecase: 'Test',
+      serviceBaseUrl: baseUrl,
+    });
+    const result = await interpreter.perform(ast);
+
+    expect(result.isOk() && result.value).toEqual({ result: 13 });
+  });
 });
