@@ -5,8 +5,7 @@ import fetch, { Headers } from 'cross-fetch';
 import createDebug from 'debug';
 import { inspect } from 'util';
 
-import { evalScript } from './interpreter/sandbox';
-import { NonPrimitive, Variables } from './interpreter/variables';
+import { getValue, NonPrimitive, Variables } from './interpreter/variables';
 import { AuthVariables, SuperJson } from './superjson';
 
 const debug = createDebug('superface:http');
@@ -158,31 +157,36 @@ const createUrl = (
   }
 
   if (parameters.pathParameters) {
-    const pathParameters = Object.keys(parameters.pathParameters);
     const replacements: string[] = [];
 
-    const regex = RegExp('{(.*?)}', 'g');
+    const regex = RegExp('{(.*)}', 'g');
     let replacement: RegExpExecArray | null;
     while ((replacement = regex.exec(url)) !== null) {
       replacements.push(replacement[1]);
     }
 
+    const values = replacements.reduce<NonPrimitive>(
+      (acc, key) => ({
+        ...acc,
+        [key]: getValue(parameters.pathParameters, key.split('.')),
+      }),
+      {}
+    );
+    const stringifiedValues = variablesToStrings(values);
+
     const missingKeys = replacements.filter(
-      key => !pathParameters.includes(key)
+      key => stringifiedValues[key] === undefined
     );
 
-    if (missingKeys.length) {
+    if (missingKeys.length > 0) {
       throw new Error(
         `Values for URL replacement keys not found: ${missingKeys.join(', ')}`
       );
     }
 
-    for (const param of pathParameters) {
-      // TODO: Check type?
-      const replacement = evalScript(
-        param,
-        parameters.pathParameters
-      ) as string;
+    for (const param of Object.keys(values)) {
+      const replacement = stringifiedValues[param];
+
       url = url.replace(`{${param}}`, replacement);
     }
   }
