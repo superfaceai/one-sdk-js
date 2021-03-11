@@ -22,6 +22,7 @@ import {
   SuperJson,
 } from '../../internal/superjson';
 import { err, ok, Result } from '../../lib';
+import clone from '../../lib/clone';
 import { ProfileConfiguration } from '../public/profile';
 import { ProviderConfiguration } from '../public/provider';
 import { fetchBind, ProviderJson } from './registry';
@@ -138,30 +139,15 @@ export type BindConfiguration = {
 const profileProviderDebug = createDebug('superface:ProfileProvider');
 export class ProfileProvider {
   constructor(
-    private readonly superJson: SuperJson,
-    /** profile id, url or ast node */
+    /** Preloaded superJson instance */
+    public readonly superJson: SuperJson,
+    /** profile id, url, ast node or configuration instance */
     private profile: string | ProfileDocumentNode | ProfileConfiguration,
-    /** provider name, url or config object */
+    /** provider name, url or configuration instance */
     private provider: string | ProviderJson | ProviderConfiguration,
     /** url or ast node */
     private map?: string | MapDocumentNode
   ) {}
-
-  // private composeAuth(): AuthVariables {
-  //   const providerSettings = this.superJson.providers[this.provider.name];
-  //   const defaultAuth = castToNonPrimitive(providerSettings?.auth);
-
-  //   let composed = this.bindConfig.auth ?? {};
-  //   if (defaultAuth !== undefined) {
-  //     // clone so we don't mutate super.json and resolve env for super.json values only
-  //     const cloned = SuperJson.resolveEnvRecord(clone(defaultAuth));
-
-  //     // merge with provided auth
-  //     composed = mergeVariables(cloned, composed);
-  //   }
-
-  //   return composed;
-  // }
 
   /**
    * Binds the provider.
@@ -177,8 +163,10 @@ export class ProfileProvider {
     const profileId = profileAstId(profileAst);
 
     // resolve provider from parameters or defer until later
+    // JESUS: Why can't I unpack this without fighting the linter
     // eslint-disable-next-line prefer-const
-    let { providerInfo, providerName, authVariables } = await this.resolveProviderInfo();
+    let { providerInfo, providerName } = await this.resolveProviderInfo();
+    const authVariables = this.resolveAuthVariables(providerName, configuration?.auth);
 
     // resolve map from parameters or defer until later
     // eslint-disable-next-line prefer-const
@@ -216,7 +204,7 @@ export class ProfileProvider {
       mapAst,
       {
         profileProviderSettings: this.superJson.normalized.profiles[profileId]?.providers[providerInfo.name],
-        auth: configuration?.auth,
+        auth: authVariables,
         serviceId: configuration?.serviceId
       }
     );
@@ -284,14 +272,17 @@ export class ProfileProvider {
       }
     );
 
+    let providerName;
     if (providerInfo === undefined) {
       // if the providerInfo is undefined then this must be a string that resolveValue returned undefined for.
-      forceCast<string>(this.provider);
+      forceCast<string>(resolveInput);
 
-      return { providerName: this.provider };
+      providerName = resolveInput;
     } else {
-      return { providerInfo, providerName: providerInfo.name };
+      providerName = providerInfo.name;
     }
+
+    return { providerInfo, providerName };
   }
 
   private async resolveMapAst(
@@ -340,7 +331,7 @@ export class ProfileProvider {
    * * The value itself, returned straight away
    * * `undefined`, returned straight away
    * * File URI that is read and the contents are passed to the `parseFile` function
-   * * For other values `unpackNested(input)` is called recursively with
+   * * For other values `unpackNested(input)` is called recursively
    */
   private static async resolveValue<T>(
     input: T | string | undefined,
@@ -371,5 +362,28 @@ export class ProfileProvider {
       // return undefined and T
       return input;
     }
+  }
+
+  /**
+   * Resolves auth variables by applying the provided overlay over the base variables.
+   * 
+   * The base variables either come from super.json or from `this.provider` if it is an instance of `ProviderConfiguration`
+   */
+  private resolveAuthVariables(providerName: string, overlay?: AuthVariables): AuthVariables {
+    let base;
+    if (this.provider instanceof ProviderConfiguration) {
+      base = this.provider.auth;
+    } else {
+      base = this.superJson.normalized.providers[providerName]?.auth;
+    }
+    
+    let resolved = base;
+    if (overlay !== undefined) {
+      resolved = mergeVariables(
+        clone(base), overlay
+      );
+    }
+    
+    return resolved;
   }
 }

@@ -15,9 +15,20 @@ export class SuperfaceClient {
 		[key: string]: BoundProfileProvider
 	} = {};
 	
-	constructor() {
-		// TODO: Load and cache, synchronizedly
-		this.superJson = new SuperJson({});
+	constructor(
+		superJson?: SuperJson
+	) {
+		if (superJson === undefined) {
+			const superCacheKey = SuperJson.defaultPath();
+
+			if (SUPER_CACHE[superCacheKey] === undefined) {
+				SUPER_CACHE[superCacheKey] = SuperJson.loadSync(superCacheKey).unwrap();
+			}
+
+			this.superJson = SUPER_CACHE[superCacheKey];
+		} else {
+			this.superJson = superJson;
+		}
 	}
 
 	/** Gets a profile from super.json based on `profileId` in format: `[scope/]name`. */
@@ -41,8 +52,7 @@ export class SuperfaceClient {
 		
 		return new Profile(
 			this,
-			profileId,
-			new ProfileConfiguration(version, profileSettings.defaults, profileSettings.providers)
+			new ProfileConfiguration(profileId, version)
 		);
 	}
 
@@ -52,8 +62,7 @@ export class SuperfaceClient {
 
 		return new Provider(
 			this,
-			providerName,
-			new ProviderConfiguration(providerSettings.file, providerSettings.auth)
+			new ProviderConfiguration(providerName, providerSettings.auth)
 		);
 	}
 
@@ -74,6 +83,7 @@ export class SuperfaceClient {
 		const bound = this.boundCache[cacheKey];
 		if (bound === undefined) {
 			const profileProvider = new ProfileProvider(
+				this.superJson,
 				profileConfig,
 				providerConfig
 			);

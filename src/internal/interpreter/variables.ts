@@ -55,6 +55,9 @@ export function isEmptyRecord(
   return isNonPrimitive(input) && Object.keys(input).length === 0;
 }
 
+/**
+ * Merges variables from `right` into `left` (mutates `left`).
+ */
 export const mergeVariables = (
   left: NonPrimitive,
   right: NonPrimitive

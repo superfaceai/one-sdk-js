@@ -1,5 +1,5 @@
 import createDebug from 'debug';
-import { promises as fspromises } from 'fs';
+import { promises as fspromises, statSync, readFileSync } from 'fs';
 import {
   dirname,
   join as joinPath,
@@ -293,6 +293,13 @@ export class SuperJson {
     return JSON.stringify(this.document, undefined, 2);
   }
 
+  /**
+   * Returns the default super.json path based on current `process.cwd()`.
+   */
+  static defaultPath(): string {
+    return joinPath(process.cwd(), 'superface', 'super.json');
+  }
+
   static parse(input: unknown): Result<SuperJsonDocument, string> {
     try {
       const superdocument = schema.parse(input);
@@ -304,28 +311,44 @@ export class SuperJson {
     }
   }
 
+  static loadSync(path?: string): Result<SuperJson, string> {
+    let superfile = path ?? SuperJson.defaultPath();
+
+    try {
+      const statInfo = statSync(superfile);
+
+      if (!statInfo.isFile()) {
+        return err(`'${superfile}' is not a file`);
+      }
+    } catch (e: unknown) {
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+      return err(`unable to find ${superfile}: ${e}`);
+    }
+
+    let superjson: unknown;
+    try {
+      const superraw = readFileSync(superfile).toString();
+      superjson = JSON.parse(superraw);
+    } catch (e: unknown) {
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+      return err(`unable to read ${superfile}: ${e}`);
+    }
+
+    const superdocument = SuperJson.parse(superjson);
+    if (superdocument.isErr()) {
+      return err(superdocument.error);
+    }
+
+    debug(`loaded super.json from ${superfile}`);
+
+    return ok(new SuperJson(superdocument.value, superfile));
+  }
+
   /**
    * Attempts to load super.json file from expected location `cwd/superface/super.json`
    */
   static async load(path?: string): Promise<Result<SuperJson, string>> {
-    const basedir = process.cwd();
-
-    let superfile = path;
-    if (superfile === undefined) {
-      const superdir = joinPath(basedir, 'superface');
-      try {
-        const statInfo = await stat(superdir);
-
-        if (!statInfo.isDirectory()) {
-          return err(`${superdir} is not a directory`);
-        }
-      } catch (e: unknown) {
-        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-        return err(`unable to open ${superdir}: ${e}`);
-      }
-
-      superfile = joinPath(superdir, 'super.json');
-    }
+    let superfile = path ?? SuperJson.defaultPath();
 
     try {
       const statInfo = await stat(superfile);

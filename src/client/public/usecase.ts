@@ -3,15 +3,14 @@ import { Result } from "../../lib";
 import { Provider, ProviderConfiguration } from "./provider";
 import { BoundProfileProvider } from '../query/profile-provider';
 import { Profile } from "./profile";
+import { MapInterpreterError, ProfileParameterError } from "../../internal";
 
 export type PerformOptions = {
   provider?: Provider
 };
 
 // TODO
-export type PerformError = {
-
-};
+export type PerformError = ProfileParameterError | MapInterpreterError;
 
 export class UseCase<
   TInput extends NonPrimitive = Record<string, any>,

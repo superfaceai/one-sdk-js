@@ -9,7 +9,8 @@ export class ProfileConfiguration {
   ) { }
 
   get cacheKey(): string {
-    throw 'TODO'
+    // TOOD: Research a better way?
+    throw JSON.stringify(this);
   }
 }
 
