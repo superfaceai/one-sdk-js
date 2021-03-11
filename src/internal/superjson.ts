@@ -1,5 +1,5 @@
 import createDebug from 'debug';
-import { promises as fspromises, statSync, readFileSync } from 'fs';
+import { promises as fsp, statSync, readFileSync } from 'fs';
 import {
   dirname,
   join as joinPath,
@@ -17,7 +17,6 @@ import {
   mergeVariables,
 } from './interpreter/variables';
 
-const { stat, readFile } = fspromises;
 const debug = createDebug('superface:superjson');
 
 // 'Official' regex https://semver.org/#is-there-a-suggested-regular-expression-regex-to-check-a-semver-string
@@ -327,7 +326,7 @@ export class SuperJson {
 
     let superjson: unknown;
     try {
-      const superraw = readFileSync(superfile).toString();
+      const superraw = readFileSync(superfile, { encoding: 'utf-8' });
       superjson = JSON.parse(superraw);
     } catch (e: unknown) {
       // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
@@ -351,7 +350,7 @@ export class SuperJson {
     let superfile = path ?? SuperJson.defaultPath();
 
     try {
-      const statInfo = await stat(superfile);
+      const statInfo = await fsp.stat(superfile);
 
       if (!statInfo.isFile()) {
         return err(`'${superfile}' is not a file`);
@@ -363,7 +362,7 @@ export class SuperJson {
 
     let superjson: unknown;
     try {
-      const superraw = (await readFile(superfile)).toString();
+      const superraw = (await fsp.readFile(superfile, { encoding: 'utf-8' }));
       superjson = JSON.parse(superraw);
     } catch (e: unknown) {
       // eslint-disable-next-line @typescript-eslint/restrict-template-expressions

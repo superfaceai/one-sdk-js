@@ -10,7 +10,7 @@ export class ProfileConfiguration {
 
   get cacheKey(): string {
     // TOOD: Research a better way?
-    throw JSON.stringify(this);
+    return JSON.stringify(this);
   }
 }
 

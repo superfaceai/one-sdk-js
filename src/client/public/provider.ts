@@ -10,7 +10,7 @@ export class ProviderConfiguration {
 
   get cacheKey(): string {
     // TOOD: Research a better way?
-    throw JSON.stringify(this);
+    return JSON.stringify(this);
   }
 }
 
@@ -21,7 +21,7 @@ export class Provider {
   ) {}
 
   async configure(
-    configData: object
+    _: object
   ): Promise<Provider> {
     throw 'TODO'
   }

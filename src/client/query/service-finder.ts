@@ -1,4 +1,5 @@
 import { ProfileDocumentNode } from '@superfaceai/ast';
+import { SuperJson } from '../../internal';
 
 import { NonPrimitive } from '../../internal/interpreter/variables';
 import {
@@ -79,6 +80,7 @@ export class ServiceFinderQuery {
 
   protected createProvider = (providerInfo: RegistryProviderInfo): ProfileProvider =>
     new ProfileProvider(
+      new SuperJson({}), // TODO
       this.profileAST,
       providerInfo.mappingUrl,
       // this.usecase,
@@ -138,6 +140,7 @@ export class TypedServiceFinderQuery<
 
   protected createProvider = (providerInfo: RegistryProviderInfo): ProfileProvider => {
     return new ProfileProvider(
+      new SuperJson({}), // TODO
       this.profileAST,
       providerInfo.mappingUrl,
       // this.usecase,
