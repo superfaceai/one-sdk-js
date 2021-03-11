@@ -1,6 +1,6 @@
 import { ZodError } from 'zod';
 
-import { parseProviderJson } from '.';
+import { isApiKeySecurity, parseProviderJson, isBasicAuthSecurity, isBearerTokenSecurity } from '.';
 
 describe('ProviderJsonDocument', () => {
   it('parses valid provider.json', () => {
@@ -327,5 +327,82 @@ describe('ProviderJsonDocument', () => {
     expect(() => {
       parseProviderJson(JSON.parse(providerJson));
     }).toThrow();
+  });
+
+  describe('ProviderJson type guards', () => {
+    it('checks ApiTokenSecurity type correctly', () => {
+      {
+        expect(isApiKeySecurity({
+          id: 'swapidev',
+          type: 'apiKey',
+          in: 'header',
+          name: 'X-API-Key'
+        })).toEqual(true)
+      }
+      {
+        expect(isApiKeySecurity({
+          id: 'swapidev',
+          type: 'http',
+          scheme: 'bearer'
+        })).toEqual(false)
+      }
+      {
+        expect(isApiKeySecurity({
+          id: 'swapidev',
+          type: 'http',
+          scheme: 'basic'
+        })).toEqual(false)
+      }
+    });
+
+    it('checks BasicAuthSecurity type correctly', () => {
+      {
+        expect(isBasicAuthSecurity({
+          id: 'swapidev',
+          type: 'apiKey',
+          in: 'header',
+          name: 'X-API-Key'
+        })).toEqual(false)
+      }
+      {
+        expect(isBasicAuthSecurity({
+          id: 'swapidev',
+          type: 'http',
+          scheme: 'bearer'
+        })).toEqual(false)
+      }
+      {
+        expect(isBasicAuthSecurity({
+          id: 'swapidev',
+          type: 'http',
+          scheme: 'basic'
+        })).toEqual(true)
+      }
+    });
+
+    it('checks BearerTokenSecurity type correctly', () => {
+      {
+        expect(isBearerTokenSecurity({
+          id: 'swapidev',
+          type: 'apiKey',
+          in: 'header',
+          name: 'X-API-Key'
+        })).toEqual(false)
+      }
+      {
+        expect(isBearerTokenSecurity({
+          id: 'swapidev',
+          type: 'http',
+          scheme: 'bearer'
+        })).toEqual(true)
+      }
+      {
+        expect(isBearerTokenSecurity({
+          id: 'swapidev',
+          type: 'http',
+          scheme: 'basic'
+        })).toEqual(false)
+      }
+    });
   });
 });
