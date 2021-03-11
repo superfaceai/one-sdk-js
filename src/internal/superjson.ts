@@ -172,7 +172,7 @@ const normalizedProfileSettings = zod.union([
 const profileEntry = zod.union([semanticVersion, uriPath, profileSettings]);
 
 const idBase = zod.object({
-  id: zod.number(),
+  id: zod.string(),
 });
 
 /**
