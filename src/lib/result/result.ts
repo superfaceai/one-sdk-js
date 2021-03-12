@@ -75,12 +75,11 @@ export class Ok<T, E> implements IResult<T, E>, IAsyncResult<T, E> {
     return ok(this.value);
   }
 
+  // eslint-disable-next-line @typescript-eslint/require-await
   async andThenAsync<U>(
     f: (t: T) => Promise<Result<U, E>>
   ): Promise<Result<U, E>> {
-    const result = await f(this.value);
-
-    return result;
+    return f(this.value);
   }
 }
 
