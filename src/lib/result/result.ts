@@ -7,7 +7,7 @@ interface IResult<T, E> {
   isErr(): this is Err<T, E>;
 
   /** Maps `Ok` variant and propagates `Err` variant. */
-  map<A>(f: (t: T) => A): Result<A, E>;
+  map<U>(f: (t: T) => U): Result<U, E>;
 
   /** Maps `Err` variant and propagates `Ok` variant. */
   mapErr<U>(f: (e: E) => U): Result<T, U>;
@@ -16,7 +16,7 @@ interface IResult<T, E> {
   andThen<U>(f: (t: T) => Result<U, E>): Result<U, E>;
 
   /** Calls `ok` if `this` is `Ok` variant and `err` if `this` is `Err` variant. */
-  match<A>(ok: (t: T) => A, err: (e: E) => A): A;
+  match<U>(ok: (t: T) => U, err: (e: E) => U): U;
 
   /** Unwraps `Ok` variant and throws on `Err` variant. */
   unwrap(): T;
@@ -44,7 +44,7 @@ export class Ok<T, E> implements IResult<T, E>, IAsyncResult<T, E> {
     return !this.isOk();
   }
 
-  map<A>(f: (t: T) => A): Result<A, E> {
+  map<U>(f: (t: T) => U): Result<U, E> {
     return ok(f(this.value));
   }
 
@@ -56,7 +56,7 @@ export class Ok<T, E> implements IResult<T, E>, IAsyncResult<T, E> {
     return f(this.value);
   }
 
-  match<A>(ok: (t: T) => A, _: (e: E) => A): A {
+  match<U>(ok: (t: T) => U, _: (e: E) => U): U {
     return ok(this.value);
   }
 
@@ -95,7 +95,7 @@ export class Err<T, E> implements IResult<T, E>, IAsyncResult<T, E> {
     return !this.isOk();
   }
 
-  map<A>(_: (t: T) => A): Result<A, E> {
+  map<U>(_: (t: T) => U): Result<U, E> {
     return err(this.error);
   }
 
@@ -107,7 +107,7 @@ export class Err<T, E> implements IResult<T, E>, IAsyncResult<T, E> {
     return err(this.error);
   }
 
-  match<A>(_: (t: T) => A, err: (e: E) => A): A {
+  match<U>(_: (t: T) => U, err: (e: E) => U): U {
     return err(this.error);
   }
 
