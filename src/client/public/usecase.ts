@@ -3,7 +3,7 @@ import { NonPrimitive, Primitive } from '../../internal/interpreter/variables';
 import { Result } from '../../lib';
 import { BoundProfileProvider } from '../query/profile-provider';
 import { Profile } from './profile';
-import { Provider, ProviderConfiguration } from './provider';
+import { Provider } from './provider';
 
 export type PerformOptions = {
   provider?: Provider;
@@ -27,7 +27,8 @@ export class UseCase<
   ): Promise<Result<TOutput, PerformError>> {
     let providerConfig = options?.provider?.configuration;
     if (providerConfig === undefined) {
-      providerConfig = {} as ProviderConfiguration; // TODO: obtain by choosing or configuring
+      const provider = await this.profile.client.getProviderForProfile(this.profile.configuration.id);
+      providerConfig = provider.configuration;
     }
 
     const boundProfileProvider: BoundProfileProvider = await this.profile.client.cacheBoundProfileProvider(

@@ -15,18 +15,14 @@ export class SuperfaceClient {
     [key: string]: BoundProfileProvider;
   } = {};
 
-  constructor(superJson?: SuperJson) {
-    if (superJson === undefined) {
-      const superCacheKey = SuperJson.defaultPath();
+  constructor() {
+    const superCacheKey = SuperJson.defaultPath();
 
-      if (SUPER_CACHE[superCacheKey] === undefined) {
-        SUPER_CACHE[superCacheKey] = SuperJson.loadSync(superCacheKey).unwrap();
-      }
-
-      this.superJson = SUPER_CACHE[superCacheKey];
-    } else {
-      this.superJson = superJson;
+    if (SUPER_CACHE[superCacheKey] === undefined) {
+      SUPER_CACHE[superCacheKey] = SuperJson.loadSync(superCacheKey).unwrap();
     }
+
+    this.superJson = SUPER_CACHE[superCacheKey];
   }
 
   /** Gets a profile from super.json based on `profileId` in format: `[scope/]name`. */
@@ -66,6 +62,18 @@ export class SuperfaceClient {
     );
   }
 
+  /** Returns a provider configuration for when no provider is passed to untyped `.perform`. */
+  async getProviderForProfile(profileId: string): Promise<Provider> {
+    const knownProfileProviders = Object.keys(this.superJson.normalized.profiles[profileId]?.providers ?? {});
+
+    if (knownProfileProviders.length > 0) {
+      const name = knownProfileProviders[0];
+      return this.getProvider(name);
+    }
+
+    throw new Error(`No provider found for profile ${profileId}.`)
+  }
+
   get profiles(): never {
     throw 'TODO';
   }
@@ -74,6 +82,7 @@ export class SuperfaceClient {
     throw 'TODO';
   }
 
+  /** Returns a BoundProfileProvider that is cached according to `profileConfig` and `providerConfig` cache keys. */
   async cacheBoundProfileProvider(
     profileConfig: ProfileConfiguration,
     providerConfig: ProviderConfiguration

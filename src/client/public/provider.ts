@@ -21,7 +21,12 @@ export class Provider {
   ) {}
 
   // eslint-disable-next-line @typescript-eslint/require-await
-  async configure(_: Record<string, unknown>): Promise<Provider> {
+  async configure(
+    _configuration: {
+      auth?: AuthVariables,
+      serviceId?: string
+    }
+  ): Promise<Provider> {
     throw 'TODO';
   }
 }
