@@ -172,17 +172,16 @@ const createUrl = (
       }),
       {}
     );
-    const stringifiedValues = variablesToStrings(values);
 
-    const missingKeys = replacements.filter(
-      key => stringifiedValues[key] === undefined
-    );
+    const missingKeys = replacements.filter(key => values[key] === undefined);
 
     if (missingKeys.length > 0) {
       throw new Error(
         `Values for URL replacement keys not found: ${missingKeys.join(', ')}`
       );
     }
+
+    const stringifiedValues = variablesToStrings(values);
 
     for (const param of Object.keys(values)) {
       const replacement = stringifiedValues[param];
