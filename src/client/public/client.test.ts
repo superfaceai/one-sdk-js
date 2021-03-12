@@ -1,4 +1,5 @@
 import * as fs from 'fs';
+import { dirname, join as joinPath } from 'path';
 
 import { SuperJson } from '../../internal/superjson';
 import { SuperfaceClient } from '../public/client';
@@ -102,7 +103,11 @@ describe('superface client', () => {
       accessMock.mockImplementationOnce(
         // eslint-disable-next-line @typescript-eslint/require-await
         async (path: string) => {
-          if (path === MOCK_SUPERJSON.profiles.foo.slice('file://'.length)) {
+          const expectedPath = joinPath(
+            dirname(SuperJson.defaultPath()),
+            MOCK_SUPERJSON.profiles.foo.slice('file://'.length)
+          );
+          if (path === expectedPath) {
             return undefined;
           } else {
             throw { code: 'ENOENT' };

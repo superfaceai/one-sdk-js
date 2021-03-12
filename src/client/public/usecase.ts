@@ -27,7 +27,9 @@ export class UseCase<
   ): Promise<Result<TOutput, PerformError>> {
     let providerConfig = options?.provider?.configuration;
     if (providerConfig === undefined) {
-      const provider = await this.profile.client.getProviderForProfile(this.profile.configuration.id);
+      const provider = await this.profile.client.getProviderForProfile(
+        this.profile.configuration.id
+      );
       providerConfig = provider.configuration;
     }
 

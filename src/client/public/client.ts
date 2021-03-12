@@ -36,7 +36,8 @@ export class SuperfaceClient {
 
     let version;
     if ('file' in profileSettings) {
-      if (!(await exists(profileSettings.file))) {
+      const filePath = this.superJson.resolvePath(profileSettings.file);
+      if (!(await exists(filePath))) {
         throw new Error(
           `File "${profileSettings.file}" specified in super.json does not exist.`
         );
@@ -64,14 +65,17 @@ export class SuperfaceClient {
 
   /** Returns a provider configuration for when no provider is passed to untyped `.perform`. */
   async getProviderForProfile(profileId: string): Promise<Provider> {
-    const knownProfileProviders = Object.keys(this.superJson.normalized.profiles[profileId]?.providers ?? {});
+    const knownProfileProviders = Object.keys(
+      this.superJson.normalized.profiles[profileId]?.providers ?? {}
+    );
 
     if (knownProfileProviders.length > 0) {
       const name = knownProfileProviders[0];
+
       return this.getProvider(name);
     }
 
-    throw new Error(`No provider found for profile ${profileId}.`)
+    throw new Error(`No provider found for profile ${profileId}.`);
   }
 
   get profiles(): never {
