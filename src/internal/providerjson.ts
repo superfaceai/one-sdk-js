@@ -14,6 +14,8 @@ export const HTTP_AUTH_SECURITY_TYPE = 'http';
 
 export const BEARER_AUTH_SECURITY_SCHEME = 'bearer';
 
+export const DIGEST_AUTH_SECURITY_SCHEME = 'digest';
+
 // BasicAuth
 const basicAuth = zod.object({
   id: zod.string(),
@@ -42,23 +44,39 @@ const bearer = zod.object({
 
 export type BearerTokenSecurity = zod.infer<typeof bearer>;
 
+//Digest
+const digest = zod.object({
+  id: zod.string(),
+  type: zod.literal(HTTP_AUTH_SECURITY_TYPE),
+  scheme: zod.literal(DIGEST_AUTH_SECURITY_SCHEME),
+});
+
+export type DigestAuthSecurity = zod.infer<typeof digest>;
+
+
 // Type guards
 export function isApiKeySecurity(
-  auth: ApiKeySecurity | BasicAuthSecurity | BearerTokenSecurity
+  auth: ApiKeySecurity | BasicAuthSecurity | BearerTokenSecurity | DigestAuthSecurity
 ): auth is ApiKeySecurity {
   return apiKey.check(auth);
 }
 
 export function isBasicAuthSecurity(
-  auth: ApiKeySecurity | BasicAuthSecurity | BearerTokenSecurity
+  auth: ApiKeySecurity | BasicAuthSecurity | BearerTokenSecurity | DigestAuthSecurity
 ): auth is BasicAuthSecurity {
   return basicAuth.check(auth);
 }
 
 export function isBearerTokenSecurity(
-  auth: ApiKeySecurity | BasicAuthSecurity | BearerTokenSecurity
+  auth: ApiKeySecurity | BasicAuthSecurity | BearerTokenSecurity | DigestAuthSecurity
 ): auth is BearerTokenSecurity {
   return bearer.check(auth);
+}
+
+export function isDigestAuthSecurity(
+  auth: ApiKeySecurity | BasicAuthSecurity | BearerTokenSecurity | DigestAuthSecurity
+): auth is DigestAuthSecurity {
+  return digest.check(auth);
 }
 
 const providerJson = zod.object({
@@ -69,7 +87,7 @@ const providerJson = zod.object({
       baseUrl: zod.string(),
     })
   ),
-  securitySchemes: zod.array(zod.union([basicAuth, apiKey, bearer])).optional(),
+  securitySchemes: zod.array(zod.union([basicAuth, apiKey, bearer, digest])).optional(),
   defaultService: zod.string(),
 });
 

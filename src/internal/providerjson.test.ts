@@ -11,6 +11,7 @@ import {
   isBearerTokenSecurity,
   parseProviderJson,
 } from '.';
+import { isDigestAuthSecurity, DIGEST_AUTH_SECURITY_SCHEME } from './providerjson';
 
 describe('ProviderJsonDocument', () => {
   it('parses valid provider.json', () => {
@@ -399,6 +400,15 @@ describe('ProviderJsonDocument', () => {
           })
         ).toEqual(false);
       }
+      {
+        expect(
+          isApiKeySecurity({
+            id: 'swapidev',
+            type: HTTP_AUTH_SECURITY_TYPE,
+            scheme: DIGEST_AUTH_SECURITY_SCHEME,
+          })
+        ).toEqual(false);
+      }
     });
 
     it('checks BasicAuthSecurity type correctly', () => {
@@ -430,6 +440,15 @@ describe('ProviderJsonDocument', () => {
           })
         ).toEqual(true);
       }
+      {
+        expect(
+          isBasicAuthSecurity({
+            id: 'swapidev',
+            type: HTTP_AUTH_SECURITY_TYPE,
+            scheme: DIGEST_AUTH_SECURITY_SCHEME,
+          })
+        ).toEqual(false);
+      }
     });
 
     it('checks BearerTokenSecurity type correctly', () => {
@@ -460,6 +479,55 @@ describe('ProviderJsonDocument', () => {
             scheme: BASIC_AUTH_SECURITY_SCHEME,
           })
         ).toEqual(false);
+      }
+      {
+        expect(
+          isBearerTokenSecurity({
+            id: 'swapidev',
+            type: HTTP_AUTH_SECURITY_TYPE,
+            scheme: DIGEST_AUTH_SECURITY_SCHEME,
+          })
+        ).toEqual(false);
+      }
+    });
+
+    it('checks DigestAuthSecurity type correctly', () => {
+      {
+        expect(
+          isDigestAuthSecurity({
+            id: 'swapidev',
+            type: API_KEY_AUTH_SECURITY_TYPE,
+            in: ApiKeySecurityIn.HEADER,
+            name: 'X-API-Key',
+          })
+        ).toEqual(false);
+      }
+      {
+        expect(
+          isDigestAuthSecurity({
+            id: 'swapidev',
+            type: HTTP_AUTH_SECURITY_TYPE,
+            scheme: BEARER_AUTH_SECURITY_SCHEME,
+          })
+        ).toEqual(false);
+      }
+      {
+        expect(
+          isDigestAuthSecurity({
+            id: 'swapidev',
+            type: HTTP_AUTH_SECURITY_TYPE,
+            scheme: BASIC_AUTH_SECURITY_SCHEME,
+          })
+        ).toEqual(false);
+      }
+      {
+        expect(
+          isDigestAuthSecurity({
+            id: 'swapidev',
+            type: HTTP_AUTH_SECURITY_TYPE,
+            scheme: DIGEST_AUTH_SECURITY_SCHEME,
+          })
+        ).toEqual(true);
       }
     });
   });
