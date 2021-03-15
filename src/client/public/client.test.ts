@@ -154,7 +154,7 @@ describe('superface client', () => {
   });
 
   describe('getProviderForProfile', () => {
-    it('throws when on providers are configured', async () => {
+    it('throws when on providers are not configured', async () => {
       const client = new SuperfaceClient();
 
       await expect(client.getProviderForProfile('foo')).rejects.toThrow(
