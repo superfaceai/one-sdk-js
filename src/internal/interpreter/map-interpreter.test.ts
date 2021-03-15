@@ -2412,4 +2412,61 @@ describe('MapInterpreter', () => {
 
     expect(result.isOk() && result.value).toEqual({ results: [2, 6] });
   });
+
+  it('should be able to use input in path parameters', async () => {
+    await mockServer.get('/twelve').thenJson(200, { data: 12 });
+    const baseUrl = mockServer.urlFor('/twelve').replace('/twelve', '');
+    const ast: MapDocumentNode = {
+      kind: 'MapDocument',
+      header,
+      definitions: [
+        {
+          kind: 'MapDefinition',
+          name: 'Test',
+          usecaseName: 'Test',
+          statements: [
+            {
+              kind: 'HttpCallStatement',
+              method: 'GET',
+              url: `${baseUrl}/{input.test}`,
+              responseHandlers: [
+                {
+                  kind: 'HttpResponseHandler',
+                  statusCode: 200,
+                  contentType: 'application/json',
+                  statements: [
+                    {
+                      kind: 'OutcomeStatement',
+                      isError: false,
+                      terminateFlow: false,
+                      value: {
+                        kind: 'ObjectLiteral',
+                        fields: [
+                          {
+                            kind: 'Assignment',
+                            key: ['result'],
+                            value: {
+                              kind: 'JessieExpression',
+                              expression: 'body.data',
+                            },
+                          },
+                        ],
+                      },
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    const interpreter = new MapInterpreter({
+      usecase: 'Test',
+      input: { test: 'twelve' },
+    });
+    const result = await interpreter.perform(ast);
+
+    expect(result.isOk() && result.value).toEqual({ result: 12 });
+  });
 });

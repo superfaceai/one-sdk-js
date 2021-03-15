@@ -79,3 +79,21 @@ export const mergeVariables = (
 
   return result;
 };
+
+export const getValue = (
+  variables: NonPrimitive | undefined,
+  key: string[]
+): Variables | undefined => {
+  if (key.length === 0 || variables === undefined) {
+    return undefined;
+  } else if (key.length === 1) {
+    return variables[key[0]];
+  } else {
+    const previousKey = key.shift();
+    if (previousKey === undefined) {
+      throw new Error('This should be unreachable.');
+    }
+
+    return getValue(castToNonPrimitive(variables[previousKey]), key);
+  }
+};
