@@ -165,14 +165,11 @@ const createUrl = (
       replacements.push(replacement[1]);
     }
 
-    const values = replacements.reduce<NonPrimitive>(
-      (acc, key) => ({
-        ...acc,
-        [key]: getValue(parameters.pathParameters, key.split('.')),
-      }),
-      {}
-    );
-
+    const entries = replacements.map<[string, Variables | undefined]>(key => [
+      key,
+      getValue(parameters.pathParameters, key.split('.')),
+    ]);
+    const values = Object.fromEntries(entries);
     const missingKeys = replacements.filter(key => values[key] === undefined);
 
     if (missingKeys.length > 0) {
