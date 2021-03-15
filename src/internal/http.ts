@@ -150,7 +150,7 @@ const createUrl = (
     if (!parameters.baseUrl) {
       throw new Error('Relative URL specified, but base URL not provided!');
     } else {
-      url = `${parameters.baseUrl}${inputUrl}`;
+      url = new URL(inputUrl, parameters.baseUrl).href;
     }
   } else {
     url = inputUrl;
