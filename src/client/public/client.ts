@@ -53,7 +53,6 @@ export class SuperfaceClient {
   }
 
   /** Gets a provider from super.json based on `providerName`. */
-  // eslint-disable-next-line @typescript-eslint/require-await
   async getProvider(providerName: string): Promise<Provider> {
     const providerSettings = this.superJson.normalized.providers[providerName];
 

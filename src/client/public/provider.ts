@@ -20,7 +20,6 @@ export class Provider {
     public readonly configuration: ProviderConfiguration
   ) {}
 
-  // eslint-disable-next-line @typescript-eslint/require-await
   async configure(_configuration: {
     auth?: AuthVariables;
     serviceId?: string;

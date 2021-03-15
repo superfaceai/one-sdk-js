@@ -11,13 +11,11 @@ describe('typed tests', () => {
     }> = {
       useCases: {
         sendSms: {
-          // eslint-disable-next-line @typescript-eslint/require-await
           async perform(input: unknown) {
             return ok((input as any).number === 1);
           },
         },
         sayHello: {
-          // eslint-disable-next-line @typescript-eslint/require-await
           async perform(input: unknown) {
             return ok('Hello ' + (input as { name: string }).name);
           },

@@ -51,7 +51,6 @@ describe('superface client', () => {
       }
     });
     accessMock.mockImplementation(
-      // eslint-disable-next-line @typescript-eslint/require-await
       async (path: string) => {
         if (path === MOCK_SUPERJSON_PATH) {
           return undefined;
@@ -101,7 +100,6 @@ describe('superface client', () => {
       const client = new SuperfaceClient();
 
       accessMock.mockImplementationOnce(
-        // eslint-disable-next-line @typescript-eslint/require-await
         async (path: string) => {
           const expectedPath = joinPath(
             dirname(SuperJson.defaultPath()),

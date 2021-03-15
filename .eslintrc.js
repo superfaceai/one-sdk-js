@@ -32,6 +32,7 @@ module.exports = {
     'lines-between-class-members': 'off',
     '@typescript-eslint/lines-between-class-members': ['error', 'always', { exceptAfterSingleLine: true, exceptAfterOverload: true }],
     '@typescript-eslint/no-empty-function': 'off',
+    '@typescript-eslint/require-await': 'off'
   },
   settings: {
     'import/parsers': {
