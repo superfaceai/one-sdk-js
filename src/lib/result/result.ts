@@ -70,12 +70,10 @@ export class Ok<T, E> implements IResult<T, E>, IAsyncResult<T, E> {
     return ok(inner);
   }
 
-  // eslint-disable-next-line @typescript-eslint/require-await
   async mapErrAsync<U>(_: (t: E) => Promise<U>): Promise<Result<T, U>> {
     return ok(this.value);
   }
 
-  // eslint-disable-next-line @typescript-eslint/require-await
   async andThenAsync<U>(
     f: (t: T) => Promise<Result<U, E>>
   ): Promise<Result<U, E>> {
@@ -114,7 +112,6 @@ export class Err<T, E> implements IResult<T, E>, IAsyncResult<T, E> {
     throw this.error;
   }
 
-  // eslint-disable-next-line @typescript-eslint/require-await
   async mapAsync<U>(_: (t: T) => Promise<U>): Promise<Result<U, E>> {
     return err(this.error);
   }
@@ -125,7 +122,6 @@ export class Err<T, E> implements IResult<T, E>, IAsyncResult<T, E> {
     return err(inner);
   }
 
-  // eslint-disable-next-line @typescript-eslint/require-await
   async andThenAsync<U>(
     _: (t: T) => Promise<Result<U, E>>
   ): Promise<Result<U, E>> {
