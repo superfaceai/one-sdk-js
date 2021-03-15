@@ -11,11 +11,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2.3.4
       - name: Setup Node.js environment
-        uses: actions/setup-node@v1.4.4
+        uses: actions/setup-node@v2
         with:
           registry-url: "https://npm.pkg.github.com"
           # Defaults to the user or organization that owns the workflow file
           scope: "@superfaceai"
+          node-version: '14'
 
       # Install dependencies and run test
       - name: Install dependencies

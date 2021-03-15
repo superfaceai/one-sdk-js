@@ -8,11 +8,12 @@ jobs:
     steps:
       # Setup environment and checkout the project master
       - name: Setup Node.js environment
-        uses: actions/setup-node@v1.4.4
+        uses: actions/setup-node@v2
         with:
           registry-url: "https://npm.pkg.github.com"
           scope: "@superfaceai"
           always-auth: true
+          node-version: '14'
 
       - name: Checkout
         uses: actions/checkout@v2.3.4
@@ -42,11 +43,12 @@ jobs:
     steps:
       # Setup environment and checkout the project master
       - name: Setup Node.js environment
-        uses: actions/setup-node@v1.4.4
+        uses: actions/setup-node@v2
         with:
           registry-url: "https://npm.pkg.github.com"
           scope: "@superfaceai"
           always-auth: true
+          node-version: '14'
 
       - name: Checkout
         uses: actions/checkout@v2.3.4
@@ -76,11 +78,12 @@ jobs:
     steps:
       # Setup environment and checkout the project master
       - name: Setup Node.js environment
-        uses: actions/setup-node@v1.4.4
+        uses: actions/setup-node@v2
         with:
           registry-url: "https://npm.pkg.github.com"
           scope: "@superfaceai"
           always-auth: true
+          node-version: '14'
 
       - name: Checkout
         uses: actions/checkout@v2.3.4
