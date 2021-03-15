@@ -1,5 +1,5 @@
 import createDebug from 'debug';
-import { promises as fspromises } from 'fs';
+import { promises as fsp, readFileSync, statSync } from 'fs';
 import {
   dirname,
   join as joinPath,
@@ -17,7 +17,6 @@ import {
   mergeVariables,
 } from './interpreter/variables';
 
-const { stat, readFile } = fspromises;
 const debug = createDebug('superface:superjson');
 
 // 'Official' regex https://semver.org/#is-there-a-suggested-regular-expression-regex-to-check-a-semver-string
@@ -252,7 +251,7 @@ const schema = zod.object({
 
 const normalizedSchema = zod.object({
   profiles: zod.record(normalizedProfileSettings),
-  providers: zod.record(providerSettings),
+  providers: zod.record(normalizedProviderSettings),
 });
 
 export type SuperJsonDocument = zod.infer<typeof schema>;
@@ -293,6 +292,13 @@ export class SuperJson {
     return JSON.stringify(this.document, undefined, 2);
   }
 
+  /**
+   * Returns the default super.json path based on current `process.cwd()`.
+   */
+  static defaultPath(): string {
+    return joinPath(process.cwd(), 'superface', 'super.json');
+  }
+
   static parse(input: unknown): Result<SuperJsonDocument, string> {
     try {
       const superdocument = schema.parse(input);
@@ -304,31 +310,11 @@ export class SuperJson {
     }
   }
 
-  /**
-   * Attempts to load super.json file from expected location `cwd/superface/super.json`
-   */
-  static async load(path?: string): Promise<Result<SuperJson, string>> {
-    const basedir = process.cwd();
-
-    let superfile = path;
-    if (superfile === undefined) {
-      const superdir = joinPath(basedir, 'superface');
-      try {
-        const statInfo = await stat(superdir);
-
-        if (!statInfo.isDirectory()) {
-          return err(`${superdir} is not a directory`);
-        }
-      } catch (e: unknown) {
-        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-        return err(`unable to open ${superdir}: ${e}`);
-      }
-
-      superfile = joinPath(superdir, 'super.json');
-    }
+  static loadSync(path?: string): Result<SuperJson, string> {
+    const superfile = path ?? SuperJson.defaultPath();
 
     try {
-      const statInfo = await stat(superfile);
+      const statInfo = statSync(superfile);
 
       if (!statInfo.isFile()) {
         return err(`'${superfile}' is not a file`);
@@ -340,7 +326,43 @@ export class SuperJson {
 
     let superjson: unknown;
     try {
-      const superraw = (await readFile(superfile)).toString();
+      const superraw = readFileSync(superfile, { encoding: 'utf-8' });
+      superjson = JSON.parse(superraw);
+    } catch (e: unknown) {
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+      return err(`unable to read ${superfile}: ${e}`);
+    }
+
+    const superdocument = SuperJson.parse(superjson);
+    if (superdocument.isErr()) {
+      return err(superdocument.error);
+    }
+
+    debug(`loaded super.json from ${superfile}`);
+
+    return ok(new SuperJson(superdocument.value, superfile));
+  }
+
+  /**
+   * Attempts to load super.json file from expected location `cwd/superface/super.json`
+   */
+  static async load(path?: string): Promise<Result<SuperJson, string>> {
+    const superfile = path ?? SuperJson.defaultPath();
+
+    try {
+      const statInfo = await fsp.stat(superfile);
+
+      if (!statInfo.isFile()) {
+        return err(`'${superfile}' is not a file`);
+      }
+    } catch (e: unknown) {
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+      return err(`unable to find ${superfile}: ${e}`);
+    }
+
+    let superjson: unknown;
+    try {
+      const superraw = await fsp.readFile(superfile, { encoding: 'utf-8' });
       superjson = JSON.parse(superraw);
     } catch (e: unknown) {
       // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
@@ -828,19 +850,29 @@ export class SuperJson {
     return value;
   }
 
+  /**
+   * Resolve environment values in a record recursively.
+   *
+   * Returns a clone of the of the original record with every string field replaced by the result of `resolveEnd(field)`.
+   */
   static resolveEnvRecord<T extends Record<string, unknown>>(record: T): T {
-    const result: Partial<T> = {};
+    // If typed as `Partial<T>` typescript complains with "Type 'string' cannot be used to index type 'Partial<T>'. ts(2536)"
+    const result: Partial<Record<string, unknown>> = {};
 
     for (const [key, value] of Object.entries(record)) {
       if (typeof value === 'string') {
-        // TODO: What the hell does "Type 'string' cannot be used to index type 'Partial<T>'. ts(2536)" even mean
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-explicit-any
-        (result as any)[key] = SuperJson.resolveEnv(value);
+        // replace strings
+        // // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-explicit-any
+        result[key] = SuperJson.resolveEnv(value);
       } else if (typeof value === 'object' && value !== null) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-explicit-any
-        (result as any)[key] = SuperJson.resolveEnvRecord(
+        // recurse objects
+        // // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-explicit-any
+        result[key] = SuperJson.resolveEnvRecord(
           value as Record<string, unknown>
         );
+      } else {
+        // clone everything else
+        result[key] = clone(value);
       }
     }
 
