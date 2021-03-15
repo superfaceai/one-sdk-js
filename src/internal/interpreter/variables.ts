@@ -56,7 +56,7 @@ export function isEmptyRecord(
 }
 
 /**
- * Merges variables from `right` into `left` (mutates `left`).
+ * Recursively merges variables from `left` and then from `right` into a new object.
  */
 export const mergeVariables = (
   left: NonPrimitive,

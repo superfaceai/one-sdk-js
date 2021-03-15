@@ -1,6 +1,5 @@
 import { AuthVariables } from '../../internal';
 import { mergeVariables } from '../../internal/interpreter/variables';
-import clone from '../../lib/clone';
 import { SuperfaceClient } from './client';
 
 export class ProviderConfiguration {
@@ -28,7 +27,7 @@ export class Provider {
   }): Promise<Provider> {
     const newConfiguration = new ProviderConfiguration(
       this.configuration.name,
-      mergeVariables(clone(this.configuration.auth), configuration.auth ?? {}),
+      mergeVariables(this.configuration.auth, configuration.auth ?? {}),
       configuration.serviceId ?? this.configuration.serviceId
     );
 

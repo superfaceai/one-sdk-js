@@ -22,7 +22,6 @@ import {
   SuperJson,
 } from '../../internal/superjson';
 import { err, ok, Result } from '../../lib';
-import clone from '../../lib/clone';
 import { ProfileConfiguration } from '../public/profile';
 import { ProviderConfiguration } from '../public/provider';
 import { fetchBind, ProviderJson } from './registry';
@@ -63,8 +62,8 @@ export class BoundProfileProvider {
       this.configuration.profileProviderSettings?.defaults[usecase]?.input
     );
     if (defaultInput !== undefined) {
-      const clonedResolved = SuperJson.resolveEnvRecord(defaultInput);
-      composed = mergeVariables(clonedResolved, input ?? {});
+      const resolved = SuperJson.resolveEnvRecord(defaultInput);
+      composed = mergeVariables(resolved, input ?? {});
 
       boundProfileProviderDebug('Composed input with defaults:', composed);
     }
@@ -394,7 +393,7 @@ export class ProfileProvider {
 
     let resolved = base;
     if (overlay !== undefined) {
-      resolved = mergeVariables(clone(base), overlay);
+      resolved = mergeVariables(base, overlay);
     }
 
     return resolved;
