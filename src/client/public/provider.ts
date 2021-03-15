@@ -1,4 +1,6 @@
 import { AuthVariables } from '../../internal';
+import { mergeVariables } from '../../internal/interpreter/variables';
+import clone from '../../lib/clone';
 import { SuperfaceClient } from './client';
 
 export class ProviderConfiguration {
@@ -20,10 +22,16 @@ export class Provider {
     public readonly configuration: ProviderConfiguration
   ) {}
 
-  async configure(_configuration: {
+  async configure(configuration: {
     auth?: AuthVariables;
     serviceId?: string;
   }): Promise<Provider> {
-    throw 'TODO';
+    const newConfiguration = new ProviderConfiguration(
+      this.configuration.name,
+      mergeVariables(clone(this.configuration.auth), configuration.auth ?? {}),
+      configuration.serviceId ?? this.configuration.serviceId
+    );
+
+    return new Provider(this.client, newConfiguration);
   }
 }

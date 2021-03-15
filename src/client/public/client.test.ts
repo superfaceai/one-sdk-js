@@ -21,12 +21,19 @@ describe('superface client', () => {
     profiles: {
       'testy/mctestface': '0.1.0',
       foo: 'file://../foo.supr',
+      baz: {
+        version: '1.2.3',
+        providers: {
+          quz: {},
+        },
+      },
     },
     providers: {
       fooder: {
         file: '../fooder.provider.json',
         auth: {},
       },
+      quz: {},
     },
   };
 
@@ -50,15 +57,13 @@ describe('superface client', () => {
         throw { code: 'ENOENT' };
       }
     });
-    accessMock.mockImplementation(
-      async (path: string) => {
-        if (path === MOCK_SUPERJSON_PATH) {
-          return undefined;
-        } else {
-          throw { code: 'ENOENT' };
-        }
+    accessMock.mockImplementation(async (path: string) => {
+      if (path === MOCK_SUPERJSON_PATH) {
+        return undefined;
+      } else {
+        throw { code: 'ENOENT' };
       }
-    );
+    });
   });
 
   it('caches super.json files correctly', () => {
@@ -99,19 +104,17 @@ describe('superface client', () => {
     it('returns a valid profile when it points to existing path', async () => {
       const client = new SuperfaceClient();
 
-      accessMock.mockImplementationOnce(
-        async (path: string) => {
-          const expectedPath = joinPath(
-            dirname(SuperJson.defaultPath()),
-            MOCK_SUPERJSON.profiles.foo.slice('file://'.length)
-          );
-          if (path === expectedPath) {
-            return undefined;
-          } else {
-            throw { code: 'ENOENT' };
-          }
+      accessMock.mockImplementationOnce(async (path: string) => {
+        const expectedPath = joinPath(
+          dirname(SuperJson.defaultPath()),
+          MOCK_SUPERJSON.profiles.foo.slice('file://'.length)
+        );
+        if (path === expectedPath) {
+          return undefined;
+        } else {
+          throw { code: 'ENOENT' };
         }
-      );
+      });
       const profile = await client.getProfile('foo');
       expect(profile.configuration.version).toBe('unknown');
     });
@@ -147,6 +150,23 @@ describe('superface client', () => {
       ).resolves.toBe('mocked bind result');
       expect(ProfileProviderMock).toHaveBeenCalledTimes(2);
       expect(profileProviderBindMock).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('getProviderForProfile', () => {
+    it('throws when on providers are configured', async () => {
+      const client = new SuperfaceClient();
+
+      await expect(client.getProviderForProfile('foo')).rejects.toThrow(
+        'No configured provider found for profile foo.'
+      );
+    });
+
+    it('returns a configured provider when present', async () => {
+      const client = new SuperfaceClient();
+
+      const provider = await client.getProviderForProfile('baz');
+      expect(provider.configuration.name).toBe('quz');
     });
   });
 });

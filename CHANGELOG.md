@@ -1,8 +1,17 @@
 ## [Unreleased]
 
 ### Added
+* New untyped SuperfaceClient, Profile, Provider, Usecase API
+
+## [0.0.10] - 2021-03-11
+
+### Added
+* provider.json zod schemes
+
+## [0.0.9] - 2021-02-25
+
+### Added
 * super.json support
-* Iteration support in Maps
 * Environment variable resolution from super.json
 * Normalized super.json representation
 
@@ -11,22 +20,27 @@
 * File uris to use `file://` protocol prefix
 * Simplified the parameters to MapInterpreter
 
+## [0.0.8] - 2021-02-11
+
+### Added
+* Iteration support in Maps
+
 ### Fixed
 * Incorrect scoping
 
 ## [0.0.7] - 2021-01-21
+
 ### Fixed
 * Inline call and call statement not correctly handling call stack arguments
-
-## [0.0.7]
-### Fixed
 * Array handling in mergeVariables function
 
 ## [0.0.6] - 2021-01-11
+
 ### Changed
 * Updated AST version
 
 ## [0.0.5] - 2020-12-22
+
 ### Changed
 * Enhanced logging of HTTP Errors
 
@@ -69,7 +83,10 @@
 * CI/CD workflows
 
 
-[Unreleased]: https://github.com/superfaceai/sdk-js/compare/v0.0.7...HEAD
+[Unreleased]: https://github.com/superfaceai/sdk-js/compare/v0.0.10...HEAD
+[0.0.10]: https://github.com/superfaceai/sdk-js/compare/v0.0.9...v0.0.10
+[0.0.9]: https://github.com/superfaceai/sdk-js/compare/v0.0.8...v0.0.9
+[0.0.8]: https://github.com/superfaceai/sdk-js/compare/v0.0.7...v0.0.8
 [0.0.7]: https://github.com/superfaceai/sdk-js/compare/v0.0.6...v0.0.7
 [0.0.6]: https://github.com/superfaceai/sdk-js/compare/v0.0.5...v0.0.6
 [0.0.5]: https://github.com/superfaceai/sdk-js/compare/v0.0.6...v0.0.5

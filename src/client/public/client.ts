@@ -74,7 +74,7 @@ export class SuperfaceClient {
       return this.getProvider(name);
     }
 
-    throw new Error(`No provider found for profile ${profileId}.`);
+    throw new Error(`No configured provider found for profile ${profileId}.`);
   }
 
   get profiles(): never {
