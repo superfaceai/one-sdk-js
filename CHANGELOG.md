@@ -1,7 +1,16 @@
 ## [Unreleased]
 
+## [0.0.11] - 2021-03-15
+
 ### Added
 * New untyped SuperfaceClient, Profile, Provider, Usecase API
+
+### Changed
+* Refactored Result library
+
+### Fixed
+* Correctly resolve nested variables in path params
+* Normalize url when building it in for http requests
 
 ## [0.0.10] - 2021-03-11
 
@@ -83,7 +92,8 @@
 * CI/CD workflows
 
 
-[Unreleased]: https://github.com/superfaceai/sdk-js/compare/v0.0.10...HEAD
+[Unreleased]: https://github.com/superfaceai/sdk-js/compare/v0.0.11...HEAD
+[0.0.11]: https://github.com/superfaceai/sdk-js/compare/v0.0.10...v0.0.11
 [0.0.10]: https://github.com/superfaceai/sdk-js/compare/v0.0.9...v0.0.10
 [0.0.9]: https://github.com/superfaceai/sdk-js/compare/v0.0.8...v0.0.9
 [0.0.8]: https://github.com/superfaceai/sdk-js/compare/v0.0.7...v0.0.8
