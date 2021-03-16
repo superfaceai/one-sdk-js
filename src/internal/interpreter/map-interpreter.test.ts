@@ -2540,4 +2540,79 @@ describe('MapInterpreter', () => {
 
     expect(result.isOk() && result.value).toEqual({ result: 13 });
   });
+
+  it('should make response headers accessible', async () => {
+    await mockServer.get('/twelve').thenJson(
+      200,
+      {},
+      {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Content-Language': 'en-US, en-CA',
+        Data: '12',
+      }
+    );
+    const url = mockServer.urlFor('/twelve');
+    const interpreter = new MapInterpreter({
+      usecase: 'Test',
+    });
+    const result = await interpreter.perform({
+      kind: 'MapDocument',
+      header,
+      definitions: [
+        {
+          kind: 'MapDefinition',
+          name: 'Test',
+          usecaseName: 'Test',
+          statements: [
+            {
+              kind: 'HttpCallStatement',
+              method: 'GET',
+              url,
+              request: {
+                kind: 'HttpRequest',
+                headers: {
+                  kind: 'ObjectLiteral',
+                  fields: [
+                    {
+                      kind: 'Assignment',
+                      key: ['content-type'],
+                      value: {
+                        kind: 'PrimitiveLiteral',
+                        value: 'application/json',
+                      },
+                    },
+                  ],
+                },
+              },
+              responseHandlers: [
+                {
+                  kind: 'HttpResponseHandler',
+                  statusCode: 200,
+                  contentType: 'application/json',
+                  contentLanguage: 'en-US',
+                  statements: [
+                    {
+                      kind: 'SetStatement',
+                      assignments: [
+                        {
+                          kind: 'Assignment',
+                          key: ['result'],
+                          value: {
+                            kind: 'JessieExpression',
+                            expression: 'headers.data',
+                          },
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.isOk() && result.value).toEqual('12');
+  });
 });

@@ -339,7 +339,11 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
         return [false];
       }
 
-      this.addVariableToStack({ body: castToVariables(response.body) });
+      this.addVariableToStack({
+        body: castToVariables(response.body),
+        headers: castToVariables(response.headers),
+        statusCode: response.statusCode,
+      });
 
       if (debug.enabled) {
         let debugString = 'Running http handler:';
