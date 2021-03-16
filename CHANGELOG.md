@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+### Fixed
+* Pass headers and status code to HTTP response handler
+
 ## [0.0.11] - 2021-03-15
 
 ### Added
