@@ -17,21 +17,18 @@ TODO: Fill out this long description.
 
 ## Install
 
-To install the package, first create `.npmrc` file in your project root and put the following line into it.
+To install the package, log in with npm into the github registry using Github Person Token with at least the `repo` and `read:packages` permissions:
 
 ```
-@superfaceai:registry=https://npm.pkg.github.com
+npm login --scope=@superfaceai --registry=https://npm.pkg.github.com
 ```
 
-Then authenticate to github npm package registry. Use your github name as your login and generate a personal access token with at least the `repo` and `read:packages` permission in Github to use as password:
+Then run in the project directory:
 
 ```
-npm login --registry=https://npm.pkg.github.com
-```
-
-After doing this, you should be able to install the package by calling:
-
-```
+# npm users
+npm install @superfaceai/sdk
+# yarn users
 yarn add @superfaceai/sdk
 ```
 
@@ -47,9 +44,39 @@ Github Actions workflow will pick up the release and publish it as one of the [p
 
 ## Usage
 
-To perform a usecase you need a Provider instance. You can either fetch one from registry, or create your own.
+### Untyped
 
-### ServiceFinderQuery
+To interact with superface create a new superface client instance:
+
+```typescript
+const client = new SuperfaceClient()
+```
+
+Make sure a profile is installed by running `superface install <profileName>[@<profileVersion]` in the project directory, then load the profile:
+
+```typescript
+const profile = await client.getProfile('<profileName>')
+```
+
+Next, make sure at least one provider is configured or select one manually:
+
+```typescript
+const provider = await client.gerProvider('<providerName>')
+```
+
+Lastly, obtain a usecase and perform it with selected provider:
+
+```typescript
+const result = await profile.getUsecase('<usecaseName>').perform(
+  {
+    inputField: 1,
+    anotherInputField: 'hello'
+  },
+  { provider }
+)
+```
+
+### [WIP] ServiceFinderQuery
 
 To perform a usecase by fetching ASTs from registry, use `ServiceFinderQuery`:
 
@@ -80,22 +107,7 @@ const provider = await serviceFinder.serviceProvider(service => service.mustBe(p
 const providers = await serviceFinder.serviceProvider(service => service.mustBeOnOf([providerId1, providerId2])).find();
 ```
 
-### Without ServiceFinder
-
-If you don't use the registry, you can also construct `Provider` directly, providing Map AST or URL.
-
-```typescript
-const provider = new Provider(
-  profileAST,
-  mapUrlOrMapAST,
-  usecase,
-  baseUrl,
-);
-```
-
-Where `profileAST` is the compiled AST of profile, `mapUrlOrMapAST` is either URL or AST of the Map, `usecase` is the name of the usecase you want to perform and (optional) `baseUrl` is the base URL of the service, in case your Map uses relative paths. After creating the `Provider`, you can continue with binding as above.
-
-### Performing the usecase
+### [WIP] Performing the usecase
 
 To fetch Map and be able to perform your usecase, the Provider must be bound:
 
