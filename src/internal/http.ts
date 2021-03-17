@@ -144,7 +144,18 @@ export const createUrl = (
   const query = queryParameters(parameters.queryParameters);
   const isRelative = /^\/[^/]/.test(inputUrl);
 
-  let url: string = inputUrl;
+  let url: string;
+
+  if (isRelative) {
+    if (!parameters.baseUrl) {
+      throw new Error('Relative URL specified, but base URL not provided!');
+    } else {
+      url =
+        parameters.baseUrl.replace(/\/+$/, '') + inputUrl.replace(/\/+$/, '');
+    }
+  } else {
+    url = inputUrl;
+  }
 
   if (parameters.pathParameters) {
     const replacements: string[] = [];
@@ -174,14 +185,6 @@ export const createUrl = (
       const replacement = stringifiedValues[param];
 
       url = url.replace(`{${param}}`, replacement);
-    }
-  }
-
-  if (isRelative) {
-    if (!parameters.baseUrl) {
-      throw new Error('Relative URL specified, but base URL not provided!');
-    } else {
-      url = new URL(url, parameters.baseUrl).href;
     }
   }
 
