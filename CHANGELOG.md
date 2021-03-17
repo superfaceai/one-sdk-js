@@ -2,6 +2,8 @@
 
 ### Fixed
 * Pass headers and status code to HTTP response handler
+* Only combine URL and base URL after interpolation
+* Narrow interpolation parameter regex
 
 ## [0.0.11] - 2021-03-15
 

@@ -1,6 +1,6 @@
 import { getLocal } from 'mockttp';
 
-import { HttpClient } from './http';
+import { createUrl, HttpClient } from './http';
 
 const mockServer = getLocal();
 
@@ -35,5 +35,28 @@ describe('HttpClient', () => {
     });
     expect(response.statusCode).toEqual(404);
     expect(response.body).toEqual({ error: { message: 'Not found' } });
+  });
+
+  it('should correctly interpolate parameters with baseUrl', () => {
+    const baseUrl = 'https://example.com/';
+    const inputUrl = '/test/{parameter.value}';
+
+    const url = createUrl(inputUrl, {
+      baseUrl,
+      pathParameters: { parameter: { value: 'hello' } },
+    });
+
+    expect(url).toEqual('https://example.com/test/hello');
+  });
+
+  it('should correctly interpolate multiple parameters', () => {
+    const inputUrl =
+      'https://example.com/test/{parameter.value}/another/{parameter.another}';
+
+    const url = createUrl(inputUrl, {
+      pathParameters: { parameter: { value: 'hello', another: 'goodbye' } },
+    });
+
+    expect(url).toEqual('https://example.com/test/hello/another/goodbye');
   });
 });

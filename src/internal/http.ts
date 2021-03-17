@@ -133,7 +133,7 @@ const formData = (data?: Record<string, string>): FormData => {
   return formData;
 };
 
-const createUrl = (
+export const createUrl = (
   inputUrl: string,
   parameters: {
     baseUrl?: string;
@@ -144,22 +144,12 @@ const createUrl = (
   const query = queryParameters(parameters.queryParameters);
   const isRelative = /^\/[^/]/.test(inputUrl);
 
-  let url: string;
-
-  if (isRelative) {
-    if (!parameters.baseUrl) {
-      throw new Error('Relative URL specified, but base URL not provided!');
-    } else {
-      url = new URL(inputUrl, parameters.baseUrl).href;
-    }
-  } else {
-    url = inputUrl;
-  }
+  let url: string = inputUrl;
 
   if (parameters.pathParameters) {
     const replacements: string[] = [];
 
-    const regex = RegExp('{(.*)}', 'g');
+    const regex = RegExp('{([^}]*)}', 'g');
     let replacement: RegExpExecArray | null;
     while ((replacement = regex.exec(url)) !== null) {
       replacements.push(replacement[1]);
@@ -184,6 +174,14 @@ const createUrl = (
       const replacement = stringifiedValues[param];
 
       url = url.replace(`{${param}}`, replacement);
+    }
+  }
+
+  if (isRelative) {
+    if (!parameters.baseUrl) {
+      throw new Error('Relative URL specified, but base URL not provided!');
+    } else {
+      url = new URL(url, parameters.baseUrl).href;
     }
   }
 
