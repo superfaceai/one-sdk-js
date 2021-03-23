@@ -1,6 +1,6 @@
 import { AuthVariables } from '../../internal';
 import { mergeVariables } from '../../internal/interpreter/variables';
-import { SuperfaceClient } from './client';
+import { SuperfaceClientBase } from './client';
 
 export class ProviderConfiguration {
   constructor(
@@ -10,14 +10,14 @@ export class ProviderConfiguration {
   ) {}
 
   get cacheKey(): string {
-    // TOOD: Research a better way?
+    // TODO: Research a better way?
     return JSON.stringify(this);
   }
 }
 
 export class Provider {
   constructor(
-    public readonly client: SuperfaceClient,
+    public readonly client: SuperfaceClientBase,
     public readonly configuration: ProviderConfiguration
   ) {}
 
