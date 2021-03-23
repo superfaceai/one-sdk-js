@@ -2,8 +2,14 @@ import { MapDocumentNode, ProfileDocumentNode } from '@superfaceai/ast';
 import createDebug from 'debug';
 import { promises as fsp } from 'fs';
 import { join as joinPath } from 'path';
-import { HttpScheme, ProviderJson, SecurityConfiguration, SecurityScheme, SecurityType } from '../../internal';
 
+import {
+  HttpScheme,
+  ProviderJson,
+  SecurityConfiguration,
+  SecurityScheme,
+  SecurityType,
+} from '../../internal';
 import {
   MapInterpreter,
   MapInterpreterError,
@@ -46,7 +52,7 @@ export class BoundProfileProvider {
     private readonly profileAst: ProfileDocumentNode,
     private readonly mapAst: MapDocumentNode,
     private readonly configuration: {
-      baseUrl?: string,
+      baseUrl?: string;
       profileProviderSettings?: NormalizedProfileProviderSettings;
       security: SecurityConfiguration[];
       /** Selected service id */
@@ -104,7 +110,7 @@ export class BoundProfileProvider {
       input: composedInput,
       usecase,
       serviceBaseUrl: this.configuration.baseUrl,
-      security: this.configuration.security
+      security: this.configuration.security,
     });
 
     const result = await interpreter.perform(this.mapAst);
@@ -203,7 +209,8 @@ export class ProfileProvider {
 
     // prepare service info
     const serviceId = configuration?.serviceId ?? providerInfo.defaultService;
-    const baseUrl = providerInfo.services.find(s => s.id === serviceId)?.baseUrl;
+    const baseUrl = providerInfo.services.find(s => s.id === serviceId)
+      ?.baseUrl;
 
     const securityConfiguration = this.resolveSecurityConfiguration(
       providerInfo.securitySchemes ?? [],
@@ -212,7 +219,8 @@ export class ProfileProvider {
 
     return new BoundProfileProvider(profileAst, mapAst, {
       baseUrl,
-      profileProviderSettings: this.superJson.normalized.profiles[profileId]?.providers[providerInfo.name],
+      profileProviderSettings: this.superJson.normalized.profiles[profileId]
+        ?.providers[providerInfo.name],
       security: securityConfiguration,
       serviceId: configuration?.serviceId,
     });
@@ -408,69 +416,71 @@ export class ProfileProvider {
     schemes: SecurityScheme[],
     values: SecurityValues[]
   ): SecurityConfiguration[] {
-    const result: SecurityConfiguration[] = []
+    const result: SecurityConfiguration[] = [];
 
     for (const vals of values) {
-      const scheme = schemes.find(scheme => scheme.id === vals.id)
+      const scheme = schemes.find(scheme => scheme.id === vals.id);
       if (scheme === undefined) {
-        throw new Error(`Could not find scheme for security requirement "${vals.id}"`);
+        throw new Error(
+          `Could not find scheme for security requirement "${vals.id}"`
+        );
       }
 
       if (scheme.type === SecurityType.APIKEY) {
         if (!isApiKeySecurityValues(vals)) {
-          throw new Error(`Invalid security values for given apikey scheme "${scheme.id}"`);
+          throw new Error(
+            `Invalid security values for given apikey scheme "${scheme.id}"`
+          );
         }
 
-        result.push(
-          {
-            ...scheme,
-            ...vals
-          }
-        );
+        result.push({
+          ...scheme,
+          ...vals,
+        });
       } else {
         switch (scheme.scheme) {
           case HttpScheme.BASIC:
             if (!isBasicAuthSecurityValues(vals)) {
-              throw new Error(`Invalid security values for given basic auth scheme "${scheme.id}"`);
+              throw new Error(
+                `Invalid security values for given basic auth scheme "${scheme.id}"`
+              );
             }
 
-            result.push(
-              {
-                ...scheme,
-                ...vals
-              }
-            );
+            result.push({
+              ...scheme,
+              ...vals,
+            });
             break;
-          
+
           case HttpScheme.BEARER:
             if (!isBearerTokenSecurityValues(vals)) {
-              throw new Error(`Invalid security values for given bearer token scheme "${scheme.id}"`);
+              throw new Error(
+                `Invalid security values for given bearer token scheme "${scheme.id}"`
+              );
             }
 
-            result.push(
-              {
-                ...scheme,
-                ...vals
-              }
-            );
+            result.push({
+              ...scheme,
+              ...vals,
+            });
             break;
 
           case HttpScheme.DIGEST:
             if (!isDigestSecurityValues(vals)) {
-              throw new Error(`Invalid security values for given digest scheme "${scheme.id}"`);
+              throw new Error(
+                `Invalid security values for given digest scheme "${scheme.id}"`
+              );
             }
 
-            result.push(
-              {
-                ...scheme,
-                ...vals
-              }
-            );
+            result.push({
+              ...scheme,
+              ...vals,
+            });
             break;
         }
       }
     }
-    
-    return result
+
+    return result;
   }
 }

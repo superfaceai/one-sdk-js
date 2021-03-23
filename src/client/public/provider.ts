@@ -26,7 +26,10 @@ export class Provider {
   }): Promise<Provider> {
     const newConfiguration = new ProviderConfiguration(
       this.configuration.name,
-      SuperJson.mergeSecurity(this.configuration.security, configuration.security ?? []),
+      SuperJson.mergeSecurity(
+        this.configuration.security,
+        configuration.security ?? []
+      ),
       configuration.serviceId ?? this.configuration.serviceId
     );
 

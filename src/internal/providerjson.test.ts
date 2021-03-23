@@ -1,14 +1,14 @@
 import { ZodError } from 'zod';
 
 import {
-  SecurityType,
-  HttpScheme,
   ApiKeyPlacement,
+  HttpScheme,
   isApiKeySecurityScheme,
   isBasicAuthSecurityScheme,
   isBearerTokenSecurityScheme,
   isDigestSecurityScheme,
   parseProviderJson,
+  SecurityType,
 } from './providerjson';
 
 describe('ProviderJsonDocument', () => {

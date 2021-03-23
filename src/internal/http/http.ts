@@ -5,9 +5,13 @@ import fetch, { Headers } from 'cross-fetch';
 import createDebug from 'debug';
 import { inspect } from 'util';
 
-import { NonPrimitive, Variables, getValue } from '../interpreter/variables';
-import { applyApiKeyAuth, applyHttpAuth, SecurityConfiguration } from './security';
+import { getValue, NonPrimitive, Variables } from '../interpreter/variables';
 import { SecurityType } from '../providerjson';
+import {
+  applyApiKeyAuth,
+  applyHttpAuth,
+  SecurityConfiguration,
+} from './security';
 
 const debug = createDebug('superface:http');
 
@@ -163,12 +167,16 @@ export const HttpClient = {
       headers,
       queryAuth,
       pathParameters,
-      requestBody
+      requestBody,
     };
     for (const requirement of parameters.securityRequirements ?? []) {
-      const configuration = securityConfiguration.find(c => c.id === requirement.id);
+      const configuration = securityConfiguration.find(
+        c => c.id === requirement.id
+      );
       if (configuration === undefined) {
-        throw new Error(`Credentials for security scheme "${requirement.id}" not present.`);
+        throw new Error(
+          `Credentials for security scheme "${requirement.id}" not present.`
+        );
       }
 
       if (configuration.type === SecurityType.APIKEY) {

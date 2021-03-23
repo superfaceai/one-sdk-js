@@ -72,7 +72,7 @@ export interface MapParameters<
   usecase?: string;
   input?: TInput;
   serviceBaseUrl?: string;
-  security: SecurityConfiguration[]
+  security: SecurityConfiguration[];
 }
 
 type HttpResponseHandler = (
@@ -279,7 +279,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
       pathParameters: this.variables,
       body: request?.body,
       securityRequirements: request?.security,
-      securityConfiguration: this.parameters.security
+      securityConfiguration: this.parameters.security,
     });
 
     for (const [handler] of responseHandlers) {
@@ -311,7 +311,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
       headers: node.headers && (await this.visit(node.headers)),
       queryParameters: node.query && (await this.visit(node.query)),
       body: node.body && (await this.visit(node.body)),
-      security: node.security
+      security: node.security,
     };
   }
 

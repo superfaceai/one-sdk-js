@@ -180,7 +180,9 @@ const apiKeySecurityValues = idBase.merge(
     apikey: zod.string(),
   })
 );
-export function isApiKeySecurityValues(input: unknown): input is ApiKeySecurityValues {
+export function isApiKeySecurityValues(
+  input: unknown
+): input is ApiKeySecurityValues {
   return apiKeySecurityValues.check(input);
 }
 
@@ -190,7 +192,9 @@ const basicAuthSecurityValues = idBase.merge(
     password: zod.string(),
   })
 );
-export function isBasicAuthSecurityValues(input: unknown): input is BasicAuthSecurityValues {
+export function isBasicAuthSecurityValues(
+  input: unknown
+): input is BasicAuthSecurityValues {
   return basicAuthSecurityValues.check(input);
 }
 
@@ -199,7 +203,9 @@ const bearerTokenSecurityValues = idBase.merge(
     token: zod.string(),
   })
 );
-export function isBearerTokenSecurityValues(input: unknown): input is BearerTokenSecurityValues {
+export function isBearerTokenSecurityValues(
+  input: unknown
+): input is BearerTokenSecurityValues {
   return bearerTokenSecurityValues.check(input);
 }
 
@@ -208,7 +214,9 @@ const digestSecurityValues = idBase.merge(
     digest: zod.string(),
   })
 );
-export function isDigestSecurityValues(input: unknown): input is DigestSecurityValues {
+export function isDigestSecurityValues(
+  input: unknown
+): input is DigestSecurityValues {
   return digestSecurityValues.check(input);
 }
 
@@ -231,7 +239,12 @@ export function isDigestSecurityValues(input: unknown): input is DigestSecurityV
  * )
  * ```
  */
-const securityValues = zod.union([apiKeySecurityValues, basicAuthSecurityValues, bearerTokenSecurityValues, digestSecurityValues]);
+const securityValues = zod.union([
+  apiKeySecurityValues,
+  basicAuthSecurityValues,
+  bearerTokenSecurityValues,
+  digestSecurityValues,
+]);
 
 /**
  * Expanded provider settings for one provider name.
@@ -275,7 +288,9 @@ export type ProviderSettings = zod.infer<typeof providerSettings>;
 
 export type ApiKeySecurityValues = zod.infer<typeof apiKeySecurityValues>;
 export type BasicAuthSecurityValues = zod.infer<typeof basicAuthSecurityValues>;
-export type BearerTokenSecurityValues = zod.infer<typeof bearerTokenSecurityValues>;
+export type BearerTokenSecurityValues = zod.infer<
+  typeof bearerTokenSecurityValues
+>;
 export type DigestSecurityValues = zod.infer<typeof digestSecurityValues>;
 export type SecurityValues = zod.infer<typeof securityValues>;
 
@@ -538,7 +553,10 @@ export class SuperJson {
 
     return {
       file: providerEntry.file,
-      security: providerEntry.security?.map(entry => SuperJson.resolveEnvRecord(entry)) ?? [],
+      security:
+        providerEntry.security?.map(entry =>
+          SuperJson.resolveEnvRecord(entry)
+        ) ?? [],
     };
   }
 
@@ -899,7 +917,7 @@ export class SuperJson {
     left: SecurityValues[],
     right: SecurityValues[]
   ): SecurityValues[] {
-    const result: SecurityValues[] = []
+    const result: SecurityValues[] = [];
 
     for (const entry of left) {
       result.push(entry);
@@ -915,6 +933,6 @@ export class SuperJson {
       }
     }
 
-    return result
+    return result;
   }
 }

@@ -1,7 +1,7 @@
 import { MapDocumentNode } from '@superfaceai/ast';
 import * as zod from 'zod';
-import { isProviderJson, ProviderJson } from '../../internal';
 
+import { isProviderJson, ProviderJson } from '../../internal';
 import { HttpClient } from '../../internal/http';
 
 export interface RegistryProviderInfo {

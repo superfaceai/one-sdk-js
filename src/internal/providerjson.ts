@@ -2,7 +2,7 @@ import * as zod from 'zod';
 
 export enum SecurityType {
   APIKEY = 'apiKey',
-  HTTP = 'http'
+  HTTP = 'http',
 }
 
 export enum ApiKeyPlacement {
@@ -15,7 +15,7 @@ export enum ApiKeyPlacement {
 export enum HttpScheme {
   BASIC = 'basic',
   BEARER = 'bearer',
-  DIGEST = 'digest'
+  DIGEST = 'digest',
 }
 
 // ApiKey
@@ -40,7 +40,7 @@ const bearer = zod.object({
   id: zod.string(),
   type: zod.literal(SecurityType.HTTP),
   scheme: zod.literal(HttpScheme.BEARER),
-  bearerFormat: zod.string().optional()
+  bearerFormat: zod.string().optional(),
 });
 export type BearerTokenSecurityScheme = zod.infer<typeof bearer>;
 
@@ -59,7 +59,7 @@ export type SecurityScheme = ApiKeySecurityScheme | HttpSecurityScheme;
 
 const service = zod.object({
   id: zod.string(),
-  baseUrl: zod.string()
+  baseUrl: zod.string(),
 });
 export type ProviderService = zod.infer<typeof service>;
 
