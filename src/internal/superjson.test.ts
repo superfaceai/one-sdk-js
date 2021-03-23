@@ -23,11 +23,12 @@ describe('class SuperJson', () => {
         },
         "providers": {
           "acme": {
-            "security": {
-              "myApiKey": {
+            "security": [
+              {
+                "id": "myApiKey",
                 "apikey": "SECRET"
               }
-            }
+            ]
           }
         }
       }`;
@@ -72,21 +73,24 @@ describe('class SuperJson', () => {
                 "baseUrl": "https://www.some.differentUrl"
               }
             },
-            "security": {
-              "myBasicAuth": {
+            "security": [
+              {
+                "id": "myBasicAuth",
                 "username": "johndoe",
                 "password": "$SF_SWAPIDEW_BASICAUTH_PASSWORD"
               },
-              "myApiKey": {
+              {
+                "id": "myApiKey",
                 "apikey": "SECRET"
               },
-              "myCustomScheme": {
+              {
+                "id": "myCustomScheme",
                 "digest": "SECRET"
               }
-            }
+            ]
           },
           "twillio": {
-            "security": {}
+            "security": []
           }
         },
         "lock": {
@@ -119,11 +123,12 @@ describe('class SuperJson', () => {
         },
         "providers": {
           "acme": {
-            "security": {
-              "myApiKey": {
+            "security": [
+              {
+                "id": "myApiKey",
                 "apikey": "SECRET"
               }
-            }
+            ]
           }
         }
       }`;
@@ -144,15 +149,17 @@ describe('class SuperJson', () => {
         },
         "providers": {
           "acme": {
-            "security": {
-              "myApiKey": {
+            "security": [
+              {
+                "id": "myApiKey",
                 "apikey": "SECRET",
                 "username": "username"
               },
-              "myDigest": {
+              {
+                "id": "myDigest",
                 "digest": "SECRET"
               }
-            }
+            ]
           }
         }
       }`;
@@ -235,15 +242,16 @@ describe('class SuperJson', () => {
         "foo": "file:///foo.provider.json",
         "bar": {
           "file": "./bar.provider.json",
-          "security": {}
+          "security": []
         },
         "baz": {
-          "security": {
-            "myBasicAuth": {
+          "security": [
+            {
+              "id": "myBasicAuth",
               "username": "hi",
               "password": "heya"
             }
-          }
+          ]
         }
       }
     }`;
@@ -343,20 +351,21 @@ describe('class SuperJson', () => {
       providers: {
         foo: {
           file: '/foo.provider.json',
-          security: {},
+          security: [],
         },
         bar: {
           file: './bar.provider.json',
-          security: {},
+          security: [],
         },
         baz: {
           file: undefined,
-          security: {
-            myBasicAuth: {
+          security: [
+            {
+              id: 'myBasicAuth',
               username: 'hi',
               password: 'heya',
             },
-          },
+          ],
         },
       },
     });
@@ -378,13 +387,14 @@ describe('class SuperJson', () => {
       },
       "providers": {
         "acme": {
-          "security": {
-            "myApiKey": {
+          "security": [
+            {
+              "id": "myApiKey",
               "apikey": "SECRET",
               "in": "header",
               "header": "x-api-key"
             }
-          }
+          ]
         }
       }
     }`;

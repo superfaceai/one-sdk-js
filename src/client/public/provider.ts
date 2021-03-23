@@ -1,11 +1,10 @@
-import { AuthVariables } from '../../internal';
-import { mergeVariables } from '../../internal/interpreter/variables';
+import { SecurityValues, SuperJson } from '../../internal';
 import { SuperfaceClient } from './client';
 
 export class ProviderConfiguration {
   constructor(
     public readonly name: string,
-    public readonly auth: AuthVariables,
+    public readonly security: SecurityValues[],
     public readonly serviceId?: string
   ) {}
 
@@ -22,12 +21,12 @@ export class Provider {
   ) {}
 
   async configure(configuration: {
-    auth?: AuthVariables;
+    security?: SecurityValues[];
     serviceId?: string;
   }): Promise<Provider> {
     const newConfiguration = new ProviderConfiguration(
       this.configuration.name,
-      mergeVariables(this.configuration.auth, configuration.auth ?? {}),
+      SuperJson.mergeSecurity(this.configuration.security, configuration.security ?? []),
       configuration.serviceId ?? this.configuration.serviceId
     );
 

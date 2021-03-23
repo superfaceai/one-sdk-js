@@ -175,67 +175,80 @@ const idBase = zod.object({
   id: zod.string(),
 });
 
+const apiKeySecurityValues = idBase.merge(
+  zod.object({
+    apikey: zod.string(),
+  })
+);
+export function isApiKeySecurityValues(input: unknown): input is ApiKeySecurityValues {
+  return apiKeySecurityValues.check(input);
+}
+
+const basicAuthSecurityValues = idBase.merge(
+  zod.object({
+    username: zod.string(),
+    password: zod.string(),
+  })
+);
+export function isBasicAuthSecurityValues(input: unknown): input is BasicAuthSecurityValues {
+  return basicAuthSecurityValues.check(input);
+}
+
+const bearerTokenSecurityValues = idBase.merge(
+  zod.object({
+    token: zod.string(),
+  })
+);
+export function isBearerTokenSecurityValues(input: unknown): input is BearerTokenSecurityValues {
+  return bearerTokenSecurityValues.check(input);
+}
+
+const digestSecurityValues = idBase.merge(
+  zod.object({
+    digest: zod.string(),
+  })
+);
+export function isDigestSecurityValues(input: unknown): input is DigestSecurityValues {
+  return digestSecurityValues.check(input);
+}
+
 /**
  * Authorization variables.
  * ```
  * {
- *   "$schemeId": {
+ *   "id": "$id"
+ * } & (
+ *   {
  *     "username": "$username",
  *     "password": "$password"
  *   } | {
- *     "in": "header" | "body" | "query" | "path",
- *     "name": "$name", // def: Authorization
  *     "apikey": "$value"
  *   } | {
- *     "name": "$name", // def: Authorization
  *     "token": "$value"
  *   } | {
  *     "digest": "$value"
  *   }
- * }
+ * )
  * ```
  */
-const authVariable = zod.union([
-  idBase.merge(
-    zod.object({
-      username: zod.string(),
-      password: zod.string(),
-    })
-  ),
-  idBase.merge(
-    zod.object({
-      apikey: zod.string(),
-    })
-  ),
-  idBase.merge(
-    zod.object({
-      token: zod.string(),
-    })
-  ),
-  idBase.merge(
-    zod.object({
-      digest: zod.string(),
-    })
-  ),
-]);
-const authVariables = zod.array(authVariable);
+const securityValues = zod.union([apiKeySecurityValues, basicAuthSecurityValues, bearerTokenSecurityValues, digestSecurityValues]);
 
 /**
  * Expanded provider settings for one provider name.
  * ```
  * {
  *   "file": "$file", // opt
- *   "auth": $auth // opt
+ *   "security": $auth // opt
  * }
  * ```
  */
 const providerSettings = zod.object({
   file: zod.string().optional(),
-  security: authVariables.optional(),
+  security: zod.array(securityValues).optional(),
 });
 const normalizedProviderSettings = zod.object({
   file: zod.string().optional(),
-  security: authVariables,
+  security: zod.array(securityValues),
 });
 
 const providerEntry = zod.union([uriPath, providerSettings]);
@@ -259,8 +272,12 @@ export type ProfileProviderEntry = zod.infer<typeof profileProviderEntry>;
 export type ProfileProviderSettings = zod.infer<typeof profileProviderSettings>;
 export type ProviderEntry = zod.infer<typeof providerEntry>;
 export type ProviderSettings = zod.infer<typeof providerSettings>;
-export type AuthVariable = zod.infer<typeof authVariable>;
-export type AuthVariables = zod.infer<typeof authVariables>;
+
+export type ApiKeySecurityValues = zod.infer<typeof apiKeySecurityValues>;
+export type BasicAuthSecurityValues = zod.infer<typeof basicAuthSecurityValues>;
+export type BearerTokenSecurityValues = zod.infer<typeof bearerTokenSecurityValues>;
+export type DigestSecurityValues = zod.infer<typeof digestSecurityValues>;
+export type SecurityValues = zod.infer<typeof securityValues>;
 
 export type NormalizedSuperJsonDocument = zod.infer<typeof normalizedSchema>;
 export type NormalizedProfileSettings = zod.infer<
@@ -447,7 +464,7 @@ export class SuperJson {
       };
     }
 
-    return normalized;
+    return SuperJson.resolveEnvRecord(normalized);
   }
 
   static normalizeProfileSettings(
@@ -521,7 +538,7 @@ export class SuperJson {
 
     return {
       file: providerEntry.file,
-      security: providerEntry.security ?? [],
+      security: providerEntry.security?.map(entry => SuperJson.resolveEnvRecord(entry)) ?? [],
     };
   }
 
@@ -807,7 +824,7 @@ export class SuperJson {
     } else {
       superJson.providers[providerName] = {
         file: payload.file ?? targetProvider.file,
-        security: mergeAuthVariables(
+        security: SuperJson.mergeSecurity(
           targetProvider.security ?? [],
           payload.security ?? []
         ),
@@ -863,11 +880,9 @@ export class SuperJson {
     for (const [key, value] of Object.entries(record)) {
       if (typeof value === 'string') {
         // replace strings
-        // // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-explicit-any
         result[key] = SuperJson.resolveEnv(value);
       } else if (typeof value === 'object' && value !== null) {
         // recurse objects
-        // // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-explicit-any
         result[key] = SuperJson.resolveEnvRecord(
           value as Record<string, unknown>
         );
@@ -879,27 +894,27 @@ export class SuperJson {
 
     return result as T;
   }
-}
 
-export function mergeAuthVariables(
-  left: AuthVariables,
-  right: AuthVariables
-): AuthVariables {
-  const result: AuthVariables = [];
+  static mergeSecurity(
+    left: SecurityValues[],
+    right: SecurityValues[]
+  ): SecurityValues[] {
+    const result: SecurityValues[] = []
 
-  for (const variable of left) {
-    result.push(variable);
-  }
-
-  for (const variable of right) {
-    const index = result.findIndex(item => item.id === variable.id);
-
-    if (index !== -1) {
-      result[index] = variable;
-    } else {
-      result.push(variable);
+    for (const entry of left) {
+      result.push(entry);
     }
-  }
 
-  return result;
+    for (const entry of right) {
+      const index = result.findIndex(item => item.id === entry.id);
+
+      if (index !== -1) {
+        result[index] = entry;
+      } else {
+        result.push(entry);
+      }
+    }
+
+    return result
+  }
 }

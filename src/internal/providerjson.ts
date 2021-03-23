@@ -1,98 +1,104 @@
 import * as zod from 'zod';
 
-export enum ApiKeySecurityIn {
+export enum SecurityType {
+  APIKEY = 'apiKey',
+  HTTP = 'http'
+}
+
+export enum ApiKeyPlacement {
   HEADER = 'header',
   BODY = 'body',
   PATH = 'path',
   QUERY = 'query',
 }
-export const API_KEY_AUTH_SECURITY_TYPE = 'apiKey';
 
-export const BASIC_AUTH_SECURITY_SCHEME = 'basic';
-
-export const HTTP_AUTH_SECURITY_TYPE = 'http';
-
-export const BEARER_AUTH_SECURITY_SCHEME = 'bearer';
-
-export const DIGEST_AUTH_SECURITY_SCHEME = 'digest';
-
-// BasicAuth
-const basicAuth = zod.object({
-  id: zod.string(),
-  type: zod.literal(HTTP_AUTH_SECURITY_TYPE),
-  scheme: zod.literal(BASIC_AUTH_SECURITY_SCHEME),
-});
-
-export type BasicAuthSecurity = zod.infer<typeof basicAuth>;
+export enum HttpScheme {
+  BASIC = 'basic',
+  BEARER = 'bearer',
+  DIGEST = 'digest'
+}
 
 // ApiKey
 const apiKey = zod.object({
   id: zod.string(),
-  type: zod.literal(API_KEY_AUTH_SECURITY_TYPE),
-  in: zod.nativeEnum(ApiKeySecurityIn),
+  type: zod.literal(SecurityType.APIKEY),
+  in: zod.nativeEnum(ApiKeyPlacement),
   name: zod.string().default('Authorization'),
 });
+export type ApiKeySecurityScheme = zod.infer<typeof apiKey>;
 
-export type ApiKeySecurity = zod.infer<typeof apiKey>;
+// BasicAuth
+const basicAuth = zod.object({
+  id: zod.string(),
+  type: zod.literal(SecurityType.HTTP),
+  scheme: zod.literal(HttpScheme.BASIC),
+});
+export type BasicAuthSecurityScheme = zod.infer<typeof basicAuth>;
 
 // Bearer
 const bearer = zod.object({
   id: zod.string(),
-  type: zod.literal(HTTP_AUTH_SECURITY_TYPE),
-  scheme: zod.literal(BEARER_AUTH_SECURITY_SCHEME),
+  type: zod.literal(SecurityType.HTTP),
+  scheme: zod.literal(HttpScheme.BEARER),
+  bearerFormat: zod.string().optional()
 });
+export type BearerTokenSecurityScheme = zod.infer<typeof bearer>;
 
-export type BearerTokenSecurity = zod.infer<typeof bearer>;
-
-//Digest
+// Digest
 const digest = zod.object({
   id: zod.string(),
-  type: zod.literal(HTTP_AUTH_SECURITY_TYPE),
-  scheme: zod.literal(DIGEST_AUTH_SECURITY_SCHEME),
+  type: zod.literal(SecurityType.HTTP),
+  scheme: zod.literal(HttpScheme.DIGEST),
 });
+export type DigestSecurityScheme = zod.infer<typeof digest>;
 
-export type DigestAuthSecurity = zod.infer<typeof digest>;
+const httpSecurity = zod.union([basicAuth, apiKey, bearer, digest]);
+export type HttpSecurityScheme = zod.infer<typeof httpSecurity>;
 
+export type SecurityScheme = ApiKeySecurityScheme | HttpSecurityScheme;
 
-// Type guards
-export function isApiKeySecurity(
-  auth: ApiKeySecurity | BasicAuthSecurity | BearerTokenSecurity | DigestAuthSecurity
-): auth is ApiKeySecurity {
-  return apiKey.check(auth);
-}
-
-export function isBasicAuthSecurity(
-  auth: ApiKeySecurity | BasicAuthSecurity | BearerTokenSecurity | DigestAuthSecurity
-): auth is BasicAuthSecurity {
-  return basicAuth.check(auth);
-}
-
-export function isBearerTokenSecurity(
-  auth: ApiKeySecurity | BasicAuthSecurity | BearerTokenSecurity | DigestAuthSecurity
-): auth is BearerTokenSecurity {
-  return bearer.check(auth);
-}
-
-export function isDigestAuthSecurity(
-  auth: ApiKeySecurity | BasicAuthSecurity | BearerTokenSecurity | DigestAuthSecurity
-): auth is DigestAuthSecurity {
-  return digest.check(auth);
-}
+const service = zod.object({
+  id: zod.string(),
+  baseUrl: zod.string()
+});
+export type ProviderService = zod.infer<typeof service>;
 
 const providerJson = zod.object({
   name: zod.string(),
-  services: zod.array(
-    zod.object({
-      id: zod.string(),
-      baseUrl: zod.string(),
-    })
-  ),
-  securitySchemes: zod.array(zod.union([basicAuth, apiKey, bearer, digest])).optional(),
+  services: zod.array(service),
+  securitySchemes: zod.array(httpSecurity).optional(),
   defaultService: zod.string(),
 });
-
 export type ProviderJson = zod.infer<typeof providerJson>;
 
+export function isProviderJson(input: unknown): input is ProviderJson {
+  return providerJson.check(input);
+}
 export function parseProviderJson(input: unknown): ProviderJson {
   return providerJson.parse(input);
+}
+
+// Type guards
+export function isApiKeySecurityScheme(
+  input: SecurityScheme
+): input is ApiKeySecurityScheme {
+  return apiKey.check(input);
+}
+
+export function isBasicAuthSecurityScheme(
+  input: SecurityScheme
+): input is BasicAuthSecurityScheme {
+  return basicAuth.check(input);
+}
+
+export function isBearerTokenSecurityScheme(
+  input: SecurityScheme
+): input is BearerTokenSecurityScheme {
+  return bearer.check(input);
+}
+
+export function isDigestSecurityScheme(
+  input: SecurityScheme
+): input is DigestSecurityScheme {
+  return digest.check(input);
 }

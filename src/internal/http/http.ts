@@ -1,13 +1,13 @@
 import 'isomorphic-form-data';
 
-import { HttpSecurity } from '@superfaceai/ast';
+import { HttpSecurityRequirement } from '@superfaceai/ast';
 import fetch, { Headers } from 'cross-fetch';
 import createDebug from 'debug';
 import { inspect } from 'util';
 
-import { evalScript } from './interpreter/sandbox';
-import { NonPrimitive, Variables } from './interpreter/variables';
-import { AuthVariable, SuperJson } from './superjson';
+import { NonPrimitive, Variables, getValue } from '../interpreter/variables';
+import { applyApiKeyAuth, applyHttpAuth, SecurityConfiguration } from './security';
+import { SecurityType } from '../providerjson';
 
 const debug = createDebug('superface:http');
 
@@ -24,7 +24,6 @@ export interface HttpResponse {
   };
 }
 
-const AUTH_HEADER_NAME = 'Authorization';
 const JSON_CONTENT = 'application/json';
 const URLENCODED_CONTENT = 'application/x-www-form-urlencoded';
 const FORMDATA_CONTENT = 'multipart/form-data';
@@ -61,65 +60,6 @@ const queryParameters = (parameters?: Record<string, string>): string => {
   }
 
   return '';
-};
-
-const basicAuth = (auth: AuthVariable, headers: Headers): void => {
-  if (!('username' in auth)) {
-    throw new Error('Missing credentials for Basic auth!');
-  }
-
-  const name = SuperJson.resolveEnv(auth.username);
-  const password = SuperJson.resolveEnv(auth.password);
-
-  const value =
-    'Basic ' + Buffer.from(`${name}:${password}`).toString('base64');
-  headers.append(AUTH_HEADER_NAME, value);
-};
-
-const apikeyAuth = (
-  auth: AuthVariable,
-  pathParameters: NonPrimitive,
-  queryAuth: Record<string, string>,
-  headers: Headers,
-  requestBody: Variables | undefined
-): void => {
-  if (!('apikey' in auth)) {
-    throw new Error('Api Key credentials not present.');
-  }
-
-  const value = SuperJson.resolveEnv(auth.apikey);
-
-  // TODO: take `in` & `name` property from provider specification
-  switch (auth.in) {
-    case 'header':
-      headers.append(name, value);
-      break;
-    case 'query':
-      queryAuth[name] = value;
-      break;
-    case 'body':
-      if (typeof requestBody !== 'object' || Array.isArray(requestBody)) {
-        throw new Error(
-          'ApiKey in body can be used only when body is an object.'
-        );
-      }
-      requestBody[name] = value;
-      break;
-    case 'path':
-      pathParameters[name] = value;
-      break;
-  }
-};
-
-const bearerAuth = (auth: AuthVariable, headers: Headers): void => {
-  if (!('token' in auth)) {
-    throw new Error('Bearer credentials not present.');
-  }
-
-  const value = SuperJson.resolveEnv(auth.token);
-
-  // TODO: take `name` property from provider specification
-  headers.append(auth.name, `Bearer ${value}`);
 };
 
 const formData = (data?: Record<string, string>): FormData => {
@@ -200,8 +140,8 @@ export const HttpClient = {
       body?: Variables;
       contentType?: string;
       accept?: string;
-      security?: HttpSecurity;
-      auth?: AuthVariable;
+      securityRequirements?: HttpSecurityRequirement[];
+      securityConfiguration?: SecurityConfiguration[];
       baseUrl?: string;
       pathParameters?: NonPrimitive;
     }
@@ -217,30 +157,24 @@ export const HttpClient = {
     const queryAuth: Record<string, string> = {};
     const requestBody = parameters.body;
     const pathParameters = { ...parameters.pathParameters };
-    if (
-      parameters.security !== undefined &&
-      parameters.security.scheme !== 'none'
-    ) {
-      if (parameters.auth === undefined) {
-        throw new Error('Credentials not present.');
+
+    const securityConfiguration = parameters.securityConfiguration ?? [];
+    const contextForSecurity = {
+      headers,
+      queryAuth,
+      pathParameters,
+      requestBody
+    };
+    for (const requirement of parameters.securityRequirements ?? []) {
+      const configuration = securityConfiguration.find(c => c.id === requirement.id);
+      if (configuration === undefined) {
+        throw new Error(`Credentials for security scheme "${requirement.id}" not present.`);
       }
 
-      switch (parameters.security.scheme) {
-        case 'basic':
-          basicAuth(parameters.auth, headers);
-          break;
-        case 'apikey':
-          apikeyAuth(
-            parameters.auth,
-            pathParameters,
-            queryAuth,
-            headers,
-            requestBody
-          );
-          break;
-        case 'bearer':
-          bearerAuth(parameters.auth, headers);
-          break;
+      if (configuration.type === SecurityType.APIKEY) {
+        applyApiKeyAuth(contextForSecurity, configuration);
+      } else {
+        applyHttpAuth(contextForSecurity, configuration);
       }
     }
 
