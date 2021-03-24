@@ -879,7 +879,7 @@ export class SuperJson {
       if (env !== undefined) {
         value = env;
       } else {
-        console.warn('Enviroment variable', variable, 'not found');
+        debug(`Enviroment variable ${variable} not found`);
       }
     }
 
