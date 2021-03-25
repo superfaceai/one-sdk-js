@@ -6,7 +6,7 @@ import { isFileURIString, isVersionString, SuperJson } from './superjson';
 const { unlink, rmdir, mkdir, writeFile } = promises;
 const basedir = process.cwd();
 
-describe('SuperJsonDocument', () => {
+describe('class SuperJson', () => {
   it('parses valid super.json', () => {
     {
       const superJson = `{
@@ -23,14 +23,12 @@ describe('SuperJsonDocument', () => {
         },
         "providers": {
           "acme": {
-            "auth": {
-              "ApiKey": {
-                "type": "apikey",
-                "value": "SECRET",
-                "in": "header",
-                "header": "x-api-key"
+            "security": [
+              {
+                "id": "myApiKey",
+                "apikey": "SECRET"
               }
-            }
+            ]
           }
         }
       }`;
@@ -75,12 +73,24 @@ describe('SuperJsonDocument', () => {
                 "baseUrl": "https://www.some.differentUrl"
               }
             },
-            "auth": {
-              "BasicAuth": {
+            "security": [
+              {
+                "id": "myBasicAuth",
                 "username": "johndoe",
                 "password": "$SF_SWAPIDEW_BASICAUTH_PASSWORD"
+              },
+              {
+                "id": "myApiKey",
+                "apikey": "SECRET"
+              },
+              {
+                "id": "myCustomScheme",
+                "digest": "SECRET"
               }
-            }
+            ]
+          },
+          "twillio": {
+            "security": []
           }
         },
         "lock": {
@@ -113,14 +123,12 @@ describe('SuperJsonDocument', () => {
         },
         "providers": {
           "acme": {
-            "auth": {
-              "ApiKey": {
-                "type": "apikey",
-                "value": "SECRET",
-                "in": "header",
-                "header": "x-api-key"
+            "security": [
+              {
+                "id": "myApiKey",
+                "apikey": "SECRET"
               }
-            }
+            ]
           }
         }
       }`;
@@ -141,14 +149,17 @@ describe('SuperJsonDocument', () => {
         },
         "providers": {
           "acme": {
-            "auth": {
-              "ApiKey": {
-                "type": "apikey",
-                "value": "SECRET",
-                "in": "header",
-                "field": "x-api-key"
+            "security": [
+              {
+                "id": "myApiKey",
+                "apikey": "SECRET",
+                "username": "username"
+              },
+              {
+                "id": "myDigest",
+                "digest": "SECRET"
               }
-            }
+            ]
           }
         }
       }`;
@@ -231,15 +242,16 @@ describe('SuperJsonDocument', () => {
         "foo": "file:///foo.provider.json",
         "bar": {
           "file": "./bar.provider.json",
-          "auth": {}
+          "security": []
         },
         "baz": {
-          "auth": {
-            "BasicAuth": {
+          "security": [
+            {
+              "id": "myBasicAuth",
               "username": "hi",
               "password": "heya"
             }
-          }
+          ]
         }
       }
     }`;
@@ -339,20 +351,21 @@ describe('SuperJsonDocument', () => {
       providers: {
         foo: {
           file: '/foo.provider.json',
-          auth: {},
+          security: [],
         },
         bar: {
           file: './bar.provider.json',
-          auth: {},
+          security: [],
         },
         baz: {
           file: undefined,
-          auth: {
-            BasicAuth: {
+          security: [
+            {
+              id: 'myBasicAuth',
               username: 'hi',
               password: 'heya',
             },
-          },
+          ],
         },
       },
     });
@@ -374,14 +387,14 @@ describe('SuperJsonDocument', () => {
       },
       "providers": {
         "acme": {
-          "auth": {
-            "ApiKey": {
-              "type": "apikey",
-              "value": "SECRET",
+          "security": [
+            {
+              "id": "myApiKey",
+              "apikey": "SECRET",
               "in": "header",
               "header": "x-api-key"
             }
-          }
+          ]
         }
       }
     }`;

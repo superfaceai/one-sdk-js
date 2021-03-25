@@ -5,7 +5,7 @@ import {
   HttpCallStatementNode,
   HttpRequestNode,
   HttpResponseHandlerNode,
-  HttpSecurity,
+  HttpSecurityRequirement,
   InlineCallNode,
   isMapDefinitionNode,
   isOperationDefinitionNode,
@@ -28,8 +28,8 @@ import createDebug from 'debug';
 
 import { err, ok, Result } from '../../lib';
 import { UnexpectedError } from '../errors';
-import { HttpClient, HttpResponse } from '../http';
-import { AuthVariables } from '../superjson';
+import { SecurityConfiguration } from '../http';
+import { HttpClient, HttpResponse } from '../http/http';
 import {
   HTTPError,
   JessieError,
@@ -72,7 +72,7 @@ export interface MapParameters<
   usecase?: string;
   input?: TInput;
   serviceBaseUrl?: string;
-  auth?: AuthVariables;
+  security: SecurityConfiguration[];
 }
 
 type HttpResponseHandler = (
@@ -96,7 +96,7 @@ interface HttpRequest {
   headers?: Variables;
   queryParameters?: Variables;
   body?: Variables;
-  security?: HttpSecurity;
+  security: HttpSecurityRequirement[];
 }
 
 interface Stack {
@@ -278,8 +278,8 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
       queryParameters: request?.queryParameters,
       pathParameters: this.variables,
       body: request?.body,
-      security: request?.security,
-      auth: this.parameters.auth,
+      securityRequirements: request?.security,
+      securityConfiguration: this.parameters.security,
     });
 
     for (const [handler] of responseHandlers) {
