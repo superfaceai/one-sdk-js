@@ -181,9 +181,7 @@ describe('superface client', () => {
     it('throws when on profiles are not implemented', () => {
       const client = new SuperfaceClient();
 
-      expect(() => client.profiles).toThrow(
-        'TODO'
-      );
+      expect(() => client.profiles).toThrow('TODO');
     });
   });
 
@@ -191,9 +189,7 @@ describe('superface client', () => {
     it('throws when on providers are not implemented', () => {
       const client = new SuperfaceClient();
 
-      expect(() => client.providers).toThrow(
-        'TODO'
-      );
+      expect(() => client.providers).toThrow('TODO');
     });
   });
 });

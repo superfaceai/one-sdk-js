@@ -1,10 +1,11 @@
-import { SuperfaceClient } from "./client";
-import { ProfileConfiguration, Profile } from "./profile";
-import { ProviderConfiguration, Provider } from "./provider";
-import { BoundProfileProvider } from "../query/profile-provider";
-import { MapDocumentNode, ProfileDocumentNode } from "@superfaceai/ast";
-import { UseCase } from "./usecase";
-import { ok } from "../../lib/result/result";
+import { MapDocumentNode, ProfileDocumentNode } from '@superfaceai/ast';
+
+import { ok } from '../../lib/result/result';
+import { BoundProfileProvider } from '../query/profile-provider';
+import { SuperfaceClient } from './client';
+import { Profile, ProfileConfiguration } from './profile';
+import { Provider, ProviderConfiguration } from './provider';
+import { UseCase } from './usecase';
 
 //Mock client
 jest.mock('./client');
@@ -51,53 +52,92 @@ describe('UseCase', () => {
 
   describe('when calling perform', () => {
     it('calls getProviderForProfile when there is no provider confiq', async () => {
-      const mockBoundProfileProvider = new BoundProfileProvider(mockProfileDocument, mockMapDocument, { security: [] })
+      const mockBoundProfileProvider = new BoundProfileProvider(
+        mockProfileDocument,
+        mockMapDocument,
+        { security: [] }
+      );
       const mockClient = new SuperfaceClient();
 
-      const mockProfileConfiguration = new ProfileConfiguration('test', '1.0.0')
+      const mockProfileConfiguration = new ProfileConfiguration(
+        'test',
+        '1.0.0'
+      );
       const mockProfile = new Profile(mockClient, mockProfileConfiguration);
 
-      const mockProviderConfiguration = new ProviderConfiguration('test-provider', [])
-      const mockProvider = new Provider(mockClient, mockProviderConfiguration)
+      const mockProviderConfiguration = new ProviderConfiguration(
+        'test-provider',
+        []
+      );
+      const mockProvider = new Provider(mockClient, mockProviderConfiguration);
 
-      const getProviderForProfileSpy = jest.spyOn(mockClient, 'getProviderForProfile').mockResolvedValue(mockProvider)
-      const cacheBoundProfileProviderSpy = jest.spyOn(mockClient, 'cacheBoundProfileProvider').mockResolvedValue(mockBoundProfileProvider)
+      const getProviderForProfileSpy = jest
+        .spyOn(mockClient, 'getProviderForProfile')
+        .mockResolvedValue(mockProvider);
+      const cacheBoundProfileProviderSpy = jest
+        .spyOn(mockClient, 'cacheBoundProfileProvider')
+        .mockResolvedValue(mockBoundProfileProvider);
 
       const usecase = new UseCase(mockProfile, 'test-usecase');
-      await expect(usecase.perform()).resolves.toBeUndefined()
+      await expect(usecase.perform()).resolves.toBeUndefined();
 
       expect(getProviderForProfileSpy).toHaveBeenCalledTimes(1);
-      expect(getProviderForProfileSpy).toHaveBeenCalledWith('test')
+      expect(getProviderForProfileSpy).toHaveBeenCalledWith('test');
 
       expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(1);
-      expect(cacheBoundProfileProviderSpy).toHaveBeenCalledWith(mockProfileConfiguration, mockProviderConfiguration)
+      expect(cacheBoundProfileProviderSpy).toHaveBeenCalledWith(
+        mockProfileConfiguration,
+        mockProviderConfiguration
+      );
     });
 
     it('does not call getProviderForProfile when there is provider confiq', async () => {
-      const mockResult = { test: 'test' }
-      const mockBoundProfileProvider = new BoundProfileProvider(mockProfileDocument, mockMapDocument, { security: [] })
+      const mockResult = { test: 'test' };
+      const mockBoundProfileProvider = new BoundProfileProvider(
+        mockProfileDocument,
+        mockMapDocument,
+        { security: [] }
+      );
       const mockClient = new SuperfaceClient();
 
-      const mockProfileConfiguration = new ProfileConfiguration('test', '1.0.0')
+      const mockProfileConfiguration = new ProfileConfiguration(
+        'test',
+        '1.0.0'
+      );
       const mockProfile = new Profile(mockClient, mockProfileConfiguration);
 
-      const mockProviderConfiguration = new ProviderConfiguration('test-provider', [])
-      const mockProvider = new Provider(mockClient, mockProviderConfiguration)
+      const mockProviderConfiguration = new ProviderConfiguration(
+        'test-provider',
+        []
+      );
+      const mockProvider = new Provider(mockClient, mockProviderConfiguration);
 
-      const getProviderForProfileSpy = jest.spyOn(mockClient, 'getProviderForProfile')
-      const cacheBoundProfileProviderSpy = jest.spyOn(mockClient, 'cacheBoundProfileProvider').mockResolvedValue(mockBoundProfileProvider)
-      const performSpy = jest.spyOn(mockBoundProfileProvider, 'perform').mockResolvedValue(ok(mockResult))
+      const getProviderForProfileSpy = jest.spyOn(
+        mockClient,
+        'getProviderForProfile'
+      );
+      const cacheBoundProfileProviderSpy = jest
+        .spyOn(mockClient, 'cacheBoundProfileProvider')
+        .mockResolvedValue(mockBoundProfileProvider);
+      const performSpy = jest
+        .spyOn(mockBoundProfileProvider, 'perform')
+        .mockResolvedValue(ok(mockResult));
 
       const usecase = new UseCase(mockProfile, 'test-usecase');
-      await expect(usecase.perform(undefined, { provider: mockProvider })).resolves.toEqual(ok(mockResult))
+      await expect(
+        usecase.perform(undefined, { provider: mockProvider })
+      ).resolves.toEqual(ok(mockResult));
 
-      expect(getProviderForProfileSpy).not.toHaveBeenCalled()
+      expect(getProviderForProfileSpy).not.toHaveBeenCalled();
 
       expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(1);
-      expect(cacheBoundProfileProviderSpy).toHaveBeenCalledWith(mockProfileConfiguration, mockProviderConfiguration)
+      expect(cacheBoundProfileProviderSpy).toHaveBeenCalledWith(
+        mockProfileConfiguration,
+        mockProviderConfiguration
+      );
 
       expect(performSpy).toHaveBeenCalledTimes(1);
-      expect(performSpy).toHaveBeenCalledWith('test-usecase', undefined)
+      expect(performSpy).toHaveBeenCalledWith('test-usecase', undefined);
     });
   });
 });
