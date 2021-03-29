@@ -119,6 +119,13 @@ describe('superface client', () => {
       expect(profile.configuration.version).toBe('unknown');
     });
 
+    it('returns a valid profile when it points to existing path - known version', async () => {
+      const client = new SuperfaceClient();
+
+      const profile = await client.getProfile('baz');
+      expect(profile.configuration.version).toBe('1.2.3');
+    });
+
     it('caches bound profile providers', async () => {
       const client = new SuperfaceClient();
 
@@ -167,6 +174,26 @@ describe('superface client', () => {
 
       const provider = await client.getProviderForProfile('baz');
       expect(provider.configuration.name).toBe('quz');
+    });
+  });
+
+  describe('profiles getter', () => {
+    it('throws when on profiles are not implemented', () => {
+      const client = new SuperfaceClient();
+
+      expect(() => client.profiles).toThrow(
+        'TODO'
+      );
+    });
+  });
+
+  describe('providers getter', () => {
+    it('throws when on providers are not implemented', () => {
+      const client = new SuperfaceClient();
+
+      expect(() => client.providers).toThrow(
+        'TODO'
+      );
     });
   });
 });
