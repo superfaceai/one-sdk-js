@@ -602,6 +602,7 @@ export class SuperJson {
         ...superJson.profiles,
         [profileName]: payload,
       };
+      this.normalizedCache = undefined;
 
       return true;
     }
@@ -629,6 +630,7 @@ export class SuperJson {
       if (isFileURIString(payload)) {
         if (isShorthandAvailable) {
           superJson.profiles[profileName] = composeFileURI(payload);
+          this.normalizedCache = undefined;
 
           return true;
         }
@@ -637,6 +639,7 @@ export class SuperJson {
           file: trimFileURI(payload),
           ...commonProperties,
         };
+        this.normalizedCache = undefined;
 
         return true;
       }
@@ -645,6 +648,7 @@ export class SuperJson {
       if (isVersionString(payload)) {
         if (isShorthandAvailable) {
           superJson.profiles[profileName] = payload;
+          this.normalizedCache = undefined;
 
           return true;
         }
@@ -653,6 +657,7 @@ export class SuperJson {
           version: payload,
           ...commonProperties,
         };
+        this.normalizedCache = undefined;
 
         return true;
       }
@@ -686,6 +691,7 @@ export class SuperJson {
       defaults,
       providers,
     };
+    this.normalizedCache = undefined;
 
     return true;
   }
@@ -715,6 +721,7 @@ export class SuperJson {
       targetedProfile.providers = {
         [providerName]: payload,
       };
+      this.normalizedCache = undefined;
 
       return true;
     }
@@ -727,6 +734,7 @@ export class SuperJson {
         ...targetedProfile.providers,
         [providerName]: payload,
       };
+      this.normalizedCache = undefined;
 
       return true;
     }
@@ -739,6 +747,7 @@ export class SuperJson {
         isEmptyRecord(profileProvider.defaults ?? {})
       ) {
         targetedProfile.providers[providerName] = composeFileURI(payload);
+        this.normalizedCache = undefined;
 
         return true;
       }
@@ -747,6 +756,7 @@ export class SuperJson {
         file: trimFileURI(payload),
         defaults: profileProvider.defaults,
       };
+      this.normalizedCache = undefined;
 
       return true;
     }
@@ -768,6 +778,7 @@ export class SuperJson {
         ...payload,
         defaults,
       };
+      this.normalizedCache = undefined;
 
       return true;
     }
@@ -779,6 +790,7 @@ export class SuperJson {
           ...payload,
           defaults,
         };
+        this.normalizedCache = undefined;
 
         return true;
       }
@@ -798,6 +810,7 @@ export class SuperJson {
         ...mapProperties,
         defaults,
       };
+      this.normalizedCache = undefined;
 
       return true;
     }
@@ -807,6 +820,8 @@ export class SuperJson {
 
   addProvider(providerName: string, payload: ProviderEntry): void {
     const superJson = this.document;
+    this.normalizedCache = undefined;
+
     if (superJson.providers === undefined) {
       superJson.providers = {};
     }
