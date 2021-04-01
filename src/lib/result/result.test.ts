@@ -1,4 +1,4 @@
-import { Err, err, Ok, ok, Result } from './result';
+import { Err, err, Ok, ok } from './result';
 
 describe('Result wrappers', () => {
   describe('when using Ok', () => {
@@ -47,36 +47,19 @@ describe('Result wrappers', () => {
 
     it('maps async correctly', async () => {
       await expect(
-        mockOk.mapAsync(
-          (value: MockValueType) =>
-            new Promise((resolve: (value: string) => void) => {
-              resolve(value.test);
-            })
-        )
+        mockOk.mapAsync((value: MockValueType) => Promise.resolve(value.test))
       ).resolves.toEqual({ value: 'test' });
     });
 
     it('maps err async correctly', async () => {
       await expect(
-        mockOk.mapErrAsync(
-          () =>
-            new Promise((resolve: (value: string) => void) => {
-              resolve('test');
-            })
-        )
+        mockOk.mapErrAsync(() => Promise.resolve('test'))
       ).resolves.toEqual(ok(mockValue));
     });
 
     it('maps then async correctly', async () => {
       await expect(
-        mockOk.andThenAsync(
-          (t: MockValueType) =>
-            new Promise(
-              (resolve: (value: Result<unknown, unknown>) => void) => {
-                resolve(ok(t));
-              }
-            )
-        )
+        mockOk.andThenAsync((t: MockValueType) => Promise.resolve(ok(t)))
       ).resolves.toEqual(ok(mockValue));
     });
   });
@@ -127,36 +110,19 @@ describe('Result wrappers', () => {
 
     it('maps async correctly', async () => {
       await expect(
-        mockErr.mapAsync(
-          () =>
-            new Promise((reject: (error: MockValueType) => void) => {
-              reject({ name: 'test', message: 'inner' });
-            })
-        )
-      ).resolves.toEqual(err({ name: 'test', message: 'test' }));
+        mockErr.mapAsync(() => Promise.reject('this should not map'))
+      ).resolves.toEqual(err(mockError));
     });
 
     it('maps err async correctly', async () => {
       await expect(
-        mockErr.mapErrAsync(
-          (t: MockValueType) =>
-            new Promise((resolve: (error: MockValueType) => void) => {
-              resolve(t);
-            })
-        )
+        mockErr.mapErrAsync((t: MockValueType) => Promise.resolve(t))
       ).resolves.toEqual(err(mockError));
     });
 
     it('maps then async correctly', async () => {
       await expect(
-        mockErr.andThenAsync(
-          () =>
-            new Promise(
-              (reject: (value: Result<unknown, MockValueType>) => void) => {
-                reject(err(mockError));
-              }
-            )
-        )
+        mockErr.andThenAsync(() => Promise.resolve(err(mockError)))
       ).resolves.toEqual(err(mockError));
     });
   });

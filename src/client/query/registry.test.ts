@@ -85,7 +85,7 @@ describe('registry', () => {
   });
 
   describe('when fetching map AST', () => {
-    it('fetches map documentt', async () => {
+    it('fetches map document', async () => {
       const mockResponse = {
         statusCode: 200,
         body: mockMapDocument,

@@ -116,7 +116,7 @@ describe('service finder', () => {
       );
     });
 
-    it('throws error when unreachable code ise reached', async () => {
+    it('throws error when unreachable code is reached', async () => {
       mocked(fetchProviders).mockResolvedValue([
         mockRegistryProviderInfo1,
         mockRegistryProviderInfo2,

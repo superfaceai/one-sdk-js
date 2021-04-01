@@ -51,7 +51,7 @@ describe('UseCase', () => {
   });
 
   describe('when calling perform', () => {
-    it('calls getProviderForProfile when there is no provider confiq', async () => {
+    it('calls getProviderForProfile when there is no provider config', async () => {
       const mockBoundProfileProvider = new BoundProfileProvider(
         mockProfileDocument,
         mockMapDocument,
@@ -91,7 +91,7 @@ describe('UseCase', () => {
       );
     });
 
-    it('does not call getProviderForProfile when there is provider confiq', async () => {
+    it('does not call getProviderForProfile when there is provider config', async () => {
       const mockResult = { test: 'test' };
       const mockBoundProfileProvider = new BoundProfileProvider(
         mockProfileDocument,
