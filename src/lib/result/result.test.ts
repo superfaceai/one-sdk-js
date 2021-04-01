@@ -121,9 +121,12 @@ describe('Result wrappers', () => {
     });
 
     it('maps then async correctly', async () => {
-      await expect(
-        mockErr.andThenAsync(() => Promise.resolve(err(mockError)))
-      ).resolves.toEqual(err(mockError));
+      const mockFn = jest.fn();
+      await expect(mockErr.andThenAsync(mockFn)).resolves.toEqual(
+        err(mockError)
+      );
+
+      expect(mockFn).not.toHaveBeenCalled();
     });
   });
 });
