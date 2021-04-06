@@ -34,6 +34,7 @@ jest.mock('fs', () => ({
     stat: jest.fn(),
   },
 }));
+//Mock path
 jest.mock('path', () => ({
   ...jest.requireActual<Record<string, unknown>>('path'),
   resolve: jest.fn(),
@@ -1001,6 +1002,39 @@ describe('SuperJson', () => {
       });
     });
 
+    it('adds multiple profiles', () => {
+      let mockProfileName = 'profile';
+      const mockProfileEntry: ProfileEntry = 'file://some/path';
+
+      expect(superjson.addProfile(mockProfileName, mockProfileEntry)).toEqual(
+        true
+      );
+      expect(superjson.normalized.profiles[mockProfileName]).toEqual({
+        defaults: {},
+        file: 'some/path',
+        providers: {},
+      });
+
+      mockProfileName = 'second-profile';
+
+      expect(superjson.addProfile(mockProfileName, mockProfileEntry)).toEqual(
+        true
+      );
+
+      expect(superjson.normalized.profiles).toEqual({
+        profile: {
+          defaults: {},
+          file: 'some/path',
+          providers: {},
+        },
+        ['second-profile']: {
+          defaults: {},
+          file: 'some/path',
+          providers: {},
+        },
+      });
+    });
+
     it('adds profile to super.json with empty profile defaults using uri path', () => {
       const mockProfileName = 'profile';
       const mockProfileEntry: ProfileEntry = 'file://some/path';
@@ -1175,6 +1209,57 @@ describe('SuperJson', () => {
   });
 
   describe('when adding profile provider', () => {
+    it('adds mutliple profile provider', () => {
+      const mockProfileName = 'profile';
+      let mockProviderName = 'provider';
+      const mockProfileProviderEntry: ProfileProviderEntry = 'file://some/path';
+
+      expect(
+        superjson.addProfileProvider(
+          mockProfileName,
+          mockProviderName,
+          mockProfileProviderEntry
+        )
+      ).toEqual(true);
+      expect(superjson.normalized.profiles[mockProfileName]).toEqual({
+        defaults: {},
+        providers: {
+          [mockProviderName]: {
+            defaults: {},
+            file: 'some/path',
+          },
+        },
+        version: '0.0.0',
+      });
+
+      mockProviderName = 'second-provider';
+
+      expect(
+        superjson.addProfileProvider(
+          mockProfileName,
+          mockProviderName,
+          mockProfileProviderEntry
+        )
+      ).toEqual(true);
+
+      expect(superjson.normalized.profiles).toEqual({
+        profile: {
+          defaults: {},
+          providers: {
+            provider: {
+              defaults: {},
+              file: 'some/path',
+            },
+            ['second-provider']: {
+              defaults: {},
+              file: 'some/path',
+            },
+          },
+          version: '0.0.0',
+        },
+      });
+    });
+
     it('adds profile provider to empty super.json using uri path', () => {
       const mockProfileName = 'profile';
       const mockProviderName = 'provider';
@@ -1480,6 +1565,33 @@ describe('SuperJson', () => {
       expect(superjson.normalized.providers[mockProviderName]).toEqual({
         file: 'some/path',
         security: [],
+      });
+    });
+
+    it('adds multiple providers', () => {
+      let mockProviderName = 'provider';
+      const mockProviderEntry: ProviderEntry = 'file://some/path';
+
+      superjson.addProvider(mockProviderName, mockProviderEntry);
+      expect(superjson.normalized.providers).toEqual({
+        [mockProviderName]: {
+          file: 'some/path',
+          security: [],
+        },
+      });
+
+      mockProviderName = 'second-provider';
+
+      superjson.addProvider(mockProviderName, mockProviderEntry);
+      expect(superjson.normalized.providers).toEqual({
+        provider: {
+          file: 'some/path',
+          security: [],
+        },
+        ['second-provider']: {
+          file: 'some/path',
+          security: [],
+        },
       });
     });
 
