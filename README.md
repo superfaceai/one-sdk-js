@@ -176,4 +176,7 @@ Licenses of `node_modules` are checked during push CI/CD for every commit. Only 
 
 ## License
 
-`<TBD>` © 2020 Superface
+## License
+
+The Superface SDK is licensed under the [MIT](LICENSE).
+© 2021 Superface
