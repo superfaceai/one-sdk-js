@@ -154,9 +154,9 @@ where `input` depends on your usecase.
 
 ## Contributing
 
-PRs accepted.
+**Please open an issue first if you want to make larger changes**
 
-Small note: If editing the README, please conform to the [standard-readme](https://github.com/RichardLitt/standard-readme) specification.
+Feel free to contribute! Please follow the [Contribution Guide](CONTRIBUTION_GUIDE.md).
 
 ## Licensing
 
