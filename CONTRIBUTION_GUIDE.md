@@ -23,7 +23,7 @@ If you have any question about this project (for example, how to use it) or if y
 Follow these steps:
 
 1. **Fork & Clone** the repository  
-2. **Setup** the Superface CLI
+2. **Setup** the Superface SDK
    - Install packages with `yarn install` or `npm install`
    - Build with `yarn build` or `npm build`
    - Run tests with `yarn test` or `npm test`
@@ -48,4 +48,4 @@ Help us improve Superface documentation, you can report typos, improve examples.
 
 ## Copyright and Licensing
 
-The Superface CLI open source project is licensed under the [MIT License](LICENSE).
+The Superface SDK  open source project is licensed under the [MIT License](LICENSE).
