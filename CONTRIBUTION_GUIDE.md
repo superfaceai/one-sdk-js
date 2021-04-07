@@ -25,7 +25,7 @@ Follow these steps:
 1. **Fork & Clone** the repository  
 2. **Setup** the Superface SDK
    - Log in with npm into the github registry `npm login --scope=@superfaceai --registry=https://npm.pkg.github.com`
-   - Instal SDK to your project directory: `npm install @superfaceai/sdk` or `yarn add @superfaceai/sdk`
+   - Install SDK to your project directory: `npm install @superfaceai/sdk` or `yarn add @superfaceai/sdk`
 3. **Commit** changes to your own branch by convention. See https://www.conventionalcommits.org/en/v1.0.0/
 4. **Push** your work back up to your fork  
 5. Submit a **Pull Request** so that we can review your changes
