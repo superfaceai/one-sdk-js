@@ -866,7 +866,7 @@ export class SuperJson {
   }
 
   /**
-   * Returns a relative path relative to `dirname(this.path)` based on `process.cwd()`
+   * Returns a relative path relative to `path` from `dirname(this.path)`.
    */
   relativePath(path: string): string {
     return relativePath(dirname(this.path), path);

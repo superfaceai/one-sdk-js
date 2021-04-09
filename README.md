@@ -7,9 +7,9 @@ TODO: Fill out this long description.
 ## Table of Contents
 
 - [Install](#install)
-- [Publishing a new version](#publish)
+- [Publish](#publish)
 - [Usage](#usage)
-- [API](#api)
+- [Security](#security)
 - [Maintainers](#maintainers)
 - [Contributing](#contributing)
 - [Licensing](#licensing)
@@ -32,7 +32,7 @@ npm install @superfaceai/sdk
 yarn add @superfaceai/sdk
 ```
 
-## Publishing a new version
+## Publish
 
 Package publishing is done through GitHub release functionality.
 
@@ -144,6 +144,12 @@ if (result.ok) {
 ```
 
 where `input` depends on your usecase.
+
+## Security
+
+Superface is not man-in-the-middle so it does not require any access to secrets that are needed to communicate with provider API. Superface SDK only reads super.json file, resolved authorization secrets from environment variables or from the file itself and applies them to network requests as required by the specific map.
+
+More about the journey of the secrets within sdk can be found in [Security](SECURITY.md).
 
 ## Maintainers
 
