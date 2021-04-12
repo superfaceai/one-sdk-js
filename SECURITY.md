@@ -10,12 +10,12 @@ The only purpose of user secrets within superface is to authorize the user again
 
 ## Providing user secrets
 
-Secrets can be provider to SDK by the user in the following ways:
+Secrets can be provided to the SDK in the following ways:
 * Environment variable described in super.json (recommended)
 * Raw secret embedded in super.json
 * Secrets passed directly by the calling code
 
-## Transporting secrets
+## How the SDK transports secrets
 
 Secrets are transported within SDK along multiple paths, eventually being merged into security configuration that is later used.
 
@@ -33,7 +33,7 @@ The ProfileProvider API handles secrets inside the [bind](https://github.com/sup
 
 The MapInterpreter only [passes](https://github.com/superfaceai/sdk-js/blob/master/src/internal/interpreter/map-interpreter.ts#L282) the security configuration into the HttpClient.
 
-## Using secrets
+## How the SDK uses secrets
 
 HttpClient applies resolved secrets according to security requirements specified in the relevant map. These secrets are applied to the request body right before the request is executed.
 
