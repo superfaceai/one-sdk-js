@@ -1,6 +1,6 @@
 # Superface SDK
 
-![superface logo](https://github.com/superfaceai/sdk/blob/chore/add-banner/docs/LogoGreen.svg)
+![superface logo](https://github.com/superfaceai/sdk-js/blob/chore/add-banner/docs/LogoGreen.svg)
 
 Superface is the core SDK of the Superface project. It is the library that communicates with registry and performs operations on profiles/maps, including input/output validations.
 
