@@ -1,6 +1,7 @@
 import { MapDocumentNode } from '@superfaceai/ast';
 import * as zod from 'zod';
 
+import { isProviderJson, ProviderJson } from '../../internal';
 import { HttpClient } from '../../internal/http';
 
 export interface RegistryProviderInfo {
@@ -74,20 +75,9 @@ export async function fetchProviders(
 
 export const DEFAULT_REGISTRY_URL = 'https://superface.dev';
 
-const providerJson = zod.object({
-  name: zod.string(),
-  services: zod.array(
-    zod.object({
-      id: zod.string(),
-      baseUrl: zod.string(),
-    })
-  ),
-  defaultService: zod.string(),
-});
-export type ProviderJson = zod.infer<typeof providerJson>;
 // TODO: refine validator
 const bindResponseValidator = zod.object({
-  provider: providerJson,
+  provider: zod.custom<ProviderJson>(data => isProviderJson(data)),
   map_ast: zod.string(),
 });
 

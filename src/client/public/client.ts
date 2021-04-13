@@ -66,7 +66,7 @@ export abstract class SuperfaceClientBase {
 
     return new Provider(
       this,
-      new ProviderConfiguration(providerName, providerSettings.auth)
+      new ProviderConfiguration(providerName, providerSettings.security)
     );
   }
 

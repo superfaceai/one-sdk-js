@@ -171,56 +171,79 @@ const normalizedProfileSettings = zod.union([
  */
 const profileEntry = zod.union([semanticVersion, uriPath, profileSettings]);
 
+const idBase = zod.object({
+  id: zod.string(),
+});
+
+const apiKeySecurityValues = idBase.merge(
+  zod.object({
+    apikey: zod.string(),
+  })
+);
+export function isApiKeySecurityValues(
+  input: unknown
+): input is ApiKeySecurityValues {
+  return apiKeySecurityValues.check(input);
+}
+
+const basicAuthSecurityValues = idBase.merge(
+  zod.object({
+    username: zod.string(),
+    password: zod.string(),
+  })
+);
+export function isBasicAuthSecurityValues(
+  input: unknown
+): input is BasicAuthSecurityValues {
+  return basicAuthSecurityValues.check(input);
+}
+
+const bearerTokenSecurityValues = idBase.merge(
+  zod.object({
+    token: zod.string(),
+  })
+);
+export function isBearerTokenSecurityValues(
+  input: unknown
+): input is BearerTokenSecurityValues {
+  return bearerTokenSecurityValues.check(input);
+}
+
+const digestSecurityValues = idBase.merge(
+  zod.object({
+    digest: zod.string(),
+  })
+);
+export function isDigestSecurityValues(
+  input: unknown
+): input is DigestSecurityValues {
+  return digestSecurityValues.check(input);
+}
+
 /**
  * Authorization variables.
  * ```
  * {
- *   "BasicAuth": {
+ *   "id": "$id"
+ * } & (
+ *   {
  *     "username": "$username",
  *     "password": "$password"
+ *   } | {
+ *     "apikey": "$value"
+ *   } | {
+ *     "token": "$value"
+ *   } | {
+ *     "digest": "$value"
  *   }
- * } | {
- *   "ApiKey": {
- *     "in": "header | body | query | path",
- *     "name": "$name", // def: Authorization
- *     "value": "$value"
- *   }
- * } | {
- *   "Bearer": {
- *     "name": "$name", // def: Authorization
- *     "value": "$value"
- *   }
- * } | {}
+ * )
  * ```
  */
-const auth = zod.union([
-  zod.object({
-    BasicAuth: zod.object({
-      username: zod.string(),
-      password: zod.string(),
-    }),
-  }),
-  zod.object({
-    ApiKey: zod.object({
-      in: zod.union([
-        zod.literal('header'),
-        zod.literal('body'),
-        zod.literal('query'),
-        zod.literal('path'),
-      ]),
-      name: zod.string().default('Authorization'),
-      value: zod.string(),
-    }),
-  }),
-  zod.object({
-    Bearer: zod.object({
-      name: zod.string().default('Authorization'),
-      value: zod.string(),
-    }),
-  }),
-  // allow empty object
-  // note: Zod is order sensitive, so this has to come last
-  zod.object({}),
+const securityValues = zod.union([
+  apiKeySecurityValues,
+  basicAuthSecurityValues,
+  bearerTokenSecurityValues,
+  digestSecurityValues,
 ]);
 
 /**
@@ -228,17 +251,17 @@ const auth = zod.union([
  * ```
  * {
  *   "file": "$file", // opt
- *   "auth": $auth // opt
+ *   "security": $auth // opt
  * }
  * ```
  */
 const providerSettings = zod.object({
   file: zod.string().optional(),
-  auth: auth.optional(),
+  security: zod.array(securityValues).optional(),
 });
 const normalizedProviderSettings = zod.object({
   file: zod.string().optional(),
-  auth: auth,
+  security: zod.array(securityValues),
 });
 
 const providerEntry = zod.union([uriPath, providerSettings]);
@@ -262,7 +285,14 @@ export type ProfileProviderEntry = zod.infer<typeof profileProviderEntry>;
 export type ProfileProviderSettings = zod.infer<typeof profileProviderSettings>;
 export type ProviderEntry = zod.infer<typeof providerEntry>;
 export type ProviderSettings = zod.infer<typeof providerSettings>;
-export type AuthVariables = zod.infer<typeof auth>;
+
+export type ApiKeySecurityValues = zod.infer<typeof apiKeySecurityValues>;
+export type BasicAuthSecurityValues = zod.infer<typeof basicAuthSecurityValues>;
+export type BearerTokenSecurityValues = zod.infer<
+  typeof bearerTokenSecurityValues
+>;
+export type DigestSecurityValues = zod.infer<typeof digestSecurityValues>;
+export type SecurityValues = zod.infer<typeof securityValues>;
 
 export type NormalizedSuperJsonDocument = zod.infer<typeof normalizedSchema>;
 export type NormalizedProfileSettings = zod.infer<
@@ -449,7 +479,7 @@ export class SuperJson {
       };
     }
 
-    return normalized;
+    return SuperJson.resolveEnvRecord(normalized);
   }
 
   static normalizeProfileSettings(
@@ -514,7 +544,7 @@ export class SuperJson {
       if (isFileURIString(providerEntry)) {
         return {
           file: providerEntry.slice(FILE_URI_PROTOCOL.length),
-          auth: {},
+          security: [],
         };
       }
 
@@ -523,7 +553,10 @@ export class SuperJson {
 
     return {
       file: providerEntry.file,
-      auth: providerEntry.auth ?? {},
+      security:
+        providerEntry.security?.map(entry =>
+          SuperJson.resolveEnvRecord(entry)
+        ) ?? [],
     };
   }
 
@@ -569,6 +602,7 @@ export class SuperJson {
         ...superJson.profiles,
         [profileName]: payload,
       };
+      this.normalizedCache = undefined;
 
       return true;
     }
@@ -596,6 +630,7 @@ export class SuperJson {
       if (isFileURIString(payload)) {
         if (isShorthandAvailable) {
           superJson.profiles[profileName] = composeFileURI(payload);
+          this.normalizedCache = undefined;
 
           return true;
         }
@@ -604,6 +639,7 @@ export class SuperJson {
           file: trimFileURI(payload),
           ...commonProperties,
         };
+        this.normalizedCache = undefined;
 
         return true;
       }
@@ -612,6 +648,7 @@ export class SuperJson {
       if (isVersionString(payload)) {
         if (isShorthandAvailable) {
           superJson.profiles[profileName] = payload;
+          this.normalizedCache = undefined;
 
           return true;
         }
@@ -620,6 +657,7 @@ export class SuperJson {
           version: payload,
           ...commonProperties,
         };
+        this.normalizedCache = undefined;
 
         return true;
       }
@@ -653,6 +691,7 @@ export class SuperJson {
       defaults,
       providers,
     };
+    this.normalizedCache = undefined;
 
     return true;
   }
@@ -682,6 +721,7 @@ export class SuperJson {
       targetedProfile.providers = {
         [providerName]: payload,
       };
+      this.normalizedCache = undefined;
 
       return true;
     }
@@ -694,6 +734,7 @@ export class SuperJson {
         ...targetedProfile.providers,
         [providerName]: payload,
       };
+      this.normalizedCache = undefined;
 
       return true;
     }
@@ -706,6 +747,7 @@ export class SuperJson {
         isEmptyRecord(profileProvider.defaults ?? {})
       ) {
         targetedProfile.providers[providerName] = composeFileURI(payload);
+        this.normalizedCache = undefined;
 
         return true;
       }
@@ -714,6 +756,7 @@ export class SuperJson {
         file: trimFileURI(payload),
         defaults: profileProvider.defaults,
       };
+      this.normalizedCache = undefined;
 
       return true;
     }
@@ -735,6 +778,7 @@ export class SuperJson {
         ...payload,
         defaults,
       };
+      this.normalizedCache = undefined;
 
       return true;
     }
@@ -746,6 +790,7 @@ export class SuperJson {
           ...payload,
           defaults,
         };
+        this.normalizedCache = undefined;
 
         return true;
       }
@@ -765,6 +810,7 @@ export class SuperJson {
         ...mapProperties,
         defaults,
       };
+      this.normalizedCache = undefined;
 
       return true;
     }
@@ -774,6 +820,8 @@ export class SuperJson {
 
   addProvider(providerName: string, payload: ProviderEntry): void {
     const superJson = this.document;
+    this.normalizedCache = undefined;
+
     if (superJson.providers === undefined) {
       superJson.providers = {};
     }
@@ -782,7 +830,7 @@ export class SuperJson {
     if (typeof payload === 'string') {
       const isShorthandAvailable =
         typeof targetProvider === 'string' ||
-        isEmptyRecord(targetProvider.auth ?? {});
+        targetProvider.security?.length === 0;
 
       if (isFileURIString(payload)) {
         if (isShorthandAvailable) {
@@ -791,7 +839,7 @@ export class SuperJson {
           superJson.providers[providerName] = {
             file: trimFileURI(payload),
             // has to be an object because isShorthandAvailable is false
-            auth: (targetProvider as ProviderSettings).auth,
+            security: (targetProvider as ProviderSettings).security,
           };
         }
 
@@ -809,7 +857,10 @@ export class SuperJson {
     } else {
       superJson.providers[providerName] = {
         file: payload.file ?? targetProvider.file,
-        auth: mergeVariables(targetProvider.auth ?? {}, payload.auth ?? {}),
+        security: SuperJson.mergeSecurity(
+          targetProvider.security ?? [],
+          payload.security ?? []
+        ),
       };
     }
   }
@@ -843,7 +894,7 @@ export class SuperJson {
       if (env !== undefined) {
         value = env;
       } else {
-        console.warn('Enviroment variable', variable, 'not found');
+        debug(`Enviroment variable ${variable} not found`);
       }
     }
 
@@ -862,11 +913,9 @@ export class SuperJson {
     for (const [key, value] of Object.entries(record)) {
       if (typeof value === 'string') {
         // replace strings
-        // // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-explicit-any
         result[key] = SuperJson.resolveEnv(value);
       } else if (typeof value === 'object' && value !== null) {
         // recurse objects
-        // // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-explicit-any
         result[key] = SuperJson.resolveEnvRecord(
           value as Record<string, unknown>
         );
@@ -877,5 +926,28 @@ export class SuperJson {
     }
 
     return result as T;
+  }
+
+  static mergeSecurity(
+    left: SecurityValues[],
+    right: SecurityValues[]
+  ): SecurityValues[] {
+    const result: SecurityValues[] = [];
+
+    for (const entry of left) {
+      result.push(entry);
+    }
+
+    for (const entry of right) {
+      const index = result.findIndex(item => item.id === entry.id);
+
+      if (index !== -1) {
+        result[index] = entry;
+      } else {
+        result.push(entry);
+      }
+    }
+
+    return result;
   }
 }

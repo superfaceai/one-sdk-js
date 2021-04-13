@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+### Added
+* Security configuration merged from schemes in provider.json and values in super.json
+
+### Changed
+* Env variable resolution is not part of SuperJson normalization
+
 ### Fixed
 * Pass headers and status code to HTTP response handler
 * Only combine URL and base URL after interpolation

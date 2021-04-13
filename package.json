@@ -26,6 +26,7 @@
     "test": "jest",
     "test:clean": "jest --clear-cache && jest",
     "lint": "eslint src/",
+    "lint:fix": "yarn lint --fix",
     "format": "prettier -c src/",
     "format:fix": "prettier --write src/",
     "prepush": "yarn test:clean && yarn lint && yarn format"
@@ -49,7 +50,7 @@
     "typescript": "^4.0.2"
   },
   "dependencies": {
-    "@superfaceai/ast": "0.0.21",
+    "@superfaceai/ast": "0.0.22",
     "cross-fetch": "^3.0.5",
     "debug": "^4.3.1",
     "isomorphic-form-data": "^2.0.0",

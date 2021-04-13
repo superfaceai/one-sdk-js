@@ -4,6 +4,13 @@ import { promises as fsp } from 'fs';
 import { join as joinPath } from 'path';
 
 import {
+  HttpScheme,
+  ProviderJson,
+  SecurityConfiguration,
+  SecurityScheme,
+  SecurityType,
+} from '../../internal';
+import {
   MapInterpreter,
   MapInterpreterError,
   ProfileParameterError,
@@ -15,16 +22,19 @@ import {
   NonPrimitive,
 } from '../../internal/interpreter/variables';
 import {
-  AuthVariables,
   FILE_URI_PROTOCOL,
+  isApiKeySecurityValues,
+  isBasicAuthSecurityValues,
+  isBearerTokenSecurityValues,
+  isDigestSecurityValues,
   isFileURIString,
   NormalizedProfileProviderSettings,
+  SecurityValues,
   SuperJson,
 } from '../../internal/superjson';
 import { err, ok, Result } from '../../lib';
-import { ProfileConfiguration } from '../public/profile';
-import { ProviderConfiguration } from '../public/provider';
-import { fetchBind, ProviderJson } from './registry';
+import { ProfileConfiguration, ProviderConfiguration } from '../public';
+import { fetchBind } from './registry';
 
 function forceCast<T>(_: unknown): asserts _ is T {}
 
@@ -40,11 +50,11 @@ export class BoundProfileProvider {
 
   constructor(
     private readonly profileAst: ProfileDocumentNode,
-    private readonly provider: ProviderJson,
     private readonly mapAst: MapDocumentNode,
     private readonly configuration: {
+      baseUrl?: string;
       profileProviderSettings?: NormalizedProfileProviderSettings;
-      auth?: AuthVariables;
+      security: SecurityConfiguration[];
       /** Selected service id */
       serviceId?: string;
     }
@@ -62,9 +72,7 @@ export class BoundProfileProvider {
       this.configuration.profileProviderSettings?.defaults[usecase]?.input
     );
     if (defaultInput !== undefined) {
-      const resolved = SuperJson.resolveEnvRecord(defaultInput);
-      composed = mergeVariables(resolved, input ?? {});
-
+      composed = mergeVariables(defaultInput, input ?? {});
       boundProfileProviderDebug('Composed input with defaults:', composed);
     }
 
@@ -97,18 +105,12 @@ export class BoundProfileProvider {
     }
     forceCast<TInput>(composedInput);
 
-    // prepare service info
-    const serviceId =
-      this.configuration?.serviceId ?? this.provider.defaultService;
-    const serviceBaseUrl = this.provider.services.find(s => s.id === serviceId)
-      ?.baseUrl;
-
     // create and perform interpreter instance
     const interpreter = new MapInterpreter<TInput>({
       input: composedInput,
       usecase,
-      serviceBaseUrl,
-      auth: this.configuration?.auth,
+      serviceBaseUrl: this.configuration.baseUrl,
+      security: this.configuration.security,
     });
 
     const result = await interpreter.perform(this.mapAst);
@@ -134,7 +136,7 @@ export class BoundProfileProvider {
 
 export type BindConfiguration = {
   serviceId?: string;
-  auth?: AuthVariables;
+  security?: SecurityValues[];
   registryUrl?: string;
 };
 
@@ -170,9 +172,9 @@ export class ProfileProvider {
     // JESUS: Why can't I unpack this without fighting the linter
     // eslint-disable-next-line prefer-const
     let { providerInfo, providerName } = await this.resolveProviderInfo();
-    const authVariables = this.resolveAuthVariables(
+    const securityValues = this.resolveSecurityValues(
       providerName,
-      configuration?.auth
+      configuration?.security
     );
 
     // resolve map from parameters or defer until later
@@ -205,10 +207,21 @@ export class ProfileProvider {
       throw 'NOT IMPLEMENTED: map provided locally but provider is not';
     }
 
-    return new BoundProfileProvider(profileAst, providerInfo, mapAst, {
+    // prepare service info
+    const serviceId = configuration?.serviceId ?? providerInfo.defaultService;
+    const baseUrl = providerInfo.services.find(s => s.id === serviceId)
+      ?.baseUrl;
+
+    const securityConfiguration = this.resolveSecurityConfiguration(
+      providerInfo.securitySchemes ?? [],
+      securityValues
+    );
+
+    return new BoundProfileProvider(profileAst, mapAst, {
+      baseUrl,
       profileProviderSettings: this.superJson.normalized.profiles[profileId]
         ?.providers[providerInfo.name],
-      auth: authVariables,
+      security: securityConfiguration,
       serviceId: configuration?.serviceId,
     });
   }
@@ -380,22 +393,94 @@ export class ProfileProvider {
    *
    * The base variables either come from super.json or from `this.provider` if it is an instance of `ProviderConfiguration`
    */
-  private resolveAuthVariables(
+  private resolveSecurityValues(
     providerName: string,
-    overlay?: AuthVariables
-  ): AuthVariables {
-    let base;
+    overlay?: SecurityValues[]
+  ): SecurityValues[] {
+    let base: SecurityValues[];
     if (this.provider instanceof ProviderConfiguration) {
-      base = this.provider.auth;
+      base = this.provider.security;
     } else {
-      base = this.superJson.normalized.providers[providerName]?.auth;
+      base = this.superJson.normalized.providers[providerName]?.security;
     }
 
     let resolved = base;
     if (overlay !== undefined) {
-      resolved = mergeVariables(base, overlay);
+      resolved = SuperJson.mergeSecurity(base, overlay);
     }
 
     return resolved;
+  }
+
+  private resolveSecurityConfiguration(
+    schemes: SecurityScheme[],
+    values: SecurityValues[]
+  ): SecurityConfiguration[] {
+    const result: SecurityConfiguration[] = [];
+
+    for (const vals of values) {
+      const scheme = schemes.find(scheme => scheme.id === vals.id);
+      if (scheme === undefined) {
+        throw new Error(
+          `Could not find scheme for security requirement "${vals.id}"`
+        );
+      }
+
+      if (scheme.type === SecurityType.APIKEY) {
+        if (!isApiKeySecurityValues(vals)) {
+          throw new Error(
+            `Invalid security values for given apikey scheme "${scheme.id}"`
+          );
+        }
+
+        result.push({
+          ...scheme,
+          ...vals,
+        });
+      } else {
+        switch (scheme.scheme) {
+          case HttpScheme.BASIC:
+            if (!isBasicAuthSecurityValues(vals)) {
+              throw new Error(
+                `Invalid security values for given basic auth scheme "${scheme.id}"`
+              );
+            }
+
+            result.push({
+              ...scheme,
+              ...vals,
+            });
+            break;
+
+          case HttpScheme.BEARER:
+            if (!isBearerTokenSecurityValues(vals)) {
+              throw new Error(
+                `Invalid security values for given bearer token scheme "${scheme.id}"`
+              );
+            }
+
+            result.push({
+              ...scheme,
+              ...vals,
+            });
+            break;
+
+          case HttpScheme.DIGEST:
+            if (!isDigestSecurityValues(vals)) {
+              throw new Error(
+                `Invalid security values for given digest scheme "${scheme.id}"`
+              );
+            }
+
+            result.push({
+              ...scheme,
+              ...vals,
+            });
+            break;
+        }
+      }
+    }
+
+    return result;
   }
 }
