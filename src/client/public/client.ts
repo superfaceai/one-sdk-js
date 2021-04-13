@@ -127,12 +127,6 @@ type ProfileUseCases<TInput extends NonPrimitive | undefined, TOutput> = {
   [profile: string]: UsecaseType<TInput, TOutput>;
 };
 
-// type Profiles = {
-//   'messaging/send-sms': {
-//     sendSms: [{ messageId: string }, unknown];
-//   };
-// };
-
 export type TypedSuperfaceClient<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   TProfiles extends ProfileUseCases<any, any>
@@ -168,20 +162,3 @@ export function createTypedClient<TProfiles extends ProfileUseCases<any, any>>(
 export const typeHelper = <TInput, TOutput>(): [TInput, TOutput] => {
   return [undefined as unknown, undefined as unknown] as [TInput, TOutput];
 };
-
-// export async function run(): Promise<void> {
-//   const klass = createTypedClient({
-//     'messaging/send-sms': {
-//       sendSms: typeHelper<{ message: string }, { messageId: string }>(),
-//     },
-//     'massaging/massage': {
-//       massage: typeHelper<{ hello: string }, undefined>(),
-//       notMassage: typeHelper<void, { result: string }>(),
-//     },
-//   });
-//   const client = new klass();
-//   // const profile = await client.getProfile('messaging/send-sms');
-//   const profile = await client.getProfile('massaging/massage');
-//   void profile.useCases.notMassage.perform();
-//   // profile.useCases.sendSms.perform()
-// }
