@@ -43,6 +43,6 @@ Once the request is executed no secrets are accessed until another request is to
 
 ## Logging
 
-Another aspect to consider is logging. If enabled, logging may leak user secrets, so an appropriate logging level should be selected to only expose as much information as is secure in given context.
+Another aspect to consider is logging. Logging is **disabled** by default. When enabled, logging may leak user secrets, so an appropriate logging level should be selected to only expose as much information as is secure in given context.
 
-To disable logging of secrets logging set the `DEBUG` variable to a pattern to match requested logging namespaces and append the string `,-*:sensitive` to it (e.g. `DEBUG=*,-*:sensitive`).
+To disable logging of secrets set the `DEBUG` variable to a pattern to match requested logging namespaces (as normal) and append the string `,-*:sensitive` to it (e.g. `DEBUG=*,-*:sensitive` to log everything but sensitive namespaces). More information about how logging works can be found in the description of the [debug package](https://www.npmjs.com/package/debug).
