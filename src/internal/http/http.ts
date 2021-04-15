@@ -14,6 +14,14 @@ import {
 } from './security';
 
 const debug = createDebug('superface:http');
+const debugSensitive = createDebug('superface:http:sensitive');
+debugSensitive(
+  `
+WARNING: YOU HAVE ALLOWED LOGGING SENSITIVE INFORMATION.
+THIS LOGGING LEVEL DOES NOT PREVENT LEAKING SECRETS AND SHOULD NOT BE USED IF THE LOGS ARE GOING TO BE SHARED.
+CONSIDER DISABLING SENSITIVE INFORMATION LOGGING BY APPENDING THE DEBUG ENVIRONMENT VARIABLE WITH ",-*:sensitive".
+`
+);
 
 export interface HttpResponse {
   statusCode: number;
@@ -221,13 +229,17 @@ export const HttpClient = {
         requestHeaders[headerName] = value;
       });
     }
+
     debug('Executing HTTP Call');
-    debug(`\t${params.method || 'UNKNOWN METHOD'} ${finalUrl} HTTP/1.1`);
+    // secrets might appear in headers, url path, query parameters or body
+    debugSensitive(
+      `\t${params.method || 'UNKNOWN METHOD'} ${finalUrl} HTTP/1.1`
+    );
     Object.entries(requestHeaders).forEach(([headerName, value]) =>
-      debug(`\t${headerName}: ${value}`)
+      debugSensitive(`\t${headerName}: ${value}`)
     );
     if (requestBody !== undefined) {
-      debug(`\n${inspect(requestBody, true, 5)}`);
+      debugSensitive(`\n${inspect(requestBody, true, 5)}`);
     }
     const response = await fetch(finalUrl, params);
 
@@ -249,11 +261,11 @@ export const HttpClient = {
     }
 
     debug('Received response');
-    debug(`\tHTTP/1.1 ${response.status} ${response.statusText}`);
+    debugSensitive(`\tHTTP/1.1 ${response.status} ${response.statusText}`);
     Object.entries(responseHeaders).forEach(([headerName, value]) =>
-      debug(`\t${headerName}: ${value}`)
+      debugSensitive(`\t${headerName}: ${value}`)
     );
-    debug('\n\t%j', responseBody);
+    debugSensitive('\n\t%j', responseBody);
 
     return {
       statusCode: response.status,
