@@ -67,16 +67,17 @@ To interact with superface create a new superface client instance:
 const client = new SuperfaceClient()
 ```
 
-Make sure a profile is installed by running `superface install <profileName>[@<profileVersion]` in the project directory, then load the profile:
+Make sure a profile is installed by running `superface install <profileName>[@<profileVersion>]` in the project directory, then load the profile:
 
 ```typescript
 const profile = await client.getProfile('<profileName>')
 ```
 
-Next, make sure at least one provider is configured or select one manually:
+Next, make sure at least one provider is configured in super.json or select one manually. You can configure providers in super.json by running `superface configure <providerName>` and you can add additional or overriding configuration by calling `.configure` on the Provider object:
 
 ```typescript
 const provider = await client.gerProvider('<providerName>')
+// provider.configure(...)
 ```
 
 Lastly, obtain a usecase and perform it with selected provider:
@@ -87,7 +88,7 @@ const result = await profile.getUsecase('<usecaseName>').perform(
     inputField: 1,
     anotherInputField: 'hello'
   },
-  { provider }
+  { provider } // optional, if missing selects first configured provider from super.json
 )
 ```
 
