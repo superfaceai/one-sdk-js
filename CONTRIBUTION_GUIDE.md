@@ -1,6 +1,6 @@
 # Contributing to Superface
 
-We welcome contributions to our [open source project on GitHub](https://github.com/superfaceai/sdk-js).
+We welcome contributions to our [open source project on GitHub](https://github.com/superfaceai/one-sdk-js).
 
 **Please open an issue first if you want to make larger changes**
 
@@ -16,7 +16,7 @@ We are glad that you are interested in Superface in the way of contributing. We 
 
 ## Need help?
 
-If you have any question about this project (for example, how to use it) or if you just need some clarification about anything, please open an Issue at [Issues](https://github.com/superfaceai/sdk-js/issues).
+If you have any question about this project (for example, how to use it) or if you just need some clarification about anything, please open an Issue at [Issues](https://github.com/superfaceai/one-sdk-js/issues).
 
 ## Contributing
 
@@ -40,7 +40,7 @@ Follow these steps:
 
 ### Contribute by reporting bugs
 
-If you are experiencing bug or undocumented behavior please open an Issue with bug template at [Issues](https://github.com/superfaceai/sdk-js/issues).
+If you are experiencing bug or undocumented behavior please open an Issue with bug template at [Issues](https://github.com/superfaceai/one-sdk-js/issues).
 
 ### Contribute to documentation
 

@@ -1,10 +1,13 @@
 ## [Unreleased]
 
+## [0.0.15] - 2021-04-21
+
 ### Added
 * Security configuration merged from schemes in provider.json and values in super.json
 
 ### Changed
 * Env variable resolution is not part of SuperJson normalization
+* Renamed repository to `one-sdk-js`
 
 ### Fixed
 * Pass headers and status code to HTTP response handler
@@ -103,14 +106,15 @@
 * CI/CD workflows
 
 
-[Unreleased]: https://github.com/superfaceai/sdk-js/compare/v0.0.11...HEAD
-[0.0.11]: https://github.com/superfaceai/sdk-js/compare/v0.0.10...v0.0.11
-[0.0.10]: https://github.com/superfaceai/sdk-js/compare/v0.0.9...v0.0.10
-[0.0.9]: https://github.com/superfaceai/sdk-js/compare/v0.0.8...v0.0.9
-[0.0.8]: https://github.com/superfaceai/sdk-js/compare/v0.0.7...v0.0.8
-[0.0.7]: https://github.com/superfaceai/sdk-js/compare/v0.0.6...v0.0.7
-[0.0.6]: https://github.com/superfaceai/sdk-js/compare/v0.0.5...v0.0.6
-[0.0.5]: https://github.com/superfaceai/sdk-js/compare/v0.0.6...v0.0.5
-[0.0.4]: https://github.com/superfaceai/sdk-js/compare/v0.0.3...v0.0.4
-[0.0.3]: https://github.com/superfaceai/sdk-js/compare/v0.0.1...v0.0.3
-[0.0.1]: https://github.com/superfaceai/sdk-js/releases/tag/v0.0.1
+[Unreleased]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.15...HEAD
+[0.0.15]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.11...v0.0.15
+[0.0.11]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.10...v0.0.11
+[0.0.10]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.9...v0.0.10
+[0.0.9]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.8...v0.0.9
+[0.0.8]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.7...v0.0.8
+[0.0.7]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.6...v0.0.7
+[0.0.6]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.5...v0.0.6
+[0.0.5]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.6...v0.0.5
+[0.0.4]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.3...v0.0.4
+[0.0.3]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.1...v0.0.3
+[0.0.1]: https://github.com/superfaceai/one-sdk-js/releases/tag/v0.0.1
