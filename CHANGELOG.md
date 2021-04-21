@@ -4,10 +4,12 @@
 
 ### Added
 * Security configuration merged from schemes in provider.json and values in super.json
+* Typed SDK interface
 
 ### Changed
 * Env variable resolution is not part of SuperJson normalization
 * Renamed repository to `one-sdk-js`
+* Default result type from `unknown` to `any` in perform method
 
 ### Fixed
 * Pass headers and status code to HTTP response handler
