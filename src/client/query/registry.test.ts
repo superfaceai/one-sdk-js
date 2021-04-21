@@ -250,7 +250,7 @@ describe('registry', () => {
         accept: 'application/json',
         contentType: 'application/json',
         headers: {
-          'User-agent': 'superface sone-sdk-js',
+          'User-agent': 'superface one-sdk-js',
         },
         body: {
           profile_id: 'test-profile-id',
