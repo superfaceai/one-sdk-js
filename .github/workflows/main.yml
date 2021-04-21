@@ -110,4 +110,4 @@ jobs:
           yarn global add license-checker
           echo "$(yarn global bin)" >> $GITHUB_PATH
       - name: Check licenses
-        run: "license-checker --onlyAllow '0BDS;MIT;Apache-2.0;ISC;BSD-3-Clause;BSD-2-Clause;CC-BY-4.0;CC-BY-3.0;BSD;CC0-1.0;Unlicense;UNLICENSED' --summary"
+        run: "license-checker --onlyAllow '0BDS;MIT;Apache-2.0;ISC;BSD-3-Clause;BSD-2-Clause;CC-BY-4.0;CC-BY-3.0;BSD;CC0-1.0;Unlicense' --summary"
