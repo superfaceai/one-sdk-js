@@ -1,6 +1,6 @@
-# Superface SDK
+# Superface One SDK _(one-sdk-js)_
 
-![superface logo](https://github.com/superfaceai/sdk-js/blob/master/docs/LogoGreen.svg)
+![superface logo](https://github.com/superfaceai/one-sdk-js/blob/master/docs/LogoGreen.svg)
 
 Superface is the core SDK of the Superface project. It is the library that communicates with registry and performs operations on profiles/maps, including input/output validations.
 
@@ -51,11 +51,11 @@ yarn add @superfaceai/sdk
 
 Package publishing is done through GitHub release functionality.
 
-[Draft a new release](https://github.com/superfaceai/sdk-js/releases/new) to publish a new version of the package.
+[Draft a new release](https://github.com/superfaceai/one-sdk-js/releases/new) to publish a new version of the package.
 
 Use semver for the version tag. It must be in format of `v<major>.<minor>.<patch>`.
 
-Github Actions workflow will pick up the release and publish it as one of the [packages](https://github.com/superfaceai/sdk-js/packages).
+Github Actions workflow will pick up the release and publish it as one of the [packages](https://github.com/superfaceai/one-sdk-js/packages).
 
 ## Usage
 

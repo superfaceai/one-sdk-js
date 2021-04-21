@@ -101,7 +101,7 @@ export async function fetchBind(
     accept: 'application/json',
     contentType: 'application/json',
     headers: {
-      'User-agent': 'superface sdk-js', // TODO: add version?
+      'User-agent': 'superface one-sdk-js', // TODO: add version?
     },
     body: {
       profile_id: request.profileId,

@@ -8,7 +8,7 @@
   "unpkg": "dist/superface.umd.js",
   "browser": "dist/superface.umd.js",
   "types": "dist/index.d.ts",
-  "repository": "https://github.com/superfaceai/sdk-js.git",
+  "repository": "https://github.com/superfaceai/one-sdk-js.git",
   "author": "Superface Team",
   "private": false,
   "files": [
