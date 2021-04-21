@@ -1,8 +1,8 @@
 import { MapInterpreterError, ProfileParameterError } from '../../internal';
-import { NonPrimitive, Primitive } from '../../internal/interpreter/variables';
+import { NonPrimitive, Variables } from '../../internal/interpreter/variables';
 import { Result } from '../../lib';
-import { BoundProfileProvider } from '../query/profile-provider';
-import { Profile } from './profile';
+import { BoundProfileProvider } from '../query';
+import { ProfileBase } from './profile';
 import { Provider } from './provider';
 
 export type PerformOptions = {
@@ -12,19 +12,15 @@ export type PerformOptions = {
 // TODO
 export type PerformError = ProfileParameterError | MapInterpreterError;
 
-export class UseCase<
-  TInput extends NonPrimitive = Record<
-    string,
-    Primitive | NonPrimitive | undefined
-  >,
-  TOutput = unknown
-> {
-  constructor(public readonly profile: Profile, public readonly name: string) {}
+class UseCaseBase {
+  constructor(
+    public readonly profile: ProfileBase,
+    public readonly name: string
+  ) {}
 
-  async perform(
-    inputs?: TInput,
+  protected async bind(
     options?: PerformOptions
-  ): Promise<Result<TOutput, PerformError>> {
+  ): Promise<BoundProfileProvider> {
     let providerConfig = options?.provider?.configuration;
     if (providerConfig === undefined) {
       const provider = await this.profile.client.getProviderForProfile(
@@ -33,12 +29,43 @@ export class UseCase<
       providerConfig = provider.configuration;
     }
 
-    const boundProfileProvider: BoundProfileProvider = await this.profile.client.cacheBoundProfileProvider(
+    const boundProfileProvider = await this.profile.client.cacheBoundProfileProvider(
       this.profile.configuration,
       providerConfig
     );
 
+    return boundProfileProvider;
+  }
+}
+
+export class UseCase extends UseCaseBase {
+  async perform<
+    TInput extends NonPrimitive | undefined = Record<
+      string,
+      Variables | undefined
+    >,
+    TOutput = unknown
+  >(
+    input?: TInput,
+    options?: PerformOptions
+  ): Promise<Result<TOutput, PerformError>> {
+    const boundProfileProvider = await this.bind(options);
+
     // TOOD: rewrap the errors for public consumption?
-    return boundProfileProvider.perform(this.name, inputs);
+    return boundProfileProvider.perform<TInput, TOutput>(this.name, input);
+  }
+}
+
+export class TypedUseCase<
+  TInput extends NonPrimitive | undefined,
+  TOutput
+> extends UseCaseBase {
+  async perform(
+    input: TInput,
+    options?: PerformOptions
+  ): Promise<Result<TOutput, PerformError>> {
+    const boundProfileProvider = await this.bind(options);
+
+    return boundProfileProvider.perform(this.name, input);
   }
 }

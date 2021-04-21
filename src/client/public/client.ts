@@ -1,7 +1,13 @@
 import { SuperJson } from '../../internal';
+import { NonPrimitive } from '../../internal/interpreter/variables';
 import { exists } from '../../lib/io';
 import { BoundProfileProvider, ProfileProvider } from '../query';
-import { Profile, ProfileConfiguration } from './profile';
+import {
+  Profile,
+  ProfileConfiguration,
+  TypedProfile,
+  UsecaseType,
+} from './profile';
 import { Provider, ProviderConfiguration } from './provider';
 
 /**
@@ -9,7 +15,7 @@ import { Provider, ProviderConfiguration } from './provider';
  */
 const SUPER_CACHE: { [path: string]: SuperJson } = {};
 
-export class SuperfaceClient {
+export abstract class SuperfaceClientBase {
   public readonly superJson: SuperJson;
   private boundCache: {
     [key: string]: BoundProfileProvider;
@@ -23,58 +29,6 @@ export class SuperfaceClient {
     }
 
     this.superJson = SUPER_CACHE[superCacheKey];
-  }
-
-  /** Gets a profile from super.json based on `profileId` in format: `[scope/]name`. */
-  async getProfile(profileId: string): Promise<Profile> {
-    const profileSettings = this.superJson.normalized.profiles[profileId];
-    if (profileSettings === undefined) {
-      throw new Error(
-        `Profile "${profileId}" is not installed. Please install it by running \`superface install ${profileId}\`.`
-      );
-    }
-
-    let version;
-    if ('file' in profileSettings) {
-      const filePath = this.superJson.resolvePath(profileSettings.file);
-      if (!(await exists(filePath))) {
-        throw new Error(
-          `File "${profileSettings.file}" specified in super.json does not exist.`
-        );
-      }
-
-      // TODO: read version from the ast?
-      version = 'unknown';
-    } else {
-      version = profileSettings.version;
-    }
-
-    return new Profile(this, new ProfileConfiguration(profileId, version));
-  }
-
-  /** Gets a provider from super.json based on `providerName`. */
-  async getProvider(providerName: string): Promise<Provider> {
-    const providerSettings = this.superJson.normalized.providers[providerName];
-
-    return new Provider(
-      this,
-      new ProviderConfiguration(providerName, providerSettings.security)
-    );
-  }
-
-  /** Returns a provider configuration for when no provider is passed to untyped `.perform`. */
-  async getProviderForProfile(profileId: string): Promise<Provider> {
-    const knownProfileProviders = Object.keys(
-      this.superJson.normalized.profiles[profileId]?.providers ?? {}
-    );
-
-    if (knownProfileProviders.length > 0) {
-      const name = knownProfileProviders[0];
-
-      return this.getProvider(name);
-    }
-
-    throw new Error(`No configured provider found for profile ${profileId}.`);
   }
 
   get profiles(): never {
@@ -105,4 +59,106 @@ export class SuperfaceClient {
 
     return this.boundCache[cacheKey];
   }
+
+  /** Gets a provider from super.json based on `providerName`. */
+  async getProvider(providerName: string): Promise<Provider> {
+    const providerSettings = this.superJson.normalized.providers[providerName];
+
+    return new Provider(
+      this,
+      new ProviderConfiguration(providerName, providerSettings.security)
+    );
+  }
+
+  /** Returns a provider configuration for when no provider is passed to untyped `.perform`. */
+  async getProviderForProfile(profileId: string): Promise<Provider> {
+    const knownProfileProviders = Object.keys(
+      this.superJson.normalized.profiles[profileId]?.providers ?? {}
+    );
+
+    if (knownProfileProviders.length > 0) {
+      const name = knownProfileProviders[0];
+
+      return this.getProvider(name);
+    }
+
+    throw new Error(`No configured provider found for profile ${profileId}.`);
+  }
+
+  protected async getProfileConfiguration(
+    profileId: string
+  ): Promise<ProfileConfiguration> {
+    const profileSettings = this.superJson.normalized.profiles[profileId];
+    if (profileSettings === undefined) {
+      throw new Error(
+        `Profile "${profileId}" is not installed. Please install it by running \`superface install ${profileId}\`.`
+      );
+    }
+
+    let version;
+    if ('file' in profileSettings) {
+      const filePath = this.superJson.resolvePath(profileSettings.file);
+      if (!(await exists(filePath))) {
+        throw new Error(
+          `File "${profileSettings.file}" specified in super.json does not exist.`
+        );
+      }
+
+      // TODO: read version from the ast?
+      version = 'unknown';
+    } else {
+      version = profileSettings.version;
+    }
+
+    return new ProfileConfiguration(profileId, version);
+  }
 }
+
+export class SuperfaceClient extends SuperfaceClientBase {
+  /** Gets a profile from super.json based on `profileId` in format: `[scope/]name`. */
+  async getProfile(profileId: string): Promise<Profile> {
+    const profileConfiguration = await this.getProfileConfiguration(profileId);
+
+    return new Profile(this, profileConfiguration);
+  }
+}
+
+type ProfileUseCases<TInput extends NonPrimitive | undefined, TOutput> = {
+  [profile: string]: UsecaseType<TInput, TOutput>;
+};
+
+export type TypedSuperfaceClient<
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  TProfiles extends ProfileUseCases<any, any>
+> = SuperfaceClientBase & {
+  getProfile<TProfile extends keyof TProfiles>(
+    profileId: TProfile
+  ): Promise<TypedProfile<TProfiles[TProfile]>>;
+};
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function createTypedClient<TProfiles extends ProfileUseCases<any, any>>(
+  profileDefinitions: TProfiles
+): { new (): TypedSuperfaceClient<TProfiles> } {
+  return class TypedSuperfaceClientClass
+    extends SuperfaceClientBase
+    implements TypedSuperfaceClient<TProfiles> {
+    async getProfile<TProfile extends keyof TProfiles>(
+      profileId: TProfile
+    ): Promise<TypedProfile<TProfiles[TProfile]>> {
+      const profileConfiguration = await this.getProfileConfiguration(
+        profileId as string
+      );
+
+      return new TypedProfile(
+        this,
+        profileConfiguration,
+        Object.keys(profileDefinitions[profileId])
+      );
+    }
+  };
+}
+
+export const typeHelper = <TInput, TOutput>(): [TInput, TOutput] => {
+  return [undefined as unknown, undefined as unknown] as [TInput, TOutput];
+};
