@@ -1,9 +1,12 @@
 ## [Unreleased]
+### Changed
+* Default result type from `unknown` to `any` in perform method
 
 ## [0.0.15] - 2021-04-21
 
 ### Added
 * Security configuration merged from schemes in provider.json and values in super.json
+* Typed SDK interface
 
 ### Changed
 * Env variable resolution is not part of SuperJson normalization
