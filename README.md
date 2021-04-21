@@ -36,9 +36,9 @@ To install the package, run in the project directory:
 
 ```
 # npm users
-npm install @superfaceai/sdk
+npm install @superfaceai/one-sdk
 # yarn users
-yarn add @superfaceai/sdk
+yarn add @superfaceai/one-sdk
 ```
 
 ## Publish
