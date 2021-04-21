@@ -198,7 +198,6 @@ Licenses of `node_modules` are checked during push CI/CD for every commit. Only 
 - CC-BY-3.0;BSD
 - CC0-1.0
 - Unlicense
-- UNLICENSED
 
 ## License
 
