@@ -1,6 +1,4 @@
 ## [Unreleased]
-### Changed
-* Default result type from `unknown` to `any` in perform method
 
 ## [0.0.15] - 2021-04-21
 
@@ -11,6 +9,7 @@
 ### Changed
 * Env variable resolution is not part of SuperJson normalization
 * Renamed repository to `one-sdk-js`
+* Default result type from `unknown` to `any` in perform method
 
 ### Fixed
 * Pass headers and status code to HTTP response handler
