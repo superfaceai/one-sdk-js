@@ -24,7 +24,6 @@ Follow these steps:
 
 1. **Fork & Clone** the repository  
 2. **Setup** the Superface SDK
-   - Log in with npm into the github registry `npm login --scope=@superfaceai --registry=https://npm.pkg.github.com`
    - Install packages with `yarn install` or `npm install`
    - Build with `yarn build` or `npm run build`
    - Run tests with `yarn test` or `npm test`
