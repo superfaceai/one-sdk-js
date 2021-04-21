@@ -32,13 +32,7 @@ You can get more information at https://superface.ai and https://developer.super
 
 ## Install
 
-To install the package, log in with npm into the github registry using Github Person Token with at least the `repo` and `read:packages` permissions:
-
-```
-npm login --scope=@superfaceai --registry=https://npm.pkg.github.com
-```
-
-Then run in the project directory:
+To install the package, run in the project directory:
 
 ```
 # npm users
