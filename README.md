@@ -4,13 +4,12 @@
 
 Superface is the core SDK of the Superface project. It is the library that communicates with registry and performs operations on profiles/maps, including input/output validations.
 
-TODO: Fill out this long description.
+<!--TODO: Fill out this long description. So, should we fill it :) -->
 
 ## Table of Contents
 
 - [Background](#background)
 - [Install](#install)
-- [Publish](#publish)
 - [Usage](#usage)
 - [Security](#security)
 - [Support](#support)
@@ -41,16 +40,6 @@ npm install @superfaceai/one-sdk
 yarn add @superfaceai/one-sdk
 ```
 
-## Publish
-
-Package publishing is done through GitHub release functionality.
-
-[Draft a new release](https://github.com/superfaceai/one-sdk-js/releases/new) to publish a new version of the package.
-
-Use semver for the version tag. It must be in format of `v<major>.<minor>.<patch>`.
-
-Github Actions workflow will pick up the release and publish it as one of the [packages](https://github.com/superfaceai/one-sdk-js/packages).
-
 ## Usage
 
 ### Untyped
@@ -58,102 +47,82 @@ Github Actions workflow will pick up the release and publish it as one of the [p
 To interact with superface create a new superface client instance:
 
 ```typescript
-const client = new SuperfaceClient()
+import { SuperfaceClient } from '@superface/one-sdk';
+
+const client = new SuperfaceClient();
 ```
 
 Make sure a profile is installed by running `superface install <profileName>[@<profileVersion>]` in the project directory, then load the profile:
 
 ```typescript
-const profile = await client.getProfile('<profileName>')
+const profile = await client.getProfile('<profileName>');
 ```
 
 Next, make sure at least one provider is configured in super.json or select one manually. You can configure providers in super.json by running `superface configure <providerName>` and you can add additional or overriding configuration by calling `.configure` on the Provider object:
 
 ```typescript
-const provider = await client.gerProvider('<providerName>')
+const provider = await client.gerProvider('<providerName>');
 // provider.configure(...)
 ```
 
-Lastly, obtain a usecase and perform it with selected provider:
+Then, obtain a usecase and perform it with selected provider:
 
 ```typescript
 const result = await profile.getUsecase('<usecaseName>').perform(
   {
     inputField: 1,
-    anotherInputField: 'hello'
+    anotherInputField: 'hello',
   },
   { provider } // optional, if missing selects first configured provider from super.json
-)
+);
 ```
 
-### [WIP] ServiceFinderQuery
+### Typed
 
-To perform a usecase by fetching ASTs from registry, use `ServiceFinderQuery`:
+You can also use generated typed client, which is very similar:
+
+Make sure a profile is installed with types by running `superface install --types <profileName>[@<profileVersion>]` in the project directory.
 
 ```typescript
-const serviceFinder = new ServiceFinderQuery<any, any>(profileId, profileAST, usecase, registryUrl);
+import { SuperfaceClient } from 'superface/sdk'; // This should point to superface directory in project root
+
+const client = new SuperfaceClient();
+const profile = await client.getProfile('<profileName>'); // This should now autocomplete your installed profileVersion
+const result = await profile.useCases.<usecase>.perform(
+  {
+    inputField: 1,
+    anotherInputField: 'hello',
+  },
+  { provider } // optional, if missing selects first configured provider from super.json
+);
 ```
 
-Where `profileId` is the id of profile, `profileAST` is the compiled AST of profile, `usecase` is the name of usecase to perform and `registryUrl` is the URL of the registry to use, defaults to `https://registry.superface.dev/api/registry` now.
+Lastly, unwrap result value or possible error. Result is using [neverthrow](https://github.com/supermacro/neverthrow) approach so there are multiple ways to work with result. 
 
-With `serviceFinder`, you can filter providers by id:
-
-```typescript
-serviceFinder.serviceProvider(service => service.mustBe(providerId));
-```
-
-or
+You can use `isOk()` or `isErr()`to check type of result: 
 
 ```typescript
-serviceFinder.serviceProvider(service => service.mustBeOneOf([providerId1, providerId2]));
-```
-
-where `providerId` is the string uniquely representing a provider.
-
-You can then get first or all available providers:
-
-```typescript
-const provider = await serviceFinder.serviceProvider(service => service.mustBe(providerId)).findFirst();
-const providers = await serviceFinder.serviceProvider(service => service.mustBeOnOf([providerId1, providerId2])).find();
-```
-
-### [WIP] Performing the usecase
-
-To fetch Map and be able to perform your usecase, the Provider must be bound:
-
-```typescript
-const boundProvider = await provider.bind(config);
-```
-
-Where config is used for provider-specific configuration, generally authentication for now.
-
-```typescript
-interface Config {
-  auth?: {
-    basic?: {
-      username: string;
-      password: string;
-    };
-    bearer?: {
-      token: string;
-    };
-    apikey?: {
-      key: string;
-    };
-  };
+if (result.isErr()) {
+  // Result is error, error.toString() returns human readable description of what went wrong
+  console.log(result.error.toString());
+} else {
+  // Result is ok and you can accees value here
+  console.log(result.value);
 }
 ```
 
-With `BoundProvider`, you can now perform your usecase:
+Or you can just use `unwrap`, which is less safe:
 
 ```typescript
-const result = await boundProvider.perform(input);
-if (result.ok) {
-  console.log('Success!', result.value);
+try {
+  // Possible error is thrown here and it contains human readable description of what went wrong :)
+  const value = result.unwrap();
+  // You can accees value here
+  console.log(value);
+} catch (e) {
+  console.log(e);
 }
 ```
-
-where `input` depends on your usecase.
 
 ## Security
 
