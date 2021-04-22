@@ -10,7 +10,6 @@ Superface is the core SDK of the Superface project. It is the library that commu
 
 - [Background](#background)
 - [Install](#install)
-- [Publish](#publish)
 - [Usage](#usage)
 - [Security](#security)
 - [Support](#support)
@@ -40,17 +39,6 @@ npm install @superfaceai/sdk
 # yarn users
 yarn add @superfaceai/sdk
 ```
-
-<!--Publish should be moved to contributing?-->
-## Publish
-
-Package publishing is done through GitHub release functionality.
-
-[Draft a new release](https://github.com/superfaceai/one-sdk-js/releases/new) to publish a new version of the package.
-
-Use semver for the version tag. It must be in format of `v<major>.<minor>.<patch>`.
-
-Github Actions workflow will pick up the release and publish it as one of the [packages](https://github.com/superfaceai/one-sdk-js/packages).
 
 ## Usage
 
