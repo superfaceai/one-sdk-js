@@ -42,7 +42,7 @@ yarn add @superfaceai/sdk
 
 ## Usage
 
-<!--### Untyped this title doesn't make much sense now-->
+<!--### Untyped - this title doesn't make much sense now-->
 
 To interact with superface create a new superface client instance:
 
@@ -75,20 +75,20 @@ const result = await profile.getUsecase('<usecaseName>').perform(
 )
 ```
 
-Lastly, unwrap result value or possible error. Result is using [neverthrown](https://github.com/supermacro/neverthrow) approach so there is multiple ways to work with result. First of them is using `map` and `mapErr`:
+Lastly, unwrap result value or possible error. Result is using [neverthrown](https://github.com/supermacro/neverthrow) approach so there is multiple ways to work with result. You can just use `unwrap` under try-catch:
 
 ```typescript
-result.map(value =>
+try {
+  const value = result.unwrap()
   //You can accees value here
   console.log(value)
-)
-.mapErr(e =>
-  //You can access possible error here, e.toString() returns human readable description of what went wrong
-  console.log(e.toString())
-)
+} catch (error) {
+  //You can catch possible error here, error contains human readable description of what went wrong :)
+  console.log(error)
+}
 ```
 
-You can also use `isOk()` or `isErr()`to check type of result: 
+Or you can use `isOk()` or `isErr()`to check type of result: 
 ```typescript
 if (result.isErr()) {
   //Result is error, e.toString() returns human readable description of what went wrong
@@ -98,19 +98,6 @@ if (result.isErr()) {
   console.log(result.value)
 }
 ```
-<!--Or you can just `unwrap` under try-catch: 
-```typescript
-try {
-  const value = result.unwrap()
-  //You can accees value here
-  console.log(value)
-} catch (error) {
-  //Do something with error
-  console.log(error)
-}
-``` we should be able to use this when we enrich error mesage with human readable description -->
-
-
 
 ## Security
 
