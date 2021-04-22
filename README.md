@@ -19,6 +19,7 @@ Superface is the core SDK of the Superface project. It is the library that commu
 - [License](#license)
 
 ## Background
+
 Superface (super-interface) is a higher-order API, an abstraction on top of the modern APIs like GraphQL and REST. Superface is one interface to discover, connect, and query any capabilities available via conventional APIs. 
 
 Through its focus on application-level semantics, Superface decouples the clients from servers, enabling fully autonomous evolution. As such it minimizes the code base as well as errors and downtimes while providing unmatched resiliency and redundancy. 

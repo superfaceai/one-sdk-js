@@ -14,9 +14,6 @@
   "files": [
     "dist/**/*"
   ],
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com/"
-  },
   "scripts": {
     "build_bundle": "microbundle --tsconfig tsconfig.release.json",
     "build": "tsc -p tsconfig.release.json --outDir dist",
