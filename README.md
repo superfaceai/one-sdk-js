@@ -131,7 +131,7 @@ The Result type also provides a `match` method to use functions to use the value
 ```typescript
 result.match(
   value => console.log(value),
-  error => console.log(err.toString())
+  error => console.log(error.toString())
 );
 ```
 
