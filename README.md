@@ -1,10 +1,10 @@
 # Superface One SDK _(one-sdk-js)_
 
-![superface logo](https://github.com/superfaceai/one-sdk-js/blob/master/docs/LogoGreen.svg)
+![superface logo](https://github.com/superfaceai/one-sdk-js/blob/main/docs/LogoGreen.svg)
 
 Superface is the core SDK of the Superface project. It is the library that communicates with registry and performs operations on profiles/maps, including input/output validations.
 
-TODO: Fill out this long description.
+<!--TODO: Fill out this long description. So, should we fill it :) -->
 
 ## Table of Contents
 
@@ -41,6 +41,7 @@ npm install @superfaceai/sdk
 yarn add @superfaceai/sdk
 ```
 
+<!--Publish should be moved to contributing?-->
 ## Publish
 
 Package publishing is done through GitHub release functionality.
@@ -53,7 +54,7 @@ Github Actions workflow will pick up the release and publish it as one of the [p
 
 ## Usage
 
-### Untyped
+<!--### Untyped this title doesn't make much sense now-->
 
 To interact with superface create a new superface client instance:
 
@@ -74,7 +75,7 @@ const provider = await client.gerProvider('<providerName>')
 // provider.configure(...)
 ```
 
-Lastly, obtain a usecase and perform it with selected provider:
+Then, obtain a usecase and perform it with selected provider:
 
 ```typescript
 const result = await profile.getUsecase('<usecaseName>').perform(
@@ -86,74 +87,42 @@ const result = await profile.getUsecase('<usecaseName>').perform(
 )
 ```
 
-### [WIP] ServiceFinderQuery
-
-To perform a usecase by fetching ASTs from registry, use `ServiceFinderQuery`:
+Lastly, unwrap result value or possible error. Result is using [neverthrown](https://github.com/supermacro/neverthrow) approach so there is multiple ways to work with result. First of them is using `map` and `mapErr`:
 
 ```typescript
-const serviceFinder = new ServiceFinderQuery<any, any>(profileId, profileAST, usecase, registryUrl);
+result.map(value =>
+  //You can accees value here
+  console.log(value)
+)
+.mapErr(e =>
+  //You can access possible error here, e.toString() returns human readable description of what went wrong
+  console.log(e.toString())
+)
 ```
 
-Where `profileId` is the id of profile, `profileAST` is the compiled AST of profile, `usecase` is the name of usecase to perform and `registryUrl` is the URL of the registry to use, defaults to `https://registry.superface.dev/api/registry` now.
-
-With `serviceFinder`, you can filter providers by id:
-
+You can also use `isOk()` or `isErr()`to check type of result: 
 ```typescript
-serviceFinder.serviceProvider(service => service.mustBe(providerId));
-```
-
-or
-
-```typescript
-serviceFinder.serviceProvider(service => service.mustBeOneOf([providerId1, providerId2]));
-```
-
-where `providerId` is the string uniquely representing a provider.
-
-You can then get first or all available providers:
-
-```typescript
-const provider = await serviceFinder.serviceProvider(service => service.mustBe(providerId)).findFirst();
-const providers = await serviceFinder.serviceProvider(service => service.mustBeOnOf([providerId1, providerId2])).find();
-```
-
-### [WIP] Performing the usecase
-
-To fetch Map and be able to perform your usecase, the Provider must be bound:
-
-```typescript
-const boundProvider = await provider.bind(config);
-```
-
-Where config is used for provider-specific configuration, generally authentication for now.
-
-```typescript
-interface Config {
-  auth?: {
-    basic?: {
-      username: string;
-      password: string;
-    };
-    bearer?: {
-      token: string;
-    };
-    apikey?: {
-      key: string;
-    };
-  };
+if (result.isErr()) {
+  //Result is error, e.toString() returns human readable description of what went wrong
+  console.log(result.error.toString())
+} else {
+  //Result is ok and you can accees value here
+  console.log(result.value)
 }
 ```
-
-With `BoundProvider`, you can now perform your usecase:
-
+<!--Or you can just `unwrap` under try-catch: 
 ```typescript
-const result = await boundProvider.perform(input);
-if (result.ok) {
-  console.log('Success!', result.value);
+try {
+  const value = result.unwrap()
+  //You can accees value here
+  console.log(value)
+} catch (error) {
+  //Do something with error
+  console.log(error)
 }
-```
+``` we should be able to use this when we enrich error mesage with human readable description -->
 
-where `input` depends on your usecase.
+
 
 ## Security
 
