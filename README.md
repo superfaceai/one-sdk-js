@@ -42,15 +42,19 @@ yarn add @superfaceai/one-sdk
 
 ## Usage
 
-### Untyped
+### Using the OneSDK
 
-To interact with superface create a new superface client instance:
+To interact with Superface, create a new Superface client instance, find the profile and use case, then perform it to get the result.
+
+#### Initializing the OneSDK client
 
 ```typescript
 import { SuperfaceClient } from '@superface/one-sdk';
 
 const client = new SuperfaceClient();
 ```
+
+#### Performing the use case
 
 Make sure a profile is installed by running `superface install <profileName>[@<profileVersion>]` in the project directory, then load the profile:
 
@@ -61,11 +65,11 @@ const profile = await client.getProfile('<profileName>');
 Next, make sure at least one provider is configured in super.json or select one manually. You can configure providers in super.json by running `superface configure <providerName>` and you can add additional or overriding configuration by calling `.configure` on the Provider object:
 
 ```typescript
-const provider = await client.gerProvider('<providerName>');
+const provider = await client.getProvider('<providerName>');
 // provider.configure(...)
 ```
 
-Then, obtain a usecase and perform it with selected provider:
+Then, obtain a use case and perform it with selected provider:
 
 ```typescript
 const result = await profile.getUsecase('<usecaseName>').perform(
@@ -77,7 +81,7 @@ const result = await profile.getUsecase('<usecaseName>').perform(
 );
 ```
 
-### Typed
+### Using the Typed OneSDK
 
 You can also use generated typed client, which is very similar:
 
@@ -97,9 +101,13 @@ const result = await profile.useCases.<usecase>.perform(
 );
 ```
 
-Lastly, unwrap result value or possible error. Result is using [neverthrow](https://github.com/supermacro/neverthrow) approach so there are multiple ways to work with result. 
+### Handling the results from `perform`
 
-You can use `isOk()` or `isErr()`to check type of result: 
+The `perform` method will take your inputs and additional information and perform the use case asynchronously. This method always returns a Result type that is either `Ok` or `Err`. This follows the [neverthrow](https://github.com/supermacro/neverthrow) approach. The SDK provides multiple ways to work with result. 
+
+#### Conditionals
+
+You can use conditionals to check if the result was OK or if it errored. Use `isOk()` or `isErr()`to check type of result.
 
 ```typescript
 if (result.isErr()) {
@@ -111,7 +119,20 @@ if (result.isErr()) {
 }
 ```
 
-Or you can just use `unwrap`, which is less safe:
+#### Matching a value or error
+
+The Result type also provides a `match` method to use functions to use the values or errors. The `match` method takes two functions, the first of which is for handling the `Ok` result and the the second for handling the `Err` result. The example above using `isOk` and `isErr` can be written using `match` like below.
+
+```typescript
+result.match(
+  value => console.log(value),
+  error => console.log(err.toString())
+);
+```
+
+#### Unsafely unwrapping the result
+
+Lastly, you can just use `unwrap`, which is less safe because it will throw an error.
 
 ```typescript
 try {
@@ -128,7 +149,7 @@ try {
 
 Superface is not man-in-the-middle so it does not require any access to secrets that are needed to communicate with provider API. Superface SDK only reads super.json file, resolved authorization secrets from environment variables or from the file itself and applies them to network requests as required by the specific map.
 
-More about the journey of the secrets within sdk can be found in [Security](SECURITY.md).
+More about the journey of the secrets within SDK can be found in [Security](SECURITY.md).
 
 ## Support
 
