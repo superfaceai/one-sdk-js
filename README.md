@@ -75,7 +75,7 @@ const result = await profile.getUsecase('<usecaseName>').perform(
 )
 ```
 
-Lastly, unwrap result value or possible error. Result is using [neverthrown](https://github.com/supermacro/neverthrow) approach so there is multiple ways to work with result. You can just use `unwrap` under try-catch:
+Lastly, unwrap result value or possible error. Result is using [neverthrown](https://github.com/supermacro/neverthrow) approach so there are multiple ways to work with result. You can just use `unwrap` under try-catch:
 
 ```typescript
 try {
