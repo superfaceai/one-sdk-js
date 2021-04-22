@@ -42,24 +42,26 @@ yarn add @superfaceai/sdk
 
 ## Usage
 
-<!--### Untyped - this title doesn't make much sense now-->
+### Untyped
 
 To interact with superface create a new superface client instance:
 
 ```typescript
-const client = new SuperfaceClient()
+import { SuperfaceClient } from '@superface/one-sdk';
+
+const client = new SuperfaceClient();
 ```
 
 Make sure a profile is installed by running `superface install <profileName>[@<profileVersion>]` in the project directory, then load the profile:
 
 ```typescript
-const profile = await client.getProfile('<profileName>')
+const profile = await client.getProfile('<profileName>');
 ```
 
 Next, make sure at least one provider is configured in super.json or select one manually. You can configure providers in super.json by running `superface configure <providerName>` and you can add additional or overriding configuration by calling `.configure` on the Provider object:
 
 ```typescript
-const provider = await client.gerProvider('<providerName>')
+const provider = await client.gerProvider('<providerName>');
 // provider.configure(...)
 ```
 
@@ -69,30 +71,56 @@ Then, obtain a usecase and perform it with selected provider:
 const result = await profile.getUsecase('<usecaseName>').perform(
   {
     inputField: 1,
-    anotherInputField: 'hello'
+    anotherInputField: 'hello',
   },
   { provider } // optional, if missing selects first configured provider from super.json
-)
+);
 ```
 
-Lastly, unwrap result value or possible error. Result is using [neverthrown](https://github.com/supermacro/neverthrow) approach so there are multiple ways to work with result. You can just use `unwrap`:
+### Typed
+
+You can also use generated typed client, which is very similar:
+
+Make sure a profile is installed with types by running `superface install --types <profileName>[@<profileVersion>]` in the project directory.
 
 ```typescript
-  //Possible error is thrown here and it contains human readable description of what went wrong :)
-  const value = result.unwrap()
-  //You can accees value here
-  console.log(value)
+import { SuperfaceClient } from 'superface/sdk'; // This should point to superface directory in project root
+
+const client = new SuperfaceClient();
+const profile = await client.getProfile('<profileName>'); // This should now autocomplete your installed profileVersion
+const result = await profile.useCases.<usecase>.perform(
+  {
+    inputField: 1,
+    anotherInputField: 'hello',
+  },
+  { provider } // optional, if missing selects first configured provider from super.json
+);
+```
+
+Lastly, unwrap result value or possible error. Result is using [neverthrow](https://github.com/supermacro/neverthrow) approach so there are multiple ways to work with result. 
+
+You can use `isOk()` or `isErr()`to check type of result: 
+
+```typescript
+if (result.isErr()) {
+  // Result is error, error.toString() returns human readable description of what went wrong
+  console.log(result.error.toString());
+} else {
+  // Result is ok and you can accees value here
+  console.log(result.value);
 }
 ```
 
-Or you can use `isOk()` or `isErr()`to check type of result: 
+Or you can just use `unwrap`, which is less safe:
+
 ```typescript
-if (result.isErr()) {
-  //Result is error, e.toString() returns human readable description of what went wrong
-  console.log(result.error.toString())
-} else {
-  //Result is ok and you can accees value here
-  console.log(result.value)
+try {
+  // Possible error is thrown here and it contains human readable description of what went wrong :)
+  const value = result.unwrap();
+  // You can accees value here
+  console.log(value);
+} catch (e) {
+  console.log(e);
 }
 ```
 
