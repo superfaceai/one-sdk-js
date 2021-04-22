@@ -44,7 +44,7 @@ yarn add @superfaceai/one-sdk
 
 ### Using the OneSDK
 
-To interact with Superface, create a new Superface client instance, find the profile and use case, then perform it to get the result.
+To interact with Superface, initialize a new Superface OneSDK instance, references the profile and use case you're wanting to use, then perform it to get the result. You can use either the typed or untyped interface for the `SuperfaceClient`.
 
 #### Initializing the OneSDK client
 
@@ -77,7 +77,8 @@ const result = await profile.getUsecase('<usecaseName>').perform(
     inputField: 1,
     anotherInputField: 'hello',
   },
-  { provider } // optional, if missing selects first configured provider from super.json
+  // optional, if provider is missing selects first configured provider from super.json
+  { provider }
 );
 ```
 
@@ -88,16 +89,20 @@ You can also use generated typed client, which is very similar:
 Make sure a profile is installed with types by running `superface install --types <profileName>[@<profileVersion>]` in the project directory.
 
 ```typescript
-import { SuperfaceClient } from 'superface/sdk'; // This should point to superface directory in project root
+ // This should point to superface directory in project root
+ // instead of @superfaceai/one-sdk
+import { SuperfaceClient } from 'superface/sdk';
 
 const client = new SuperfaceClient();
-const profile = await client.getProfile('<profileName>'); // This should now autocomplete your installed profileVersion
-const result = await profile.useCases.<usecase>.perform(
+// This client should now autocomplete your installed profileVersion
+const profile = await client.profiles.myProfile; 
+const result = await profile.useCases.myUseCase.perform(
   {
     inputField: 1,
     anotherInputField: 'hello',
   },
-  { provider } // optional, if missing selects first configured provider from super.json
+  // optional, if provider is missing selects first configured provider from super.json
+  { provider }
 );
 ```
 
