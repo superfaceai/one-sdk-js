@@ -95,7 +95,7 @@ import { SuperfaceClient } from 'superface/sdk';
 
 const client = new SuperfaceClient();
 // This client should now autocomplete your installed profileVersion
-const profile = await client.profiles.myProfile; 
+const profile = await client.getProfile('myProfile'); 
 const result = await profile.useCases.myUseCase.perform(
   {
     inputField: 1,
