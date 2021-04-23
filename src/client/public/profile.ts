@@ -36,7 +36,7 @@ export class ProfileBase {
 }
 
 export class Profile extends ProfileBase {
-  getUseCase(name: string): UseCase | undefined {
+  getUseCase(name: string): UseCase {
     return new UseCase(this, name);
   }
 }
@@ -77,7 +77,12 @@ export class TypedProfile<
 
   getUseCase<TName extends keyof KnownUsecase<TUsecaseTypes>>(
     name: TName
-  ): KnownUsecase<TUsecaseTypes>[TName] | undefined {
-    return this.knownUsecases?.[name];
+  ): KnownUsecase<TUsecaseTypes>[TName] {
+    const usecase = this.knownUsecases?.[name];
+    if (!usecase) {
+      throw new Error(`Usecase: "${name.toString()}" not found`);
+    }
+
+    return usecase;
   }
 }
