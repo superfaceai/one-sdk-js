@@ -59,4 +59,14 @@ describe('HttpClient', () => {
 
     expect(url).toEqual('https://example.com/test/hello/another/goodbye');
   });
+
+  it('should correctly preserve trailing slash', () => {
+    const baseUrl = 'http://example.com/';
+    const inputUrl = '/test/';
+
+    expect(createUrl(baseUrl)).toEqual('http://example.com/');
+    expect(createUrl(inputUrl, { baseUrl })).toEqual(
+      'http://example.com/test/'
+    );
+  });
 });
