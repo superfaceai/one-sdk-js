@@ -3,8 +3,12 @@ import { ErrorBase } from '../errors';
 export type ErrorContext = { path?: string[] };
 export type ValidationError =
   | {
-      kind: 'wrongInput' | 'enumValue';
+      kind: 'wrongInput';
       context?: ErrorContext;
+    }
+  | {
+      kind: 'enumValue';
+      context?: ErrorContext & { actual: string };
     }
   | {
       kind: 'wrongType';
@@ -74,7 +78,10 @@ export function formatErrors(errors?: ValidationError[]): string {
           )}`;
 
         case 'enumValue':
-          return `${prefix}Invalid enum value`;
+          return (
+            `${prefix}Invalid enum value` +
+            (err.context !== undefined ? `: ${err.context?.actual}` : '')
+          );
 
         case 'wrongInput':
           return `Wrong input`;

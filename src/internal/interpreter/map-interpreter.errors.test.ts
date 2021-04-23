@@ -486,9 +486,11 @@ describe('MapInterpreter errors', () => {
         ],
       });
 
-      expect(result.isErr() && result.error instanceof MappedHTTPError).toEqual(
-        true
-      );
+      expect(
+        result.isErr() &&
+          result.error instanceof MappedHTTPError &&
+          result.error.statusCode
+      ).toEqual(404);
     });
 
     it('should return unmapped HTTP error', async () => {

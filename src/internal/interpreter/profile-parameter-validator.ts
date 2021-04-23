@@ -22,6 +22,7 @@ import { UnexpectedError } from '../errors';
 import { ProfileVisitor } from './interfaces';
 import {
   addFieldToErrors,
+  formatErrors,
   InputValidationError,
   isWrongTypeError,
   ProfileParameterError,
@@ -101,11 +102,17 @@ export class ProfileParameterValidator implements ProfileVisitor {
       const [result, errors] = validator(input);
 
       if (result !== true) {
+        debug(
+          `Validation of ${kind} failed with error(s):\n` + formatErrors(errors)
+        );
+
         const error =
           kind === 'input' ? InputValidationError : ResultValidationError;
 
         return err(new error(errors));
       }
+
+      debug(`Validation of ${kind} succeeded.`);
 
       return ok(undefined);
     } catch (e) {
@@ -172,7 +179,10 @@ export class ProfileParameterValidator implements ProfileVisitor {
         }
       }
 
-      return [false, [{ kind: 'enumValue' }]];
+      return [
+        false,
+        [{ kind: 'enumValue', context: { actual: JSON.stringify(input) } }],
+      ];
     };
   }
 

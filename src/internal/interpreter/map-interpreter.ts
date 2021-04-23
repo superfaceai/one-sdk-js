@@ -442,9 +442,10 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
         case 'OutcomeStatement': {
           const outcome = await this.visit(statement);
           if (outcome?.error) {
+            const statusCode = this.stackTop.variables.statusCode;
             const error = new MappedHTTPError(
               'Expected HTTP error',
-              undefined,
+              typeof statusCode === 'number' ? statusCode : undefined,
               { node: statement, ast: this.ast },
               outcome?.result
             );
@@ -549,7 +550,6 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
       }
     }
 
-    // this.addVariableToStack({ outcome: { data: this.stackTop.result } });
     const result = await this.visit(node.value);
 
     return {
