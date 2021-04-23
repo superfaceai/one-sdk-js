@@ -3,23 +3,23 @@ import { ErrorBase } from '../errors';
 export type ErrorContext = { path?: string[] };
 export type ValidationError =
   | {
-    kind: 'wrongInput' | 'enumValue';
-    context?: ErrorContext;
-  }
+      kind: 'wrongInput' | 'enumValue';
+      context?: ErrorContext;
+    }
   | {
-    kind: 'wrongType';
-    context: ErrorContext & { expected: string; actual: string };
-  }
+      kind: 'wrongType';
+      context: ErrorContext & { expected: string; actual: string };
+    }
   | { kind: 'notArray'; context: ErrorContext & { input: unknown } }
   | { kind: 'wrongUnion'; context: ErrorContext & { expected: string[] } }
   | {
-    kind: 'elementsInArrayWrong';
-    context: ErrorContext & { suberrors: ValidationError[] };
-  }
+      kind: 'elementsInArrayWrong';
+      context: ErrorContext & { suberrors: ValidationError[] };
+    }
   | {
-    kind: 'missingRequired';
-    context?: ErrorContext & { field: string };
-  };
+      kind: 'missingRequired';
+      context?: ErrorContext & { field: string };
+    };
 
 export function isWrongTypeError(
   err: ValidationError
@@ -88,7 +88,10 @@ export function formatErrors(errors?: ValidationError[]): string {
 
 export class InputValidationError extends ErrorBase {
   constructor(public errors?: ValidationError[]) {
-    super('InputValidationError', 'Input validation failed:' + '\n' + formatErrors(errors));
+    super(
+      'InputValidationError',
+      'Input validation failed:' + '\n' + formatErrors(errors)
+    );
   }
 
   public toString(): string {
@@ -98,7 +101,10 @@ export class InputValidationError extends ErrorBase {
 
 export class ResultValidationError extends ErrorBase {
   constructor(public errors?: ValidationError[]) {
-    super('ResultValidationError', 'Result validation failed:' + '\n' + formatErrors(errors));
+    super(
+      'ResultValidationError',
+      'Result validation failed:' + '\n' + formatErrors(errors)
+    );
   }
 
   public toString(): string {
