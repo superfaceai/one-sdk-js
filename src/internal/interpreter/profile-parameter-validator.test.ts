@@ -31,6 +31,13 @@ const checkErrorPath = (result: Result<unknown, unknown>) =>
     : isResultValidationError(result.error) &&
       result.error.errors?.map(error => error.context?.path));
 
+const checkErrorContext = (result: Result<unknown, unknown>) =>
+  result.isErr() &&
+  (isInputValidationError(result.error)
+    ? result.error.errors?.map(error => error.context)
+    : isResultValidationError(result.error) &&
+      result.error.errors?.map(error => error.context));
+
 describe('ProfileParameterValidator', () => {
   describe('Input', () => {
     describe('AST with no input', () => {
@@ -452,6 +459,9 @@ describe('ProfileParameterValidator', () => {
         );
         expect(checkErrorKind(result1)).toEqual(['enumValue']);
         expect(checkErrorPath(result1)).toEqual([['input', 'test']]);
+        expect(checkErrorContext(result1)).toMatchObject([
+          { actual: '"none of your business"' },
+        ]);
         const result2 = parameterValidator.validate(
           { test: 7 } as any,
           'input',
@@ -459,6 +469,7 @@ describe('ProfileParameterValidator', () => {
         );
         expect(checkErrorKind(result2)).toEqual(['enumValue']);
         expect(checkErrorPath(result2)).toEqual([['input', 'test']]);
+        expect(checkErrorContext(result2)).toMatchObject([{ actual: '7' }]);
       });
     });
 
