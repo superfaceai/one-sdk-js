@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+## [0.0.22] - 2021-04-26
+
 ### Added
 * Export TypedProfile class
 
@@ -111,7 +113,8 @@
 * CI/CD workflows
 
 
-[Unreleased]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.15...HEAD
+[Unreleased]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.22...HEAD
+[0.0.22]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.15...v0.0.22
 [0.0.15]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.11...v0.0.15
 [0.0.11]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.10...v0.0.11
 [0.0.10]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.9...v0.0.10
