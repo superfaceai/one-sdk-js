@@ -73,7 +73,7 @@ export async function fetchProviders(
   return body.disco;
 }
 
-export const DEFAULT_REGISTRY_URL = 'https://superface.dev';
+export const DEFAULT_REGISTRY_URL = 'https://superface.ai';
 
 // TODO: refine validator
 const bindResponseValidator = zod.object({
