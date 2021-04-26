@@ -5,6 +5,7 @@ import fetch, { Headers } from 'cross-fetch';
 import createDebug from 'debug';
 import { inspect } from 'util';
 
+import { VERSION } from '../..';
 import { getValue, NonPrimitive, Variables } from '../interpreter/variables';
 import { SecurityType } from '../providerjson';
 import {
@@ -212,6 +213,11 @@ export const HttpClient = {
         );
       }
     }
+    // add user agent
+    headers.append(
+      'User-agent',
+      `superfaceai one-sdk-js/${VERSION} (${process.platform}-${process.arch}) ${process.release.name}-${process.version}`
+    );
 
     const finalUrl = createUrl(url, {
       baseUrl: parameters.baseUrl,

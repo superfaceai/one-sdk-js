@@ -202,9 +202,6 @@ describe('registry', () => {
         baseUrl: 'test-registiry-url',
         accept: 'application/json',
         contentType: 'application/json',
-        headers: {
-          'User-agent': 'superface one-sdk-js',
-        },
         body: {
           profile_id: 'test-profile-id',
           provider: 'test-provider',
@@ -249,9 +246,6 @@ describe('registry', () => {
         baseUrl: DEFAULT_REGISTRY_URL,
         accept: 'application/json',
         contentType: 'application/json',
-        headers: {
-          'User-agent': 'superface one-sdk-js',
-        },
         body: {
           profile_id: 'test-profile-id',
           provider: 'test-provider',
