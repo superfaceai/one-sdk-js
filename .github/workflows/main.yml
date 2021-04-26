@@ -10,10 +10,9 @@ jobs:
       - name: Setup Node.js environment
         uses: actions/setup-node@v2
         with:
-          registry-url: "https://npm.pkg.github.com"
+          registry-url: https://registry.npmjs.org/
           scope: "@superfaceai"
-          always-auth: true
-          node-version: '14'
+          node-version: "14"
 
       - name: Checkout
         uses: actions/checkout@v2.3.4
@@ -33,8 +32,6 @@ jobs:
       # Install and run tests
       - name: Install dependencies
         run: yarn install
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.SUPERFACE_BOT_PAT }}
       - name: Test
         run: yarn test
 
@@ -45,10 +42,9 @@ jobs:
       - name: Setup Node.js environment
         uses: actions/setup-node@v2
         with:
-          registry-url: "https://npm.pkg.github.com"
+          registry-url: https://registry.npmjs.org/
           scope: "@superfaceai"
-          always-auth: true
-          node-version: '14'
+          node-version: "14"
 
       - name: Checkout
         uses: actions/checkout@v2.3.4
@@ -68,8 +64,6 @@ jobs:
       # Install and run lint
       - name: Install dependencies
         run: yarn install
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.SUPERFACE_BOT_PAT }}
       - name: Lint
         run: yarn lint
       
@@ -80,10 +74,9 @@ jobs:
       - name: Setup Node.js environment
         uses: actions/setup-node@v2
         with:
-          registry-url: "https://npm.pkg.github.com"
+          registry-url: https://registry.npmjs.org/
           scope: "@superfaceai"
-          always-auth: true
-          node-version: '14'
+          node-version: "14"
 
       - name: Checkout
         uses: actions/checkout@v2.3.4
@@ -103,8 +96,6 @@ jobs:
       # Install and run license checker
       - name: Install dependencies
         run:  yarn install
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.SUPERFACE_BOT_PAT }}
       - name: Install License checker
         run: |
           yarn global add license-checker
