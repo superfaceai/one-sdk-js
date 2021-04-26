@@ -100,9 +100,6 @@ export async function fetchBind(
     baseUrl: options?.registryUrl ?? DEFAULT_REGISTRY_URL,
     accept: 'application/json',
     contentType: 'application/json',
-    headers: {
-      'User-agent': 'superface one-sdk-js', // TODO: add version?
-    },
     body: {
       profile_id: request.profileId,
       provider: request.provider,
