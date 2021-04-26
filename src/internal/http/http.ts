@@ -216,7 +216,7 @@ export const HttpClient = {
     // add user agent
     headers.append(
       'User-agent',
-      `one-sdk@${VERSION} (${process.platform}-${process.arch}) ${process.release.name}-${process.version}`
+      `superfaceai one-sdk-js/${VERSION} (${process.platform}-${process.arch}) ${process.release.name}-${process.version}`
     );
 
     const finalUrl = createUrl(url, {
