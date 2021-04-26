@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+### Added
+* Export TypedProfile class
+
 ## [0.0.15] - 2021-04-21
 
 ### Added

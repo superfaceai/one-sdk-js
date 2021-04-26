@@ -12,8 +12,10 @@ export class ProfileConfiguration {
 }
 
 export type UsecaseType<
-  TInput extends NonPrimitive | undefined = undefined,
-  TOutput = unknown
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  TInput extends NonPrimitive | undefined = any,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  TOutput = any
 > = {
   [name: string]: [TInput, TOutput];
 };
