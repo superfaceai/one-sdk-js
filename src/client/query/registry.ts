@@ -73,7 +73,11 @@ export async function fetchProviders(
   return body.disco;
 }
 
-export const DEFAULT_REGISTRY_URL = 'https://superface.ai';
+export function getDefaultRegistryUrl(): string {
+  const envUrl = process.env.SUPERFACE_API_URL;
+
+  return envUrl ? new URL(envUrl).href : new URL('https://superface.ai').href;
+}
 
 // TODO: refine validator
 const bindResponseValidator = zod.object({
@@ -97,7 +101,7 @@ export async function fetchBind(
 }> {
   const { body } = await HttpClient.request('/registry/bind', {
     method: 'POST',
-    baseUrl: options?.registryUrl ?? DEFAULT_REGISTRY_URL,
+    baseUrl: options?.registryUrl ?? getDefaultRegistryUrl(),
     accept: 'application/json',
     contentType: 'application/json',
     body: {
