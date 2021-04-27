@@ -5,7 +5,6 @@ import { ProviderJson } from '../../internal';
 import { HttpClient } from '../../internal/http/http';
 import {
   assertIsRegistryProviderInfo,
-  DEFAULT_REGISTRY_URL,
   fetchBind,
   fetchMapAST,
   fetchProviders,
@@ -161,7 +160,11 @@ describe('registry', () => {
   });
 
   describe('when fetching bind', () => {
+    let originalUrl: string | undefined;
     it('fetches map document', async () => {
+      originalUrl = process.env.SUPERFACE_API_URL
+      process.env.SUPERFACE_API_URL = 'https://superface.dev';
+
       const mockBody = {
         provider: mockProviderJson,
         map_ast: JSON.stringify(mockMapDocument),
@@ -243,7 +246,7 @@ describe('registry', () => {
       expect(HttpClient.request).toHaveBeenCalledTimes(1);
       expect(HttpClient.request).toHaveBeenCalledWith('/registry/bind', {
         method: 'POST',
-        baseUrl: DEFAULT_REGISTRY_URL,
+        baseUrl: new URL('https://superface.dev').href,
         accept: 'application/json',
         contentType: 'application/json',
         body: {
@@ -253,6 +256,8 @@ describe('registry', () => {
           map_revision: 'test-map-revision',
         },
       });
+
+      process.env.SUPERFACE_API_URL = originalUrl;
     });
   });
 });
