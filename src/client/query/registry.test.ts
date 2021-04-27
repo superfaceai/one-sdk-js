@@ -162,7 +162,7 @@ describe('registry', () => {
   describe('when fetching bind', () => {
     let originalUrl: string | undefined;
     it('fetches map document', async () => {
-      originalUrl = process.env.SUPERFACE_API_URL
+      originalUrl = process.env.SUPERFACE_API_URL;
       process.env.SUPERFACE_API_URL = 'https://superface.dev';
 
       const mockBody = {

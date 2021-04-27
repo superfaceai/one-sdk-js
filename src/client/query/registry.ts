@@ -75,7 +75,8 @@ export async function fetchProviders(
 
 export function getDefaultRegistryUrl(): string {
   const envUrl = process.env.SUPERFACE_API_URL;
-  return envUrl ? new URL(envUrl).href : new URL('https://superface.ai').href
+
+  return envUrl ? new URL(envUrl).href : new URL('https://superface.ai').href;
 }
 
 // TODO: refine validator
