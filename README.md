@@ -1,5 +1,8 @@
 # Superface One SDK _(one-sdk-js)_
 ![GitHub Workflow Status](https://img.shields.io/github/workflow/status/superfaceai/one-sdk-js/CI)
+![NPM](https://img.shields.io/npm/v/@superfaceai/one-sdk)
+[![NPM](https://img.shields.io/npm/l/@superfaceai/one-sdk)](LICENSE)
+![TypeScript](https://img.shields.io/badge/%3C%2F%3E-Typescript-blue)
 
 <img src="https://github.com/superfaceai/one-sdk-js/blob/main/docs/LogoGreen.png" alt="superface logo" width="150" height="150">
 
