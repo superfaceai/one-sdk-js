@@ -63,7 +63,7 @@ const service = zod.object({
 });
 export type ProviderService = zod.infer<typeof service>;
 
-const providerNameRegEx = new RegExp('^[a-z][_\\-0-9a-z]*$')
+const providerNameRegEx = new RegExp('^[a-z][_\\-0-9a-z]*$');
 
 export function isValidProviderName(name: string): boolean {
   return providerNameRegEx.test(name);

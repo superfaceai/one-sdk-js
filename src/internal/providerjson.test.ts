@@ -7,9 +7,9 @@ import {
   isBasicAuthSecurityScheme,
   isBearerTokenSecurityScheme,
   isDigestSecurityScheme,
+  isValidProviderName,
   parseProviderJson,
   SecurityType,
-  isValidProviderName,
 } from './providerjson';
 
 describe('ProviderJsonDocument', () => {
