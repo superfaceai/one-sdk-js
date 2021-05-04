@@ -9,6 +9,7 @@ import {
   isDigestSecurityScheme,
   parseProviderJson,
   SecurityType,
+  isValidProviderName,
 } from './providerjson';
 
 describe('ProviderJsonDocument', () => {
@@ -178,6 +179,31 @@ describe('ProviderJsonDocument', () => {
           received: 'undefined',
           path: ['name'],
           message: 'Required',
+        },
+      ])
+    );
+  });
+
+  it('throws error on document with invalid name', () => {
+    const providerJson = `{
+        "name": "swapiDev",
+        "services": [
+            {
+                "baseUrl": "https://swapi.dev/api",
+                "id": "swapidev"
+            }
+        ],
+        "defaultService": "swapidev"
+      }`;
+    expect(() => {
+      parseProviderJson(JSON.parse(providerJson));
+    }).toThrowError(
+      new ZodError([
+        {
+          validation: 'regex',
+          code: 'invalid_string',
+          path: ['name'],
+          message: 'Invalid',
         },
       ])
     );
@@ -527,6 +553,16 @@ describe('ProviderJsonDocument', () => {
           })
         ).toEqual(true);
       }
+    });
+  });
+  describe('ProviderJson name check', () => {
+    it('checks Provider name correctly', () => {
+      expect(isValidProviderName('swapidev')).toEqual(true);
+      expect(isValidProviderName('swapi-dev')).toEqual(true);
+      expect(isValidProviderName('swapi_dev')).toEqual(true);
+      expect(isValidProviderName('swapid90')).toEqual(true);
+      expect(isValidProviderName('swapiDev')).toEqual(false);
+      expect(isValidProviderName('Swapidev')).toEqual(false);
     });
   });
 });
