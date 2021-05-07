@@ -22,7 +22,7 @@ export abstract class SuperfaceClientBase {
   } = {};
 
   constructor() {
-    const superCacheKey = SuperJson.defaultPath();
+    const superCacheKey = process.env.SUPERFACE_PATH ?? SuperJson.defaultPath();
 
     if (SUPER_CACHE[superCacheKey] === undefined) {
       SUPER_CACHE[superCacheKey] = SuperJson.loadSync(superCacheKey).unwrap();

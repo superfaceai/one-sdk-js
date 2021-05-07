@@ -11,6 +11,7 @@ import * as zod from 'zod';
 
 import { err, ok, Result } from '../lib';
 import clone from '../lib/clone';
+import { isAccessible } from '../lib/io';
 import {
   castToNonPrimitive,
   isEmptyRecord,
@@ -18,6 +19,10 @@ import {
 } from './interpreter/variables';
 
 const debug = createDebug('superface:superjson');
+
+export const SUPERFACE_DIR = 'superface';
+export const META_FILE = 'super.json';
+export const SUPER_PATH = joinPath(SUPERFACE_DIR, META_FILE);
 
 // 'Official' regex https://semver.org/#is-there-a-suggested-regular-expression-regex-to-check-a-semver-string
 const SEMVER_REGEX = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/;
@@ -949,5 +954,43 @@ export class SuperJson {
     }
 
     return result;
+  }
+
+  /**
+   * Detects the existence of a `super.json` file in specified number of levels
+   * of parent directories.
+   *
+   * @param cwd - currently scanned working directory
+   *
+   * Returns relative path to a directory where `super.json` is detected.
+   */
+  static async detectSuperJson(
+    cwd: string,
+    level?: number
+  ): Promise<string | undefined> {
+    // check whether super.json is accessible in cwd
+    if (await isAccessible(joinPath(cwd, META_FILE))) {
+      return normalize(relativePath(process.cwd(), cwd));
+    }
+
+    // check whether super.json is accessible in cwd/superface
+    if (await isAccessible(joinPath(cwd, SUPER_PATH))) {
+      return normalize(
+        relativePath(process.cwd(), joinPath(cwd, SUPERFACE_DIR))
+      );
+    }
+
+    // default behaviour - do not scan outside cwd
+    if (level === undefined || level < 1) {
+      return undefined;
+    }
+
+    // check if user has permissions outside cwd
+    cwd = joinPath(cwd, '..');
+    if (!(await isAccessible(cwd))) {
+      return undefined;
+    }
+
+    return await SuperJson.detectSuperJson(cwd, --level);
   }
 }
