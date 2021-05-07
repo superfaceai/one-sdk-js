@@ -6,6 +6,7 @@ import {
 } from 'path';
 import { mocked } from 'ts-jest/utils';
 
+import { isAccessible } from '../lib/io';
 import { err, ok } from '../lib/result/result';
 import {
   composeFileURI,
@@ -40,6 +41,12 @@ jest.mock('path', () => ({
   resolve: jest.fn(),
   relative: jest.fn(),
   join: jest.fn(),
+}));
+
+//Mock io
+jest.mock('../lib/io', () => ({
+  ...jest.requireActual<Record<string, unknown>>('../lib/io'),
+  isAccessible: jest.fn(),
 }));
 
 describe('SuperJson', () => {
@@ -1800,5 +1807,67 @@ describe('SuperJson', () => {
         },
       ]);
     });
+  });
+
+  describe('when detecting super json', () => {
+    it('detects super.json in cwd', async () => {
+      const mockCwd = 'path/to/';
+
+      mocked(isAccessible).mockResolvedValue(true);
+      mocked(relativePath).mockReturnValue(mockCwd);
+      expect(await SuperJson.detectSuperJson(mockCwd)).toEqual(mockCwd);
+      expect(isAccessible).toHaveBeenCalledTimes(1);
+      expect(relativePath).toHaveBeenCalledTimes(1);
+    }, 10000);
+
+    it('detects super.json from 1 level above', async () => {
+      const mockCwd = 'path/to/';
+
+      mocked(isAccessible).mockResolvedValueOnce(false).mockResolvedValue(true);
+      mocked(relativePath).mockReturnValue(mockCwd);
+      expect(await SuperJson.detectSuperJson(process.cwd())).toEqual(mockCwd);
+      expect(isAccessible).toHaveBeenCalledTimes(2);
+      expect(relativePath).toHaveBeenCalledTimes(1);
+    }, 10000);
+
+    it('does not detect super.json from 2 levels above', async () => {
+      const mockCwd = 'path/to/';
+
+      mocked(isAccessible).mockResolvedValue(false);
+      mocked(relativePath).mockReturnValue(mockCwd);
+
+      expect(await SuperJson.detectSuperJson(mockCwd)).toBeUndefined();
+      expect(isAccessible).toHaveBeenCalledTimes(2);
+      expect(relativePath).not.toHaveBeenCalled();
+    }, 10000);
+
+    it('detects super.json from 1 level below', async () => {
+      const mockCwd = 'path/to/';
+      mocked(relativePath).mockReturnValue(mockCwd);
+      mocked(isAccessible)
+        .mockResolvedValueOnce(false)
+        .mockResolvedValueOnce(false)
+        .mockResolvedValueOnce(true)
+        .mockResolvedValueOnce(true);
+
+      expect(await SuperJson.detectSuperJson(mockCwd, 1)).toEqual(mockCwd);
+      expect(isAccessible).toHaveBeenCalledTimes(4);
+      expect(relativePath).toHaveBeenCalledTimes(1);
+    }, 10000);
+
+    it('detects super.json from 2 levels below', async () => {
+      const mockCwd = 'path/to/';
+      mocked(relativePath).mockReturnValue(mockCwd);
+      mocked(isAccessible)
+        .mockResolvedValueOnce(false)
+        .mockResolvedValueOnce(false)
+        .mockResolvedValueOnce(true)
+        .mockResolvedValueOnce(false)
+        .mockResolvedValueOnce(true);
+
+      expect(await SuperJson.detectSuperJson(mockCwd, 2)).toEqual(mockCwd);
+      expect(isAccessible).toHaveBeenCalledTimes(5);
+      expect(relativePath).toHaveBeenCalledTimes(1);
+    }, 10000);
   });
 });

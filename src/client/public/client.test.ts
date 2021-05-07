@@ -2,8 +2,8 @@ import * as fs from 'fs';
 import { dirname, join as joinPath } from 'path';
 
 import { SuperJson } from '../../internal/superjson';
-import { SuperfaceClient } from '../public/client';
 import * as profileProvider from '../query/profile-provider';
+import { SuperfaceClient } from './client';
 import { ProfileConfiguration } from './profile';
 import { ProviderConfiguration } from './provider';
 
@@ -16,6 +16,12 @@ jest.mock('fs', () => ({
 }));
 
 describe('superface client', () => {
+  //Mock env path
+  const ENV_VARIABLE = 'SUPERFACE_PATH';
+  const originalEnvValue = process.env[ENV_VARIABLE];
+  const CUSTOM_PATH = 'somepath';
+
+  //Mock super json for default path
   const MOCK_SUPERJSON_PATH = SuperJson.defaultPath();
   const MOCK_SUPERJSON = {
     profiles: {
@@ -36,15 +42,28 @@ describe('superface client', () => {
       quz: {},
     },
   };
+  //Mock super json for custom path
+  const MOCK_SUPERJSON_CUSTOM_PATH = {
+    profiles: {
+      test: '2.1.0',
+    },
+    providers: {
+      quz: {},
+    },
+  };
 
   const statSyncMock = fs.statSync as jest.Mock;
   const readFileSyncMock = fs.readFileSync as jest.Mock;
   const accessMock = fs.promises.access as jest.Mock;
-  beforeAll(() => {
+  beforeEach(() => {
     statSyncMock.mockImplementation((path: string) => {
       if (path === MOCK_SUPERJSON_PATH) {
         return {
           isFile: () => path === MOCK_SUPERJSON_PATH,
+        };
+      } else if (path === CUSTOM_PATH) {
+        return {
+          isFile: () => path === CUSTOM_PATH,
         };
       } else {
         throw { code: 'ENOENT' };
@@ -53,6 +72,8 @@ describe('superface client', () => {
     readFileSyncMock.mockImplementation((path: string) => {
       if (path === MOCK_SUPERJSON_PATH) {
         return JSON.stringify(MOCK_SUPERJSON);
+      } else if (path === CUSTOM_PATH) {
+        return JSON.stringify(MOCK_SUPERJSON_CUSTOM_PATH);
       } else {
         throw { code: 'ENOENT' };
       }
@@ -60,28 +81,49 @@ describe('superface client', () => {
     accessMock.mockImplementation(async (path: string) => {
       if (path === MOCK_SUPERJSON_PATH) {
         return undefined;
+      } else if (path === CUSTOM_PATH) {
+        return undefined;
       } else {
         throw { code: 'ENOENT' };
       }
     });
   });
 
-  it('caches super.json files correctly', () => {
-    const mockCalls = [
-      statSyncMock.mock.calls.length,
-      readFileSyncMock.mock.calls.length,
-    ];
+  afterEach(() => {
+    jest.resetAllMocks();
+  });
 
+  it('caches super.json files correctly', () => {
     const client = new SuperfaceClient();
     expect(client.superJson.document).toEqual(MOCK_SUPERJSON);
-    expect(statSyncMock.mock.calls.length).toBe(mockCalls[0] + 1);
-    expect(readFileSyncMock.mock.calls.length).toBe(mockCalls[1] + 1);
+    expect(statSyncMock).toHaveBeenCalledTimes(1);
+    expect(readFileSyncMock).toHaveBeenCalledTimes(2);
 
     const clientCached = new SuperfaceClient();
     expect(clientCached.superJson.document).toEqual(MOCK_SUPERJSON);
     // no more calls than before
-    expect(statSyncMock.mock.calls.length).toBe(mockCalls[0] + 1);
-    expect(readFileSyncMock.mock.calls.length).toBe(mockCalls[1] + 1);
+    expect(statSyncMock).toHaveBeenCalledTimes(1);
+    expect(readFileSyncMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('caches super.json on custom path files correctly', () => {
+    process.env[ENV_VARIABLE] = CUSTOM_PATH;
+
+    const client = new SuperfaceClient();
+    expect(client.superJson.document).toEqual(MOCK_SUPERJSON_CUSTOM_PATH);
+    expect(statSyncMock).toHaveBeenCalledTimes(1);
+    expect(readFileSyncMock).toHaveBeenCalledTimes(1);
+
+    const clientCached = new SuperfaceClient();
+    expect(clientCached.superJson.document).toEqual(MOCK_SUPERJSON_CUSTOM_PATH);
+    // no more calls than before
+    expect(statSyncMock).toHaveBeenCalledTimes(1);
+    expect(readFileSyncMock).toHaveBeenCalledTimes(1);
+    if (!originalEnvValue) {
+      delete process.env[ENV_VARIABLE];
+    } else {
+      process.env[ENV_VARIABLE] = originalEnvValue;
+    }
   });
 
   describe('getProfile', () => {
