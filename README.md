@@ -61,6 +61,8 @@ const client = new SuperfaceClient();
 
 #### Performing the use case
 
+**Note**: You can change url of API requests by setting `SUPERFACE_API_URL` environment variable to desired base url.
+
 Make sure a profile is installed by running `superface install <profileName>[@<profileVersion>]` in the project directory, then load the profile:
 
 ```typescript
