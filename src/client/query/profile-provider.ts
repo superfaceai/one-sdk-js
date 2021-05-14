@@ -2,8 +2,8 @@ import { MapDocumentNode, ProfileDocumentNode } from '@superfaceai/ast';
 import createDebug from 'debug';
 import { promises as fsp } from 'fs';
 import { join as joinPath } from 'path';
-import { SdkExecutionError } from '../../error/base';
 
+import { SdkExecutionError } from '../../error/base';
 import {
   HttpScheme,
   ProviderJson,
@@ -164,8 +164,17 @@ export class ProfileProvider {
     // resolve profile locally
     const profileAst = await this.resolveProfileAst();
     if (profileAst === undefined) {
+      let profileId
+      if (this.profile instanceof ProfileConfiguration) {
+        profileId = this.profile.id
+      } else if (typeof this.profile === 'string') {
+        profileId = this.profile
+      } else {
+        profileId = profileAstId(this.profile)
+      }
+      
       throw new SdkExecutionError(
-        `Invalid profile "${this.profile}"`,
+        `Invalid profile "${profileId}"`,
         [],
         [
           `Check that the profile is installed in super.json -> profiles or that the url is valid`,

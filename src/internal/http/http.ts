@@ -6,6 +6,8 @@ import createDebug from 'debug';
 import { inspect } from 'util';
 
 import { VERSION } from '../..';
+import { SdkExecutionError } from '../../error';
+import { recursiveKeyList } from '../../lib/object';
 import { getValue, NonPrimitive, Variables } from '../interpreter/variables';
 import { SecurityType } from '../providerjson';
 import {
@@ -13,8 +15,6 @@ import {
   applyHttpAuth,
   SecurityConfiguration,
 } from './security';
-import { SdkExecutionError } from '../../error';
-import { recursiveKeyList } from '../../lib/object';
 
 const debug = createDebug('superface:http');
 const debugSensitive = createDebug('superface:http:sensitive');
