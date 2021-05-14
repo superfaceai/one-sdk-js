@@ -24,12 +24,12 @@ The main path of secrets into the SDK is by super.json. When the super.json file
 The secrets are read from the normalized form of super.json either by the Provider API or by a more low-level ProfileProvider API, depending on the calling code. Both of these APIs also provide ways to directly pass secrets from the calling code.
 
 The Provider API handles secrets when:
-* [requesting a Provider](https://github.com/superfaceai/one-sdk-js/blob/master/src/client/public/client.ts#L61)
+* [requesting a Provider](https://github.com/superfaceai/one-sdk-js/blob/master/src/client/public/client.ts#L65)
 * [configuring a Provider](https://github.com/superfaceai/one-sdk-js/blob/master/src/client/public/provider.ts#L23)
 
 Even when the calling code does not explicitly request a provider it is requested implicitly when performing a usecase.
 
-The ProfileProvider API handles secrets inside the [bind](https://github.com/superfaceai/one-sdk-js/blob/master/src/client/query/profile-provider.ts#L162) method. This method [merges](https://github.com/superfaceai/one-sdk-js/blob/master/src/client/query/profile-provider.ts#L415) security configuration either from Provider API or from normalized super.json, and optionally from bind configuration with provider information. This creates SecurityConfiguration, which is passes into the MapInterpreter.
+The ProfileProvider API handles secrets inside the [bind](https://github.com/superfaceai/one-sdk-js/blob/master/src/client/query/profile-provider.ts#L161) method. This method [merges](https://github.com/superfaceai/one-sdk-js/blob/master/src/client/query/profile-provider.ts#L447) security configuration either from Provider API or from normalized super.json, and optionally from bind configuration with provider information. This creates SecurityConfiguration, which is passes into the MapInterpreter.
 
 The MapInterpreter only [passes](https://github.com/superfaceai/one-sdk-js/blob/master/src/internal/interpreter/map-interpreter.ts#L282) the security configuration into the HttpClient.
 
@@ -37,7 +37,7 @@ The MapInterpreter only [passes](https://github.com/superfaceai/one-sdk-js/blob/
 
 HttpClient applies resolved secrets according to security requirements specified in the relevant map. These secrets are applied to the request body right before the request is executed.
 
-The secrets are [found](https://github.com/superfaceai/one-sdk-js/blob/master/src/internal/http/http.ts#L173) based on security requirements. They are then [applied](https://github.com/superfaceai/one-sdk-js/blob/master/src/internal/http/http.ts#L182) using the [application functions](https://github.com/superfaceai/one-sdk-js/blob/master/src/internal/http/security.ts).
+The secrets are [found](https://github.com/superfaceai/one-sdk-js/blob/master/src/internal/http/http.ts#L202) based on security requirements. They are then [applied](https://github.com/superfaceai/one-sdk-js/blob/master/src/internal/http/http.ts#L219) using the [application functions](https://github.com/superfaceai/one-sdk-js/blob/master/src/internal/http/security.ts).
 
 Once the request is executed no secrets are accessed until another request is to be prepared.
 
