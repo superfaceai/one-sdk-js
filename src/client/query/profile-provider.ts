@@ -164,21 +164,21 @@ export class ProfileProvider {
     // resolve profile locally
     const profileAst = await this.resolveProfileAst();
     if (profileAst === undefined) {
-      let profileId
+      let profileId;
       if (this.profile instanceof ProfileConfiguration) {
-        profileId = this.profile.id
+        profileId = this.profile.id;
       } else if (typeof this.profile === 'string') {
-        profileId = this.profile
+        profileId = this.profile;
       } else {
-        profileId = profileAstId(this.profile)
+        profileId = profileAstId(this.profile);
       }
-      
+
       throw new SdkExecutionError(
         `Invalid profile "${profileId}"`,
         [],
         [
           `Check that the profile is installed in super.json -> profiles or that the url is valid`,
-          `Profiles can be installed using the superface cli tool: \`superface install --help\` for more info`
+          `Profiles can be installed using the superface cli tool: \`superface install --help\` for more info`,
         ]
       );
     }
@@ -229,21 +229,19 @@ export class ProfileProvider {
     const baseUrl = providerInfo.services.find(s => s.id === serviceId)
       ?.baseUrl;
     if (baseUrl === undefined) {
-      let hints: string[] = []
+      let hints: string[] = [];
       if (serviceId == providerInfo.defaultService) {
         hints = [
-          'This appears to be an error in the provider definition. Make sure that the defaultService in provider definition refers to an existing service id'
-        ]
+          'This appears to be an error in the provider definition. Make sure that the defaultService in provider definition refers to an existing service id',
+        ];
       }
       // TODO: The service url resolution will change soon, probably won't be externally configurable
 
       throw new SdkExecutionError(
         `Service not found: ${serviceId}`,
-        [
-          `Service "${serviceId}" for provider "${providerName}" was not found`
-        ],
+        [`Service "${serviceId}" for provider "${providerName}" was not found`],
         hints
-      )
+      );
     }
 
     const securityConfiguration = this.resolveSecurityConfiguration(
@@ -256,7 +254,7 @@ export class ProfileProvider {
       baseUrl,
       profileProviderSettings: this.superJson.normalized.profiles[profileId]
         ?.providers[providerInfo.name],
-      security: securityConfiguration
+      security: securityConfiguration,
     });
   }
 
@@ -456,16 +454,19 @@ export class ProfileProvider {
     for (const vals of values) {
       const scheme = schemes.find(scheme => scheme.id === vals.id);
       if (scheme === undefined) {
-        const definedSchemes = schemes.map(s => s.id).join(', ')
+        const definedSchemes = schemes.map(s => s.id).join(', ');
         throw new SdkExecutionError(
           `Could not find security scheme for security value with id "${vals.id}"`,
           [
-            `The provider definition for "${providerName}" defines ` + (definedSchemes.length > 0 ? `these security schemes: ${definedSchemes}` : 'no security schemes'),
-            `but a secret value was provided for security scheme: ${vals.id}`
+            `The provider definition for "${providerName}" defines ` +
+              (definedSchemes.length > 0
+                ? `these security schemes: ${definedSchemes}`
+                : 'no security schemes'),
+            `but a secret value was provided for security scheme: ${vals.id}`,
           ],
           [
             `Check that every entry id in super.json -> providers["${providerName}"].security refers to an existing security scheme`,
-            `Make sure any configuration overrides in code for provider "${providerName}" refer to an existing security scheme`
+            `Make sure any configuration overrides in code for provider "${providerName}" refer to an existing security scheme`,
           ]
         );
       }
@@ -475,27 +476,27 @@ export class ProfileProvider {
         values: SecurityValues,
         requiredKeys: [string, ...string[]]
       ) => {
-        const valueKeys = Object.keys(values).filter(k => k !== 'id').join(', ')
-        const reqKeys = requiredKeys.join(', ')
+        const valueKeys = Object.keys(values)
+          .filter(k => k !== 'id')
+          .join(', ');
+        const reqKeys = requiredKeys.join(', ');
 
         return new SdkExecutionError(
-          `Invalid security values for given ${scheme.type} scheme "${scheme.id}"`,
+          `Invalid security values for given ${scheme.type} scheme: ${scheme.id}`,
           [
-            `The provided security entry with id "${scheme.id}" has keys: ${valueKeys}`,
-            `but apikey scheme requires: ${reqKeys}`
+            `The provided security values with id "${scheme.id}" have keys: ${valueKeys}`,
+            `but ${scheme.type} scheme requires: ${reqKeys}`,
           ],
           [
             `Check that the entry with id "${scheme.id}" in super.json -> providers["${providerName}"].security refers to the correct security scheme`,
-            `Make sure any configuration overrides in code for provider "${providerName}" refer to the correct security scheme`
+            `Make sure any configuration overrides in code for provider "${providerName}" refer to the correct security scheme`,
           ]
-        )
+        );
       };
 
       if (scheme.type === SecurityType.APIKEY) {
         if (!isApiKeySecurityValues(vals)) {
-          throw invalidSchemeValuesErrorBuilder(
-            scheme, vals, ['apikey']
-          )
+          throw invalidSchemeValuesErrorBuilder(scheme, vals, ['apikey']);
         }
 
         result.push({
@@ -506,9 +507,10 @@ export class ProfileProvider {
         switch (scheme.scheme) {
           case HttpScheme.BASIC:
             if (!isBasicAuthSecurityValues(vals)) {
-              throw invalidSchemeValuesErrorBuilder(
-                scheme, vals, ['username', 'password']
-              )
+              throw invalidSchemeValuesErrorBuilder(scheme, vals, [
+                'username',
+                'password',
+              ]);
             }
 
             result.push({
@@ -519,9 +521,7 @@ export class ProfileProvider {
 
           case HttpScheme.BEARER:
             if (!isBearerTokenSecurityValues(vals)) {
-              throw invalidSchemeValuesErrorBuilder(
-                scheme, vals, ['token']
-              )
+              throw invalidSchemeValuesErrorBuilder(scheme, vals, ['token']);
             }
 
             result.push({
@@ -532,9 +532,7 @@ export class ProfileProvider {
 
           case HttpScheme.DIGEST:
             if (!isDigestSecurityValues(vals)) {
-              throw invalidSchemeValuesErrorBuilder(
-                scheme, vals, ['digest']
-              )
+              throw invalidSchemeValuesErrorBuilder(scheme, vals, ['digest']);
             }
 
             result.push({

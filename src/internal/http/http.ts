@@ -127,22 +127,28 @@ export const createUrl = (
     const missingKeys = replacements.filter(key => values[key] === undefined);
 
     if (missingKeys.length > 0) {
-      const missing = missingKeys.join(', ')
-      const all = replacements.join(', ')
-      const available = recursiveKeyList(parameters.pathParameters ?? {}).join(', ')
+      const missing = missingKeys.join(', ');
+      const all = replacements.join(', ');
+      const available = recursiveKeyList(parameters.pathParameters ?? {}).join(
+        ', '
+      );
 
       throw new SdkExecutionError(
         `Missing values for URL path replacement: ${missing}`,
         [
           `Trying to replace path keys for url: ${url}`,
-          all.length > 0 ? `Found these path keys: ${all}` : 'Found no path keys',
-          available.length > 0 ? `But only found these potential variables: ${available}` : 'But found no potential variables'
+          all.length > 0
+            ? `Found these path keys: ${all}`
+            : 'Found no path keys',
+          available.length > 0
+            ? `But only found these potential variables: ${available}`
+            : 'But found no potential variables',
         ],
         [
           'Make sure the url path variable refers to an available variable',
-          'Consider introducing a new variable with the correct name and desired value'
+          'Consider introducing a new variable with the correct name and desired value',
         ]
-      )
+      );
     }
 
     const stringifiedValues = variablesToStrings(values);
@@ -201,13 +207,13 @@ export const HttpClient = {
           `Security values for security scheme not found: ${requirement.id}`,
           [
             `Security values for scheme "${requirement.id}" are required by the map`,
-            `but they were not provided to the sdk`
+            `but they were not provided to the sdk`,
           ],
           [
             `Make sure that the security scheme "${requirement.id}" exists in provider definition`,
-            `Check that either super.json or provider configuration provides security values for the "${requirement.id}" security scheme`
+            `Check that either super.json or provider configuration provides security values for the "${requirement.id}" security scheme`,
           ]
-        )
+        );
       }
 
       if (configuration.type === SecurityType.APIKEY) {
@@ -232,15 +238,19 @@ export const HttpClient = {
         params.body = formData(variablesToStrings(requestBody));
       } else {
         const cType = parameters.contentType ?? '';
-        const supportedTypes = [JSON_CONTENT, URLENCODED_CONTENT, FORMDATA_CONTENT].join(', ')
+        const supportedTypes = [
+          JSON_CONTENT,
+          URLENCODED_CONTENT,
+          FORMDATA_CONTENT,
+        ].join(', ');
         throw new SdkExecutionError(
           `Content type not supported: ${cType}`,
           [
             `Requested content type "${cType}"`,
-            `Supported content types: ${supportedTypes}`
+            `Supported content types: ${supportedTypes}`,
           ],
           []
-        )
+        );
       }
     }
     // add user agent
