@@ -13,6 +13,8 @@ import {
   applyHttpAuth,
   SecurityConfiguration,
 } from './security';
+import { SdkExecutionError } from '../../error';
+import { recursiveKeyList } from '../../lib/object';
 
 const debug = createDebug('superface:http');
 const debugSensitive = createDebug('superface:http:sensitive');
@@ -125,9 +127,22 @@ export const createUrl = (
     const missingKeys = replacements.filter(key => values[key] === undefined);
 
     if (missingKeys.length > 0) {
-      throw new Error(
-        `Values for URL replacement keys not found: ${missingKeys.join(', ')}`
-      );
+      const missing = missingKeys.join(', ')
+      const all = replacements.join(', ')
+      const available = recursiveKeyList(parameters.pathParameters ?? {}).join(', ')
+
+      throw new SdkExecutionError(
+        `Missing values for URL path replacement: ${missing}`,
+        [
+          `Trying to replace path keys for url: ${url}`,
+          all.length > 0 ? `Found these path keys: ${all}` : 'Found no path keys',
+          available.length > 0 ? `But only found these potential variables: ${available}` : 'But found no potential variables'
+        ],
+        [
+          'Make sure the url path variable refers to an available variable',
+          'Consider introducing a new variable with the correct name and desired value'
+        ]
+      )
     }
 
     const stringifiedValues = variablesToStrings(values);
@@ -182,9 +197,17 @@ export const HttpClient = {
         c => c.id === requirement.id
       );
       if (configuration === undefined) {
-        throw new Error(
-          `Credentials for security scheme "${requirement.id}" not present.`
-        );
+        throw new SdkExecutionError(
+          `Security values for security scheme not found: ${requirement.id}`,
+          [
+            `Security values for scheme "${requirement.id}" are required by the map`,
+            `but they were not provided to the sdk`
+          ],
+          [
+            `Make sure that the security scheme "${requirement.id}" exists in provider definition`,
+            `Check that either super.json or provider configuration provides security values for the "${requirement.id}" security scheme`
+          ]
+        )
       }
 
       if (configuration.type === SecurityType.APIKEY) {
@@ -208,9 +231,16 @@ export const HttpClient = {
         headers.append('Content-Type', FORMDATA_CONTENT);
         params.body = formData(variablesToStrings(requestBody));
       } else {
-        throw new Error(
-          `Unknown content type: ${parameters.contentType ?? ''}`
-        );
+        const cType = parameters.contentType ?? '';
+        const supportedTypes = [JSON_CONTENT, URLENCODED_CONTENT, FORMDATA_CONTENT].join(', ')
+        throw new SdkExecutionError(
+          `Content type not supported: ${cType}`,
+          [
+            `Requested content type "${cType}"`,
+            `Supported content types: ${supportedTypes}`
+          ],
+          []
+        )
       }
     }
     // add user agent

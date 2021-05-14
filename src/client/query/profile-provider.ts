@@ -2,6 +2,7 @@ import { MapDocumentNode, ProfileDocumentNode } from '@superfaceai/ast';
 import createDebug from 'debug';
 import { promises as fsp } from 'fs';
 import { join as joinPath } from 'path';
+import { SdkExecutionError } from '../../error/base';
 
 import {
   HttpScheme,
@@ -55,8 +56,6 @@ export class BoundProfileProvider {
       baseUrl?: string;
       profileProviderSettings?: NormalizedProfileProviderSettings;
       security: SecurityConfiguration[];
-      /** Selected service id */
-      serviceId?: string;
     }
   ) {
     this.profileValidator = new ProfileParameterValidator(this.profileAst);
@@ -165,7 +164,14 @@ export class ProfileProvider {
     // resolve profile locally
     const profileAst = await this.resolveProfileAst();
     if (profileAst === undefined) {
-      throw new Error('Invalid profile');
+      throw new SdkExecutionError(
+        `Invalid profile "${this.profile}"`,
+        [],
+        [
+          `Check that the profile is installed in super.json -> profiles or that the url is valid`,
+          `Profiles can be installed using the superface cli tool: \`superface install --help\` for more info`
+        ]
+      );
     }
     const profileId = profileAstId(profileAst);
 
@@ -209,21 +215,39 @@ export class ProfileProvider {
     }
 
     // prepare service info
+    // BUG: The serviceId coming from this.provider when it is ProviderConfiguration is not respected
     const serviceId = configuration?.serviceId ?? providerInfo.defaultService;
     const baseUrl = providerInfo.services.find(s => s.id === serviceId)
       ?.baseUrl;
+    if (baseUrl === undefined) {
+      let hints: string[] = []
+      if (serviceId == providerInfo.defaultService) {
+        hints = [
+          'This appears to be an error in the provider definition. Make sure that the defaultService in provider definition refers to an existing service id'
+        ]
+      }
+      // TODO: The service url resolution will change soon, probably won't be externally configurable
+
+      throw new SdkExecutionError(
+        `Service not found: ${serviceId}`,
+        [
+          `Service "${serviceId}" for provider "${providerName}" was not found`
+        ],
+        hints
+      )
+    }
 
     const securityConfiguration = this.resolveSecurityConfiguration(
       providerInfo.securitySchemes ?? [],
-      securityValues
+      securityValues,
+      providerName
     );
 
     return new BoundProfileProvider(profileAst, mapAst, {
       baseUrl,
       profileProviderSettings: this.superJson.normalized.profiles[profileId]
         ?.providers[providerInfo.name],
-      security: securityConfiguration,
-      serviceId: configuration?.serviceId,
+      security: securityConfiguration
     });
   }
 
@@ -415,23 +439,54 @@ export class ProfileProvider {
 
   private resolveSecurityConfiguration(
     schemes: SecurityScheme[],
-    values: SecurityValues[]
+    values: SecurityValues[],
+    providerName: string
   ): SecurityConfiguration[] {
     const result: SecurityConfiguration[] = [];
 
     for (const vals of values) {
       const scheme = schemes.find(scheme => scheme.id === vals.id);
       if (scheme === undefined) {
-        throw new Error(
-          `Could not find scheme for security requirement "${vals.id}"`
+        const definedSchemes = schemes.map(s => s.id).join(', ')
+        throw new SdkExecutionError(
+          `Could not find security scheme for security value with id "${vals.id}"`,
+          [
+            `The provider definition for "${providerName}" defines ` + (definedSchemes.length > 0 ? `these security schemes: ${definedSchemes}` : 'no security schemes'),
+            `but a secret value was provided for security scheme: ${vals.id}`
+          ],
+          [
+            `Check that every entry id in super.json -> providers["${providerName}"].security refers to an existing security scheme`,
+            `Make sure any configuration overrides in code for provider "${providerName}" refer to an existing security scheme`
+          ]
         );
       }
 
+      const invalidSchemeValuesErrorBuilder = (
+        scheme: SecurityScheme,
+        values: SecurityValues,
+        requiredKeys: [string, ...string[]]
+      ) => {
+        const valueKeys = Object.keys(values).filter(k => k !== 'id').join(', ')
+        const reqKeys = requiredKeys.join(', ')
+
+        return new SdkExecutionError(
+          `Invalid security values for given ${scheme.type} scheme "${scheme.id}"`,
+          [
+            `The provided security entry with id "${scheme.id}" has keys: ${valueKeys}`,
+            `but apikey scheme requires: ${reqKeys}`
+          ],
+          [
+            `Check that the entry with id "${scheme.id}" in super.json -> providers["${providerName}"].security refers to the correct security scheme`,
+            `Make sure any configuration overrides in code for provider "${providerName}" refer to the correct security scheme`
+          ]
+        )
+      };
+
       if (scheme.type === SecurityType.APIKEY) {
         if (!isApiKeySecurityValues(vals)) {
-          throw new Error(
-            `Invalid security values for given apikey scheme "${scheme.id}"`
-          );
+          throw invalidSchemeValuesErrorBuilder(
+            scheme, vals, ['apikey']
+          )
         }
 
         result.push({
@@ -442,9 +497,9 @@ export class ProfileProvider {
         switch (scheme.scheme) {
           case HttpScheme.BASIC:
             if (!isBasicAuthSecurityValues(vals)) {
-              throw new Error(
-                `Invalid security values for given basic auth scheme "${scheme.id}"`
-              );
+              throw invalidSchemeValuesErrorBuilder(
+                scheme, vals, ['username', 'password']
+              )
             }
 
             result.push({
@@ -455,9 +510,9 @@ export class ProfileProvider {
 
           case HttpScheme.BEARER:
             if (!isBearerTokenSecurityValues(vals)) {
-              throw new Error(
-                `Invalid security values for given bearer token scheme "${scheme.id}"`
-              );
+              throw invalidSchemeValuesErrorBuilder(
+                scheme, vals, ['token']
+              )
             }
 
             result.push({
@@ -468,9 +523,9 @@ export class ProfileProvider {
 
           case HttpScheme.DIGEST:
             if (!isDigestSecurityValues(vals)) {
-              throw new Error(
-                `Invalid security values for given digest scheme "${scheme.id}"`
-              );
+              throw invalidSchemeValuesErrorBuilder(
+                scheme, vals, ['digest']
+              )
             }
 
             result.push({

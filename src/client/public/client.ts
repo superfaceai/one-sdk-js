@@ -1,3 +1,4 @@
+import { SdkExecutionError } from '../../error';
 import { SuperJson } from '../../internal';
 import { NonPrimitive } from '../../internal/interpreter/variables';
 import { exists } from '../../lib/io';
@@ -82,7 +83,16 @@ export abstract class SuperfaceClientBase {
       return this.getProvider(name);
     }
 
-    throw new Error(`No configured provider found for profile ${profileId}.`);
+    throw new SdkExecutionError(
+      `No configured provider found for profile: ${profileId}`,
+      [
+        `Profile "${profileId}" needs at least one configured provider for automatic provider selection`
+      ],
+      [
+        `Check that a provider is configured for a profile in super.json -> profiles["${profileId}"].providers`,
+        `Providers can be configured using the superface cli tool: \`superface configure --help\` for more info`
+      ]
+    )
   }
 
   protected async getProfileConfiguration(
@@ -90,18 +100,31 @@ export abstract class SuperfaceClientBase {
   ): Promise<ProfileConfiguration> {
     const profileSettings = this.superJson.normalized.profiles[profileId];
     if (profileSettings === undefined) {
-      throw new Error(
-        `Profile "${profileId}" is not installed. Please install it by running \`superface install ${profileId}\`.`
-      );
+      throw new SdkExecutionError(
+        `Profile not installed: ${profileId}`,
+        [],
+        [
+          `Check that the profile is installed in super.json -> profiles["${profileId}"]`,
+          `Providers can be installed using the superface cli tool: \`superface install ${profileId}\``
+        ]
+      )
     }
 
     let version;
     if ('file' in profileSettings) {
       const filePath = this.superJson.resolvePath(profileSettings.file);
       if (!(await exists(filePath))) {
-        throw new Error(
-          `File "${profileSettings.file}" specified in super.json does not exist.`
-        );
+        throw new SdkExecutionError(
+          `Profile file at path doesn't exist: ${profileSettings.file}`,
+          [
+            `Profile "${profileId}" specifies a file path in super.json`,
+            'but this path does not exist or is not accessible'
+          ],
+          [
+            `Check that path in super.json -> profiles["${profileId}"].file exists and is accessible`,
+            'Paths in super.json are either absolute or relative to the location of super.json'
+          ]
+        )
       }
 
       // TODO: read version from the ast?

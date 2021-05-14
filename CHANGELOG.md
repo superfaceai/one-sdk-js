@@ -3,6 +3,9 @@
 ### Added
 * Provider name check
 
+### Changed
+* Errors returned (mostly) security value resolution and from http client are now friendlier
+
 ## [0.0.22] - 2021-04-26
 
 ### Added
