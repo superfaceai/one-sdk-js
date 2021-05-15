@@ -12,8 +12,10 @@ import {
   ProfileASTNode,
   ProfileDocumentNode,
   ProfileHeaderNode,
+  Type,
   UnionDefinitionNode,
   UseCaseDefinitionNode,
+  UseCaseSlotDefinitionNode,
 } from '@superfaceai/ast';
 import createDebug from 'debug';
 
@@ -156,7 +158,7 @@ export class ProfileParameterValidator implements ProfileVisitor {
       case 'UseCaseDefinition':
         return this.visitUseCaseDefinitionNode(node, kind, usecase);
       case 'UseCaseSlotDefinition':
-        throw 'TODO';
+        throw this.visitUseCaseSlotDefinitionNode(node, kind, usecase);
 
       default:
         assertUnreachable(node);
@@ -216,6 +218,10 @@ export class ProfileParameterValidator implements ProfileVisitor {
         }
 
         return [true];
+      }
+
+      if (node.required && field === undefined) {
+        return [false, [{ kind: 'missingRequired' }]];
       }
 
       return this.visit(node.type, kind, usecase)(field);
@@ -306,8 +312,8 @@ export class ProfileParameterValidator implements ProfileVisitor {
     usecase: string
   ): ValidationFunction {
     return (input: unknown): ValidationResult => {
-      if (input === undefined) {
-        return [false, [{ kind: 'missingRequired' }]];
+      if (input === null) {
+        return [false, [{ kind: 'nullInNonNullable' }]];
       }
 
       return this.visit(node.type, kind, usecase)(input);
@@ -370,7 +376,7 @@ export class ProfileParameterValidator implements ProfileVisitor {
     _usecase: string
   ): ValidationFunction {
     return (input: unknown): ValidationResult => {
-      if (input === undefined) {
+      if (input === undefined || input === null) {
         return [true];
       }
 
@@ -528,5 +534,13 @@ export class ProfileParameterValidator implements ProfileVisitor {
 
       return [false, [{ kind: 'wrongInput' }]];
     };
+  }
+
+  visitUseCaseSlotDefinitionNode(
+    _node: UseCaseSlotDefinitionNode<Type>,
+    _kind: ProfileParameterKind,
+    _usecase: string
+  ): never {
+    throw new Error('Method not implemented.');
   }
 }
