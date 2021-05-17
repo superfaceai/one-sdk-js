@@ -131,7 +131,7 @@ describe('superface client', () => {
       const client = new SuperfaceClient();
 
       await expect(client.getProfile('does/not-exist')).rejects.toThrow(
-        'Profile "does/not-exist" is not installed. Please install it by running `superface install does/not-exist`.'
+        'Hint: Profile can be installed using the superface cli tool: `superface install does/not-exist`'
       );
     });
 
@@ -139,7 +139,8 @@ describe('superface client', () => {
       const client = new SuperfaceClient();
 
       await expect(client.getProfile('foo')).rejects.toThrow(
-        'File "../foo.supr" specified in super.json does not exist.'
+        `Profile "foo" specifies a file path "../foo.supr" in super.json
+but this path does not exist or is not accessible`
       );
     });
 
@@ -203,11 +204,11 @@ describe('superface client', () => {
   });
 
   describe('getProviderForProfile', () => {
-    it('throws when on providers are not configured', async () => {
+    it('throws when providers are not configured', async () => {
       const client = new SuperfaceClient();
 
       await expect(client.getProviderForProfile('foo')).rejects.toThrow(
-        'No configured provider found for profile foo.'
+        'Profile "foo" needs at least one configured provider for automatic provider selection'
       );
     });
 

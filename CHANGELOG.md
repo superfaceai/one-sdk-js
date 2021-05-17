@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+### Changed
+* Errors returned (mostly) security value resolution and from http client are now friendlier
+
 ### Fixed
 * NonNullable types in ProfileParameterValidator
 

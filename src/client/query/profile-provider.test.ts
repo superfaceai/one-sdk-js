@@ -333,7 +333,6 @@ describe('profile provider', () => {
                 password: 'test-password',
               },
             ],
-            serviceId: undefined,
           }).toString()
         );
       });
@@ -385,7 +384,6 @@ describe('profile provider', () => {
                 password: 'test-password',
               },
             ],
-            serviceId: undefined,
           }).toString()
         );
       });
@@ -437,7 +435,6 @@ describe('profile provider', () => {
                 password: 'test-password',
               },
             ],
-            serviceId: undefined,
           }).toString()
         );
       });
@@ -497,7 +494,6 @@ describe('profile provider', () => {
                 password: 'test-password',
               },
             ],
-            serviceId: undefined,
           }).toString()
         );
       });
@@ -554,7 +550,6 @@ describe('profile provider', () => {
                 password: 'test-password',
               },
             ],
-            serviceId: undefined,
           }).toString()
         );
       });
@@ -587,8 +582,8 @@ describe('profile provider', () => {
           'test-profile',
           mockProviderConfiguration
         );
-        await expect(mockProfileProvider.bind()).rejects.toEqual(
-          new Error('Invalid profile')
+        await expect(mockProfileProvider.bind()).rejects.toThrow(
+          'Hint: Profiles can be installed using the superface cli tool: `superface install --help` for more info'
         );
       });
 
@@ -680,7 +675,6 @@ describe('profile provider', () => {
                 password: 'test-password',
               },
             ],
-            serviceId: undefined,
           }).toString()
         );
       });
@@ -751,7 +745,6 @@ describe('profile provider', () => {
                 password: 'test-password',
               },
             ],
-            serviceId: undefined,
           }).toString()
         );
         SuperJson.mergeSecurity = orginalMerge;
@@ -790,10 +783,9 @@ describe('profile provider', () => {
           mockProviderJson
         );
 
-        await expect(mockProfileProvider.bind()).rejects.toEqual(
-          new Error(
-            'Could not find scheme for security requirement "made-up-id"'
-          )
+        await expect(mockProfileProvider.bind()).rejects.toThrow(
+          `The provider definition for "test" defines these security schemes: basic, api, bearer, digest
+but a secret value was provided for security scheme: made-up-id`
         );
       });
 
@@ -829,8 +821,9 @@ describe('profile provider', () => {
           mockProviderJson
         );
 
-        await expect(mockProfileProvider.bind()).rejects.toEqual(
-          new Error('Invalid security values for given apikey scheme "api"')
+        await expect(mockProfileProvider.bind()).rejects.toThrow(
+          `The provided security values with id "api" have keys: password
+but apiKey scheme requires: apikey`
         );
       });
 
@@ -866,10 +859,9 @@ describe('profile provider', () => {
           mockProviderJson
         );
 
-        await expect(mockProfileProvider.bind()).rejects.toEqual(
-          new Error(
-            'Invalid security values for given basic auth scheme "basic"'
-          )
+        await expect(mockProfileProvider.bind()).rejects.toThrow(
+          `The provided security values with id "basic" have keys: password
+but http scheme requires: username, password`
         );
       });
 
@@ -905,10 +897,9 @@ describe('profile provider', () => {
           mockProviderJson
         );
 
-        await expect(mockProfileProvider.bind()).rejects.toEqual(
-          new Error(
-            'Invalid security values for given bearer token scheme "bearer"'
-          )
+        await expect(mockProfileProvider.bind()).rejects.toThrow(
+          `The provided security values with id "bearer" have keys: password
+but http scheme requires: token`
         );
       });
 
@@ -944,8 +935,9 @@ describe('profile provider', () => {
           mockProviderJson
         );
 
-        await expect(mockProfileProvider.bind()).rejects.toEqual(
-          new Error('Invalid security values for given digest scheme "digest"')
+        await expect(mockProfileProvider.bind()).rejects.toThrow(
+          `The provided security values with id "digest" have keys: password
+but http scheme requires: digest`
         );
       });
     });
