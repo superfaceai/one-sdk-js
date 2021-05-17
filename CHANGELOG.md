@@ -7,190 +7,167 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.27] - 2021-05-17
 ### Changed
-* Errors returned (mostly) security value resolution and from http client are now friendlier
+- Errors returned (mostly) security value resolution and from http client are now friendlier
 
 ### Fixed
-* NonNullable types in ProfileParameterValidator
+- NonNullable types in ProfileParameterValidator
 
 ## [0.0.26] - 2021-05-07
-
 ### Added
-* ENV variable to change superface path
+- ENV variable to change superface path
 
 ## [0.0.25] - 2021-05-04
-
 ### Added
-* Provider name check
+- Provider name check
 
 ## [0.0.23] - 2021-04-28
-
 ### Added
-* ENV variable to change API URL
+- ENV variable to change API URL
 
 ## [0.0.22] - 2021-04-26
-
 ### Added
-* user agent header to HTTP requests
+- user agent header to HTTP requests
 
 ### Changed
-* changed API URLs to public
+- changed API URLs to public
 
 ## [0.0.21] - 2021-04-26
-
 ### Added
-* Export TypedProfile class
+- Export TypedProfile class
 
 ## [0.0.19] - 2021-04-23
-
 ### Added
-* Logging to ProfileParameterValidator
-* Status code to mapped errors
+- Logging to ProfileParameterValidator
+- Status code to mapped errors
 
 ### Changed
-* Preserve trailing slash in URLs
+- Preserve trailing slash in URLs
 
 ## [0.0.18] - 2021-04-23
-
 ### Changed
-* Throw error when usecase not found
+- Throw error when usecase not found
 
 ## [0.0.17] - 2021-04-22
-
 ### Changed
-* Improved Result documentation
+- Improved Result documentation
 
 ## [0.0.16] - 2021-04-22
-
 ### Changed
-* Renamed repository to `one-sdk-js`
+- Renamed repository to `one-sdk-js`
 
 ## [0.0.15] - 2021-04-21
-
 ### Added
-* Typed SDK interface
+- Typed SDK interface
 
 ### Changed
-* Default result type from `unknown` to `any` in perform method
+- Default result type from `unknown` to `any` in perform method
 
 ## [0.0.14] - 2021-03-25
-
 ### Added
-* Security configuration merged from schemes in provider.json and values in super.json
+- Security configuration merged from schemes in provider.json and values in super.json
 
 ### Changed
-* Env variable resolution is not part of SuperJson normalization
+- Env variable resolution is not part of SuperJson normalization
 
 ## [0.0.13] - 2021-03-17
-
 ### Fixed
-* Only combine URL and base URL after interpolation
+- Only combine URL and base URL after interpolation
 
 ## [0.0.12] - 2021-03-17
-
 ### Fixed
-* Narrow interpolation parameter regex
-* Pass headers and status code to HTTP response handler
+- Narrow interpolation parameter regex
+- Pass headers and status code to HTTP response handler
 
 ## [0.0.11] - 2021-03-15
-
 ### Added
-* New untyped SuperfaceClient, Profile, Provider, Usecase API
+- New untyped SuperfaceClient, Profile, Provider, Usecase API
 
 ### Changed
-* Refactored Result library
+- Refactored Result library
 
 ### Fixed
-* Correctly resolve nested variables in path params
-* Normalize url when building it in for http requests
+- Correctly resolve nested variables in path params
+- Normalize url when building it in for http requests
 
 ## [0.0.10] - 2021-03-11
-
 ### Added
-* provider.json zod schemes
+- provider.json zod schemes
 
 ## [0.0.9] - 2021-02-25
-
 ### Added
-* super.json support
-* Environment variable resolution from super.json
-* Normalized super.json representation
+- super.json support
+- Environment variable resolution from super.json
+- Normalized super.json representation
 
 ### Changed
-* `Provider` class interface simplified
-* File uris to use `file://` protocol prefix
-* Simplified the parameters to MapInterpreter
+- `Provider` class interface simplified
+- File uris to use `file://` protocol prefix
+- Simplified the parameters to MapInterpreter
 
 ## [0.0.8] - 2021-02-11
-
 ### Added
-* Iteration support in Maps
+- Iteration support in Maps
 
 ### Fixed
-* Incorrect scoping
+- Incorrect scoping
 
 ## [0.0.7] - 2021-01-21
-
 ### Fixed
-* Inline call and call statement not correctly handling call stack arguments
-* Array handling in mergeVariables function
+- Inline call and call statement not correctly handling call stack arguments
+- Array handling in mergeVariables function
 
 ## [0.0.6] - 2021-01-11
-
 ### Changed
-* Updated AST version
+- Updated AST version
 
 ## [0.0.5] - 2020-12-22
-
 ### Changed
-* Enhanced logging of HTTP Errors
+- Enhanced logging of HTTP Errors
 
 ## [0.0.4] - 2020-12-15
-
 ### Added
-* Better DX and error experience
-* Debug logging to map interpreter
-* Sandbox tests
+- Better DX and error experience
+- Debug logging to map interpreter
+- Sandbox tests
 
 ### Changed
-* Repository and package name
-* `Provider` and `BoundProvider` interface
+- Repository and package name
+- `Provider` and `BoundProvider` interface
 
 ## [0.0.3] - 2020-11-25
-
 ### Added
-* Providers
-* Profile and map fetching functions
-* Service finder
-* Apikey http security scheme
+- Providers
+- Profile and map fetching functions
+- Service finder
+- Apikey http security scheme
 
 ### Changed
-* Readme using convention
-* Name of the package scope to `@superfaceai`
-* Sandbox tests and return values
+- Readme using convention
+- Name of the package scope to `@superfaceai`
+- Sandbox tests and return values
 
 ### Removed
-* Unused interfaces
+- Unused interfaces
 
 ### Fixed
-* Github workflow actions failing due to github security update
+- Github workflow actions failing due to github security update
 
-## [0.0.1] - 2020-08-31
-
+## 0.0.1 - 2020-08-31
 ### Added
-* Map interpreter
-* `vm2` based js sandbox
-* Profile parameter validator
-* CI/CD workflows
+- Map interpreter
+- `vm2` based js sandbox
+- Profile parameter validator
+- CI/CD workflows
 
-
-[Unreleased]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.26...HEAD
+[Unreleased]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.27...HEAD
+[0.0.27]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.26...v0.0.27
 [0.0.26]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.25...v0.0.26
 [0.0.25]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.23...v0.0.25
 [0.0.23]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.22...v0.0.23
 [0.0.22]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.21...v0.0.22
-[0.0.21]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.20...v0.0.21
-[0.0.20]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.19...v0.0.20
+[0.0.21]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.19...v0.0.21
 [0.0.19]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.18...v0.0.19
 [0.0.18]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.17...v0.0.18
 [0.0.17]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.16...v0.0.17
@@ -205,7 +182,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [0.0.8]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.7...v0.0.8
 [0.0.7]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.6...v0.0.7
 [0.0.6]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.5...v0.0.6
-[0.0.5]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.6...v0.0.5
+[0.0.5]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.4...v0.0.5
 [0.0.4]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.3...v0.0.4
 [0.0.3]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.1...v0.0.3
-[0.0.1]: https://github.com/superfaceai/one-sdk-js/releases/tag/v0.0.1
