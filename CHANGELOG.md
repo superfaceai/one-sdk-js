@@ -1,31 +1,89 @@
 ## [Unreleased]
 
+### Changed
+* Errors returned (mostly) security value resolution and from http client are now friendlier
+
+### Fixed
+* NonNullable types in ProfileParameterValidator
+
+## [0.0.26] - 2021-05-07
+
+### Added
+* ENV variable to change superface path
+
+## [0.0.25] - 2021-05-04
+
 ### Added
 * Provider name check
 
-### Changed
-* Errors returned (mostly) security value resolution and from http client are now friendlier
+## [0.0.23] - 2021-04-28
+
+### Added
+* ENV variable to change API URL
 
 ## [0.0.22] - 2021-04-26
 
 ### Added
+* user agent header to HTTP requests
+
+### Changed
+* changed API URLs to public
+
+## [0.0.21] - 2021-04-26
+
+### Added
 * Export TypedProfile class
+
+## [0.0.19] - 2021-04-23
+
+### Added
+* Logging to ProfileParameterValidator
+* Status code to mapped errors
+
+### Changed
+* Preserve trailing slash in URLs
+
+## [0.0.18] - 2021-04-23
+
+### Changed
+* Throw error when usecase not found
+
+## [0.0.17] - 2021-04-22
+
+### Changed
+* Improved Result documentation
+
+## [0.0.16] - 2021-04-22
+
+### Changed
+* Renamed repository to `one-sdk-js`
 
 ## [0.0.15] - 2021-04-21
 
 ### Added
-* Security configuration merged from schemes in provider.json and values in super.json
 * Typed SDK interface
 
 ### Changed
-* Env variable resolution is not part of SuperJson normalization
-* Renamed repository to `one-sdk-js`
 * Default result type from `unknown` to `any` in perform method
 
+## [0.0.14] - 2021-03-25
+
+### Added
+* Security configuration merged from schemes in provider.json and values in super.json
+
+### Changed
+* Env variable resolution is not part of SuperJson normalization
+
+## [0.0.13] - 2021-03-17
+
 ### Fixed
-* Pass headers and status code to HTTP response handler
 * Only combine URL and base URL after interpolation
+
+## [0.0.12] - 2021-03-17
+
+### Fixed
 * Narrow interpolation parameter regex
+* Pass headers and status code to HTTP response handler
 
 ## [0.0.11] - 2021-03-15
 
@@ -119,9 +177,21 @@
 * CI/CD workflows
 
 
-[Unreleased]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.22...HEAD
-[0.0.22]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.15...v0.0.22
-[0.0.15]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.11...v0.0.15
+[Unreleased]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.26...HEAD
+[0.0.26]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.25...v0.0.26
+[0.0.25]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.23...v0.0.25
+[0.0.23]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.22...v0.0.23
+[0.0.22]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.21...v0.0.22
+[0.0.21]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.20...v0.0.21
+[0.0.20]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.19...v0.0.20
+[0.0.19]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.18...v0.0.19
+[0.0.18]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.17...v0.0.18
+[0.0.17]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.16...v0.0.17
+[0.0.16]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.15...v0.0.16
+[0.0.15]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.14...v0.0.15
+[0.0.14]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.13...v0.0.14
+[0.0.13]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.12...v0.0.13
+[0.0.12]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.11...v0.0.12
 [0.0.11]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.10...v0.0.11
 [0.0.10]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.9...v0.0.10
 [0.0.9]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.8...v0.0.9

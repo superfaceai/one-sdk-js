@@ -117,7 +117,7 @@ describe('ProfileParameterValidator', () => {
               {
                 test: 'hello',
                 another: 'input',
-              } as any,
+              },
               'input',
               'Test'
             )
@@ -125,7 +125,7 @@ describe('ProfileParameterValidator', () => {
         ).toEqual(true);
         expect(
           parameterValidator
-            .validate({ another: 'input' } as any, 'input', 'Test')
+            .validate({ another: 'input' }, 'input', 'Test')
             .isOk()
         ).toEqual(true);
       });
@@ -175,7 +175,7 @@ describe('ProfileParameterValidator', () => {
 
       it('should fail with incorrect type', () => {
         const result = parameterValidator.validate(
-          { test: 7 } as any,
+          { test: 7 },
           'input',
           'Test'
         );
@@ -201,7 +201,7 @@ describe('ProfileParameterValidator', () => {
                   {
                     kind: 'FieldDefinition',
                     fieldName: 'test',
-                    required: false,
+                    required: true,
                     type: {
                       kind: 'NonNullDefinition',
                       type: {
@@ -226,7 +226,7 @@ describe('ProfileParameterValidator', () => {
 
       it('should fail with incorrect type', () => {
         const result = parameterValidator.validate(
-          { test: 7 } as any,
+          { test: 7 },
           'input',
           'Test'
         );
@@ -236,8 +236,18 @@ describe('ProfileParameterValidator', () => {
       });
 
       it('should fail with missing field', () => {
-        const result = parameterValidator.validate({} as any, 'input', 'Test');
+        const result = parameterValidator.validate({}, 'input', 'Test');
         expect(checkErrorKind(result)).toEqual(['missingRequired']);
+        expect(checkErrorPath(result)).toEqual([['input', 'test']]);
+      });
+
+      it('should fail on null', () => {
+        const result = parameterValidator.validate(
+          { test: null },
+          'input',
+          'Test'
+        );
+        expect(checkErrorKind(result)).toEqual(['nullInNonNullable']);
         expect(checkErrorPath(result)).toEqual([['input', 'test']]);
       });
     });
@@ -258,7 +268,7 @@ describe('ProfileParameterValidator', () => {
                   {
                     kind: 'FieldDefinition',
                     fieldName: 'test',
-                    required: false,
+                    required: true,
                     type: {
                       kind: 'NonNullDefinition',
                       type: {
@@ -319,18 +329,18 @@ describe('ProfileParameterValidator', () => {
       });
 
       it('should fail with invalid input', () => {
-        const result1 = parameterValidator.validate({} as any, 'input', 'Test');
+        const result1 = parameterValidator.validate({}, 'input', 'Test');
         expect(checkErrorKind(result1)).toEqual(['missingRequired']);
         expect(checkErrorPath(result1)).toEqual([['input', 'test']]);
         const result2 = parameterValidator.validate(
-          { test: 7 } as any,
+          { test: 7 },
           'input',
           'Test'
         );
         expect(checkErrorPath(result2)).toEqual([['input', 'test']]);
         expect(checkErrorKind(result2)).toEqual(['wrongType']);
         const result3 = parameterValidator.validate(
-          { test: 7, another: 'hello' } as any,
+          { test: 7, another: 'hello' },
           'input',
           'Test'
         );
@@ -343,7 +353,7 @@ describe('ProfileParameterValidator', () => {
           {
             test: 'hello',
             another: 'hello',
-          } as any,
+          },
           'input',
           'Test'
         );
@@ -397,7 +407,7 @@ describe('ProfileParameterValidator', () => {
 
       it('should fail with invalid input', () => {
         const result = parameterValidator.validate(
-          { test: 7 } as any,
+          { test: 7 },
           'input',
           'Test'
         );
@@ -453,7 +463,7 @@ describe('ProfileParameterValidator', () => {
 
       it('should fail with invalid input', () => {
         const result1 = parameterValidator.validate(
-          { test: 'none of your business' } as any,
+          { test: 'none of your business' },
           'input',
           'Test'
         );
@@ -463,7 +473,7 @@ describe('ProfileParameterValidator', () => {
           { actual: '"none of your business"' },
         ]);
         const result2 = parameterValidator.validate(
-          { test: 7 } as any,
+          { test: 7 },
           'input',
           'Test'
         );
@@ -524,14 +534,14 @@ describe('ProfileParameterValidator', () => {
 
       it('should fail with invalid input', () => {
         const result1 = parameterValidator.validate(
-          { test: 'none of your business' } as any,
+          { test: 'none of your business' },
           'input',
           'Test'
         );
         expect(checkErrorKind(result1)).toEqual(['enumValue']);
         expect(checkErrorPath(result1)).toEqual([['input', 'test']]);
         const result2 = parameterValidator.validate(
-          { test: 7 } as any,
+          { test: 7 },
           'input',
           'Test'
         );
@@ -562,7 +572,7 @@ describe('ProfileParameterValidator', () => {
                       fields: [
                         {
                           kind: 'FieldDefinition',
-                          required: false,
+                          required: true,
                           fieldName: 'hello',
                           type: {
                             kind: 'NonNullDefinition',
@@ -593,21 +603,21 @@ describe('ProfileParameterValidator', () => {
 
       it('should fail with invalid input', () => {
         const result1 = parameterValidator.validate(
-          { test: 'hello!' } as any,
+          { test: 'hello!' },
           'input',
           'Test'
         );
         expect(checkErrorKind(result1)).toEqual(['wrongType']);
         expect(checkErrorPath(result1)).toEqual([['input', 'test']]);
         const result2 = parameterValidator.validate(
-          { test: {} } as any,
+          { test: {} },
           'input',
           'Test'
         );
         expect(checkErrorKind(result2)).toEqual(['missingRequired']);
         expect(checkErrorPath(result2)).toEqual([['input', 'test', 'hello']]);
         const result3 = parameterValidator.validate(
-          { test: { hello: 7 } } as any,
+          { test: { hello: 7 } },
           'input',
           'Test'
         );
@@ -683,25 +693,26 @@ describe('ProfileParameterValidator', () => {
             .validate({ test: { hello: { goodbye: false } } }, 'input', 'Test')
             .isOk()
         ).toEqual(true);
+        expect(
+          parameterValidator
+            .validate({ test: { hello: { goodbye: null } } }, 'input', 'Test')
+            .isOk()
+        ).toEqual(true);
       });
 
       it('should fail with invalid input', () => {
-        const result1 = parameterValidator.validate(
-          'hello!' as any,
-          'input',
-          'Test'
-        );
+        const result1 = parameterValidator.validate('hello!', 'input', 'Test');
         expect(checkErrorKind(result1)).toEqual(['wrongType']);
         expect(checkErrorPath(result1)).toEqual([['input']]);
         const result2 = parameterValidator.validate(
-          { test: 'hello!' } as any,
+          { test: 'hello!' },
           'input',
           'Test'
         );
         expect(checkErrorKind(result2)).toEqual(['wrongType']);
         expect(checkErrorPath(result2)).toEqual([['input', 'test']]);
         const result3 = parameterValidator.validate(
-          { test: { hello: 'goodbye!' } } as any,
+          { test: { hello: 'goodbye!' } },
           'input',
           'Test'
         );
@@ -710,7 +721,7 @@ describe('ProfileParameterValidator', () => {
         const result4 = parameterValidator.validate(
           {
             test: { hello: { goodbye: 'true' } },
-          } as any,
+          },
           'input',
           'Test'
         );
@@ -751,7 +762,7 @@ describe('ProfileParameterValidator', () => {
               fields: [
                 {
                   kind: 'FieldDefinition',
-                  required: false,
+                  required: true,
                   fieldName: 'hello',
                   type: {
                     kind: 'NonNullDefinition',
@@ -778,21 +789,21 @@ describe('ProfileParameterValidator', () => {
 
       it('should fail with invalid input', () => {
         const result1 = parameterValidator.validate(
-          { test: 'hello!' } as any,
+          { test: 'hello!' },
           'input',
           'Test'
         );
         expect(checkErrorKind(result1)).toEqual(['wrongType']);
         expect(checkErrorPath(result1)).toEqual([['input', 'test']]);
         const result2 = parameterValidator.validate(
-          { test: {} } as any,
+          { test: {} },
           'input',
           'Test'
         );
         expect(checkErrorKind(result2)).toEqual(['missingRequired']);
         expect(checkErrorPath(result2)).toEqual([['input', 'test', 'hello']]);
         const result3 = parameterValidator.validate(
-          { test: { hello: 7 } } as any,
+          { test: { hello: 7 } },
           'input',
           'Test'
         );
@@ -854,7 +865,7 @@ describe('ProfileParameterValidator', () => {
 
       it('should fail with invalid input', () => {
         const result = parameterValidator.validate(
-          { test: true } as any,
+          { test: true },
           'input',
           'Test'
         );
@@ -878,7 +889,7 @@ describe('ProfileParameterValidator', () => {
                 fields: [
                   {
                     kind: 'FieldDefinition',
-                    required: false,
+                    required: true,
                     fieldName: 'test',
                     type: {
                       kind: 'NonNullDefinition',
@@ -923,11 +934,11 @@ describe('ProfileParameterValidator', () => {
       });
 
       it('should fail with invalid input', () => {
-        const result1 = parameterValidator.validate({} as any, 'input', 'Test');
+        const result1 = parameterValidator.validate({}, 'input', 'Test');
         expect(checkErrorKind(result1)).toEqual(['missingRequired']);
         expect(checkErrorPath(result1)).toEqual([['input', 'test']]);
         const result2 = parameterValidator.validate(
-          { test: true } as any,
+          { test: true },
           'input',
           'Test'
         );
@@ -990,14 +1001,14 @@ describe('ProfileParameterValidator', () => {
 
       it('should fail with invalid input', () => {
         const result1 = parameterValidator.validate(
-          { test: 7 } as any,
+          { test: 7 },
           'input',
           'Test'
         );
         expect(checkErrorKind(result1)).toEqual(['notArray']);
         expect(checkErrorPath(result1)).toEqual([['input', 'test']]);
         const result2 = parameterValidator.validate(
-          { test: [7] } as any,
+          { test: [7] },
           'input',
           'Test'
         );
@@ -1021,7 +1032,7 @@ describe('ProfileParameterValidator', () => {
                 fields: [
                   {
                     kind: 'FieldDefinition',
-                    required: false,
+                    required: true,
                     fieldName: 'test',
                     type: {
                       kind: 'NonNullDefinition',
@@ -1059,32 +1070,23 @@ describe('ProfileParameterValidator', () => {
       });
 
       it('should fail with invalid input', () => {
-        const result1 = parameterValidator.validate({} as any, 'input', 'Test');
+        const result1 = parameterValidator.validate({}, 'input', 'Test');
         expect(checkErrorKind(result1)).toEqual(['missingRequired']);
         expect(checkErrorPath(result1)).toEqual([['input', 'test']]);
-        // expect(result1.isErr() && result1.error.toString()).toEqual(
-        //   '[input.test] Missing required field'
-        // );
         const result2 = parameterValidator.validate(
-          { test: 7 } as any,
+          { test: 7 },
           'input',
           'Test'
         );
         expect(checkErrorKind(result2)).toEqual(['notArray']);
         expect(checkErrorPath(result2)).toEqual([['input', 'test']]);
-        // expect(result2.isErr() && result2.error.toString()).toEqual(
-        //   '[input.test] 7 is not an array'
-        // );
         const result3 = parameterValidator.validate(
-          { test: [7] } as any,
+          { test: [7] },
           'input',
           'Test'
         );
         expect(checkErrorKind(result3)).toEqual(['elementsInArrayWrong']);
         expect(checkErrorPath(result3)).toEqual([['input', 'test']]);
-        // expect(result3.isErr() && result3.error.toString()).toEqual(
-        //   '[input.test] Some elements in array do not match criteria:\nWrong type: expected string, but got number'
-        // );
       });
     });
   });
@@ -1160,40 +1162,27 @@ describe('ProfileParameterValidator', () => {
       });
 
       it('should fail with invalid input', () => {
-        const result1 = parameterValidator.validate(
-          'hello!' as any,
-          'result',
-          'Test'
-        );
+        const result1 = parameterValidator.validate('hello!', 'result', 'Test');
         expect(checkErrorKind(result1)).toEqual(['wrongType']);
         expect(checkErrorPath(result1)).toEqual([['result']]);
-        // expect(result1.isErr() && result1.error.toString()).toEqual(
-        //   '[result] Wrong type: expected object, but got string'
-        // );
         const result2 = parameterValidator.validate(
-          { test: 'hello!' } as any,
+          { test: 'hello!' },
           'result',
           'Test'
         );
         expect(checkErrorKind(result2)).toEqual(['wrongType']);
         expect(checkErrorPath(result2)).toEqual([['result', 'test']]);
-        // expect(result2.isErr() && result2.error.toString()).toEqual(
-        //   '[result.test] Wrong type: expected object, but got string'
-        // );
         const result3 = parameterValidator.validate(
-          { test: { hello: 'goodbye!' } } as any,
+          { test: { hello: 'goodbye!' } },
           'result',
           'Test'
         );
         expect(checkErrorKind(result3)).toEqual(['wrongType']);
         expect(checkErrorPath(result3)).toEqual([['result', 'test', 'hello']]);
-        // expect(result3.isErr() && result3.error.toString()).toEqual(
-        //   '[result.test.hello] Wrong type: expected object, but got string'
-        // );
         const result4 = parameterValidator.validate(
           {
             test: { hello: { goodbye: 'true' } },
-          } as any,
+          },
           'result',
           'Test'
         );
@@ -1201,9 +1190,6 @@ describe('ProfileParameterValidator', () => {
         expect(checkErrorPath(result4)).toEqual([
           ['result', 'test', 'hello', 'goodbye'],
         ]);
-        // expect(result4.isErr() && result4.error.toString()).toEqual(
-        //   '[result.test.hello.goodbye] Wrong type: expected boolean, but got string'
-        // );
       });
     });
 
@@ -1275,21 +1261,21 @@ describe('ProfileParameterValidator', () => {
 
       it('should fail with invalid input', () => {
         const result1 = parameterValidator.validate(
-          { test: 8 } as any,
+          { test: 8 },
           'result',
           'Test'
         );
         expect(checkErrorKind(result1)).toEqual(['enumValue']);
         expect(checkErrorPath(result1)).toEqual([['result', 'test']]);
         const result2 = parameterValidator.validate(
-          { test: false } as any,
+          { test: false },
           'result',
           'Test'
         );
         expect(checkErrorKind(result2)).toEqual(['enumValue']);
         expect(checkErrorPath(result2)).toEqual([['result', 'test']]);
         const result3 = parameterValidator.validate(
-          { test: 'd' } as any,
+          { test: 'd' },
           'result',
           'Test'
         );
