@@ -23,6 +23,10 @@ export type ValidationError =
   | {
       kind: 'missingRequired';
       context?: ErrorContext & { field: string };
+    }
+  | {
+      kind: 'nullInNonNullable';
+      context?: ErrorContext & { field: string };
     };
 
 export function isWrongTypeError(
@@ -85,6 +89,9 @@ export function formatErrors(errors?: ValidationError[]): string {
 
         case 'wrongInput':
           return `Wrong input`;
+
+        case 'nullInNonNullable':
+          return `${prefix}Null in non-nullable field`;
 
         default:
           throw new Error('Invalid error!');

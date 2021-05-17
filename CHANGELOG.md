@@ -3,6 +3,9 @@
 ### Added
 * Provider name check
 
+### Fixed
+* NonNullable types in ProfileParameterValidator
+
 ## [0.0.22] - 2021-04-26
 
 ### Added
