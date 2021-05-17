@@ -583,11 +583,7 @@ describe('profile provider', () => {
           mockProviderConfiguration
         );
         await expect(mockProfileProvider.bind()).rejects.toThrow(
-          `Invalid profile "test-profile"
-
-Hint: Check that the profile is installed in super.json -> profiles or that the url is valid
-Hint: Profiles can be installed using the superface cli tool: \`superface install --help\` for more info
-`
+          'Hint: Profiles can be installed using the superface cli tool: `superface install --help` for more info'
         );
       });
 
@@ -788,14 +784,8 @@ Hint: Profiles can be installed using the superface cli tool: \`superface instal
         );
 
         await expect(mockProfileProvider.bind()).rejects.toThrow(
-          `Could not find security scheme for security value with id "made-up-id"
-
-The provider definition for "test" defines these security schemes: basic, api, bearer, digest
-but a secret value was provided for security scheme: made-up-id
-
-Hint: Check that every entry id in super.json -> providers["test"].security refers to an existing security scheme
-Hint: Make sure any configuration overrides in code for provider "test" refer to an existing security scheme
-`
+          `The provider definition for "test" defines these security schemes: basic, api, bearer, digest
+but a secret value was provided for security scheme: made-up-id`
         );
       });
 
@@ -832,14 +822,8 @@ Hint: Make sure any configuration overrides in code for provider "test" refer to
         );
 
         await expect(mockProfileProvider.bind()).rejects.toThrow(
-          `Invalid security values for given apiKey scheme: api
-
-The provided security values with id "api" have keys: password
-but apiKey scheme requires: apikey
-
-Hint: Check that the entry with id "api" in super.json -> providers["test"].security refers to the correct security scheme
-Hint: Make sure any configuration overrides in code for provider "test" refer to the correct security scheme
-`
+          `The provided security values with id "api" have keys: password
+but apiKey scheme requires: apikey`
         );
       });
 
@@ -876,14 +860,8 @@ Hint: Make sure any configuration overrides in code for provider "test" refer to
         );
 
         await expect(mockProfileProvider.bind()).rejects.toThrow(
-          `Invalid security values for given http scheme: basic
-
-The provided security values with id "basic" have keys: password
-but http scheme requires: username, password
-
-Hint: Check that the entry with id "basic" in super.json -> providers["test"].security refers to the correct security scheme
-Hint: Make sure any configuration overrides in code for provider "test" refer to the correct security scheme
-`
+          `The provided security values with id "basic" have keys: password
+but http scheme requires: username, password`
         );
       });
 
@@ -920,14 +898,8 @@ Hint: Make sure any configuration overrides in code for provider "test" refer to
         );
 
         await expect(mockProfileProvider.bind()).rejects.toThrow(
-          `Invalid security values for given http scheme: bearer
-
-The provided security values with id "bearer" have keys: password
-but http scheme requires: token
-
-Hint: Check that the entry with id "bearer" in super.json -> providers["test"].security refers to the correct security scheme
-Hint: Make sure any configuration overrides in code for provider "test" refer to the correct security scheme
-`
+          `The provided security values with id "bearer" have keys: password
+but http scheme requires: token`
         );
       });
 
@@ -964,14 +936,8 @@ Hint: Make sure any configuration overrides in code for provider "test" refer to
         );
 
         await expect(mockProfileProvider.bind()).rejects.toThrow(
-          `Invalid security values for given http scheme: digest
-
-The provided security values with id "digest" have keys: password
-but http scheme requires: digest
-
-Hint: Check that the entry with id "digest" in super.json -> providers["test"].security refers to the correct security scheme
-Hint: Make sure any configuration overrides in code for provider "test" refer to the correct security scheme
-`
+          `The provided security values with id "digest" have keys: password
+but http scheme requires: digest`
         );
       });
     });
