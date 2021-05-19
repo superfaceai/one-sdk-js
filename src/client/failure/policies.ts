@@ -7,7 +7,7 @@ import {
 } from './policy';
 
 /** Simple policy which aborts on the first failure */
-export class AbortPolict extends FailurePolicy {
+export class AbortPolicy extends FailurePolicy {
   constructor(name: string, safety: 'safe' | 'unsafe' | 'idempotent') {
     super(name, safety);
   }

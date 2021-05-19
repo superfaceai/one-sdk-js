@@ -1,8 +1,8 @@
-import { AbortPolict, RetryPolicy } from './policies';
+import { AbortPolicy, RetryPolicy } from './policies';
 
 describe('failure policies', () => {
   describe('abort policy', () => {
-    const policy = new AbortPolict('test', 'safe');
+    const policy = new AbortPolicy('test', 'safe');
     const failure = { registryCacheAge: 0 };
 
     it('always aborts on failure', () => {
