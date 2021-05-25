@@ -165,7 +165,7 @@ More about the journey of the secrets within SDK can be found in [Security](SECU
 
 ## Support
 
-If you need any additional support, have any questions or you just want to talk you can do that through our [documentation page](https://developer.superface.dev). 
+If you need any additional support, have any questions or you just want to talk you can do that through our [documentation page](https://docs.superface.ai). 
 
 ## Maintainers
 
