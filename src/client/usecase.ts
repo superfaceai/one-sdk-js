@@ -1,8 +1,8 @@
-import { MapInterpreterError, ProfileParameterError } from '../../internal';
-import { NonPrimitive, Variables } from '../../internal/interpreter/variables';
-import { Result } from '../../lib';
-import { BoundProfileProvider } from '../query';
+import { MapInterpreterError, ProfileParameterError } from '../internal';
+import { NonPrimitive, Variables } from '../internal/interpreter/variables';
+import { Result } from '../lib';
 import { ProfileBase } from './profile';
+import { BoundProfileProvider } from './profile-provider';
 import { Provider } from './provider';
 
 export type PerformOptions = {

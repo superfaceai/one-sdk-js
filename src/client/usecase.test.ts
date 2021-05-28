@@ -1,9 +1,9 @@
 import { MapDocumentNode, ProfileDocumentNode } from '@superfaceai/ast';
 
-import { ok } from '../../lib/result/result';
-import { BoundProfileProvider } from '../query/profile-provider';
+import { ok } from '../lib/result/result';
 import { SuperfaceClient } from './client';
 import { Profile, ProfileConfiguration } from './profile';
+import { BoundProfileProvider } from './profile-provider';
 import { Provider, ProviderConfiguration } from './provider';
 import { UseCase } from './usecase';
 
@@ -11,7 +11,7 @@ import { UseCase } from './usecase';
 jest.mock('./client');
 
 //Mock profile provider
-jest.mock('../query/profile-provider');
+jest.mock('./profile-provider');
 
 describe('UseCase', () => {
   const mockMapDocument: MapDocumentNode = {

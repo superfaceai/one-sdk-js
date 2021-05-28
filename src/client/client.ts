@@ -1,14 +1,14 @@
-import { SdkExecutionError } from '../../error';
-import { SuperJson } from '../../internal';
-import { NonPrimitive } from '../../internal/interpreter/variables';
-import { exists } from '../../lib/io';
-import { BoundProfileProvider, ProfileProvider } from '../query';
+import { SuperJson } from '../internal';
+import { SDKExecutionError } from '../internal/errors';
+import { NonPrimitive } from '../internal/interpreter/variables';
+import { exists } from '../lib/io';
 import {
   Profile,
   ProfileConfiguration,
   TypedProfile,
   UsecaseType,
 } from './profile';
+import { BoundProfileProvider, ProfileProvider } from './profile-provider';
 import { Provider, ProviderConfiguration } from './provider';
 
 /**
@@ -83,7 +83,7 @@ export abstract class SuperfaceClientBase {
       return this.getProvider(name);
     }
 
-    throw new SdkExecutionError(
+    throw new SDKExecutionError(
       `No configured provider found for profile: ${profileId}`,
       [
         `Profile "${profileId}" needs at least one configured provider for automatic provider selection`,
@@ -100,7 +100,7 @@ export abstract class SuperfaceClientBase {
   ): Promise<ProfileConfiguration> {
     const profileSettings = this.superJson.normalized.profiles[profileId];
     if (profileSettings === undefined) {
-      throw new SdkExecutionError(
+      throw new SDKExecutionError(
         `Profile not installed: ${profileId}`,
         [],
         [
@@ -114,7 +114,7 @@ export abstract class SuperfaceClientBase {
     if ('file' in profileSettings) {
       const filePath = this.superJson.resolvePath(profileSettings.file);
       if (!(await exists(filePath))) {
-        throw new SdkExecutionError(
+        throw new SDKExecutionError(
           `Profile file at path does not exist: ${profileSettings.file}`,
           [
             `Profile "${profileId}" specifies a file path "${profileSettings.file}" in super.json`,

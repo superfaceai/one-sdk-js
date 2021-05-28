@@ -1,8 +1,8 @@
 import * as fs from 'fs';
 import { dirname, join as joinPath } from 'path';
 
-import { SuperJson } from '../../internal/superjson';
-import * as profileProvider from '../query/profile-provider';
+import { SuperJson } from '../internal/superjson';
+import * as profileProvider from './profile-provider';
 import { SuperfaceClient } from './client';
 import { ProfileConfiguration } from './profile';
 import { ProviderConfiguration } from './provider';

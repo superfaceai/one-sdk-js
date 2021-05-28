@@ -3,25 +3,24 @@ import createDebug from 'debug';
 import { promises as fsp } from 'fs';
 import { join as joinPath } from 'path';
 
-import { SdkExecutionError } from '../../error/base';
 import {
   HttpScheme,
   ProviderJson,
-  SecurityConfiguration,
   SecurityScheme,
   SecurityType,
-} from '../../internal';
+} from '../internal';
+import { SDKExecutionError } from '../internal/errors';
 import {
   MapInterpreter,
   MapInterpreterError,
   ProfileParameterError,
   ProfileParameterValidator,
-} from '../../internal/interpreter';
+} from '../internal/interpreter';
 import {
   castToNonPrimitive,
   mergeVariables,
   NonPrimitive,
-} from '../../internal/interpreter/variables';
+} from '../internal/interpreter/variables';
 import {
   FILE_URI_PROTOCOL,
   isApiKeySecurityValues,
@@ -32,9 +31,11 @@ import {
   NormalizedProfileProviderSettings,
   SecurityValues,
   SuperJson,
-} from '../../internal/superjson';
-import { err, ok, Result } from '../../lib';
-import { ProfileConfiguration, ProviderConfiguration } from '../public';
+} from '../internal/superjson';
+import { err, ok, Result } from '../lib';
+import { SecurityConfiguration } from '../lib/http';
+import { ProfileConfiguration } from './profile';
+import { ProviderConfiguration } from './provider';
 import { fetchBind } from './registry';
 
 function forceCast<T>(_: unknown): asserts _ is T {}
@@ -173,7 +174,7 @@ export class ProfileProvider {
         profileId = profileAstId(this.profile);
       }
 
-      throw new SdkExecutionError(
+      throw new SDKExecutionError(
         `Invalid profile "${profileId}"`,
         [],
         [
@@ -237,7 +238,7 @@ export class ProfileProvider {
       }
       // TODO: The service url resolution will change soon, probably won't be externally configurable
 
-      throw new SdkExecutionError(
+      throw new SDKExecutionError(
         `Service not found: ${serviceId}`,
         [`Service "${serviceId}" for provider "${providerName}" was not found`],
         hints
@@ -455,7 +456,7 @@ export class ProfileProvider {
       const scheme = schemes.find(scheme => scheme.id === vals.id);
       if (scheme === undefined) {
         const definedSchemes = schemes.map(s => s.id).join(', ');
-        throw new SdkExecutionError(
+        throw new SDKExecutionError(
           `Could not find security scheme for security value with id "${vals.id}"`,
           [
             `The provider definition for "${providerName}" defines ` +
@@ -481,7 +482,7 @@ export class ProfileProvider {
           .join(', ');
         const reqKeys = requiredKeys.join(', ');
 
-        return new SdkExecutionError(
+        return new SDKExecutionError(
           `Invalid security values for given ${scheme.type} scheme: ${scheme.id}`,
           [
             `The provided security values with id "${scheme.id}" have keys: ${valueKeys}`,

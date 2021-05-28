@@ -10,8 +10,8 @@ import {
 import * as zod from 'zod';
 
 import { err, ok, Result } from '../lib';
-import clone from '../lib/clone';
 import { isAccessible } from '../lib/io';
+import { clone } from '../lib/object';
 import {
   castToNonPrimitive,
   isEmptyRecord,
@@ -59,14 +59,6 @@ export const composeFileURI = (path: string): string => {
     ? `${FILE_URI_PROTOCOL}${normalizedPath}`
     : `${FILE_URI_PROTOCOL}./${normalizedPath}`;
 };
-
-// const lock = zod.object({
-//   version: semanticVersion,
-//   resolved: zod.string(),
-//   integrity: zod.string(),
-//   astResolved: zod.string().optional(),
-//   astIntegrity: zod.string(),
-// });
 
 /**
  * Default per usecase values.

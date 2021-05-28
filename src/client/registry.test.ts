@@ -1,8 +1,8 @@
 import { MapDocumentNode } from '@superfaceai/ast';
 import { mocked } from 'ts-jest/utils';
 
-import { ProviderJson } from '../../internal';
-import { HttpClient } from '../../internal/http/http';
+import { ProviderJson } from '../internal/providerjson';
+import { HttpClient } from '../lib/http';
 import {
   assertIsRegistryProviderInfo,
   fetchBind,
@@ -10,7 +10,7 @@ import {
   fetchProviders,
 } from './registry';
 
-jest.mock('../../internal/http/http');
+jest.mock('../lib/http');
 
 describe('registry', () => {
   const mockMapDocument: MapDocumentNode = {

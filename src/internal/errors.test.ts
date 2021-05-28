@@ -1,7 +1,7 @@
-import { SdkExecutionError } from './base';
+import { SDKExecutionError } from './errors';
 
 describe('format', () => {
-  const error = new SdkExecutionError(
+  const error = new SDKExecutionError(
     'short',
     ['long1', 'long2', 'long3'],
     ['hint1', 'hint2', 'hint3']
