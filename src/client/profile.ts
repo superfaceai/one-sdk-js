@@ -1,4 +1,4 @@
-import { NonPrimitive } from '../../internal/interpreter/variables';
+import { NonPrimitive } from '../internal/interpreter/variables';
 import { SuperfaceClientBase } from './client';
 import { TypedUseCase, UseCase } from './usecase';
 
@@ -50,8 +50,8 @@ export class TypedProfile<
   private readonly knownUsecases: KnownUsecase<TUsecaseTypes>;
 
   constructor(
-    public readonly client: SuperfaceClientBase,
-    public readonly configuration: ProfileConfiguration,
+    public override readonly client: SuperfaceClientBase,
+    public override readonly configuration: ProfileConfiguration,
     usecases: (keyof TUsecaseTypes)[]
   ) {
     super(client, configuration);

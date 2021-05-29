@@ -5,11 +5,15 @@ import fetch, { Headers } from 'cross-fetch';
 import createDebug from 'debug';
 import { inspect } from 'util';
 
-import { VERSION } from '../..';
-import { SdkExecutionError } from '../../error';
+import { USER_AGENT } from '../..';
+import { SDKExecutionError } from '../../internal/errors';
+import {
+  getValue,
+  NonPrimitive,
+  Variables,
+} from '../../internal/interpreter/variables';
+import { SecurityType } from '../../internal/providerjson';
 import { recursiveKeyList } from '../../lib/object';
-import { getValue, NonPrimitive, Variables } from '../interpreter/variables';
-import { SecurityType } from '../providerjson';
 import {
   applyApiKeyAuth,
   applyHttpAuth,
@@ -133,7 +137,7 @@ export const createUrl = (
         ', '
       );
 
-      throw new SdkExecutionError(
+      throw new SDKExecutionError(
         `Missing values for URL path replacement: ${missing}`,
         [
           `Trying to replace path keys for url: ${url}`,
@@ -203,7 +207,7 @@ export const HttpClient = {
         c => c.id === requirement.id
       );
       if (configuration === undefined) {
-        throw new SdkExecutionError(
+        throw new SDKExecutionError(
           `Security values for security scheme not found: ${requirement.id}`,
           [
             `Security values for scheme "${requirement.id}" are required by the map`,
@@ -243,7 +247,7 @@ export const HttpClient = {
           URLENCODED_CONTENT,
           FORMDATA_CONTENT,
         ].join(', ');
-        throw new SdkExecutionError(
+        throw new SDKExecutionError(
           `Content type not supported: ${cType}`,
           [
             `Requested content type "${cType}"`,
@@ -254,10 +258,7 @@ export const HttpClient = {
       }
     }
     // add user agent
-    headers.append(
-      'User-agent',
-      `superfaceai one-sdk-js/${VERSION} (${process.platform}-${process.arch}) ${process.release.name}-${process.version}`
-    );
+    headers.append('User-Agent', USER_AGENT);
 
     const finalUrl = createUrl(url, {
       baseUrl: parameters.baseUrl,

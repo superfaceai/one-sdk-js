@@ -1,8 +1,8 @@
 import { MapDocumentNode } from '@superfaceai/ast';
 import * as zod from 'zod';
 
-import { isProviderJson, ProviderJson } from '../../internal';
-import { HttpClient } from '../../internal/http';
+import { isProviderJson, ProviderJson } from '../internal';
+import { HttpClient } from '../lib/http';
 
 export interface RegistryProviderInfo {
   url: string;
@@ -118,7 +118,6 @@ export async function fetchBind(
   return {
     provider: body.provider,
     // TODO: Validate
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    mapAst: JSON.parse(body.map_ast),
+    mapAst: JSON.parse(body.map_ast) as MapDocumentNode,
   };
 }

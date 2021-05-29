@@ -27,9 +27,12 @@ import {
 import createDebug from 'debug';
 
 import { err, ok, Result } from '../../lib';
+import {
+  HttpClient,
+  HttpResponse,
+  SecurityConfiguration,
+} from '../../lib/http';
 import { UnexpectedError } from '../errors';
-import { SecurityConfiguration } from '../http';
-import { HttpClient, HttpResponse } from '../http/http';
 import {
   HTTPError,
   JessieError,

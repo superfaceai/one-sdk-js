@@ -2,30 +2,31 @@ import { MapDocumentNode, ProfileDocumentNode } from '@superfaceai/ast';
 import { promises as fsp } from 'fs';
 import { mocked } from 'ts-jest/utils';
 
-import { MapInterpreter } from '../../internal/interpreter/map-interpreter';
-import { MapASTError } from '../../internal/interpreter/map-interpreter.errors';
-import { ProfileParameterValidator } from '../../internal/interpreter/profile-parameter-validator';
+import { MapInterpreter } from '../internal/interpreter/map-interpreter';
+import { MapASTError } from '../internal/interpreter/map-interpreter.errors';
+import { ProfileParameterValidator } from '../internal/interpreter/profile-parameter-validator';
 import {
   InputValidationError,
   ResultValidationError,
-} from '../../internal/interpreter/profile-parameter-validator.errors';
+} from '../internal/interpreter/profile-parameter-validator.errors';
 import {
   ApiKeyPlacement,
   HttpScheme,
   ProviderJson,
   SecurityType,
-} from '../../internal/providerjson';
-import { SecurityValues, SuperJson } from '../../internal/superjson';
-import { err, ok } from '../../lib';
-import { ProfileConfiguration, ProviderConfiguration } from '../public';
+} from '../internal/providerjson';
+import { SecurityValues, SuperJson } from '../internal/superjson';
+import { err, ok } from '../lib';
+import { ProfileConfiguration } from './profile';
 import { BoundProfileProvider, ProfileProvider } from './profile-provider';
+import { ProviderConfiguration } from './provider';
 import { fetchBind } from './registry';
 
 //Mock ProfileParameterValidator
-jest.mock('../../internal/interpreter/profile-parameter-validator');
+jest.mock('../internal/interpreter/profile-parameter-validator');
 
 //Mock interpreter
-jest.mock('../../internal/interpreter/map-interpreter');
+jest.mock('../internal/interpreter/map-interpreter');
 
 //Mock registry
 jest.mock('./registry');
@@ -39,11 +40,11 @@ jest.mock('fs', () => ({
 }));
 
 //Mock super json
-jest.mock('../../internal/superjson');
+jest.mock('../internal/superjson');
 
 const mockResolvePath = jest.fn();
-jest.mock('../../internal/superjson', () => ({
-  ...jest.requireActual<Record<string, unknown>>('../../internal/superjson'),
+jest.mock('../internal/superjson', () => ({
+  ...jest.requireActual<Record<string, unknown>>('../internal/superjson'),
   SuperJson: jest.fn().mockImplementation(() => {
     return { resolvePath: mockResolvePath };
   }),

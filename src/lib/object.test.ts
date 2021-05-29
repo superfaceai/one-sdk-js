@@ -1,4 +1,4 @@
-import { recursiveKeyList } from './object';
+import { clone, recursiveKeyList } from './object';
 
 describe('recursiveKeyList', () => {
   it('should return all objects keys from a flat object', () => {
@@ -33,5 +33,24 @@ describe('recursiveKeyList', () => {
       'b.c.d.e',
       'b.c.f',
     ]);
+  });
+});
+
+describe('clone', () => {
+  it('should clone any object', () => {
+    const object = {
+      a: 1,
+      b: {
+        c: {
+          d: {
+            e: 2,
+          },
+          f: null,
+          g: undefined,
+        },
+      },
+    };
+    const cloned = clone(object);
+    expect(cloned).toStrictEqual(cloned);
   });
 });

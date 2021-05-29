@@ -1,4 +1,11 @@
 /**
+ * Creates a deep clone of the value.
+ */
+export function clone<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
+}
+
+/**
  * Recursively descends the record and returns a list of enumerable all keys
  *
  */

@@ -108,7 +108,7 @@ export class InputValidationError extends ErrorBase {
     );
   }
 
-  public toString(): string {
+  public override toString(): string {
     return this.message + '\n' + formatErrors(this.errors);
   }
 }
@@ -121,7 +121,7 @@ export class ResultValidationError extends ErrorBase {
     );
   }
 
-  public toString(): string {
+  public override toString(): string {
     return this.message + '\n' + formatErrors(this.errors);
   }
 }

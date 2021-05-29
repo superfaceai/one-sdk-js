@@ -1,4 +1,4 @@
-import { SecurityValues, SuperJson } from '../../internal';
+import { SecurityValues, SuperJson } from '../internal';
 import { SuperfaceClientBase } from './client';
 
 export class ProviderConfiguration {

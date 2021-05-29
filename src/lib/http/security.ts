@@ -1,4 +1,4 @@
-import { NonPrimitive, Variables } from '../interpreter/variables';
+import { NonPrimitive, Variables } from '../../internal/interpreter/variables';
 import {
   ApiKeyPlacement,
   ApiKeySecurityScheme,
@@ -7,13 +7,13 @@ import {
   DigestSecurityScheme,
   HttpScheme,
   SecurityType,
-} from '../providerjson';
+} from '../../internal/providerjson';
 import {
   ApiKeySecurityValues,
   BasicAuthSecurityValues,
   BearerTokenSecurityValues,
   DigestSecurityValues,
-} from '../superjson';
+} from '../../internal/superjson';
 
 export type SecurityConfiguration =
   | (ApiKeySecurityScheme & ApiKeySecurityValues)
