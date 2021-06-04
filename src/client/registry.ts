@@ -1,8 +1,11 @@
 import { MapDocumentNode } from '@superfaceai/ast';
+import createDebug from 'debug';
 import * as zod from 'zod';
 
 import { isProviderJson, ProviderJson } from '../internal';
 import { HttpClient } from '../lib/http';
+
+const registryDebug = createDebug('superface:Registry');
 
 export interface RegistryProviderInfo {
   url: string;
@@ -90,17 +93,17 @@ export function loadSdkAuthToken(): string | undefined {
   //Load superface token
   const loadedToken = process.env[tokenEnvName];
   if (!loadedToken) {
+    registryDebug(`Environment variable ${tokenEnvName} not found`)
+
     return;
   }
   const token = loadedToken.trim();
   const tokenRegexp = /^(sfs)_(.+)_([0-9A-F]{8}$)/i;
   if (!tokenRegexp.test(token)) {
-    //TODO: somehow notify user
-    console.log('Set but not valid');
+    registryDebug(`Value in environment variable ${tokenEnvName} is not valid SDK authentization token`)
 
     return;
   }
-  console.log('valid load', loadedToken, 'trim', token);
 
   return token;
 }
