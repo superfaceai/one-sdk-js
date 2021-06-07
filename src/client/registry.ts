@@ -98,7 +98,7 @@ export function loadSdkAuthToken(): string | undefined {
     return;
   }
   const token = loadedToken.trim();
-  const tokenRegexp = /^(sfs)_([^_]+)_([0-9A-F]{8})/i;
+  const tokenRegexp = /^(sfs)_([^_]+)_([0-9A-F]{8})$/i;
   if (!tokenRegexp.test(token)) {
     registryDebug(
       `Value in environment variable ${tokenEnvName} is not valid SDK authentization token`
