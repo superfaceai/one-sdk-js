@@ -5,7 +5,7 @@ import * as zod from 'zod';
 import { isProviderJson, ProviderJson } from '../internal';
 import { HttpClient } from '../lib/http';
 
-const registryDebug = createDebug('superface:Registry');
+const registryDebug = createDebug('superface:registry');
 
 export interface RegistryProviderInfo {
   url: string;
@@ -93,14 +93,16 @@ export function loadSdkAuthToken(): string | undefined {
   //Load superface token
   const loadedToken = process.env[tokenEnvName];
   if (!loadedToken) {
-    registryDebug(`Environment variable ${tokenEnvName} not found`)
+    registryDebug(`Environment variable ${tokenEnvName} not found`);
 
     return;
   }
   const token = loadedToken.trim();
   const tokenRegexp = /^(sfs)_([^_]+)_([0-9A-F]{8})/i;
   if (!tokenRegexp.test(token)) {
-    registryDebug(`Value in environment variable ${tokenEnvName} is not valid SDK authentization token`)
+    registryDebug(
+      `Value in environment variable ${tokenEnvName} is not valid SDK authentization token`
+    );
 
     return;
   }

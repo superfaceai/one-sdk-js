@@ -332,7 +332,9 @@ describe('registry', () => {
         baseUrl: 'test-registiry-url',
         accept: 'application/json',
         contentType: 'application/json',
-        headers: ['Authorization: SUPERFACE-SDK-TOKEN sfs_bb064dd57c302911602dd097bc29bedaea6a021c25a66992d475ed959aa526c7_37bce8b5'],
+        headers: [
+          'Authorization: SUPERFACE-SDK-TOKEN sfs_bb064dd57c302911602dd097bc29bedaea6a021c25a66992d475ed959aa526c7_37bce8b5',
+        ],
         body: {
           profile_id: 'test-profile-id',
           provider: 'test-provider',
@@ -376,7 +378,9 @@ describe('registry', () => {
         method: 'POST',
         baseUrl: new URL('https://superface.dev').href,
         accept: 'application/json',
-        headers: ['Authorization: SUPERFACE-SDK-TOKEN sfs_bb064dd57c302911602dd097bc29bedaea6a021c25a66992d475ed959aa526c7_37bce8b5'],
+        headers: [
+          'Authorization: SUPERFACE-SDK-TOKEN sfs_bb064dd57c302911602dd097bc29bedaea6a021c25a66992d475ed959aa526c7_37bce8b5',
+        ],
         contentType: 'application/json',
         body: {
           profile_id: 'test-profile-id',

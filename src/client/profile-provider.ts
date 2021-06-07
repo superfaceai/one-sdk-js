@@ -46,7 +46,9 @@ function profileAstId(ast: ProfileDocumentNode): string {
     : ast.header.name;
 }
 
-const boundProfileProviderDebug = createDebug('superface:BoundProfileProvider');
+const boundProfileProviderDebug = createDebug(
+  'superface:bound-profile-provider'
+);
 export class BoundProfileProvider {
   private profileValidator: ProfileParameterValidator;
 
@@ -141,7 +143,7 @@ export type BindConfiguration = {
   registryUrl?: string;
 };
 
-const profileProviderDebug = createDebug('superface:ProfileProvider');
+const profileProviderDebug = createDebug('superface:profile-provider');
 export class ProfileProvider {
   constructor(
     /** Preloaded superJson instance */
