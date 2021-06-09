@@ -1,10 +1,12 @@
 import { MapDocumentNode, MapHeaderNode } from '@superfaceai/ast';
 import { getLocal } from 'mockttp';
 
+import { CrossFetch } from '../../lib/fetch';
 import { ApiKeyPlacement, HttpScheme, SecurityType } from '../providerjson';
 import { MapInterpreter } from './map-interpreter';
 
 const mockServer = getLocal();
+const fetchInstance = new CrossFetch();
 const header: MapHeaderNode = {
   kind: 'MapHeader',
   profile: {
@@ -28,10 +30,13 @@ describe('MapInterpreter', () => {
   });
 
   it('should execute minimal Eval definition', async () => {
-    const interpreter = new MapInterpreter({
-      usecase: 'testCase',
-      security: [],
-    });
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'testCase',
+        security: [],
+      },
+      { fetchInstance }
+    );
     const ast: MapDocumentNode = {
       kind: 'MapDocument',
       header,
@@ -64,10 +69,13 @@ describe('MapInterpreter', () => {
   });
 
   it('should execute Eval definition with variables', async () => {
-    const interpreter = new MapInterpreter({
-      usecase: 'Test',
-      security: [],
-    });
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+      },
+      { fetchInstance }
+    );
     const result = await interpreter.perform({
       kind: 'MapDocument',
       header,
@@ -112,10 +120,13 @@ describe('MapInterpreter', () => {
   });
 
   it('should execute eval definition with jessie array', async () => {
-    const interpreter = new MapInterpreter({
-      usecase: 'Test',
-      security: [],
-    });
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+      },
+      { fetchInstance }
+    );
     const result = await interpreter.perform({
       kind: 'MapDocument',
       header,
@@ -147,10 +158,13 @@ describe('MapInterpreter', () => {
   });
 
   it('should inline call predefined operation', async () => {
-    const interpreter = new MapInterpreter({
-      usecase: 'Test',
-      security: [],
-    });
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+      },
+      { fetchInstance }
+    );
     const result = await interpreter.perform({
       kind: 'MapDocument',
       header,
@@ -207,10 +221,13 @@ describe('MapInterpreter', () => {
   });
 
   it('should call predefined operation', async () => {
-    const interpreter = new MapInterpreter({
-      usecase: 'Test',
-      security: [],
-    });
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+      },
+      { fetchInstance }
+    );
     const result = await interpreter.perform({
       kind: 'MapDocument',
       header,
@@ -269,10 +286,13 @@ describe('MapInterpreter', () => {
   });
 
   it('should correctly resolve scope', async () => {
-    const interpreter = new MapInterpreter({
-      usecase: 'Test',
-      security: [],
-    });
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+      },
+      { fetchInstance }
+    );
     const result = await interpreter.perform({
       kind: 'MapDocument',
       header,
@@ -355,10 +375,13 @@ describe('MapInterpreter', () => {
       }
     );
     const url = mockServer.urlFor('/twelve');
-    const interpreter = new MapInterpreter({
-      usecase: 'Test',
-      security: [],
-    });
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+      },
+      { fetchInstance }
+    );
     const result = await interpreter.perform({
       kind: 'MapDocument',
       header,
@@ -424,11 +447,14 @@ describe('MapInterpreter', () => {
   it('should call an API with relative URL', async () => {
     await mockServer.get('/twelve').thenJson(200, { data: 12 });
     const baseUrl = mockServer.urlFor('/twelve').replace('/twelve', '');
-    const interpreter = new MapInterpreter({
-      usecase: 'Test',
-      serviceBaseUrl: baseUrl,
-      security: [],
-    });
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        serviceBaseUrl: baseUrl,
+        security: [],
+      },
+      { fetchInstance }
+    );
     const result = await interpreter.perform({
       kind: 'MapDocument',
       header,
@@ -494,11 +520,14 @@ describe('MapInterpreter', () => {
   it('should call an API with path parameters', async () => {
     await mockServer.get('/twelve/2').thenJson(200, { data: 144 });
     const url = mockServer.urlFor('/twelve');
-    const interpreter = new MapInterpreter({
-      usecase: 'Test',
-      input: { page: '2' },
-      security: [],
-    });
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        input: { page: '2' },
+        security: [],
+      },
+      { fetchInstance }
+    );
     const result = await interpreter.perform({
       kind: 'MapDocument',
       header,
@@ -580,11 +609,14 @@ describe('MapInterpreter', () => {
       .withQuery({ page: 2 })
       .thenJson(200, { data: 144 });
     const url = mockServer.urlFor('/twelve');
-    const interpreter = new MapInterpreter({
-      usecase: 'Test',
-      input: { page: 2 },
-      security: [],
-    });
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        input: { page: 2 },
+        security: [],
+      },
+      { fetchInstance }
+    );
     const result = await interpreter.perform({
       kind: 'MapDocument',
       header,
@@ -667,10 +699,13 @@ describe('MapInterpreter', () => {
       .withHeaders({ someheader: 'hello' })
       .thenJson(201, { bodyOk: true, headerOk: true });
     const url = mockServer.urlFor('/checkBody');
-    const interpreter = new MapInterpreter({
-      usecase: 'Test',
-      security: [],
-    });
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+      },
+      { fetchInstance }
+    );
     const result = await interpreter.perform({
       kind: 'MapDocument',
       header,
@@ -754,10 +789,13 @@ describe('MapInterpreter', () => {
     await mockServer.get('/second').thenJson(200, { secondStep: 5 });
     const url1 = mockServer.urlFor('/first');
     const url2 = mockServer.urlFor('/second');
-    const interpreter = new MapInterpreter({
-      usecase: 'Test',
-      security: [],
-    });
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+      },
+      { fetchInstance }
+    );
     const result = await interpreter.perform({
       kind: 'MapDocument',
       header,
@@ -849,18 +887,21 @@ describe('MapInterpreter', () => {
       .withHeaders({ Authorization: 'Basic bmFtZTpwYXNzd29yZA==' })
       .thenJson(200, { data: 12 });
     const url = mockServer.urlFor('/basic');
-    const interpreter = new MapInterpreter({
-      usecase: 'testCase',
-      security: [
-        {
-          id: 'my_basic',
-          type: SecurityType.HTTP,
-          scheme: HttpScheme.BASIC,
-          username: 'name',
-          password: 'password',
-        },
-      ],
-    });
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'testCase',
+        security: [
+          {
+            id: 'my_basic',
+            type: SecurityType.HTTP,
+            scheme: HttpScheme.BASIC,
+            username: 'name',
+            password: 'password',
+          },
+        ],
+      },
+      { fetchInstance }
+    );
     const result = await interpreter.perform({
       kind: 'MapDocument',
       header,
@@ -910,17 +951,20 @@ describe('MapInterpreter', () => {
       .withHeaders({ Authorization: 'Bearer SuperSecret' })
       .thenJson(200, { data: 12 });
     const url = mockServer.urlFor('/bearer');
-    const interpreter = new MapInterpreter({
-      usecase: 'testCase',
-      security: [
-        {
-          id: 'my_bearer',
-          type: SecurityType.HTTP,
-          scheme: HttpScheme.BEARER,
-          token: 'SuperSecret',
-        },
-      ],
-    });
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'testCase',
+        security: [
+          {
+            id: 'my_bearer',
+            type: SecurityType.HTTP,
+            scheme: HttpScheme.BEARER,
+            token: 'SuperSecret',
+          },
+        ],
+      },
+      { fetchInstance }
+    );
     const result = await interpreter.perform({
       kind: 'MapDocument',
       header,
@@ -970,18 +1014,21 @@ describe('MapInterpreter', () => {
       .withHeaders({ Key: 'SuperSecret' })
       .thenJson(200, { data: 12 });
     const url = mockServer.urlFor('/apikey');
-    const interpreter = new MapInterpreter({
-      usecase: 'testCase',
-      security: [
-        {
-          id: 'my_apikey',
-          type: SecurityType.APIKEY,
-          in: ApiKeyPlacement.HEADER,
-          name: 'Key',
-          apikey: 'SuperSecret',
-        },
-      ],
-    });
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'testCase',
+        security: [
+          {
+            id: 'my_apikey',
+            type: SecurityType.APIKEY,
+            in: ApiKeyPlacement.HEADER,
+            name: 'Key',
+            apikey: 'SuperSecret',
+          },
+        ],
+      },
+      { fetchInstance }
+    );
     const result = await interpreter.perform({
       kind: 'MapDocument',
       header,
@@ -1032,18 +1079,21 @@ describe('MapInterpreter', () => {
       .withQuery({ key: 'SuperSecret' })
       .thenJson(200, { data: 12 });
     const url = mockServer.urlFor('/apikey');
-    const interpreter = new MapInterpreter({
-      usecase: 'testCase',
-      security: [
-        {
-          id: 'my_apikey',
-          type: SecurityType.APIKEY,
-          in: ApiKeyPlacement.QUERY,
-          name: 'key',
-          apikey: 'SuperSecret',
-        },
-      ],
-    });
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'testCase',
+        security: [
+          {
+            id: 'my_apikey',
+            type: SecurityType.APIKEY,
+            in: ApiKeyPlacement.QUERY,
+            name: 'key',
+            apikey: 'SuperSecret',
+          },
+        ],
+      },
+      { fetchInstance }
+    );
     const result = await interpreter.perform({
       kind: 'MapDocument',
       header,
@@ -1105,10 +1155,13 @@ describe('MapInterpreter', () => {
       return { json: { failed: true }, statusCode: 400 };
     });
     const url = mockServer.urlFor('/formdata');
-    const interpreter = new MapInterpreter({
-      usecase: 'testCase',
-      security: [],
-    });
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'testCase',
+        security: [],
+      },
+      { fetchInstance }
+    );
     const result = await interpreter.perform({
       kind: 'MapDocument',
       header,
@@ -1181,10 +1234,13 @@ describe('MapInterpreter', () => {
       .withForm({ form: 'is', o: 'k' })
       .thenJson(201, { data: 12 });
     const url = mockServer.urlFor('/urlencoded');
-    const interpreter = new MapInterpreter({
-      usecase: 'testCase',
-      security: [],
-    });
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'testCase',
+        security: [],
+      },
+      { fetchInstance }
+    );
     const result = await interpreter.perform({
       kind: 'MapDocument',
       header,
@@ -1253,10 +1309,13 @@ describe('MapInterpreter', () => {
   });
 
   it('should execute Eval definition with nested result', async () => {
-    const interpreter = new MapInterpreter({
-      usecase: 'testCase',
-      security: [],
-    });
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'testCase',
+        security: [],
+      },
+      { fetchInstance }
+    );
     const result = await interpreter.perform({
       kind: 'MapDocument',
       header,
@@ -1343,16 +1402,22 @@ describe('MapInterpreter', () => {
         },
       ],
     };
-    const interpreter1 = new MapInterpreter({
-      usecase: 'Test',
-      input: { condition: true },
-      security: [],
-    });
-    const interpreter2 = new MapInterpreter({
-      usecase: 'Test',
-      input: { condition: false },
-      security: [],
-    });
+    const interpreter1 = new MapInterpreter(
+      {
+        usecase: 'Test',
+        input: { condition: true },
+        security: [],
+      },
+      { fetchInstance }
+    );
+    const interpreter2 = new MapInterpreter(
+      {
+        usecase: 'Test',
+        input: { condition: false },
+        security: [],
+      },
+      { fetchInstance }
+    );
     const result1 = await interpreter1.perform(ast);
     const result2 = await interpreter2.perform(ast);
     expect(result1.isOk() && result1.value).toEqual(7);
@@ -1360,10 +1425,13 @@ describe('MapInterpreter', () => {
   });
 
   it('should correctly construct result object', async () => {
-    const interpreter = new MapInterpreter({
-      usecase: 'Test',
-      security: [],
-    });
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+      },
+      { fetchInstance }
+    );
     const result = await interpreter.perform({
       kind: 'MapDocument',
       header,
@@ -1409,10 +1477,13 @@ describe('MapInterpreter', () => {
   it('should correctly return from operation', async () => {
     await mockServer.get('/test').thenJson(200, {});
     const url = mockServer.urlFor('/test');
-    const interpreter = new MapInterpreter({
-      usecase: 'Test',
-      security: [],
-    });
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+      },
+      { fetchInstance }
+    );
     const ast: MapDocumentNode = {
       kind: 'MapDocument',
       header,
@@ -1566,10 +1637,13 @@ describe('MapInterpreter', () => {
         },
       ],
     };
-    const interpreter = new MapInterpreter({
-      usecase: 'test',
-      security: [],
-    });
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'test',
+        security: [],
+      },
+      { fetchInstance }
+    );
     const result = await interpreter.perform(ast);
     expect(result.isOk() && result.value).toEqual({ answer: 42 });
   });
@@ -1648,10 +1722,13 @@ describe('MapInterpreter', () => {
         },
       ],
     };
-    const interpreter = new MapInterpreter({
-      usecase: 'test',
-      security: [],
-    });
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'test',
+        security: [],
+      },
+      { fetchInstance }
+    );
     const result = await interpreter.perform(ast);
     expect(result.isOk() && result.value).toEqual({ a: 41, b: 42 });
   });
@@ -1802,10 +1879,13 @@ describe('MapInterpreter', () => {
         },
       ],
     };
-    const interpreter = new MapInterpreter({
-      usecase: 'Test',
-      security: [],
-    });
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+      },
+      { fetchInstance }
+    );
     const result = await interpreter.perform(ast);
     expect(result.isOk() && result.value).toEqual({
       f: { a: 41 },
@@ -1898,10 +1978,13 @@ describe('MapInterpreter', () => {
         },
       ],
     };
-    const interpreter = new MapInterpreter({
-      usecase: 'test',
-      security: [],
-    });
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'test',
+        security: [],
+      },
+      { fetchInstance }
+    );
     const result = await interpreter.perform(ast);
     expect(result.isOk() && result.value).toEqual({ answer: { a: 42 } });
   });
@@ -1983,10 +2066,13 @@ describe('MapInterpreter', () => {
         },
       ],
     };
-    const interpreter = new MapInterpreter({
-      usecase: 'Test',
-      security: [],
-    });
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+      },
+      { fetchInstance }
+    );
     const result = await interpreter.perform(ast);
     if (result.isErr()) {
       console.log(result.error);
@@ -2104,10 +2190,13 @@ describe('MapInterpreter', () => {
         },
       ],
     };
-    const interpreter = new MapInterpreter({
-      usecase: 'Test',
-      security: [],
-    });
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+      },
+      { fetchInstance }
+    );
     const result = await interpreter.perform(ast);
 
     expect(result.isOk() && result.value).toEqual({ results: ['Z', 'Y', 'X'] });
@@ -2205,10 +2294,13 @@ describe('MapInterpreter', () => {
       ],
     };
 
-    const interpreter = new MapInterpreter({
-      usecase: 'Test',
-      security: [],
-    });
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+      },
+      { fetchInstance }
+    );
     const result = await interpreter.perform(ast);
 
     expect(result.isOk() && result.value).toEqual({ results: ['Z', 'Y', 'X'] });
@@ -2331,10 +2423,13 @@ describe('MapInterpreter', () => {
         },
       ],
     };
-    const interpreter = new MapInterpreter({
-      usecase: 'Test',
-      security: [],
-    });
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+      },
+      { fetchInstance }
+    );
     const result = await interpreter.perform(ast);
 
     expect(result.isOk() && result.value).toEqual({ results: ['X'] });
@@ -2439,10 +2534,13 @@ describe('MapInterpreter', () => {
       ],
     };
 
-    const interpreter = new MapInterpreter({
-      usecase: 'Test',
-      security: [],
-    });
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+      },
+      { fetchInstance }
+    );
     const result = await interpreter.perform(ast);
 
     expect(result.isOk() && result.value).toEqual({ results: [2, 6] });
@@ -2496,11 +2594,14 @@ describe('MapInterpreter', () => {
         },
       ],
     };
-    const interpreter = new MapInterpreter({
-      usecase: 'Test',
-      input: { test: 'twelve' },
-      security: [],
-    });
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        input: { test: 'twelve' },
+        security: [],
+      },
+      { fetchInstance }
+    );
     const result = await interpreter.perform(ast);
 
     expect(result.isOk() && result.value).toEqual({ result: 12 });
@@ -2568,11 +2669,14 @@ describe('MapInterpreter', () => {
         },
       ],
     };
-    const interpreter = new MapInterpreter({
-      usecase: 'Test',
-      serviceBaseUrl: baseUrl,
-      security: [],
-    });
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        serviceBaseUrl: baseUrl,
+        security: [],
+      },
+      { fetchInstance }
+    );
     const result = await interpreter.perform(ast);
 
     expect(result.isOk() && result.value).toEqual({ result: 13 });
@@ -2589,10 +2693,13 @@ describe('MapInterpreter', () => {
       }
     );
     const url = mockServer.urlFor('/twelve');
-    const interpreter = new MapInterpreter({
-      usecase: 'Test',
-      security: [],
-    });
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+      },
+      { fetchInstance }
+    );
     const result = await interpreter.perform({
       kind: 'MapDocument',
       header,

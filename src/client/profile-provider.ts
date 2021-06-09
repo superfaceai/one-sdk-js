@@ -16,6 +16,8 @@ import {
   ProfileParameterError,
   ProfileParameterValidator,
 } from '../internal/interpreter';
+import { FetchInstance } from '../internal/interpreter/http/interfaces';
+import { SecurityConfiguration } from '../internal/interpreter/http/security';
 import {
   castToNonPrimitive,
   mergeVariables,
@@ -33,7 +35,7 @@ import {
   SuperJson,
 } from '../internal/superjson';
 import { err, ok, Result } from '../lib';
-import { SecurityConfiguration } from '../lib/http';
+import { CrossFetch } from '../lib/fetch';
 import { ProfileConfiguration } from './profile';
 import { ProviderConfiguration } from './provider';
 import { fetchBind } from './registry';
@@ -49,6 +51,7 @@ function profileAstId(ast: ProfileDocumentNode): string {
 const boundProfileProviderDebug = createDebug('superface:BoundProfileProvider');
 export class BoundProfileProvider {
   private profileValidator: ProfileParameterValidator;
+  private fetchInstance: FetchInstance;
 
   constructor(
     private readonly profileAst: ProfileDocumentNode,
@@ -60,6 +63,7 @@ export class BoundProfileProvider {
     }
   ) {
     this.profileValidator = new ProfileParameterValidator(this.profileAst);
+    this.fetchInstance = new CrossFetch();
   }
 
   private composeInput(
@@ -94,6 +98,10 @@ export class BoundProfileProvider {
     input?: TInput
   ): Promise<Result<TResult, ProfileParameterError | MapInterpreterError>> {
     // compose and validate the input
+    Reflect.set(this.fetchInstance, 'metadata', {
+      profile: profileAstId(this.profileAst),
+      usecase,
+    });
     const composedInput = this.composeInput(usecase, input);
 
     const inputValidation = this.profileValidator.validate(
@@ -107,12 +115,15 @@ export class BoundProfileProvider {
     forceCast<TInput>(composedInput);
 
     // create and perform interpreter instance
-    const interpreter = new MapInterpreter<TInput>({
-      input: composedInput,
-      usecase,
-      serviceBaseUrl: this.configuration.baseUrl,
-      security: this.configuration.security,
-    });
+    const interpreter = new MapInterpreter<TInput>(
+      {
+        input: composedInput,
+        usecase,
+        serviceBaseUrl: this.configuration.baseUrl,
+        security: this.configuration.security,
+      },
+      { fetchInstance: this.fetchInstance }
+    );
 
     const result = await interpreter.perform(this.mapAst);
     if (result.isErr()) {

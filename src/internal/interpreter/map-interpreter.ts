@@ -27,12 +27,9 @@ import {
 import createDebug from 'debug';
 
 import { err, ok, Result } from '../../lib';
-import {
-  HttpClient,
-  HttpResponse,
-  SecurityConfiguration,
-} from '../../lib/http';
 import { UnexpectedError } from '../errors';
+import { HttpClient, HttpResponse, SecurityConfiguration } from './http';
+import { FetchInstance } from './http/interfaces';
 import {
   HTTPError,
   JessieError,
@@ -120,8 +117,14 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
   private operations: Record<string, OperationDefinitionNode | undefined> = {};
   private stack: Stack[] = [];
   private ast?: MapDocumentNode;
+  private http: HttpClient;
 
-  constructor(private readonly parameters: MapParameters<TInput>) {}
+  constructor(
+    private readonly parameters: MapParameters<TInput>,
+    { fetchInstance }: { fetchInstance: FetchInstance }
+  ) {
+    this.http = new HttpClient(fetchInstance);
+  }
 
   async perform(
     ast: MapDocumentNode
@@ -272,7 +275,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
     }
 
     debug('Performing http request:', node.url);
-    const response = await HttpClient.request(node.url, {
+    const response = await this.http.request(node.url, {
       method: node.method,
       headers: request?.headers,
       contentType: request?.contentType ?? 'application/json',

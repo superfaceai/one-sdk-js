@@ -97,3 +97,17 @@ export const getValue = (
     return getValue(castToNonPrimitive(variables[previousKey]), key);
   }
 };
+
+export const variablesToStrings = (
+  variables?: Variables
+): Record<string, string> => {
+  const result: Record<string, string> = {};
+
+  if (variables) {
+    for (const [key, value] of Object.entries(variables)) {
+      result[key] = typeof value === 'string' ? value : JSON.stringify(value);
+    }
+  }
+
+  return result;
+};

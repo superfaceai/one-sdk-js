@@ -1,8 +1,11 @@
 import { getLocal } from 'mockttp';
 
+import { CrossFetch } from '../../../lib/fetch';
 import { createUrl, HttpClient } from './http';
 
 const mockServer = getLocal();
+const fetchInstance = new CrossFetch();
+const http = new HttpClient(fetchInstance);
 
 describe('HttpClient', () => {
   beforeEach(async () => {
@@ -16,7 +19,7 @@ describe('HttpClient', () => {
   it('gets basic response', async () => {
     await mockServer.get('/valid').thenJson(200, { response: 'valid' });
     const url = mockServer.urlFor('/valid');
-    const response = await HttpClient.request(url, {
+    const response = await http.request(url, {
       method: 'get',
       accept: 'application/json',
     });
@@ -29,7 +32,7 @@ describe('HttpClient', () => {
       .get('/invalid')
       .thenJson(404, { error: { message: 'Not found' } });
     const url = mockServer.urlFor('/invalid');
-    const response = await HttpClient.request(url, {
+    const response = await http.request(url, {
       method: 'get',
       accept: 'application/json',
     });

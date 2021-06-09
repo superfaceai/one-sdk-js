@@ -1,5 +1,7 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { MapDocumentNode, ProfileDocumentNode } from '@superfaceai/ast';
 
+import { events, tap } from '../lib/events';
 import { ok } from '../lib/result/result';
 import { SuperfaceClient } from './client';
 import { Profile, ProfileConfiguration } from './profile';
@@ -79,7 +81,20 @@ describe('UseCase', () => {
         .mockResolvedValue(mockBoundProfileProvider);
 
       const usecase = new UseCase(mockProfile, 'test-usecase');
-      await expect(usecase.perform()).resolves.toBeUndefined();
+      events.on(
+        'pre-perform',
+        { priority: 0, filter: { profile: 'netest' } },
+        tap((parameters: any) => console.log('called it!', parameters)) as any
+      );
+      events.on('pre-perform', { priority: 1 }, () => [{ newArg: 7 }]);
+      events.on(
+        'pre-perform',
+        { priority: 2 },
+        tap((parameters: any) =>
+          console.log('called it again!', parameters)
+        ) as any
+      );
+      await expect(usecase.perform({ x: 7 })).resolves.toBeUndefined();
 
       expect(getProviderForProfileSpy).toHaveBeenCalledTimes(1);
       expect(getProviderForProfileSpy).toHaveBeenCalledWith('test');

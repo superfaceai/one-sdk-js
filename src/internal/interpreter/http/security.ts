@@ -1,4 +1,3 @@
-import { NonPrimitive, Variables } from '../../internal/interpreter/variables';
 import {
   ApiKeyPlacement,
   ApiKeySecurityScheme,
@@ -7,13 +6,14 @@ import {
   DigestSecurityScheme,
   HttpScheme,
   SecurityType,
-} from '../../internal/providerjson';
+} from '../../providerjson';
 import {
   ApiKeySecurityValues,
   BasicAuthSecurityValues,
   BearerTokenSecurityValues,
   DigestSecurityValues,
-} from '../../internal/superjson';
+} from '../../superjson';
+import { NonPrimitive, Variables } from '../variables';
 
 export type SecurityConfiguration =
   | (ApiKeySecurityScheme & ApiKeySecurityValues)
@@ -26,7 +26,7 @@ export const AUTH_HEADER_NAME = 'Authorization';
 export type RequestContext = {
   pathParameters: NonPrimitive;
   queryAuth: Record<string, string>;
-  headers: Headers;
+  headers: Record<string, string>;
   requestBody: Variables | undefined;
 };
 
@@ -36,7 +36,7 @@ export function applyApiKeyAuth(
 ): void {
   switch (configuration.in) {
     case ApiKeyPlacement.HEADER:
-      context.headers.append(configuration.name, configuration.apikey);
+      context.headers[configuration.name] = configuration.apikey;
       break;
 
     case ApiKeyPlacement.BODY:
@@ -85,13 +85,11 @@ export function applyBasicAuth(
     scheme: HttpScheme.BASIC;
   }
 ): void {
-  context.headers.append(
-    AUTH_HEADER_NAME,
+  context.headers[AUTH_HEADER_NAME] =
     'Basic ' +
-      Buffer.from(
-        `${configuration.username}:${configuration.password}`
-      ).toString('base64')
-  );
+    Buffer.from(`${configuration.username}:${configuration.password}`).toString(
+      'base64'
+    );
 }
 
 export function applyBearerToken(
@@ -101,7 +99,7 @@ export function applyBearerToken(
     scheme: HttpScheme.BEARER;
   }
 ): void {
-  context.headers.append(AUTH_HEADER_NAME, `Bearer ${configuration.token}`);
+  context.headers[AUTH_HEADER_NAME] = `Bearer ${configuration.token}`;
 }
 
 export function applyDigest(

@@ -1,19 +1,27 @@
-import 'isomorphic-form-data';
-
 import { HttpSecurityRequirement } from '@superfaceai/ast';
-import fetch, { Headers } from 'cross-fetch';
 import createDebug from 'debug';
 import { inspect } from 'util';
 
-import { USER_AGENT } from '../..';
-import { SDKExecutionError } from '../../internal/errors';
+import { USER_AGENT } from '../../..';
+import { recursiveKeyList } from '../../../lib/object';
+import { SecurityType } from '../..';
+import { SDKExecutionError } from '../../errors';
 import {
   getValue,
   NonPrimitive,
   Variables,
-} from '../../internal/interpreter/variables';
-import { SecurityType } from '../../internal/providerjson';
-import { recursiveKeyList } from '../../lib/object';
+  variablesToStrings,
+} from '../variables';
+import {
+  FetchInstance,
+  FetchParameters,
+  FORMDATA_CONTENT,
+  formDataBody,
+  JSON_CONTENT,
+  stringBody,
+  URLENCODED_CONTENT,
+  urlSearchParamsBody,
+} from './interfaces';
 import {
   applyApiKeyAuth,
   applyHttpAuth,
@@ -43,63 +51,13 @@ export interface HttpResponse {
   };
 }
 
-const JSON_CONTENT = 'application/json';
-const URLENCODED_CONTENT = 'application/x-www-form-urlencoded';
-const FORMDATA_CONTENT = 'multipart/form-data';
-
-const variablesToStrings = (variables?: Variables): Record<string, string> => {
-  const result: Record<string, string> = {};
-
-  if (variables) {
-    for (const [key, value] of Object.entries(variables)) {
-      result[key] = typeof value === 'string' ? value : JSON.stringify(value);
-    }
-  }
-
-  return result;
-};
-
-const queryParameters = (parameters?: Record<string, string>): string => {
-  if (parameters && Object.keys(parameters).length) {
-    const definedParameters = Object.entries(parameters).reduce(
-      (result, [key, value]) => {
-        if (value === undefined) {
-          return result;
-        }
-
-        return {
-          ...result,
-          [key]: value,
-        };
-      },
-      {}
-    );
-
-    return '?' + new URLSearchParams(definedParameters).toString();
-  }
-
-  return '';
-};
-
-const formData = (data?: Record<string, string>): FormData => {
-  const formData = new FormData();
-
-  if (data) {
-    Object.entries(data).forEach(([key, value]) => formData.append(key, value));
-  }
-
-  return formData;
-};
-
 export const createUrl = (
   inputUrl: string,
   parameters?: {
     baseUrl?: string;
     pathParameters?: NonPrimitive;
-    queryParameters?: Record<string, string>;
   }
 ): string => {
-  const query = queryParameters(parameters?.queryParameters);
   const isRelative = /^\/[^/]/.test(inputUrl);
 
   let url: string;
@@ -164,11 +122,13 @@ export const createUrl = (
     }
   }
 
-  return `${url}${query}`;
+  return `${url}`;
 };
 
-export const HttpClient = {
-  request: async (
+export class HttpClient {
+  constructor(private fetchInstance: FetchInstance) {}
+
+  public async request(
     url: string,
     parameters: {
       method: string;
@@ -182,11 +142,11 @@ export const HttpClient = {
       baseUrl?: string;
       pathParameters?: NonPrimitive;
     }
-  ): Promise<HttpResponse> => {
-    const headers = new Headers(variablesToStrings(parameters?.headers));
-    headers.append('Accept', parameters.accept ?? '*/*');
+  ): Promise<HttpResponse> {
+    const headers = variablesToStrings(parameters?.headers);
+    headers['accept'] = parameters.accept || '*/*';
 
-    const params: RequestInit = {
+    const request: FetchParameters = {
       headers,
       method: parameters.method,
     };
@@ -232,98 +192,74 @@ export const HttpClient = {
       ['post', 'put', 'patch'].includes(parameters.method.toLowerCase())
     ) {
       if (parameters.contentType === JSON_CONTENT) {
-        headers.append('Content-Type', JSON_CONTENT);
-        params.body = JSON.stringify(requestBody);
+        headers['Content-Type'] ??= JSON_CONTENT;
+        request.body = stringBody(JSON.stringify(requestBody));
       } else if (parameters.contentType === URLENCODED_CONTENT) {
-        headers.append('Content-Type', URLENCODED_CONTENT);
-        params.body = new URLSearchParams(variablesToStrings(requestBody));
+        headers['Content-Type'] ??= URLENCODED_CONTENT;
+        request.body = urlSearchParamsBody(variablesToStrings(requestBody));
       } else if (parameters.contentType === FORMDATA_CONTENT) {
-        headers.append('Content-Type', FORMDATA_CONTENT);
-        params.body = formData(variablesToStrings(requestBody));
+        headers['Content-Type'] ??= FORMDATA_CONTENT;
+        request.body = formDataBody(variablesToStrings(requestBody));
       } else {
-        const cType = parameters.contentType ?? '';
+        const contentType = parameters.contentType ?? '';
         const supportedTypes = [
           JSON_CONTENT,
           URLENCODED_CONTENT,
           FORMDATA_CONTENT,
         ].join(', ');
         throw new SDKExecutionError(
-          `Content type not supported: ${cType}`,
+          `Content type not supported: ${contentType}`,
           [
-            `Requested content type "${cType}"`,
+            `Requested content type "${contentType}"`,
             `Supported content types: ${supportedTypes}`,
           ],
           []
         );
       }
     }
-    // add user agent
-    headers.append('User-Agent', USER_AGENT);
+    headers['user-agent'] ??= USER_AGENT;
 
     const finalUrl = createUrl(url, {
       baseUrl: parameters.baseUrl,
       pathParameters,
-      queryParameters: {
-        ...variablesToStrings(parameters.queryParameters),
-        ...queryAuth,
-      },
     });
 
-    const requestHeaders: Record<string, string> = {};
-    if (headers) {
-      headers.forEach((value, headerName) => {
-        requestHeaders[headerName] = value;
-      });
-    }
+    request.queryParameters = {
+      ...variablesToStrings(parameters.queryParameters),
+      ...queryAuth,
+    };
 
     debug('Executing HTTP Call');
     // secrets might appear in headers, url path, query parameters or body
     debugSensitive(
-      `\t${params.method || 'UNKNOWN METHOD'} ${finalUrl} HTTP/1.1`
+      `\t${request.method || 'UNKNOWN METHOD'} ${finalUrl} HTTP/1.1`
     );
-    Object.entries(requestHeaders).forEach(([headerName, value]) =>
+    Object.entries(headers).forEach(([headerName, value]) =>
       debugSensitive(`\t${headerName}: ${value}`)
     );
     if (requestBody !== undefined) {
       debugSensitive(`\n${inspect(requestBody, true, 5)}`);
     }
-    const response = await fetch(finalUrl, params);
-
-    let responseBody: unknown;
-
-    const responseHeaders: Record<string, string> = {};
-    response.headers.forEach((value, headerName) => {
-      responseHeaders[headerName] = value;
-    });
-
-    if (
-      (responseHeaders['content-type'] &&
-        responseHeaders['content-type'].includes(JSON_CONTENT)) ||
-      parameters.accept?.includes(JSON_CONTENT)
-    ) {
-      responseBody = await response.json();
-    } else {
-      responseBody = await response.text();
-    }
+    const response = await this.fetchInstance.fetch(finalUrl, request);
 
     debug('Received response');
     debugSensitive(`\tHTTP/1.1 ${response.status} ${response.statusText}`);
-    Object.entries(responseHeaders).forEach(([headerName, value]) =>
+    Object.entries(response.headers).forEach(([headerName, value]) =>
       debugSensitive(`\t${headerName}: ${value}`)
     );
-    debugSensitive('\n\t%j', responseBody);
+    debugSensitive('\n\t%j', response.body);
 
     return {
       statusCode: response.status,
-      body: responseBody,
-      headers: responseHeaders,
+      body: response.body,
+      headers: response.headers,
       debug: {
         request: {
           url: finalUrl,
-          headers: requestHeaders,
+          headers: headers,
           body: requestBody,
         },
       },
     };
-  },
-};
+  }
+}

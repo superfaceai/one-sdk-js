@@ -1,8 +1,6 @@
 import { MapDocumentNode } from '@superfaceai/ast';
-import { mocked } from 'ts-jest/utils';
 
 import { ProviderJson } from '../internal/providerjson';
-import { HttpClient } from '../lib/http';
 import {
   assertIsRegistryProviderInfo,
   fetchBind,
@@ -10,7 +8,14 @@ import {
   fetchProviders,
 } from './registry';
 
-jest.mock('../lib/http');
+const request = jest.fn();
+jest.mock('../internal/interpreter/http', () => {
+  return {
+    HttpClient: jest.fn().mockImplementation(() => ({
+      request,
+    })),
+  };
+});
 
 describe('registry', () => {
   const mockMapDocument: MapDocumentNode = {
@@ -38,7 +43,7 @@ describe('registry', () => {
   };
 
   afterEach(() => {
-    jest.resetAllMocks();
+    request.mockReset();
   });
 
   describe('when asserting input is registry provider info', () => {
@@ -98,12 +103,12 @@ describe('registry', () => {
         },
       };
 
-      mocked(HttpClient.request).mockResolvedValue(mockResponse);
+      request.mockResolvedValue(mockResponse);
 
       await expect(fetchMapAST('test-url')).resolves.toEqual(mockMapDocument);
 
-      expect(HttpClient.request).toHaveBeenCalledTimes(1);
-      expect(HttpClient.request).toHaveBeenCalledWith('test-url', {
+      expect(request).toHaveBeenCalledTimes(1);
+      expect(request).toHaveBeenCalledWith('test-url', {
         method: 'GET',
         accept: 'application/json',
       });
@@ -142,14 +147,14 @@ describe('registry', () => {
         },
       };
 
-      mocked(HttpClient.request).mockResolvedValue(mockResponse);
+      request.mockResolvedValue(mockResponse);
 
       await expect(fetchProviders('test-id', 'test-url')).resolves.toEqual(
         mockRecord.disco
       );
 
-      expect(HttpClient.request).toHaveBeenCalledTimes(1);
-      expect(HttpClient.request).toHaveBeenCalledWith('test-url', {
+      expect(request).toHaveBeenCalledTimes(1);
+      expect(request).toHaveBeenCalledWith('test-url', {
         method: 'GET',
         queryParameters: {
           semanticProfile: 'test-id',
@@ -160,11 +165,7 @@ describe('registry', () => {
   });
 
   describe('when fetching bind', () => {
-    let originalUrl: string | undefined;
     it('fetches map document', async () => {
-      originalUrl = process.env.SUPERFACE_API_URL;
-      process.env.SUPERFACE_API_URL = 'https://superface.dev';
-
       const mockBody = {
         provider: mockProviderJson,
         map_ast: JSON.stringify(mockMapDocument),
@@ -182,7 +183,7 @@ describe('registry', () => {
         },
       };
 
-      mocked(HttpClient.request).mockResolvedValue(mockResponse);
+      request.mockResolvedValue(mockResponse);
 
       await expect(
         fetchBind(
@@ -199,8 +200,8 @@ describe('registry', () => {
         mapAst: mockMapDocument,
       });
 
-      expect(HttpClient.request).toHaveBeenCalledTimes(1);
-      expect(HttpClient.request).toHaveBeenCalledWith('/registry/bind', {
+      expect(request).toHaveBeenCalledTimes(1);
+      expect(request).toHaveBeenCalledWith('/registry/bind', {
         method: 'POST',
         baseUrl: 'test-registiry-url',
         accept: 'application/json',
@@ -232,7 +233,7 @@ describe('registry', () => {
         },
       };
 
-      mocked(HttpClient.request).mockResolvedValue(mockResponse);
+      request.mockResolvedValue(mockResponse);
 
       await expect(
         fetchBind({
@@ -243,10 +244,10 @@ describe('registry', () => {
         })
       ).rejects.toEqual(new Error('registry responded with invalid body'));
 
-      expect(HttpClient.request).toHaveBeenCalledTimes(1);
-      expect(HttpClient.request).toHaveBeenCalledWith('/registry/bind', {
+      expect(request).toHaveBeenCalledTimes(1);
+      expect(request).toHaveBeenCalledWith('/registry/bind', {
         method: 'POST',
-        baseUrl: new URL('https://superface.dev').href,
+        baseUrl: expect.stringMatching('https://'),
         accept: 'application/json',
         contentType: 'application/json',
         body: {
@@ -256,8 +257,6 @@ describe('registry', () => {
           map_revision: 'test-map-revision',
         },
       });
-
-      process.env.SUPERFACE_API_URL = originalUrl;
     });
   });
 });
