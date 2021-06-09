@@ -1,9 +1,12 @@
 import { MapDocumentNode } from '@superfaceai/ast';
+import createDebug from 'debug';
 import * as zod from 'zod';
 
 import { isProviderJson, ProviderJson } from '../internal';
 import { HttpClient } from '../internal/interpreter/http';
 import { CrossFetch } from '../lib/fetch';
+
+const registryDebug = createDebug('superface:registry');
 
 export interface RegistryProviderInfo {
   url: string;
@@ -90,6 +93,28 @@ const bindResponseValidator = zod.object({
   map_ast: zod.string(),
 });
 
+export function loadSdkAuthToken(): string | undefined {
+  const tokenEnvName = 'SUPERFACE_SDK_TOKEN';
+  //Load superface token
+  const loadedToken = process.env[tokenEnvName];
+  if (!loadedToken) {
+    registryDebug(`Environment variable ${tokenEnvName} not found`);
+
+    return;
+  }
+  const token = loadedToken.trim();
+  const tokenRegexp = /^(sfs)_([^_]+)_([0-9A-F]{8})$/i;
+  if (!tokenRegexp.test(token)) {
+    registryDebug(
+      `Value in environment variable ${tokenEnvName} is not valid SDK authentization token`
+    );
+
+    return;
+  }
+
+  return token;
+}
+
 export async function fetchBind(
   request: {
     profileId: string;
@@ -106,8 +131,12 @@ export async function fetchBind(
 }> {
   const fetchInstance = new CrossFetch();
   const http = new HttpClient(fetchInstance);
+  const sdkToken = loadSdkAuthToken();
   const { body } = await http.request('/registry/bind', {
     method: 'POST',
+    headers: sdkToken
+      ? [`Authorization: SUPERFACE-SDK-TOKEN ${sdkToken}`]
+      : undefined,
     baseUrl: options?.registryUrl ?? getDefaultRegistryUrl(),
     accept: 'application/json',
     contentType: 'application/json',
