@@ -166,23 +166,22 @@ describe('registry', () => {
   });
 
   describe('when fetching bind', () => {
-    it('fetches map document', async () => {
-      let originalUrl: string | undefined;
-      let originalToken: string | undefined;
+    let originalUrl: string | undefined;
+    let originalToken: string | undefined;
 
-      beforeAll(() => {
-        originalUrl = process.env.SUPERFACE_API_URL;
-        originalToken = process.env.SUPERFACE_SDK_TOKEN;
-      });
-      afterAll(() => {
-        if (originalUrl) {
-          process.env.SUPERFACE_API_URL = originalUrl;
-        }
-        if (originalToken) {
-          process.env.SUPERFACE_SDK_TOKEN = originalToken;
-        }
-      });
+    beforeAll(() => {
+      originalUrl = process.env.SUPERFACE_API_URL;
+      originalToken = process.env.SUPERFACE_SDK_TOKEN;
     });
+    afterAll(() => {
+      if (originalUrl) {
+        process.env.SUPERFACE_API_URL = originalUrl;
+      }
+      if (originalToken) {
+        process.env.SUPERFACE_SDK_TOKEN = originalToken;
+      }
+    });
+
     it('fetches map document', async () => {
       process.env.SUPERFACE_API_URL = 'https://superface.dev';
       process.env.SUPERFACE_SDK_TOKEN =
