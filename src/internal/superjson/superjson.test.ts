@@ -6,8 +6,8 @@ import {
 } from 'path';
 import { mocked } from 'ts-jest/utils';
 
-import { isAccessible } from '../lib/io';
-import { err, ok } from '../lib/result/result';
+import { isAccessible } from '../../lib/io';
+import { err, ok } from '../../lib/result/result';
 import {
   composeFileURI,
   isApiKeySecurityValues,
@@ -21,9 +21,11 @@ import {
   ProfileProviderEntry,
   ProviderEntry,
   SecurityValues,
-  SuperJson,
   trimFileURI,
-} from './superjson';
+} from './schema';
+import { SuperJson } from './superjson';
+import * as normalize from './normalize';
+import { mergeSecurity } from './mutate';
 
 //Mock fs
 jest.mock('fs', () => ({
@@ -44,8 +46,8 @@ jest.mock('path', () => ({
 }));
 
 //Mock io
-jest.mock('../lib/io', () => ({
-  ...jest.requireActual<Record<string, unknown>>('../lib/io'),
+jest.mock('../../lib/io', () => ({
+  ...jest.requireActual<Record<string, unknown>>('../../lib/io'),
   isAccessible: jest.fn(),
 }));
 
@@ -337,7 +339,7 @@ describe('SuperJson', () => {
       const mockDefaults: NormalizedUsecaseDefaults = {};
 
       expect(
-        SuperJson.normalizeProfileProviderSettings(
+        normalize.normalizeProfileProviderSettings(
           mockProfileProviderEntry,
           mockDefaults
         )
@@ -351,7 +353,7 @@ describe('SuperJson', () => {
       const mockDefaults: NormalizedUsecaseDefaults = {};
 
       expect(
-        SuperJson.normalizeProfileProviderSettings(
+        normalize.normalizeProfileProviderSettings(
           mockProfileProviderEntry,
           mockDefaults
         )
@@ -366,7 +368,7 @@ describe('SuperJson', () => {
       const mockDefaults: NormalizedUsecaseDefaults = {};
 
       expect(() =>
-        SuperJson.normalizeProfileProviderSettings(
+      normalize.normalizeProfileProviderSettings(
           mockProfileProviderEntry,
           mockDefaults
         )
@@ -385,7 +387,7 @@ describe('SuperJson', () => {
       const mockDefaults: NormalizedUsecaseDefaults = {};
 
       expect(
-        SuperJson.normalizeProfileProviderSettings(
+        normalize.normalizeProfileProviderSettings(
           mockProfileProviderEntry,
           mockDefaults
         )
@@ -404,7 +406,7 @@ describe('SuperJson', () => {
       const mockDefaults: NormalizedUsecaseDefaults = {};
 
       expect(
-        SuperJson.normalizeProfileProviderSettings(
+        normalize.normalizeProfileProviderSettings(
           mockProfileProviderEntry,
           mockDefaults
         )
@@ -420,7 +422,7 @@ describe('SuperJson', () => {
     it('returns correct object when entry is uri', async () => {
       const mockProfileEntry = 'file://some/path';
 
-      expect(SuperJson.normalizeProfileSettings(mockProfileEntry)).toEqual({
+      expect(normalize.normalizeProfileSettings(mockProfileEntry)).toEqual({
         file: 'some/path',
         defaults: {},
         providers: {},
@@ -430,7 +432,7 @@ describe('SuperJson', () => {
     it('returns correct object when entry is version', async () => {
       const mockProfileEntry = '1.0.0';
 
-      expect(SuperJson.normalizeProfileSettings(mockProfileEntry)).toEqual({
+      expect(normalize.normalizeProfileSettings(mockProfileEntry)).toEqual({
         version: '1.0.0',
         defaults: {},
         providers: {},
@@ -440,7 +442,7 @@ describe('SuperJson', () => {
     it('throws error when entry is unknown string', async () => {
       const mockProfileEntry = 'madeup';
       expect(() =>
-        SuperJson.normalizeProfileSettings(mockProfileEntry)
+      normalize.normalizeProfileSettings(mockProfileEntry)
       ).toThrowError(
         new Error('invalid profile entry format: ' + mockProfileEntry)
       );
@@ -451,7 +453,7 @@ describe('SuperJson', () => {
         file: 'some/path',
       };
 
-      expect(SuperJson.normalizeProfileSettings(mockProfileEntry)).toEqual({
+      expect(normalize.normalizeProfileSettings(mockProfileEntry)).toEqual({
         file: 'some/path',
         defaults: {},
         providers: {},
@@ -463,7 +465,7 @@ describe('SuperJson', () => {
     it('returns correct object when entry is uri', async () => {
       const mockProviderEntry = 'file://some/path';
 
-      expect(SuperJson.normalizeProviderSettings(mockProviderEntry)).toEqual({
+      expect(normalize.normalizeProviderSettings(mockProviderEntry)).toEqual({
         file: 'some/path',
         security: [],
       });
@@ -472,7 +474,7 @@ describe('SuperJson', () => {
     it('throws error when entry is unknown string', async () => {
       const mockProviderEntry = 'madeup';
       expect(() =>
-        SuperJson.normalizeProviderSettings(mockProviderEntry)
+      normalize.normalizeProviderSettings(mockProviderEntry)
       ).toThrowError(
         new Error('invalid provider entry format: ' + mockProviderEntry)
       );
@@ -484,7 +486,7 @@ describe('SuperJson', () => {
         security: [],
       };
 
-      expect(SuperJson.normalizeProviderSettings(mockProviderEntry)).toEqual({
+      expect(normalize.normalizeProviderSettings(mockProviderEntry)).toEqual({
         file: 'some/path',
         security: [],
       });
@@ -550,11 +552,8 @@ describe('SuperJson', () => {
           },
         },
       });
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      const originalFn = SuperJson.normalizeProfileSettings;
-      const fn = jest.fn();
-      SuperJson.normalizeProfileSettings = fn;
 
+      const normalizeProfileSettingsSpy = jest.spyOn(normalize, 'normalizeProfileSettings');
       expect(mockSuperJson.normalized).toEqual({
         providers: {
           test: {
@@ -571,8 +570,8 @@ describe('SuperJson', () => {
         },
       });
 
-      expect(fn).toHaveBeenCalledTimes(0);
-      SuperJson.normalizeProfileSettings = originalFn;
+      expect(normalizeProfileSettingsSpy).toHaveBeenCalledTimes(0);
+      normalizeProfileSettingsSpy.mockRestore();
     });
   });
 
@@ -1697,58 +1696,6 @@ describe('SuperJson', () => {
     });
   });
 
-  describe('when resolving env', () => {
-    it('resolves env correctly when it is found', () => {
-      const mockEnvVariable = 'superJsonTest';
-      const originalEnvValue = process.env[mockEnvVariable];
-      process.env[mockEnvVariable] = 'test';
-      expect(SuperJson.resolveEnv(`$${mockEnvVariable}`)).toEqual('test');
-      process.env[mockEnvVariable] = originalEnvValue;
-    });
-
-    it('resolves env correctly when it is not found', () => {
-      const mockEnvVariable = 'superJsonTest';
-      const originalEnvValue = process.env[mockEnvVariable];
-      delete process.env[mockEnvVariable];
-      expect(SuperJson.resolveEnv(`$${mockEnvVariable}`)).toEqual(
-        `$${mockEnvVariable}`
-      );
-      process.env[mockEnvVariable] = originalEnvValue;
-    });
-  });
-
-  describe('when resolving env record', () => {
-    it('resolves env correctly when value is string', () => {
-      const mockEnvVariable = 'superJsonTest';
-      const originalEnvValue = process.env[mockEnvVariable];
-      process.env[mockEnvVariable] = 'test';
-      const mockRecord = { testKey: `$${mockEnvVariable}` };
-
-      expect(SuperJson.resolveEnvRecord(mockRecord)).toEqual({
-        testKey: 'test',
-      });
-
-      process.env[mockEnvVariable] = originalEnvValue;
-    });
-
-    it('resolves env correctly when value is object', () => {
-      const mockEnvVariable = 'superJsonTest';
-      const originalEnvValue = process.env[mockEnvVariable];
-      process.env[mockEnvVariable] = 'test';
-      const mockRecord = {
-        testWrapperKey: { testKey: `$${mockEnvVariable}` },
-        nullKey: null,
-      };
-
-      expect(SuperJson.resolveEnvRecord(mockRecord)).toEqual({
-        testWrapperKey: { testKey: 'test' },
-        nullKey: null,
-      });
-
-      process.env[mockEnvVariable] = originalEnvValue;
-    });
-  });
-
   describe('when merging security', () => {
     it('merges security correctly', () => {
       const mockLeft: SecurityValues[] = [
@@ -1765,7 +1712,7 @@ describe('SuperJson', () => {
         },
       ];
 
-      expect(SuperJson.mergeSecurity(mockLeft, mockRight)).toEqual([
+      expect(mergeSecurity(mockLeft, mockRight)).toEqual([
         {
           id: 'left-api-id',
           apikey: 'left-api-key',
@@ -1796,7 +1743,7 @@ describe('SuperJson', () => {
         },
       ];
 
-      expect(SuperJson.mergeSecurity(mockLeft, mockRight)).toEqual([
+      expect(mergeSecurity(mockLeft, mockRight)).toEqual([
         {
           id: 'left-api-id',
           apikey: 'left-api-key',
@@ -1869,5 +1816,37 @@ describe('SuperJson', () => {
       expect(isAccessible).toHaveBeenCalledTimes(5);
       expect(relativePath).toHaveBeenCalledTimes(1);
     }, 10000);
+  });
+
+  describe('when computing config hash', () => {
+    it('does debug', () => {
+      const superJson = new SuperJson(
+        {
+          profiles: {
+            abc: {
+              file: 'x'
+            },
+            ghe: {
+              version: '1.2.3'
+            },
+            def: 'file://hi/hello'
+          },
+          providers: {
+            foo: {
+
+            },
+            bar: {
+              file: 'hi'
+            }
+          }
+        }
+      );
+
+      expect(
+        superJson.configHash()
+      ).toBe(
+        '0113d18696ff6b61237df48d532d07f9'
+      );
+    });
   });
 });

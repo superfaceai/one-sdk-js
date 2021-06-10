@@ -32,6 +32,7 @@ import {
   SecurityValues,
   SuperJson,
 } from '../internal/superjson';
+import { mergeSecurity } from '../internal/superjson/mutate';
 import { err, ok, Result } from '../lib';
 import { SecurityConfiguration } from '../lib/http';
 import { ProfileConfiguration } from './profile';
@@ -441,7 +442,7 @@ export class ProfileProvider {
 
     let resolved = base;
     if (overlay !== undefined) {
-      resolved = SuperJson.mergeSecurity(base, overlay);
+      resolved = mergeSecurity(base, overlay);
     }
 
     return resolved;
