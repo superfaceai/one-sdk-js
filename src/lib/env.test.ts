@@ -1,4 +1,4 @@
-import { resolveEnv, resolveEnvRecord } from "./env";
+import { resolveEnv, resolveEnvRecord } from './env';
 
 describe('lib/env', () => {
   it('resolves env correctly when it is found', () => {
@@ -13,9 +13,7 @@ describe('lib/env', () => {
     const mockEnvVariable = 'superJsonTest';
     const originalEnvValue = process.env[mockEnvVariable];
     delete process.env[mockEnvVariable];
-    expect(resolveEnv(`$${mockEnvVariable}`)).toEqual(
-      `$${mockEnvVariable}`
-    );
+    expect(resolveEnv(`$${mockEnvVariable}`)).toEqual(`$${mockEnvVariable}`);
     process.env[mockEnvVariable] = originalEnvValue;
   });
 });

@@ -78,9 +78,9 @@ describe('MapInterpreter errors', () => {
       const interpreter = new MapInterpreter({
         security: [],
       });
-      const result = await interpreter.perform(({
+      const result = await interpreter.perform({
         kind: 'Invalid',
-      } as unknown) as MapDocumentNode);
+      } as unknown as MapDocumentNode);
       expect(result.isErr() && result.error instanceof UnexpectedError).toEqual(
         true
       );

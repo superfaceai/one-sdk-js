@@ -1,11 +1,9 @@
-import {
-  normalize,
-} from 'path';
-
+import { normalize } from 'path';
 import * as zod from 'zod';
 
 // 'Official' regex https://semver.org/#is-there-a-suggested-regular-expression-regex-to-check-a-semver-string
-const SEMVER_REGEX = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/;
+const SEMVER_REGEX =
+  /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/;
 
 // NOT comprehensive at all
 export const FILE_URI_PROTOCOL = 'file://';
@@ -271,7 +269,9 @@ export type BearerTokenSecurityValues = zod.infer<
 export type DigestSecurityValues = zod.infer<typeof digestSecurityValues>;
 export type SecurityValues = zod.infer<typeof securityValues>;
 
-export type NormalizedSuperJsonDocument = zod.infer<typeof normalizedSuperJsonSchema>;
+export type NormalizedSuperJsonDocument = zod.infer<
+  typeof normalizedSuperJsonSchema
+>;
 export type NormalizedProfileSettings = zod.infer<
   typeof normalizedProfileSettings
 >;

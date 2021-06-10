@@ -45,7 +45,7 @@ export function recursiveKeyList(
 
 /**
  * Recursively index into a record.
- * 
+ *
  * Throws if a child cannot be indexed into.
  */
 export function indexRecord<T extends unknown | Record<string, T>>(
@@ -71,5 +71,5 @@ export function indexRecord<T extends unknown | Record<string, T>>(
     throw new Error('Cannot index into non-object');
   }
 
-  return indexRecord(next as Record<string, T>, key)
+  return indexRecord(next as Record<string, T>, key);
 }

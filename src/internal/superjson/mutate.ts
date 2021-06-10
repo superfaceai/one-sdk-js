@@ -1,6 +1,23 @@
-import { isEmptyRecord } from "../interpreter/variables";
-import { normalizeProfileSettings, normalizeUsecaseDefaults } from "./normalize";
-import { composeFileURI, isFileURIString, isVersionString, ProfileEntry, ProfileProviderEntry, ProfileProviderSettings, ProfileSettings, ProviderEntry, ProviderSettings, SecurityValues, SuperJsonDocument, trimFileURI, UsecaseDefaults } from "./schema";
+import { isEmptyRecord } from '../interpreter/variables';
+import {
+  normalizeProfileSettings,
+  normalizeUsecaseDefaults,
+} from './normalize';
+import {
+  composeFileURI,
+  isFileURIString,
+  isVersionString,
+  ProfileEntry,
+  ProfileProviderEntry,
+  ProfileProviderSettings,
+  ProfileSettings,
+  ProviderEntry,
+  ProviderSettings,
+  SecurityValues,
+  SuperJsonDocument,
+  trimFileURI,
+  UsecaseDefaults,
+} from './schema';
 
 export function addProfile(
   document: SuperJsonDocument,
@@ -23,7 +40,8 @@ export function addProfile(
   if (typeof payload === 'string') {
     const isShorthandAvailable =
       typeof targetedProfile === 'string' ||
-      (isEmptyRecord(targetedProfile.defaults ?? {}) && isEmptyRecord(targetedProfile.providers ?? {}));
+      (isEmptyRecord(targetedProfile.defaults ?? {}) &&
+        isEmptyRecord(targetedProfile.providers ?? {}));
 
     const commonProperties: Partial<ProfileSettings> = {};
     if (typeof targetedProfile !== 'string') {
@@ -117,9 +135,8 @@ export function addProfileProvider(
 
   // if specified profile has shorthand notation
   if (typeof targetedProfile === 'string') {
-    document.profiles[
-      profileName
-    ] = targetedProfile = normalizeProfileSettings(targetedProfile);
+    document.profiles[profileName] = targetedProfile =
+      normalizeProfileSettings(targetedProfile);
 
     targetedProfile.providers = {
       [providerName]: payload,

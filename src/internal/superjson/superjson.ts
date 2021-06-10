@@ -8,24 +8,18 @@ import {
   resolve as resolvePath,
 } from 'path';
 
-import { configHash } from '../../lib/config-hash';
-
 import { err, ok, Result } from '../../lib';
+import { configHash } from '../../lib/config-hash';
 import { isAccessible } from '../../lib/io';
+import { addProfile, addProfileProvider, addProvider } from './mutate';
 import { normalizeSuperJsonDocument } from './normalize';
 import {
-  addProfile,
-  addProfileProvider,
-  addProvider
-} from './mutate';
-
-import {
-  SuperJsonDocument,
-  ProfileEntry,
-  ProviderEntry,
-  ProfileProviderEntry,
   NormalizedSuperJsonDocument,
-  superJsonSchema
+  ProfileEntry,
+  ProfileProviderEntry,
+  ProviderEntry,
+  SuperJsonDocument,
+  superJsonSchema,
 } from './schema';
 
 const debug = createDebug('superface:superjson');
@@ -187,7 +181,12 @@ export class SuperJson {
     providerName: string,
     payload: ProfileProviderEntry
   ): boolean {
-    const result = addProfileProvider(this.document, profileName, providerName, payload);
+    const result = addProfileProvider(
+      this.document,
+      profileName,
+      providerName,
+      payload
+    );
     if (result) {
       this.normalizedCache = undefined;
     }
@@ -220,7 +219,7 @@ export class SuperJson {
     return resolvePath(dirname(this.path), path);
   }
 
-   // other representations //
+  // other representations //
 
   get stringified(): string {
     return JSON.stringify(this.document, undefined, 2);
@@ -232,48 +231,45 @@ export class SuperJson {
     }
 
     this.normalizedCache = normalizeSuperJsonDocument(this.document);
+
     return this.normalizedCache;
   }
 
   configHash(): string {
     // <profile>:<version/path>,<provider>:<path>,<provider>:<path>
-    const profileValues: string[] = []
+    const profileValues: string[] = [];
     for (const [profile, info] of Object.entries(this.normalized.profiles)) {
       let path;
       if ('version' in info) {
         path = info.version;
       } else {
         path = info.file;
-      };
+      }
 
       const providers: string[] = Object.entries(info.providers).map(
         ([provider, info]): string => {
           if ('file' in info) {
             return `${provider}:${info.file}`;
           } else {
-            return `${provider}:${info.mapVariant ?? ''}-${info.mapRevision ?? ''}`;
+            return `${provider}:${info.mapVariant ?? ''}-${
+              info.mapRevision ?? ''
+            }`;
           }
         }
-      )
+      );
       // sort by provider name to be reproducible
       providers.sort();
-      const providersString = providers.map(
-        p => `,${p}`
-      ).join('');
+      const providersString = providers.map(p => `,${p}`).join('');
 
-      profileValues.push(
-        `${profile}:${path}${providersString}`
-      );
+      profileValues.push(`${profile}:${path}${providersString}`);
     }
     // sort by profile name to be reproducible
     profileValues.sort();
 
     // <provider>:<path>
-    const providerValues: string[] = []
+    const providerValues: string[] = [];
     for (const [provider, info] of Object.entries(this.normalized.providers)) {
-      providerValues.push(
-        `${provider}:${info.file ?? ''}`
-      );
+      providerValues.push(`${provider}:${info.file ?? ''}`);
     }
     // sort by provider name to be reproducible
     providerValues.sort();

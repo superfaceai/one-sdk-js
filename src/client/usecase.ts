@@ -29,10 +29,11 @@ class UseCaseBase {
       providerConfig = provider.configuration;
     }
 
-    const boundProfileProvider = await this.profile.client.cacheBoundProfileProvider(
-      this.profile.configuration,
-      providerConfig
-    );
+    const boundProfileProvider =
+      await this.profile.client.cacheBoundProfileProvider(
+        this.profile.configuration,
+        providerConfig
+      );
 
     return boundProfileProvider;
   }

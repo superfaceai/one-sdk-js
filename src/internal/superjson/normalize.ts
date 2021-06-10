@@ -1,7 +1,21 @@
-import { resolveEnvRecord } from "../../lib/env";
-import { clone } from "../../lib/object";
-import { castToNonPrimitive, mergeVariables } from "../interpreter/variables";
-import { FILE_URI_PROTOCOL, isFileURIString, isVersionString, NormalizedProfileProviderSettings, NormalizedProfileSettings, NormalizedProviderSettings, NormalizedSuperJsonDocument, NormalizedUsecaseDefaults, ProfileEntry, ProfileProviderEntry, ProviderEntry, SuperJsonDocument, UsecaseDefaults } from "./schema";
+import { resolveEnvRecord } from '../../lib/env';
+import { clone } from '../../lib/object';
+import { castToNonPrimitive, mergeVariables } from '../interpreter/variables';
+import {
+  FILE_URI_PROTOCOL,
+  isFileURIString,
+  isVersionString,
+  NormalizedProfileProviderSettings,
+  NormalizedProfileSettings,
+  NormalizedProviderSettings,
+  NormalizedSuperJsonDocument,
+  NormalizedUsecaseDefaults,
+  ProfileEntry,
+  ProfileProviderEntry,
+  ProviderEntry,
+  SuperJsonDocument,
+  UsecaseDefaults,
+} from './schema';
 
 export function normalizeProfileProviderSettings(
   profileProviderSettings: ProfileProviderEntry | undefined,
@@ -62,8 +76,7 @@ export function normalizeUsecaseDefaults(
   const normalized: NormalizedUsecaseDefaults =
     base !== undefined ? clone(base) : {};
   for (const [usecase, defs] of Object.entries(defaults)) {
-    const previousInput =
-      castToNonPrimitive(normalized[usecase]?.input) ?? {};
+    const previousInput = castToNonPrimitive(normalized[usecase]?.input) ?? {};
 
     normalized[usecase] = {
       input: mergeVariables(
@@ -114,18 +127,15 @@ export function normalizeProfileSettings(
     };
   }
 
-  normalizedSettings.defaults = normalizeUsecaseDefaults(
-    profileEntry.defaults
-  );
+  normalizedSettings.defaults = normalizeUsecaseDefaults(profileEntry.defaults);
   for (const [providerName, profileProviderSettings] of Object.entries(
     profileEntry.providers ?? {}
   )) {
-    normalizedSettings.providers[
-      providerName
-    ] = normalizeProfileProviderSettings(
-      profileProviderSettings,
-      normalizedSettings.defaults
-    );
+    normalizedSettings.providers[providerName] =
+      normalizeProfileProviderSettings(
+        profileProviderSettings,
+        normalizedSettings.defaults
+      );
   }
 
   return normalizedSettings;
@@ -148,9 +158,7 @@ export function normalizeProviderSettings(
   return {
     file: providerEntry.file,
     security:
-      providerEntry.security?.map(entry =>
-        resolveEnvRecord(entry)
-      ) ?? [],
+      providerEntry.security?.map(entry => resolveEnvRecord(entry)) ?? [],
   };
 }
 
@@ -164,17 +172,14 @@ export function normalizeSuperJsonDocument(
   const profiles = document.profiles ?? {};
   const normalizedProfiles: Record<string, NormalizedProfileSettings> = {};
   for (const [profileId, profileEntry] of Object.entries(profiles)) {
-    normalizedProfiles[profileId] = normalizeProfileSettings(
-      profileEntry
-    );
+    normalizedProfiles[profileId] = normalizeProfileSettings(profileEntry);
   }
 
   const providers = document.providers ?? {};
   const normalizedProviders: Record<string, NormalizedProviderSettings> = {};
   for (const [providerName, providerEntry] of Object.entries(providers)) {
-    normalizedProviders[providerName] = normalizeProviderSettings(
-      providerEntry
-    );
+    normalizedProviders[providerName] =
+      normalizeProviderSettings(providerEntry);
   }
 
   return {

@@ -1,15 +1,15 @@
 import createDebug from 'debug';
 
-import { clone } from "./object";
+import { clone } from './object';
 
 const debug = createDebug('superface:lib/env');
 
 /**
-   * Attempts to resolve environment value.
-   *
-   * If the value starts with `$` character, it attempts to look it up in the environment variables.
-   * If the value is not in environment or doesn't start with `$` it is returned as is.
-   */
+ * Attempts to resolve environment value.
+ *
+ * If the value starts with `$` character, it attempts to look it up in the environment variables.
+ * If the value is not in environment or doesn't start with `$` it is returned as is.
+ */
 export function resolveEnv(str: string): string {
   let value = str;
 
@@ -27,11 +27,13 @@ export function resolveEnv(str: string): string {
 }
 
 /**
-   * Resolve environment values in a record recursively.
-   *
-   * Returns a clone of the of the original record with every string field replaced by the result of `resolveEnd(field)`.
-   */
-export function resolveEnvRecord<T extends Record<string, unknown>>(record: T): T {
+ * Resolve environment values in a record recursively.
+ *
+ * Returns a clone of the of the original record with every string field replaced by the result of `resolveEnd(field)`.
+ */
+export function resolveEnvRecord<T extends Record<string, unknown>>(
+  record: T
+): T {
   // If typed as `Partial<T>` typescript complains with "Type 'string' cannot be used to index type 'Partial<T>'. ts(2536)"
   const result: Partial<Record<string, unknown>> = {};
 
@@ -41,9 +43,7 @@ export function resolveEnvRecord<T extends Record<string, unknown>>(record: T): 
       result[key] = resolveEnv(value);
     } else if (typeof value === 'object' && value !== null) {
       // recurse objects
-      result[key] = resolveEnvRecord(
-        value as Record<string, unknown>
-      );
+      result[key] = resolveEnvRecord(value as Record<string, unknown>);
     } else {
       // clone everything else
       result[key] = clone(value);

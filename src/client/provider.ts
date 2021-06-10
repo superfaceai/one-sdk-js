@@ -27,10 +27,7 @@ export class Provider {
   }): Promise<Provider> {
     const newConfiguration = new ProviderConfiguration(
       this.configuration.name,
-      mergeSecurity(
-        this.configuration.security,
-        configuration.security ?? []
-      ),
+      mergeSecurity(this.configuration.security, configuration.security ?? []),
       configuration.serviceId ?? this.configuration.serviceId
     );
 

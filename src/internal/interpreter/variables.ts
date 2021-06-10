@@ -1,4 +1,4 @@
-import { indexRecord } from "../../lib/object";
+import { indexRecord } from '../../lib/object';
 
 // Arrays should be considered opaque value and therefore act as a primitive
 export type Primitive = string | boolean | number | unknown[];
@@ -87,7 +87,7 @@ export const getValue = (
   key: string[]
 ): Variables | undefined => {
   if (variables === undefined) {
-    return undefined
+    return undefined;
   }
 
   let result;
@@ -97,7 +97,7 @@ export const getValue = (
     // return undefined on error to preserve the original behavior of this function
     return undefined;
   }
-  
+
   // sanity check, but if the input `variables` is correct then the result will be also
   assertIsVariables(result);
 

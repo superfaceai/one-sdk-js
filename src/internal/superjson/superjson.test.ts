@@ -8,6 +8,8 @@ import { mocked } from 'ts-jest/utils';
 
 import { isAccessible } from '../../lib/io';
 import { err, ok } from '../../lib/result/result';
+import { mergeSecurity } from './mutate';
+import * as normalize from './normalize';
 import {
   composeFileURI,
   isApiKeySecurityValues,
@@ -24,8 +26,6 @@ import {
   trimFileURI,
 } from './schema';
 import { SuperJson } from './superjson';
-import * as normalize from './normalize';
-import { mergeSecurity } from './mutate';
 
 //Mock fs
 jest.mock('fs', () => ({
@@ -368,7 +368,7 @@ describe('SuperJson', () => {
       const mockDefaults: NormalizedUsecaseDefaults = {};
 
       expect(() =>
-      normalize.normalizeProfileProviderSettings(
+        normalize.normalizeProfileProviderSettings(
           mockProfileProviderEntry,
           mockDefaults
         )
@@ -442,7 +442,7 @@ describe('SuperJson', () => {
     it('throws error when entry is unknown string', async () => {
       const mockProfileEntry = 'madeup';
       expect(() =>
-      normalize.normalizeProfileSettings(mockProfileEntry)
+        normalize.normalizeProfileSettings(mockProfileEntry)
       ).toThrowError(
         new Error('invalid profile entry format: ' + mockProfileEntry)
       );
@@ -474,7 +474,7 @@ describe('SuperJson', () => {
     it('throws error when entry is unknown string', async () => {
       const mockProviderEntry = 'madeup';
       expect(() =>
-      normalize.normalizeProviderSettings(mockProviderEntry)
+        normalize.normalizeProviderSettings(mockProviderEntry)
       ).toThrowError(
         new Error('invalid provider entry format: ' + mockProviderEntry)
       );
@@ -553,7 +553,10 @@ describe('SuperJson', () => {
         },
       });
 
-      const normalizeProfileSettingsSpy = jest.spyOn(normalize, 'normalizeProfileSettings');
+      const normalizeProfileSettingsSpy = jest.spyOn(
+        normalize,
+        'normalizeProfileSettings'
+      );
       expect(mockSuperJson.normalized).toEqual({
         providers: {
           test: {
@@ -1820,33 +1823,25 @@ describe('SuperJson', () => {
 
   describe('when computing config hash', () => {
     it('does debug', () => {
-      const superJson = new SuperJson(
-        {
-          profiles: {
-            abc: {
-              file: 'x'
-            },
-            ghe: {
-              version: '1.2.3'
-            },
-            def: 'file://hi/hello'
+      const superJson = new SuperJson({
+        profiles: {
+          abc: {
+            file: 'x',
           },
-          providers: {
-            foo: {
+          ghe: {
+            version: '1.2.3',
+          },
+          def: 'file://hi/hello',
+        },
+        providers: {
+          foo: {},
+          bar: {
+            file: 'hi',
+          },
+        },
+      });
 
-            },
-            bar: {
-              file: 'hi'
-            }
-          }
-        }
-      );
-
-      expect(
-        superJson.configHash()
-      ).toBe(
-        '0113d18696ff6b61237df48d532d07f9'
-      );
+      expect(superJson.configHash()).toBe('0113d18696ff6b61237df48d532d07f9');
     });
   });
 });

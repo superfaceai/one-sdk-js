@@ -165,7 +165,8 @@ export function createTypedClient<TProfiles extends ProfileUseCases<any, any>>(
 ): { new (): TypedSuperfaceClient<TProfiles> } {
   return class TypedSuperfaceClientClass
     extends SuperfaceClientBase
-    implements TypedSuperfaceClient<TProfiles> {
+    implements TypedSuperfaceClient<TProfiles>
+  {
     async getProfile<TProfile extends keyof TProfiles>(
       profileId: TProfile
     ): Promise<TypedProfile<TProfiles[TProfile]>> {

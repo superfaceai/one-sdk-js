@@ -112,9 +112,8 @@ describe('profile provider', () => {
     defaultService: 'test-service',
   };
 
-  const mockProviderConfiguration: ProviderConfiguration = new ProviderConfiguration(
-    'test',
-    [
+  const mockProviderConfiguration: ProviderConfiguration =
+    new ProviderConfiguration('test', [
       {
         username: 'test-username',
         id: 'basic',
@@ -132,8 +131,7 @@ describe('profile provider', () => {
         id: 'digest',
         digest: 'test-digest-token',
       },
-    ]
-  );
+    ]);
 
   afterEach(() => {
     jest.resetAllMocks();
@@ -681,27 +679,25 @@ describe('profile provider', () => {
 
       it('returns new BoundProfileProvider with merged security', async () => {
         const mergeSecuritySpy = jest.spyOn(SuperJsonMutate, 'mergeSecurity');
-        mergeSecuritySpy.mockReturnValue(
-          [
-            {
-              username: 'test-username',
-              id: 'basic',
-              password: 'test-password',
-            },
-            {
-              id: 'api',
-              apikey: 'test-api-key',
-            },
-            {
-              id: 'bearer',
-              token: 'test-token',
-            },
-            {
-              id: 'digest',
-              digest: 'test-digest-token',
-            },
-          ]
-        );
+        mergeSecuritySpy.mockReturnValue([
+          {
+            username: 'test-username',
+            id: 'basic',
+            password: 'test-password',
+          },
+          {
+            id: 'api',
+            apikey: 'test-api-key',
+          },
+          {
+            id: 'bearer',
+            token: 'test-token',
+          },
+          {
+            id: 'digest',
+            digest: 'test-digest-token',
+          },
+        ]);
         mocked(fetchBind).mockResolvedValue(mockFetchResponse);
 
         //normalized is getter on SuperJson - unable to mock or spy on

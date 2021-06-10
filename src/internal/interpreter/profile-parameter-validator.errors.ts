@@ -29,9 +29,7 @@ export type ValidationError =
       context?: ErrorContext & { field: string };
     };
 
-export function isWrongTypeError(
-  err: ValidationError
-): err is {
+export function isWrongTypeError(err: ValidationError): err is {
   kind: 'wrongType';
   context: { expected: string; actual: string };
 } {
