@@ -15,7 +15,8 @@ import {
   ProviderJson,
   SecurityType,
 } from '../internal/providerjson';
-import { SecurityValues, SuperJson } from '../internal/superjson';
+import { SuperJson } from '../internal/superjson';
+import * as SuperJsonMutate from '../internal/superjson/mutate';
 import { err, ok } from '../lib';
 import { ProfileConfiguration } from './profile';
 import { BoundProfileProvider, ProfileProvider } from './profile-provider';
@@ -40,8 +41,6 @@ jest.mock('fs', () => ({
 }));
 
 //Mock super json
-jest.mock('../internal/superjson');
-
 const mockResolvePath = jest.fn();
 jest.mock('../internal/superjson', () => ({
   ...jest.requireActual<Record<string, unknown>>('../internal/superjson'),
@@ -113,9 +112,8 @@ describe('profile provider', () => {
     defaultService: 'test-service',
   };
 
-  const mockProviderConfiguration: ProviderConfiguration = new ProviderConfiguration(
-    'test',
-    [
+  const mockProviderConfiguration: ProviderConfiguration =
+    new ProviderConfiguration('test', [
       {
         username: 'test-username',
         id: 'basic',
@@ -133,8 +131,7 @@ describe('profile provider', () => {
         id: 'digest',
         digest: 'test-digest-token',
       },
-    ]
-  );
+    ]);
 
   afterEach(() => {
     jest.resetAllMocks();
@@ -681,13 +678,8 @@ describe('profile provider', () => {
       });
 
       it('returns new BoundProfileProvider with merged security', async () => {
-        // eslint-disable-next-line @typescript-eslint/unbound-method
-        const orginalMerge = SuperJson.mergeSecurity;
-
-        SuperJson.mergeSecurity = (
-          _left: SecurityValues[],
-          _right: SecurityValues[]
-        ) => [
+        const mergeSecuritySpy = jest.spyOn(SuperJsonMutate, 'mergeSecurity');
+        mergeSecuritySpy.mockReturnValue([
           {
             username: 'test-username',
             id: 'basic',
@@ -705,7 +697,7 @@ describe('profile provider', () => {
             id: 'digest',
             digest: 'test-digest-token',
           },
-        ];
+        ]);
         mocked(fetchBind).mockResolvedValue(mockFetchResponse);
 
         //normalized is getter on SuperJson - unable to mock or spy on
@@ -748,7 +740,7 @@ describe('profile provider', () => {
             ],
           }).toString()
         );
-        SuperJson.mergeSecurity = orginalMerge;
+        mergeSecuritySpy.mockRestore();
       });
 
       it('throws error when could not find scheme', async () => {

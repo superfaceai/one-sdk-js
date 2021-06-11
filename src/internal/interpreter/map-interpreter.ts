@@ -116,7 +116,8 @@ type IterationDefinition = {
 };
 
 export class MapInterpreter<TInput extends NonPrimitive | undefined>
-  implements MapAstVisitor {
+  implements MapAstVisitor
+{
   private operations: Record<string, OperationDefinitionNode | undefined> = {};
   private stack: Stack[] = [];
   private ast?: MapDocumentNode;
