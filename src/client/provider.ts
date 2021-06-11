@@ -1,4 +1,5 @@
-import { SecurityValues, SuperJson } from '../internal';
+import { SecurityValues } from '../internal';
+import { mergeSecurity } from '../internal/superjson/mutate';
 import { SuperfaceClientBase } from './client';
 
 export class ProviderConfiguration {
@@ -26,10 +27,7 @@ export class Provider {
   }): Promise<Provider> {
     const newConfiguration = new ProviderConfiguration(
       this.configuration.name,
-      SuperJson.mergeSecurity(
-        this.configuration.security,
-        configuration.security ?? []
-      ),
+      mergeSecurity(this.configuration.security, configuration.security ?? []),
       configuration.serviceId ?? this.configuration.serviceId
     );
 

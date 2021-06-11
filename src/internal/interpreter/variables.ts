@@ -1,3 +1,5 @@
+import { indexRecord } from '../../lib/object';
+
 // Arrays should be considered opaque value and therefore act as a primitive
 export type Primitive = string | boolean | number | unknown[];
 export type NonPrimitive = {
@@ -84,18 +86,22 @@ export const getValue = (
   variables: NonPrimitive | undefined,
   key: string[]
 ): Variables | undefined => {
-  if (key.length === 0 || variables === undefined) {
+  if (variables === undefined) {
     return undefined;
-  } else if (key.length === 1) {
-    return variables[key[0]];
-  } else {
-    const previousKey = key.shift();
-    if (previousKey === undefined) {
-      throw new Error('This should be unreachable.');
-    }
-
-    return getValue(castToNonPrimitive(variables[previousKey]), key);
   }
+
+  let result;
+  try {
+    result = indexRecord(variables, key);
+  } catch (_err) {
+    // return undefined on error to preserve the original behavior of this function
+    return undefined;
+  }
+
+  // sanity check, but if the input `variables` is correct then the result will be also
+  assertIsVariables(result);
+
+  return result;
 };
 
 export const variablesToStrings = (

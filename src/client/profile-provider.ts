@@ -34,6 +34,7 @@ import {
   SecurityValues,
   SuperJson,
 } from '../internal/superjson';
+import { mergeSecurity } from '../internal/superjson/mutate';
 import { err, ok, Result } from '../lib';
 import { CrossFetch } from '../lib/fetch';
 import { ProfileConfiguration } from './profile';
@@ -240,8 +241,9 @@ export class ProfileProvider {
     // prepare service info
     // BUG: The serviceId coming from this.provider when it is ProviderConfiguration is not respected
     const serviceId = configuration?.serviceId ?? providerInfo.defaultService;
-    const baseUrl = providerInfo.services.find(s => s.id === serviceId)
-      ?.baseUrl;
+    const baseUrl = providerInfo.services.find(
+      s => s.id === serviceId
+    )?.baseUrl;
     if (baseUrl === undefined) {
       let hints: string[] = [];
       if (serviceId == providerInfo.defaultService) {
@@ -266,8 +268,10 @@ export class ProfileProvider {
 
     return new BoundProfileProvider(profileAst, mapAst, {
       baseUrl,
-      profileProviderSettings: this.superJson.normalized.profiles[profileId]
-        ?.providers[providerInfo.name],
+      profileProviderSettings:
+        this.superJson.normalized.profiles[profileId]?.providers[
+          providerInfo.name
+        ],
       security: securityConfiguration,
     });
   }
@@ -324,9 +328,8 @@ export class ProfileProvider {
       resolveInput,
       fileContents => JSON.parse(fileContents) as ProviderJson, // TODO: validate
       providerName => {
-        const providerSettings = this.superJson.normalized.providers[
-          providerName
-        ];
+        const providerSettings =
+          this.superJson.normalized.providers[providerName];
         if (providerSettings?.file !== undefined) {
           // local file is resolved
           return (
@@ -353,9 +356,7 @@ export class ProfileProvider {
     return { providerInfo, providerName };
   }
 
-  private async resolveMapAst(
-    mapId: string
-  ): Promise<{
+  private async resolveMapAst(mapId: string): Promise<{
     mapAst?: MapDocumentNode;
     mapVariant?: string;
     mapRevision?: string;
@@ -366,9 +367,8 @@ export class ProfileProvider {
       fileContents => JSON.parse(fileContents) as MapDocumentNode, // TODO: validate
       mapId => {
         const [profileId, providerName] = mapId.split('.');
-        const profileProviderSettings = this.superJson.normalized.profiles[
-          profileId
-        ].providers[providerName];
+        const profileProviderSettings =
+          this.superJson.normalized.profiles[profileId].providers[providerName];
 
         if (profileProviderSettings === undefined) {
           return undefined;
@@ -452,7 +452,7 @@ export class ProfileProvider {
 
     let resolved = base;
     if (overlay !== undefined) {
-      resolved = SuperJson.mergeSecurity(base, overlay);
+      resolved = mergeSecurity(base, overlay);
     }
 
     return resolved;

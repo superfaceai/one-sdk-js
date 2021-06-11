@@ -7,7 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Superjson config hash for analytics
+
 ## [0.0.27] - 2021-05-17
+
 ### Changed
 - Errors returned (mostly) security value resolution and from http client are now friendlier
 
