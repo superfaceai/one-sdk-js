@@ -12,19 +12,25 @@ import {
   isUrlSearchParamsBody,
   JSON_CONTENT,
 } from '../internal/interpreter/http/interfaces';
-import { eventInterceptor, InterceptPlacementFlags } from './events';
+import { eventInterceptor } from './events';
 
 export class CrossFetch implements FetchInstance {
   @eventInterceptor({
     eventName: 'fetch',
-    placement: InterceptPlacementFlags.On,
+    placement: 'around',
   })
   async fetch(
     url: string,
     parameters: FetchParameters
   ): Promise<FetchResponse> {
+    const headersInit = parameters.headers
+      ? Object.entries(parameters.headers).map(([key, value]) => [
+          key,
+          ...(Array.isArray(value) ? value : [value]),
+        ])
+      : undefined;
     const request: RequestInit = {
-      headers: new Headers(parameters.headers),
+      headers: new Headers(headersInit),
       method: parameters.method,
       body: this.body(parameters.body),
     };

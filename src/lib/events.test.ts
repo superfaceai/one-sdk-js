@@ -129,14 +129,15 @@ describe('events', () => {
     );
 
     let retry = true;
-    events.on('fetch', { priority: 1 }, () => {
+    events.on('post-fetch', { priority: 1 }, (...parameters) => {
+      console.log(parameters);
       if (retry) {
         retry = false;
 
-        return true;
+        return { kind: 'retry' };
       }
 
-      return false;
+      return { kind: 'continue' };
     });
 
     const result = await profile.perform('Test');

@@ -256,7 +256,7 @@ export class HttpClient {
       debug: {
         request: {
           url: finalUrl,
-          headers: headers,
+          headers,
           body: requestBody,
         },
       },

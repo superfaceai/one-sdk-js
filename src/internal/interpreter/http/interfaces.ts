@@ -29,7 +29,7 @@ export function isUrlSearchParamsBody(
 export type FetchBody = StringBody | FormDataBody | URLSearchParamsBody;
 
 export type FetchParameters = {
-  headers?: Record<string, string>;
+  headers?: Record<string, string | string[]>;
   method: string;
   body?: FetchBody;
   queryParameters?: Record<string, string>;
