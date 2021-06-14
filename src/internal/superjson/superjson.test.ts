@@ -1884,7 +1884,7 @@ describe('SuperJson', () => {
       const mockProfileName = 'profile';
       const mockPriorityArray = ['first', 'second', 'third'];
 
-      expect(superjson.addPrioriy(mockProfileName, mockPriorityArray)).toEqual(
+      expect(superjson.addPriority(mockProfileName, mockPriorityArray)).toEqual(
         true
       );
       expect(superjson.normalized.profiles[mockProfileName]).toEqual({
@@ -1907,7 +1907,7 @@ describe('SuperJson', () => {
           },
         },
       });
-      expect(superjson.addPrioriy(mockProfileName, mockPriorityArray)).toEqual(
+      expect(superjson.addPriority(mockProfileName, mockPriorityArray)).toEqual(
         true
       );
       expect(superjson.normalized.profiles[mockProfileName]).toEqual({

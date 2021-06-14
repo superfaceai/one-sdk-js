@@ -208,7 +208,7 @@ export class SuperJson {
     return result;
   }
 
-  addPrioriy(
+  addPriority(
     profileName: string,
     providersSortedByPriority: string[]
   ): boolean {
@@ -217,11 +217,11 @@ export class SuperJson {
       profileName,
       providersSortedByPriority
     );
-    if (result) {
+    if (result.isOk()) {
       this.normalizedCache = undefined;
     }
 
-    return result;
+    return result.unwrap();
   }
 
   // utilities //
