@@ -339,7 +339,7 @@ export function addPriority(
   if (providersSortedByPriority.some(p => profileProviders[p] === undefined)) {
     return err(
       new Error(
-        `Unable to set priority on profile "${profileName}" - some of priority providers not set in provider property`
+        `Unable to set priority on profile "${profileName}" - some of priority providers not set in profile providers property`
       )
     );
   }

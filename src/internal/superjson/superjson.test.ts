@@ -1881,19 +1881,127 @@ describe('SuperJson', () => {
   });
   describe('when adding priority', () => {
     it('adds priority to empty super.json', () => {
+      const mockProfileName = 'communication/send-email';
+      const mockPriorityArray = ['first', 'second', 'third'];
+
+      expect(() => superjson.addPriority(mockProfileName, mockPriorityArray)).toThrowError(new Error(`Profile "${mockProfileName}" does not exist`))
+    });
+    it('adds priority to super.json - profile with shorthand notations', () => {
       const mockProfileName = 'profile';
       const mockPriorityArray = ['first', 'second', 'third'];
 
-      expect(superjson.addPriority(mockProfileName, mockPriorityArray)).toEqual(
-        true
-      );
-      expect(superjson.normalized.profiles[mockProfileName]).toEqual({
-        defaults: {},
-        version: '0.0.0',
-        priority: mockPriorityArray,
-        providers: {},
+      superjson = new SuperJson({
+        profiles: {
+          [mockProfileName]: '1.2.3',
+        }
       });
+      expect(() => superjson.addPriority(mockProfileName, mockPriorityArray)).toThrowError(new Error(`Unable to set priority on profile "${mockProfileName}" - some of priority providers not set in profile providers property`))
     });
+    it('adds priority to super.json - profile without profile providers', () => {
+      const mockProfileName = 'profile';
+      const mockPriorityArray = ['first', 'second', 'third'];
+
+      superjson = new SuperJson({
+        profiles: {
+          [mockProfileName]: {
+            defaults: {},
+            file: 'some/path',
+          }
+        }
+      });
+      expect(() => superjson.addPriority(mockProfileName, mockPriorityArray)).toThrowError(new Error(`Unable to set priority on profile "${mockProfileName}" - profile providers not set`))
+    });
+
+    it('adds priority to super.json - some of providers are missing in profile providers', () => {
+      const mockProfileName = 'profile';
+      const mockPriorityArray = ['first', 'second', 'third'];
+
+      superjson = new SuperJson({
+        profiles: {
+          [mockProfileName]: {
+            defaults: {},
+            file: 'some/path',
+            providers: {
+              first: {},
+              second: {}
+            },
+          }
+        }
+      });
+      expect(() => superjson.addPriority(mockProfileName, mockPriorityArray)).toThrowError(new Error(`Unable to set priority on profile "${mockProfileName}" - some of priority providers not set in profile providers property`))
+    });
+
+    it('adds priority to super.json - missing providers', () => {
+      const mockProfileName = 'profile';
+      const mockPriorityArray = ['first', 'second', 'third'];
+
+      superjson = new SuperJson({
+        profiles: {
+          [mockProfileName]: {
+            defaults: {},
+            file: 'some/path',
+            providers: {
+              first: {},
+              second: {},
+              third: {}
+            },
+          }
+        }
+      });
+      expect(() => superjson.addPriority(mockProfileName, mockPriorityArray)).toThrowError(new Error(`Unable to set priority on profile "${mockProfileName}" - providers not set`))
+    });
+
+    it('adds priority to super.json - some of providers in priority array are missing in providers property', () => {
+      const mockProfileName = 'profile';
+      const mockPriorityArray = ['first', 'second', 'third'];
+
+      superjson = new SuperJson({
+        profiles: {
+          [mockProfileName]: {
+            defaults: {},
+            file: 'some/path',
+            providers: {
+              first: {},
+              second: {},
+              third: {}
+            },
+          }
+        },
+        providers: {
+          first: {},
+          second: {}
+        }
+      });
+      expect(() => superjson.addPriority(mockProfileName, mockPriorityArray)).toThrowError(new Error(`Unable to set priority on profile "${mockProfileName}" - some of priority providers not set in provider property`))
+    });
+
+    it('adds priority to super.json - exisiting priority is same as new priority', () => {
+      const mockProfileName = 'profile';
+      const mockPriorityArray = ['first', 'second', 'third'];
+
+      superjson = new SuperJson({
+        profiles: {
+          [mockProfileName]: {
+            defaults: {},
+            priority: ['first', 'second', 'third'],
+            file: 'some/path',
+            providers: {
+              first: {},
+              second: {},
+              third: {}
+            },
+          }
+        },
+        providers: {
+          first: {},
+          second: {},
+          third: {}
+        }
+      });
+      expect(() => superjson.addPriority(mockProfileName, mockPriorityArray)).toThrowError(new Error(`Unable to set priority on profile "${mockProfileName}" - existing priority is same as new priority`))
+    });
+
+
     it('adds priority to super.json', () => {
       const mockProfileName = 'profile';
       const mockPriorityArray = ['first', 'second', 'third'];
@@ -1901,19 +2009,37 @@ describe('SuperJson', () => {
       superjson = new SuperJson({
         profiles: {
           [mockProfileName]: {
-            defaults: { input: { input: { test: 'test' } } },
+            defaults: {},
             file: 'some/path',
-            providers: {},
-          },
+            providers: {
+              first: {},
+              second: {},
+              third: {}
+            },
+          }
         },
+        providers: {
+          first: {},
+          second: {},
+          third: {}
+        }
       });
-      expect(superjson.addPriority(mockProfileName, mockPriorityArray)).toEqual(
-        true
-      );
+      expect(superjson.addPriority(mockProfileName, mockPriorityArray)).toEqual(true)
+
       expect(superjson.normalized.profiles[mockProfileName]).toEqual({
-        defaults: { input: { input: { test: 'test' } } },
+        defaults: {},
         priority: mockPriorityArray,
-        providers: {},
+        providers: {
+          first: {
+            defaults: {},
+          },
+          second: {
+            defaults: {},
+          },
+          third: {
+            defaults: {},
+          }
+        },
         file: 'some/path',
       });
     });
