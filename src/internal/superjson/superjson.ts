@@ -11,7 +11,12 @@ import {
 import { err, ok, Result } from '../../lib';
 import { configHash } from '../../lib/config-hash';
 import { isAccessible } from '../../lib/io';
-import { addProfile, addProfileProvider, addProvider } from './mutate';
+import {
+  addPriority,
+  addProfile,
+  addProfileProvider,
+  addProvider,
+} from './mutate';
 import { normalizeSuperJsonDocument } from './normalize';
 import {
   NormalizedSuperJsonDocument,
@@ -196,6 +201,22 @@ export class SuperJson {
 
   addProvider(providerName: string, payload: ProviderEntry): boolean {
     const result = addProvider(this.document, providerName, payload);
+    if (result) {
+      this.normalizedCache = undefined;
+    }
+
+    return result;
+  }
+
+  addPrioriy(
+    profileName: string,
+    providersSortedByPriority: string[]
+  ): boolean {
+    const result = addPriority(
+      this.document,
+      profileName,
+      providersSortedByPriority
+    );
     if (result) {
       this.normalizedCache = undefined;
     }

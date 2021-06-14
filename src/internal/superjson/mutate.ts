@@ -303,3 +303,28 @@ export function mergeSecurity(
 
   return result;
 }
+
+//TODO: should we check if target profile and providers property has configured providers from priority array?
+export function addPriority(
+  document: SuperJsonDocument,
+  profileName: string,
+  providersSortedByPriority: string[]
+): boolean {
+  if (document.profiles === undefined) {
+    document.profiles = {};
+  }
+  if (document.profiles[profileName] === undefined) {
+    document.profiles[profileName] = '0.0.0';
+  }
+
+  let targetedProfile = document.profiles[profileName];
+
+  // if specified profile has shorthand notation
+  if (typeof targetedProfile === 'string') {
+    document.profiles[profileName] = targetedProfile =
+      normalizeProfileSettings(targetedProfile);
+  }
+  targetedProfile.priority = providersSortedByPriority;
+
+  return true;
+}
