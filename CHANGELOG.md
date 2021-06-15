@@ -7,11 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.28] - 2021-06-15
 ### Added
 - Superjson config hash for analytics
 
 ## [0.0.27] - 2021-05-17
-
 ### Changed
 - Errors returned (mostly) security value resolution and from http client are now friendlier
 
@@ -165,7 +165,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Profile parameter validator
 - CI/CD workflows
 
-[Unreleased]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.27...HEAD
+[Unreleased]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.28...HEAD
+[0.0.28]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.27...v0.0.28
 [0.0.27]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.26...v0.0.27
 [0.0.26]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.25...v0.0.26
 [0.0.25]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.23...v0.0.25

@@ -107,10 +107,12 @@ const profileProviderEntry = zod.union([uriPath, profileProviderSettings]);
  * ```
  * {
  *   "version": "$version",
+ *   "priority": "$priority", //opt
  *   "defaults": $usecaseDefaults, // opt
  *   "providers": $profileProviderEntry // opt
  * } | {
  *   "file": "$path",
+ *   "priority": "$priority", //opt
  *   "defaults": $usecaseDefaults, // opt
  *   "providers": $profileProviderEntry // opt
  * }
@@ -119,11 +121,13 @@ const profileProviderEntry = zod.union([uriPath, profileProviderSettings]);
 const profileSettings = zod.union([
   zod.object({
     version: semanticVersion,
+    priority: zod.array(zod.string()).optional(),
     defaults: usecaseDefaults.optional(),
     providers: zod.record(profileProviderEntry).optional(),
   }),
   zod.object({
     file: zod.string(),
+    priority: zod.array(zod.string()).optional(),
     defaults: usecaseDefaults.optional(),
     providers: zod.record(profileProviderEntry).optional(),
   }),
@@ -131,11 +135,13 @@ const profileSettings = zod.union([
 const normalizedProfileSettings = zod.union([
   zod.object({
     version: semanticVersion,
+    priority: zod.array(zod.string()),
     defaults: normalizedUsecaseDefault,
     providers: zod.record(normalizedProfileProviderSettings),
   }),
   zod.object({
     file: zod.string(),
+    priority: zod.array(zod.string()),
     defaults: normalizedUsecaseDefault,
     providers: zod.record(normalizedProfileProviderSettings),
   }),
@@ -284,3 +290,18 @@ export type NormalizedProfileProviderSettings = zod.infer<
 export type NormalizedProviderSettings = zod.infer<
   typeof normalizedProviderSettings
 >;
+
+export type AnonymizedSuperJsonDocument = {
+  profiles: Record<
+    string,
+    {
+      version: string | 'file';
+      providers: {
+        provider: string;
+        priority: number;
+        version?: string | 'file';
+      }[];
+    }
+  >;
+  providers: string[];
+};

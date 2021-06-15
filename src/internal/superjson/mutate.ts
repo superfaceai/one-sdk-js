@@ -1,3 +1,4 @@
+import { err, ok, Result } from '../../lib';
 import { isEmptyRecord } from '../interpreter/variables';
 import {
   normalizeProfileSettings,
@@ -302,4 +303,82 @@ export function mergeSecurity(
   }
 
   return result;
+}
+
+export function addPriority(
+  document: SuperJsonDocument,
+  profileName: string,
+  providersSortedByPriority: string[]
+): Result<boolean, Error> {
+  if (document.profiles === undefined) {
+    document.profiles = {};
+  }
+  if (document.profiles[profileName] === undefined) {
+    return err(new Error(`Profile "${profileName}" does not exist`));
+  }
+
+  let targetedProfile = document.profiles[profileName];
+
+  //if specified profile has shorthand notation
+  if (typeof targetedProfile === 'string') {
+    document.profiles[profileName] = targetedProfile =
+      normalizeProfileSettings(targetedProfile);
+  }
+
+  //check profile providers property
+  const profileProviders = targetedProfile.providers;
+
+  if (!profileProviders) {
+    return err(
+      new Error(
+        `Unable to set priority on profile "${profileName}" - profile providers not set`
+      )
+    );
+  }
+
+  if (providersSortedByPriority.some(p => profileProviders[p] === undefined)) {
+    return err(
+      new Error(
+        `Unable to set priority on profile "${profileName}" - some of priority providers not set in profile providers property`
+      )
+    );
+  }
+  //check providers property
+  const providers = document.providers;
+
+  if (!providers) {
+    return err(
+      new Error(
+        `Unable to set priority on profile "${profileName}" - providers not set`
+      )
+    );
+  }
+
+  if (providersSortedByPriority.some(p => providers[p] === undefined)) {
+    return err(
+      new Error(
+        `Unable to set priority on profile "${profileName}" - some of priority providers not set in provider property`
+      )
+    );
+  }
+
+  //check existing priority array
+  const existingPriority = targetedProfile.priority ?? [];
+  //Arrays are same
+  if (
+    providersSortedByPriority.length === existingPriority.length &&
+    providersSortedByPriority.every(
+      (value: string, index: number) => value === existingPriority[index]
+    )
+  ) {
+    return err(
+      new Error(
+        `Unable to set priority on profile "${profileName}" - existing priority is same as new priority`
+      )
+    );
+  }
+
+  targetedProfile.priority = providersSortedByPriority;
+
+  return ok(true);
 }

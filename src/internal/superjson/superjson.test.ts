@@ -424,6 +424,7 @@ describe('SuperJson', () => {
 
       expect(normalize.normalizeProfileSettings(mockProfileEntry)).toEqual({
         file: 'some/path',
+        priority: [],
         defaults: {},
         providers: {},
       });
@@ -434,6 +435,7 @@ describe('SuperJson', () => {
 
       expect(normalize.normalizeProfileSettings(mockProfileEntry)).toEqual({
         version: '1.0.0',
+        priority: [],
         defaults: {},
         providers: {},
       });
@@ -455,6 +457,7 @@ describe('SuperJson', () => {
 
       expect(normalize.normalizeProfileSettings(mockProfileEntry)).toEqual({
         file: 'some/path',
+        priority: [],
         defaults: {},
         providers: {},
       });
@@ -516,6 +519,7 @@ describe('SuperJson', () => {
         },
         profiles: {
           profile: {
+            priority: [],
             file: 'some/path',
             defaults: {},
             providers: {},
@@ -547,6 +551,7 @@ describe('SuperJson', () => {
         profiles: {
           profile: {
             file: 'some/path',
+            priority: [],
             defaults: {},
             providers: {},
           },
@@ -566,6 +571,7 @@ describe('SuperJson', () => {
         },
         profiles: {
           profile: {
+            priority: [],
             file: 'some/path',
             defaults: {},
             providers: {},
@@ -808,12 +814,14 @@ describe('SuperJson', () => {
           },
           "x/b": {
             "version": "0.2.1",
+            "priority": [],
             "defaults": {
               "Test": {}
             }
           },
           "y/a": {
             "version": "1.2.3",
+            "priority": [],
             "providers": {
               "foo": "file://y/a.suma",
               "baz": {
@@ -823,6 +831,7 @@ describe('SuperJson', () => {
           },
           "y/b": {
             "version": "1.2.3",
+            "priority": ["foo", "bar"],
             "defaults": {
               "Usecase": {
                 "input": {
@@ -885,16 +894,19 @@ describe('SuperJson', () => {
         profiles: {
           a: {
             defaults: {},
+            priority: [],
             providers: {},
             file: 'a.supr',
           },
           b: {
             defaults: {},
+            priority: [],
             providers: {},
             version: '0.1.0',
           },
           'x/a': {
             defaults: {},
+            priority: [],
             providers: {},
             file: 'x/a.supr',
           },
@@ -904,11 +916,13 @@ describe('SuperJson', () => {
                 input: {},
               },
             },
+            priority: [],
             providers: {},
             version: '0.2.1',
           },
           'y/a': {
             defaults: {},
+            priority: [],
             providers: {
               foo: {
                 file: 'y/a.suma',
@@ -934,6 +948,7 @@ describe('SuperJson', () => {
                 },
               },
             },
+            priority: ['foo', 'bar'],
             providers: {
               foo: {
                 defaults: {
@@ -1006,6 +1021,7 @@ describe('SuperJson', () => {
       );
       expect(superjson.normalized.profiles[mockProfileName]).toEqual({
         defaults: {},
+        priority: [],
         file: 'some/path',
         providers: {},
       });
@@ -1020,6 +1036,7 @@ describe('SuperJson', () => {
       );
       expect(superjson.normalized.profiles[mockProfileName]).toEqual({
         defaults: {},
+        priority: [],
         file: 'some/path',
         providers: {},
       });
@@ -1034,11 +1051,13 @@ describe('SuperJson', () => {
         profile: {
           defaults: {},
           file: 'some/path',
+          priority: [],
           providers: {},
         },
         ['second-profile']: {
           defaults: {},
           file: 'some/path',
+          priority: [],
           providers: {},
         },
       });
@@ -1062,6 +1081,7 @@ describe('SuperJson', () => {
       );
       expect(superjson.normalized.profiles[mockProfileName]).toEqual({
         defaults: {},
+        priority: [],
         file: 'some/path',
         providers: {},
       });
@@ -1085,6 +1105,7 @@ describe('SuperJson', () => {
       );
       expect(superjson.normalized.profiles[mockProfileName]).toEqual({
         defaults: { input: { input: { test: 'test' } } },
+        priority: [],
         file: 'some/path',
         providers: {},
       });
@@ -1108,6 +1129,7 @@ describe('SuperJson', () => {
       );
       expect(superjson.normalized.profiles[mockProfileName]).toEqual({
         defaults: { input: { input: { test: 'test' } } },
+        priority: [],
         providers: {},
         version: '1.0.0',
       });
@@ -1131,6 +1153,7 @@ describe('SuperJson', () => {
       );
       expect(superjson.normalized.profiles[mockProfileName]).toEqual({
         defaults: {},
+        priority: [],
         providers: {},
         version: '1.0.0',
       });
@@ -1177,6 +1200,7 @@ describe('SuperJson', () => {
       expect(superjson.normalized.profiles[mockProfileName]).toEqual({
         defaults: { input: { input: { test: 'test' } } },
         file: 'some/path',
+        priority: [],
         providers: {
           test: {
             defaults: { input: { input: { test: 'test' } } },
@@ -1206,6 +1230,7 @@ describe('SuperJson', () => {
       expect(superjson.normalized.profiles[mockProfileName]).toEqual({
         defaults: {},
         file: 'some/path',
+        priority: [],
         providers: {
           test: {
             defaults: {},
@@ -1232,6 +1257,7 @@ describe('SuperJson', () => {
       ).toEqual(true);
       expect(superjson.normalized.profiles[mockProfileName]).toEqual({
         defaults: {},
+        priority: [],
         providers: {
           [mockProviderName]: {
             defaults: {},
@@ -1254,6 +1280,7 @@ describe('SuperJson', () => {
       expect(superjson.normalized.profiles).toEqual({
         profile: {
           defaults: {},
+          priority: [],
           providers: {
             provider: {
               defaults: {},
@@ -1283,6 +1310,7 @@ describe('SuperJson', () => {
       ).toEqual(true);
       expect(superjson.normalized.profiles[mockProfileName]).toEqual({
         defaults: {},
+        priority: [],
         providers: {
           [mockProviderName]: {
             defaults: {},
@@ -1314,6 +1342,7 @@ describe('SuperJson', () => {
       expect(superjson.normalized.profiles[mockProfileName]).toEqual({
         defaults: {},
         file: 'some/path',
+        priority: [],
         providers: {
           [mockProviderName]: {
             defaults: {},
@@ -1348,6 +1377,7 @@ describe('SuperJson', () => {
       expect(superjson.normalized.profiles[mockProfileName]).toEqual({
         defaults: {},
         file: 'some/path',
+        priority: [],
         providers: {
           [mockProviderName]: {
             defaults: {},
@@ -1387,6 +1417,7 @@ describe('SuperJson', () => {
       expect(superjson.normalized.profiles[mockProfileName]).toEqual({
         defaults: {},
         file: 'some/path',
+        priority: [],
         providers: {
           [mockProviderName]: {
             defaults: { input: { input: { test: 'test' } } },
@@ -1429,6 +1460,7 @@ describe('SuperJson', () => {
       expect(superjson.normalized.profiles[mockProfileName]).toEqual({
         defaults: {},
         file: 'some/path',
+        priority: [],
         providers: {
           [mockProviderName]: {
             defaults: { input: { input: { test: 'test' } } },
@@ -1472,6 +1504,7 @@ describe('SuperJson', () => {
       expect(superjson.normalized.profiles[mockProfileName]).toEqual({
         defaults: {},
         file: 'some/path',
+        priority: [],
         providers: {
           [mockProviderName]: {
             defaults: { input: { input: { test: 'test' } } },
@@ -1513,6 +1546,7 @@ describe('SuperJson', () => {
       expect(superjson.normalized.profiles[mockProfileName]).toEqual({
         defaults: {},
         file: 'some/path',
+        priority: [],
         providers: {
           [mockProviderName]: {
             defaults: { input: { input: { test: 'test' } } },
@@ -1555,6 +1589,7 @@ describe('SuperJson', () => {
       expect(superjson.normalized.profiles[mockProfileName]).toEqual({
         defaults: {},
         file: 'some/path',
+        priority: [],
         providers: {
           [mockProviderName]: {
             defaults: { input: { input: { test: 'test' } } },
@@ -1821,12 +1856,22 @@ describe('SuperJson', () => {
     }, 10000);
   });
 
+  // TODO: Proper tests for config hash and anonymization
   describe('when computing config hash', () => {
     it('does debug', () => {
       const superJson = new SuperJson({
         profiles: {
           abc: {
             file: 'x',
+            priority: ['first', 'second'],
+            providers: {
+              second: {
+                mapRevision: '1.0',
+              },
+              first: {
+                file: 'file://some/path',
+              },
+            },
           },
           ghe: {
             version: '1.2.3',
@@ -1841,7 +1886,246 @@ describe('SuperJson', () => {
         },
       });
 
-      expect(superJson.configHash()).toBe('0113d18696ff6b61237df48d532d07f9');
+      // console.log(require('util').inspect(superJson.anonymized, false, 10));
+      // console.log(superJson.configHash());
+
+      expect(superJson.anonymized).toEqual({
+        profiles: {
+          abc: {
+            version: 'file',
+            providers: [
+              {
+                provider: 'second',
+                priority: 1,
+                version: '1.0',
+              },
+              {
+                provider: 'first',
+                priority: 0,
+                version: 'file',
+              },
+            ],
+          },
+          ghe: {
+            version: '1.2.3',
+            providers: [],
+          },
+          def: {
+            version: 'file',
+            providers: [],
+          },
+        },
+        providers: ['foo', 'bar'],
+      });
+
+      expect(superJson.configHash()).toBe('d090f0589a19634c065e903a81006f79');
+    });
+  });
+
+  describe('when adding priority', () => {
+    it('adds priority to empty super.json', () => {
+      const mockProfileName = 'communication/send-email';
+      const mockPriorityArray = ['first', 'second', 'third'];
+
+      expect(() =>
+        superjson.addPriority(mockProfileName, mockPriorityArray)
+      ).toThrowError(new Error(`Profile "${mockProfileName}" does not exist`));
+    });
+
+    it('adds priority to super.json - profile with shorthand notations', () => {
+      const mockProfileName = 'profile';
+      const mockPriorityArray = ['first', 'second', 'third'];
+
+      superjson = new SuperJson({
+        profiles: {
+          [mockProfileName]: '1.2.3',
+        },
+      });
+      expect(() =>
+        superjson.addPriority(mockProfileName, mockPriorityArray)
+      ).toThrowError(
+        new Error(
+          `Unable to set priority on profile "${mockProfileName}" - some of priority providers not set in profile providers property`
+        )
+      );
+    });
+
+    it('adds priority to super.json - profile without profile providers', () => {
+      const mockProfileName = 'profile';
+      const mockPriorityArray = ['first', 'second', 'third'];
+
+      superjson = new SuperJson({
+        profiles: {
+          [mockProfileName]: {
+            defaults: {},
+            file: 'some/path',
+          },
+        },
+      });
+      expect(() =>
+        superjson.addPriority(mockProfileName, mockPriorityArray)
+      ).toThrowError(
+        new Error(
+          `Unable to set priority on profile "${mockProfileName}" - profile providers not set`
+        )
+      );
+    });
+
+    it('adds priority to super.json - some of providers are missing in profile providers', () => {
+      const mockProfileName = 'profile';
+      const mockPriorityArray = ['first', 'second', 'third'];
+
+      superjson = new SuperJson({
+        profiles: {
+          [mockProfileName]: {
+            defaults: {},
+            file: 'some/path',
+            providers: {
+              first: {},
+              second: {},
+            },
+          },
+        },
+      });
+      expect(() =>
+        superjson.addPriority(mockProfileName, mockPriorityArray)
+      ).toThrowError(
+        new Error(
+          `Unable to set priority on profile "${mockProfileName}" - some of priority providers not set in profile providers property`
+        )
+      );
+    });
+
+    it('adds priority to super.json - missing providers', () => {
+      const mockProfileName = 'profile';
+      const mockPriorityArray = ['first', 'second', 'third'];
+
+      superjson = new SuperJson({
+        profiles: {
+          [mockProfileName]: {
+            defaults: {},
+            file: 'some/path',
+            providers: {
+              first: {},
+              second: {},
+              third: {},
+            },
+          },
+        },
+      });
+      expect(() =>
+        superjson.addPriority(mockProfileName, mockPriorityArray)
+      ).toThrowError(
+        new Error(
+          `Unable to set priority on profile "${mockProfileName}" - providers not set`
+        )
+      );
+    });
+
+    it('adds priority to super.json - some of providers in priority array are missing in providers property', () => {
+      const mockProfileName = 'profile';
+      const mockPriorityArray = ['first', 'second', 'third'];
+
+      superjson = new SuperJson({
+        profiles: {
+          [mockProfileName]: {
+            defaults: {},
+            file: 'some/path',
+            providers: {
+              first: {},
+              second: {},
+              third: {},
+            },
+          },
+        },
+        providers: {
+          first: {},
+          second: {},
+        },
+      });
+      expect(() =>
+        superjson.addPriority(mockProfileName, mockPriorityArray)
+      ).toThrowError(
+        new Error(
+          `Unable to set priority on profile "${mockProfileName}" - some of priority providers not set in provider property`
+        )
+      );
+    });
+
+    it('adds priority to super.json - exisiting priority is same as new priority', () => {
+      const mockProfileName = 'profile';
+      const mockPriorityArray = ['first', 'second', 'third'];
+
+      superjson = new SuperJson({
+        profiles: {
+          [mockProfileName]: {
+            defaults: {},
+            priority: ['first', 'second', 'third'],
+            file: 'some/path',
+            providers: {
+              first: {},
+              second: {},
+              third: {},
+            },
+          },
+        },
+        providers: {
+          first: {},
+          second: {},
+          third: {},
+        },
+      });
+      expect(() =>
+        superjson.addPriority(mockProfileName, mockPriorityArray)
+      ).toThrowError(
+        new Error(
+          `Unable to set priority on profile "${mockProfileName}" - existing priority is same as new priority`
+        )
+      );
+    });
+
+    it('adds priority to super.json', () => {
+      const mockProfileName = 'profile';
+      const mockPriorityArray = ['first', 'second', 'third'];
+
+      superjson = new SuperJson({
+        profiles: {
+          [mockProfileName]: {
+            defaults: {},
+            file: 'some/path',
+            providers: {
+              first: {},
+              second: {},
+              third: {},
+            },
+          },
+        },
+        providers: {
+          first: {},
+          second: {},
+          third: {},
+        },
+      });
+      expect(superjson.addPriority(mockProfileName, mockPriorityArray)).toEqual(
+        true
+      );
+
+      expect(superjson.normalized.profiles[mockProfileName]).toEqual({
+        defaults: {},
+        priority: mockPriorityArray,
+        providers: {
+          first: {
+            defaults: {},
+          },
+          second: {
+            defaults: {},
+          },
+          third: {
+            defaults: {},
+          },
+        },
+        file: 'some/path',
+      });
     });
   });
 });
