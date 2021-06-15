@@ -204,6 +204,109 @@ describe('failure policies', () => {
         timeout: 30,
       });
     });
+
+    it('resets correctly', () => {
+      const policy = new RetryPolicy(usecaseInfo, 3);
+      const event = { time: 0, registryCacheAge: 0 };
+
+      expect(policy.afterFailure(failure)).toStrictEqual({
+        kind: 'retry',
+      });
+      expect(policy.beforeExecution(event)).toStrictEqual({
+        kind: 'backoff',
+        backoff: 100,
+        timeout: 30,
+      });
+
+      expect(policy.afterFailure(failure)).toStrictEqual({
+        kind: 'retry',
+      });
+      expect(policy.beforeExecution(event)).toStrictEqual({
+        kind: 'backoff',
+        backoff: 200,
+        timeout: 30,
+      });
+
+      expect(policy.afterFailure(failure)).toStrictEqual({
+        kind: 'retry',
+      });
+      expect(policy.beforeExecution(event)).toStrictEqual({
+        kind: 'backoff',
+        backoff: 400,
+        timeout: 30,
+      });
+
+      expect(policy.afterFailure(failure)).toStrictEqual({
+        kind: 'abort',
+        reason: 'max retries exceeded',
+      });
+
+      policy.reset();
+      expect(policy.afterFailure(failure)).toStrictEqual({
+        kind: 'retry',
+      });
+      expect(policy.beforeExecution(event)).toStrictEqual({
+        kind: 'backoff',
+        backoff: 100,
+        timeout: 30,
+      });
+
+      expect(policy.afterFailure(failure)).toStrictEqual({
+        kind: 'retry',
+      });
+      expect(policy.beforeExecution(event)).toStrictEqual({
+        kind: 'backoff',
+        backoff: 200,
+        timeout: 30,
+      });
+
+      expect(policy.afterFailure(failure)).toStrictEqual({
+        kind: 'retry',
+      });
+      expect(policy.beforeExecution(event)).toStrictEqual({
+        kind: 'backoff',
+        backoff: 400,
+        timeout: 30,
+      });
+
+      expect(policy.afterFailure(failure)).toStrictEqual({
+        kind: 'abort',
+        reason: 'max retries exceeded',
+      });
+
+      policy.reset();
+      expect(policy.afterFailure(failure)).toStrictEqual({
+        kind: 'retry',
+      });
+      expect(policy.beforeExecution(event)).toStrictEqual({
+        kind: 'backoff',
+        backoff: 100,
+        timeout: 30,
+      });
+
+      expect(policy.afterFailure(failure)).toStrictEqual({
+        kind: 'retry',
+      });
+      expect(policy.beforeExecution(event)).toStrictEqual({
+        kind: 'backoff',
+        backoff: 200,
+        timeout: 30,
+      });
+
+      expect(policy.afterFailure(failure)).toStrictEqual({
+        kind: 'retry',
+      });
+      expect(policy.beforeExecution(event)).toStrictEqual({
+        kind: 'backoff',
+        backoff: 400,
+        timeout: 30,
+      });
+
+      expect(policy.afterFailure(failure)).toStrictEqual({
+        kind: 'abort',
+        reason: 'max retries exceeded',
+      });
+    });
   });
 
   describe('circuit breaker policy', () => {
@@ -458,6 +561,103 @@ describe('failure policies', () => {
         kind: 'backoff',
         timeout: 40,
         backoff: 200,
+      });
+    });
+
+    it('resets correctly', () => {
+      const policy = new CircuitBreakerPolicy(usecaseInfo, 4, 1000, 30);
+      const event = { time: 0, registryCacheAge: 0 };
+
+      expect(policy.afterFailure(failure)).toStrictEqual({ kind: 'retry' });
+      expect(policy.beforeExecution(event)).toStrictEqual({
+        kind: 'backoff',
+        timeout: 30,
+        backoff: 100,
+      });
+
+      expect(policy.afterFailure(failure)).toStrictEqual({ kind: 'retry' });
+      expect(policy.beforeExecution(event)).toStrictEqual({
+        kind: 'backoff',
+        timeout: 30,
+        backoff: 200,
+      });
+
+      expect(policy.afterFailure(failure)).toStrictEqual({ kind: 'retry' });
+      expect(policy.beforeExecution(event)).toStrictEqual({
+        kind: 'backoff',
+        timeout: 30,
+        backoff: 400,
+      });
+
+      expect(policy.afterFailure(failure)).toStrictEqual({
+        kind: 'abort',
+        reason: 'circuit breaker is open',
+      });
+      expect(policy.beforeExecution(event)).toStrictEqual({
+        kind: 'abort',
+        reason: 'circuit breaker is open',
+      });
+
+      policy.reset();
+      expect(policy.afterFailure(failure)).toStrictEqual({ kind: 'retry' });
+      expect(policy.beforeExecution(event)).toStrictEqual({
+        kind: 'backoff',
+        timeout: 30,
+        backoff: 100,
+      });
+
+      expect(policy.afterFailure(failure)).toStrictEqual({ kind: 'retry' });
+      expect(policy.beforeExecution(event)).toStrictEqual({
+        kind: 'backoff',
+        timeout: 30,
+        backoff: 200,
+      });
+
+      expect(policy.afterFailure(failure)).toStrictEqual({ kind: 'retry' });
+      expect(policy.beforeExecution(event)).toStrictEqual({
+        kind: 'backoff',
+        timeout: 30,
+        backoff: 400,
+      });
+
+      expect(policy.afterFailure(failure)).toStrictEqual({
+        kind: 'abort',
+        reason: 'circuit breaker is open',
+      });
+      expect(policy.beforeExecution(event)).toStrictEqual({
+        kind: 'abort',
+        reason: 'circuit breaker is open',
+      });
+
+      policy.reset();
+      expect(policy.afterFailure(failure)).toStrictEqual({ kind: 'retry' });
+      expect(policy.beforeExecution(event)).toStrictEqual({
+        kind: 'backoff',
+        timeout: 30,
+        backoff: 100,
+      });
+
+      expect(policy.afterFailure(failure)).toStrictEqual({ kind: 'retry' });
+      expect(policy.beforeExecution(event)).toStrictEqual({
+        kind: 'backoff',
+        timeout: 30,
+        backoff: 200,
+      });
+
+      expect(policy.afterFailure(failure)).toStrictEqual({ kind: 'retry' });
+      expect(policy.beforeExecution(event)).toStrictEqual({
+        kind: 'backoff',
+        timeout: 30,
+        backoff: 400,
+      });
+
+      expect(policy.afterFailure(failure)).toStrictEqual({
+        kind: 'abort',
+        reason: 'circuit breaker is open',
+      });
+      expect(policy.beforeExecution(event)).toStrictEqual({
+        kind: 'abort',
+        reason: 'circuit breaker is open',
       });
     });
   });

@@ -18,17 +18,19 @@ export class AbortPolicy extends FailurePolicy {
     super(usecaseInfo);
   }
 
-  beforeExecution(_info: ExecutionInfo): ExecutionResolution {
+  override beforeExecution(_info: ExecutionInfo): ExecutionResolution {
     return { kind: 'continue', timeout: 30 };
   }
 
-  afterFailure(_info: ExecutionFailure): FailureResolution {
+  override afterFailure(_info: ExecutionFailure): FailureResolution {
     return { kind: 'abort', reason: 'abort policy selected' };
   }
 
-  afterSuccess(_info: ExecutionSuccess): SuccessResolution {
+  override afterSuccess(_info: ExecutionSuccess): SuccessResolution {
     return { kind: 'continue' };
   }
+
+  override reset() {}
 }
 
 /** Simple retry policy with exponential backoff */
@@ -56,7 +58,7 @@ export class RetryPolicy extends FailurePolicy {
     this.lastCallTime = 0;
   }
 
-  beforeExecution(info: ExecutionInfo): ExecutionResolution {
+  override beforeExecution(info: ExecutionInfo): ExecutionResolution {
     // positive balance means no backoff
     if (this.balance >= 0) {
       return { kind: 'continue', timeout: this.requestTimeout };
@@ -69,7 +71,7 @@ export class RetryPolicy extends FailurePolicy {
     return { kind: 'backoff', backoff: backoff, timeout: this.requestTimeout };
   }
 
-  afterFailure(info: ExecutionFailure): FailureResolution {
+  override afterFailure(info: ExecutionFailure): FailureResolution {
     // either reset to -1 or make the negative streak longer
     this.streak = Math.min(-1, this.streak - 1);
     this.lastCallTime = info.time;
@@ -86,7 +88,7 @@ export class RetryPolicy extends FailurePolicy {
     return { kind: 'retry' };
   }
 
-  afterSuccess(info: ExecutionSuccess): SuccessResolution {
+  override afterSuccess(info: ExecutionSuccess): SuccessResolution {
     this.streak = Math.max(1, this.streak + 1);
     this.lastCallTime = info.time;
 
@@ -101,7 +103,7 @@ export class RetryPolicy extends FailurePolicy {
     return { kind: 'continue' };
   }
 
-  reset(): void {
+  override reset(): void {
     this.streak = 0;
     this.lastCallTime = 0;
 
@@ -150,7 +152,7 @@ export class CircuitBreakerPolicy extends FailurePolicy {
     this.openTime = 0;
   }
 
-  beforeExecution(info: ExecutionInfo): ExecutionResolution {
+  override beforeExecution(info: ExecutionInfo): ExecutionResolution {
     if (this.state === 'open') {
       if (info.time >= this.openTime + this.resetTimeout) {
         this.halfOpen();
@@ -172,7 +174,7 @@ export class CircuitBreakerPolicy extends FailurePolicy {
     return innerResponse;
   }
 
-  afterFailure(info: ExecutionFailure): FailureResolution {
+  override afterFailure(info: ExecutionFailure): FailureResolution {
     if (this.state === 'half-open') {
       this.open(info.time);
 
@@ -194,7 +196,7 @@ export class CircuitBreakerPolicy extends FailurePolicy {
     return innerResponse;
   }
 
-  afterSuccess(info: ExecutionSuccess): SuccessResolution {
+  override afterSuccess(info: ExecutionSuccess): SuccessResolution {
     if (this.state === 'half-open') {
       this.close();
     }
@@ -218,5 +220,11 @@ export class CircuitBreakerPolicy extends FailurePolicy {
 
   private close() {
     this.state = 'closed';
+  }
+
+  override reset() {
+    this.inner.reset();
+    this.state = 'closed';
+    this.openTime = 0;
   }
 }

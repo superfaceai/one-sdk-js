@@ -91,4 +91,9 @@ export abstract class FailurePolicy {
    * The policy may use this to update its inner state, close a circuit breaker, etc.
    */
   abstract afterSuccess(info: ExecutionSuccess): SuccessResolution;
+
+  /**
+   * Resets this policy as if it was just created.
+   */
+  abstract reset(): void;
 }
