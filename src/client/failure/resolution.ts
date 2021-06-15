@@ -67,6 +67,7 @@ export type SwitchProviderResolution = {
  *
  * This may be returned from:
  * * `beforeExecution`
+ * * `afterFailure`
  * * `afterSuccess`
  */
 export type ContinueResolution = {
@@ -79,6 +80,6 @@ export type ExecutionResolution =
   | AbortResolution
   | SwitchProviderResolution;
 
-export type FailureResolution = AbortResolution | RetryResolution;
+export type FailureResolution = AbortResolution | RetryResolution | ContinueResolution;
 
 export type SuccessResolution = ContinueResolution;
