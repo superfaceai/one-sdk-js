@@ -96,6 +96,7 @@ export function normalizeProfileSettings(
     if (isVersionString(profileEntry)) {
       return {
         version: profileEntry,
+        priority: [],
         defaults: {},
         providers: {},
       };
@@ -104,6 +105,7 @@ export function normalizeProfileSettings(
     if (isFileURIString(profileEntry)) {
       return {
         file: profileEntry.slice(FILE_URI_PROTOCOL.length),
+        priority: [],
         defaults: {},
         providers: {},
       };
@@ -116,12 +118,14 @@ export function normalizeProfileSettings(
   if ('file' in profileEntry) {
     normalizedSettings = {
       file: profileEntry.file,
+      priority: profileEntry.priority ?? [],
       defaults: {},
       providers: {},
     };
   } else {
     normalizedSettings = {
       version: profileEntry.version,
+      priority: profileEntry.priority ?? [],
       defaults: {},
       providers: {},
     };
