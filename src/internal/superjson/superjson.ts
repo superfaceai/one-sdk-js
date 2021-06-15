@@ -19,6 +19,7 @@ import {
 } from './mutate';
 import { normalizeSuperJsonDocument } from './normalize';
 import {
+  AnonymizedSuperJsonDocument,
   NormalizedSuperJsonDocument,
   ProfileEntry,
   ProfileProviderEntry,
@@ -256,44 +257,74 @@ export class SuperJson {
     return this.normalizedCache;
   }
 
-  configHash(): string {
-    // <profile>:<version/path>,<provider>:<path>,<provider>:<path>
-    const profileValues: string[] = [];
-    for (const [profile, info] of Object.entries(this.normalized.profiles)) {
-      let path;
-      if ('version' in info) {
-        path = info.version;
-      } else {
-        path = info.file;
-      }
-
-      const providers: string[] = Object.entries(info.providers).map(
-        ([provider, info]): string => {
-          if ('file' in info) {
-            return `${provider}:${info.file}`;
-          } else {
-            return `${provider}:${info.mapVariant ?? ''}-${
-              info.mapRevision ?? ''
-            }`;
+  get anonymized(): AnonymizedSuperJsonDocument {
+    const profiles: AnonymizedSuperJsonDocument['profiles'] = {};
+    for (const [profile, profileEntry] of Object.entries(
+      this.normalized.profiles
+    )) {
+      const providers: typeof profiles[string]['providers'] = [];
+      for (const [provider, providerEntry] of Object.entries(
+        profileEntry.providers
+      )) {
+        const anonymizedProvider: typeof providers[number] = {
+          provider,
+          priority: profileEntry.priority.findIndex(
+            providerName => provider === providerName
+          ),
+        };
+        if ('file' in providerEntry) {
+          anonymizedProvider.version = 'file';
+        } else if ('mapRevision' in providerEntry) {
+          anonymizedProvider.version = providerEntry.mapRevision;
+          if (providerEntry.mapVariant !== undefined) {
+            anonymizedProvider.version += `-${providerEntry.mapVariant}`;
           }
+        }
+
+        providers.push(anonymizedProvider);
+      }
+      profiles[profile] = {
+        version: 'version' in profileEntry ? profileEntry.version : 'file',
+        providers,
+      };
+    }
+
+    return {
+      profiles,
+      providers: Object.keys(this.normalized.providers),
+    };
+  }
+
+  configHash(): string {
+    // <profile>:<version>,<provider>:<priority>:[<version | file>],<provider>:<path>
+    const profileValues: string[] = [];
+    for (const [profile, profileEntry] of Object.entries(
+      this.anonymized.profiles
+    )) {
+      const providers: string[] = Object.entries(profileEntry.providers).map(
+        ([provider, providerEntry]): string => {
+          return [
+            provider,
+            providerEntry.priority,
+            ...(providerEntry.version !== undefined
+              ? [providerEntry.version]
+              : []),
+          ].join(':');
         }
       );
       // sort by provider name to be reproducible
       providers.sort();
-      const providersString = providers.map(p => `,${p}`).join('');
-
-      profileValues.push(`${profile}:${path}${providersString}`);
+      profileValues.push(
+        [`${profile}:${profileEntry.version}`, ...providers].join(',')
+      );
     }
     // sort by profile name to be reproducible
     profileValues.sort();
 
-    // <provider>:<path>
-    const providerValues: string[] = [];
-    for (const [provider, info] of Object.entries(this.normalized.providers)) {
-      providerValues.push(`${provider}:${info.file ?? ''}`);
-    }
-    // sort by provider name to be reproducible
-    providerValues.sort();
+    // Copy and sort
+    const providerValues = this.anonymized.providers
+      .map(provider => provider)
+      .sort();
 
     return configHash([...profileValues, ...providerValues]);
   }
