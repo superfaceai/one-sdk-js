@@ -290,3 +290,18 @@ export type NormalizedProfileProviderSettings = zod.infer<
 export type NormalizedProviderSettings = zod.infer<
   typeof normalizedProviderSettings
 >;
+
+export type AnonymizedSuperJsonDocument = {
+  profiles: Record<
+    string,
+    {
+      version: string | 'file';
+      providers: {
+        provider: string;
+        priority: number;
+        version?: string | 'file';
+      }[];
+    }
+  >;
+  providers: string[];
+};
