@@ -7,9 +7,14 @@ import { UseCase } from '../client';
 import { FetchInstance } from '../internal/interpreter/http/interfaces';
 
 type AnyFunction = (...args: any[]) => any;
-// type AsyncFunction = (...args: any[]) => Promise<any>;
-// eslint-disable-next-line @typescript-eslint/ban-types
-type AnyObject = object;
+
+export type Interceptable = {
+  metadata?: {
+    provider?: string;
+    profile?: string;
+    usecase?: string;
+  };
+};
 
 type EventContextBase = {
   readonly time: Date;
@@ -167,22 +172,17 @@ function replacementFunction<E extends keyof EventTypes>(
   metadata: EventMetadata<E>
 ): EventTypes[E][0] {
   return async function (
-    this: AnyObject,
+    this: Interceptable,
     ...args: Parameters<EventTypes[E][0]>
   ) {
-    const targetMetadata = Reflect.get(this, 'metadata') as Record<
-      string,
-      string
-    >;
-
     // Before hook - runs before the function is called and takes and returns its arguments
     let functionArgs = args;
     if (metadata.placement === 'before' || metadata.placement === 'around') {
       const hookResult = await events.emit(`pre-${metadata.eventName}`, [
         {
           time: new Date(),
-          profile: targetMetadata?.profile,
-          usecase: targetMetadata?.usecase,
+          profile: this.metadata?.profile,
+          usecase: this.metadata?.usecase,
         },
         functionArgs,
       ] as any);
@@ -212,8 +212,8 @@ function replacementFunction<E extends keyof EventTypes>(
         const hookResult = await events.emit(`post-${metadata.eventName}`, [
           {
             filter: {
-              profile: targetMetadata?.profile,
-              usecase: targetMetadata?.usecase,
+              profile: this.metadata?.profile,
+              usecase: this.metadata?.usecase,
             },
           },
           functionArgs as any,
@@ -250,12 +250,12 @@ function replacementFunction<E extends keyof EventTypes>(
 export function eventInterceptor<E extends keyof EventTypes>(
   eventMetadata: EventMetadata<E>
 ): (
-  target: AnyObject,
+  target: Interceptable,
   propertyKey: string,
   descriptor: TypedPropertyDescriptor<EventTypes[E][0]>
 ) => PropertyDescriptor {
   return function (
-    _target: AnyObject,
+    _target: Interceptable,
     _propertyKey: string,
     descriptor: TypedPropertyDescriptor<EventTypes[E][0]>
   ): PropertyDescriptor {

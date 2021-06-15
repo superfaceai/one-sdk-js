@@ -36,6 +36,7 @@ import {
 } from '../internal/superjson';
 import { mergeSecurity } from '../internal/superjson/mutate';
 import { err, ok, Result } from '../lib';
+import { Interceptable } from '../lib/events';
 import { CrossFetch } from '../lib/fetch';
 import { ProfileConfiguration } from './profile';
 import { ProviderConfiguration } from './provider';
@@ -54,7 +55,7 @@ const boundProfileProviderDebug = createDebug(
 );
 export class BoundProfileProvider {
   private profileValidator: ProfileParameterValidator;
-  private fetchInstance: FetchInstance;
+  private fetchInstance: FetchInstance & Interceptable;
 
   constructor(
     private readonly profileAst: ProfileDocumentNode,
@@ -100,11 +101,11 @@ export class BoundProfileProvider {
     usecase: string,
     input?: TInput
   ): Promise<Result<TResult, ProfileParameterError | MapInterpreterError>> {
-    // compose and validate the input
-    Reflect.set(this.fetchInstance, 'metadata', {
+    this.fetchInstance.metadata = {
       profile: profileAstId(this.profileAst),
       usecase,
-    });
+    };
+    // compose and validate the input
     const composedInput = this.composeInput(usecase, input);
 
     const inputValidation = this.profileValidator.validate(

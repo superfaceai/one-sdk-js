@@ -12,9 +12,11 @@ import {
   isUrlSearchParamsBody,
   JSON_CONTENT,
 } from '../internal/interpreter/http/interfaces';
-import { eventInterceptor } from './events';
+import { eventInterceptor, Interceptable } from './events';
 
-export class CrossFetch implements FetchInstance {
+export class CrossFetch implements FetchInstance, Interceptable {
+  public metadata: { usecase: string; profile: string } | undefined;
+
   @eventInterceptor({
     eventName: 'fetch',
     placement: 'around',
