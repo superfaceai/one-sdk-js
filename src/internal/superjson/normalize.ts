@@ -5,14 +5,20 @@ import {
   FILE_URI_PROTOCOL,
   isFileURIString,
   isVersionString,
+  NormalizedProfileProviderDefaults,
   NormalizedProfileProviderSettings,
   NormalizedProfileSettings,
   NormalizedProviderSettings,
+  NormalizedRetryPolicy,
   NormalizedSuperJsonDocument,
   NormalizedUsecaseDefaults,
+  OnFail,
+  OnFailKind,
   ProfileEntry,
+  ProfileProviderDefaults,
   ProfileProviderEntry,
   ProviderEntry,
+  RetryPolicy,
   SuperJsonDocument,
   UsecaseDefaults,
 } from './schema';
@@ -24,6 +30,7 @@ export function normalizeProfileProviderSettings(
   if (profileProviderSettings === undefined) {
     return {
       defaults: {},
+      retryPolicy: { onFail: OnFail.NONE },
     };
   }
 
@@ -32,6 +39,7 @@ export function normalizeProfileProviderSettings(
       return {
         file: profileProviderSettings.slice(FILE_URI_PROTOCOL.length),
         defaults: {},
+        retryPolicy: {},
       };
     }
 
@@ -45,21 +53,54 @@ export function normalizeProfileProviderSettings(
     normalizedSettings = {
       file: profileProviderSettings.file,
       defaults: {},
+      retryPolicy: {},
     };
   } else {
     normalizedSettings = {
       mapVariant: profileProviderSettings.mapVariant,
       mapRevision: profileProviderSettings.mapRevision,
       defaults: {},
+      retryPolicy: {},
     };
   }
-  normalizedSettings.defaults = normalizeUsecaseDefaults(
+  normalizedSettings.defaults = normalizeProfileProviderDefaults(
     profileProviderSettings.defaults,
     baseDefaults
   );
 
   return normalizedSettings;
 }
+
+// export function normalizeRetryPolicy(
+//   retryPolicy?: RetryPolicy | undefined,
+//   base?: NormalizedRetryPolicy
+// ): NormalizedRetryPolicy {
+//   if (retryPolicy === undefined) {
+//     if (base === undefined) {
+//       return { onFail: OnFail.NONE };
+//     } else {
+//       return normalizeRetryPolicy(base);
+//     }
+//   }
+
+//   if (retryPolicy.onFail === OnFail.NONE) {
+//     return { onFail: OnFail.NONE };
+//   }
+
+//   const resolveNumber = (primary: number | undefined, secondary: number | undefined, defaultValue: number) => {
+//     return primary ? primary : secondary ? secondary : defaultValue
+//   }
+//   return {
+//     onFail: {
+//       kind: OnFailKind.CIRCUIT_BREAKER,
+//       maxContiguousRetries: resolveNumber(retryPolicy.onFail.maxContiguousRetries, base?.onFail === OnFail.NONE ? undefined : base?.onFail.maxContiguousRetries, 0)
+//     }
+//   }
+//   if (retryPolicy.onFail.maxContiguousRetries) {
+
+//   }
+//   return { onFail: mergeVariables(retryPolicy.onFail, base?.onFail ?? {}) }
+// }
 
 export function normalizeUsecaseDefaults(
   defaults?: UsecaseDefaults,
@@ -74,6 +115,36 @@ export function normalizeUsecaseDefaults(
   }
 
   const normalized: NormalizedUsecaseDefaults =
+    base !== undefined ? clone(base) : {};
+  for (const [usecase, defs] of Object.entries(defaults)) {
+    const previousInput = castToNonPrimitive(normalized[usecase]?.input) ?? {};
+
+    normalized[usecase] = {
+      input: mergeVariables(
+        previousInput,
+        castToNonPrimitive(defs.input) ?? {}
+      ),
+      //FIX: how should we actually normalize this?
+      providerFailover: !base?.providerFailover && !defaults.providerFailover ? false : true
+    };
+  }
+
+  return resolveEnvRecord(normalized);
+}
+
+export function normalizeProfileProviderDefaults(
+  defaults?: ProfileProviderDefaults,
+  base?: NormalizedProfileProviderDefaults
+): NormalizedProfileProviderDefaults {
+  if (defaults === undefined) {
+    if (base == undefined) {
+      return {};
+    } else {
+      return normalizeUsecaseDefaults(base);
+    }
+  }
+
+  const normalized: NormalizedProfileProviderDefaults =
     base !== undefined ? clone(base) : {};
   for (const [usecase, defs] of Object.entries(defaults)) {
     const previousInput = castToNonPrimitive(normalized[usecase]?.input) ?? {};
