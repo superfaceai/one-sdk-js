@@ -140,11 +140,13 @@ const normalizedUsecaseDefault = zod.record(
 const profileProviderDefaults = zod.record(
   zod.object({
     input: zod.record(zod.unknown()).optional(),
+    retryPolicy: retryPolicy.optional()
   })
 );
 const normalizedProfileProviderDefaults = zod.record(
   zod.object({
     input: zod.record(zod.unknown()),
+    retryPolicy: normalizedRetryPolicy
   })
 );
 
@@ -165,26 +167,22 @@ const profileProviderSettings = zod.union([
   zod.object({
     file: zod.string(),
     defaults: profileProviderDefaults.optional(),
-    retryPolicy: retryPolicy.optional()
   }),
   zod.object({
     mapVariant: zod.string().optional(),
     mapRevision: zod.string().optional(),
     defaults: profileProviderDefaults.optional(),
-    retryPolicy: retryPolicy.optional()
   }),
 ]);
 const normalizedProfileProviderSettings = zod.union([
   zod.object({
     file: zod.string(),
     defaults: normalizedProfileProviderDefaults,
-    retryPolicy: normalizedRetryPolicy
   }),
   zod.object({
     mapVariant: zod.string().optional(),
     mapRevision: zod.string().optional(),
     defaults: normalizedProfileProviderDefaults,
-    retryPolicy: normalizedRetryPolicy
   }),
 ]);
 
