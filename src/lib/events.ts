@@ -200,9 +200,10 @@ function replacementFunction<E extends keyof EventTypes>(
       }
     }
 
-    let result = (await originalFunction.apply(this, args)) as ReturnType<
-      EventTypes[E][0]
-    >;
+    let result = (await originalFunction.apply(
+      this,
+      functionArgs
+    )) as ReturnType<EventTypes[E][0]>;
 
     // After hook - runs after the function is called and takes the result
     // May modify it, return different or retry
@@ -232,7 +233,7 @@ function replacementFunction<E extends keyof EventTypes>(
           if (hookResult.newArgs !== undefined) {
             result = await originalFunction?.apply(this, hookResult.newArgs);
           } else {
-            result = await originalFunction?.apply(this, args);
+            result = await originalFunction?.apply(this, functionArgs);
           }
 
           continue;
