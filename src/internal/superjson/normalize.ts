@@ -2,6 +2,7 @@ import { resolveEnvRecord } from '../../lib/env';
 import { clone } from '../../lib/object';
 import { castToNonPrimitive, mergeVariables } from '../interpreter/variables';
 import {
+  BackOffKind,
   FILE_URI_PROTOCOL,
   isFileURIString,
   isVersionString,
@@ -30,7 +31,6 @@ export function normalizeProfileProviderSettings(
   if (profileProviderSettings === undefined) {
     return {
       defaults: {},
-      retryPolicy: { onFail: OnFail.NONE },
     };
   }
 
@@ -39,7 +39,6 @@ export function normalizeProfileProviderSettings(
       return {
         file: profileProviderSettings.slice(FILE_URI_PROTOCOL.length),
         defaults: {},
-        retryPolicy: {},
       };
     }
 
@@ -53,14 +52,12 @@ export function normalizeProfileProviderSettings(
     normalizedSettings = {
       file: profileProviderSettings.file,
       defaults: {},
-      retryPolicy: {},
     };
   } else {
     normalizedSettings = {
       mapVariant: profileProviderSettings.mapVariant,
       mapRevision: profileProviderSettings.mapRevision,
       defaults: {},
-      retryPolicy: {},
     };
   }
   normalizedSettings.defaults = normalizeProfileProviderDefaults(
@@ -71,36 +68,61 @@ export function normalizeProfileProviderSettings(
   return normalizedSettings;
 }
 
-// export function normalizeRetryPolicy(
-//   retryPolicy?: RetryPolicy | undefined,
-//   base?: NormalizedRetryPolicy
-// ): NormalizedRetryPolicy {
-//   if (retryPolicy === undefined) {
-//     if (base === undefined) {
-//       return { onFail: OnFail.NONE };
-//     } else {
-//       return normalizeRetryPolicy(base);
-//     }
-//   }
+export function normalizeRetryPolicy(
+  retryPolicy?: RetryPolicy | undefined,
+  base?: NormalizedRetryPolicy
+): NormalizedRetryPolicy {
+  if (retryPolicy === undefined) {
+    if (base === undefined) {
+      return { onFail: OnFail.NONE };
+    } else {
+      return normalizeRetryPolicy(base);
+    }
+  }
 
-//   if (retryPolicy.onFail === OnFail.NONE) {
-//     return { onFail: OnFail.NONE };
-//   }
+  if (retryPolicy.onFail === OnFail.NONE) {
+    return { onFail: OnFail.NONE };
+  }
 
-//   const resolveNumber = (primary: number | undefined, secondary: number | undefined, defaultValue: number) => {
-//     return primary ? primary : secondary ? secondary : defaultValue
-//   }
-//   return {
-//     onFail: {
-//       kind: OnFailKind.CIRCUIT_BREAKER,
-//       maxContiguousRetries: resolveNumber(retryPolicy.onFail.maxContiguousRetries, base?.onFail === OnFail.NONE ? undefined : base?.onFail.maxContiguousRetries, 0)
-//     }
-//   }
-//   if (retryPolicy.onFail.maxContiguousRetries) {
+  const resolveNumber = (
+    primary: number | undefined,
+    secondary: number | undefined,
+    defaultValue: number
+  ) => {
+    return primary ? primary : secondary ? secondary : defaultValue;
+  };
 
-//   }
-//   return { onFail: mergeVariables(retryPolicy.onFail, base?.onFail ?? {}) }
-// }
+  const baseOnFail = base?.onFail === OnFail.NONE ? undefined : base?.onFail;
+
+  return {
+    onFail: {
+      kind: OnFailKind.CIRCUIT_BREAKER,
+      maxContiguousRetries: resolveNumber(
+        retryPolicy.onFail.maxContiguousRetries,
+        baseOnFail?.maxContiguousRetries,
+        0
+      ),
+      requestTimeout: resolveNumber(
+        retryPolicy.onFail.requestTimeout,
+        baseOnFail?.requestTimeout,
+        0
+      ),
+      backoff: {
+        kind: BackOffKind.EXPONENTIAL,
+        start: resolveNumber(
+          retryPolicy.onFail.backoff?.start,
+          baseOnFail?.backoff.start,
+          0
+        ),
+        factor: resolveNumber(
+          retryPolicy.onFail.backoff?.factor,
+          baseOnFail?.backoff.factor,
+          0
+        ),
+      },
+    },
+  };
+}
 
 export function normalizeUsecaseDefaults(
   defaults?: UsecaseDefaults,
@@ -125,7 +147,10 @@ export function normalizeUsecaseDefaults(
         castToNonPrimitive(defs.input) ?? {}
       ),
       //FIX: how should we actually normalize this?
-      providerFailover: !base?.providerFailover && !defaults.providerFailover ? false : true
+      providerFailover:
+        !normalized[usecase]?.providerFailover && !defs.providerFailover
+          ? false
+          : true,
     };
   }
 
@@ -134,26 +159,26 @@ export function normalizeUsecaseDefaults(
 
 export function normalizeProfileProviderDefaults(
   defaults?: ProfileProviderDefaults,
-  base?: NormalizedProfileProviderDefaults
+  base?: NormalizedUsecaseDefaults
 ): NormalizedProfileProviderDefaults {
   if (defaults === undefined) {
     if (base == undefined) {
       return {};
     } else {
-      return normalizeUsecaseDefaults(base);
+      return normalizeProfileProviderDefaults(base);
     }
   }
 
-  const normalized: NormalizedProfileProviderDefaults =
-    base !== undefined ? clone(base) : {};
+  const normalized: NormalizedProfileProviderDefaults = {};
   for (const [usecase, defs] of Object.entries(defaults)) {
-    const previousInput = castToNonPrimitive(normalized[usecase]?.input) ?? {};
+    const previousInput = castToNonPrimitive(base?.[usecase]?.input) ?? {};
 
     normalized[usecase] = {
       input: mergeVariables(
         previousInput,
         castToNonPrimitive(defs.input) ?? {}
       ),
+      retryPolicy: normalizeRetryPolicy(defs.retryPolicy),
     };
   }
 

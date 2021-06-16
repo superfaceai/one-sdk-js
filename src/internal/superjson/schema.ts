@@ -40,15 +40,15 @@ export const composeFileURI = (path: string): string => {
 
 //Retry policy
 export enum OnFail {
-  NONE = 'none'
+  NONE = 'none',
 }
 
 export enum OnFailKind {
-  CIRCUIT_BREAKER = 'circuit-breaker'
+  CIRCUIT_BREAKER = 'circuit-breaker',
 }
 
 export enum BackOffKind {
-  EXPONENTIAL = 'exponential'
+  EXPONENTIAL = 'exponential',
 }
 /**
  * RetryPolicy per usecase values.
@@ -70,34 +70,41 @@ export enum BackOffKind {
  * ```
  */
 const retryPolicy = zod.object({
-  onFail: zod.union([zod.literal(OnFail.NONE), zod.object({
-    kind: zod.literal(OnFailKind.CIRCUIT_BREAKER),
-    maxContiguousRetries: zod.number().int().positive().optional(),
-    requestTimeout: zod.number().int().positive().optional(),
-    backoff: zod.object({
-      kind: zod.literal(BackOffKind.EXPONENTIAL),
-      start: zod.number().int().positive().optional(),
-      factor: zod.number().int().positive().optional(),
-    }).optional()
-  })])
-})
+  onFail: zod.union([
+    zod.literal(OnFail.NONE),
+    zod.object({
+      kind: zod.literal(OnFailKind.CIRCUIT_BREAKER),
+      maxContiguousRetries: zod.number().int().positive().optional(),
+      requestTimeout: zod.number().int().positive().optional(),
+      backoff: zod
+        .object({
+          kind: zod.literal(BackOffKind.EXPONENTIAL),
+          start: zod.number().int().positive().optional(),
+          factor: zod.number().int().positive().optional(),
+        })
+        .optional(),
+    }),
+  ]),
+});
 
 const normalizedRetryPolicy = zod.object({
-  onFail: zod.union([zod.literal(OnFail.NONE), zod.object({
-    kind: zod.literal(OnFailKind.CIRCUIT_BREAKER),
-    maxContiguousRetries: zod.number().int().positive(),
-    requestTimeout: zod.number().int().positive(),
-    backoff: zod.object({
-      kind: zod.literal(BackOffKind.EXPONENTIAL),
-      start: zod.number().int().positive(),
-      factor: zod.number().int().positive()
-    })
-  })])
-})
+  onFail: zod.union([
+    zod.literal(OnFail.NONE),
+    zod.object({
+      kind: zod.literal(OnFailKind.CIRCUIT_BREAKER),
+      maxContiguousRetries: zod.number().int().positive(),
+      requestTimeout: zod.number().int().positive(),
+      backoff: zod.object({
+        kind: zod.literal(BackOffKind.EXPONENTIAL),
+        start: zod.number().int().positive(),
+        factor: zod.number().int().positive(),
+      }),
+    }),
+  ]),
+});
 
 const providerFailover = zod.boolean().optional();
 const normalizedProviderFailover = zod.boolean();
-
 
 /**
  * Default per usecase values.
@@ -115,13 +122,13 @@ const normalizedProviderFailover = zod.boolean();
 const usecaseDefaults = zod.record(
   zod.object({
     input: zod.record(zod.unknown()).optional(),
-    providerFailover: providerFailover.optional()
+    providerFailover: providerFailover.optional(),
   })
 );
 const normalizedUsecaseDefault = zod.record(
   zod.object({
     input: zod.record(zod.unknown()),
-    providerFailover: normalizedProviderFailover
+    providerFailover: normalizedProviderFailover,
   })
 );
 
@@ -133,6 +140,7 @@ const normalizedUsecaseDefault = zod.record(
  *     "input": {
  *       "$field": $value
  *     } // opt
+ *     "retryPolicy": $retryPolicy // opt
  *   }
  * }
  * ```
@@ -140,13 +148,13 @@ const normalizedUsecaseDefault = zod.record(
 const profileProviderDefaults = zod.record(
   zod.object({
     input: zod.record(zod.unknown()).optional(),
-    retryPolicy: retryPolicy.optional()
+    retryPolicy: retryPolicy.optional(),
   })
 );
 const normalizedProfileProviderDefaults = zod.record(
   zod.object({
     input: zod.record(zod.unknown()),
-    retryPolicy: normalizedRetryPolicy
+    retryPolicy: normalizedRetryPolicy,
   })
 );
 
