@@ -30,7 +30,7 @@ export class AbortPolicy extends FailurePolicy {
     return { kind: 'continue' };
   }
 
-  override reset() {}
+  override reset(): void {}
 }
 
 /** Simple retry policy with exponential backoff */
@@ -222,7 +222,7 @@ export class CircuitBreakerPolicy extends FailurePolicy {
     this.state = 'closed';
   }
 
-  override reset() {
+  override reset(): void {
     this.inner.reset();
     this.state = 'closed';
     this.openTime = 0;

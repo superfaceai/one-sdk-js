@@ -80,6 +80,9 @@ export type ExecutionResolution =
   | AbortResolution
   | SwitchProviderResolution;
 
-export type FailureResolution = AbortResolution | RetryResolution | ContinueResolution;
+export type FailureResolution =
+  | AbortResolution
+  | RetryResolution
+  | ContinueResolution;
 
 export type SuccessResolution = ContinueResolution;
