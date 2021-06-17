@@ -2,17 +2,24 @@ import { resolveEnvRecord } from '../../lib/env';
 import { clone } from '../../lib/object';
 import { castToNonPrimitive, mergeVariables } from '../interpreter/variables';
 import {
+  BackOffKind,
   FILE_URI_PROTOCOL,
   isFileURIString,
   isVersionString,
+  NormalizedProfileProviderDefaults,
   NormalizedProfileProviderSettings,
   NormalizedProfileSettings,
   NormalizedProviderSettings,
+  NormalizedRetryPolicy,
   NormalizedSuperJsonDocument,
   NormalizedUsecaseDefaults,
+  OnFail,
+  OnFailKind,
   ProfileEntry,
+  ProfileProviderDefaults,
   ProfileProviderEntry,
   ProviderEntry,
+  RetryPolicy,
   SuperJsonDocument,
   UsecaseDefaults,
 } from './schema';
@@ -53,12 +60,47 @@ export function normalizeProfileProviderSettings(
       defaults: {},
     };
   }
-  normalizedSettings.defaults = normalizeUsecaseDefaults(
+  normalizedSettings.defaults = normalizeProfileProviderDefaults(
     profileProviderSettings.defaults,
     baseDefaults
   );
 
   return normalizedSettings;
+}
+
+export function normalizeRetryPolicy(
+  retryPolicy?: RetryPolicy | undefined,
+  base?: NormalizedRetryPolicy
+): NormalizedRetryPolicy {
+  if (retryPolicy === undefined) {
+    if (base === undefined) {
+      return { onFail: OnFail.NONE };
+    } else {
+      return normalizeRetryPolicy(base);
+    }
+  }
+
+  if (retryPolicy.onFail === OnFail.NONE) {
+    return { onFail: OnFail.NONE };
+  }
+  const baseOnFail = base?.onFail === OnFail.NONE ? undefined : base?.onFail;
+
+  return {
+    onFail: {
+      kind: OnFailKind.CIRCUIT_BREAKER,
+      maxContiguousRetries:
+        retryPolicy.onFail.maxContiguousRetries ??
+        baseOnFail?.maxContiguousRetries,
+      requestTimeout:
+        retryPolicy.onFail.requestTimeout ?? baseOnFail?.requestTimeout,
+      backoff: {
+        kind: BackOffKind.EXPONENTIAL,
+        start: retryPolicy.onFail.backoff?.start ?? baseOnFail?.backoff.start,
+        factor:
+          retryPolicy.onFail.backoff?.factor ?? baseOnFail?.backoff.factor,
+      },
+    },
+  };
 }
 
 export function normalizeUsecaseDefaults(
@@ -83,6 +125,35 @@ export function normalizeUsecaseDefaults(
         previousInput,
         castToNonPrimitive(defs.input) ?? {}
       ),
+      providerFailover: defs.providerFailover !== undefined ? defs.providerFailover : normalized[usecase]?.providerFailover !== undefined ? normalized[usecase].providerFailover : false
+    };
+  }
+
+  return resolveEnvRecord(normalized);
+}
+
+export function normalizeProfileProviderDefaults(
+  defaults?: ProfileProviderDefaults,
+  base?: NormalizedUsecaseDefaults
+): NormalizedProfileProviderDefaults {
+  if (defaults === undefined) {
+    if (base == undefined) {
+      return {};
+    } else {
+      return normalizeProfileProviderDefaults(base);
+    }
+  }
+
+  const normalized: NormalizedProfileProviderDefaults = {};
+  for (const [usecase, defs] of Object.entries(defaults)) {
+    const previousInput = castToNonPrimitive(base?.[usecase]?.input) ?? {};
+
+    normalized[usecase] = {
+      input: mergeVariables(
+        previousInput,
+        castToNonPrimitive(defs.input) ?? {}
+      ),
+      retryPolicy: normalizeRetryPolicy(defs.retryPolicy),
     };
   }
 

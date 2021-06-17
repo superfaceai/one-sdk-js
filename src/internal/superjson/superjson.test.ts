@@ -11,6 +11,7 @@ import { err, ok } from '../../lib/result/result';
 import { mergeSecurity } from './mutate';
 import * as normalize from './normalize';
 import {
+  BackOffKind,
   composeFileURI,
   isApiKeySecurityValues,
   isBasicAuthSecurityValues,
@@ -19,6 +20,8 @@ import {
   isFileURIString,
   isVersionString,
   NormalizedUsecaseDefaults,
+  OnFail,
+  OnFailKind,
   ProfileEntry,
   ProfileProviderEntry,
   ProviderEntry,
@@ -834,6 +837,7 @@ describe('SuperJson', () => {
             "priority": ["foo", "bar"],
             "defaults": {
               "Usecase": {
+                "providerFailover": true,
                 "input": {
                   "a": 1,
                   "b": {
@@ -847,7 +851,56 @@ describe('SuperJson', () => {
               "foo": {
                 "defaults": {
                   "Usecase": {
-                    "input": {}
+                    "input": {},
+                    "retryPolicy": {
+                      "onFail": "none"
+                    }            
+                  }
+                }
+              },
+              "bar": {
+                "defaults": {
+                  "Usecase": {
+                    "retryPolicy": {
+                      "onFail": {
+                        "kind": "circuit-breaker",
+                        "maxContiguousRetries": 5
+                      }
+                    },
+                    "input": {
+                      "a": 12,
+                      "b": {
+                        "x": {}
+                      },
+                      "c": {
+                        "hello": 17
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "y/c": {
+            "version": "1.2.4",
+            "priority": ["foo", "bar"],
+            "defaults": {
+              "Usecase": {
+                "providerFailover": false,
+                "input": {
+                  "a": 1,
+                  "b": {
+                    "x": 1,
+                    "y": true
+                  }
+                }
+              }
+            },
+            "providers": {
+              "foo": {
+                "defaults": {
+                  "Usecase": {
+                    "input": {}               
                   }
                 }
               },
@@ -914,6 +967,7 @@ describe('SuperJson', () => {
             defaults: {
               Test: {
                 input: {},
+                providerFailover: false,
               },
             },
             priority: [],
@@ -946,6 +1000,7 @@ describe('SuperJson', () => {
                     y: true,
                   },
                 },
+                providerFailover: true,
               },
             },
             priority: ['foo', 'bar'],
@@ -959,6 +1014,9 @@ describe('SuperJson', () => {
                         x: 1,
                         y: true,
                       },
+                    },
+                    retryPolicy: {
+                      onFail: OnFail.NONE,
                     },
                   },
                 },
@@ -978,6 +1036,15 @@ describe('SuperJson', () => {
                         hello: 17,
                       },
                     },
+                    retryPolicy: {
+                      onFail: {
+                        kind: OnFailKind.CIRCUIT_BREAKER,
+                        maxContiguousRetries: 5,
+                        backoff: {
+                          kind: BackOffKind.EXPONENTIAL,
+                        },
+                      },
+                    },
                   },
                 },
                 mapVariant: undefined,
@@ -985,6 +1052,63 @@ describe('SuperJson', () => {
               },
             },
             version: '1.2.3',
+          },
+          'y/c': {
+            defaults: {
+              Usecase: {
+                input: {
+                  a: 1,
+                  b: {
+                    x: 1,
+                    y: true,
+                  },
+                },
+                providerFailover: false,
+              },
+            },
+            priority: ['foo', 'bar'],
+            providers: {
+              foo: {
+                defaults: {
+                  Usecase: {
+                    input: {
+                      a: 1,
+                      b: {
+                        x: 1,
+                        y: true,
+                      },
+                    },
+                    retryPolicy: {
+                      onFail: 'none',
+                    },
+                  },
+                },
+                mapVariant: undefined,
+                mapRevision: undefined,
+              },
+              bar: {
+                defaults: {
+                  Usecase: {
+                    input: {
+                      a: 12,
+                      b: {
+                        x: {},
+                        y: true,
+                      },
+                      c: {
+                        hello: 17,
+                      },
+                    },
+                    retryPolicy: {
+                      onFail: 'none',
+                    },
+                  },
+                },
+                mapVariant: undefined,
+                mapRevision: undefined,
+              },
+            },
+            version: '1.2.4',
           },
         },
         providers: {
@@ -1104,7 +1228,9 @@ describe('SuperJson', () => {
         true
       );
       expect(superjson.normalized.profiles[mockProfileName]).toEqual({
-        defaults: { input: { input: { test: 'test' } } },
+        defaults: {
+          input: { input: { test: 'test' }, providerFailover: false },
+        },
         priority: [],
         file: 'some/path',
         providers: {},
@@ -1128,7 +1254,9 @@ describe('SuperJson', () => {
         true
       );
       expect(superjson.normalized.profiles[mockProfileName]).toEqual({
-        defaults: { input: { input: { test: 'test' } } },
+        defaults: {
+          input: { input: { test: 'test' }, providerFailover: false },
+        },
         priority: [],
         providers: {},
         version: '1.0.0',
@@ -1198,12 +1326,19 @@ describe('SuperJson', () => {
         true
       );
       expect(superjson.normalized.profiles[mockProfileName]).toEqual({
-        defaults: { input: { input: { test: 'test' } } },
+        defaults: {
+          input: { input: { test: 'test' }, providerFailover: false },
+        },
         file: 'some/path',
         priority: [],
         providers: {
           test: {
-            defaults: { input: { input: { test: 'test' } } },
+            defaults: {
+              input: {
+                input: { test: 'test' },
+                retryPolicy: { onFail: OnFail.NONE },
+              },
+            },
             mapRevision: undefined,
             mapVariant: undefined,
           },
@@ -1420,7 +1555,12 @@ describe('SuperJson', () => {
         priority: [],
         providers: {
           [mockProviderName]: {
-            defaults: { input: { input: { test: 'test' } } },
+            defaults: {
+              input: {
+                input: { test: 'test' },
+                retryPolicy: { onFail: OnFail.NONE },
+              },
+            },
             file: 'some/path',
           },
         },
@@ -1463,7 +1603,12 @@ describe('SuperJson', () => {
         priority: [],
         providers: {
           [mockProviderName]: {
-            defaults: { input: { input: { test: 'test' } } },
+            defaults: {
+              input: {
+                input: { test: 'test' },
+                retryPolicy: { onFail: OnFail.NONE },
+              },
+            },
             file: 'provider/path',
           },
         },
@@ -1507,7 +1652,12 @@ describe('SuperJson', () => {
         priority: [],
         providers: {
           [mockProviderName]: {
-            defaults: { input: { input: { test: 'test' } } },
+            defaults: {
+              input: {
+                input: { test: 'test' },
+                retryPolicy: { onFail: OnFail.NONE },
+              },
+            },
             mapVariant: 'test',
             mapRevision: 'test',
           },
@@ -1549,7 +1699,12 @@ describe('SuperJson', () => {
         priority: [],
         providers: {
           [mockProviderName]: {
-            defaults: { input: { input: { test: 'test' } } },
+            defaults: {
+              input: {
+                input: { test: 'test' },
+                retryPolicy: { onFail: OnFail.NONE },
+              },
+            },
             mapVariant: 'test',
             mapRevision: 'test',
           },
@@ -1572,7 +1727,12 @@ describe('SuperJson', () => {
             providers: {
               [mockProviderName]: {
                 file: 'provider/path',
-                defaults: { input: { input: { test: 'test' } } },
+                defaults: {
+                  input: {
+                    input: { test: 'test' },
+                    retryPolicy: { onFail: OnFail.NONE },
+                  },
+                },
               },
             },
           },
@@ -1592,7 +1752,12 @@ describe('SuperJson', () => {
         priority: [],
         providers: {
           [mockProviderName]: {
-            defaults: { input: { input: { test: 'test' } } },
+            defaults: {
+              input: {
+                input: { test: 'test' },
+                retryPolicy: { onFail: OnFail.NONE },
+              },
+            },
             file: 'provider/path',
           },
         },
