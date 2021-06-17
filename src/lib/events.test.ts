@@ -129,8 +129,7 @@ describe('events', () => {
     );
 
     let retry = true;
-    events.on('post-fetch', { priority: 1 }, (...parameters) => {
-      console.log(parameters);
+    events.on('post-fetch', { priority: 1 }, () => {
       if (retry) {
         retry = false;
 

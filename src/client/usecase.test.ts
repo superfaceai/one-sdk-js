@@ -81,22 +81,6 @@ describe('UseCase', () => {
         .mockResolvedValue(mockBoundProfileProvider);
 
       const usecase = new UseCase(mockProfile, 'test-usecase');
-      events.on(
-        'pre-perform',
-        { priority: 0, filter: { profile: 'netest' } },
-        tap((parameters: any) => console.log('called it!', parameters)) as any
-      );
-      events.on('pre-perform', { priority: 1 }, (_context, args) => ({
-        kind: 'modify',
-        newArgs: [{ x: 8 }, args[1]],
-      }));
-      events.on(
-        'pre-perform',
-        { priority: 2 },
-        tap((parameters: any) =>
-          console.log('called it again!', parameters)
-        ) as any
-      );
       await expect(usecase.perform({ x: 7 })).resolves.toBeUndefined();
 
       expect(getProviderForProfileSpy).toHaveBeenCalledTimes(1);

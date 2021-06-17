@@ -2074,9 +2074,6 @@ describe('MapInterpreter', () => {
       { fetchInstance }
     );
     const result = await interpreter.perform(ast);
-    if (result.isErr()) {
-      console.log(result.error);
-    }
     expect(result.isOk() && result.value).toEqual({ x: 42 });
   });
 
