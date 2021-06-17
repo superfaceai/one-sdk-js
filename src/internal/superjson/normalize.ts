@@ -125,11 +125,7 @@ export function normalizeUsecaseDefaults(
         previousInput,
         castToNonPrimitive(defs.input) ?? {}
       ),
-      //FIX: how should we actually normalize this?
-      providerFailover:
-        !normalized[usecase]?.providerFailover && !defs.providerFailover
-          ? false
-          : true,
+      providerFailover: defs.providerFailover !== undefined ? defs.providerFailover : normalized[usecase]?.providerFailover !== undefined ? normalized[usecase].providerFailover : false
     };
   }
 
