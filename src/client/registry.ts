@@ -3,7 +3,8 @@ import createDebug from 'debug';
 import * as zod from 'zod';
 
 import { isProviderJson, ProviderJson } from '../internal';
-import { HttpClient } from '../lib/http';
+import { HttpClient } from '../internal/interpreter/http';
+import { CrossFetch } from '../lib/fetch';
 
 const registryDebug = createDebug('superface:registry');
 
@@ -51,7 +52,9 @@ export function assertIsRegistryProviderInfo(
 }
 
 export async function fetchMapAST(url: string): Promise<MapDocumentNode> {
-  const { body } = await HttpClient.request(url, {
+  const fetchInstance = new CrossFetch();
+  const http = new HttpClient(fetchInstance);
+  const { body } = await http.request(url, {
     method: 'GET',
     accept: 'application/json',
   });
@@ -63,7 +66,9 @@ export async function fetchProviders(
   profileId: string,
   registryUrl: string
 ): Promise<RegistryProviderInfo[]> {
-  const { body } = await HttpClient.request(registryUrl, {
+  const fetchInstance = new CrossFetch();
+  const http = new HttpClient(fetchInstance);
+  const { body } = await http.request(registryUrl, {
     method: 'GET',
     queryParameters: {
       semanticProfile: profileId,
@@ -124,8 +129,10 @@ export async function fetchBind(
   provider: ProviderJson;
   mapAst: MapDocumentNode;
 }> {
+  const fetchInstance = new CrossFetch();
+  const http = new HttpClient(fetchInstance);
   const sdkToken = loadSdkAuthToken();
-  const { body } = await HttpClient.request('/registry/bind', {
+  const { body } = await http.request('/registry/bind', {
     method: 'POST',
     headers: sdkToken
       ? [`Authorization: SUPERFACE-SDK-TOKEN ${sdkToken}`]

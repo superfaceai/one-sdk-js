@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { MapDocumentNode, ProfileDocumentNode } from '@superfaceai/ast';
 
 import { ok } from '../lib/result/result';
@@ -79,7 +80,7 @@ describe('UseCase', () => {
         .mockResolvedValue(mockBoundProfileProvider);
 
       const usecase = new UseCase(mockProfile, 'test-usecase');
-      await expect(usecase.perform()).resolves.toBeUndefined();
+      await expect(usecase.perform({ x: 7 })).resolves.toBeUndefined();
 
       expect(getProviderForProfileSpy).toHaveBeenCalledTimes(1);
       expect(getProviderForProfileSpy).toHaveBeenCalledWith('test');

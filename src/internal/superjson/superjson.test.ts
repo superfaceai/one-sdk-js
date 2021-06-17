@@ -1886,9 +1886,6 @@ describe('SuperJson', () => {
         },
       });
 
-      // console.log(require('util').inspect(superJson.anonymized, false, 10));
-      // console.log(superJson.configHash());
-
       expect(superJson.anonymized).toEqual({
         profiles: {
           abc: {
