@@ -13,11 +13,17 @@ export type PerformOptions = {
 // TODO
 export type PerformError = ProfileParameterError | MapInterpreterError;
 
-class UseCaseBase {
+class UseCaseBase implements Interceptable {
+  public readonly metadata: { usecase: string; profile: string };
   constructor(
     public readonly profile: ProfileBase,
     public readonly name: string
-  ) {}
+  ) {
+    this.metadata = {
+      usecase: name,
+      profile: profile.configuration.id,
+    };
+  }
 
   protected async bind(
     options?: PerformOptions
@@ -40,18 +46,12 @@ class UseCaseBase {
   }
 }
 
-export class UseCase extends UseCaseBase implements Interceptable {
-  public readonly metadata: { usecase: string; profile: string };
-
+export class UseCase extends UseCaseBase {
   constructor(
     public readonly profile: ProfileBase,
     public readonly name: string
   ) {
     super(profile, name);
-    this.metadata = {
-      usecase: name,
-      profile: profile.configuration.id,
-    };
   }
 
   @eventInterceptor({
