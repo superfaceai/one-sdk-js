@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Interface and implementation of backoffs
+- Interface for failure policies
+- Implementation of common failure policies
+
 ## [0.0.28] - 2021-06-15
 ### Added
 - Superjson config hash for analytics
