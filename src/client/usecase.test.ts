@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { MapDocumentNode, ProfileDocumentNode } from '@superfaceai/ast';
 
-import { events, tap } from '../lib/events';
 import { ok } from '../lib/result/result';
 import { SuperfaceClient } from './client';
 import { Profile, ProfileConfiguration } from './profile';

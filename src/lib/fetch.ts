@@ -52,7 +52,7 @@ export class CrossFetch implements FetchInstance, Interceptable {
     if (
       (headers['content-type'] &&
         headers['content-type'].includes(JSON_CONTENT)) ||
-      parameters.headers?.['accept'].includes(JSON_CONTENT)
+      parameters.headers?.['accept']?.includes(JSON_CONTENT)
     ) {
       body = await response.json();
     } else {

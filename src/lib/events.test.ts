@@ -1,5 +1,3 @@
-// import { events } from './events';
-
 import { MapDocumentNode, ProfileDocumentNode } from '@superfaceai/ast';
 import { getLocal } from 'mockttp';
 
@@ -119,6 +117,7 @@ describe('events', () => {
   afterEach(async () => {
     await mockServer.stop();
   });
+
   it('does something', async () => {
     const endpoint = await mockServer.get('/test').thenJson(200, {});
 
