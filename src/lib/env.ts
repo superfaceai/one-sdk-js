@@ -45,8 +45,10 @@ export function resolveEnvRecord<T extends Record<string, unknown>>(
       // recurse objects
       result[key] = resolveEnvRecord(value as Record<string, unknown>);
     } else {
-      // clone everything else
-      result[key] = clone(value);
+      if (value !== undefined) {
+        // clone everything else
+        result[key] = clone(value);
+      }
     }
   }
 

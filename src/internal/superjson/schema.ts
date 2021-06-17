@@ -92,12 +92,12 @@ const normalizedRetryPolicy = zod.object({
     zod.literal(OnFail.NONE),
     zod.object({
       kind: zod.literal(OnFailKind.CIRCUIT_BREAKER),
-      maxContiguousRetries: zod.number().int().positive(),
-      requestTimeout: zod.number().int().positive(),
+      maxContiguousRetries: zod.number().int().positive().optional(),
+      requestTimeout: zod.number().int().positive().optional(),
       backoff: zod.object({
         kind: zod.literal(BackOffKind.EXPONENTIAL),
-        start: zod.number().int().positive(),
-        factor: zod.number().int().positive(),
+        start: zod.number().int().positive().optional(),
+        factor: zod.number().int().positive().optional(),
       }),
     }),
   ]),

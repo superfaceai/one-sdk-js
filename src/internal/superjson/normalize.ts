@@ -83,42 +83,21 @@ export function normalizeRetryPolicy(
   if (retryPolicy.onFail === OnFail.NONE) {
     return { onFail: OnFail.NONE };
   }
-
-  const resolveNumber = (
-    primary: number | undefined,
-    secondary: number | undefined,
-    defaultValue: number
-  ) => {
-    return primary ? primary : secondary ? secondary : defaultValue;
-  };
-
   const baseOnFail = base?.onFail === OnFail.NONE ? undefined : base?.onFail;
 
   return {
     onFail: {
       kind: OnFailKind.CIRCUIT_BREAKER,
-      maxContiguousRetries: resolveNumber(
-        retryPolicy.onFail.maxContiguousRetries,
+      maxContiguousRetries:
+        retryPolicy.onFail.maxContiguousRetries ??
         baseOnFail?.maxContiguousRetries,
-        0
-      ),
-      requestTimeout: resolveNumber(
-        retryPolicy.onFail.requestTimeout,
-        baseOnFail?.requestTimeout,
-        0
-      ),
+      requestTimeout:
+        retryPolicy.onFail.requestTimeout ?? baseOnFail?.requestTimeout,
       backoff: {
         kind: BackOffKind.EXPONENTIAL,
-        start: resolveNumber(
-          retryPolicy.onFail.backoff?.start,
-          baseOnFail?.backoff.start,
-          0
-        ),
-        factor: resolveNumber(
-          retryPolicy.onFail.backoff?.factor,
-          baseOnFail?.backoff.factor,
-          0
-        ),
+        start: retryPolicy.onFail.backoff?.start ?? baseOnFail?.backoff.start,
+        factor:
+          retryPolicy.onFail.backoff?.factor ?? baseOnFail?.backoff.factor,
       },
     },
   };

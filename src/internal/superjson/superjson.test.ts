@@ -1040,11 +1040,8 @@ describe('SuperJson', () => {
                       onFail: {
                         kind: OnFailKind.CIRCUIT_BREAKER,
                         maxContiguousRetries: 5,
-                        requestTimeout: 0,
                         backoff: {
                           kind: BackOffKind.EXPONENTIAL,
-                          start: 0,
-                          factor: 0,
                         },
                       },
                     },
