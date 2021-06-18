@@ -918,6 +918,26 @@ describe('SuperJson', () => {
                     }
                   }
                 }
+              },
+              "zoo": {
+                "defaults": {
+                  "Usecase": {
+                    "retryPolicy": {
+                      "kind": "circuit-breaker",
+                      "maxContiguousRetries": 5,
+                      "backoff": {
+                        "kind": "exponential",
+                        "start": 5
+                      }
+                    },
+                    "input": {
+                      "a": 12,
+                      "b": {
+                        "x": {}
+                      }
+                    }
+                  }
+                }
               }
             }
           }
@@ -1102,6 +1122,29 @@ describe('SuperJson', () => {
                     },
                     retryPolicy: {
                       kind: 'none',
+                    },
+                  },
+                },
+                mapVariant: undefined,
+                mapRevision: undefined,
+              },
+              zoo: {
+                defaults: {
+                  Usecase: {
+                    input: {
+                      a: 12,
+                      b: {
+                        x: {},
+                        y: true,
+                      },
+                    },
+                    retryPolicy: {
+                      kind: 'circuit-breaker',
+                      maxContiguousRetries: 5,
+                      backoff: {
+                        kind: 'exponential',
+                        start: 5,
+                      },
                     },
                   },
                 },
