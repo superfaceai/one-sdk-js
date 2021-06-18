@@ -21,7 +21,6 @@ import {
   isVersionString,
   NormalizedUsecaseDefaults,
   OnFail,
-  OnFailKind,
   ProfileEntry,
   ProfileProviderEntry,
   ProviderEntry,
@@ -852,9 +851,7 @@ describe('SuperJson', () => {
                 "defaults": {
                   "Usecase": {
                     "input": {},
-                    "retryPolicy": {
-                      "onFail": "none"
-                    }            
+                    "retryPolicy": "none"
                   }
                 }
               },
@@ -862,10 +859,9 @@ describe('SuperJson', () => {
                 "defaults": {
                   "Usecase": {
                     "retryPolicy": {
-                      "onFail": {
-                        "kind": "circuit-breaker",
-                        "maxContiguousRetries": 5
-                      }
+                      "kind": "circuit-breaker",
+                      "maxContiguousRetries": 5,
+                      "backoff": "exponential"
                     },
                     "input": {
                       "a": 12,
@@ -900,13 +896,17 @@ describe('SuperJson', () => {
               "foo": {
                 "defaults": {
                   "Usecase": {
-                    "input": {}               
+                    "input": {},
+                    "retryPolicy": "circuit-breaker"
                   }
                 }
               },
               "bar": {
                 "defaults": {
                   "Usecase": {
+                    "retryPolicy": {
+                      "kind": "none"
+                    },
                     "input": {
                       "a": 12,
                       "b": {
@@ -1016,7 +1016,7 @@ describe('SuperJson', () => {
                       },
                     },
                     retryPolicy: {
-                      onFail: OnFail.NONE,
+                      kind: OnFail.NONE,
                     },
                   },
                 },
@@ -1037,12 +1037,10 @@ describe('SuperJson', () => {
                       },
                     },
                     retryPolicy: {
-                      onFail: {
-                        kind: OnFailKind.CIRCUIT_BREAKER,
-                        maxContiguousRetries: 5,
-                        backoff: {
-                          kind: BackOffKind.EXPONENTIAL,
-                        },
+                      kind: OnFail.CIRCUIT_BREAKER,
+                      maxContiguousRetries: 5,
+                      backoff: {
+                        kind: BackOffKind.EXPONENTIAL,
                       },
                     },
                   },
@@ -1079,7 +1077,10 @@ describe('SuperJson', () => {
                       },
                     },
                     retryPolicy: {
-                      onFail: 'none',
+                      kind: 'circuit-breaker',
+                      backoff: {
+                        kind: 'exponential',
+                      },
                     },
                   },
                 },
@@ -1100,7 +1101,7 @@ describe('SuperJson', () => {
                       },
                     },
                     retryPolicy: {
-                      onFail: 'none',
+                      kind: 'none',
                     },
                   },
                 },
@@ -1336,7 +1337,7 @@ describe('SuperJson', () => {
             defaults: {
               input: {
                 input: { test: 'test' },
-                retryPolicy: { onFail: OnFail.NONE },
+                retryPolicy: { kind: OnFail.NONE },
               },
             },
             mapRevision: undefined,
@@ -1558,7 +1559,7 @@ describe('SuperJson', () => {
             defaults: {
               input: {
                 input: { test: 'test' },
-                retryPolicy: { onFail: OnFail.NONE },
+                retryPolicy: { kind: OnFail.NONE },
               },
             },
             file: 'some/path',
@@ -1606,7 +1607,7 @@ describe('SuperJson', () => {
             defaults: {
               input: {
                 input: { test: 'test' },
-                retryPolicy: { onFail: OnFail.NONE },
+                retryPolicy: { kind: OnFail.NONE },
               },
             },
             file: 'provider/path',
@@ -1655,7 +1656,7 @@ describe('SuperJson', () => {
             defaults: {
               input: {
                 input: { test: 'test' },
-                retryPolicy: { onFail: OnFail.NONE },
+                retryPolicy: { kind: OnFail.NONE },
               },
             },
             mapVariant: 'test',
@@ -1702,7 +1703,7 @@ describe('SuperJson', () => {
             defaults: {
               input: {
                 input: { test: 'test' },
-                retryPolicy: { onFail: OnFail.NONE },
+                retryPolicy: { kind: OnFail.NONE },
               },
             },
             mapVariant: 'test',
@@ -1730,7 +1731,7 @@ describe('SuperJson', () => {
                 defaults: {
                   input: {
                     input: { test: 'test' },
-                    retryPolicy: { onFail: OnFail.NONE },
+                    retryPolicy: { kind: OnFail.NONE },
                   },
                 },
               },
@@ -1755,7 +1756,7 @@ describe('SuperJson', () => {
             defaults: {
               input: {
                 input: { test: 'test' },
-                retryPolicy: { onFail: OnFail.NONE },
+                retryPolicy: { kind: OnFail.NONE },
               },
             },
             file: 'provider/path',

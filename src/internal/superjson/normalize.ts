@@ -14,7 +14,6 @@ import {
   NormalizedSuperJsonDocument,
   NormalizedUsecaseDefaults,
   OnFail,
-  OnFailKind,
   ProfileEntry,
   ProfileProviderDefaults,
   ProfileProviderEntry,
@@ -74,32 +73,43 @@ export function normalizeRetryPolicy(
 ): NormalizedRetryPolicy {
   if (retryPolicy === undefined) {
     if (base === undefined) {
-      return { onFail: OnFail.NONE };
+      return { kind: OnFail.NONE };
     } else {
       return normalizeRetryPolicy(base);
     }
   }
 
-  if (retryPolicy.onFail === OnFail.NONE) {
-    return { onFail: OnFail.NONE };
+  if (retryPolicy === OnFail.CIRCUIT_BREAKER) {
+    return {
+      kind: OnFail.CIRCUIT_BREAKER,
+      backoff: { kind: BackOffKind.EXPONENTIAL },
+    };
   }
-  const baseOnFail = base?.onFail === OnFail.NONE ? undefined : base?.onFail;
+
+  if (
+    retryPolicy === OnFail.NONE ||
+    ('kind' in retryPolicy && retryPolicy.kind === OnFail.NONE)
+  ) {
+    return { kind: OnFail.NONE };
+  }
+
+  const baseOnFail = base?.kind === OnFail.NONE ? undefined : base;
+
+  const backoff =
+    retryPolicy.backoff === BackOffKind.EXPONENTIAL
+      ? { kind: BackOffKind.EXPONENTIAL }
+      : {
+          kind: BackOffKind.EXPONENTIAL,
+          start: retryPolicy.backoff?.start ?? baseOnFail?.backoff.start,
+          factor: retryPolicy.backoff?.factor ?? baseOnFail?.backoff.factor,
+        };
 
   return {
-    onFail: {
-      kind: OnFailKind.CIRCUIT_BREAKER,
-      maxContiguousRetries:
-        retryPolicy.onFail.maxContiguousRetries ??
-        baseOnFail?.maxContiguousRetries,
-      requestTimeout:
-        retryPolicy.onFail.requestTimeout ?? baseOnFail?.requestTimeout,
-      backoff: {
-        kind: BackOffKind.EXPONENTIAL,
-        start: retryPolicy.onFail.backoff?.start ?? baseOnFail?.backoff.start,
-        factor:
-          retryPolicy.onFail.backoff?.factor ?? baseOnFail?.backoff.factor,
-      },
-    },
+    kind: OnFail.CIRCUIT_BREAKER,
+    maxContiguousRetries:
+      retryPolicy.maxContiguousRetries ?? baseOnFail?.maxContiguousRetries,
+    requestTimeout: retryPolicy.requestTimeout ?? baseOnFail?.requestTimeout,
+    backoff,
   };
 }
 
@@ -125,7 +135,12 @@ export function normalizeUsecaseDefaults(
         previousInput,
         castToNonPrimitive(defs.input) ?? {}
       ),
-      providerFailover: defs.providerFailover !== undefined ? defs.providerFailover : normalized[usecase]?.providerFailover !== undefined ? normalized[usecase].providerFailover : false
+      providerFailover:
+        defs.providerFailover !== undefined
+          ? defs.providerFailover
+          : normalized[usecase]?.providerFailover !== undefined
+          ? normalized[usecase].providerFailover
+          : false,
     };
   }
 
