@@ -8,6 +8,9 @@ import { FetchInstance } from '../internal/interpreter/http/interfaces';
 
 type AnyFunction = (...args: any[]) => any;
 
+type MaybePromise<T> = T | Promise<T>;
+type ResolvedPromise<T> = T extends Promise<infer R> ? R : T;
+
 export type Interceptable = {
   metadata?: {
     provider?: string;
@@ -40,7 +43,7 @@ export type BeforeHook<
 > = (
   context: EventContext,
   args: Parameters<Target>
-) => BeforeHookResult<Target>;
+) => MaybePromise<BeforeHookResult<Target>>;
 
 export type AfterHookResult<Target extends AnyFunction> =
   | {
@@ -62,7 +65,7 @@ export type AfterHook<
   context: EventContext,
   args: Parameters<Target>,
   result: ReturnType<Target>
-) => AfterHookResult<Target>;
+) => MaybePromise<AfterHookResult<Target>>;
 
 type EventTypes = {
   perform: [InstanceType<typeof UseCase>['perform'], EventContextBase];
@@ -130,7 +133,7 @@ class Events {
   public async emit<E extends keyof EventParams>(
     event: E,
     parameters: Parameters<EventParams[E]>
-  ): Promise<ReturnType<EventParams[E]>> {
+  ): Promise<ResolvedPromise<ReturnType<EventParams[E]>>> {
     const listeners = this.listeners[event];
     const [context] = parameters;
     let subresult = parameters;
@@ -200,10 +203,10 @@ function replacementFunction<E extends keyof EventTypes>(
       }
     }
 
-    let result = (await originalFunction.apply(
+    let result = originalFunction.apply(
       this,
       functionArgs
-    )) as ReturnType<EventTypes[E][0]>;
+    ) as ReturnType<EventTypes[E][0]>;
 
     // After hook - runs after the function is called and takes the result
     // May modify it, return different or retry

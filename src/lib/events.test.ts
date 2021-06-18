@@ -3,6 +3,7 @@ import { getLocal } from 'mockttp';
 
 import { BoundProfileProvider } from '../client';
 import { events } from './events';
+import { err } from './result/result';
 
 const mockProfileDocument: ProfileDocumentNode = {
   kind: 'ProfileDocument',
@@ -142,5 +143,29 @@ describe('events', () => {
     void result;
     const seenRequests = await endpoint.getSeenRequests();
     expect(seenRequests).toHaveLength(2);
+  });
+
+  it('handles rejection', async () => {
+    const profile = new BoundProfileProvider(
+      mockProfileDocument,
+      mockMapDocument,
+      { baseUrl: 'https://unreachable.localhost', security: [] }
+    );
+
+    events.on('post-fetch', { priority: 1 }, async (_context, _args, result) => {
+      try {
+        const res = await result;
+        void res;
+        return { kind: 'continue' };
+      } catch (err) {
+        console.log(err);
+        return { kind: 'modify', newResult: Promise.reject('modified rejection') };
+      }
+    });
+
+    const result = await profile.perform('Test');
+    expect(result).toStrictEqual(
+      err('modified rejection')
+    )
   });
 });
