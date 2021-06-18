@@ -1098,9 +1098,6 @@ describe('SuperJson', () => {
                     },
                     retryPolicy: {
                       kind: 'circuit-breaker',
-                      backoff: {
-                        kind: 'exponential',
-                      },
                     },
                   },
                 },

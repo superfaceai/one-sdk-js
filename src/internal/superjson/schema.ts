@@ -62,8 +62,8 @@ export enum BackOffKind {
  *          "kind": "exponential",
  *          "start": number,
  *          "factor": number,
- *        }
- *   } // opt
+ *        } // opt
+ *   }
  * }
  * ```
  */
@@ -98,11 +98,13 @@ const normalizedRetryPolicy = zod.union([
     kind: zod.literal(OnFail.CIRCUIT_BREAKER),
     maxContiguousRetries: zod.number().int().positive().optional(),
     requestTimeout: zod.number().int().positive().optional(),
-    backoff: zod.object({
-      kind: zod.literal(BackOffKind.EXPONENTIAL),
-      start: zod.number().int().positive().optional(),
-      factor: zod.number().int().positive().optional(),
-    }),
+    backoff: zod
+      .object({
+        kind: zod.literal(BackOffKind.EXPONENTIAL),
+        start: zod.number().int().positive().optional(),
+        factor: zod.number().int().positive().optional(),
+      })
+      .optional(),
   }),
 ]);
 

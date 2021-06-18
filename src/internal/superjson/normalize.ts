@@ -82,7 +82,6 @@ export function normalizeRetryPolicy(
   if (retryPolicy === OnFail.CIRCUIT_BREAKER) {
     return {
       kind: OnFail.CIRCUIT_BREAKER,
-      backoff: { kind: BackOffKind.EXPONENTIAL },
     };
   }
 
@@ -95,21 +94,34 @@ export function normalizeRetryPolicy(
 
   const baseOnFail = base?.kind === OnFail.NONE ? undefined : base;
 
-  const backoff =
-    retryPolicy.backoff === BackOffKind.EXPONENTIAL
-      ? { kind: BackOffKind.EXPONENTIAL }
-      : {
-          kind: BackOffKind.EXPONENTIAL,
-          start: retryPolicy.backoff?.start ?? baseOnFail?.backoff.start,
-          factor: retryPolicy.backoff?.factor ?? baseOnFail?.backoff.factor,
-        };
+  const normalizeBackoff = () => {
+    if (!retryPolicy.backoff) {
+      return;
+    }
+    if (retryPolicy.backoff === BackOffKind.EXPONENTIAL) {
+      return { kind: BackOffKind.EXPONENTIAL };
+    }
+    if (
+      'kind' in retryPolicy.backoff &&
+      retryPolicy.backoff.kind === BackOffKind.EXPONENTIAL
+    ) {
+      return {
+        kind: BackOffKind.EXPONENTIAL,
+        start: retryPolicy.backoff?.start ?? baseOnFail?.backoff?.start,
+        factor: retryPolicy.backoff?.factor ?? baseOnFail?.backoff?.factor,
+      };
+    }
+    throw new Error(
+      'invalid backoff entry format: ' + retryPolicy.backoff.kind
+    );
+  };
 
   return {
     kind: OnFail.CIRCUIT_BREAKER,
     maxContiguousRetries:
       retryPolicy.maxContiguousRetries ?? baseOnFail?.maxContiguousRetries,
     requestTimeout: retryPolicy.requestTimeout ?? baseOnFail?.requestTimeout,
-    backoff,
+    backoff: normalizeBackoff(),
   };
 }
 
