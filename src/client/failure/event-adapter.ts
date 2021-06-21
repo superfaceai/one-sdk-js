@@ -8,8 +8,9 @@ type RetryHooksContext = {
     queuedAction: undefined | { kind: 'switch-provider', provider: string } | { kind: 'recache', newRegistry?: string }
   }
 }
+//TODO: Add helper functions to build RetryHooksContext from super.json
 
-function registerFetchRetryHooks(
+export function registerFetchRetryHooks(
   hookContext: RetryHooksContext
 ) {
   events.on(
@@ -44,7 +45,7 @@ function registerFetchRetryHooks(
             return { kind: 'modify', newArgs };
           }
           break;
-    
+
         case 'backoff':
           await sleep(resolution.backoff);
           if (resolution.timeout > 0) {
@@ -55,20 +56,20 @@ function registerFetchRetryHooks(
             return { kind: 'modify', newArgs };
           }
           break;
-    
+
         case 'abort':
           return {
             kind: 'abort',
             newResult: Promise.reject(resolution.reason)
           };
-    
+
         case 'recache':
           performContext.queuedAction = resolution;
           return {
             kind: 'abort',
             newResult: Promise.reject(resolution.kind)
           };
-    
+
         case 'switch-provider':
           performContext.queuedAction = resolution;
           return {
@@ -135,10 +136,10 @@ function registerFetchRetryHooks(
         switch (resolution.kind) {
           case 'continue':
             return { kind: 'continue' };
-          
+
           case 'retry':
             return { kind: 'retry' };
-          
+
           case 'abort':
             return { kind: 'modify', newResult: Promise.reject(resolution.reason) };
         }
@@ -157,8 +158,8 @@ function registerFetchRetryHooks(
     'post-perform',
     { priority: 1 },
     async (context, _args, _res) => {
-       // this shouldn't happen but if it does just continue for now
-       if (context.profile === undefined || context.usecase === undefined) {
+      // this shouldn't happen but if it does just continue for now
+      if (context.profile === undefined || context.usecase === undefined) {
         return { kind: 'continue' };
       }
 

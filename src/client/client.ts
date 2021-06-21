@@ -30,6 +30,9 @@ export abstract class SuperfaceClientBase {
     }
 
     this.superJson = SUPER_CACHE[superCacheKey];
+
+    //TODO: use helpers from event-adapter.ts to create RetryHookContext
+    //TODO: call  registerFetchRetryHooks()
   }
 
   get profiles(): never {
@@ -133,6 +136,11 @@ export abstract class SuperfaceClientBase {
       version = profileSettings.version;
     }
 
+    // TODO: load priority and add it to ProfileConfiguration?
+    // TODO: load policies here and add them to ProfileConfiguration
+
+    const c = new ProfileConfiguration(profileId, version)
+    console.log('get config ', c)
     return new ProfileConfiguration(profileId, version);
   }
 }
@@ -153,16 +161,16 @@ type ProfileUseCases<TInput extends NonPrimitive | undefined, TOutput> = {
 export type TypedSuperfaceClient<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   TProfiles extends ProfileUseCases<any, any>
-> = SuperfaceClientBase & {
-  getProfile<TProfile extends keyof TProfiles>(
-    profileId: TProfile
-  ): Promise<TypedProfile<TProfiles[TProfile]>>;
-};
+  > = SuperfaceClientBase & {
+    getProfile<TProfile extends keyof TProfiles>(
+      profileId: TProfile
+    ): Promise<TypedProfile<TProfiles[TProfile]>>;
+  };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function createTypedClient<TProfiles extends ProfileUseCases<any, any>>(
   profileDefinitions: TProfiles
-): { new (): TypedSuperfaceClient<TProfiles> } {
+): { new(): TypedSuperfaceClient<TProfiles> } {
   return class TypedSuperfaceClientClass
     extends SuperfaceClientBase
     implements TypedSuperfaceClient<TProfiles>
