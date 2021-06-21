@@ -115,12 +115,13 @@ export function normalizeRetryPolicy(
     throw new SDKExecutionError(
       `Invalid backoff entry format: "${retryPolicy.backoff.kind}"`,
       [
-        `Property "kind" in retryPolicy.backoof object has unexpected value "${retryPolicy.backoff.kind}"`,
+        `Property "kind" in retryPolicy.backoff object has unexpected value "${retryPolicy.backoff.kind}"`,
         `Property "kind" in super.json [profile].providers.[provider].defaults.[usecase].retryPolicy.backoff with value "${retryPolicy.backoff.kind}" is not valid`,
       ],
       [
         `Check your super.json`,
         `Check property "kind" in [profile].providers.[provider].defaults.[usecase].retryPolicy.backoff with value "${retryPolicy.backoff.kind}"`,
+        `Change value of property "kind" in retryPolicy.backoff to one of possible values: ${Object.values(BackOffKind)}`,
       ]
     );
   };
