@@ -137,9 +137,35 @@ export abstract class SuperfaceClientBase {
     }
 
     // TODO: load priority and add it to ProfileConfiguration?
-    // TODO: load policies here and add them to ProfileConfiguration
+    const priority = profileSettings.priority
+    if (!priority.every(p => this.superJson.normalized.providers[p])) {
+      throw new SDKExecutionError(
+        `Priority array of profile: ${profileId} contains unconfigured provider`,
+        [
+          `Profile "${profileId}" specifies a provider array [${priority.join(', ')}] in super.json`,
+          `but there are only these providers configured [${Object.keys(this.superJson.normalized.providers).join(', ')}]`,
+        ],
+        [
+          `Check that providers [${priority.join(', ')}] are configured for profile "${profileId}"`,
+          'Paths in super.json are either absolute or relative to the location of super.json',
+        ]
+      )
+    }
 
-    const c = new ProfileConfiguration(profileId, version)
+    // TODO: load policies here and add them to ProfileConfiguration
+    let policies: Record<string, Record<string, any>> = {}
+    for (const p of Object.keys(profileSettings.providers)) {
+      console.log('checking provider', p, 'value', profileSettings.providers[p].defaults)
+      for (const u of Object.keys(profileSettings.providers[p].defaults)) {
+        console.log('checking usecase', u, 'value', profileSettings.providers[p].defaults[u])
+
+        policies[p][u] = profileSettings.providers[p].defaults[u]
+      }
+
+    }
+
+    console.log('policies', policies)
+    const c = new ProfileConfiguration(profileId, version, priority)
     console.log('get config ', c)
     return new ProfileConfiguration(profileId, version);
   }
