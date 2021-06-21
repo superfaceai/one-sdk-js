@@ -15,7 +15,7 @@ import {
   ProviderJson,
   SecurityType,
 } from '../internal/providerjson';
-import { SuperJson } from '../internal/superjson';
+import { OnFail, SuperJson } from '../internal/superjson';
 import * as SuperJsonMutate from '../internal/superjson/mutate';
 import { err, ok } from '../lib';
 import { ProfileConfiguration } from './profile';
@@ -256,6 +256,7 @@ describe('profile provider', () => {
               defaults: {
                 test: {
                   input: { t: 't' },
+                  retryPolicy: { kind: OnFail.NONE },
                 },
               },
             },
