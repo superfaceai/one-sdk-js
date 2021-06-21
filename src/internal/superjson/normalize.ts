@@ -1,5 +1,6 @@
 import { resolveEnvRecord } from '../../lib/env';
 import { clone } from '../../lib/object';
+import { SDKExecutionError } from '../errors';
 import { castToNonPrimitive, mergeVariables } from '../interpreter/variables';
 import {
   BackOffKind,
@@ -111,8 +112,16 @@ export function normalizeRetryPolicy(
         factor: retryPolicy.backoff?.factor ?? baseOnFail?.backoff?.factor,
       };
     }
-    throw new Error(
-      'invalid backoff entry format: ' + retryPolicy.backoff.kind
+    throw new SDKExecutionError(
+      `Invalid backoff entry format: "${retryPolicy.backoff.kind}"`,
+      [
+        `Property "kind" in retryPolicy.backoof object has unexpected value "${retryPolicy.backoff.kind}"`,
+        `Property "kind" in super.json [profile].providers.[provider].defaults.[usecase].retryPolicy.backoff with value "${retryPolicy.backoff.kind}" is not valid`,
+      ],
+      [
+        `Check your super.json`,
+        `Check property "kind" in [profile].providers.[provider].defaults.[usecase].retryPolicy.backoff with value "${retryPolicy.backoff.kind}"`,
+      ]
     );
   };
 
