@@ -1,18 +1,25 @@
 import { resolveEnvRecord } from '../../lib/env';
 import { clone } from '../../lib/object';
+import { SDKExecutionError } from '../errors';
 import { castToNonPrimitive, mergeVariables } from '../interpreter/variables';
 import {
+  BackOffKind,
   FILE_URI_PROTOCOL,
   isFileURIString,
   isVersionString,
+  NormalizedProfileProviderDefaults,
   NormalizedProfileProviderSettings,
   NormalizedProfileSettings,
   NormalizedProviderSettings,
+  NormalizedRetryPolicy,
   NormalizedSuperJsonDocument,
   NormalizedUsecaseDefaults,
+  OnFail,
   ProfileEntry,
+  ProfileProviderDefaults,
   ProfileProviderEntry,
   ProviderEntry,
+  RetryPolicy,
   SuperJsonDocument,
   UsecaseDefaults,
 } from './schema';
@@ -53,12 +60,79 @@ export function normalizeProfileProviderSettings(
       defaults: {},
     };
   }
-  normalizedSettings.defaults = normalizeUsecaseDefaults(
+  normalizedSettings.defaults = normalizeProfileProviderDefaults(
     profileProviderSettings.defaults,
     baseDefaults
   );
 
   return normalizedSettings;
+}
+
+export function normalizeRetryPolicy(
+  retryPolicy?: RetryPolicy | undefined,
+  base?: NormalizedRetryPolicy
+): NormalizedRetryPolicy {
+  if (retryPolicy === undefined) {
+    if (base === undefined) {
+      return { kind: OnFail.NONE };
+    } else {
+      return normalizeRetryPolicy(base);
+    }
+  }
+
+  if (retryPolicy === OnFail.CIRCUIT_BREAKER) {
+    return {
+      kind: OnFail.CIRCUIT_BREAKER,
+    };
+  }
+
+  if (
+    retryPolicy === OnFail.NONE ||
+    ('kind' in retryPolicy && retryPolicy.kind === OnFail.NONE)
+  ) {
+    return { kind: OnFail.NONE };
+  }
+
+  const baseOnFail = base?.kind === OnFail.NONE ? undefined : base;
+
+  const normalizeBackoff = () => {
+    if (!retryPolicy.backoff) {
+      return;
+    }
+    if (retryPolicy.backoff === BackOffKind.EXPONENTIAL) {
+      return { kind: BackOffKind.EXPONENTIAL };
+    }
+    if (
+      'kind' in retryPolicy.backoff &&
+      retryPolicy.backoff.kind === BackOffKind.EXPONENTIAL
+    ) {
+      return {
+        kind: BackOffKind.EXPONENTIAL,
+        start: retryPolicy.backoff?.start ?? baseOnFail?.backoff?.start,
+        factor: retryPolicy.backoff?.factor ?? baseOnFail?.backoff?.factor,
+      };
+    }
+    throw new SDKExecutionError(
+      `Invalid backoff entry format: "${retryPolicy.backoff.kind}"`,
+      [
+        `Property "kind" in retryPolicy.backoff object has unexpected value "${retryPolicy.backoff.kind}"`,
+        `Property "kind" in super.json [profile].providers.[provider].defaults.[usecase].retryPolicy.backoff with value "${retryPolicy.backoff.kind}" is not valid`,
+      ],
+      [
+        `Check your super.json`,
+        `Check property "kind" in [profile].providers.[provider].defaults.[usecase].retryPolicy.backoff with value "${retryPolicy.backoff.kind}"`,
+        `Change value of property "kind" in retryPolicy.backoff to one of possible values: ${Object.values(BackOffKind).join(', ')}`,
+      ]
+    );
+  };
+
+  return {
+    kind: OnFail.CIRCUIT_BREAKER,
+    maxContiguousRetries:
+      retryPolicy.maxContiguousRetries ?? baseOnFail?.maxContiguousRetries,
+    requestTimeout: retryPolicy.requestTimeout ?? baseOnFail?.requestTimeout,
+    backoff: normalizeBackoff(),
+  };
 }
 
 export function normalizeUsecaseDefaults(
@@ -83,6 +157,40 @@ export function normalizeUsecaseDefaults(
         previousInput,
         castToNonPrimitive(defs.input) ?? {}
       ),
+      providerFailover:
+        defs.providerFailover !== undefined
+          ? defs.providerFailover
+          : normalized[usecase]?.providerFailover !== undefined
+          ? normalized[usecase].providerFailover
+          : false,
+    };
+  }
+
+  return resolveEnvRecord(normalized);
+}
+
+export function normalizeProfileProviderDefaults(
+  defaults?: ProfileProviderDefaults,
+  base?: NormalizedUsecaseDefaults
+): NormalizedProfileProviderDefaults {
+  if (defaults === undefined) {
+    if (base == undefined) {
+      return {};
+    } else {
+      return normalizeProfileProviderDefaults(base);
+    }
+  }
+
+  const normalized: NormalizedProfileProviderDefaults = {};
+  for (const [usecase, defs] of Object.entries(defaults)) {
+    const previousInput = castToNonPrimitive(base?.[usecase]?.input) ?? {};
+
+    normalized[usecase] = {
+      input: mergeVariables(
+        previousInput,
+        castToNonPrimitive(defs.input) ?? {}
+      ),
+      retryPolicy: normalizeRetryPolicy(defs.retryPolicy),
     };
   }
 

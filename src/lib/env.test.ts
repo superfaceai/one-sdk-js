@@ -48,4 +48,20 @@ describe('when resolving env record', () => {
 
     process.env[mockEnvVariable] = originalEnvValue;
   });
+
+  it('resolves env correctly when value is undefined', () => {
+    const mockEnvVariable = 'superJsonTest';
+    const originalEnvValue = process.env[mockEnvVariable];
+    process.env[mockEnvVariable] = 'test';
+    const mockRecord = {
+      testKey: `$${mockEnvVariable}`,
+      undefinedKey: undefined,
+    };
+
+    expect(resolveEnvRecord(mockRecord)).toEqual({
+      testKey: 'test',
+    });
+
+    process.env[mockEnvVariable] = originalEnvValue;
+  });
 });
