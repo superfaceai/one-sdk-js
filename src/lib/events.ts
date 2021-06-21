@@ -64,8 +64,13 @@ export type AfterHook<
   result: ReturnType<Target>
 ) => AfterHookResult<Target>;
 
+export type PerformContext = EventContextBase & {
+  profile: string;
+  provider: string;
+};
+
 type EventTypes = {
-  perform: [InstanceType<typeof UseCase>['perform'], EventContextBase];
+  perform: [InstanceType<typeof UseCase>['perform'], PerformContext];
   fetch: [FetchInstance['fetch'], EventContextBase];
 };
 
@@ -81,19 +86,6 @@ export type EventParams = {
       EventTypes[K][0]
     >;
   };
-
-// export type EventParams = {
-//   'pre-perform': BeforeHook<
-//     EventContextBase,
-//     InstanceType<typeof UseCase>['perform']
-//   >;
-//   'post-perform': AfterHook<
-//     EventContextBase,
-//     InstanceType<typeof UseCase>['perform']
-//   >;
-//   'pre-fetch': BeforeHook<EventContextBase, FetchInstance['fetch']>;
-//   'post-fetch': AfterHook<EventContextBase, FetchInstance['fetch']>;
-// };
 
 type EventListeners = {
   [E in keyof EventParams]?: PriorityCallbackTuple[];
@@ -212,10 +204,10 @@ function replacementFunction<E extends keyof EventTypes>(
       while (retry) {
         const hookResult = await events.emit(`post-${metadata.eventName}`, [
           {
-            filter: {
-              profile: this.metadata?.profile,
-              usecase: this.metadata?.usecase,
-            },
+            profile: this.metadata?.profile,
+            usecase: this.metadata?.usecase,
+            provider: this.metadata?.provider,
+            time: new Date(),
           },
           functionArgs as any,
           result,

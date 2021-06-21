@@ -1,7 +1,10 @@
+import { Config } from '../config';
 import { SuperJson } from '../internal';
 import { SDKExecutionError } from '../internal/errors';
 import { NonPrimitive } from '../internal/interpreter/variables';
+import { events, PerformContext } from '../lib/events';
 import { exists } from '../lib/io';
+import { MetricReporter } from '../lib/reporter';
 import {
   Profile,
   ProfileConfiguration,
@@ -18,18 +21,25 @@ const SUPER_CACHE: { [path: string]: SuperJson } = {};
 
 export abstract class SuperfaceClientBase {
   public readonly superJson: SuperJson;
+  private readonly metricReporter: MetricReporter;
   private boundCache: {
     [key: string]: BoundProfileProvider;
   } = {};
 
   constructor() {
-    const superCacheKey = process.env.SUPERFACE_PATH ?? SuperJson.defaultPath();
-
+    const superCacheKey = Config.superfacePath;
     if (SUPER_CACHE[superCacheKey] === undefined) {
       SUPER_CACHE[superCacheKey] = SuperJson.loadSync(superCacheKey).unwrap();
     }
 
     this.superJson = SUPER_CACHE[superCacheKey];
+
+    this.metricReporter = new MetricReporter(this.superJson);
+    this.metricReporter.reportEvent({
+      eventType: 'SDKInit',
+      occuredAt: new Date(),
+    });
+    this.hookMetrics();
   }
 
   get profiles(): never {
@@ -134,6 +144,24 @@ export abstract class SuperfaceClientBase {
     }
 
     return new ProfileConfiguration(profileId, version);
+  }
+
+  private hookMetrics(): void {
+    events.on(
+      'post-perform',
+      { priority: 10000 },
+      (context: PerformContext) => {
+        this.metricReporter.reportEvent({
+          eventType: 'PerformMetrics',
+          profile: context.profile,
+          success: true,
+          provider: context.provider,
+          occuredAt: context.time,
+        });
+
+        return { kind: 'continue' };
+      }
+    );
   }
 }
 

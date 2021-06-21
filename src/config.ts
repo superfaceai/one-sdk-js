@@ -1,0 +1,71 @@
+import createDebug from 'debug';
+import { join as joinPath } from 'path';
+
+const configDebug = createDebug('superface:config');
+
+// Environment variable names
+const TOKEN_ENV_NAME = 'SUPERFACE_SDK_TOKEN';
+const API_URL_ENV_NAME = 'SUPERFACE_API_URL';
+const SUPERFACE_PATH_NAME = 'SUPERFACE_PATH';
+const METRIC_DEBOUNCE_TIME = 'SUPERFACE_METRIC_DEBOUNCE_TIME';
+
+// Defaults
+export const DEFAULT_API_URL = 'https://superface.ai';
+export const DEFAULT_SUPERFACE_PATH = joinPath(
+  process.cwd(),
+  'superface',
+  'super.json'
+);
+export const DEFAULT_METRIC_DEBOUNCE_TIME = 60000;
+
+// Extraction functions
+function getSuperfaceApiUrl(): string {
+  const envUrl = process.env[API_URL_ENV_NAME];
+
+  return envUrl ? new URL(envUrl).href : new URL(DEFAULT_API_URL).href;
+}
+
+function getSdkAuthToken(): string | undefined {
+  const loadedToken = process.env[TOKEN_ENV_NAME];
+  if (!loadedToken) {
+    configDebug(`Environment variable ${TOKEN_ENV_NAME} not found`);
+
+    return;
+  }
+  const token = loadedToken.trim();
+  const tokenRegexp = /^(sfs)_([^_]+)_([0-9A-F]{8})$/i;
+  if (!tokenRegexp.test(token)) {
+    configDebug(
+      `Value in environment variable ${TOKEN_ENV_NAME} is not valid SDK authentization token`
+    );
+
+    return;
+  }
+
+  return token;
+}
+
+function getMetricDebounceTime(): number {
+  const envValue = process.env[METRIC_DEBOUNCE_TIME];
+  if (envValue === undefined) {
+    return DEFAULT_METRIC_DEBOUNCE_TIME;
+  }
+
+  try {
+    return parseInt(envValue);
+  } catch (e) {
+    configDebug(
+      `Invalid value: ${envValue} for ${METRIC_DEBOUNCE_TIME}, expected number`
+    );
+
+    return DEFAULT_METRIC_DEBOUNCE_TIME;
+  }
+}
+
+export const Config = {
+  superfaceApiUrl: getSuperfaceApiUrl(),
+  sdkAuthToken: getSdkAuthToken(),
+  superfacePath: process.env[SUPERFACE_PATH_NAME] ?? DEFAULT_SUPERFACE_PATH,
+  metricDebounceTime: getMetricDebounceTime(),
+};
+export type Config = typeof Config;

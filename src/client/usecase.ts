@@ -14,7 +14,12 @@ export type PerformOptions = {
 export type PerformError = ProfileParameterError | MapInterpreterError;
 
 class UseCaseBase implements Interceptable {
-  public readonly metadata: { usecase: string; profile: string };
+  public readonly metadata: {
+    usecase: string;
+    profile: string;
+    provider?: string;
+  };
+
   constructor(
     public readonly profile: ProfileBase,
     public readonly name: string
@@ -41,6 +46,8 @@ class UseCaseBase implements Interceptable {
         this.profile.configuration,
         providerConfig
       );
+
+    this.metadata.provider = providerConfig.name;
 
     return boundProfileProvider;
   }

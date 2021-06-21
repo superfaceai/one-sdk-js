@@ -2,6 +2,7 @@ import { MapDocumentNode } from '@superfaceai/ast';
 import createDebug from 'debug';
 import * as zod from 'zod';
 
+import { Config } from '../config';
 import { isProviderJson, ProviderJson } from '../internal';
 import { HttpClient } from '../internal/interpreter/http';
 import { CrossFetch } from '../lib/fetch';
@@ -47,6 +48,8 @@ export function assertIsRegistryProviderInfo(
     !Array.isArray(input.disco) ||
     !input.disco.every<RegistryProviderInfo>(isRegistryProviderInfo)
   ) {
+    registryDebug('Invalid response from registry.');
+    registryDebug(`Received: ${JSON.stringify(input, undefined, 2)}`);
     throw new Error('Invalid response from registry!');
   }
 }
@@ -54,6 +57,7 @@ export function assertIsRegistryProviderInfo(
 export async function fetchMapAST(url: string): Promise<MapDocumentNode> {
   const fetchInstance = new CrossFetch();
   const http = new HttpClient(fetchInstance);
+  registryDebug('Fetching Map AST from registry');
   const { body } = await http.request(url, {
     method: 'GET',
     accept: 'application/json',
@@ -68,6 +72,7 @@ export async function fetchProviders(
 ): Promise<RegistryProviderInfo[]> {
   const fetchInstance = new CrossFetch();
   const http = new HttpClient(fetchInstance);
+  registryDebug('Fetching providers from registry');
   const { body } = await http.request(registryUrl, {
     method: 'GET',
     queryParameters: {
@@ -81,39 +86,11 @@ export async function fetchProviders(
   return body.disco;
 }
 
-export function getDefaultRegistryUrl(): string {
-  const envUrl = process.env.SUPERFACE_API_URL;
-
-  return envUrl ? new URL(envUrl).href : new URL('https://superface.ai').href;
-}
-
 // TODO: refine validator
 const bindResponseValidator = zod.object({
   provider: zod.custom<ProviderJson>(data => isProviderJson(data)),
   map_ast: zod.string(),
 });
-
-export function loadSdkAuthToken(): string | undefined {
-  const tokenEnvName = 'SUPERFACE_SDK_TOKEN';
-  //Load superface token
-  const loadedToken = process.env[tokenEnvName];
-  if (!loadedToken) {
-    registryDebug(`Environment variable ${tokenEnvName} not found`);
-
-    return;
-  }
-  const token = loadedToken.trim();
-  const tokenRegexp = /^(sfs)_([^_]+)_([0-9A-F]{8})$/i;
-  if (!tokenRegexp.test(token)) {
-    registryDebug(
-      `Value in environment variable ${tokenEnvName} is not valid SDK authentization token`
-    );
-
-    return;
-  }
-
-  return token;
-}
 
 export async function fetchBind(
   request: {
@@ -131,13 +108,14 @@ export async function fetchBind(
 }> {
   const fetchInstance = new CrossFetch();
   const http = new HttpClient(fetchInstance);
-  const sdkToken = loadSdkAuthToken();
+  const sdkToken = Config.sdkAuthToken;
+  registryDebug('Binding SDK to registry');
   const { body } = await http.request('/registry/bind', {
     method: 'POST',
     headers: sdkToken
       ? [`Authorization: SUPERFACE-SDK-TOKEN ${sdkToken}`]
       : undefined,
-    baseUrl: options?.registryUrl ?? getDefaultRegistryUrl(),
+    baseUrl: options?.registryUrl ?? Config.superfaceApiUrl,
     accept: 'application/json',
     contentType: 'application/json',
     body: {

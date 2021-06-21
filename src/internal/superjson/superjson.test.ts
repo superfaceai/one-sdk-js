@@ -1,9 +1,5 @@
 import { promises as fsp, readFileSync, statSync } from 'fs';
-import {
-  join as joinPath,
-  relative as relativePath,
-  resolve as resolvePath,
-} from 'path';
+import { relative as relativePath, resolve as resolvePath } from 'path';
 import { mocked } from 'ts-jest/utils';
 
 import { isAccessible } from '../../lib/io';
@@ -628,13 +624,6 @@ describe('SuperJson', () => {
       expect(composeFileURI('test/path/to/super.json')).toEqual(
         'file://./test/path/to/super.json'
       );
-    });
-  });
-
-  describe('when getting default path', () => {
-    it('returns correct path', () => {
-      mocked(joinPath).mockReturnValue('/some/path');
-      expect(SuperJson.defaultPath()).toEqual('/some/path');
     });
   });
 

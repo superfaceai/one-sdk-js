@@ -8,6 +8,7 @@ import {
   resolve as resolvePath,
 } from 'path';
 
+import { Config } from '../../config';
 import { err, ok, Result } from '../../lib';
 import { configHash } from '../../lib/config-hash';
 import { isAccessible } from '../../lib/io';
@@ -45,13 +46,6 @@ export class SuperJson {
   }
 
   // loading and parsing //
-
-  /**
-   * Returns the default super.json path based on current `process.cwd()`.
-   */
-  static defaultPath(): string {
-    return joinPath(process.cwd(), 'superface', 'super.json');
-  }
 
   /**
    * Detects the existence of a `super.json` file in specified number of levels
@@ -103,7 +97,7 @@ export class SuperJson {
   }
 
   static loadSync(path?: string): Result<SuperJson, string> {
-    const superfile = path ?? SuperJson.defaultPath();
+    const superfile = path ?? Config.superfacePath;
 
     try {
       const statInfo = statSync(superfile);
@@ -139,7 +133,7 @@ export class SuperJson {
    * Attempts to load super.json file from expected location `cwd/superface/super.json`
    */
   static async load(path?: string): Promise<Result<SuperJson, string>> {
-    const superfile = path ?? SuperJson.defaultPath();
+    const superfile = path ?? Config.superfacePath;
 
     try {
       const statInfo = await fsp.stat(superfile);
