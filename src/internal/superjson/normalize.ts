@@ -121,7 +121,7 @@ export function normalizeRetryPolicy(
       [
         `Check your super.json`,
         `Check property "kind" in [profile].providers.[provider].defaults.[usecase].retryPolicy.backoff with value "${retryPolicy.backoff.kind}"`,
-        `Change value of property "kind" in retryPolicy.backoff to one of possible values: ${Object.values(BackOffKind)}`,
+        `Change value of property "kind" in retryPolicy.backoff to one of possible values: ${Object.values(BackOffKind).join(', ')}`,
       ]
     );
   };
