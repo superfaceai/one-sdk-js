@@ -41,9 +41,6 @@ export const composeFileURI = (path: string): string => {
 //Retry policy
 export enum OnFail {
   NONE = 'none',
-}
-
-export enum OnFailKind {
   CIRCUIT_BREAKER = 'circuit-breaker',
 }
 
@@ -54,54 +51,62 @@ export enum BackOffKind {
  * RetryPolicy per usecase values.
  * ```
  * {
- *   "$retryPolicy": {
- *     "onFail": "none" | {
+ *   "$retryPolicy":  "none" | "circuit-breaker" |
+ *      {
+ *        "kind": "none"
+ *      } | {
  *       "kind": "circuit-breaker",
  *       "maxContiguousRetries": number, // opt
  *       "requestTimeout": number, // opt
- *       "backoff": {
+ *       "backoff": "exponential" | {
  *          "kind": "exponential",
  *          "start": number,
  *          "factor": number,
- *        }
- *     }
- *   } // opt
+ *        } // opt
+ *   }
  * }
  * ```
  */
-const retryPolicy = zod.object({
-  onFail: zod.union([
-    zod.literal(OnFail.NONE),
-    zod.object({
-      kind: zod.literal(OnFailKind.CIRCUIT_BREAKER),
-      maxContiguousRetries: zod.number().int().positive().optional(),
-      requestTimeout: zod.number().int().positive().optional(),
-      backoff: zod
-        .object({
+const retryPolicy = zod.union([
+  zod.literal(OnFail.NONE),
+  zod.literal(OnFail.CIRCUIT_BREAKER),
+  zod.object({
+    kind: zod.literal(OnFail.NONE),
+  }),
+  zod.object({
+    kind: zod.literal(OnFail.CIRCUIT_BREAKER),
+    maxContiguousRetries: zod.number().int().positive().optional(),
+    requestTimeout: zod.number().int().positive().optional(),
+    backoff: zod
+      .union([
+        zod.literal(BackOffKind.EXPONENTIAL),
+        zod.object({
           kind: zod.literal(BackOffKind.EXPONENTIAL),
           start: zod.number().int().positive().optional(),
           factor: zod.number().int().positive().optional(),
-        })
-        .optional(),
-    }),
-  ]),
-});
+        }),
+      ])
+      .optional(),
+  }),
+]);
 
-const normalizedRetryPolicy = zod.object({
-  onFail: zod.union([
-    zod.literal(OnFail.NONE),
-    zod.object({
-      kind: zod.literal(OnFailKind.CIRCUIT_BREAKER),
-      maxContiguousRetries: zod.number().int().positive().optional(),
-      requestTimeout: zod.number().int().positive().optional(),
-      backoff: zod.object({
+const normalizedRetryPolicy = zod.union([
+  zod.object({
+    kind: zod.literal(OnFail.NONE),
+  }),
+  zod.object({
+    kind: zod.literal(OnFail.CIRCUIT_BREAKER),
+    maxContiguousRetries: zod.number().int().positive().optional(),
+    requestTimeout: zod.number().int().positive().optional(),
+    backoff: zod
+      .object({
         kind: zod.literal(BackOffKind.EXPONENTIAL),
         start: zod.number().int().positive().optional(),
         factor: zod.number().int().positive().optional(),
-      }),
-    }),
-  ]),
-});
+      })
+      .optional(),
+  }),
+]);
 
 const providerFailover = zod.boolean().optional();
 const normalizedProviderFailover = zod.boolean();

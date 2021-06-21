@@ -256,7 +256,7 @@ describe('profile provider', () => {
               defaults: {
                 test: {
                   input: { t: 't' },
-                  retryPolicy: { onFail: OnFail.NONE },
+                  retryPolicy: { kind: OnFail.NONE },
                 },
               },
             },
