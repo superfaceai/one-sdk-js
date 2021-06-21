@@ -3,7 +3,7 @@ import { SuperfaceClientBase } from './client';
 import { TypedUseCase, UseCase } from './usecase';
 
 export class ProfileConfiguration {
-  constructor(public readonly id: string, public readonly version: string, public readonly priority?: string[]) { }
+  constructor(public readonly id: string, public readonly version: string) {}
 
   get cacheKey(): string {
     // TODO: Research a better way?
@@ -16,9 +16,9 @@ export type UsecaseType<
   TInput extends NonPrimitive | undefined = any,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   TOutput = any
-  > = {
-    [name: string]: [TInput, TOutput];
-  };
+> = {
+  [name: string]: [TInput, TOutput];
+};
 
 // export type KnownUsecase<
 //   TName extends string,
@@ -34,7 +34,7 @@ export class ProfileBase {
   constructor(
     public readonly client: SuperfaceClientBase,
     public readonly configuration: ProfileConfiguration
-  ) { }
+  ) {}
 }
 
 export class Profile extends ProfileBase {
@@ -46,12 +46,12 @@ export class Profile extends ProfileBase {
 export class TypedProfile<
   // TKnownUsecases extends KnownUsecase<string, NonPrimitive, unknown>
   TUsecaseTypes extends UsecaseType
-  > extends ProfileBase {
+> extends ProfileBase {
   private readonly knownUsecases: KnownUsecase<TUsecaseTypes>;
 
   constructor(
-    public override readonly client: SuperfaceClientBase,
-    public override readonly configuration: ProfileConfiguration,
+    public readonly client: SuperfaceClientBase,
+    public readonly configuration: ProfileConfiguration,
     usecases: (keyof TUsecaseTypes)[]
   ) {
     super(client, configuration);

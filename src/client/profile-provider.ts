@@ -54,12 +54,14 @@ const boundProfileProviderDebug = createDebug(
   'superface:bound-profile-provider'
 );
 export class BoundProfileProvider {
+  //TODO: Interceptable and set metadata
   private profileValidator: ProfileParameterValidator;
   private fetchInstance: FetchInstance & Interceptable;
 
   constructor(
     private readonly profileAst: ProfileDocumentNode,
     private readonly mapAst: MapDocumentNode,
+    private readonly providerName: string,
     private readonly configuration: {
       baseUrl?: string;
       profileProviderSettings?: NormalizedProfileProviderSettings;
@@ -67,6 +69,7 @@ export class BoundProfileProvider {
     }
   ) {
     this.profileValidator = new ProfileParameterValidator(this.profileAst);
+    //TODO: Pass metadata here?
     this.fetchInstance = new CrossFetch();
   }
 
@@ -93,6 +96,7 @@ export class BoundProfileProvider {
    * Note that the `TInput` and `TResult` types cannot be checked for compatibility with the profile definition, so the caller
    * is responsible for ensuring that the cast is safe.
    */
+  //TODO: Typescript can't handle @eventInerceptor here :(
   async perform<
     TInput extends NonPrimitive | undefined = undefined,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -104,6 +108,7 @@ export class BoundProfileProvider {
     this.fetchInstance.metadata = {
       profile: profileAstId(this.profileAst),
       usecase,
+      provider: this.providerName,
     };
     // compose and validate the input
     const composedInput = this.composeInput(usecase, input);
@@ -267,7 +272,7 @@ export class ProfileProvider {
       providerName
     );
 
-    return new BoundProfileProvider(profileAst, mapAst, {
+    return new BoundProfileProvider(profileAst, mapAst, providerInfo.name, {
       baseUrl,
       profileProviderSettings:
         this.superJson.normalized.profiles[profileId]?.providers[

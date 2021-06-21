@@ -10,7 +10,49 @@ import {
   ExecutionResolution,
   FailureResolution,
   SuccessResolution,
+  SwitchProviderResolution,
 } from './resolution';
+
+export class FailoverPolicy extends FailurePolicy {
+  private currentProvider: string;
+  constructor(usecaseInfo: UsecaseInfo, private readonly priority: string[]) {
+    super(usecaseInfo);
+    //We don't have any providers
+    if (priority.length === 0) {
+      //TODO: throw something sane
+      throw `Priority array can't be empty`;
+    }
+    this.currentProvider = priority[0];
+  }
+
+  override beforeExecution(_info: ExecutionInfo): SwitchProviderResolution {
+    const indexOfCurrentProvider = this.priority.indexOf(this.currentProvider);
+    //Priority does not contain current provider
+    if (indexOfCurrentProvider === -1) {
+      throw 'Unreachable';
+    }
+
+    //Priority does not contain another (with lesser priority) provider
+    if (indexOfCurrentProvider === this.priority.length) {
+      //Abort/retry/continue??
+      throw 'What do';
+    }
+
+    this.currentProvider = this.priority[indexOfCurrentProvider + 1];
+
+    return { kind: 'switch-provider', provider: this.currentProvider };
+  }
+
+  override afterFailure(_info: ExecutionFailure): FailureResolution {
+    return { kind: 'continue' };
+  }
+
+  override afterSuccess(_info: ExecutionSuccess): SuccessResolution {
+    return { kind: 'continue' };
+  }
+
+  override reset(): void {}
+}
 
 /** Simple policy which aborts on the first failure */
 export class AbortPolicy extends FailurePolicy {

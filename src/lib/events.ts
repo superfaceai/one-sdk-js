@@ -23,6 +23,7 @@ type EventContextBase = {
   readonly time: Date;
   readonly usecase?: string;
   readonly profile?: string;
+  readonly provider?: string;
 };
 export type BeforeHookResult<Target extends AnyFunction> =
   | {
@@ -186,6 +187,7 @@ function replacementFunction<E extends keyof EventTypes>(
           time: new Date(),
           profile: this.metadata?.profile,
           usecase: this.metadata?.usecase,
+          provider: this.metadata?.provider,
         },
         functionArgs,
       ] as any);
@@ -203,10 +205,9 @@ function replacementFunction<E extends keyof EventTypes>(
       }
     }
 
-    let result = originalFunction.apply(
-      this,
-      functionArgs
-    ) as ReturnType<EventTypes[E][0]>;
+    let result = originalFunction.apply(this, functionArgs) as ReturnType<
+      EventTypes[E][0]
+    >;
 
     // After hook - runs after the function is called and takes the result
     // May modify it, return different or retry

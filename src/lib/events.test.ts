@@ -152,20 +152,27 @@ describe('events', () => {
       { baseUrl: 'https://unreachable.localhost', security: [] }
     );
 
-    events.on('post-fetch', { priority: 1 }, async (_context, _args, result) => {
-      try {
-        const res = await result;
-        void res;
-        return { kind: 'continue' };
-      } catch (err) {
-        console.log(err);
-        return { kind: 'modify', newResult: Promise.reject('modified rejection') };
+    events.on(
+      'post-fetch',
+      { priority: 1 },
+      async (_context, _args, result) => {
+        try {
+          const res = await result;
+          void res;
+
+          return { kind: 'continue' };
+        } catch (err) {
+          console.log(err);
+
+          return {
+            kind: 'modify',
+            newResult: Promise.reject('modified rejection'),
+          };
+        }
       }
-    });
+    );
 
     const result = await profile.perform('Test');
-    expect(result).toStrictEqual(
-      err('modified rejection')
-    )
+    expect(result).toStrictEqual(err('modified rejection'));
   });
 });

@@ -14,7 +14,12 @@ export type PerformOptions = {
 export type PerformError = ProfileParameterError | MapInterpreterError;
 
 class UseCaseBase implements Interceptable {
-  public readonly metadata: { usecase: string; profile: string };
+  public readonly metadata: {
+    usecase: string;
+    profile: string;
+    provider: string | undefined;
+  };
+
   constructor(
     public readonly profile: ProfileBase,
     public readonly name: string
@@ -22,6 +27,7 @@ class UseCaseBase implements Interceptable {
     this.metadata = {
       usecase: name,
       profile: profile.configuration.id,
+      provider: undefined,
     };
   }
 
@@ -36,6 +42,10 @@ class UseCaseBase implements Interceptable {
       providerConfig = provider.configuration;
     }
 
+    //Enrich metadata with provider
+    this.metadata.provider = providerConfig.name;
+
+    //In this instance we can set metadat for events
     const boundProfileProvider =
       await this.profile.client.cacheBoundProfileProvider(
         this.profile.configuration,
@@ -68,6 +78,8 @@ export class UseCase extends UseCaseBase {
     options?: PerformOptions
   ): Promise<Result<TOutput, PerformError>> {
     const boundProfileProvider = await this.bind(options);
+
+    console.log('Usecase perform metadata:', this.metadata);
 
     // TOOD: rewrap the errors for public consumption?
     return boundProfileProvider.perform<TInput, TOutput>(this.name, input);

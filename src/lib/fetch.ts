@@ -15,7 +15,9 @@ import {
 import { eventInterceptor, Interceptable } from './events';
 
 export class CrossFetch implements FetchInstance, Interceptable {
-  public metadata: { usecase: string; profile: string } | undefined;
+  public metadata:
+    | { usecase: string; profile: string; provider: string }
+    | undefined;
 
   @eventInterceptor({
     eventName: 'fetch',
@@ -31,6 +33,8 @@ export class CrossFetch implements FetchInstance, Interceptable {
           ...(Array.isArray(value) ? value : [value]),
         ])
       : undefined;
+
+    console.log('cross fetch metadata', this.metadata);
     const request: RequestInit = {
       headers: new Headers(headersInit),
       method: parameters.method,

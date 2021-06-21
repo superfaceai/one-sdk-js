@@ -1,7 +1,18 @@
-import { SuperJson } from '../internal';
+import {
+  BackOffKind,
+  NormalizedRetryPolicy,
+  OnFail,
+  SuperJson,
+} from '../internal';
 import { SDKExecutionError } from '../internal/errors';
 import { NonPrimitive } from '../internal/interpreter/variables';
+import { ExponentialBackoff } from '../lib/backoff';
 import { exists } from '../lib/io';
+import {
+  FailoverHooksContext,
+  RetryHooksContext,
+} from './failure/event-adapter';
+import { CircuitBreakerPolicy } from './failure/policies';
 import {
   Profile,
   ProfileConfiguration,
@@ -27,12 +38,109 @@ export abstract class SuperfaceClientBase {
 
     if (SUPER_CACHE[superCacheKey] === undefined) {
       SUPER_CACHE[superCacheKey] = SuperJson.loadSync(superCacheKey).unwrap();
+    } else {
+      //TODO: better way of cummunicating this to user.
+      console.warn('Multiple SuperfaceClient bad');
     }
 
     this.superJson = SUPER_CACHE[superCacheKey];
 
-    //TODO: use helpers from event-adapter.ts to create RetryHookContext
-    //TODO: call  registerFetchRetryHooks()
+    //create RetryHookContext and FailoverContext
+    const retryHookContext: RetryHooksContext = {};
+    const failoverHookContext: FailoverHooksContext = {};
+
+    for (const [profile, profileSettings] of Object.entries(
+      this.superJson.normalized.profiles
+    )) {
+      //Set failoverPolicy
+      const priority = profileSettings.priority;
+      if (!priority.every(p => this.superJson.normalized.providers[p])) {
+        throw new SDKExecutionError(
+          `Priority array of profile: ${profile} contains unconfigured provider`,
+          [
+            `Profile "${profile}" specifies a provider array [${priority.join(
+              ', '
+            )}] in super.json`,
+            `but there are only these providers configured [${Object.keys(
+              this.superJson.normalized.providers
+            ).join(', ')}]`,
+          ],
+          [
+            `Check that providers [${priority.join(
+              ', '
+            )}] are configured for profile "${profile}"`,
+            'Paths in super.json are either absolute or relative to the location of super.json',
+          ]
+        );
+      }
+      //TODO: QueuedAction and policy??
+      failoverHookContext[profile].priority = priority;
+
+      const policies: Record<
+        string,
+        Record<string, NormalizedRetryPolicy>
+      > = {};
+      for (const provider of Object.keys(profileSettings.providers)) {
+        console.log(
+          'checking provider',
+          provider,
+          'value',
+          profileSettings.providers[provider].defaults
+        );
+        for (const usecase of Object.keys(
+          profileSettings.providers[provider].defaults
+        )) {
+          console.log(
+            'checking usecase',
+            usecase,
+            'value',
+            profileSettings.providers[provider].defaults[usecase]
+          );
+          policies[provider] = {};
+          policies[provider][usecase] =
+            profileSettings.providers[provider].defaults[usecase].retryPolicy;
+          const retryPolicy =
+            profileSettings.providers[provider].defaults[usecase].retryPolicy;
+          if (retryPolicy.kind === OnFail.NONE) {
+            continue;
+          } else if (retryPolicy.kind === OnFail.CIRCUIT_BREAKER) {
+            let backoff: ExponentialBackoff | undefined = undefined;
+            if (
+              retryPolicy.backoff?.kind &&
+              retryPolicy.backoff?.kind === BackOffKind.EXPONENTIAL
+            ) {
+              backoff = new ExponentialBackoff(
+                retryPolicy.backoff.start ?? 2000,
+                retryPolicy.backoff.start
+              );
+            }
+            const circuitBreaker = new CircuitBreakerPolicy(
+              {
+                profileId: profile,
+                usecaseName: usecase,
+                // TODO: Somehow know safety
+                usecaseSafety: 'unsafe',
+              },
+              //TODO are these defauts ok?
+              retryPolicy.maxContiguousRetries ?? 5,
+              300000,
+              retryPolicy.requestTimeout ?? 10000,
+              backoff
+            );
+            //TODO: QueuedAction??
+            retryHookContext[`${profile}/${usecase}`].providers[
+              provider
+            ].policy = circuitBreaker;
+          } else {
+            throw 'Unreachable';
+          }
+        }
+      }
+      console.log('policies', policies);
+    }
+
+    //TODO: call registerFetchRetryHooks()
+    //TODO: call registerFailoverHooks()
   }
 
   get profiles(): never {
@@ -137,36 +245,27 @@ export abstract class SuperfaceClientBase {
     }
 
     // TODO: load priority and add it to ProfileConfiguration?
-    const priority = profileSettings.priority
+    const priority = profileSettings.priority;
     if (!priority.every(p => this.superJson.normalized.providers[p])) {
       throw new SDKExecutionError(
         `Priority array of profile: ${profileId} contains unconfigured provider`,
         [
-          `Profile "${profileId}" specifies a provider array [${priority.join(', ')}] in super.json`,
-          `but there are only these providers configured [${Object.keys(this.superJson.normalized.providers).join(', ')}]`,
+          `Profile "${profileId}" specifies a provider array [${priority.join(
+            ', '
+          )}] in super.json`,
+          `but there are only these providers configured [${Object.keys(
+            this.superJson.normalized.providers
+          ).join(', ')}]`,
         ],
         [
-          `Check that providers [${priority.join(', ')}] are configured for profile "${profileId}"`,
+          `Check that providers [${priority.join(
+            ', '
+          )}] are configured for profile "${profileId}"`,
           'Paths in super.json are either absolute or relative to the location of super.json',
         ]
-      )
+      );
     }
 
-    // TODO: load policies here and add them to ProfileConfiguration
-    let policies: Record<string, Record<string, any>> = {}
-    for (const p of Object.keys(profileSettings.providers)) {
-      console.log('checking provider', p, 'value', profileSettings.providers[p].defaults)
-      for (const u of Object.keys(profileSettings.providers[p].defaults)) {
-        console.log('checking usecase', u, 'value', profileSettings.providers[p].defaults[u])
-
-        policies[p][u] = profileSettings.providers[p].defaults[u]
-      }
-
-    }
-
-    console.log('policies', policies)
-    const c = new ProfileConfiguration(profileId, version, priority)
-    console.log('get config ', c)
     return new ProfileConfiguration(profileId, version);
   }
 }
@@ -187,16 +286,16 @@ type ProfileUseCases<TInput extends NonPrimitive | undefined, TOutput> = {
 export type TypedSuperfaceClient<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   TProfiles extends ProfileUseCases<any, any>
-  > = SuperfaceClientBase & {
-    getProfile<TProfile extends keyof TProfiles>(
-      profileId: TProfile
-    ): Promise<TypedProfile<TProfiles[TProfile]>>;
-  };
+> = SuperfaceClientBase & {
+  getProfile<TProfile extends keyof TProfiles>(
+    profileId: TProfile
+  ): Promise<TypedProfile<TProfiles[TProfile]>>;
+};
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function createTypedClient<TProfiles extends ProfileUseCases<any, any>>(
   profileDefinitions: TProfiles
-): { new(): TypedSuperfaceClient<TProfiles> } {
+): { new (): TypedSuperfaceClient<TProfiles> } {
   return class TypedSuperfaceClientClass
     extends SuperfaceClientBase
     implements TypedSuperfaceClient<TProfiles>
