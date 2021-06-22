@@ -7,7 +7,6 @@ import { BoundProfileProvider } from '../profile-provider';
 import { registerFetchRetryHooks, RetryHooksContext } from './event-adapter';
 import { CircuitBreakerPolicy } from './policies';
 
-
 const mockProfileDocument: ProfileDocumentNode = {
   kind: 'ProfileDocument',
   header: {
@@ -123,7 +122,7 @@ describe('event-adapter', () => {
   });
 
   it('uses set circuit breaker', async () => {
-    const endpoint = await mockServer.get('/test').thenTimeout()//.thenJson(500, {});
+    const endpoint = await mockServer.get('/test').thenTimeout(); //.thenJson(500, {});
 
     const profile = new BoundProfileProvider(
       mockProfileDocument,
@@ -142,18 +141,20 @@ describe('event-adapter', () => {
       //TODO are these defauts ok?
       5,
       300000,
-      10000,
-    )
+      10000
+    );
 
     const retryHookContext: RetryHooksContext = {
-      [`starwars/character-information/Test/provider`]: { policy, queuedAction: undefined }
+      [`starwars/character-information/Test/provider`]: {
+        policy,
+        queuedAction: undefined,
+      },
     };
 
-    await registerFetchRetryHooks(retryHookContext)
-
+    registerFetchRetryHooks(retryHookContext);
 
     const result = await profile.perform('Test');
-    console.log('res', result.unwrap())
+    console.log('res', result.unwrap());
     void result;
     const seenRequests = await endpoint.getSeenRequests();
     expect(seenRequests).toHaveLength(1);

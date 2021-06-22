@@ -1,5 +1,5 @@
 import {
-  BackOffKind,
+  BackoffKind,
   NormalizedRetryPolicy,
   OnFail,
   SuperJson,
@@ -231,7 +231,7 @@ export abstract class SuperfaceClientBase {
             let backoff: ExponentialBackoff | undefined = undefined;
             if (
               retryPolicy.backoff?.kind &&
-              retryPolicy.backoff?.kind === BackOffKind.EXPONENTIAL
+              retryPolicy.backoff?.kind === BackoffKind.EXPONENTIAL
             ) {
               backoff = new ExponentialBackoff(
                 retryPolicy.backoff.start ?? 2000,

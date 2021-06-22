@@ -11,7 +11,7 @@ import { err, ok } from '../../lib/result/result';
 import { mergeSecurity } from './mutate';
 import * as normalize from './normalize';
 import {
-  BackOffKind,
+  BackoffKind,
   composeFileURI,
   isApiKeySecurityValues,
   isBasicAuthSecurityValues,
@@ -1060,7 +1060,7 @@ describe('SuperJson', () => {
                       kind: OnFail.CIRCUIT_BREAKER,
                       maxContiguousRetries: 5,
                       backoff: {
-                        kind: BackOffKind.EXPONENTIAL,
+                        kind: BackoffKind.EXPONENTIAL,
                       },
                     },
                   },
