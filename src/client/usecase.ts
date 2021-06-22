@@ -16,7 +16,7 @@ class UseCaseBase {
   constructor(
     public readonly profile: ProfileBase,
     public readonly name: string
-  ) { }
+  ) {}
 
   protected async bind(
     options?: PerformOptions
@@ -68,7 +68,7 @@ export class UseCase extends UseCaseBase {
 export class TypedUseCase<
   TInput extends NonPrimitive | undefined,
   TOutput
-  > extends UseCaseBase {
+> extends UseCaseBase {
   async perform(
     input: TInput,
     options?: PerformOptions

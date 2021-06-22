@@ -130,30 +130,41 @@ export abstract class SuperfaceClientBase {
               backoff
             );
             //TODO: QueuedAction??
-            retryHookContext[`${profile}/${usecase}/${provider}`] = { policy, queuedAction: undefined };
+            retryHookContext[`${profile}/${usecase}/${provider}`] = {
+              policy,
+              queuedAction: undefined,
+            };
           } else {
             throw 'Unreachable';
           }
           //Failover
-          policy = new FailoverPolicy({
-            profileId: profile,
-            //We need usecase
-            usecaseName: usecase,
-            // TODO: Somehow know safety
-            usecaseSafety: 'unsafe',
-          }, priority)
+          policy = new FailoverPolicy(
+            {
+              profileId: profile,
+              //We need usecase
+              usecaseName: usecase,
+              // TODO: Somehow know safety
+              usecaseSafety: 'unsafe',
+            },
+            priority
+          );
           //TODO: QueuedAction??
-          failoverHookContext[`${profile}/${usecase}`] = { policy, queuedAction: undefined }
+          failoverHookContext[`${profile}/${usecase}`] = {
+            policy,
+            queuedAction: undefined,
+          };
         }
       }
       console.log('policies', policies);
     }
 
-    console.log('retry', retryHookContext)
-    console.log('failover', failoverHookContext)
+    console.log('retry', retryHookContext);
+    console.log('failover', failoverHookContext);
 
     //TODO: move somewhere else!
-    registerFetchRetryHooks(retryHookContext).then(() => console.log('retry registerd'))
+    registerFetchRetryHooks(retryHookContext).then(() =>
+      console.log('retry registerd')
+    );
     //TODO: call registerFetchRetryHooks()
     //TODO: call registerFailoverHooks()
   }
@@ -301,16 +312,16 @@ type ProfileUseCases<TInput extends NonPrimitive | undefined, TOutput> = {
 export type TypedSuperfaceClient<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   TProfiles extends ProfileUseCases<any, any>
-  > = SuperfaceClientBase & {
-    getProfile<TProfile extends keyof TProfiles>(
-      profileId: TProfile
-    ): Promise<TypedProfile<TProfiles[TProfile]>>;
-  };
+> = SuperfaceClientBase & {
+  getProfile<TProfile extends keyof TProfiles>(
+    profileId: TProfile
+  ): Promise<TypedProfile<TProfiles[TProfile]>>;
+};
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function createTypedClient<TProfiles extends ProfileUseCases<any, any>>(
   profileDefinitions: TProfiles
-): { new(): TypedSuperfaceClient<TProfiles> } {
+): { new (): TypedSuperfaceClient<TProfiles> } {
   return class TypedSuperfaceClientClass
     extends SuperfaceClientBase
     implements TypedSuperfaceClient<TProfiles>

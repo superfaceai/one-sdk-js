@@ -2,7 +2,7 @@ import { NetworkErrors } from '../../internal/interpreter/http';
 import { FetchResponse } from '../../internal/interpreter/http/interfaces';
 import { clone, sleep } from '../../lib';
 import { events } from '../../lib/events';
-import { FailurePolicy } from './policy';
+import { ExecutionFailure, FailurePolicy } from './policy';
 
 //TODO: Maybe do something like this or add provider to key in Eda's orifinal type
 export type RetryHooksContext = Record<
@@ -39,8 +39,10 @@ export type FailoverHooksContext = Record<
   }
 >;
 
-export async function registerFetchRetryHooks(hookContext: RetryHooksContext): Promise<void> {
-  console.log('registerFetchRetryHooks')
+export async function registerFetchRetryHooks(
+  hookContext: RetryHooksContext
+): Promise<void> {
+  // console.log('registerFetchRetryHooks')
   events
     .on('pre-fetch', { priority: 1 }, async (context, args) => {
       // only listen to fetch events in perform context
@@ -49,18 +51,15 @@ export async function registerFetchRetryHooks(hookContext: RetryHooksContext): P
         context.usecase === undefined ||
         context.provider === undefined
       ) {
-        console.log('pre-fetch return continue')
-
         return { kind: 'continue' };
       }
 
       const performContext =
-        hookContext[`${context.profile}/${context.usecase}/${context.provider}`];
-      console.log('pre-fetch context', performContext)
+        hookContext[
+        `${context.profile}/${context.usecase}/${context.provider}`
+        ];
       // if there is no configured context, ignore the event as well
       if (performContext === undefined) {
-        console.log('pre-fetch return continue')
-
         return { kind: 'continue' };
       }
       const resolution = performContext.policy.beforeExecution({
@@ -68,14 +67,11 @@ export async function registerFetchRetryHooks(hookContext: RetryHooksContext): P
         registryCacheAge: 0, // TODO
       });
 
-      console.log('pre-fetch res', resolution)
-
       switch (resolution.kind) {
         case 'continue':
           if (resolution.timeout > 0) {
             const newArgs = clone(args);
             newArgs[1].timeout = resolution.timeout;
-            console.log('pre-fetch return', { kind: 'modify', newArgs })
 
             return { kind: 'modify', newArgs };
           }
@@ -88,7 +84,6 @@ export async function registerFetchRetryHooks(hookContext: RetryHooksContext): P
             // TODO: Add timeout to fetch params?
             // newArgs[1].timeout = action.timeout;
 
-            console.log('pre-fetch return', { kind: 'modify', newArgs })
 
             return { kind: 'modify', newArgs };
           }
@@ -132,37 +127,47 @@ export async function registerFetchRetryHooks(hookContext: RetryHooksContext): P
       }
 
       const performContext =
-        hookContext[`${context.profile}/${context.usecase}/${context.provider}`];
+        hookContext[
+        `${context.profile}/${context.usecase}/${context.provider}`
+        ];
       // if there is no configured context, ignore the event as well
       if (performContext === undefined) {
-        console.log('perform context undefined')
+        // console.log('perform context undefined')
 
         return { kind: 'continue' };
       }
 
       // defer queued action until post-perform
-      if (
-        performContext.queuedAction !== undefined
-      ) {
-        console.log('queue undefined')
+      if (performContext.queuedAction !== undefined) {
+        // console.log('queue undefined')
 
         return { kind: 'continue' };
       }
 
-      let result: FetchResponse | undefined, error;
+      //TODO: Resolve result in separate function
+      let result: FetchResponse | undefined;
+      let executionFailure: ExecutionFailure | undefined;
       try {
         result = await res;
         //TODO: result can be defined but still have err value eq. 500 internal server error
       } catch (err) {
-        console.log('CATCH')
-
         //TODO: Translate err to ExecutionFailure
-        error = err;
+        //Network timeout
+        if (typeof err === 'string' && err === NetworkErrors.TIMEOUT_ERROR) {
+          console.log('NETWORK TIMEOUT');
+          executionFailure = {
+            time: context.time.getTime(),
+            registryCacheAge: 0, // TODO,
+            kind: 'network',
+            issue: 'timeout',
+          };
+        }
+        //TODO: what to do if we get ununkown error
       }
 
       if (result !== undefined) {
         // TODO: Detect non-network errors here
-        console.log(' rusult is defined', result)
+
         const resolution = performContext.policy.afterSuccess({
           time: context.time.getTime(),
           registryCacheAge: 0, // TODO
@@ -173,19 +178,8 @@ export async function registerFetchRetryHooks(hookContext: RetryHooksContext): P
         }
       }
 
-      if (error !== undefined) {
-        console.log('post-fetch is err', error, typeof error);
-
-        if (typeof error === 'string' && error === NetworkErrors.TIMEOUT_ERROR) {
-          console.log('TIMEOUT')
-        }
-        const resolution = performContext.policy.afterFailure({
-          time: context.time.getTime(),
-          registryCacheAge: 0, // TODO,
-          // TODO: choose based on error
-          kind: 'network',
-          issue: 'timeout',
-        });
+      if (executionFailure !== undefined) {
+        const resolution = performContext.policy.afterFailure(executionFailure);
 
         switch (resolution.kind) {
           case 'continue':
@@ -222,17 +216,17 @@ export async function registerFetchRetryHooks(hookContext: RetryHooksContext): P
       }
 
       const performContext =
-        hookContext[`${context.profile}/${context.usecase}/${context.provider}`];
+        hookContext[
+        `${context.profile}/${context.usecase}/${context.provider}`
+        ];
       // if there is no configured context, ignore the event
       if (performContext === undefined) {
         return { kind: 'continue' };
       }
 
       // perform queued action here
-      if (
-        performContext.queuedAction !== undefined
-      ) {
-        console.log('DO queuedAction')
+      if (performContext.queuedAction !== undefined) {
+        console.log('DO queuedAction');
         // TODO
       }
 
@@ -241,7 +235,3 @@ export async function registerFetchRetryHooks(hookContext: RetryHooksContext): P
       return { kind: 'continue' };
     });
 }
-
-// function isErrorResponse(response: FetchResponse): boolean {
-
-// }

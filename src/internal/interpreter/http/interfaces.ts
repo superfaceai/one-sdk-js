@@ -33,7 +33,7 @@ export type FetchParameters = {
   method: string;
   body?: FetchBody;
   queryParameters?: Record<string, string>;
-  timeout?: number
+  timeout?: number;
 };
 
 export type FetchResponse = {

@@ -2,6 +2,7 @@ import 'isomorphic-form-data';
 
 import fetch, { Headers } from 'cross-fetch';
 
+import { NetworkErrors } from '../internal/interpreter/http';
 import {
   FetchBody,
   FetchInstance,
@@ -13,7 +14,6 @@ import {
   JSON_CONTENT,
 } from '../internal/interpreter/http/interfaces';
 import { eventInterceptor, Interceptable } from './events';
-import { NetworkErrors } from '../internal/interpreter/http';
 
 export class CrossFetch implements FetchInstance, Interceptable {
   public metadata:
@@ -42,11 +42,14 @@ export class CrossFetch implements FetchInstance, Interceptable {
       body: this.body(parameters.body),
     };
 
-    const response = await this.timeout(fetch(
-      url + this.queryParameters(parameters.queryParameters),
-      request
-      //TODO: pass timeout from params, use different value
-    ), parameters.timeout);
+    const response = await this.timeout(
+      fetch(
+        url + this.queryParameters(parameters.queryParameters),
+        request
+        //TODO: pass timeout from params, use different value
+      ),
+      parameters.timeout
+    );
 
     const headers: Record<string, string> = {};
     response.headers.forEach((value, key) => {
@@ -72,17 +75,29 @@ export class CrossFetch implements FetchInstance, Interceptable {
       body,
     };
   }
+  //TODO: rewrite
+  private async timeout<T>(promise: Promise<T>, timeout = 5000) {
+    const timer = new Promise<{ timeout: boolean }>(resolve => {
+      setTimeout(resolve, timeout, {
+        timeout: true,
+      });
+    });
+    const response = await Promise.race([promise, timer]);
+    if ('timeout' in response && response.timeout) {
+      throw NetworkErrors.TIMEOUT_ERROR;
+    }
 
-  private async timeout<T>(promise: Promise<T>, timeout = 5000): Promise<T> {
-    console.log('fetch timeout is: ', timeout)
-
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        reject(NetworkErrors.TIMEOUT_ERROR)
-      }, timeout)
-      promise.then(resolve, reject)
-    })
+    return response as T;
   }
+  // private async timeout<T>(promise: Promise<T>, timeout = 5000): Promise<T> {
+  //   console.log('time out', timeout)
+  //   return new Promise((resolve, reject) => {
+  //     setTimeout(() => {
+  //       reject(NetworkErrors.TIMEOUT_ERROR)
+  //     }, timeout)
+  //     promise.then(resolve, reject)
+  //   })
+  // }
 
   private queryParameters(parameters?: Record<string, string>): string {
     if (parameters && Object.keys(parameters).length) {

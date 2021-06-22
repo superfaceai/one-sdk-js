@@ -324,19 +324,24 @@ describe('profile provider', () => {
         const result = await mockProfileProvider.bind();
 
         expect(result.toString()).toEqual(
-          new BoundProfileProvider(mockProfileDocument, mockMapDocument, 'test', {
-            baseUrl: 'service/base/url',
-            profileProviderSettings: undefined,
-            security: [
-              {
-                type: SecurityType.HTTP,
-                id: 'test',
-                scheme: HttpScheme.BASIC,
-                username: 'test-username',
-                password: 'test-password',
-              },
-            ],
-          }).toString()
+          new BoundProfileProvider(
+            mockProfileDocument,
+            mockMapDocument,
+            'test',
+            {
+              baseUrl: 'service/base/url',
+              profileProviderSettings: undefined,
+              security: [
+                {
+                  type: SecurityType.HTTP,
+                  id: 'test',
+                  scheme: HttpScheme.BASIC,
+                  username: 'test-username',
+                  password: 'test-password',
+                },
+              ],
+            }
+          ).toString()
         );
       });
 
@@ -375,19 +380,24 @@ describe('profile provider', () => {
         const result = await mockProfileProvider.bind();
 
         expect(result.toString()).toEqual(
-          new BoundProfileProvider(mockProfileDocument, mockMapDocument, 'test', {
-            baseUrl: 'service/base/url',
-            profileProviderSettings: undefined,
-            security: [
-              {
-                type: SecurityType.HTTP,
-                id: 'test',
-                scheme: HttpScheme.BASIC,
-                username: 'test-username',
-                password: 'test-password',
-              },
-            ],
-          }).toString()
+          new BoundProfileProvider(
+            mockProfileDocument,
+            mockMapDocument,
+            'test',
+            {
+              baseUrl: 'service/base/url',
+              profileProviderSettings: undefined,
+              security: [
+                {
+                  type: SecurityType.HTTP,
+                  id: 'test',
+                  scheme: HttpScheme.BASIC,
+                  username: 'test-username',
+                  password: 'test-password',
+                },
+              ],
+            }
+          ).toString()
         );
       });
 
@@ -426,19 +436,24 @@ describe('profile provider', () => {
         const result = await mockProfileProvider.bind();
 
         expect(result.toString()).toEqual(
-          new BoundProfileProvider(mockProfileDocument, mockMapDocument, 'test', {
-            baseUrl: 'service/base/url',
-            profileProviderSettings: undefined,
-            security: [
-              {
-                type: SecurityType.HTTP,
-                id: 'test',
-                scheme: HttpScheme.BASIC,
-                username: 'test-username',
-                password: 'test-password',
-              },
-            ],
-          }).toString()
+          new BoundProfileProvider(
+            mockProfileDocument,
+            mockMapDocument,
+            'test',
+            {
+              baseUrl: 'service/base/url',
+              profileProviderSettings: undefined,
+              security: [
+                {
+                  type: SecurityType.HTTP,
+                  id: 'test',
+                  scheme: HttpScheme.BASIC,
+                  username: 'test-username',
+                  password: 'test-password',
+                },
+              ],
+            }
+          ).toString()
         );
       });
 
@@ -485,19 +500,24 @@ describe('profile provider', () => {
         const result = await mockProfileProvider.bind();
 
         expect(result.toString()).toEqual(
-          new BoundProfileProvider(mockProfileDocument, mockMapDocument, 'test', {
-            baseUrl: 'service/base/url',
-            profileProviderSettings: undefined,
-            security: [
-              {
-                type: SecurityType.HTTP,
-                id: 'test',
-                scheme: HttpScheme.BASIC,
-                username: 'test-username',
-                password: 'test-password',
-              },
-            ],
-          }).toString()
+          new BoundProfileProvider(
+            mockProfileDocument,
+            mockMapDocument,
+            'test',
+            {
+              baseUrl: 'service/base/url',
+              profileProviderSettings: undefined,
+              security: [
+                {
+                  type: SecurityType.HTTP,
+                  id: 'test',
+                  scheme: HttpScheme.BASIC,
+                  username: 'test-username',
+                  password: 'test-password',
+                },
+              ],
+            }
+          ).toString()
         );
       });
 
@@ -541,19 +561,24 @@ describe('profile provider', () => {
         const result = await mockProfileProvider.bind();
 
         expect(result.toString()).toEqual(
-          new BoundProfileProvider(mockProfileDocument, mockMapDocument, 'test', {
-            baseUrl: 'service/base/url',
-            profileProviderSettings: undefined,
-            security: [
-              {
-                type: SecurityType.HTTP,
-                id: 'test',
-                scheme: HttpScheme.BASIC,
-                username: 'test-username',
-                password: 'test-password',
-              },
-            ],
-          }).toString()
+          new BoundProfileProvider(
+            mockProfileDocument,
+            mockMapDocument,
+            'test',
+            {
+              baseUrl: 'service/base/url',
+              profileProviderSettings: undefined,
+              security: [
+                {
+                  type: SecurityType.HTTP,
+                  id: 'test',
+                  scheme: HttpScheme.BASIC,
+                  username: 'test-username',
+                  password: 'test-password',
+                },
+              ],
+            }
+          ).toString()
         );
       });
 
@@ -666,19 +691,24 @@ describe('profile provider', () => {
         const result = await mockProfileProvider.bind();
 
         expect(result.toString()).toEqual(
-          new BoundProfileProvider(mockProfileDocument, mockMapDocument, 'test', {
-            baseUrl: 'service/base/url',
-            profileProviderSettings: undefined,
-            security: [
-              {
-                type: SecurityType.HTTP,
-                id: 'test',
-                scheme: HttpScheme.BASIC,
-                username: 'test-username',
-                password: 'test-password',
-              },
-            ],
-          }).toString()
+          new BoundProfileProvider(
+            mockProfileDocument,
+            mockMapDocument,
+            'test',
+            {
+              baseUrl: 'service/base/url',
+              profileProviderSettings: undefined,
+              security: [
+                {
+                  type: SecurityType.HTTP,
+                  id: 'test',
+                  scheme: HttpScheme.BASIC,
+                  username: 'test-username',
+                  password: 'test-password',
+                },
+              ],
+            }
+          ).toString()
         );
       });
 
@@ -731,19 +761,24 @@ describe('profile provider', () => {
         const result = await mockProfileProvider.bind({ security: [] });
 
         expect(result.toString()).toEqual(
-          new BoundProfileProvider(mockProfileDocument, mockMapDocument, 'test', {
-            baseUrl: 'service/base/url',
-            profileProviderSettings: undefined,
-            security: [
-              {
-                type: SecurityType.HTTP,
-                id: 'test',
-                scheme: HttpScheme.BASIC,
-                username: 'test-username',
-                password: 'test-password',
-              },
-            ],
-          }).toString()
+          new BoundProfileProvider(
+            mockProfileDocument,
+            mockMapDocument,
+            'test',
+            {
+              baseUrl: 'service/base/url',
+              profileProviderSettings: undefined,
+              security: [
+                {
+                  type: SecurityType.HTTP,
+                  id: 'test',
+                  scheme: HttpScheme.BASIC,
+                  username: 'test-username',
+                  password: 'test-password',
+                },
+              ],
+            }
+          ).toString()
         );
         mergeSecuritySpy.mockRestore();
       });
