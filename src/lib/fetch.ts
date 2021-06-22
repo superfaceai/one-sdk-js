@@ -13,6 +13,7 @@ import {
   JSON_CONTENT,
 } from '../internal/interpreter/http/interfaces';
 import { eventInterceptor, Interceptable } from './events';
+import { NetworkErrors } from '../internal/interpreter/http';
 
 export class CrossFetch implements FetchInstance, Interceptable {
   public metadata:
@@ -29,22 +30,23 @@ export class CrossFetch implements FetchInstance, Interceptable {
   ): Promise<FetchResponse> {
     const headersInit = parameters.headers
       ? Object.entries(parameters.headers).map(([key, value]) => [
-          key,
-          ...(Array.isArray(value) ? value : [value]),
-        ])
+        key,
+        ...(Array.isArray(value) ? value : [value]),
+      ])
       : undefined;
 
-    console.log('cross fetch metadata', this.metadata);
+    console.log('cross fetch metadata', this.metadata, 'params', parameters);
     const request: RequestInit = {
       headers: new Headers(headersInit),
       method: parameters.method,
       body: this.body(parameters.body),
     };
 
-    const response = await fetch(
+    const response = await this.timeout(fetch(
       url + this.queryParameters(parameters.queryParameters),
       request
-    );
+      //TODO: pass timeout from params, use different value
+    ), parameters.timeout);
 
     const headers: Record<string, string> = {};
     response.headers.forEach((value, key) => {
@@ -69,6 +71,17 @@ export class CrossFetch implements FetchInstance, Interceptable {
       headers,
       body,
     };
+  }
+
+  private async timeout<T>(promise: Promise<T>, timeout = 5000): Promise<T> {
+    console.log('fetch timeout is: ', timeout)
+
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        reject(NetworkErrors.TIMEOUT_ERROR)
+      }, timeout)
+      promise.then(resolve, reject)
+    })
   }
 
   private queryParameters(parameters?: Record<string, string>): string {

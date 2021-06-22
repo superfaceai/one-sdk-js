@@ -10,9 +10,11 @@ import { ExponentialBackoff } from '../lib/backoff';
 import { exists } from '../lib/io';
 import {
   FailoverHooksContext,
+  registerFetchRetryHooks,
   RetryHooksContext,
 } from './failure/event-adapter';
-import { CircuitBreakerPolicy } from './failure/policies';
+import { CircuitBreakerPolicy, FailoverPolicy } from './failure/policies';
+import { FailurePolicy } from './failure/policy';
 import {
   Profile,
   ProfileConfiguration,
@@ -48,7 +50,7 @@ export abstract class SuperfaceClientBase {
     //create RetryHookContext and FailoverContext
     const retryHookContext: RetryHooksContext = {};
     const failoverHookContext: FailoverHooksContext = {};
-
+    let policy: FailurePolicy;
     for (const [profile, profileSettings] of Object.entries(
       this.superJson.normalized.profiles
     )) {
@@ -73,8 +75,6 @@ export abstract class SuperfaceClientBase {
           ]
         );
       }
-      //TODO: QueuedAction and policy??
-      failoverHookContext[profile].priority = priority;
 
       const policies: Record<
         string,
@@ -96,9 +96,11 @@ export abstract class SuperfaceClientBase {
             'value',
             profileSettings.providers[provider].defaults[usecase]
           );
+          //TODO: remove
           policies[provider] = {};
           policies[provider][usecase] =
             profileSettings.providers[provider].defaults[usecase].retryPolicy;
+          //Retry
           const retryPolicy =
             profileSettings.providers[provider].defaults[usecase].retryPolicy;
           if (retryPolicy.kind === OnFail.NONE) {
@@ -114,7 +116,7 @@ export abstract class SuperfaceClientBase {
                 retryPolicy.backoff.start
               );
             }
-            const circuitBreaker = new CircuitBreakerPolicy(
+            policy = new CircuitBreakerPolicy(
               {
                 profileId: profile,
                 usecaseName: usecase,
@@ -128,17 +130,30 @@ export abstract class SuperfaceClientBase {
               backoff
             );
             //TODO: QueuedAction??
-            retryHookContext[`${profile}/${usecase}`].providers[
-              provider
-            ].policy = circuitBreaker;
+            retryHookContext[`${profile}/${usecase}/${provider}`] = { policy, queuedAction: undefined };
           } else {
             throw 'Unreachable';
           }
+          //Failover
+          policy = new FailoverPolicy({
+            profileId: profile,
+            //We need usecase
+            usecaseName: usecase,
+            // TODO: Somehow know safety
+            usecaseSafety: 'unsafe',
+          }, priority)
+          //TODO: QueuedAction??
+          failoverHookContext[`${profile}/${usecase}`] = { policy, queuedAction: undefined }
         }
       }
       console.log('policies', policies);
     }
 
+    console.log('retry', retryHookContext)
+    console.log('failover', failoverHookContext)
+
+    //TODO: move somewhere else!
+    registerFetchRetryHooks(retryHookContext).then(() => console.log('retry registerd'))
     //TODO: call registerFetchRetryHooks()
     //TODO: call registerFailoverHooks()
   }
@@ -286,16 +301,16 @@ type ProfileUseCases<TInput extends NonPrimitive | undefined, TOutput> = {
 export type TypedSuperfaceClient<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   TProfiles extends ProfileUseCases<any, any>
-> = SuperfaceClientBase & {
-  getProfile<TProfile extends keyof TProfiles>(
-    profileId: TProfile
-  ): Promise<TypedProfile<TProfiles[TProfile]>>;
-};
+  > = SuperfaceClientBase & {
+    getProfile<TProfile extends keyof TProfiles>(
+      profileId: TProfile
+    ): Promise<TypedProfile<TProfiles[TProfile]>>;
+  };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function createTypedClient<TProfiles extends ProfileUseCases<any, any>>(
   profileDefinitions: TProfiles
-): { new (): TypedSuperfaceClient<TProfiles> } {
+): { new(): TypedSuperfaceClient<TProfiles> } {
   return class TypedSuperfaceClientClass
     extends SuperfaceClientBase
     implements TypedSuperfaceClient<TProfiles>

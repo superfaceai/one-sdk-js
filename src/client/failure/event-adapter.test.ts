@@ -1,16 +1,19 @@
 import { MapDocumentNode, ProfileDocumentNode } from '@superfaceai/ast';
 import { getLocal } from 'mockttp';
 
-import { BoundProfileProvider } from '../client';
-import { events } from './events';
-import { err } from './result/result';
+// import { err } from '../../lib';
+// import { events } from '../../lib/events';
+import { BoundProfileProvider } from '../profile-provider';
+import { registerFetchRetryHooks, RetryHooksContext } from './event-adapter';
+import { CircuitBreakerPolicy } from './policies';
+
 
 const mockProfileDocument: ProfileDocumentNode = {
   kind: 'ProfileDocument',
   header: {
     kind: 'ProfileHeader',
-    scope: 'test',
-    name: 'profile',
+    scope: 'starwars',
+    name: 'character-information',
     version: {
       major: 1,
       minor: 0,
@@ -110,7 +113,7 @@ const mockMapDocument: MapDocumentNode = {
 
 const mockServer = getLocal();
 
-describe('events', () => {
+describe('event-adapter', () => {
   beforeEach(async () => {
     await mockServer.start();
   });
@@ -119,62 +122,40 @@ describe('events', () => {
     await mockServer.stop();
   });
 
-  it('does something', async () => {
-    const endpoint = await mockServer.get('/test').thenJson(200, {});
+  it('uses set circuit breaker', async () => {
+    const endpoint = await mockServer.get('/test').thenTimeout()//.thenJson(500, {});
 
     const profile = new BoundProfileProvider(
       mockProfileDocument,
       mockMapDocument,
-      'test',
+      'provider',
       { baseUrl: mockServer.url, security: [] }
     );
 
-    let retry = true;
-    events.on('post-fetch', { priority: 1 }, () => {
-      if (retry) {
-        retry = false;
+    const policy = new CircuitBreakerPolicy(
+      {
+        profileId: mockMapDocument.header.profile.name,
+        usecaseName: 'Test',
+        // TODO: Somehow know safety
+        usecaseSafety: 'safe',
+      },
+      //TODO are these defauts ok?
+      5,
+      300000,
+      10000,
+    )
 
-        return { kind: 'retry' };
-      }
+    const retryHookContext: RetryHooksContext = {
+      [`starwars/character-information/Test/provider`]: { policy, queuedAction: undefined }
+    };
 
-      return { kind: 'continue' };
-    });
+    await registerFetchRetryHooks(retryHookContext)
+
 
     const result = await profile.perform('Test');
+    console.log('res', result.unwrap())
     void result;
     const seenRequests = await endpoint.getSeenRequests();
-    expect(seenRequests).toHaveLength(2);
-  });
-
-  it('handles rejection', async () => {
-    const profile = new BoundProfileProvider(
-      mockProfileDocument,
-      mockMapDocument,
-      'test',
-      { baseUrl: 'https://unreachable.localhost', security: [] }
-    );
-
-    events.on(
-      'post-fetch',
-      { priority: 1 },
-      async (_context, _args, result) => {
-        try {
-          const res = await result;
-          void res;
-
-          return { kind: 'continue' };
-        } catch (err) {
-          console.log(err);
-
-          return {
-            kind: 'modify',
-            newResult: Promise.reject('modified rejection'),
-          };
-        }
-      }
-    );
-
-    const result = await profile.perform('Test');
-    expect(result).toStrictEqual(err('modified rejection'));
-  });
+    expect(seenRequests).toHaveLength(1);
+  }, 20000);
 });

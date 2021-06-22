@@ -150,6 +150,7 @@ describe('profile provider', () => {
         const mockBoundProfileProvider = new BoundProfileProvider(
           mockProfileDocument,
           mockMapDocument,
+          'test',
           { baseUrl: 'test/url', security: [] }
         );
 
@@ -184,6 +185,7 @@ describe('profile provider', () => {
         const mockBoundProfileProvider = new BoundProfileProvider(
           mockProfileDocument,
           mockMapDocument,
+          'test',
           { baseUrl: 'test/url', security: [] }
         );
 
@@ -213,6 +215,7 @@ describe('profile provider', () => {
         const mockBoundProfileProvider = new BoundProfileProvider(
           mockProfileDocument,
           mockMapDocument,
+          'test',
           { baseUrl: 'test/url', security: [] }
         );
 
@@ -249,6 +252,7 @@ describe('profile provider', () => {
         const mockBoundProfileProvider = new BoundProfileProvider(
           mockProfileDocument,
           mockMapDocument,
+          'test',
           {
             baseUrl: 'test/url',
             security: [],
@@ -320,7 +324,7 @@ describe('profile provider', () => {
         const result = await mockProfileProvider.bind();
 
         expect(result.toString()).toEqual(
-          new BoundProfileProvider(mockProfileDocument, mockMapDocument, {
+          new BoundProfileProvider(mockProfileDocument, mockMapDocument, 'test', {
             baseUrl: 'service/base/url',
             profileProviderSettings: undefined,
             security: [
@@ -371,7 +375,7 @@ describe('profile provider', () => {
         const result = await mockProfileProvider.bind();
 
         expect(result.toString()).toEqual(
-          new BoundProfileProvider(mockProfileDocument, mockMapDocument, {
+          new BoundProfileProvider(mockProfileDocument, mockMapDocument, 'test', {
             baseUrl: 'service/base/url',
             profileProviderSettings: undefined,
             security: [
@@ -422,7 +426,7 @@ describe('profile provider', () => {
         const result = await mockProfileProvider.bind();
 
         expect(result.toString()).toEqual(
-          new BoundProfileProvider(mockProfileDocument, mockMapDocument, {
+          new BoundProfileProvider(mockProfileDocument, mockMapDocument, 'test', {
             baseUrl: 'service/base/url',
             profileProviderSettings: undefined,
             security: [
@@ -481,7 +485,7 @@ describe('profile provider', () => {
         const result = await mockProfileProvider.bind();
 
         expect(result.toString()).toEqual(
-          new BoundProfileProvider(mockProfileDocument, mockMapDocument, {
+          new BoundProfileProvider(mockProfileDocument, mockMapDocument, 'test', {
             baseUrl: 'service/base/url',
             profileProviderSettings: undefined,
             security: [
@@ -537,7 +541,7 @@ describe('profile provider', () => {
         const result = await mockProfileProvider.bind();
 
         expect(result.toString()).toEqual(
-          new BoundProfileProvider(mockProfileDocument, mockMapDocument, {
+          new BoundProfileProvider(mockProfileDocument, mockMapDocument, 'test', {
             baseUrl: 'service/base/url',
             profileProviderSettings: undefined,
             security: [
@@ -662,7 +666,7 @@ describe('profile provider', () => {
         const result = await mockProfileProvider.bind();
 
         expect(result.toString()).toEqual(
-          new BoundProfileProvider(mockProfileDocument, mockMapDocument, {
+          new BoundProfileProvider(mockProfileDocument, mockMapDocument, 'test', {
             baseUrl: 'service/base/url',
             profileProviderSettings: undefined,
             security: [
@@ -727,7 +731,7 @@ describe('profile provider', () => {
         const result = await mockProfileProvider.bind({ security: [] });
 
         expect(result.toString()).toEqual(
-          new BoundProfileProvider(mockProfileDocument, mockMapDocument, {
+          new BoundProfileProvider(mockProfileDocument, mockMapDocument, 'test', {
             baseUrl: 'service/base/url',
             profileProviderSettings: undefined,
             security: [

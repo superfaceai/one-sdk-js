@@ -66,6 +66,7 @@ export class UseCase extends UseCaseBase {
 
   @eventInterceptor({
     eventName: 'perform',
+    placement: 'around'
   })
   async perform<
     TInput extends NonPrimitive | undefined = Record<
@@ -89,7 +90,7 @@ export class UseCase extends UseCaseBase {
 export class TypedUseCase<
   TInput extends NonPrimitive | undefined,
   TOutput
-> extends UseCaseBase {
+  > extends UseCaseBase {
   async perform(
     input: TInput,
     options?: PerformOptions

@@ -56,6 +56,7 @@ describe('UseCase', () => {
       const mockBoundProfileProvider = new BoundProfileProvider(
         mockProfileDocument,
         mockMapDocument,
+        'test',
         { security: [] }
       );
       const mockClient = new SuperfaceClient();
@@ -97,6 +98,7 @@ describe('UseCase', () => {
       const mockBoundProfileProvider = new BoundProfileProvider(
         mockProfileDocument,
         mockMapDocument,
+        'test',
         { security: [] }
       );
       const mockClient = new SuperfaceClient();
