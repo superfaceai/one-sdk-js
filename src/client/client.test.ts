@@ -219,20 +219,4 @@ but this path does not exist or is not accessible`
       expect(provider.configuration.name).toBe('quz');
     });
   });
-
-  describe('profiles getter', () => {
-    it('throws when on profiles are not implemented', () => {
-      const client = new SuperfaceClient();
-
-      expect(() => client.profiles).toThrow('TODO');
-    });
-  });
-
-  describe('providers getter', () => {
-    it('throws when on providers are not implemented', () => {
-      const client = new SuperfaceClient();
-
-      expect(() => client.providers).toThrow('TODO');
-    });
-  });
 });

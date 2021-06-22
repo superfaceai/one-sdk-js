@@ -53,7 +53,6 @@ export interface HttpResponse {
 
 export enum NetworkErrors {
   TIMEOUT_ERROR = 'TIMEOUT_ERROR',
-
 }
 
 export const createUrl = (
@@ -131,7 +130,7 @@ export const createUrl = (
 };
 
 export class HttpClient {
-  constructor(private fetchInstance: FetchInstance) { }
+  constructor(private fetchInstance: FetchInstance) {}
 
   public async request(
     url: string,

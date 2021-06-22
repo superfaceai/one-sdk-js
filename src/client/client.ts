@@ -47,123 +47,7 @@ export abstract class SuperfaceClientBase {
 
     this.superJson = SUPER_CACHE[superCacheKey];
 
-    //create RetryHookContext and FailoverContext
-    const retryHookContext: RetryHooksContext = {};
-    const failoverHookContext: FailoverHooksContext = {};
-    let policy: FailurePolicy;
-    for (const [profile, profileSettings] of Object.entries(
-      this.superJson.normalized.profiles
-    )) {
-      //Set failoverPolicy
-      const priority = profileSettings.priority;
-      if (!priority.every(p => this.superJson.normalized.providers[p])) {
-        throw new SDKExecutionError(
-          `Priority array of profile: ${profile} contains unconfigured provider`,
-          [
-            `Profile "${profile}" specifies a provider array [${priority.join(
-              ', '
-            )}] in super.json`,
-            `but there are only these providers configured [${Object.keys(
-              this.superJson.normalized.providers
-            ).join(', ')}]`,
-          ],
-          [
-            `Check that providers [${priority.join(
-              ', '
-            )}] are configured for profile "${profile}"`,
-            'Paths in super.json are either absolute or relative to the location of super.json',
-          ]
-        );
-      }
-
-      const policies: Record<
-        string,
-        Record<string, NormalizedRetryPolicy>
-      > = {};
-      for (const provider of Object.keys(profileSettings.providers)) {
-        console.log(
-          'checking provider',
-          provider,
-          'value',
-          profileSettings.providers[provider].defaults
-        );
-        for (const usecase of Object.keys(
-          profileSettings.providers[provider].defaults
-        )) {
-          console.log(
-            'checking usecase',
-            usecase,
-            'value',
-            profileSettings.providers[provider].defaults[usecase]
-          );
-          //TODO: remove
-          policies[provider] = {};
-          policies[provider][usecase] =
-            profileSettings.providers[provider].defaults[usecase].retryPolicy;
-          //Retry
-          const retryPolicy =
-            profileSettings.providers[provider].defaults[usecase].retryPolicy;
-          if (retryPolicy.kind === OnFail.NONE) {
-            continue;
-          } else if (retryPolicy.kind === OnFail.CIRCUIT_BREAKER) {
-            let backoff: ExponentialBackoff | undefined = undefined;
-            if (
-              retryPolicy.backoff?.kind &&
-              retryPolicy.backoff?.kind === BackOffKind.EXPONENTIAL
-            ) {
-              backoff = new ExponentialBackoff(
-                retryPolicy.backoff.start ?? 2000,
-                retryPolicy.backoff.start
-              );
-            }
-            policy = new CircuitBreakerPolicy(
-              {
-                profileId: profile,
-                usecaseName: usecase,
-                // TODO: Somehow know safety
-                usecaseSafety: 'unsafe',
-              },
-              //TODO are these defauts ok?
-              retryPolicy.maxContiguousRetries ?? 5,
-              300000,
-              retryPolicy.requestTimeout ?? 10000,
-              backoff
-            );
-            //TODO: QueuedAction??
-            retryHookContext[`${profile}/${usecase}/${provider}`] = { policy, queuedAction: undefined };
-          } else {
-            throw 'Unreachable';
-          }
-          //Failover
-          policy = new FailoverPolicy({
-            profileId: profile,
-            //We need usecase
-            usecaseName: usecase,
-            // TODO: Somehow know safety
-            usecaseSafety: 'unsafe',
-          }, priority)
-          //TODO: QueuedAction??
-          failoverHookContext[`${profile}/${usecase}`] = { policy, queuedAction: undefined }
-        }
-      }
-      console.log('policies', policies);
-    }
-
-    console.log('retry', retryHookContext)
-    console.log('failover', failoverHookContext)
-
-    //TODO: move somewhere else!
-    registerFetchRetryHooks(retryHookContext).then(() => console.log('retry registerd'))
-    //TODO: call registerFetchRetryHooks()
-    //TODO: call registerFailoverHooks()
-  }
-
-  get profiles(): never {
-    throw 'TODO';
-  }
-
-  get providers(): never {
-    throw 'TODO';
+    this.hookPolicies();
   }
 
   /** Returns a BoundProfileProvider that is cached according to `profileConfig` and `providerConfig` cache keys. */
@@ -283,6 +167,128 @@ export abstract class SuperfaceClientBase {
 
     return new ProfileConfiguration(profileId, version);
   }
+
+  private hookPolicies(): void {
+    //create RetryHookContext and FailoverContext
+    const retryHookContext: RetryHooksContext = {};
+    const failoverHookContext: FailoverHooksContext = {};
+    let policy: FailurePolicy;
+    for (const [profile, profileSettings] of Object.entries(
+      this.superJson.normalized.profiles
+    )) {
+      //Set failoverPolicy
+      const priority = profileSettings.priority;
+      if (!priority.every(p => this.superJson.normalized.providers[p])) {
+        throw new SDKExecutionError(
+          `Priority array of profile: ${profile} contains unconfigured provider`,
+          [
+            `Profile "${profile}" specifies a provider array [${priority.join(
+              ', '
+            )}] in super.json`,
+            `but there are only these providers configured [${Object.keys(
+              this.superJson.normalized.providers
+            ).join(', ')}]`,
+          ],
+          [
+            `Check that providers [${priority.join(
+              ', '
+            )}] are configured for profile "${profile}"`,
+            'Paths in super.json are either absolute or relative to the location of super.json',
+          ]
+        );
+      }
+
+      const policies: Record<
+        string,
+        Record<string, NormalizedRetryPolicy>
+      > = {};
+      for (const provider of Object.keys(profileSettings.providers)) {
+        console.log(
+          'checking provider',
+          provider,
+          'value',
+          profileSettings.providers[provider].defaults
+        );
+        for (const usecase of Object.keys(
+          profileSettings.providers[provider].defaults
+        )) {
+          console.log(
+            'checking usecase',
+            usecase,
+            'value',
+            profileSettings.providers[provider].defaults[usecase]
+          );
+          //TODO: remove
+          policies[provider] = {};
+          policies[provider][usecase] =
+            profileSettings.providers[provider].defaults[usecase].retryPolicy;
+          //Retry
+          const retryPolicy =
+            profileSettings.providers[provider].defaults[usecase].retryPolicy;
+          if (retryPolicy.kind === OnFail.NONE) {
+            continue;
+          } else if (retryPolicy.kind === OnFail.CIRCUIT_BREAKER) {
+            let backoff: ExponentialBackoff | undefined = undefined;
+            if (
+              retryPolicy.backoff?.kind &&
+              retryPolicy.backoff?.kind === BackOffKind.EXPONENTIAL
+            ) {
+              backoff = new ExponentialBackoff(
+                retryPolicy.backoff.start ?? 2000,
+                retryPolicy.backoff.start
+              );
+            }
+            policy = new CircuitBreakerPolicy(
+              {
+                profileId: profile,
+                usecaseName: usecase,
+                // TODO: Somehow know safety
+                usecaseSafety: 'unsafe',
+              },
+              //TODO are these defauts ok?
+              retryPolicy.maxContiguousRetries ?? 5,
+              300000,
+              retryPolicy.requestTimeout ?? 10000,
+              backoff
+            );
+            //TODO: QueuedAction??
+            retryHookContext[`${profile}/${usecase}/${provider}`] = {
+              policy,
+              queuedAction: undefined,
+            };
+          } else {
+            throw 'Unreachable';
+          }
+          //Failover
+          policy = new FailoverPolicy(
+            {
+              profileId: profile,
+              //We need usecase
+              usecaseName: usecase,
+              // TODO: Somehow know safety
+              usecaseSafety: 'unsafe',
+            },
+            priority
+          );
+          //TODO: QueuedAction??
+          failoverHookContext[`${profile}/${usecase}`] = {
+            policy,
+            queuedAction: undefined,
+          };
+        }
+      }
+      console.log('policies', policies);
+    }
+
+    console.log('retry', retryHookContext);
+    console.log('failover', failoverHookContext);
+
+    //TODO: move somewhere else!
+    registerFetchRetryHooks(retryHookContext);
+    console.log('retry registerd');
+    //TODO: call registerFetchRetryHooks()
+    //TODO: call registerFailoverHooks()
+  }
 }
 
 export class SuperfaceClient extends SuperfaceClientBase {
@@ -301,16 +307,16 @@ type ProfileUseCases<TInput extends NonPrimitive | undefined, TOutput> = {
 export type TypedSuperfaceClient<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   TProfiles extends ProfileUseCases<any, any>
-  > = SuperfaceClientBase & {
-    getProfile<TProfile extends keyof TProfiles>(
-      profileId: TProfile
-    ): Promise<TypedProfile<TProfiles[TProfile]>>;
-  };
+> = SuperfaceClientBase & {
+  getProfile<TProfile extends keyof TProfiles>(
+    profileId: TProfile
+  ): Promise<TypedProfile<TProfiles[TProfile]>>;
+};
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function createTypedClient<TProfiles extends ProfileUseCases<any, any>>(
   profileDefinitions: TProfiles
-): { new(): TypedSuperfaceClient<TProfiles> } {
+): { new (): TypedSuperfaceClient<TProfiles> } {
   return class TypedSuperfaceClientClass
     extends SuperfaceClientBase
     implements TypedSuperfaceClient<TProfiles>
