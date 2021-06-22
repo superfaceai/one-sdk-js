@@ -235,7 +235,7 @@ export abstract class SuperfaceClientBase {
             ) {
               backoff = new ExponentialBackoff(
                 retryPolicy.backoff.start ?? 2000,
-                retryPolicy.backoff.start
+                retryPolicy.backoff.factor
               );
             }
             policy = new CircuitBreakerPolicy(
