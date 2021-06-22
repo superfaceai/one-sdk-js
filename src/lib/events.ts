@@ -3,7 +3,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { UseCase } from '../client';
+import { BoundProfileProvider } from '../client';
 import { FetchInstance } from '../internal/interpreter/http/interfaces';
 
 type AnyFunction = (...args: any[]) => any;
@@ -11,12 +11,13 @@ type AnyFunction = (...args: any[]) => any;
 type MaybePromise<T> = T | Promise<T>;
 type ResolvedPromise<T> = T extends Promise<infer R> ? R : T;
 
+export type InterceptableMetadata = {
+  provider?: string;
+  profile?: string;
+  usecase?: string;
+};
 export type Interceptable = {
-  metadata?: {
-    provider?: string;
-    profile?: string;
-    usecase?: string;
-  };
+  metadata?: InterceptableMetadata;
 };
 
 type EventContextBase = {
@@ -69,7 +70,10 @@ export type AfterHook<
   ) => MaybePromise<AfterHookResult<Target>>;
 
 type EventTypes = {
-  perform: [InstanceType<typeof UseCase>['perform'], EventContextBase];
+  perform: [
+    InstanceType<typeof BoundProfileProvider>['perform'],
+    EventContextBase
+  ];
   fetch: [FetchInstance['fetch'], EventContextBase];
 };
 

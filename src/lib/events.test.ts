@@ -125,7 +125,7 @@ describe('events', () => {
     const profile = new BoundProfileProvider(
       mockProfileDocument,
       mockMapDocument,
-      'test',
+      'provider',
       { baseUrl: mockServer.url, security: [] }
     );
 
@@ -150,7 +150,7 @@ describe('events', () => {
     const profile = new BoundProfileProvider(
       mockProfileDocument,
       mockMapDocument,
-      'test',
+      'someprovider',
       { baseUrl: 'https://unreachable.localhost', security: [] }
     );
 

@@ -36,7 +36,11 @@ import {
 } from '../internal/superjson';
 import { mergeSecurity } from '../internal/superjson/mutate';
 import { err, ok, Result } from '../lib';
-import { Interceptable } from '../lib/events';
+import {
+  eventInterceptor,
+  Interceptable,
+  InterceptableMetadata,
+} from '../lib/events';
 import { CrossFetch } from '../lib/fetch';
 import { ProfileConfiguration } from './profile';
 import { ProviderConfiguration } from './provider';
@@ -53,10 +57,11 @@ function profileAstId(ast: ProfileDocumentNode): string {
 const boundProfileProviderDebug = createDebug(
   'superface:bound-profile-provider'
 );
-export class BoundProfileProvider {
+export class BoundProfileProvider implements Interceptable {
   //TODO: Interceptable and set metadata
   private profileValidator: ProfileParameterValidator;
   private fetchInstance: FetchInstance & Interceptable;
+  public metadata?: InterceptableMetadata;
 
   constructor(
     private readonly profileAst: ProfileDocumentNode,
@@ -71,6 +76,10 @@ export class BoundProfileProvider {
     this.profileValidator = new ProfileParameterValidator(this.profileAst);
     //TODO: Pass metadata here?
     this.fetchInstance = new CrossFetch();
+    this.metadata = {
+      profile: profileAstId(profileAst),
+      provider: providerName,
+    };
   }
 
   private composeInput(
@@ -96,7 +105,7 @@ export class BoundProfileProvider {
    * Note that the `TInput` and `TResult` types cannot be checked for compatibility with the profile definition, so the caller
    * is responsible for ensuring that the cast is safe.
    */
-  //TODO: Typescript can't handle @eventInerceptor here :(
+  @eventInterceptor({ eventName: 'perform', placement: 'around' })
   async perform<
     TInput extends NonPrimitive | undefined = undefined,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
