@@ -3,7 +3,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { BoundProfileProvider } from '../client';
+import { UseCase } from '../client';
 import { FetchInstance } from '../internal/interpreter/http/interfaces';
 
 type AnyFunction = (...args: any[]) => any;
@@ -70,10 +70,7 @@ export type AfterHook<
 ) => MaybePromise<AfterHookResult<Target>>;
 
 type EventTypes = {
-  perform: [
-    InstanceType<typeof BoundProfileProvider>['perform'],
-    EventContextBase
-  ];
+  perform: [InstanceType<typeof UseCase>['perform'], EventContextBase];
   fetch: [FetchInstance['fetch'], EventContextBase];
 };
 
@@ -218,6 +215,7 @@ function replacementFunction<E extends keyof EventTypes>(
     if (metadata.placement === 'after' || metadata.placement === 'around') {
       let retry = true;
       while (retry) {
+        console.log('events meta', this.metadata);
         const hookResult = await events.emit(`post-${metadata.eventName}`, [
           {
             time: new Date(),

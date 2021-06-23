@@ -1,11 +1,18 @@
 import { MapDocumentNode, ProfileDocumentNode } from '@superfaceai/ast';
+import {
+  ProfileConfiguration,
+  Provider,
+  ProviderConfiguration,
+  UseCase,
+} from '@superfaceai/one-sdk';
+import { SuperfaceClientBase } from '@superfaceai/one-sdk/dist/client/public/client';
 import { getLocal } from 'mockttp';
 
 // import { err } from '../../lib';
 // import { events } from '../../lib/events';
 import { BoundProfileProvider } from '../profile-provider';
-import { registerFetchRetryHooks, RetryHooksContext } from './event-adapter';
-import { CircuitBreakerPolicy } from './policies';
+import { HooksContext, registerHooks } from './event-adapter';
+import { CircuitBreakerPolicy, Router } from './policies';
 
 const mockProfileDocument: ProfileDocumentNode = {
   kind: 'ProfileDocument',
@@ -141,14 +148,14 @@ describe('event-adapter', () => {
       1000
     );
 
-    const retryHookContext: RetryHooksContext = {
-      [`starwars/character-information/Test/provider`]: {
-        policy,
+    const retryHookContext: HooksContext = {
+      [`starwars/character-information/Test`]: {
+        router: new Router('provider', { ['provider']: policy }, []),
         queuedAction: undefined,
       },
     };
 
-    registerFetchRetryHooks(retryHookContext);
+    registerHooks(retryHookContext);
 
     await expect(profile.perform('Test')).resolves.toEqual({
       error: 'Internal Server Error',
@@ -165,6 +172,24 @@ describe('event-adapter', () => {
       { baseUrl: mockServer.url, security: [] }
     );
 
+    // mocked(SuperfaceClient.prototype).cacheBoundProfileProvider.mockResolvedValue(profile)
+
+    const sc = {
+      cacheBoundProfileProvider: () => profile,
+    } as unknown as SuperfaceClientBase;
+    const usecase = new UseCase(
+      {
+        client: sc,
+        configuration: new ProfileConfiguration(
+          'starwars/character-information',
+          '1.0.0'
+        ),
+      },
+      'Test'
+    );
+
+    const providerConfiguration = new ProviderConfiguration('provider', []);
+
     const policy = new CircuitBreakerPolicy(
       {
         profileId: mockMapDocument.header.profile.name,
@@ -176,21 +201,26 @@ describe('event-adapter', () => {
       1000
     );
 
-    const retryHookContext: RetryHooksContext = {
-      [`starwars/character-information/Test/provider`]: {
-        policy,
+    const retryHookContext: HooksContext = {
+      [`starwars/character-information/Test`]: {
+        router: new Router('provider', { ['provider']: policy }, []),
         queuedAction: undefined,
       },
     };
 
-    registerFetchRetryHooks(retryHookContext);
+    registerHooks(retryHookContext);
 
-    await expect(profile.perform('Test')).resolves.toEqual({
+    await expect(
+      usecase.perform(undefined, {
+        provider: new Provider(sc, providerConfiguration),
+      })
+    ).resolves.toEqual({
       error: 'circuit breaker is open',
     });
 
     expect((await endpoint.getSeenRequests()).length).toEqual(3);
   }, 30000);
+
   it('uses circuit breaker - aborts after 1 timeout', async () => {
     await mockServer.get('/test').thenTimeout();
 
@@ -213,14 +243,52 @@ describe('event-adapter', () => {
       1000
     );
 
-    const retryHookContext: RetryHooksContext = {
-      [`starwars/character-information/Test/provider`]: {
-        policy,
+    const retryHookContext: HooksContext = {
+      [`starwars/character-information/Test`]: {
+        router: new Router('provider', { ['provider']: policy }, []),
         queuedAction: undefined,
       },
     };
 
-    registerFetchRetryHooks(retryHookContext);
+    registerHooks(retryHookContext);
+
+    await expect(profile.perform('Test')).resolves.toEqual({
+      error: 'circuit breaker is open',
+    });
+  }, 30000);
+
+  it('uses failover policy', async () => {
+    await mockServer.get('/test').thenJson(500, {});
+
+    const profile = new BoundProfileProvider(
+      mockProfileDocument,
+      mockMapDocument,
+      'first',
+      { baseUrl: mockServer.url, security: [] }
+    );
+
+    const policy = new CircuitBreakerPolicy(
+      {
+        profileId: mockMapDocument.header.profile.name,
+        usecaseName: 'Test',
+        usecaseSafety: 'safe',
+      },
+      3,
+      300000,
+      1000
+    );
+
+    const retryHookContext: HooksContext = {
+      [`starwars/character-information/Test`]: {
+        router: new Router('provider', { ['provider']: policy }, []),
+        queuedAction: {
+          kind: 'switch-provider',
+          provider: 'second',
+        },
+      },
+    };
+
+    registerHooks(retryHookContext);
 
     await expect(profile.perform('Test')).resolves.toEqual({
       error: 'circuit breaker is open',

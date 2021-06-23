@@ -10,32 +10,42 @@ import {
   ExecutionResolution,
   FailureResolution,
   SuccessResolution,
-  SwitchProviderResolution,
 } from './resolution';
 
-export class FailoverPolicy extends FailurePolicy {
-  private currentProvider: string;
-  constructor(usecaseInfo: UsecaseInfo, private readonly priority: string[]) {
-    super(usecaseInfo);
-    //We don't have any providers
-    if (priority.length === 0) {
-      //TODO: throw something sane
-      throw `Priority array can't be empty`;
-    }
-    this.currentProvider = priority[0];
+export class Router {
+  constructor(
+    private currentProvider: string,
+    private readonly providersOfUseCase: Record<string, FailurePolicy>,
+    private readonly priority: string[]
+  ) {}
+
+  public getCurrentProvider(): string {
+    return this.currentProvider;
   }
 
-  override beforeExecution(_info: ExecutionInfo): SwitchProviderResolution {
-    const indexOfCurrentProvider = this.priority.indexOf(this.currentProvider);
-    //Priority does not contain current provider
-    if (indexOfCurrentProvider === -1) {
-      throw 'Unreachable';
+  public beforeExecution(info: ExecutionInfo): ExecutionResolution {
+    const innerResolution =
+      this.providersOfUseCase[this.currentProvider].beforeExecution(info);
+
+    //TODO: some other checking logic?
+    if (innerResolution.kind !== 'abort' || this.priority.length === 0) {
+      return innerResolution;
     }
+
+    const indexOfCurrentProvider = this.priority.indexOf(this.currentProvider);
 
     //Priority does not contain another (with lesser priority) provider
     if (indexOfCurrentProvider === this.priority.length) {
       //Abort/retry/continue??
-      throw 'What do';
+      return { kind: 'abort', reason: 'no backup provider configured' };
+    }
+
+    //Fail if we are switching provider for the second time
+    if (this.priority[0] !== this.currentProvider) {
+      return {
+        kind: 'abort',
+        reason: 'unable to switch providers for the second time',
+      };
     }
 
     this.currentProvider = this.priority[indexOfCurrentProvider + 1];
@@ -43,15 +53,16 @@ export class FailoverPolicy extends FailurePolicy {
     return { kind: 'switch-provider', provider: this.currentProvider };
   }
 
-  override afterFailure(_info: ExecutionFailure): FailureResolution {
-    return { kind: 'continue' };
+  public afterFailure(info: ExecutionFailure): FailureResolution {
+    return this.providersOfUseCase[this.currentProvider].afterFailure(info);
   }
 
-  override afterSuccess(_info: ExecutionSuccess): SuccessResolution {
-    return { kind: 'continue' };
+  public afterSuccess(info: ExecutionSuccess): SuccessResolution {
+    return this.providersOfUseCase[this.currentProvider].afterSuccess(info);
   }
 
-  override reset(): void {}
+  //TODO: Should we handle provider reset here?
+  public reset(): void {}
 }
 
 /** Simple policy which aborts on the first failure */

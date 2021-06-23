@@ -1,19 +1,10 @@
-import {
-  BackoffKind,
-  NormalizedRetryPolicy,
-  OnFail,
-  SuperJson,
-} from '../internal';
+import { BackoffKind, OnFail, SuperJson } from '../internal';
 import { SDKExecutionError } from '../internal/errors';
 import { NonPrimitive } from '../internal/interpreter/variables';
 import { ExponentialBackoff } from '../lib/backoff';
 import { exists } from '../lib/io';
-import {
-  FailoverHooksContext,
-  registerFetchRetryHooks,
-  RetryHooksContext,
-} from './failure/event-adapter';
-import { CircuitBreakerPolicy, FailoverPolicy } from './failure/policies';
+import { HooksContext, registerHooks } from './failure/event-adapter';
+import { CircuitBreakerPolicy, Router } from './failure/policies';
 import { FailurePolicy } from './failure/policy';
 import {
   Profile,
@@ -170,8 +161,11 @@ export abstract class SuperfaceClientBase {
 
   private hookPolicies(): void {
     //create RetryHookContext and FailoverContext
-    const retryHookContext: RetryHooksContext = {};
-    const failoverHookContext: FailoverHooksContext = {};
+    const hookContext: HooksContext = {};
+    const usecaseProviders: Record<
+      string,
+      { providersOfUsecase: Record<string, FailurePolicy> }
+    > = {};
     let policy: FailurePolicy;
     for (const [profile, profileSettings] of Object.entries(
       this.superJson.normalized.profiles
@@ -197,11 +191,7 @@ export abstract class SuperfaceClientBase {
           ]
         );
       }
-
-      const policies: Record<
-        string,
-        Record<string, NormalizedRetryPolicy>
-      > = {};
+      //TODO: check duplicity of priority providers
       for (const provider of Object.keys(profileSettings.providers)) {
         console.log(
           'checking provider',
@@ -218,11 +208,7 @@ export abstract class SuperfaceClientBase {
             'value',
             profileSettings.providers[provider].defaults[usecase]
           );
-          //TODO: remove
-          policies[provider] = {};
-          policies[provider][usecase] =
-            profileSettings.providers[provider].defaults[usecase].retryPolicy;
-          //Retry
+          //Router
           const retryPolicy =
             profileSettings.providers[provider].defaults[usecase].retryPolicy;
           if (retryPolicy.kind === OnFail.NONE) {
@@ -247,47 +233,41 @@ export abstract class SuperfaceClientBase {
               },
               //TODO are these defauts ok?
               retryPolicy.maxContiguousRetries ?? 5,
-              300000,
+              60000,
               retryPolicy.requestTimeout ?? 10000,
               backoff
             );
-            //TODO: QueuedAction??
-            retryHookContext[`${profile}/${usecase}/${provider}`] = {
-              policy,
-              queuedAction: undefined,
-            };
+
+            if (!usecaseProviders[`${profile}/${usecase}`]) {
+              usecaseProviders[`${profile}/${usecase}`] = {
+                providersOfUsecase: {},
+              };
+            }
+            usecaseProviders[`${profile}/${usecase}`].providersOfUsecase[
+              provider
+            ] = policy;
           } else {
             throw 'Unreachable';
           }
-          //Failover
-          policy = new FailoverPolicy(
-            {
-              profileId: profile,
-              //We need usecase
-              usecaseName: usecase,
-              // TODO: Somehow know safety
-              usecaseSafety: 'unsafe',
-            },
-            priority
-          );
-          //TODO: QueuedAction??
-          failoverHookContext[`${profile}/${usecase}`] = {
-            policy,
+        }
+        //Build hook object
+        for (const [key, providersContext] of Object.entries(
+          usecaseProviders
+        )) {
+          hookContext[key] = {
+            router: new Router(
+              provider,
+              providersContext.providersOfUsecase,
+              priority
+            ),
             queuedAction: undefined,
           };
         }
       }
-      console.log('policies', policies);
     }
 
-    console.log('retry', retryHookContext);
-    console.log('failover', failoverHookContext);
-
-    //TODO: move somewhere else!
-    registerFetchRetryHooks(retryHookContext);
+    registerHooks(hookContext);
     console.log('retry registerd');
-    //TODO: call registerFetchRetryHooks()
-    //TODO: call registerFailoverHooks()
   }
 }
 

@@ -2,21 +2,33 @@ import { NetworkErrors } from '../../internal/interpreter/http';
 import { FetchResponse } from '../../internal/interpreter/http/interfaces';
 import { clone, sleep } from '../../lib';
 import { events } from '../../lib/events';
+import { Router } from './policies';
 import { FailurePolicy } from './policy';
 import { FailureResolution } from './resolution';
 
-//TODO: Maybe do something like this or add provider to key in Eda's orifinal type
-export type RetryHooksContext = Record<
-  //profile/usecase/provider
+export type HooksContext = Record<
+  //profile/usecase
   string,
   {
-    policy: FailurePolicy;
+    router: Router;
     queuedAction:
       | undefined
       | { kind: 'switch-provider'; provider: string }
       | { kind: 'recache'; newRegistry?: string };
   }
 >;
+
+// export type RetryHooksContext = Record<
+//   //profile/usecase/provider
+//   string,
+//   {
+//     policy: FailurePolicy;
+//     queuedAction:
+//     | undefined
+//     | { kind: 'switch-provider'; provider: string }
+//     | { kind: 'recache'; newRegistry?: string };
+//   }
+// >;
 
 //OG EDA
 // type RetryHooksContext = {
@@ -40,7 +52,7 @@ export type FailoverHooksContext = Record<
   }
 >;
 
-export function registerFetchRetryHooks(hookContext: RetryHooksContext): void {
+export function registerHooks(hookContext: HooksContext): void {
   console.log('registerFetchRetryHooks');
   events.on('pre-fetch', { priority: 1 }, async (context, args) => {
     // only listen to fetch events in perform context
@@ -54,8 +66,7 @@ export function registerFetchRetryHooks(hookContext: RetryHooksContext): void {
       return { kind: 'continue' };
     }
 
-    const performContext =
-      hookContext[`${context.profile}/${context.usecase}/${context.provider}`];
+    const performContext = hookContext[`${context.profile}/${context.usecase}`];
     console.log('pre-fetch context', performContext);
     // if there is no configured context, ignore the event as well
     if (performContext === undefined) {
@@ -63,7 +74,7 @@ export function registerFetchRetryHooks(hookContext: RetryHooksContext): void {
 
       return { kind: 'continue' };
     }
-    const resolution = performContext.policy.beforeExecution({
+    const resolution = performContext.router.beforeExecution({
       time: context.time.getTime(),
       registryCacheAge: 0, // TODO
     });
@@ -132,8 +143,7 @@ export function registerFetchRetryHooks(hookContext: RetryHooksContext): void {
       return { kind: 'continue' };
     }
 
-    const performContext =
-      hookContext[`${context.profile}/${context.usecase}/${context.provider}`];
+    const performContext = hookContext[`${context.profile}/${context.usecase}`];
     // if there is no configured context, ignore the event as well
     if (performContext === undefined) {
       console.log('perform context undefined');
@@ -165,11 +175,11 @@ export function registerFetchRetryHooks(hookContext: RetryHooksContext): void {
       console.log(' rusult is defined', result);
       const overidenResolution = resolveHttpErrors(
         result,
-        performContext.policy,
+        performContext.router,
         context.time.getTime()
       );
       if (overidenResolution) {
-        console.log('OVERIDE RESULT');
+        console.log('OVERIDE RESULT', overidenResolution);
         switch (overidenResolution.kind) {
           case 'continue':
             return { kind: 'continue' };
@@ -184,7 +194,7 @@ export function registerFetchRetryHooks(hookContext: RetryHooksContext): void {
             };
         }
       }
-      const resolution = performContext.policy.afterSuccess({
+      const resolution = performContext.router.afterSuccess({
         time: context.time.getTime(),
         registryCacheAge: 0, // TODO
       });
@@ -200,7 +210,7 @@ export function registerFetchRetryHooks(hookContext: RetryHooksContext): void {
       if (typeof error === 'string' && error === NetworkErrors.TIMEOUT_ERROR) {
         console.log('TIMEOUT');
       }
-      const resolution = performContext.policy.afterFailure({
+      const resolution = performContext.router.afterFailure({
         time: context.time.getTime(),
         registryCacheAge: 0, // TODO,
         // TODO: choose based on error
@@ -253,7 +263,7 @@ export function registerFetchRetryHooks(hookContext: RetryHooksContext): void {
 
     // perform queued action here
     if (performContext.queuedAction !== undefined) {
-      console.log('DO queuedAction');
+      console.log('DO queuedAction!!!!!!!!!!!!!!!!!!!!');
       // TODO
     }
 
@@ -266,7 +276,7 @@ export function registerFetchRetryHooks(hookContext: RetryHooksContext): void {
 //FIX: return types
 export function resolveHttpErrors(
   response: FetchResponse,
-  policy: FailurePolicy,
+  policy: Router,
   time: number
 ): FailureResolution | undefined {
   //TODO: let map deal with defined statuses?

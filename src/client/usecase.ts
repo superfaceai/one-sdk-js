@@ -1,6 +1,11 @@
 import { MapInterpreterError, ProfileParameterError } from '../internal';
 import { NonPrimitive, Variables } from '../internal/interpreter/variables';
 import { Result } from '../lib';
+import {
+  eventInterceptor,
+  Interceptable,
+  InterceptableMetadata,
+} from '../lib/events';
 import { ProfileBase } from './profile';
 import { BoundProfileProvider } from './profile-provider';
 import { Provider } from './provider';
@@ -12,11 +17,18 @@ export type PerformOptions = {
 // TODO
 export type PerformError = ProfileParameterError | MapInterpreterError;
 
-class UseCaseBase {
+class UseCaseBase implements Interceptable {
+  public metadata: InterceptableMetadata;
+
   constructor(
     public readonly profile: ProfileBase,
     public readonly name: string
-  ) {}
+  ) {
+    this.metadata = {
+      usecase: name,
+      profile: this.profile.configuration.id,
+    };
+  }
 
   protected async bind(
     options?: PerformOptions
@@ -28,6 +40,8 @@ class UseCaseBase {
       );
       providerConfig = provider.configuration;
     }
+
+    this.metadata.provider = providerConfig.name;
 
     //In this instance we can set metadat for events
     const boundProfileProvider =
@@ -48,6 +62,7 @@ export class UseCase extends UseCaseBase {
     super(profile, name);
   }
 
+  @eventInterceptor({ eventName: 'perform', placement: 'around' })
   async perform<
     TInput extends NonPrimitive | undefined = Record<
       string,
