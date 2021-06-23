@@ -3,6 +3,7 @@ import { FetchResponse } from '../../internal/interpreter/http/interfaces';
 import { clone, sleep } from '../../lib';
 import { events } from '../../lib/events';
 import { FailurePolicy } from './policy';
+import { FailureResolution } from './resolution';
 
 //TODO: Maybe do something like this or add provider to key in Eda's orifinal type
 export type RetryHooksContext = Record<
@@ -11,9 +12,9 @@ export type RetryHooksContext = Record<
   {
     policy: FailurePolicy;
     queuedAction:
-    | undefined
-    | { kind: 'switch-provider'; provider: string }
-    | { kind: 'recache'; newRegistry?: string };
+      | undefined
+      | { kind: 'switch-provider'; provider: string }
+      | { kind: 'recache'; newRegistry?: string };
   }
 >;
 
@@ -33,9 +34,9 @@ export type FailoverHooksContext = Record<
     //TODO: Scope to FailoverPolicy??
     policy: FailurePolicy;
     queuedAction:
-    | undefined
-    | { kind: 'switch-provider'; provider: string }
-    | { kind: 'recache'; newRegistry?: string };
+      | undefined
+      | { kind: 'switch-provider'; provider: string }
+      | { kind: 'recache'; newRegistry?: string };
   }
 >;
 
@@ -152,15 +153,37 @@ export function registerFetchRetryHooks(hookContext: RetryHooksContext): void {
       result = await res;
       //TODO: result can be defined but still have err value eq. 500 internal server error
     } catch (err: unknown) {
-      console.log('CATCH');
+      console.log('CATCH', err);
 
       //TODO: Translate err to ExecutionFailure
       error = err;
     }
 
     if (result !== undefined) {
-      // TODO: Detect non-network errors here
+      //HACK
+      // TODO: Detect non-network errors here - move to some HTTP policy
       console.log(' rusult is defined', result);
+      const overidenResolution = resolveHttpErrors(
+        result,
+        performContext.policy,
+        context.time.getTime()
+      );
+      if (overidenResolution) {
+        console.log('OVERIDE RESULT');
+        switch (overidenResolution.kind) {
+          case 'continue':
+            return { kind: 'continue' };
+
+          case 'retry':
+            return { kind: 'retry' };
+
+          case 'abort':
+            return {
+              kind: 'modify',
+              newResult: Promise.reject(overidenResolution.reason),
+            };
+        }
+      }
       const resolution = performContext.policy.afterSuccess({
         time: context.time.getTime(),
         registryCacheAge: 0, // TODO
@@ -238,4 +261,59 @@ export function registerFetchRetryHooks(hookContext: RetryHooksContext): void {
 
     return { kind: 'continue' };
   });
+}
+
+//FIX: return types
+export function resolveHttpErrors(
+  response: FetchResponse,
+  policy: FailurePolicy,
+  time: number
+): FailureResolution | undefined {
+  //TODO: let map deal with defined statuses?
+
+  //TODO: move somewhere else - HTTP policy for each context. This policy will be part of eg. Circuit breaker and it will be called prior to circuit breaker logic
+  if (response.status === 500) {
+    //Abort
+    return {
+      kind: 'abort',
+      reason: 'Internal Server Error',
+    };
+  }
+  if (response.status === 429) {
+    //TODO: handle retry-after header
+    return policy.afterFailure({
+      time: time,
+      registryCacheAge: 0, // TODO,
+      kind: 'http',
+      statusCode: response.status,
+    });
+  }
+  if (
+    (response.status >= 400 && response.status < 500) ||
+    response.status === 501
+  ) {
+    //TODO: try to update maps retry for now
+    return policy.afterFailure({
+      time: time,
+      registryCacheAge: 0, // TODO,
+      kind: 'http',
+      statusCode: response.status,
+    });
+  }
+  // we can assume that the request did not make it to the application, so we can safely retry
+  if (
+    response.status === 502 ||
+    response.status === 503 ||
+    response.status === 504
+  ) {
+    //Retry
+    return policy.afterFailure({
+      time: time,
+      registryCacheAge: 0, // TODO,
+      kind: 'http',
+      statusCode: response.status,
+    });
+  }
+
+  return undefined;
 }

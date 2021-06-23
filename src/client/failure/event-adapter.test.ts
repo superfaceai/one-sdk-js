@@ -120,8 +120,78 @@ describe('event-adapter', () => {
   afterEach(async () => {
     await mockServer.stop();
   });
+  it('uses circuit breaker - aborts after HTTP 500', async () => {
+    await mockServer.get('/test').thenJson(500, {});
 
-  it('uses circuit breaker - aborts after n requests', async () => {
+    const profile = new BoundProfileProvider(
+      mockProfileDocument,
+      mockMapDocument,
+      'provider',
+      { baseUrl: mockServer.url, security: [] }
+    );
+
+    const policy = new CircuitBreakerPolicy(
+      {
+        profileId: mockMapDocument.header.profile.name,
+        usecaseName: 'Test',
+        usecaseSafety: 'safe',
+      },
+      3,
+      300000,
+      1000
+    );
+
+    const retryHookContext: RetryHooksContext = {
+      [`starwars/character-information/Test/provider`]: {
+        policy,
+        queuedAction: undefined,
+      },
+    };
+
+    registerFetchRetryHooks(retryHookContext);
+
+    await expect(profile.perform('Test')).resolves.toEqual({
+      error: 'Internal Server Error',
+    });
+  }, 30000);
+
+  it.only('uses circuit breaker - retries after HTTP 429', async () => {
+    const endpoint = await mockServer.get('/test').thenJson(429, {});
+
+    const profile = new BoundProfileProvider(
+      mockProfileDocument,
+      mockMapDocument,
+      'provider',
+      { baseUrl: mockServer.url, security: [] }
+    );
+
+    const policy = new CircuitBreakerPolicy(
+      {
+        profileId: mockMapDocument.header.profile.name,
+        usecaseName: 'Test',
+        usecaseSafety: 'safe',
+      },
+      3,
+      300000,
+      1000
+    );
+
+    const retryHookContext: RetryHooksContext = {
+      [`starwars/character-information/Test/provider`]: {
+        policy,
+        queuedAction: undefined,
+      },
+    };
+
+    registerFetchRetryHooks(retryHookContext);
+
+    await expect(profile.perform('Test')).resolves.toEqual({
+      error: 'circuit breaker is open',
+    });
+
+    expect((await endpoint.getSeenRequests()).length).toEqual(3);
+  }, 30000);
+  it('uses circuit breaker - aborts after 1 timeout', async () => {
     await mockServer.get('/test').thenTimeout();
 
     const profile = new BoundProfileProvider(
@@ -150,7 +220,7 @@ describe('event-adapter', () => {
       },
     };
 
-    await registerFetchRetryHooks(retryHookContext);
+    registerFetchRetryHooks(retryHookContext);
 
     await expect(profile.perform('Test')).resolves.toEqual({
       error: 'circuit breaker is open',

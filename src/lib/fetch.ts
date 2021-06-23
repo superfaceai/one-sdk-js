@@ -32,9 +32,9 @@ export class CrossFetch implements FetchInstance, Interceptable {
   ): Promise<FetchResponse> {
     const headersInit = parameters.headers
       ? Object.entries(parameters.headers).map(([key, value]) => [
-        key,
-        ...(Array.isArray(value) ? value : [value]),
-      ])
+          key,
+          ...(Array.isArray(value) ? value : [value]),
+        ])
       : undefined;
 
     console.log('cross fetch metadata', this.metadata, 'params', parameters);
@@ -77,6 +77,7 @@ export class CrossFetch implements FetchInstance, Interceptable {
       body,
     };
   }
+
   //TODO: rewrite
   private async timeout<T>(promise: Promise<T>, timeout = 5000) {
     const timer = new Promise<{ timeout: boolean }>(resolve => {
