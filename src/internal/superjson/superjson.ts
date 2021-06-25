@@ -265,10 +265,14 @@ export class SuperJson {
           priority: profileEntry.priority.findIndex(
             providerName => provider === providerName
           ),
+          version: 'unknown',
         };
         if ('file' in providerEntry) {
           anonymizedProvider.version = 'file';
-        } else if ('mapRevision' in providerEntry) {
+        } else if (
+          'mapRevision' in providerEntry &&
+          providerEntry.mapRevision !== undefined
+        ) {
           anonymizedProvider.version = providerEntry.mapRevision;
           if (providerEntry.mapVariant !== undefined) {
             anonymizedProvider.version += `-${providerEntry.mapVariant}`;
@@ -289,7 +293,7 @@ export class SuperJson {
     };
   }
 
-  configHash(): string {
+  get configHash(): string {
     // <profile>:<version>,<provider>:<priority>:[<version | file>],<provider>:<path>
     const profileValues: string[] = [];
     for (const [profile, profileEntry] of Object.entries(

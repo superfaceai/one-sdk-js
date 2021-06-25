@@ -8,6 +8,7 @@ const TOKEN_ENV_NAME = 'SUPERFACE_SDK_TOKEN';
 const API_URL_ENV_NAME = 'SUPERFACE_API_URL';
 const SUPERFACE_PATH_NAME = 'SUPERFACE_PATH';
 const METRIC_DEBOUNCE_TIME = 'SUPERFACE_METRIC_DEBOUNCE_TIME';
+const DISABLE_REPORTING = 'SUPERFACE_DISABLE_METRIC_REPORTING';
 
 // Defaults
 export const DEFAULT_API_URL = 'https://superface.ai';
@@ -67,5 +68,6 @@ export const Config = {
   sdkAuthToken: getSdkAuthToken(),
   superfacePath: process.env[SUPERFACE_PATH_NAME] ?? DEFAULT_SUPERFACE_PATH,
   metricDebounceTime: getMetricDebounceTime(),
+  disableReporting: !!process.env[DISABLE_REPORTING],
 };
 export type Config = typeof Config;

@@ -4,6 +4,8 @@ import { getLocal } from 'mockttp';
 import { BoundProfileProvider } from '../client';
 import { events } from './events';
 
+jest.unmock('cross-fetch');
+
 const mockProfileDocument: ProfileDocumentNode = {
   kind: 'ProfileDocument',
   header: {

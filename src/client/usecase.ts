@@ -51,20 +51,11 @@ class UseCaseBase implements Interceptable {
 
     return boundProfileProvider;
   }
-}
-
-export class UseCase extends UseCaseBase {
-  constructor(
-    public readonly profile: ProfileBase,
-    public readonly name: string
-  ) {
-    super(profile, name);
-  }
 
   @eventInterceptor({
     eventName: 'perform',
   })
-  async perform<
+  protected async performUsecase<
     TInput extends NonPrimitive | undefined = Record<
       string,
       Variables | undefined
@@ -81,6 +72,28 @@ export class UseCase extends UseCaseBase {
   }
 }
 
+export class UseCase extends UseCaseBase {
+  constructor(
+    public readonly profile: ProfileBase,
+    public readonly name: string
+  ) {
+    super(profile, name);
+  }
+
+  async perform<
+    TInput extends NonPrimitive | undefined = Record<
+      string,
+      Variables | undefined
+    >,
+    TOutput = unknown
+  >(
+    input?: TInput,
+    options?: PerformOptions
+  ): Promise<Result<TOutput, PerformError>> {
+    return this.performUsecase(input, options);
+  }
+}
+
 export class TypedUseCase<
   TInput extends NonPrimitive | undefined,
   TOutput
@@ -89,8 +102,6 @@ export class TypedUseCase<
     input: TInput,
     options?: PerformOptions
   ): Promise<Result<TOutput, PerformError>> {
-    const boundProfileProvider = await this.bind(options);
-
-    return boundProfileProvider.perform(this.name, input);
+    return this.performUsecase(input, options);
   }
 }

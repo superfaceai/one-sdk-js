@@ -5,6 +5,8 @@ import { BoundProfileProvider, SuperfaceClient } from '../client';
 import { SuperJson } from '../internal/superjson';
 import { ok } from './result/result';
 
+jest.unmock('cross-fetch');
+
 const mockSuperJson = new SuperJson({
   profiles: {
     ['test-profile']: {

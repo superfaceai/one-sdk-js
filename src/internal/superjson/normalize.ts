@@ -121,7 +121,9 @@ export function normalizeRetryPolicy(
       [
         `Check your super.json`,
         `Check property "kind" in [profile].providers.[provider].defaults.[usecase].retryPolicy.backoff with value "${retryPolicy.backoff.kind}"`,
-        `Change value of property "kind" in retryPolicy.backoff to one of possible values: ${Object.values(BackOffKind).join(', ')}`,
+        `Change value of property "kind" in retryPolicy.backoff to one of possible values: ${Object.values(
+          BackOffKind
+        ).join(', ')}`,
       ]
     );
   };
@@ -198,13 +200,15 @@ export function normalizeProfileProviderDefaults(
 }
 
 export function normalizeProfileSettings(
-  profileEntry: ProfileEntry
+  profileEntry: ProfileEntry,
+  topProviderOrder: string[]
 ): NormalizedProfileSettings {
+  console.log(profileEntry, topProviderOrder);
   if (typeof profileEntry === 'string') {
     if (isVersionString(profileEntry)) {
       return {
         version: profileEntry,
-        priority: [],
+        priority: topProviderOrder,
         defaults: {},
         providers: {},
       };
@@ -213,7 +217,7 @@ export function normalizeProfileSettings(
     if (isFileURIString(profileEntry)) {
       return {
         file: profileEntry.slice(FILE_URI_PROTOCOL.length),
-        priority: [],
+        priority: topProviderOrder,
         defaults: {},
         providers: {},
       };
@@ -226,14 +230,14 @@ export function normalizeProfileSettings(
   if ('file' in profileEntry) {
     normalizedSettings = {
       file: profileEntry.file,
-      priority: profileEntry.priority ?? [],
+      priority: profileEntry.priority || [],
       defaults: {},
       providers: {},
     };
   } else {
     normalizedSettings = {
       version: profileEntry.version,
-      priority: profileEntry.priority ?? [],
+      priority: profileEntry.priority || [],
       defaults: {},
       providers: {},
     };
@@ -248,6 +252,12 @@ export function normalizeProfileSettings(
         profileProviderSettings,
         normalizedSettings.defaults
       );
+  }
+  console.log(profileEntry, normalizedSettings);
+  if (normalizedSettings.priority.length === 0) {
+    const providerOrder = Object.keys(profileEntry.providers || {});
+    normalizedSettings.priority =
+      providerOrder.length > 0 ? providerOrder : topProviderOrder;
   }
 
   return normalizedSettings;
@@ -283,8 +293,12 @@ export function normalizeSuperJsonDocument(
 
   const profiles = document.profiles ?? {};
   const normalizedProfiles: Record<string, NormalizedProfileSettings> = {};
+  const topProviderOrder = Object.keys(originalDocument.providers ?? {});
   for (const [profileId, profileEntry] of Object.entries(profiles)) {
-    normalizedProfiles[profileId] = normalizeProfileSettings(profileEntry);
+    normalizedProfiles[profileId] = normalizeProfileSettings(
+      profileEntry,
+      topProviderOrder
+    );
   }
 
   const providers = document.providers ?? {};

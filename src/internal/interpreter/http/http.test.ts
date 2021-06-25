@@ -3,6 +3,8 @@ import { getLocal } from 'mockttp';
 import { CrossFetch } from '../../../lib/fetch';
 import { createUrl, HttpClient } from './http';
 
+jest.unmock('cross-fetch');
+
 const mockServer = getLocal();
 const fetchInstance = new CrossFetch();
 const http = new HttpClient(fetchInstance);

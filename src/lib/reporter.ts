@@ -10,7 +10,7 @@ import { CrossFetch } from './fetch';
 type EventBase = {
   event_type: 'SDKInit' | 'Metrics' | 'ProviderChange';
   configuration_hash: string;
-  occured_at: string;
+  occurred_at: string;
 };
 
 type SDKInitEvent = EventBase & {
@@ -26,6 +26,7 @@ type PerformMetricsEvent = EventBase & {
     from: string;
     to: string;
     metrics: {
+      type: 'PerformMetrics';
       profile: string;
       provider: string;
       successful_performs: number;
@@ -50,7 +51,7 @@ type ProviderChangeEvent = EventBase & {
     to_provider: string;
     failover_reasons?: {
       reason: FailoverReason;
-      occured_at: string;
+      occurred_at: string;
     }[];
   };
 };
@@ -59,7 +60,7 @@ type SDKEvent = SDKInitEvent | PerformMetricsEvent | ProviderChangeEvent;
 
 type EventInputBase = {
   eventType: 'SDKInit' | 'PerformMetrics' | 'ProviderChange';
-  occuredAt: Date;
+  occurredAt: Date;
 };
 
 export type SDKInitInput = EventInputBase & {
@@ -80,7 +81,7 @@ export type ProviderChangeInput = EventInputBase & {
   profile: string;
   reasons?: {
     reason: FailoverReason;
-    occuredAt: Date;
+    occurredAt: Date;
   }[];
 };
 
@@ -94,14 +95,17 @@ export class MetricReporter {
   private fetchInstance: FetchInstance;
   private readonly sdkToken: string | undefined;
   private performMetrics: Omit<PerformMetricsInput, 'eventType'>[] = [];
+  private configHash: string;
+  private anonymizedSuperJson: AnonymizedSuperJsonDocument;
 
-  constructor(private readonly superJson: SuperJson) {
+  constructor(superJson: SuperJson) {
     this.fetchInstance = new CrossFetch();
     this.sdkToken = Config.sdkAuthToken;
+    this.configHash = superJson.configHash;
+    this.anonymizedSuperJson = superJson.anonymized;
   }
 
   public reportEvent(event: EventInput): void {
-    // console.log(event);
     switch (event.eventType) {
       case 'SDKInit':
         this.reportSdkInitEvent(event);
@@ -119,6 +123,7 @@ export class MetricReporter {
 
   public flush(): void {
     if (this.timer !== undefined) {
+      console.log('flushing');
       this.sendEvent(this.aggregateMetrics());
       this.performMetrics = [];
       clearTimeout(this.timer);
@@ -134,11 +139,11 @@ export class MetricReporter {
     eventType: _,
     ...metrics
   }: PerformMetricsInput): void {
+    console.log(metrics);
     this.performMetrics.push(metrics);
     if (this.timer !== undefined) {
       clearTimeout(this.timer);
     }
-    // console.log('here');
     this.timer = setTimeout(() => {
       this.sendEvent(this.aggregateMetrics());
       this.performMetrics = [];
@@ -156,10 +161,10 @@ export class MetricReporter {
   private createSDKInitEventPayload(input: SDKInitInput): SDKInitEvent {
     return {
       event_type: 'SDKInit',
-      occured_at: input.occuredAt.toISOString(),
-      configuration_hash: this.superJson.configHash(),
+      occurred_at: input.occurredAt.toISOString(),
+      configuration_hash: this.configHash,
       data: {
-        configuration: this.superJson.anonymized,
+        configuration: this.anonymizedSuperJson,
       },
     };
   }
@@ -169,15 +174,15 @@ export class MetricReporter {
   ): ProviderChangeEvent {
     return {
       event_type: 'ProviderChange',
-      occured_at: input.occuredAt.toISOString(),
-      configuration_hash: this.superJson.configHash(),
+      occurred_at: input.occurredAt.toISOString(),
+      configuration_hash: this.configHash,
       data: {
         profile: input.profile,
         from_provider: input.from,
         to_provider: input.to,
         failover_reasons: input.reasons?.map(reason => ({
           reason: reason.reason,
-          occured_at: reason.occuredAt.toISOString(),
+          occurred_at: reason.occurredAt.toISOString(),
         })),
       },
     };
@@ -185,7 +190,7 @@ export class MetricReporter {
 
   private aggregateMetrics(): PerformMetricsEvent {
     const metrics: PerformMetricsEvent['data']['metrics'] = [];
-    const dates = this.performMetrics.map(metric => metric.occuredAt).sort();
+    const dates = this.performMetrics.map(metric => metric.occurredAt).sort();
     const from = dates[0].toISOString();
     const to = dates[dates.length - 1].toISOString();
     const profileProviders = this.performMetrics
@@ -207,6 +212,7 @@ export class MetricReporter {
       const failures = profileProviderMetrics.length - successes;
 
       metrics.push({
+        type: 'PerformMetrics',
         profile,
         provider,
         successful_performs: successes,
@@ -214,12 +220,10 @@ export class MetricReporter {
       });
     }
 
-    // console.log(metrics);
-
     return {
       event_type: 'Metrics',
-      occured_at: new Date().toISOString(),
-      configuration_hash: this.superJson.configHash(),
+      occurred_at: new Date().toISOString(),
+      configuration_hash: this.configHash,
       data: {
         from,
         to,
@@ -230,16 +234,26 @@ export class MetricReporter {
 
   // TODO: move this to other http calls
   private sendEvent(payload: SDKEvent) {
-    const url = new URL('/sdk-events', Config.superfaceApiUrl).href;
-    void this.fetchInstance.fetch(url, {
-      method: 'POST',
-      body: stringBody(JSON.stringify(payload)),
-      headers: {
-        'content-type': JSON_CONTENT,
-        ...(this.sdkToken !== undefined
-          ? { authorization: `SUPERFACE-SDK-TOKEN ${this.sdkToken}` }
-          : {}),
-      },
-    });
+    const url = new URL('/insights/sdk_event', Config.superfaceApiUrl).href;
+    console.log(
+      'calling',
+      url,
+      'with',
+      require('util').inspect(payload, false, 10),
+      'and',
+      this.sdkToken
+    );
+    void this.fetchInstance
+      .fetch(url, {
+        method: 'POST',
+        body: stringBody(JSON.stringify(payload)),
+        headers: {
+          'content-type': JSON_CONTENT,
+          ...(this.sdkToken !== undefined
+            ? { authorization: `SUPERFACE-SDK-TOKEN ${this.sdkToken}` }
+            : {}),
+        },
+      })
+      .then(console.log);
   }
 }

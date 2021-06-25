@@ -37,9 +37,11 @@ export abstract class SuperfaceClientBase {
     this.metricReporter = new MetricReporter(this.superJson);
     this.metricReporter.reportEvent({
       eventType: 'SDKInit',
-      occuredAt: new Date(),
+      occurredAt: new Date(),
     });
-    this.hookMetrics();
+    if (!Config.disableReporting) {
+      this.hookMetrics();
+    }
   }
 
   get profiles(): never {
@@ -147,21 +149,19 @@ export abstract class SuperfaceClientBase {
   }
 
   private hookMetrics(): void {
-    events.on(
-      'post-perform',
-      { priority: 10000 },
-      (context: PerformContext) => {
-        this.metricReporter.reportEvent({
-          eventType: 'PerformMetrics',
-          profile: context.profile,
-          success: true,
-          provider: context.provider,
-          occuredAt: context.time,
-        });
+    process.on('beforeExit', () => this.metricReporter.flush());
+    events.on('post-perform', { priority: 0 }, (context: PerformContext) => {
+      console.log('performing');
+      this.metricReporter.reportEvent({
+        eventType: 'PerformMetrics',
+        profile: context.profile,
+        success: true,
+        provider: context.provider,
+        occurredAt: context.time,
+      });
 
-        return { kind: 'continue' };
-      }
-    );
+      return { kind: 'continue' };
+    });
   }
 }
 
