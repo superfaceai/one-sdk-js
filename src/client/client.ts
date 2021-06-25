@@ -38,7 +38,7 @@ export abstract class SuperfaceClientBase {
 
     this.superJson = SUPER_CACHE[superCacheKey];
 
-    this.hookPolicies();
+    // this.hookPolicies();
   }
 
   /** Returns a BoundProfileProvider that is cached according to `profileConfig` and `providerConfig` cache keys. */
@@ -159,7 +159,7 @@ export abstract class SuperfaceClientBase {
     return new ProfileConfiguration(profileId, version);
   }
 
-  private hookPolicies(): void {
+  public hookPolicies(): void {
     //create RetryHookContext and FailoverContext
     const hookContext: HooksContext = {};
     const usecaseProviders: Record<
@@ -222,7 +222,7 @@ export abstract class SuperfaceClientBase {
               //TODO are these defauts ok?
               retryPolicy.maxContiguousRetries ?? 5,
               60000,
-              retryPolicy.requestTimeout ?? 10000,
+              retryPolicy.requestTimeout,
               backoff
             );
 
@@ -244,9 +244,9 @@ export abstract class SuperfaceClientBase {
         )) {
           hookContext[key] = {
             router: new Router(
-              provider,
               providersContext.providersOfUsecase,
-              priority
+              priority,
+              provider
             ),
             queuedAction: undefined,
           };
@@ -274,16 +274,16 @@ type ProfileUseCases<TInput extends NonPrimitive | undefined, TOutput> = {
 export type TypedSuperfaceClient<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   TProfiles extends ProfileUseCases<any, any>
-  > = SuperfaceClientBase & {
-    getProfile<TProfile extends keyof TProfiles>(
-      profileId: TProfile
-    ): Promise<TypedProfile<TProfiles[TProfile]>>;
-  };
+> = SuperfaceClientBase & {
+  getProfile<TProfile extends keyof TProfiles>(
+    profileId: TProfile
+  ): Promise<TypedProfile<TProfiles[TProfile]>>;
+};
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function createTypedClient<TProfiles extends ProfileUseCases<any, any>>(
   profileDefinitions: TProfiles
-): { new(): TypedSuperfaceClient<TProfiles> } {
+): { new (): TypedSuperfaceClient<TProfiles> } {
   return class TypedSuperfaceClientClass
     extends SuperfaceClientBase
     implements TypedSuperfaceClient<TProfiles>

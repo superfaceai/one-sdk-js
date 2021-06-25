@@ -31,25 +31,23 @@ export class CrossFetch implements FetchInstance, Interceptable {
   ): Promise<FetchResponse> {
     const headersInit = parameters.headers
       ? Object.entries(parameters.headers).map(([key, value]) => [
-        key,
-        ...(Array.isArray(value) ? value : [value]),
-      ])
+          key,
+          ...(Array.isArray(value) ? value : [value]),
+        ])
       : undefined;
-
     const request: RequestInit = {
       headers: new Headers(headersInit),
       method: parameters.method,
       body: this.body(parameters.body),
     };
 
-    const response = await
-      fetch(
-        url + this.queryParameters(parameters.queryParameters),
-        request
-        //TODO: pass timeout from params, use different value
-        // ),
-        // parameters.timeout
-      );
+    const response = await fetch(
+      url + this.queryParameters(parameters.queryParameters),
+      request
+      //TODO: pass timeout from params, use different value
+      // ),
+      // parameters.timeout
+    );
 
     const headers: Record<string, string> = {};
     response.headers.forEach((value, key) => {

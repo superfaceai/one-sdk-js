@@ -1,7 +1,7 @@
 import { MapDocumentNode, ProfileDocumentNode } from '@superfaceai/ast';
 import { getLocal } from 'mockttp';
-import { OnFail, SuperJson } from '../../internal';
 
+import { OnFail, SuperJson } from '../../internal';
 import { err, ok } from '../../lib';
 import { SuperfaceClient } from '../client';
 import { Profile, ProfileConfiguration } from '../profile';
@@ -10,7 +10,6 @@ import { Provider, ProviderConfiguration } from '../provider';
 import { UseCase } from '../usecase';
 import { HooksContext, registerHooks } from './event-adapter';
 import { CircuitBreakerPolicy, Router } from './policies';
-
 
 const mockLoadSyn = jest.fn();
 
@@ -128,8 +127,7 @@ describe('event-adapter', () => {
     await mockServer.stop();
     jest.resetAllMocks();
   });
-  //This works
-  it.only('does not use retry policy - returns after HTTP 200', async () => {
+  it('does not use retry policy - returns after HTTP 200', async () => {
     const endpoint = await mockServer.get('/test').thenJson(200, {});
 
     const mockSuperJson = new SuperJson({
@@ -137,19 +135,19 @@ describe('event-adapter', () => {
         ['starwars/character-information']: {
           version: '1.0.0',
           providers: {
-            provider: {}
-          }
-        }
+            provider: {},
+          },
+        },
       },
       providers: {
         provider: {
-          security: []
-        }
-      }
-    })
+          security: [],
+        },
+      },
+    });
 
-    mockLoadSyn.mockReturnValue(ok(mockSuperJson))
-    SuperJson.loadSync = mockLoadSyn
+    mockLoadSyn.mockReturnValue(ok(mockSuperJson));
+    SuperJson.loadSync = mockLoadSyn;
 
     //Not mocked client
     const client = new SuperfaceClient();
@@ -172,7 +170,7 @@ describe('event-adapter', () => {
     const provider = await client.getProvider('provider');
     const result = await useCase.perform(undefined, { provider });
 
-    expect(result.unwrap()).toEqual({ message: 'hello' })
+    expect(result.unwrap()).toEqual({ message: 'hello' });
     expect((await endpoint.getSeenRequests()).length).toEqual(1);
     expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(1);
   }, 30000);
@@ -184,21 +182,19 @@ describe('event-adapter', () => {
         ['starwars/character-information']: {
           version: '1.0.0',
           providers: {
-            provider: {}
-          }
-        }
+            provider: {},
+          },
+        },
       },
       providers: {
         provider: {
-          security: []
-        }
-      }
-    })
+          security: [],
+        },
+      },
+    });
 
-
-    mockLoadSyn.mockReturnValue(ok(mockSuperJson))
-    SuperJson.loadSync = mockLoadSyn
-
+    mockLoadSyn.mockReturnValue(ok(mockSuperJson));
+    SuperJson.loadSync = mockLoadSyn;
 
     const client = new SuperfaceClient();
 
@@ -218,18 +214,18 @@ describe('event-adapter', () => {
     const provider = await client.getProvider('provider');
     const result = await useCase.perform(undefined, { provider });
 
-    expect(result.isErr()).toEqual(true)
+    expect(result.isErr()).toEqual(true);
     expect((await endpoint.getSeenRequests()).length).toEqual(1);
     expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(1);
   }, 30000);
 
-  it('use circuit-breaker policy - aborts after HTTP 500', async () => {
+  it.only('use circuit-breaker policy - aborts after HTTP 500', async () => {
     const endpoint = await mockServer.get('/test').thenJson(500, {});
 
     const mockSuperJson = new SuperJson({
       profiles: {
         ['starwars/character-information']: {
-          version: '1.0.0',
+          version: '1.0.1',
           providers: {
             provider: {
               defaults: {
@@ -238,23 +234,23 @@ describe('event-adapter', () => {
                   retryPolicy: {
                     kind: OnFail.CIRCUIT_BREAKER,
                     maxContiguousRetries: 2,
-                    requestTimeout: 1000
-                  }
-                }
-              }
-            }
-          }
-        }
+                    requestTimeout: 1000,
+                  },
+                },
+              },
+            },
+          },
+        },
       },
       providers: {
         provider: {
-          security: []
-        }
-      }
-    })
+          security: [],
+        },
+      },
+    });
 
-    mockLoadSyn.mockReturnValue(ok(mockSuperJson))
-    SuperJson.loadSync = mockLoadSyn
+    mockLoadSyn.mockReturnValue(ok(mockSuperJson));
+    SuperJson.loadSync = mockLoadSyn;
 
     const client = new SuperfaceClient();
 
@@ -274,7 +270,9 @@ describe('event-adapter', () => {
     const provider = await client.getProvider('provider');
     const result = await useCase.perform(undefined, { provider });
 
-    expect(() => result.unwrap()).toThrowError(new Error("circuit breaker is open"))
+    expect(() => result.unwrap()).toThrowError(
+      new Error('circuit breaker is open')
+    );
     //We send request twice
     expect((await endpoint.getSeenRequests()).length).toEqual(2);
     expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(1);
@@ -296,26 +294,26 @@ describe('event-adapter', () => {
                   retryPolicy: {
                     kind: OnFail.CIRCUIT_BREAKER,
                     maxContiguousRetries: 2,
-                    requestTimeout: 1000
-                  }
-                }
-              }
-            }
-          }
-        }
+                    requestTimeout: 1000,
+                  },
+                },
+              },
+            },
+          },
+        },
       },
       providers: {
         provider: {
-          security: []
+          security: [],
         },
         second: {
-          security: []
-        }
-      }
-    })
+          security: [],
+        },
+      },
+    });
 
-    mockLoadSyn.mockReturnValue(ok(mockSuperJson))
-    SuperJson.loadSync = mockLoadSyn
+    mockLoadSyn.mockReturnValue(ok(mockSuperJson));
+    SuperJson.loadSync = mockLoadSyn;
 
     const client = new SuperfaceClient();
 
@@ -335,12 +333,13 @@ describe('event-adapter', () => {
     const provider = await client.getProvider('provider');
     const result = await useCase.perform(undefined, { provider });
 
-    expect(() => result.unwrap()).toThrowError(new Error("circuit breaker is open"))
+    expect(() => result.unwrap()).toThrowError(
+      new Error('circuit breaker is open')
+    );
     //We send request twice
     expect((await endpoint.getSeenRequests()).length).toEqual(2);
     expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(1);
   }, 30000);
-
 
   //OLD
 
@@ -361,10 +360,7 @@ describe('event-adapter', () => {
     );
     const mockProfile = new Profile(mockClient, mockProfileConfiguration);
 
-    const mockProviderConfiguration = new ProviderConfiguration(
-      'provider',
-      []
-    );
+    const mockProviderConfiguration = new ProviderConfiguration('provider', []);
     const mockProvider = new Provider(mockClient, mockProviderConfiguration);
 
     const getProviderForProfileSpy = jest
@@ -390,22 +386,27 @@ describe('event-adapter', () => {
     const retryHookContext: HooksContext = {
       [`starwars/character-information/Test`]: {
         //Empty priority array
-        router: new Router('provider', { ['provider']: policy }, []),
+        router: new Router({ ['provider']: policy }, [], 'provider'),
         queuedAction: undefined,
       },
     };
 
     registerHooks(retryHookContext);
 
-    await expect(usecase.perform()).resolves.toEqual(err("circuit breaker is open"))
+    await expect(usecase.perform()).resolves.toEqual(
+      err('circuit breaker is open')
+    );
 
     expect(getProviderForProfileSpy).toHaveBeenCalledTimes(1);
-    expect(getProviderForProfileSpy).toHaveBeenCalledWith('starwars/character-information');
+    expect(getProviderForProfileSpy).toHaveBeenCalledWith(
+      'starwars/character-information'
+    );
 
     expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(1);
     expect(cacheBoundProfileProviderSpy).toHaveBeenCalledWith(
       mockProfileConfiguration,
-      mockProviderConfiguration);
+      mockProviderConfiguration
+    );
 
     expect((await endpoint.getSeenRequests()).length).toEqual(3);
   }, 30000);
@@ -427,10 +428,7 @@ describe('event-adapter', () => {
     );
     const mockProfile = new Profile(mockClient, mockProfileConfiguration);
 
-    const mockProviderConfiguration = new ProviderConfiguration(
-      'provider',
-      []
-    );
+    const mockProviderConfiguration = new ProviderConfiguration('provider', []);
     const mockProvider = new Provider(mockClient, mockProviderConfiguration);
 
     const getProviderForProfileSpy = jest
@@ -456,23 +454,27 @@ describe('event-adapter', () => {
     const retryHookContext: HooksContext = {
       [`starwars/character-information/Test`]: {
         //Empty priority array
-        router: new Router('provider', { ['provider']: policy }, []),
+        router: new Router({ ['provider']: policy }, [], 'provider'),
         queuedAction: undefined,
       },
     };
 
     registerHooks(retryHookContext);
 
-    await expect(usecase.perform()).resolves.toEqual(err("circuit breaker is open"))
+    await expect(usecase.perform()).resolves.toEqual(
+      err('circuit breaker is open')
+    );
 
     expect(getProviderForProfileSpy).toHaveBeenCalledTimes(1);
-    expect(getProviderForProfileSpy).toHaveBeenCalledWith('starwars/character-information');
+    expect(getProviderForProfileSpy).toHaveBeenCalledWith(
+      'starwars/character-information'
+    );
 
     expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(1);
     expect(cacheBoundProfileProviderSpy).toHaveBeenCalledWith(
       mockProfileConfiguration,
-      mockProviderConfiguration);
-
+      mockProviderConfiguration
+    );
   }, 30000);
 
   it.skip('uses failover policy - retruns result on 200', async () => {
@@ -492,10 +494,7 @@ describe('event-adapter', () => {
     );
     const mockProfile = new Profile(mockClient, mockProfileConfiguration);
 
-    const mockProviderConfiguration = new ProviderConfiguration(
-      'provider',
-      []
-    );
+    const mockProviderConfiguration = new ProviderConfiguration('provider', []);
     const mockProvider = new Provider(mockClient, mockProviderConfiguration);
 
     const getProviderForProfileSpy = jest
@@ -520,29 +519,32 @@ describe('event-adapter', () => {
 
     const retryHookContext: HooksContext = {
       [`starwars/character-information/Test`]: {
-        router: new Router('provider', { ['provider']: policy }, ['provider']),
+        router: new Router({ ['provider']: policy }, ['provider'], 'provider'),
         queuedAction: undefined,
       },
     };
 
     registerHooks(retryHookContext);
 
-    await expect(usecase.perform()).resolves.toEqual(ok({ message: "hello" }))
+    await expect(usecase.perform()).resolves.toEqual(ok({ message: 'hello' }));
 
     expect(getProviderForProfileSpy).toHaveBeenCalledTimes(1);
-    expect(getProviderForProfileSpy).toHaveBeenCalledWith('starwars/character-information');
+    expect(getProviderForProfileSpy).toHaveBeenCalledWith(
+      'starwars/character-information'
+    );
 
     expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(1);
     expect(cacheBoundProfileProviderSpy).toHaveBeenCalledWith(
       mockProfileConfiguration,
-      mockProviderConfiguration);
+      mockProviderConfiguration
+    );
 
-    const seen = (await endpoint.getSeenRequests()).length
+    const seen = (await endpoint.getSeenRequests()).length;
     expect(seen).toEqual(1);
   }, 30000);
 
   it.skip('uses failover policy', async () => {
-    const endpoint = await mockServer.get('/test').thenJson(500, {})
+    const endpoint = await mockServer.get('/test').thenJson(500, {});
 
     const mockBoundProfileProvider = new BoundProfileProvider(
       mockProfileDocument,
@@ -558,10 +560,7 @@ describe('event-adapter', () => {
     );
     const mockProfile = new Profile(mockClient, mockProfileConfiguration);
 
-    const mockProviderConfiguration = new ProviderConfiguration(
-      'provider',
-      []
-    );
+    const mockProviderConfiguration = new ProviderConfiguration('provider', []);
     const mockProvider = new Provider(mockClient, mockProviderConfiguration);
 
     const getProviderForProfileSpy = jest
@@ -586,24 +585,33 @@ describe('event-adapter', () => {
 
     const retryHookContext: HooksContext = {
       [`starwars/character-information/Test`]: {
-        router: new Router('provider', { ['provider']: policy }, ['provider', 'second']),
+        router: new Router(
+          { ['provider']: policy },
+          ['provider', 'second'],
+          'provider'
+        ),
         queuedAction: undefined,
       },
     };
 
     registerHooks(retryHookContext);
 
-    await expect(usecase.perform(undefined, { provider: mockProvider })).resolves.toEqual(ok({ message: "hello" }))
+    await expect(
+      usecase.perform(undefined, { provider: mockProvider })
+    ).resolves.toEqual(ok({ message: 'hello' }));
 
     expect(getProviderForProfileSpy).toHaveBeenCalledTimes(1);
-    expect(getProviderForProfileSpy).toHaveBeenCalledWith('starwars/character-information');
+    expect(getProviderForProfileSpy).toHaveBeenCalledWith(
+      'starwars/character-information'
+    );
 
     expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(1);
     expect(cacheBoundProfileProviderSpy).toHaveBeenCalledWith(
       mockProfileConfiguration,
-      mockProviderConfiguration);
+      mockProviderConfiguration
+    );
 
-    const seen = (await endpoint.getSeenRequests()).length
+    const seen = (await endpoint.getSeenRequests()).length;
     expect(seen).toEqual(3);
   }, 30000);
 });

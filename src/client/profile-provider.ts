@@ -42,7 +42,7 @@ import { ProfileConfiguration } from './profile';
 import { ProviderConfiguration } from './provider';
 import { fetchBind } from './registry';
 
-function forceCast<T>(_: unknown): asserts _ is T { }
+function forceCast<T>(_: unknown): asserts _ is T {}
 
 function profileAstId(ast: ProfileDocumentNode): string {
   return ast.header.scope !== undefined
@@ -175,7 +175,7 @@ export class ProfileProvider {
     private provider: string | ProviderJson | ProviderConfiguration,
     /** url or ast node */
     private map?: string | MapDocumentNode
-  ) { }
+  ) {}
 
   /**
    * Binds the provider.
@@ -279,7 +279,7 @@ export class ProfileProvider {
       baseUrl,
       profileProviderSettings:
         this.superJson.normalized.profiles[profileId]?.providers[
-        providerInfo.name
+          providerInfo.name
         ],
       security: securityConfiguration,
     });
@@ -482,9 +482,9 @@ export class ProfileProvider {
           `Could not find security scheme for security value with id "${vals.id}"`,
           [
             `The provider definition for "${providerName}" defines ` +
-            (definedSchemes.length > 0
-              ? `these security schemes: ${definedSchemes}`
-              : 'no security schemes'),
+              (definedSchemes.length > 0
+                ? `these security schemes: ${definedSchemes}`
+                : 'no security schemes'),
             `but a secret value was provided for security scheme: ${vals.id}`,
           ],
           [

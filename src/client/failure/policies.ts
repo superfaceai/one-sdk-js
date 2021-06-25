@@ -13,17 +13,24 @@ import {
 } from './resolution';
 
 export class Router {
-  constructor(
-    private currentProvider: string,
-    private readonly providersOfUseCase: Record<string, FailurePolicy>,
-    private readonly priority: string[]
-  ) { }
+  private currentProvider: string | undefined;
 
-  public getCurrentProvider(): string {
+  constructor(
+    private readonly providersOfUseCase: Record<string, FailurePolicy>,
+    private readonly priority: string[],
+    currentProvider?: string
+  ) {
+    this.currentProvider = currentProvider;
+  }
+
+  public getCurrentProvider(): string | undefined {
     return this.currentProvider;
   }
 
   public beforeExecution(info: ExecutionInfo): ExecutionResolution {
+    if (!this.currentProvider) {
+      throw 'Property currentProvider is not set in Router instance';
+    }
     const innerResolution =
       this.providersOfUseCase[this.currentProvider].beforeExecution(info);
 
@@ -31,7 +38,11 @@ export class Router {
   }
 
   public afterFailure(info: ExecutionFailure): FailureResolution {
-    const innerResolution = this.providersOfUseCase[this.currentProvider].afterFailure(info);
+    if (!this.currentProvider) {
+      throw 'Property currentProvider is not set in Router instance';
+    }
+    const innerResolution =
+      this.providersOfUseCase[this.currentProvider].afterFailure(info);
     // console.log('router after fail', innerResolution)
 
     //TODO: some other checking logic?
@@ -50,16 +61,19 @@ export class Router {
 
     this.currentProvider = this.priority[indexOfCurrentProvider + 1];
 
-
     return { kind: 'switch-provider', provider: this.currentProvider };
   }
 
   public afterSuccess(info: ExecutionSuccess): SuccessResolution {
+    if (!this.currentProvider) {
+      throw 'Property currentProvider is not set in Router instance';
+    }
+
     return this.providersOfUseCase[this.currentProvider].afterSuccess(info);
   }
 
   //TODO: Should we handle provider reset here?
-  public reset(): void { }
+  public reset(): void {}
 }
 
 /** Simple policy which aborts on the first failure */
@@ -80,7 +94,7 @@ export class AbortPolicy extends FailurePolicy {
     return { kind: 'continue' };
   }
 
-  override reset(): void { }
+  override reset(): void {}
 }
 
 /** Simple retry policy with exponential backoff */

@@ -76,7 +76,7 @@ export type ContinueResolution = {
 
 export type ExecutionResolution =
   | (RequestConfiguration &
-    (ContinueResolution | BackoffResolution | RecacheResolution))
+      (ContinueResolution | BackoffResolution | RecacheResolution))
   | AbortResolution
   | SwitchProviderResolution;
 
@@ -84,6 +84,6 @@ export type FailureResolution =
   | AbortResolution
   | RetryResolution
   | ContinueResolution
-  | SwitchProviderResolution
+  | SwitchProviderResolution;
 
 export type SuccessResolution = ContinueResolution;

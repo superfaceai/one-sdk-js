@@ -2,7 +2,10 @@ import * as fs from 'fs';
 import { dirname, join as joinPath } from 'path';
 
 import { SuperJson } from '../internal/superjson';
+import { ok } from '../lib';
 import { SuperfaceClient } from './client';
+import { registerHooks } from './failure/event-adapter';
+import { CircuitBreakerPolicy, Router } from './failure/policies';
 import { ProfileConfiguration } from './profile';
 import * as profileProvider from './profile-provider';
 import { ProviderConfiguration } from './provider';
@@ -14,6 +17,10 @@ jest.mock('fs', () => ({
     access: jest.fn(),
   },
 }));
+
+const mockLoadSyn = jest.fn();
+
+jest.mock('./failure/event-adapter');
 
 describe('superface client', () => {
   //Mock env path
@@ -217,6 +224,61 @@ but this path does not exist or is not accessible`
 
       const provider = await client.getProviderForProfile('baz');
       expect(provider.configuration.name).toBe('quz');
+    });
+  });
+
+  describe('hookPolicies', () => {
+    it.only('prepares correct object', async () => {
+      const mockSuperJson = new SuperJson({
+        profiles: {
+          ['starwars/character-information']: {
+            version: '1.0.0',
+            priority: ['first', 'second'],
+            providers: {
+              first: {},
+              second: {},
+            },
+          },
+        },
+        providers: {
+          first: {
+            security: [],
+          },
+          second: {
+            security: [],
+          },
+        },
+      });
+      const originalLoadSync = SuperJson.loadSync;
+
+      mockLoadSyn.mockReturnValue(ok(mockSuperJson));
+      SuperJson.loadSync = mockLoadSyn;
+      const client = new SuperfaceClient();
+      void client;
+
+      expect(registerHooks).toHaveBeenCalledWith({
+        ['starwars/character-information']: {
+          queuedAction: undefined,
+          router: new Router(
+            'first',
+            {
+              first: new CircuitBreakerPolicy(
+                {
+                  profileId: 'starwars/character-information',
+                  usecaseName: '',
+                  // TODO: Somehow know safety
+                  usecaseSafety: 'unsafe',
+                },
+                //TODO are these defauts ok?
+                5,
+                60000
+              ),
+            },
+            ['first', 'second']
+          ),
+        },
+      });
+      SuperJson.loadSync = originalLoadSync;
     });
   });
 });

@@ -12,9 +12,9 @@ export type HooksContext = Record<
   {
     router: Router;
     queuedAction:
-    | undefined
-    | { kind: 'switch-provider'; provider: string }
-    | { kind: 'recache'; newRegistry?: string };
+      | undefined
+      | { kind: 'switch-provider'; provider: string }
+      | { kind: 'recache'; newRegistry?: string };
   }
 >;
 
@@ -34,15 +34,15 @@ export type FailoverHooksContext = Record<
     //TODO: Scope to FailoverPolicy??
     policy: FailurePolicy;
     queuedAction:
-    | undefined
-    | { kind: 'switch-provider'; provider: string }
-    | { kind: 'recache'; newRegistry?: string };
+      | undefined
+      | { kind: 'switch-provider'; provider: string }
+      | { kind: 'recache'; newRegistry?: string };
   }
 >;
 
 export function registerHooks(hookContext: HooksContext): void {
   console.log('registerFetchRetryHooks');
-  console.time('STATE')
+  console.time('STATE');
 
   events.on('pre-fetch', { priority: 1 }, async (context, args) => {
     console.timeLog('STATE', 'pre-fetch');
@@ -52,7 +52,6 @@ export function registerHooks(hookContext: HooksContext): void {
       context.usecase === undefined ||
       context.provider === undefined
     ) {
-
       return { kind: 'continue' };
     }
 
@@ -123,7 +122,7 @@ export function registerHooks(hookContext: HooksContext): void {
 
   events.on('post-fetch', { priority: 1 }, async (context, _args, res) => {
     // only listen to fetch events in perform context
-    console.timeLog('STATE', 'post-fetch')//: context', context, 'args', _args, 'res', res);
+    console.timeLog('STATE', 'post-fetch'); //: context', context, 'args', _args, 'res', res);
 
     if (
       context.profile === undefined ||
@@ -143,7 +142,6 @@ export function registerHooks(hookContext: HooksContext): void {
 
     // defer queued action until post-perform
     if (performContext.queuedAction !== undefined) {
-
       return { kind: 'continue' };
     }
 
@@ -171,10 +169,11 @@ export function registerHooks(hookContext: HooksContext): void {
         // console.log('OVERIDE RESULT IN POST FETCH', overidenResolution);
         switch (overidenResolution.kind) {
           case 'switch-provider': {
-            hookContext[`${context.profile}/${context.usecase}`].queuedAction = {
-              kind: 'switch-provider',
-              provider: overidenResolution.provider
-            }
+            hookContext[`${context.profile}/${context.usecase}`].queuedAction =
+              {
+                kind: 'switch-provider',
+                provider: overidenResolution.provider,
+              };
 
             // console.log('set context', hookContext)
             return { kind: 'continue' };
@@ -257,8 +256,7 @@ export function registerHooks(hookContext: HooksContext): void {
     ) {
       return { kind: 'continue' };
     }
-    const performContext =
-      hookContext[`${context.profile}/${context.usecase}`];
+    const performContext = hookContext[`${context.profile}/${context.usecase}`];
 
     // console.log('post perform', performContext)
     // if there is no configured context, ignore the event
@@ -281,7 +279,7 @@ export function registerHooks(hookContext: HooksContext): void {
 }
 
 //This only translates HTTP codes to resolution
-//FIX: return types?? 
+//FIX: return types??
 export function resolveHttpErrors(
   response: FetchResponse,
   router: Router,
