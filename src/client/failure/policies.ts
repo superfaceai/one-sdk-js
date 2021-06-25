@@ -17,7 +17,7 @@ export class Router {
     private currentProvider: string,
     private readonly providersOfUseCase: Record<string, FailurePolicy>,
     private readonly priority: string[]
-  ) {}
+  ) { }
 
   public getCurrentProvider(): string {
     return this.currentProvider;
@@ -27,11 +27,17 @@ export class Router {
     const innerResolution =
       this.providersOfUseCase[this.currentProvider].beforeExecution(info);
 
+    return innerResolution;
+  }
+
+  public afterFailure(info: ExecutionFailure): FailureResolution {
+    const innerResolution = this.providersOfUseCase[this.currentProvider].afterFailure(info);
+    // console.log('router after fail', innerResolution)
+
     //TODO: some other checking logic?
     if (innerResolution.kind !== 'abort' || this.priority.length === 0) {
       return innerResolution;
     }
-
     const indexOfCurrentProvider = this.priority.indexOf(this.currentProvider);
 
     //Priority does not contain another (with lesser priority) provider
@@ -41,20 +47,11 @@ export class Router {
     }
 
     //Fail if we are switching provider for the second time
-    if (this.priority[0] !== this.currentProvider) {
-      return {
-        kind: 'abort',
-        reason: 'unable to switch providers for the second time',
-      };
-    }
 
     this.currentProvider = this.priority[indexOfCurrentProvider + 1];
 
-    return { kind: 'switch-provider', provider: this.currentProvider };
-  }
 
-  public afterFailure(info: ExecutionFailure): FailureResolution {
-    return this.providersOfUseCase[this.currentProvider].afterFailure(info);
+    return { kind: 'switch-provider', provider: this.currentProvider };
   }
 
   public afterSuccess(info: ExecutionSuccess): SuccessResolution {
@@ -62,7 +59,7 @@ export class Router {
   }
 
   //TODO: Should we handle provider reset here?
-  public reset(): void {}
+  public reset(): void { }
 }
 
 /** Simple policy which aborts on the first failure */
@@ -83,7 +80,7 @@ export class AbortPolicy extends FailurePolicy {
     return { kind: 'continue' };
   }
 
-  override reset(): void {}
+  override reset(): void { }
 }
 
 /** Simple retry policy with exponential backoff */
@@ -235,7 +232,7 @@ export class CircuitBreakerPolicy extends FailurePolicy {
     }
 
     if (this.state === 'open') {
-      throw new Error('Unreachable');
+      throw new Error('Unreachable circuit breaker state');
     }
 
     const innerResponse = this.inner.afterFailure(info);

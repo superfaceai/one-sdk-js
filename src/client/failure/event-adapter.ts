@@ -12,23 +12,11 @@ export type HooksContext = Record<
   {
     router: Router;
     queuedAction:
-      | undefined
-      | { kind: 'switch-provider'; provider: string }
-      | { kind: 'recache'; newRegistry?: string };
+    | undefined
+    | { kind: 'switch-provider'; provider: string }
+    | { kind: 'recache'; newRegistry?: string };
   }
 >;
-
-// export type RetryHooksContext = Record<
-//   //profile/usecase/provider
-//   string,
-//   {
-//     policy: FailurePolicy;
-//     queuedAction:
-//     | undefined
-//     | { kind: 'switch-provider'; provider: string }
-//     | { kind: 'recache'; newRegistry?: string };
-//   }
-// >;
 
 //OG EDA
 // type RetryHooksContext = {
@@ -46,31 +34,33 @@ export type FailoverHooksContext = Record<
     //TODO: Scope to FailoverPolicy??
     policy: FailurePolicy;
     queuedAction:
-      | undefined
-      | { kind: 'switch-provider'; provider: string }
-      | { kind: 'recache'; newRegistry?: string };
+    | undefined
+    | { kind: 'switch-provider'; provider: string }
+    | { kind: 'recache'; newRegistry?: string };
   }
 >;
 
 export function registerHooks(hookContext: HooksContext): void {
   console.log('registerFetchRetryHooks');
+  console.time('STATE')
+
   events.on('pre-fetch', { priority: 1 }, async (context, args) => {
+    console.timeLog('STATE', 'pre-fetch');
     // only listen to fetch events in perform context
     if (
       context.profile === undefined ||
       context.usecase === undefined ||
       context.provider === undefined
     ) {
-      console.log('pre-fetch return continue');
 
       return { kind: 'continue' };
     }
 
     const performContext = hookContext[`${context.profile}/${context.usecase}`];
-    console.log('pre-fetch context', performContext);
+    // console.log('pre-fetch context', performContext, 't', Date.now());
     // if there is no configured context, ignore the event as well
     if (performContext === undefined) {
-      console.log('pre-fetch return continue');
+      // console.log('pre-fetch return continue');
 
       return { kind: 'continue' };
     }
@@ -79,14 +69,14 @@ export function registerHooks(hookContext: HooksContext): void {
       registryCacheAge: 0, // TODO
     });
 
-    console.log('pre-fetch res', resolution);
+    // console.log('pre-fetch res', resolution);
 
     switch (resolution.kind) {
       case 'continue':
         if (resolution.timeout > 0) {
           const newArgs = clone(args);
           newArgs[1].timeout = resolution.timeout;
-          console.log('pre-fetch return', { kind: 'modify', newArgs });
+          // console.log('pre-fetch return', { kind: 'modify', newArgs });
 
           return { kind: 'modify', newArgs };
         }
@@ -99,7 +89,7 @@ export function registerHooks(hookContext: HooksContext): void {
           // TODO: Add timeout to fetch params?
           // newArgs[1].timeout = action.timeout;
 
-          console.log('pre-fetch return', { kind: 'modify', newArgs });
+          // console.log('pre-fetch return', { kind: 'modify', newArgs });
 
           return { kind: 'modify', newArgs };
         }
@@ -133,7 +123,7 @@ export function registerHooks(hookContext: HooksContext): void {
 
   events.on('post-fetch', { priority: 1 }, async (context, _args, res) => {
     // only listen to fetch events in perform context
-    console.log('post-fetch: context', context, 'args', _args, 'res', res);
+    console.timeLog('STATE', 'post-fetch')//: context', context, 'args', _args, 'res', res);
 
     if (
       context.profile === undefined ||
@@ -146,14 +136,13 @@ export function registerHooks(hookContext: HooksContext): void {
     const performContext = hookContext[`${context.profile}/${context.usecase}`];
     // if there is no configured context, ignore the event as well
     if (performContext === undefined) {
-      console.log('perform context undefined');
+      // console.log('perform context undefined');
 
       return { kind: 'continue' };
     }
 
     // defer queued action until post-perform
     if (performContext.queuedAction !== undefined) {
-      console.log('queue undefined');
 
       return { kind: 'continue' };
     }
@@ -163,24 +152,34 @@ export function registerHooks(hookContext: HooksContext): void {
       result = await res;
       //TODO: result can be defined but still have err value eq. 500 internal server error
     } catch (err: unknown) {
-      console.log('CATCH', err);
+      // console.log('CATCH', err);
 
       //TODO: Translate err to ExecutionFailure
       error = err;
     }
 
     if (result !== undefined) {
-      //HACK
+      //HACK: this all stuff should be part of some policy nested in router
       // TODO: Detect non-network errors here - move to some HTTP policy
-      console.log(' rusult is defined', result);
+      // console.log(' rusult is defined', result);
       const overidenResolution = resolveHttpErrors(
         result,
         performContext.router,
         context.time.getTime()
       );
       if (overidenResolution) {
-        console.log('OVERIDE RESULT', overidenResolution);
+        // console.log('OVERIDE RESULT IN POST FETCH', overidenResolution);
         switch (overidenResolution.kind) {
+          case 'switch-provider': {
+            hookContext[`${context.profile}/${context.usecase}`].queuedAction = {
+              kind: 'switch-provider',
+              provider: overidenResolution.provider
+            }
+
+            // console.log('set context', hookContext)
+            return { kind: 'continue' };
+          }
+
           case 'continue':
             return { kind: 'continue' };
 
@@ -194,6 +193,7 @@ export function registerHooks(hookContext: HooksContext): void {
             };
         }
       }
+      //end of hack
       const resolution = performContext.router.afterSuccess({
         time: context.time.getTime(),
         registryCacheAge: 0, // TODO
@@ -205,10 +205,10 @@ export function registerHooks(hookContext: HooksContext): void {
     }
 
     if (error !== undefined) {
-      console.log('post-fetch is err', error, typeof error);
+      // console.log('post-fetch is err', error, typeof error);
 
       if (typeof error === 'string' && error === NetworkErrors.TIMEOUT_ERROR) {
-        console.log('TIMEOUT');
+        // console.log('TIMEOUT');
       }
       const resolution = performContext.router.afterFailure({
         time: context.time.getTime(),
@@ -218,6 +218,7 @@ export function registerHooks(hookContext: HooksContext): void {
         issue: 'timeout',
       });
 
+      // console.log('ERR RES', resolution)
       switch (resolution.kind) {
         case 'continue':
           return { kind: 'continue' };
@@ -226,6 +227,8 @@ export function registerHooks(hookContext: HooksContext): void {
           return { kind: 'retry' };
 
         case 'abort':
+          // console.log('aborting with', resolution)
+
           return {
             kind: 'modify',
             newResult: Promise.reject(resolution.reason),
@@ -233,18 +236,19 @@ export function registerHooks(hookContext: HooksContext): void {
       }
     }
 
-    throw 'unreachable';
+    throw 'unreachable error';
   });
 
   events.on('pre-perform', { priority: 1 }, async () => {
-    console.log('pre-perform');
+    console.timeLog('STATE', 'pre-perform');
 
     // TODO: anything here?
     return { kind: 'continue' };
   });
 
   events.on('post-perform', { priority: 1 }, async (context, _args, _res) => {
-    console.log('post-perform', context, 'args', _args, 'res', _res);
+    console.timeLog('STATE', 'post-perform');
+
     // this shouldn't happen but if it does just continue for now
     if (
       context.profile === undefined ||
@@ -253,17 +257,20 @@ export function registerHooks(hookContext: HooksContext): void {
     ) {
       return { kind: 'continue' };
     }
-
     const performContext =
-      hookContext[`${context.profile}/${context.usecase}/${context.provider}`];
+      hookContext[`${context.profile}/${context.usecase}`];
+
+    // console.log('post perform', performContext)
     // if there is no configured context, ignore the event
     if (performContext === undefined) {
+      // console.log('queuedAction not set')
+
       return { kind: 'continue' };
     }
 
     // perform queued action here
     if (performContext.queuedAction !== undefined) {
-      console.log('DO queuedAction!!!!!!!!!!!!!!!!!!!!');
+      // console.log('DO queuedAction!!!!!!!!!!!!!!!!!!!!');
       // TODO
     }
 
@@ -273,25 +280,28 @@ export function registerHooks(hookContext: HooksContext): void {
   });
 }
 
-//FIX: return types
+//This only translates HTTP codes to resolution
+//FIX: return types?? 
 export function resolveHttpErrors(
   response: FetchResponse,
-  policy: Router,
+  router: Router,
   time: number
 ): FailureResolution | undefined {
   //TODO: let map deal with defined statuses?
 
   //TODO: move somewhere else - HTTP policy for each context. This policy will be part of eg. Circuit breaker and it will be called prior to circuit breaker logic
   if (response.status === 500) {
-    //Abort
-    return {
-      kind: 'abort',
-      reason: 'Internal Server Error',
-    };
+    //Abort/recache/switch - let the router decide
+    return router.afterFailure({
+      time: time,
+      registryCacheAge: 0, // TODO,
+      kind: 'http',
+      statusCode: response.status,
+    });
   }
   if (response.status === 429) {
     //TODO: handle retry-after header
-    return policy.afterFailure({
+    return router.afterFailure({
       time: time,
       registryCacheAge: 0, // TODO,
       kind: 'http',
@@ -303,7 +313,7 @@ export function resolveHttpErrors(
     response.status === 501
   ) {
     //TODO: try to update maps retry for now
-    return policy.afterFailure({
+    return router.afterFailure({
       time: time,
       registryCacheAge: 0, // TODO,
       kind: 'http',
@@ -317,7 +327,7 @@ export function resolveHttpErrors(
     response.status === 504
   ) {
     //Retry
-    return policy.afterFailure({
+    return router.afterFailure({
       time: time,
       registryCacheAge: 0, // TODO,
       kind: 'http',

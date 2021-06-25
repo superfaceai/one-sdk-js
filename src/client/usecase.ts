@@ -76,20 +76,20 @@ export class UseCase extends UseCaseBase {
     const boundProfileProvider = await this.bind(options);
 
     // TOOD: rewrap the errors for public consumption?
-    return boundProfileProvider.perform<TInput, TOutput>(this.name, input);
+    return await boundProfileProvider.perform<TInput, TOutput>(this.name, input);
   }
 }
 
 export class TypedUseCase<
   TInput extends NonPrimitive | undefined,
   TOutput
-> extends UseCaseBase {
+  > extends UseCaseBase {
   async perform(
     input: TInput,
     options?: PerformOptions
   ): Promise<Result<TOutput, PerformError>> {
     const boundProfileProvider = await this.bind(options);
 
-    return boundProfileProvider.perform(this.name, input);
+    return await boundProfileProvider.perform(this.name, input);
   }
 }

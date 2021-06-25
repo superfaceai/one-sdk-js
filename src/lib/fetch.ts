@@ -2,7 +2,6 @@ import 'isomorphic-form-data';
 
 import fetch, { Headers } from 'cross-fetch';
 
-import { NetworkErrors } from '../internal/interpreter/http';
 import {
   FetchBody,
   FetchInstance,
@@ -32,26 +31,25 @@ export class CrossFetch implements FetchInstance, Interceptable {
   ): Promise<FetchResponse> {
     const headersInit = parameters.headers
       ? Object.entries(parameters.headers).map(([key, value]) => [
-          key,
-          ...(Array.isArray(value) ? value : [value]),
-        ])
+        key,
+        ...(Array.isArray(value) ? value : [value]),
+      ])
       : undefined;
 
-    console.log('cross fetch metadata', this.metadata, 'params', parameters);
     const request: RequestInit = {
       headers: new Headers(headersInit),
       method: parameters.method,
       body: this.body(parameters.body),
     };
 
-    const response = await this.timeout(
+    const response = await
       fetch(
         url + this.queryParameters(parameters.queryParameters),
         request
         //TODO: pass timeout from params, use different value
-      ),
-      parameters.timeout
-    );
+        // ),
+        // parameters.timeout
+      );
 
     const headers: Record<string, string> = {};
     response.headers.forEach((value, key) => {
@@ -78,22 +76,23 @@ export class CrossFetch implements FetchInstance, Interceptable {
     };
   }
 
-  //TODO: rewrite
-  private async timeout<T>(promise: Promise<T>, timeout = 5000) {
-    const timer = new Promise<{ timeout: boolean }>(resolve => {
-      setTimeout(resolve, timeout, {
-        timeout: true,
-      });
-    });
-    const response = await Promise.race([promise, timer]);
-    if ('timeout' in response && response.timeout) {
-      throw NetworkErrors.TIMEOUT_ERROR;
-    }
+  //TODO: rewrite - we need to kill the "second" slower promise - Rxjs? Some Bluebird.js
+  // private async timeout<T>(promise: Promise<T>, timeout = 5000) {
+  //   const timer = new Promise<{ timeout: boolean }>(resolve => {
+  //     setTimeout(resolve, timeout, {
+  //       timeout: true,
+  //     });
+  //   });
+  //   const response = await Promise.race([promise, timer]);
+  //   if ('timeout' in response && response.timeout) {
+  //     throw NetworkErrors.TIMEOUT_ERROR;
+  //   }
 
-    return response as T;
-  }
+  //   return response as T;
+  // }
   // private async timeout<T>(promise: Promise<T>, timeout = 5000): Promise<T> {
   //   console.log('time out', timeout)
+
   //   return new Promise((resolve, reject) => {
   //     setTimeout(() => {
   //       reject(NetworkErrors.TIMEOUT_ERROR)

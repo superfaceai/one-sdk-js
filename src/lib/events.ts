@@ -28,46 +28,46 @@ type EventContextBase = {
 };
 export type BeforeHookResult<Target extends AnyFunction> =
   | {
-      kind: 'continue';
-    }
+    kind: 'continue';
+  }
   | {
-      kind: 'modify';
-      newArgs: Parameters<Target>;
-    }
+    kind: 'modify';
+    newArgs: Parameters<Target>;
+  }
   | {
-      kind: 'abort';
-      newResult: ReturnType<Target>;
-    };
+    kind: 'abort';
+    newResult: ReturnType<Target>;
+  };
 
 export type BeforeHook<
   EventContext extends EventContextBase,
   Target extends AnyFunction
-> = (
-  context: EventContext,
-  args: Parameters<Target>
-) => MaybePromise<BeforeHookResult<Target>>;
+  > = (
+    context: EventContext,
+    args: Parameters<Target>
+  ) => MaybePromise<BeforeHookResult<Target>>;
 
 export type AfterHookResult<Target extends AnyFunction> =
   | {
-      kind: 'continue';
-    }
+    kind: 'continue';
+  }
   | {
-      kind: 'modify';
-      newResult: ReturnType<Target>;
-    }
+    kind: 'modify';
+    newResult: ReturnType<Target>;
+  }
   | {
-      kind: 'retry';
-      newArgs?: Parameters<Target>;
-    };
+    kind: 'retry';
+    newArgs?: Parameters<Target>;
+  };
 
 export type AfterHook<
   EventContext extends EventContextBase,
   Target extends AnyFunction
-> = (
-  context: EventContext,
-  args: Parameters<Target>,
-  result: ReturnType<Target>
-) => MaybePromise<AfterHookResult<Target>>;
+  > = (
+    context: EventContext,
+    args: Parameters<Target>,
+    result: ReturnType<Target>
+  ) => MaybePromise<AfterHookResult<Target>>;
 
 type EventTypes = {
   perform: [InstanceType<typeof UseCase>['perform'], EventContextBase];
@@ -215,7 +215,6 @@ function replacementFunction<E extends keyof EventTypes>(
     if (metadata.placement === 'after' || metadata.placement === 'around') {
       let retry = true;
       while (retry) {
-        console.log('events meta', this.metadata);
         const hookResult = await events.emit(`post-${metadata.eventName}`, [
           {
             time: new Date(),
@@ -263,10 +262,10 @@ function replacementFunction<E extends keyof EventTypes>(
 export function eventInterceptor<E extends keyof EventTypes>(
   eventMetadata: EventMetadata<E>
 ): (
-  target: Interceptable,
-  propertyKey: string,
-  descriptor: TypedPropertyDescriptor<EventTypes[E][0]>
-) => PropertyDescriptor {
+    target: Interceptable,
+    propertyKey: string,
+    descriptor: TypedPropertyDescriptor<EventTypes[E][0]>
+  ) => PropertyDescriptor {
   return function (
     _target: Interceptable,
     _propertyKey: string,
@@ -276,7 +275,6 @@ export function eventInterceptor<E extends keyof EventTypes>(
       ...eventInterceptorMetadataDefaults,
       ...eventMetadata,
     };
-
     if (descriptor.value === undefined) {
       throw new Error(
         'Something went horribly wrong, Godzilla might be involved!'

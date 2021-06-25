@@ -193,21 +193,9 @@ export abstract class SuperfaceClientBase {
       }
       //TODO: check duplicity of priority providers
       for (const provider of Object.keys(profileSettings.providers)) {
-        console.log(
-          'checking provider',
-          provider,
-          'value',
-          profileSettings.providers[provider].defaults
-        );
         for (const usecase of Object.keys(
           profileSettings.providers[provider].defaults
         )) {
-          console.log(
-            'checking usecase',
-            usecase,
-            'value',
-            profileSettings.providers[provider].defaults[usecase]
-          );
           //Router
           const retryPolicy =
             profileSettings.providers[provider].defaults[usecase].retryPolicy;
@@ -267,7 +255,6 @@ export abstract class SuperfaceClientBase {
     }
 
     registerHooks(hookContext);
-    console.log('retry registerd');
   }
 }
 
@@ -287,16 +274,16 @@ type ProfileUseCases<TInput extends NonPrimitive | undefined, TOutput> = {
 export type TypedSuperfaceClient<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   TProfiles extends ProfileUseCases<any, any>
-> = SuperfaceClientBase & {
-  getProfile<TProfile extends keyof TProfiles>(
-    profileId: TProfile
-  ): Promise<TypedProfile<TProfiles[TProfile]>>;
-};
+  > = SuperfaceClientBase & {
+    getProfile<TProfile extends keyof TProfiles>(
+      profileId: TProfile
+    ): Promise<TypedProfile<TProfiles[TProfile]>>;
+  };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function createTypedClient<TProfiles extends ProfileUseCases<any, any>>(
   profileDefinitions: TProfiles
-): { new (): TypedSuperfaceClient<TProfiles> } {
+): { new(): TypedSuperfaceClient<TProfiles> } {
   return class TypedSuperfaceClientClass
     extends SuperfaceClientBase
     implements TypedSuperfaceClient<TProfiles>
