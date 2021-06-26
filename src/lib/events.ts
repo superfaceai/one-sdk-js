@@ -18,6 +18,7 @@ export type InterceptableMetadata = {
 };
 export type Interceptable = {
   metadata?: InterceptableMetadata;
+  events?: Events;
 };
 
 type EventContextBase = {
@@ -113,7 +114,7 @@ function priorityCallbackTuple<T extends keyof EventParams>(
   return [priority, callback, filter];
 }
 
-class Events {
+export class Events {
   private listeners: EventListeners = {};
 
   public on<E extends keyof EventParams>(
@@ -172,6 +173,21 @@ type EventMetadata<E extends keyof EventTypes> = Partial<
   eventName: E;
 };
 
+async function rewrap<T>(promise: Promise<T>): Promise<T> {
+  let result: any, error: any;
+  try {
+    result = await promise;
+  } catch (e) {
+    error = e;
+  }
+
+  if (error !== undefined) {
+    return Promise.reject(error);
+  } else {
+    return Promise.resolve(result);
+  }
+}
+
 function replacementFunction<E extends keyof EventTypes>(
   originalFunction: any,
   metadata: EventMetadata<E>
@@ -180,8 +196,15 @@ function replacementFunction<E extends keyof EventTypes>(
     this: Interceptable,
     ...args: Parameters<EventTypes[E][0]>
   ) {
+    const events = this.events;
+
+    if (!events) {
+      return originalFunction.apply(this, args);
+    }
+
     // Before hook - runs before the function is called and takes and returns its arguments
     let functionArgs = args;
+
     if (metadata.placement === 'before' || metadata.placement === 'around') {
       const hookResult = await events.emit(`pre-${metadata.eventName}`, [
         {
@@ -206,9 +229,9 @@ function replacementFunction<E extends keyof EventTypes>(
       }
     }
 
-    let result = originalFunction.apply(this, functionArgs) as ReturnType<
-      EventTypes[E][0]
-    >;
+    let result = rewrap(
+      originalFunction.apply(this, functionArgs)
+    ) as ReturnType<EventTypes[E][0]>;
 
     // After hook - runs after the function is called and takes the result
     // May modify it, return different or retry
@@ -287,13 +310,3 @@ export function eventInterceptor<E extends keyof EventTypes>(
     return descriptor;
   };
 }
-
-export function tap(callback: (...args: any) => void) {
-  return function <T extends any[]>(...args: T): T {
-    callback(...args);
-
-    return args;
-  };
-}
-
-export const events = new Events();

@@ -260,7 +260,6 @@ but this path does not exist or is not accessible`
         ['starwars/character-information']: {
           queuedAction: undefined,
           router: new Router(
-            'first',
             {
               first: new CircuitBreakerPolicy(
                 {
@@ -274,7 +273,8 @@ but this path does not exist or is not accessible`
                 60000
               ),
             },
-            ['first', 'second']
+            ['first', 'second'],
+            'first'
           ),
         },
       });

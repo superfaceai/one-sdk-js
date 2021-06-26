@@ -2,7 +2,7 @@ import { MapDocumentNode, ProfileDocumentNode } from '@superfaceai/ast';
 import { getLocal } from 'mockttp';
 
 import { BoundProfileProvider } from '../client';
-import { events } from './events';
+import { Events } from './events';
 import { err } from './result/result';
 
 const mockProfileDocument: ProfileDocumentNode = {
@@ -121,12 +121,14 @@ describe('events', () => {
 
   it('does something', async () => {
     const endpoint = await mockServer.get('/test').thenJson(200, {});
+    const events = new Events();
 
     const profile = new BoundProfileProvider(
       mockProfileDocument,
       mockMapDocument,
       'provider',
-      { baseUrl: mockServer.url, security: [] }
+      { baseUrl: mockServer.url, security: [] },
+      events
     );
 
     let retry = true;
@@ -147,11 +149,13 @@ describe('events', () => {
   });
 
   it('handles rejection', async () => {
+    const events = new Events();
     const profile = new BoundProfileProvider(
       mockProfileDocument,
       mockMapDocument,
       'someprovider',
-      { baseUrl: 'https://unreachable.localhost', security: [] }
+      { baseUrl: 'https://unreachable.localhost', security: [] },
+      events
     );
 
     events.on(
@@ -159,13 +163,10 @@ describe('events', () => {
       { priority: 1 },
       async (_context, _args, result) => {
         try {
-          const res = await result;
-          void res;
+          await result;
 
           return { kind: 'continue' };
-        } catch (err) {
-          console.log(err);
-
+        } catch (e) {
           return {
             kind: 'modify',
             newResult: Promise.reject('modified rejection'),

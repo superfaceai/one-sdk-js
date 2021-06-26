@@ -2,6 +2,7 @@ import { BackoffKind, OnFail, SuperJson } from '../internal';
 import { SDKExecutionError } from '../internal/errors';
 import { NonPrimitive } from '../internal/interpreter/variables';
 import { ExponentialBackoff } from '../lib/backoff';
+import { Events } from '../lib/events';
 import { exists } from '../lib/io';
 import { HooksContext, registerHooks } from './failure/event-adapter';
 import { CircuitBreakerPolicy, Router } from './failure/policies';
@@ -20,13 +21,14 @@ import { Provider, ProviderConfiguration } from './provider';
  */
 const SUPER_CACHE: { [path: string]: SuperJson } = {};
 
-export abstract class SuperfaceClientBase {
+export abstract class SuperfaceClientBase extends Events {
   public readonly superJson: SuperJson;
   private boundCache: {
     [key: string]: BoundProfileProvider;
   } = {};
 
   constructor() {
+    super();
     const superCacheKey = process.env.SUPERFACE_PATH ?? SuperJson.defaultPath();
 
     if (SUPER_CACHE[superCacheKey] === undefined) {
@@ -53,7 +55,8 @@ export abstract class SuperfaceClientBase {
       const profileProvider = new ProfileProvider(
         this.superJson,
         profileConfig,
-        providerConfig
+        providerConfig,
+        this
       );
       const boundProfileProvider = await profileProvider.bind();
       this.boundCache[cacheKey] = boundProfileProvider;
@@ -254,7 +257,7 @@ export abstract class SuperfaceClientBase {
       }
     }
 
-    registerHooks(hookContext);
+    registerHooks(hookContext, this);
   }
 }
 

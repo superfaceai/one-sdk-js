@@ -36,7 +36,7 @@ import {
 } from '../internal/superjson';
 import { mergeSecurity } from '../internal/superjson/mutate';
 import { err, ok, Result } from '../lib';
-import { Interceptable } from '../lib/events';
+import { Events, Interceptable } from '../lib/events';
 import { CrossFetch } from '../lib/fetch';
 import { ProfileConfiguration } from './profile';
 import { ProviderConfiguration } from './provider';
@@ -66,7 +66,8 @@ export class BoundProfileProvider {
       baseUrl?: string;
       profileProviderSettings?: NormalizedProfileProviderSettings;
       security: SecurityConfiguration[];
-    }
+    },
+    events?: Events
   ) {
     this.profileValidator = new ProfileParameterValidator(this.profileAst);
     //TODO: Pass metadata here?
@@ -75,6 +76,7 @@ export class BoundProfileProvider {
       profile: profileAstId(profileAst),
       provider: providerName,
     };
+    this.fetchInstance.events = events;
   }
 
   private composeInput(
@@ -173,6 +175,7 @@ export class ProfileProvider {
     private profile: string | ProfileDocumentNode | ProfileConfiguration,
     /** provider name, url or configuration instance */
     private provider: string | ProviderJson | ProviderConfiguration,
+    private events: Events,
     /** url or ast node */
     private map?: string | MapDocumentNode
   ) {}
@@ -275,14 +278,20 @@ export class ProfileProvider {
       providerName
     );
 
-    return new BoundProfileProvider(profileAst, mapAst, providerInfo.name, {
-      baseUrl,
-      profileProviderSettings:
-        this.superJson.normalized.profiles[profileId]?.providers[
-          providerInfo.name
-        ],
-      security: securityConfiguration,
-    });
+    return new BoundProfileProvider(
+      profileAst,
+      mapAst,
+      providerInfo.name,
+      {
+        baseUrl,
+        profileProviderSettings:
+          this.superJson.normalized.profiles[profileId]?.providers[
+            providerInfo.name
+          ],
+        security: securityConfiguration,
+      },
+      this.events
+    );
   }
 
   private async resolveProfileAst(): Promise<ProfileDocumentNode | undefined> {

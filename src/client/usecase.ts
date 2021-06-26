@@ -29,10 +29,47 @@ export type PerformError = ProfileParameterError | MapInterpreterError;
 class UseCaseBase implements Interceptable {
   public metadata: InterceptableMetadata;
 
+  private hookContext: HooksContext = {};
+
   constructor(
     public readonly profile: ProfileBase,
     public readonly name: string
   ) {
+    this.metadata = {
+      usecase: name,
+      profile: this.profile.configuration.id,
+    };
+
+    this.hookPolicies();
+  }
+
+  protected async bind(
+    options?: PerformOptions
+  ): Promise<BoundProfileProvider> {
+    let providerConfig = options?.provider?.configuration;
+    if (providerConfig === undefined) {
+      const provider = await this.profile.client.getProviderForProfile(
+        this.profile.configuration.id
+      );
+      providerConfig = provider.configuration;
+    }
+
+    this.metadata.provider = providerConfig.name;
+    this.hookContext[
+      `${this.profile.configuration.id}/${this.name}`
+    ].router.setCurrentProvider(providerConfig.name);
+
+    //In this instance we can set metadat for events
+    const boundProfileProvider =
+      await this.profile.client.cacheBoundProfileProvider(
+        this.profile.configuration,
+        providerConfig
+      );
+
+    return boundProfileProvider;
+  }
+
+  private hookPolicies(): void {
     //Prepare hook context
     const profileId = this.profile.configuration.id;
     const providersOfUsecase: Record<string, FailurePolicy> = {};
@@ -50,8 +87,8 @@ class UseCaseBase implements Interceptable {
         'def',
         providerSettings.defaults
       );
-      const retryPolicy = providerSettings.defaults[name].retryPolicy;
-      if (retryPolicy.kind === OnFail.NONE) {
+      const retryPolicy = providerSettings.defaults[this.name]?.retryPolicy;
+      if (retryPolicy === undefined || retryPolicy.kind === OnFail.NONE) {
         continue;
       } else if (retryPolicy.kind === OnFail.CIRCUIT_BREAKER) {
         let backoff: ExponentialBackoff | undefined = undefined;
@@ -67,7 +104,7 @@ class UseCaseBase implements Interceptable {
         const policy = new CircuitBreakerPolicy(
           {
             profileId,
-            usecaseName: name,
+            usecaseName: this.name,
             // TODO: Somehow know safety
             usecaseSafety: 'unsafe',
           },
@@ -83,8 +120,8 @@ class UseCaseBase implements Interceptable {
       }
     }
 
-    const hookContext: HooksContext = {
-      [`${profileId}/${name}`]: {
+    this.hookContext = {
+      [`${profileId}/${this.name}`]: {
         router: new Router(
           //here we need providers of usecase
           providersOfUsecase,
@@ -93,36 +130,8 @@ class UseCaseBase implements Interceptable {
         queuedAction: undefined,
       },
     };
-    console.log('hooks', hookContext);
-    this.metadata = {
-      usecase: name,
-      profile: this.profile.configuration.id,
-    };
-
-    registerHooks(hookContext);
-  }
-
-  protected async bind(
-    options?: PerformOptions
-  ): Promise<BoundProfileProvider> {
-    let providerConfig = options?.provider?.configuration;
-    if (providerConfig === undefined) {
-      const provider = await this.profile.client.getProviderForProfile(
-        this.profile.configuration.id
-      );
-      providerConfig = provider.configuration;
-    }
-
-    this.metadata.provider = providerConfig.name;
-
-    //In this instance we can set metadat for events
-    const boundProfileProvider =
-      await this.profile.client.cacheBoundProfileProvider(
-        this.profile.configuration,
-        providerConfig
-      );
-
-    return boundProfileProvider;
+    console.log('hooks', this.hookContext);
+    registerHooks(this.hookContext, this.profile.client);
   }
 }
 

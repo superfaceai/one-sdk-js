@@ -13,18 +13,19 @@ import {
 } from './resolution';
 
 export class Router {
-  private currentProvider: string | undefined;
-
   constructor(
     private readonly providersOfUseCase: Record<string, FailurePolicy>,
     private readonly priority: string[],
-    currentProvider?: string
-  ) {
-    this.currentProvider = currentProvider;
-  }
+    private currentProvider?: string
+  ) {}
 
   public getCurrentProvider(): string | undefined {
     return this.currentProvider;
+  }
+
+  public setCurrentProvider(provider: string): void {
+    // TODO: check if exists
+    this.currentProvider = provider;
   }
 
   public beforeExecution(info: ExecutionInfo): ExecutionResolution {

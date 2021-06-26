@@ -14,12 +14,14 @@ import {
 } from '../internal/interpreter/http/interfaces';
 import {
   eventInterceptor,
+  Events,
   Interceptable,
   InterceptableMetadata,
 } from './events';
 
 export class CrossFetch implements FetchInstance, Interceptable {
   public metadata: InterceptableMetadata | undefined;
+  public events: Events | undefined;
 
   @eventInterceptor({
     eventName: 'fetch',

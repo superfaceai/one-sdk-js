@@ -127,6 +127,7 @@ describe('event-adapter', () => {
     await mockServer.stop();
     jest.resetAllMocks();
   });
+
   it('does not use retry policy - returns after HTTP 200', async () => {
     const endpoint = await mockServer.get('/test').thenJson(200, {});
 
@@ -157,7 +158,8 @@ describe('event-adapter', () => {
       mockProfileDocument,
       mockMapDocument,
       'provider',
-      { baseUrl: mockServer.url, security: [] }
+      { baseUrl: mockServer.url, security: [] },
+      client
     );
     //Mocking only this one function in client
     const cacheBoundProfileProviderSpy = jest
@@ -174,6 +176,7 @@ describe('event-adapter', () => {
     expect((await endpoint.getSeenRequests()).length).toEqual(1);
     expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(1);
   }, 30000);
+
   it('does not use retry policy - aborts after HTTP 500', async () => {
     const endpoint = await mockServer.get('/test').thenJson(500, {});
 
@@ -203,7 +206,8 @@ describe('event-adapter', () => {
       mockProfileDocument,
       mockMapDocument,
       'provider',
-      { baseUrl: mockServer.url, security: [] }
+      { baseUrl: mockServer.url, security: [] },
+      client
     );
     const cacheBoundProfileProviderSpy = jest
       .spyOn(client, 'cacheBoundProfileProvider')
@@ -259,7 +263,8 @@ describe('event-adapter', () => {
       mockProfileDocument,
       mockMapDocument,
       'provider',
-      { baseUrl: mockServer.url, security: [] }
+      { baseUrl: mockServer.url, security: [] },
+      client
     );
     const cacheBoundProfileProviderSpy = jest
       .spyOn(client, 'cacheBoundProfileProvider')
@@ -322,7 +327,8 @@ describe('event-adapter', () => {
       mockProfileDocument,
       mockMapDocument,
       'provider',
-      { baseUrl: mockServer.url, security: [] }
+      { baseUrl: mockServer.url, security: [] },
+      client
     );
     const cacheBoundProfileProviderSpy = jest
       .spyOn(client, 'cacheBoundProfileProvider')
@@ -346,13 +352,15 @@ describe('event-adapter', () => {
   it.skip('uses circuit breaker - retries after HTTP 429', async () => {
     const endpoint = await mockServer.get('/test').thenJson(429, {});
 
+    const mockClient = new SuperfaceClient();
+
     const mockBoundProfileProvider = new BoundProfileProvider(
       mockProfileDocument,
       mockMapDocument,
       'provider',
-      { baseUrl: mockServer.url, security: [] }
+      { baseUrl: mockServer.url, security: [] },
+      mockClient
     );
-    const mockClient = new SuperfaceClient();
 
     const mockProfileConfiguration = new ProfileConfiguration(
       'starwars/character-information',
@@ -391,7 +399,7 @@ describe('event-adapter', () => {
       },
     };
 
-    registerHooks(retryHookContext);
+    registerHooks(retryHookContext, mockClient);
 
     await expect(usecase.perform()).resolves.toEqual(
       err('circuit breaker is open')
@@ -414,13 +422,15 @@ describe('event-adapter', () => {
   it.skip('uses circuit breaker - aborts after 1 timeout', async () => {
     await mockServer.get('/test').thenTimeout();
 
+    const mockClient = new SuperfaceClient();
+
     const mockBoundProfileProvider = new BoundProfileProvider(
       mockProfileDocument,
       mockMapDocument,
       'provider',
-      { baseUrl: mockServer.url, security: [] }
+      { baseUrl: mockServer.url, security: [] },
+      mockClient
     );
-    const mockClient = new SuperfaceClient();
 
     const mockProfileConfiguration = new ProfileConfiguration(
       'starwars/character-information',
@@ -459,7 +469,7 @@ describe('event-adapter', () => {
       },
     };
 
-    registerHooks(retryHookContext);
+    registerHooks(retryHookContext, mockClient);
 
     await expect(usecase.perform()).resolves.toEqual(
       err('circuit breaker is open')
@@ -480,13 +490,15 @@ describe('event-adapter', () => {
   it.skip('uses failover policy - retruns result on 200', async () => {
     const endpoint = await mockServer.get('/test').thenJson(200, {});
 
+    const mockClient = new SuperfaceClient();
+
     const mockBoundProfileProvider = new BoundProfileProvider(
       mockProfileDocument,
       mockMapDocument,
       'provider',
-      { baseUrl: mockServer.url, security: [] }
+      { baseUrl: mockServer.url, security: [] },
+      mockClient
     );
-    const mockClient = new SuperfaceClient();
 
     const mockProfileConfiguration = new ProfileConfiguration(
       'starwars/character-information',
@@ -524,7 +536,7 @@ describe('event-adapter', () => {
       },
     };
 
-    registerHooks(retryHookContext);
+    registerHooks(retryHookContext, mockClient);
 
     await expect(usecase.perform()).resolves.toEqual(ok({ message: 'hello' }));
 
@@ -546,13 +558,14 @@ describe('event-adapter', () => {
   it.skip('uses failover policy', async () => {
     const endpoint = await mockServer.get('/test').thenJson(500, {});
 
+    const mockClient = new SuperfaceClient();
     const mockBoundProfileProvider = new BoundProfileProvider(
       mockProfileDocument,
       mockMapDocument,
       'provider',
-      { baseUrl: mockServer.url, security: [] }
+      { baseUrl: mockServer.url, security: [] },
+      mockClient
     );
-    const mockClient = new SuperfaceClient();
 
     const mockProfileConfiguration = new ProfileConfiguration(
       'starwars/character-information',
@@ -594,7 +607,7 @@ describe('event-adapter', () => {
       },
     };
 
-    registerHooks(retryHookContext);
+    registerHooks(retryHookContext, mockClient);
 
     await expect(
       usecase.perform(undefined, { provider: mockProvider })

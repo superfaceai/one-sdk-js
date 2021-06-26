@@ -1,7 +1,7 @@
 import { NetworkErrors } from '../../internal/interpreter/http';
 import { FetchResponse } from '../../internal/interpreter/http/interfaces';
 import { clone, sleep } from '../../lib';
-import { events } from '../../lib/events';
+import { Events } from '../../lib/events';
 import { Router } from './policies';
 import { FailurePolicy } from './policy';
 import { FailureResolution } from './resolution';
@@ -40,7 +40,7 @@ export type FailoverHooksContext = Record<
   }
 >;
 
-export function registerHooks(hookContext: HooksContext): void {
+export function registerHooks(hookContext: HooksContext, events: Events): void {
   console.log('registerFetchRetryHooks');
   console.time('STATE');
 
