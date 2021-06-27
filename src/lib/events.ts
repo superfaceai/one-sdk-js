@@ -88,19 +88,6 @@ export type EventParams = {
     >;
   };
 
-// export type EventParams = {
-//   'pre-perform': BeforeHook<
-//     EventContextBase,
-//     InstanceType<typeof UseCase>['perform']
-//   >;
-//   'post-perform': AfterHook<
-//     EventContextBase,
-//     InstanceType<typeof UseCase>['perform']
-//   >;
-//   'pre-fetch': BeforeHook<EventContextBase, FetchInstance['fetch']>;
-//   'post-fetch': AfterHook<EventContextBase, FetchInstance['fetch']>;
-// };
-
 type EventListeners = {
   [E in keyof EventParams]?: PriorityCallbackTuple[];
 };
@@ -139,7 +126,8 @@ export class Events {
   ): Promise<ResolvedPromise<ReturnType<EventParams[E]>>> {
     const listeners = this.listeners[event];
     const [context] = parameters;
-    let subresult = parameters;
+    let params = parameters;
+    let subresult: any = { kind: 'continue' };
     if (listeners !== undefined && listeners.length > 0) {
       for (let i = 0; i < listeners.length; i++) {
         const [, callback, filter] = listeners[i];
@@ -155,11 +143,27 @@ export class Events {
         ) {
           continue;
         }
-        subresult = await callback(...parameters);
+        const hookResult = await callback(...params);
+
+        if (hookResult.kind === 'modify') {
+          console.log('modifying', hookResult.newArgs);
+          params = [context, hookResult.newArgs] as any;
+          subresult = hookResult;
+        }
+
+        if (hookResult.kind === 'abort') {
+          return hookResult;
+        }
+
+        if (hookResult.kind === 'continue') {
+          // DO NOTHING YAY!
+        }
+
+        console.log('sub', hookResult);
       }
     }
 
-    return subresult as any;
+    return subresult;
   }
 }
 
