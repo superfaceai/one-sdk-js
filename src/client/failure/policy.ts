@@ -21,11 +21,11 @@ export type ExecutionInfo = BaseEvent;
 /** Network failure happens when no connection could even be open to the service. */
 export type NetworkFailure = {
   kind: 'network';
-  issue: 'unsigned-ssl' | 'dns' | 'timeout';
+  issue: 'unsigned-ssl' | 'dns' | 'timeout' | 'reject';
 } & BaseEvent;
 
 /**
- * Request failuer happens when the connection was open and a request was sent, but then no response or only a portion of the response was received,
+ * Request failure happens when the connection was open and a request was sent, but then no response or only a portion of the response was received,
  * either because of a timeout or abortion from the other side.
  */
 export type RequestFailure = {
