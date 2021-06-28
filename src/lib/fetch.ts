@@ -1,6 +1,7 @@
 import 'isomorphic-form-data';
 
 import fetch, { Headers } from 'cross-fetch';
+import { AbortController } from 'abort-controller';
 
 import {
   FetchBody,
@@ -18,6 +19,14 @@ import {
   Interceptable,
   InterceptableMetadata,
 } from './events';
+
+export type CrossFetchError = {
+  kind: 'network';
+  issue: 'unsigned-ssl' | 'dns' | 'timeout' | 'reject';
+} | {
+  kind: 'request';
+  issue: 'abort' | 'timeout';
+};
 
 export class CrossFetch implements FetchInstance, Interceptable {
   public metadata: InterceptableMetadata | undefined;
@@ -43,12 +52,10 @@ export class CrossFetch implements FetchInstance, Interceptable {
       body: this.body(parameters.body),
     };
 
-    const response = await fetch(
+    const response = await CrossFetch.fetchWithTimeout(
       url + this.queryParameters(parameters.queryParameters),
-      request
-      //TODO: pass timeout from params, use different value
-      // ),
-      // parameters.timeout
+      request,
+      parameters.timeout
     );
 
     const headers: Record<string, string> = {};
@@ -76,30 +83,58 @@ export class CrossFetch implements FetchInstance, Interceptable {
     };
   }
 
-  //TODO: rewrite - we need to kill the "second" slower promise - Rxjs? Some Bluebird.js
-  // private async timeout<T>(promise: Promise<T>, timeout = 5000) {
-  //   const timer = new Promise<{ timeout: boolean }>(resolve => {
-  //     setTimeout(resolve, timeout, {
-  //       timeout: true,
-  //     });
-  //   });
-  //   const response = await Promise.race([promise, timer]);
-  //   if ('timeout' in response && response.timeout) {
-  //     throw NetworkErrors.TIMEOUT_ERROR;
-  //   }
+  private static async fetchWithTimeout(url: string, options: RequestInit, timeout?: number): Promise<Response> {
+    const abort = new AbortController();
+    
+    let timeoutHandle = undefined;
+    if (timeout !== undefined) {
+      timeoutHandle = setTimeout(
+        () => abort.abort(),
+        timeout
+      );
+    }
+    options.signal = abort.signal;
 
-  //   return response as T;
-  // }
-  // private async timeout<T>(promise: Promise<T>, timeout = 5000): Promise<T> {
-  //   console.log('time out', timeout)
+    try {
+      return await fetch(url, options);
+    } catch (err: unknown) {
+      throw CrossFetch.normalizeError(err);
+    } finally {
+      if (timeoutHandle !== undefined) {
+        clearTimeout(timeoutHandle);
+      }
+    }
+  }
 
-  //   return new Promise((resolve, reject) => {
-  //     setTimeout(() => {
-  //       reject(NetworkErrors.TIMEOUT_ERROR)
-  //     }, timeout)
-  //     promise.then(resolve, reject)
-  //   })
-  // }
+  private static normalizeError(err: unknown): CrossFetchError {
+    if (typeof err !== 'object' || err === null) {
+      throw err;
+    }
+
+    if (!('type' in err)) {
+      throw err;
+    }
+
+    const error: { type: string } = err as any;
+    if (error.type === 'aborted') {
+      return { kind: 'network', issue: 'timeout' };
+    }
+
+    if (error.type === 'system') {
+      const systemError: { type: 'system', code: string, errno: string } = error as any;
+
+      if (systemError.code === 'ENOTFOUND' || systemError.code === 'EAI_AGAIN') {
+        return { kind: 'network', issue: 'dns' };
+      }
+
+      // TODO: unsigned ssl?
+
+      return { kind: 'network', issue: 'reject' };
+    }
+
+    // TODO: Match other errors here
+    return { kind: 'request', issue: 'abort' };
+  }
 
   private queryParameters(parameters?: Record<string, string>): string {
     if (parameters && Object.keys(parameters).length) {
