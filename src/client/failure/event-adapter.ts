@@ -2,7 +2,7 @@ import { NetworkErrors } from '../../internal/interpreter/http';
 import { FetchResponse } from '../../internal/interpreter/http/interfaces';
 import { clone, sleep } from '../../lib';
 import { Events } from '../../lib/events';
-import { Router } from './policies';
+import { FailurePolicyRouter } from './policies';
 import { FailurePolicy } from './policy';
 import { FailureResolution } from './resolution';
 
@@ -10,7 +10,7 @@ export type HooksContext = Record<
   //profile/usecase
   string,
   {
-    router: Router;
+    router: FailurePolicyRouter;
     queuedAction:
       | undefined
       | { kind: 'switch-provider'; provider: string }
@@ -300,7 +300,7 @@ export function registerHooks(hookContext: HooksContext, events: Events): void {
 //FIX: return types??
 export function resolveHttpErrors(
   response: FetchResponse,
-  router: Router,
+  router: FailurePolicyRouter,
   time: number
 ): FailureResolution | undefined {
   //TODO: let map deal with defined statuses?

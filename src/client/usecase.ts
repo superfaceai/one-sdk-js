@@ -14,7 +14,11 @@ import {
   InterceptableMetadata,
 } from '../lib/events';
 import { HooksContext, registerHooks } from './failure/event-adapter';
-import { AbortPolicy, CircuitBreakerPolicy, Router } from './failure/policies';
+import {
+  AbortPolicy,
+  CircuitBreakerPolicy,
+  FailurePolicyRouter,
+} from './failure/policies';
 import { FailurePolicy } from './failure/policy';
 import { ProfileBase } from './profile';
 import { BoundProfileProvider } from './profile-provider';
@@ -139,7 +143,7 @@ class UseCaseBase implements Interceptable {
 
     this.hookContext = {
       [`${profileId}/${this.name}`]: {
-        router: new Router(
+        router: new FailurePolicyRouter(
           //here we need providers of usecase
           providersOfUsecase,
           profileSettings.priority

@@ -12,12 +12,13 @@ import {
   SuccessResolution,
 } from './resolution';
 
-export class Router {
+export class FailurePolicyRouter {
+  private currentProvider: string | undefined;
+
   constructor(
     private readonly providersOfUseCase: Record<string, FailurePolicy>,
-    private readonly priority: string[],
-    private currentProvider?: string
-  ) { }
+    private readonly priority: string[]
+  ) {}
 
   public getCurrentProvider(): string | undefined {
     return this.currentProvider;
@@ -66,8 +67,6 @@ export class Router {
       return { kind: 'abort', reason: 'no backup provider configured' };
     }
 
-    //Fail if we are switching provider for the second time
-
     this.currentProvider = this.priority[indexOfCurrentProvider + 1];
 
     return { kind: 'switch-provider', provider: this.currentProvider };
@@ -81,8 +80,12 @@ export class Router {
     return this.providersOfUseCase[this.currentProvider].afterSuccess(info);
   }
 
-  //TODO: Should we handle provider reset here?
-  public reset(): void { }
+  public reset(): void {
+    this.currentProvider = this.priority[0];
+    for (const policy of Object.values(this.providersOfUseCase)) {
+      policy.reset();
+    }
+  }
 }
 
 /** Simple policy which aborts on the first failure */
@@ -103,7 +106,7 @@ export class AbortPolicy extends FailurePolicy {
     return { kind: 'continue' };
   }
 
-  override reset(): void { }
+  override reset(): void {}
 }
 
 /** Simple retry policy with exponential backoff */

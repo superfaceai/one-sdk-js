@@ -1,12 +1,8 @@
-import { BackoffKind, OnFail, SuperJson } from '../internal';
+import { SuperJson } from '../internal';
 import { SDKExecutionError } from '../internal/errors';
 import { NonPrimitive } from '../internal/interpreter/variables';
-import { ExponentialBackoff } from '../lib/backoff';
 import { Events } from '../lib/events';
 import { exists } from '../lib/io';
-import { HooksContext, registerHooks } from './failure/event-adapter';
-import { CircuitBreakerPolicy, Router } from './failure/policies';
-import { FailurePolicy } from './failure/policy';
 import {
   Profile,
   ProfileConfiguration,
@@ -167,104 +163,6 @@ export abstract class SuperfaceClientBase extends Events {
 
     return new ProfileConfiguration(profileId, version);
   }
-
-  public hookPolicies(): void {
-    //create RetryHookContext and FailoverContext
-    const hookContext: HooksContext = {};
-    const usecaseProviders: Record<
-      string,
-      { providersOfUsecase: Record<string, FailurePolicy> }
-    > = {};
-    let policy: FailurePolicy;
-    for (const [profile, profileSettings] of Object.entries(
-      this.superJson.normalized.profiles
-    )) {
-      //Set failoverPolicy
-      const priority = profileSettings.priority;
-      if (!priority.every(p => this.superJson.normalized.providers[p])) {
-        throw new SDKExecutionError(
-          `Priority array of profile: ${profile} contains unconfigured provider`,
-          [
-            `Profile "${profile}" specifies a provider array [${priority.join(
-              ', '
-            )}] in super.json`,
-            `but there are only these providers configured [${Object.keys(
-              this.superJson.normalized.providers
-            ).join(', ')}]`,
-          ],
-          [
-            `Check that providers [${priority.join(
-              ', '
-            )}] are configured for profile "${profile}"`,
-            'Paths in super.json are either absolute or relative to the location of super.json',
-          ]
-        );
-      }
-      //TODO: check duplicity of priority providers
-      for (const provider of Object.keys(profileSettings.providers)) {
-        for (const usecase of Object.keys(
-          profileSettings.providers[provider].defaults
-        )) {
-          //Router
-          const retryPolicy =
-            profileSettings.providers[provider].defaults[usecase].retryPolicy;
-          if (retryPolicy.kind === OnFail.NONE) {
-            continue;
-          } else if (retryPolicy.kind === OnFail.CIRCUIT_BREAKER) {
-            let backoff: ExponentialBackoff | undefined = undefined;
-            if (
-              retryPolicy.backoff?.kind &&
-              retryPolicy.backoff?.kind === BackoffKind.EXPONENTIAL
-            ) {
-              backoff = new ExponentialBackoff(
-                retryPolicy.backoff.start ?? 2000,
-                retryPolicy.backoff.factor
-              );
-            }
-            policy = new CircuitBreakerPolicy(
-              {
-                profileId: profile,
-                usecaseName: usecase,
-                // TODO: Somehow know safety
-                usecaseSafety: 'unsafe',
-              },
-              //TODO are these defauts ok?
-              retryPolicy.maxContiguousRetries ?? 5,
-              60000,
-              retryPolicy.requestTimeout,
-              backoff
-            );
-
-            if (!usecaseProviders[`${profile}/${usecase}`]) {
-              usecaseProviders[`${profile}/${usecase}`] = {
-                providersOfUsecase: {},
-              };
-            }
-            usecaseProviders[`${profile}/${usecase}`].providersOfUsecase[
-              provider
-            ] = policy;
-          } else {
-            throw 'Unreachable';
-          }
-        }
-        //Build hook object
-        for (const [key, providersContext] of Object.entries(
-          usecaseProviders
-        )) {
-          hookContext[key] = {
-            router: new Router(
-              providersContext.providersOfUsecase,
-              priority,
-              provider
-            ),
-            queuedAction: undefined,
-          };
-        }
-      }
-    }
-
-    registerHooks(hookContext, this);
-  }
 }
 
 export class SuperfaceClient extends SuperfaceClientBase {
@@ -283,16 +181,16 @@ type ProfileUseCases<TInput extends NonPrimitive | undefined, TOutput> = {
 export type TypedSuperfaceClient<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   TProfiles extends ProfileUseCases<any, any>
-  > = SuperfaceClientBase & {
-    getProfile<TProfile extends keyof TProfiles>(
-      profileId: TProfile
-    ): Promise<TypedProfile<TProfiles[TProfile]>>;
-  };
+> = SuperfaceClientBase & {
+  getProfile<TProfile extends keyof TProfiles>(
+    profileId: TProfile
+  ): Promise<TypedProfile<TProfiles[TProfile]>>;
+};
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function createTypedClient<TProfiles extends ProfileUseCases<any, any>>(
   profileDefinitions: TProfiles
-): { new(): TypedSuperfaceClient<TProfiles> } {
+): { new (): TypedSuperfaceClient<TProfiles> } {
   return class TypedSuperfaceClientClass
     extends SuperfaceClientBase
     implements TypedSuperfaceClient<TProfiles>
