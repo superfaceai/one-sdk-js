@@ -1,12 +1,9 @@
 import { MapDocumentNode, ProfileDocumentNode } from '@superfaceai/ast';
 import { getLocal } from 'mockttp';
 
-import { OnFail, SuperJson } from '../../internal';
+import { OnFail } from '../../internal';
 import { ok } from '../../lib';
-import { SuperfaceClient } from '../client';
 import { BoundProfileProvider } from '../profile-provider';
-
-const mockLoadSyn = jest.fn();
 
 const mockProfileDocument: ProfileDocumentNode = {
   kind: 'ProfileDocument',
@@ -187,6 +184,11 @@ describe('event-adapter', () => {
   });
 
   it('does not use retry policy - returns after HTTP 200', async () => {
+    const { SuperfaceClient } = await import('../client');
+    const { SuperJson } = await import('../../internal');
+
+    const mockLoadSyn = jest.fn();
+
     const endpoint = await mockServer.get('/test').thenJson(200, {});
 
     const mockSuperJson = new SuperJson({
@@ -236,6 +238,10 @@ describe('event-adapter', () => {
   }, 30000);
 
   it('does not use retry policy - aborts after HTTP 500', async () => {
+    const { SuperfaceClient } = await import('../client');
+    const { SuperJson } = await import('../../internal');
+    const mockLoadSyn = jest.fn();
+
     const endpoint = await mockServer.get('/test').thenJson(500, {});
 
     const mockSuperJson = new SuperJson({
@@ -282,6 +288,11 @@ describe('event-adapter', () => {
   }, 30000);
 
   it('use circuit-breaker policy - aborts after HTTP 500', async () => {
+    const { SuperfaceClient } = await import('../client');
+    const { SuperJson } = await import('../../internal');
+
+    const mockLoadSyn = jest.fn();
+
     const endpoint = await mockServer.get('/test').thenJson(500, {});
 
     const mockSuperJson = new SuperJson({
@@ -341,7 +352,11 @@ describe('event-adapter', () => {
     expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(1);
   }, 30000);
 
-  it.only('use circuit-breaker policy - switch providers after HTTP 500', async () => {
+  it('use circuit-breaker policy - switch providers after HTTP 500', async () => {
+    const { SuperfaceClient } = await import('../client');
+    const { SuperJson } = await import('../../internal');
+    const mockLoadSyn = jest.fn();
+
     const endpoint = await mockServer.get('/test').thenJson(500, {});
     const secondEndpoint = await mockServer.get('/second').thenJson(200, {});
 
