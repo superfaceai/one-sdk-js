@@ -9,6 +9,7 @@ import { Result } from '../lib';
 import { ExponentialBackoff } from '../lib/backoff';
 import {
   eventInterceptor,
+  Events,
   Interceptable,
   InterceptableMetadata,
 } from '../lib/events';
@@ -17,10 +18,10 @@ import { CircuitBreakerPolicy, Router } from './failure/policies';
 import { FailurePolicy } from './failure/policy';
 import { ProfileBase } from './profile';
 import { BoundProfileProvider } from './profile-provider';
-import { Provider } from './provider';
+import { Provider, ProviderConfiguration } from './provider';
 
 export type PerformOptions = {
-  provider?: Provider;
+  provider?: Provider | string;
 };
 
 // TODO
@@ -28,6 +29,7 @@ export type PerformError = ProfileParameterError | MapInterpreterError;
 
 class UseCaseBase implements Interceptable {
   public metadata: InterceptableMetadata;
+  public events: Events;
 
   private hookContext: HooksContext = {};
 
@@ -39,6 +41,7 @@ class UseCaseBase implements Interceptable {
       usecase: name,
       profile: this.profile.configuration.id,
     };
+    this.events = this.profile.client;
 
     this.hookPolicies();
   }
@@ -46,8 +49,17 @@ class UseCaseBase implements Interceptable {
   protected async bind(
     options?: PerformOptions
   ): Promise<BoundProfileProvider> {
-    let providerConfig = options?.provider?.configuration;
-    if (providerConfig === undefined) {
+    let providerConfig: ProviderConfiguration;
+
+    if (typeof options?.provider === 'string') {
+      const provider = await this.profile.client.getProviderForProfile(
+        this.profile.configuration.id,
+        options.provider
+      );
+      providerConfig = provider.configuration;
+    } else if (options?.provider?.configuration !== undefined) {
+      providerConfig = options.provider.configuration;
+    } else {
       const provider = await this.profile.client.getProviderForProfile(
         this.profile.configuration.id
       );
@@ -59,7 +71,7 @@ class UseCaseBase implements Interceptable {
       `${this.profile.configuration.id}/${this.name}`
     ].router.setCurrentProvider(providerConfig.name);
 
-    //In this instance we can set metadat for events
+    //In this instance we can set metadata for events
     const boundProfileProvider =
       await this.profile.client.cacheBoundProfileProvider(
         this.profile.configuration,
@@ -78,15 +90,14 @@ class UseCaseBase implements Interceptable {
     for (const [provider, providerSettings] of Object.entries(
       profileSettings.providers
     )) {
-      //
-      console.log(
-        'provider',
-        provider,
-        'set',
-        providerSettings,
-        'def',
-        providerSettings.defaults
-      );
+      // console.log(
+      //   'provider',
+      //   provider,
+      //   'set',
+      //   providerSettings,
+      //   'def',
+      //   providerSettings.defaults
+      // );
       const retryPolicy = providerSettings.defaults[this.name]?.retryPolicy;
       if (retryPolicy === undefined || retryPolicy.kind === OnFail.NONE) {
         continue;
@@ -130,7 +141,6 @@ class UseCaseBase implements Interceptable {
         queuedAction: undefined,
       },
     };
-    console.log('hooks', this.hookContext);
     registerHooks(this.hookContext, this.profile.client);
   }
 }
@@ -157,10 +167,12 @@ export class UseCase extends UseCaseBase {
     const boundProfileProvider = await this.bind(options);
 
     // TOOD: rewrap the errors for public consumption?
-    return await boundProfileProvider.perform<TInput, TOutput>(
+    const result = await boundProfileProvider.perform<TInput, TOutput>(
       this.name,
       input
     );
+
+    return result;
   }
 }
 

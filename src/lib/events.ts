@@ -146,20 +146,17 @@ export class Events {
         const hookResult = await callback(...params);
 
         if (hookResult.kind === 'modify') {
-          console.log('modifying', hookResult.newArgs);
           params = [context, hookResult.newArgs] as any;
           subresult = hookResult;
         }
 
-        if (hookResult.kind === 'abort') {
+        if (hookResult.kind === 'abort' || hookResult.kind === 'retry') {
           return hookResult;
         }
 
         if (hookResult.kind === 'continue') {
           // DO NOTHING YAY!
         }
-
-        console.log('sub', hookResult);
       }
     }
 
@@ -176,21 +173,6 @@ type EventMetadata<E extends keyof EventTypes> = Partial<
 > & {
   eventName: E;
 };
-
-async function rewrap<T>(promise: Promise<T>): Promise<T> {
-  let result: any, error: any;
-  try {
-    result = await promise;
-  } catch (e) {
-    error = e;
-  }
-
-  if (error !== undefined) {
-    return Promise.reject(error);
-  } else {
-    return Promise.resolve(result);
-  }
-}
 
 function replacementFunction<E extends keyof EventTypes>(
   originalFunction: any,
@@ -233,9 +215,14 @@ function replacementFunction<E extends keyof EventTypes>(
       }
     }
 
-    let result = rewrap(
-      originalFunction.apply(this, functionArgs)
-    ) as ReturnType<EventTypes[E][0]>;
+    let result: Promise<ReturnType<EventTypes[E][0]>>;
+    try {
+      result = Promise.resolve(
+        await originalFunction.apply(this, functionArgs)
+      );
+    } catch (err) {
+      result = Promise.reject(err);
+    }
 
     // After hook - runs after the function is called and takes the result
     // May modify it, return different or retry
@@ -269,9 +256,21 @@ function replacementFunction<E extends keyof EventTypes>(
 
         if (hookResult.kind === 'retry') {
           if (hookResult.newArgs !== undefined) {
-            result = await originalFunction?.apply(this, hookResult.newArgs);
+            try {
+              result = Promise.resolve(
+                await originalFunction?.apply(this, hookResult.newArgs)
+              );
+            } catch (err) {
+              result = err;
+            }
           } else {
-            result = await originalFunction?.apply(this, functionArgs);
+            try {
+              result = Promise.resolve(
+                originalFunction?.apply(this, functionArgs)
+              );
+            } catch (err) {
+              result = Promise.reject(err);
+            }
           }
 
           continue;
