@@ -1,7 +1,7 @@
 import { MapDocumentNode, ProfileDocumentNode } from '@superfaceai/ast';
 import { getLocal } from 'mockttp';
 
-import { OnFail } from '../../internal';
+import { BackoffKind, OnFail } from '../../internal';
 import { ok } from '../../lib';
 import { BoundProfileProvider } from '../profile-provider';
 
@@ -346,6 +346,102 @@ describe('event-adapter', () => {
 
     expect(() => result.unwrap()).toThrowError(
       new Error('circuit breaker is open')
+    );
+    //We send request twice
+    expect((await endpoint.getSeenRequests()).length).toEqual(2);
+    expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(1);
+  }, 30000);
+
+  it('use circuit-breaker policy with backoff - aborts after HTTP 500', async () => {
+    const { SuperfaceClient } = await import('../client');
+    const { SuperJson } = await import('../../internal');
+    const mockLoadSyn = jest.fn();
+    const backoffTime = 5000;
+    let firstRequestTime: number | undefined;
+    let secondRequestTime: number | undefined;
+
+    let retry = true;
+    const endpoint = await mockServer.get('/test').thenCallback(() => {
+      if (retry) {
+        retry = false;
+        firstRequestTime = Date.now();
+        console.log('if', retry);
+
+        return {
+          statusCode: 500,
+          json: {},
+        };
+      }
+      console.log('second');
+      secondRequestTime = Date.now();
+
+      return {
+        statusCode: 200,
+        json: {},
+      };
+    });
+
+    const mockSuperJson = new SuperJson({
+      profiles: {
+        ['starwars/character-information']: {
+          version: '1.0.1',
+          providers: {
+            provider: {
+              defaults: {
+                Test: {
+                  input: {},
+                  retryPolicy: {
+                    kind: OnFail.CIRCUIT_BREAKER,
+                    maxContiguousRetries: 5,
+                    requestTimeout: 1000,
+                    backoff: {
+                      kind: BackoffKind.EXPONENTIAL,
+                      start: backoffTime,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      providers: {
+        provider: {
+          security: [],
+        },
+      },
+    });
+
+    mockLoadSyn.mockReturnValue(ok(mockSuperJson));
+    SuperJson.loadSync = mockLoadSyn;
+
+    const client = new SuperfaceClient();
+
+    //Mocking bounded provider
+    const mockBoundProfileProvider = new BoundProfileProvider(
+      mockProfileDocument,
+      mockMapDocument,
+      'provider',
+      { baseUrl: mockServer.url, security: [] },
+      client
+    );
+    const cacheBoundProfileProviderSpy = jest
+      .spyOn(client, 'cacheBoundProfileProvider')
+      .mockResolvedValue(mockBoundProfileProvider);
+
+    const profile = await client.getProfile('starwars/character-information');
+    const useCase = profile.getUseCase('Test');
+    const provider = await client.getProvider('provider');
+    const result = await useCase.perform(undefined, { provider });
+
+    expect(result.unwrap()).toEqual({ message: 'hello' });
+
+    //We waited because of backoff
+    expect(secondRequestTime).toBeDefined();
+    expect(firstRequestTime).toBeDefined();
+    //Two is default exponent for ExponentialBackoff
+    expect(secondRequestTime! - firstRequestTime!).toBeGreaterThanOrEqual(
+      2 * backoffTime
     );
     //We send request twice
     expect((await endpoint.getSeenRequests()).length).toEqual(2);

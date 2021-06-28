@@ -160,8 +160,19 @@ export class RetryPolicy extends FailurePolicy {
     this.balance -= 1;
     this.backoff.up();
 
+    // positive balance means no backoff
+    if (this.balance >= 0) {
+      return { kind: 'continue' };
+    } else {
+      // don't apply backoff if enough time has elapsed since then anyway
+      const sinceLastCall = info.time - this.lastCallTime;
+      const backoff = Math.max(0, this.backoff.current - sinceLastCall);
+
+      return { kind: 'backoff', backoff: backoff };
+    }
+
     // otherwise retry
-    return { kind: 'retry' };
+    // return { kind: 'retry' };
   }
 
   override afterSuccess(info: ExecutionSuccess): SuccessResolution {

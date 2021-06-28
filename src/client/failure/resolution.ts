@@ -84,6 +84,7 @@ export type FailureResolution =
   | AbortResolution
   | RetryResolution
   | ContinueResolution
-  | SwitchProviderResolution;
+  | SwitchProviderResolution
+  | BackoffResolution;
 
 export type SuccessResolution = ContinueResolution;

@@ -144,7 +144,6 @@ class UseCaseBase implements Interceptable {
         queuedAction: undefined,
       },
     };
-    console.log('hc in bind', this.hookContext);
     registerHooks(this.hookContext, this.profile.client);
   }
 }
@@ -169,14 +168,6 @@ export class UseCase extends UseCaseBase {
     options?: PerformOptions
   ): Promise<Result<TOutput, PerformError>> {
     const boundProfileProvider = await this.bind(options);
-    console.log(
-      'perform options',
-      options,
-      'input',
-      input,
-      'bound',
-      boundProfileProvider
-    );
 
     // TOOD: rewrap the errors for public consumption?
     const result = await boundProfileProvider.perform<TInput, TOutput>(

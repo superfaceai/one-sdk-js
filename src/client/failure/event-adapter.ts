@@ -122,7 +122,7 @@ export function registerHooks(hookContext: HooksContext, events: Events): void {
 
   events.on('post-fetch', { priority: 1 }, async (context, _args, res) => {
     // only listen to fetch events in perform context
-    // console.timeLog('STATE', 'post-fetch'); //: context', context, 'args', _args, 'res', res);
+    // console.timeLog('STATE', 'post-fetch');
 
     if (
       context.profile === undefined ||
@@ -178,6 +178,11 @@ export function registerHooks(hookContext: HooksContext, events: Events): void {
             // console.log('set context', hookContext)
             return { kind: 'continue' };
           }
+          //Moved here from before execution
+          case 'backoff':
+            await sleep(overidenResolution.backoff);
+
+            return { kind: 'retry' };
 
           case 'continue':
             return { kind: 'continue' };
@@ -204,7 +209,7 @@ export function registerHooks(hookContext: HooksContext, events: Events): void {
     }
 
     if (error !== undefined) {
-      console.log('post-fetch is err', error, typeof error);
+      // console.log('post-fetch is err', error, typeof error);
 
       if (typeof error === 'string' && error === NetworkErrors.TIMEOUT_ERROR) {
         // console.log('TIMEOUT');
