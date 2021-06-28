@@ -365,14 +365,12 @@ describe('event-adapter', () => {
       if (retry) {
         retry = false;
         firstRequestTime = Date.now();
-        console.log('if', retry);
 
         return {
           statusCode: 500,
           json: {},
         };
       }
-      console.log('second');
       secondRequestTime = Date.now();
 
       return {

@@ -1,7 +1,7 @@
 import 'isomorphic-form-data';
 
-import fetch, { Headers } from 'cross-fetch';
 import { AbortController } from 'abort-controller';
+import fetch, { Headers } from 'cross-fetch';
 
 import {
   FetchBody,
@@ -20,13 +20,15 @@ import {
   InterceptableMetadata,
 } from './events';
 
-export type CrossFetchError = {
-  kind: 'network';
-  issue: 'unsigned-ssl' | 'dns' | 'timeout' | 'reject';
-} | {
-  kind: 'request';
-  issue: 'abort' | 'timeout';
-};
+export type CrossFetchError =
+  | {
+      kind: 'network';
+      issue: 'unsigned-ssl' | 'dns' | 'timeout' | 'reject';
+    }
+  | {
+      kind: 'request';
+      issue: 'abort' | 'timeout';
+    };
 
 export class CrossFetch implements FetchInstance, Interceptable {
   public metadata: InterceptableMetadata | undefined;
@@ -83,15 +85,16 @@ export class CrossFetch implements FetchInstance, Interceptable {
     };
   }
 
-  private static async fetchWithTimeout(url: string, options: RequestInit, timeout?: number): Promise<Response> {
+  private static async fetchWithTimeout(
+    url: string,
+    options: RequestInit,
+    timeout?: number
+  ): Promise<Response> {
     const abort = new AbortController();
-    
+
     let timeoutHandle = undefined;
     if (timeout !== undefined) {
-      timeoutHandle = setTimeout(
-        () => abort.abort(),
-        timeout
-      );
+      timeoutHandle = setTimeout(() => abort.abort(), timeout);
     }
     options.signal = abort.signal;
 
@@ -115,15 +118,19 @@ export class CrossFetch implements FetchInstance, Interceptable {
       throw err;
     }
 
-    const error: { type: string } = err as any;
+    const error: { type: string } = err as { type: string };
     if (error.type === 'aborted') {
       return { kind: 'network', issue: 'timeout' };
     }
 
     if (error.type === 'system') {
-      const systemError: { type: 'system', code: string, errno: string } = error as any;
+      const systemError: { type: 'system'; code: string; errno: string } =
+        error as { type: 'system'; code: string; errno: string };
 
-      if (systemError.code === 'ENOTFOUND' || systemError.code === 'EAI_AGAIN') {
+      if (
+        systemError.code === 'ENOTFOUND' ||
+        systemError.code === 'EAI_AGAIN'
+      ) {
         return { kind: 'network', issue: 'dns' };
       }
 
