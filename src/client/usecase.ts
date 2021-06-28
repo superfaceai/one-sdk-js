@@ -55,26 +55,21 @@ class UseCaseBase implements Interceptable {
   ): Promise<BoundProfileProvider> {
     let providerConfig: ProviderConfiguration;
 
-    console.log('bind options', options);
     if (typeof options?.provider === 'string') {
-      console.log('provider is string');
       const provider = await this.profile.client.getProviderForProfile(
         this.profile.configuration.id,
         options.provider
       );
-      console.log('provider', provider);
       providerConfig = provider.configuration;
     } else if (options?.provider?.configuration !== undefined) {
       providerConfig = options.provider.configuration;
     } else {
-      console.log('ELSE');
       const provider = await this.profile.client.getProviderForProfile(
         this.profile.configuration.id
       );
       providerConfig = provider.configuration;
     }
 
-    console.log('seting in binde', providerConfig);
     this.metadata.provider = providerConfig.name;
     this.hookContext[
       `${this.profile.configuration.id}/${this.name}`
@@ -100,9 +95,7 @@ class UseCaseBase implements Interceptable {
       profileSettings.providers
     )) {
       const retryPolicy = providerSettings.defaults[this.name]?.retryPolicy;
-      console.log('rp', retryPolicy);
       if (retryPolicy === undefined || retryPolicy.kind === OnFail.NONE) {
-        console.log('setting abort');
         //TODO: do we use abort policy here?
         const policy = new AbortPolicy({
           profileId,
