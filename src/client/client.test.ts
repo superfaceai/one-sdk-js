@@ -228,7 +228,8 @@ but this path does not exist or is not accessible`
   });
 
   describe('hookPolicies', () => {
-    it.only('prepares correct object', async () => {
+    //FIX: skiping as we do not call hook policies - remove?
+    it.skip('prepares correct object', async () => {
       const mockSuperJson = new SuperJson({
         profiles: {
           ['starwars/character-information']: {
@@ -249,7 +250,6 @@ but this path does not exist or is not accessible`
           },
         },
       });
-      const originalLoadSync = SuperJson.loadSync;
 
       mockLoadSyn.mockReturnValue(ok(mockSuperJson));
       SuperJson.loadSync = mockLoadSyn;
@@ -278,7 +278,6 @@ but this path does not exist or is not accessible`
           ),
         },
       });
-      SuperJson.loadSync = originalLoadSync;
     });
   });
 });

@@ -170,6 +170,7 @@ const profileProviderDebug = createDebug('superface:profile-provider');
 export class ProfileProvider {
   constructor(
     /** Preloaded superJson instance */
+    //TODO: Use superJson from events/Client?
     public readonly superJson: SuperJson,
     /** profile id, url, ast node or configuration instance */
     private profile: string | ProfileDocumentNode | ProfileConfiguration,
