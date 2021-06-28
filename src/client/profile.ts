@@ -50,8 +50,8 @@ export class TypedProfile<
   private readonly knownUsecases: KnownUsecase<TUsecaseTypes>;
 
   constructor(
-    public readonly client: SuperfaceClientBase,
-    public readonly configuration: ProfileConfiguration,
+    public override readonly client: SuperfaceClientBase,
+    public override readonly configuration: ProfileConfiguration,
     usecases: (keyof TUsecaseTypes)[]
   ) {
     super(client, configuration);

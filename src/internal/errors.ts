@@ -3,7 +3,10 @@ export class ErrorBase {
 }
 
 export class UnexpectedError extends ErrorBase {
-  constructor(public override message: string, public additionalContext?: unknown) {
+  constructor(
+    public override message: string,
+    public additionalContext?: unknown
+  ) {
     super('UnexpectedError', message);
   }
 }

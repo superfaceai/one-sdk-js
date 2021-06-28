@@ -137,8 +137,8 @@ class UseCaseBase implements Interceptable {
 
 export class UseCase extends UseCaseBase {
   constructor(
-    public readonly profile: ProfileBase,
-    public readonly name: string
+    public override readonly profile: ProfileBase,
+    public override readonly name: string
   ) {
     super(profile, name);
   }
