@@ -119,7 +119,7 @@ describe('events', () => {
     await mockServer.stop();
   });
 
-  it('does something', async () => {
+  it.only('does something', async () => {
     const endpoint = await mockServer.get('/test').thenJson(200, {});
     const events = new Events();
 
@@ -135,7 +135,6 @@ describe('events', () => {
     events.on('post-fetch', { priority: 1 }, () => {
       if (retry) {
         retry = false;
-
         return { kind: 'retry' };
       }
 

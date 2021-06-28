@@ -13,7 +13,7 @@ import {
   InterceptableMetadata,
 } from '../lib/events';
 import { HooksContext, registerHooks } from './failure/event-adapter';
-import { CircuitBreakerPolicy, Router } from './failure/policies';
+import { AbortPolicy, CircuitBreakerPolicy, Router } from './failure/policies';
 import { FailurePolicy } from './failure/policy';
 import { ProfileBase } from './profile';
 import { BoundProfileProvider } from './profile-provider';
@@ -59,7 +59,7 @@ class UseCaseBase implements Interceptable {
       `${this.profile.configuration.id}/${this.name}`
     ].router.setCurrentProvider(providerConfig.name);
 
-    //In this instance we can set metadat for events
+    //In this instance we can set metadata for events
     const boundProfileProvider =
       await this.profile.client.cacheBoundProfileProvider(
         this.profile.configuration,
@@ -78,17 +78,11 @@ class UseCaseBase implements Interceptable {
     for (const [provider, providerSettings] of Object.entries(
       profileSettings.providers
     )) {
-      //
-      console.log(
-        'provider',
-        provider,
-        'set',
-        providerSettings,
-        'def',
-        providerSettings.defaults
-      );
       const retryPolicy = providerSettings.defaults[this.name]?.retryPolicy;
       if (retryPolicy === undefined || retryPolicy.kind === OnFail.NONE) {
+        //TODO: do we use abort policy here?
+        const policy = new AbortPolicy({ profileId, usecaseName: this.name, usecaseSafety: 'unsafe' })
+        providersOfUsecase[provider] = policy;
         continue;
       } else if (retryPolicy.kind === OnFail.CIRCUIT_BREAKER) {
         let backoff: ExponentialBackoff | undefined = undefined;

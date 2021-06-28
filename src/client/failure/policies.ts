@@ -17,7 +17,7 @@ export class Router {
     private readonly providersOfUseCase: Record<string, FailurePolicy>,
     private readonly priority: string[],
     private currentProvider?: string
-  ) {}
+  ) { }
 
   public getCurrentProvider(): string | undefined {
     return this.currentProvider;
@@ -29,8 +29,12 @@ export class Router {
   }
 
   public beforeExecution(info: ExecutionInfo): ExecutionResolution {
+    //TODO: export to function
     if (!this.currentProvider) {
       throw 'Property currentProvider is not set in Router instance';
+    }
+    if (!this.providersOfUseCase[this.currentProvider]) {
+      throw `There is not any policy set for provider ${this.currentProvider} in Router instance`;
     }
     const innerResolution =
       this.providersOfUseCase[this.currentProvider].beforeExecution(info);
@@ -41,6 +45,9 @@ export class Router {
   public afterFailure(info: ExecutionFailure): FailureResolution {
     if (!this.currentProvider) {
       throw 'Property currentProvider is not set in Router instance';
+    }
+    if (!this.providersOfUseCase[this.currentProvider]) {
+      throw `There is not any policy set for provider ${this.currentProvider} in Router instance`;
     }
     const innerResolution =
       this.providersOfUseCase[this.currentProvider].afterFailure(info);
@@ -74,7 +81,7 @@ export class Router {
   }
 
   //TODO: Should we handle provider reset here?
-  public reset(): void {}
+  public reset(): void { }
 }
 
 /** Simple policy which aborts on the first failure */
@@ -95,7 +102,7 @@ export class AbortPolicy extends FailurePolicy {
     return { kind: 'continue' };
   }
 
-  override reset(): void {}
+  override reset(): void { }
 }
 
 /** Simple retry policy with exponential backoff */

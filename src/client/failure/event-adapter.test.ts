@@ -128,7 +128,7 @@ describe('event-adapter', () => {
     jest.resetAllMocks();
   });
 
-  it('does not use retry policy - returns after HTTP 200', async () => {
+  it.only('does not use retry policy - returns after HTTP 200', async () => {
     const endpoint = await mockServer.get('/test').thenJson(200, {});
 
     const mockSuperJson = new SuperJson({
@@ -223,7 +223,7 @@ describe('event-adapter', () => {
     expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(1);
   }, 30000);
 
-  it.only('use circuit-breaker policy - aborts after HTTP 500', async () => {
+  it('use circuit-breaker policy - aborts after HTTP 500', async () => {
     const endpoint = await mockServer.get('/test').thenJson(500, {});
 
     const mockSuperJson = new SuperJson({
@@ -276,7 +276,7 @@ describe('event-adapter', () => {
     const result = await useCase.perform(undefined, { provider });
 
     expect(() => result.unwrap()).toThrowError(
-      new Error('circuit breaker is open')
+      new Error('HTTP Error')
     );
     //We send request twice
     expect((await endpoint.getSeenRequests()).length).toEqual(2);
