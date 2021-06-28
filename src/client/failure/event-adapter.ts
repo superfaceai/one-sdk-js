@@ -41,11 +41,11 @@ export type FailoverHooksContext = Record<
 >;
 
 export function registerHooks(hookContext: HooksContext, events: Events): void {
-  console.log('registerFetchRetryHooks');
-  console.time('STATE');
+  // console.log('registerFetchRetryHooks');
+  // console.time('STATE');
 
   events.on('pre-fetch', { priority: 1 }, async (context, args) => {
-    console.timeLog('STATE', 'pre-fetch');
+    // console.timeLog('STATE', 'pre-fetch');
     // only listen to fetch events in perform context
     if (
       context.profile === undefined ||
@@ -122,7 +122,7 @@ export function registerHooks(hookContext: HooksContext, events: Events): void {
 
   events.on('post-fetch', { priority: 1 }, async (context, _args, res) => {
     // only listen to fetch events in perform context
-    console.timeLog('STATE', 'post-fetch'); //: context', context, 'args', _args, 'res', res);
+    // console.timeLog('STATE', 'post-fetch'); //: context', context, 'args', _args, 'res', res);
 
     if (
       context.profile === undefined ||
@@ -204,7 +204,7 @@ export function registerHooks(hookContext: HooksContext, events: Events): void {
     }
 
     if (error !== undefined) {
-      // console.log('post-fetch is err', error, typeof error);
+      console.log('post-fetch is err', error, typeof error);
 
       if (typeof error === 'string' && error === NetworkErrors.TIMEOUT_ERROR) {
         // console.log('TIMEOUT');
@@ -217,7 +217,7 @@ export function registerHooks(hookContext: HooksContext, events: Events): void {
         issue: 'timeout',
       });
 
-      // console.log('ERR RES', resolution)
+      // console.log('ERR RES', resolution);
       switch (resolution.kind) {
         case 'continue':
           return { kind: 'continue' };
@@ -226,12 +226,21 @@ export function registerHooks(hookContext: HooksContext, events: Events): void {
           return { kind: 'retry' };
 
         case 'abort':
-          // console.log('aborting with', resolution)
+          // console.log('aborting with', resolution);
 
           return {
             kind: 'modify',
             newResult: Promise.reject(resolution.reason),
           };
+
+        case 'switch-provider':
+          hookContext[`${context.profile}/${context.usecase}`].queuedAction = {
+            kind: 'switch-provider',
+            provider: resolution.provider,
+          };
+
+          // console.log('set context', hookContext)
+          return { kind: 'continue' };
       }
     }
 
@@ -239,14 +248,14 @@ export function registerHooks(hookContext: HooksContext, events: Events): void {
   });
 
   events.on('pre-perform', { priority: 1 }, async () => {
-    console.timeLog('STATE', 'pre-perform');
+    // console.timeLog('STATE', 'pre-perform');
 
     // TODO: anything here?
     return { kind: 'continue' };
   });
 
-  events.on('post-perform', { priority: 1 }, async (context, _args, _res) => {
-    console.timeLog('STATE', 'post-perform');
+  events.on('post-perform', { priority: 1 }, async (context, args, _res) => {
+    // console.timeLog('STATE', 'post-perform');
 
     // this shouldn't happen but if it does just continue for now
     if (
@@ -269,6 +278,15 @@ export function registerHooks(hookContext: HooksContext, events: Events): void {
     // perform queued action here
     if (performContext.queuedAction !== undefined) {
       // console.log('DO queuedAction!!!!!!!!!!!!!!!!!!!!');
+      if (performContext.queuedAction.kind === 'switch-provider') {
+        const action = performContext.queuedAction;
+        performContext.queuedAction = undefined;
+
+        return {
+          kind: 'retry',
+          newArgs: [args[0], { ...args[1], provider: action.provider }],
+        };
+      }
       // TODO
     }
 

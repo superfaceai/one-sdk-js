@@ -76,13 +76,19 @@ export abstract class SuperfaceClientBase extends Events {
   }
 
   /** Returns a provider configuration for when no provider is passed to untyped `.perform`. */
-  async getProviderForProfile(profileId: string): Promise<Provider> {
+  async getProviderForProfile(
+    profileId: string,
+    provider?: string
+  ): Promise<Provider> {
     const knownProfileProviders = Object.keys(
       this.superJson.normalized.profiles[profileId]?.providers ?? {}
     );
 
     if (knownProfileProviders.length > 0) {
-      const name = knownProfileProviders[0];
+      const name =
+        provider !== undefined && knownProfileProviders.includes(provider)
+          ? provider
+          : knownProfileProviders[0];
 
       return this.getProvider(name);
     }
@@ -277,16 +283,16 @@ type ProfileUseCases<TInput extends NonPrimitive | undefined, TOutput> = {
 export type TypedSuperfaceClient<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   TProfiles extends ProfileUseCases<any, any>
-> = SuperfaceClientBase & {
-  getProfile<TProfile extends keyof TProfiles>(
-    profileId: TProfile
-  ): Promise<TypedProfile<TProfiles[TProfile]>>;
-};
+  > = SuperfaceClientBase & {
+    getProfile<TProfile extends keyof TProfiles>(
+      profileId: TProfile
+    ): Promise<TypedProfile<TProfiles[TProfile]>>;
+  };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function createTypedClient<TProfiles extends ProfileUseCases<any, any>>(
   profileDefinitions: TProfiles
-): { new (): TypedSuperfaceClient<TProfiles> } {
+): { new(): TypedSuperfaceClient<TProfiles> } {
   return class TypedSuperfaceClientClass
     extends SuperfaceClientBase
     implements TypedSuperfaceClient<TProfiles>

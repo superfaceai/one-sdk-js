@@ -116,6 +116,68 @@ const mockMapDocument: MapDocumentNode = {
   ],
 };
 
+const secondMockMapDocument: MapDocumentNode = {
+  kind: 'MapDocument',
+  header: {
+    kind: 'MapHeader',
+    profile: {
+      scope: 'starwars',
+      name: 'character-information',
+      version: {
+        major: 1,
+        minor: 0,
+        patch: 0,
+      },
+    },
+    provider: 'second',
+  },
+  definitions: [
+    {
+      kind: 'MapDefinition',
+      name: 'Test',
+      usecaseName: 'Test',
+      statements: [
+        {
+          kind: 'HttpCallStatement',
+          method: 'GET',
+          url: '/second',
+          request: {
+            security: [],
+            kind: 'HttpRequest',
+          },
+          responseHandlers: [
+            {
+              kind: 'HttpResponseHandler',
+              statusCode: 200,
+              contentType: 'application/json',
+              statements: [
+                {
+                  kind: 'OutcomeStatement',
+                  isError: false,
+                  terminateFlow: false,
+                  value: {
+                    kind: 'ObjectLiteral',
+                    fields: [
+                      {
+                        kind: 'Assignment',
+                        key: ['message'],
+                        value: {
+                          kind: 'PrimitiveLiteral',
+                          value: 'hello from second provider',
+                        },
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  ],
+};
+
 const mockServer = getLocal();
 
 describe('event-adapter', () => {
@@ -126,9 +188,10 @@ describe('event-adapter', () => {
   afterEach(async () => {
     await mockServer.stop();
     jest.resetAllMocks();
+    jest.resetModuleRegistry();
   });
 
-  it.only('does not use retry policy - returns after HTTP 200', async () => {
+  it('does not use retry policy - returns after HTTP 200', async () => {
     const endpoint = await mockServer.get('/test').thenJson(200, {});
 
     const mockSuperJson = new SuperJson({
@@ -276,15 +339,16 @@ describe('event-adapter', () => {
     const result = await useCase.perform(undefined, { provider });
 
     expect(() => result.unwrap()).toThrowError(
-      new Error('HTTP Error')
+      new Error('circuit breaker is open')
     );
     //We send request twice
     expect((await endpoint.getSeenRequests()).length).toEqual(2);
     expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(1);
   }, 30000);
 
-  it('use circuit-breaker policy - switch providers after HTTP 500', async () => {
+  it.only('use circuit-breaker policy - switch providers after HTTP 500', async () => {
     const endpoint = await mockServer.get('/test').thenJson(500, {});
+    const secondEndpoint = await mockServer.get('/second').thenJson(200, {});
 
     const mockSuperJson = new SuperJson({
       profiles: {
@@ -304,6 +368,7 @@ describe('event-adapter', () => {
                 },
               },
             },
+            second: {},
           },
         },
       },
@@ -322,29 +387,36 @@ describe('event-adapter', () => {
 
     const client = new SuperfaceClient();
 
-    //Mocking bounded provider
-    const mockBoundProfileProvider = new BoundProfileProvider(
+    //Mocking first bounded provider
+    const firstMockBoundProfileProvider = new BoundProfileProvider(
       mockProfileDocument,
       mockMapDocument,
       'provider',
       { baseUrl: mockServer.url, security: [] },
       client
     );
+    //Mocking first bounded provider
+    const secondMockBoundProfileProvider = new BoundProfileProvider(
+      mockProfileDocument,
+      secondMockMapDocument,
+      'second',
+      { baseUrl: mockServer.url, security: [] },
+      client
+    );
     const cacheBoundProfileProviderSpy = jest
       .spyOn(client, 'cacheBoundProfileProvider')
-      .mockResolvedValue(mockBoundProfileProvider);
+      .mockResolvedValueOnce(firstMockBoundProfileProvider)
+      .mockResolvedValueOnce(secondMockBoundProfileProvider);
 
     const profile = await client.getProfile('starwars/character-information');
     const useCase = profile.getUseCase('Test');
-    const provider = await client.getProvider('provider');
-    const result = await useCase.perform(undefined, { provider });
+    const result = await useCase.perform(undefined);
 
-    expect(() => result.unwrap()).toThrowError(
-      new Error('circuit breaker is open')
-    );
+    expect(result.unwrap()).toEqual({ message: 'hello from second provider' });
     //We send request twice
     expect((await endpoint.getSeenRequests()).length).toEqual(2);
-    expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(1);
+    expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(2);
+    expect((await secondEndpoint.getSeenRequests()).length).toEqual(1);
   }, 30000);
 
   //OLD

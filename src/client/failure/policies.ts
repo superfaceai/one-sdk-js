@@ -25,6 +25,7 @@ export class Router {
 
   public setCurrentProvider(provider: string): void {
     // TODO: check if exists
+    // console.log('SETTTING FROM ', this.currentProvider, ' TO ', provider);
     this.currentProvider = provider;
   }
 
