@@ -242,16 +242,30 @@ function replacementFunction<E extends keyof EventTypes>(
     // Before hook - runs before the function is called and takes and returns its arguments
     let functionArgs = args;
     let retry = true;
-    const baseContext: EventContextBase = {
-      time: new Date(),
-      profile: this.metadata?.profile,
-      usecase: this.metadata?.usecase,
-      provider: this.metadata?.provider,
-    };
+    // const baseContext: EventContextBase = {
+    //   time: new Date(),
+    //   profile: this.metadata?.profile,
+    //   usecase: this.metadata?.usecase,
+    //   provider: this.metadata?.provider,
+    // };
+    console.timeLog(
+      'STATE',
+      'REPALCE context',
+      ' place ',
+      metadata.placement,
+      ' metadata.eventName ',
+      metadata.eventName
+    );
+
     while (retry) {
       if (metadata.placement === 'before' || metadata.placement === 'around') {
         const hookResult = await events.emit(`pre-${metadata.eventName}`, [
-          baseContext,
+          {
+            time: new Date(),
+            profile: this.metadata?.profile,
+            usecase: this.metadata?.usecase,
+            provider: this.metadata?.provider,
+          },
           functionArgs,
         ] as any);
 
@@ -273,6 +287,7 @@ function replacementFunction<E extends keyof EventTypes>(
         result = Promise.resolve(
           await originalFunction.apply(this, functionArgs)
         );
+        console.timeLog('STATE', 'res', result);
       } catch (err) {
         result = Promise.reject(err);
       }
@@ -280,8 +295,20 @@ function replacementFunction<E extends keyof EventTypes>(
       // After hook - runs after the function is called and takes the result
       // May modify it, return different or retry
       if (metadata.placement === 'after' || metadata.placement === 'around') {
+        console.timeLog(
+          'STATE',
+          'events emit met args ',
+          functionArgs,
+          ' res ',
+          result
+        );
         const hookResult = await events.emit(`post-${metadata.eventName}`, [
-          baseContext,
+          {
+            time: new Date(),
+            profile: this.metadata?.profile,
+            usecase: this.metadata?.usecase,
+            provider: this.metadata?.provider,
+          },
           functionArgs as any,
           result,
         ] as any);
