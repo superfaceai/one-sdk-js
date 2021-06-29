@@ -26,7 +26,7 @@ export class MapInterpreterEventAdapter
     ast: MapDocumentNode | undefined,
     node: HttpCallStatementNode,
     response: HttpResponse
-  ): Promise<void> {
+  ): Promise<'continue' | 'retry'> {
     if (response.statusCode >= 400) {
       throw new HTTPError(
         'HTTP Error',
@@ -36,5 +36,7 @@ export class MapInterpreterEventAdapter
         { body: response.body, headers: response.headers }
       );
     }
+
+    return 'continue';
   }
 }

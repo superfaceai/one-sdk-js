@@ -16,6 +16,7 @@ export class FailurePolicyRouter {
   private currentProvider: string | undefined;
 
   constructor(
+    private readonly usecaseInfo: UsecaseInfo,
     private readonly providersOfUseCase: Record<string, FailurePolicy>,
     private readonly priority: string[]
   ) {}
@@ -25,8 +26,11 @@ export class FailurePolicyRouter {
   }
 
   public setCurrentProvider(provider: string): void {
-    // TODO: check if exists
-    // console.log('SETTTING FROM ', this.currentProvider, ' TO ', provider);
+    // create a policy ad-hoc if a provider that hasn't been preconfigured was provided
+    if (!(provider in this.providersOfUseCase)) {
+      this.providersOfUseCase[provider] = new AbortPolicy(this.usecaseInfo);
+    }
+
     this.currentProvider = provider;
   }
 
@@ -72,7 +76,6 @@ export class FailurePolicyRouter {
     }
     const innerResolution =
       this.providersOfUseCase[this.currentProvider].afterFailure(info);
-    // console.log('router after fail', innerResolution)
 
     //TODO: some other checking logic?
     if (innerResolution.kind !== 'abort' || this.priority.length === 0) {

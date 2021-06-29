@@ -11,5 +11,5 @@ export interface MapInterpreterExternalHandler {
     ast: MapDocumentNode | undefined,
     node: HttpCallStatementNode,
     response: HttpResponse
-  ): Promise<void>;
+  ): Promise<'continue' | 'retry'>;
 }

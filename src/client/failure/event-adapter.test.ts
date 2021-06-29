@@ -493,7 +493,9 @@ describe('event-adapter', () => {
     const provider = await client.getProvider('provider');
     const result = await useCase.perform(undefined, { provider });
 
-    expect(result.isErr() && result.error).toEqual('circuit breaker is open');
+    expect(result.isErr() && result.error).toEqual(
+      new Error('circuit breaker is open')
+    );
     //We send request twice
     expect((await endpoint.getSeenRequests()).length).toEqual(2);
     expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(1);

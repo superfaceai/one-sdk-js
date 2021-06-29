@@ -284,33 +284,44 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
         .join(', ');
     }
 
-    debug('Performing http request:', node.url);
-    const response = await this.http.request(node.url, {
-      method: node.method,
-      headers: request?.headers,
-      contentType: request?.contentType ?? 'application/json',
-      accept,
-      baseUrl: this.parameters.serviceBaseUrl,
-      queryParameters: request?.queryParameters,
-      pathParameters: this.variables,
-      body: request?.body,
-      securityRequirements: request?.security,
-      securityConfiguration: this.parameters.security,
-    });
+    let retry = true;
+    while (retry) {
+      debug('Performing http request:', node.url);
+      const response = await this.http.request(node.url, {
+        method: node.method,
+        headers: request?.headers,
+        contentType: request?.contentType ?? 'application/json',
+        accept,
+        baseUrl: this.parameters.serviceBaseUrl,
+        queryParameters: request?.queryParameters,
+        pathParameters: this.variables,
+        body: request?.body,
+        securityRequirements: request?.security,
+        securityConfiguration: this.parameters.security,
+      });
 
-    for (const [handler] of responseHandlers) {
-      const [match, result] = await handler(response);
+      for (const [handler] of responseHandlers) {
+        const [match, result] = await handler(response);
 
-      if (match) {
-        if (result) {
-          this.stackTop.result = result;
+        if (match) {
+          if (result) {
+            this.stackTop.result = result;
+          }
+
+          return;
         }
+      }
 
-        return;
+      const action =
+        (await this.externalHandler.unhandledHttp?.(
+          this.ast,
+          node,
+          response
+        )) ?? 'continue';
+      if (action !== 'retry') {
+        retry = false;
       }
     }
-
-    await this.externalHandler.unhandledHttp?.(this.ast, node, response);
   }
 
   async visitHttpRequestNode(node: HttpRequestNode): Promise<HttpRequest> {
