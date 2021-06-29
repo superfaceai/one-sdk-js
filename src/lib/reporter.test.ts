@@ -110,7 +110,7 @@ const mockMapDocument: MapDocumentNode = {
 const mockServer = getLocal();
 
 describe('MetricReporter', () => {
-  it('should report metrics automagically', async done => {
+  it('should report metrics automagically', async () => {
     SuperJson.loadSync = () => ok(mockSuperJson);
     jest.mock('../client/registry', () => ({
       ...jest.requireActual('../client/registry'),
@@ -131,15 +131,21 @@ describe('MetricReporter', () => {
     const client = new SuperfaceClient();
     (client as any).boundCache[
       '{"id":"test-profile","version":"1.0.0"}{"name":"testprovider","security":[]}'
-    ] = new BoundProfileProvider(mockProfileDocument, mockMapDocument, {
-      security: [],
-    });
+    ] = new BoundProfileProvider(
+      mockProfileDocument,
+      mockMapDocument,
+      'testprovider',
+      {
+        security: [],
+      },
+      client
+    );
     const profile = await client.getProfile('test-profile');
     await profile.getUseCase('Test').perform();
     await profile.getUseCase('Test').perform();
     // console.log(result);
 
     expect(client).not.toBe(undefined);
-    setTimeout(done, 20000);
+    await new Promise(resolve => setTimeout(resolve, 20000));
   }, 25000);
 });
