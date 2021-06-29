@@ -55,8 +55,7 @@ describe('failure policies', () => {
       const event = { time: 0, registryCacheAge: 0 };
 
       expect(policy.afterFailure(failure)).toStrictEqual({
-        kind: 'backoff',
-        backoff: 100,
+        kind: 'retry'
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
@@ -65,8 +64,7 @@ describe('failure policies', () => {
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
-        kind: 'backoff',
-        backoff: 200,
+        kind: 'retry'
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
@@ -75,8 +73,7 @@ describe('failure policies', () => {
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
-        kind: 'backoff',
-        backoff: 400,
+        kind: 'retry'
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
@@ -104,8 +101,7 @@ describe('failure policies', () => {
       const event = { time: 0, registryCacheAge: 0 };
 
       expect(policy.afterFailure(failure)).toStrictEqual({
-        kind: 'backoff',
-        backoff: 100,
+        kind: 'retry'
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
@@ -114,8 +110,7 @@ describe('failure policies', () => {
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
-        kind: 'backoff',
-        backoff: 200,
+        kind: 'retry'
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
@@ -124,8 +119,7 @@ describe('failure policies', () => {
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
-        kind: 'backoff',
-        backoff: 400,
+        kind: 'retry'
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
@@ -177,8 +171,7 @@ describe('failure policies', () => {
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
-        kind: 'backoff',
-        backoff: 100,
+        kind: 'retry'
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
@@ -187,8 +180,7 @@ describe('failure policies', () => {
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
-        kind: 'backoff',
-        backoff: 200,
+        kind: 'retry'
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
@@ -210,8 +202,7 @@ describe('failure policies', () => {
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
-        kind: 'backoff',
-        backoff: 100,
+        kind: 'retry'
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
@@ -231,8 +222,7 @@ describe('failure policies', () => {
       const event = { time: 0, registryCacheAge: 0 };
 
       expect(policy.afterFailure(failure)).toStrictEqual({
-        kind: 'backoff',
-        backoff: 100,
+        kind: 'retry'
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
@@ -241,8 +231,7 @@ describe('failure policies', () => {
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
-        kind: 'backoff',
-        backoff: 200,
+        kind: 'retry'
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
@@ -251,8 +240,7 @@ describe('failure policies', () => {
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
-        kind: 'backoff',
-        backoff: 400,
+        kind: 'retry'
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
@@ -267,8 +255,7 @@ describe('failure policies', () => {
 
       policy.reset();
       expect(policy.afterFailure(failure)).toStrictEqual({
-        kind: 'backoff',
-        backoff: 100,
+        kind: 'retry'
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
@@ -277,8 +264,7 @@ describe('failure policies', () => {
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
-        kind: 'backoff',
-        backoff: 200,
+        kind: 'retry'
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
@@ -287,8 +273,7 @@ describe('failure policies', () => {
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
-        kind: 'backoff',
-        backoff: 400,
+        kind: 'retry'
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
@@ -303,8 +288,7 @@ describe('failure policies', () => {
 
       policy.reset();
       expect(policy.afterFailure(failure)).toStrictEqual({
-        kind: 'backoff',
-        backoff: 100,
+        kind: 'retry'
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
@@ -313,8 +297,7 @@ describe('failure policies', () => {
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
-        kind: 'backoff',
-        backoff: 200,
+        kind: 'retry'
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
@@ -323,8 +306,7 @@ describe('failure policies', () => {
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
-        kind: 'backoff',
-        backoff: 400,
+        kind: 'retry'
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
@@ -375,8 +357,7 @@ describe('failure policies', () => {
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
-        kind: 'backoff',
-        backoff: 100,
+        kind: 'retry'
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
@@ -385,8 +366,7 @@ describe('failure policies', () => {
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
-        kind: 'backoff',
-        backoff: 200,
+        kind: 'retry'
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
@@ -395,8 +375,7 @@ describe('failure policies', () => {
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
-        kind: 'backoff',
-        backoff: 400,
+        kind: 'retry'
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
@@ -430,8 +409,7 @@ describe('failure policies', () => {
       const event = { time: 0, registryCacheAge: 0 };
 
       expect(policy.afterFailure(failure)).toStrictEqual({
-        kind: 'backoff',
-        backoff: 100,
+        kind: 'retry'
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
@@ -440,8 +418,7 @@ describe('failure policies', () => {
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
-        kind: 'backoff',
-        backoff: 200,
+        kind: 'retry'
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
@@ -450,8 +427,7 @@ describe('failure policies', () => {
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
-        kind: 'backoff',
-        backoff: 400,
+        kind: 'retry'
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
@@ -474,8 +450,7 @@ describe('failure policies', () => {
       const event = { time: 0, registryCacheAge: 0 };
 
       expect(policy.afterFailure(failure)).toStrictEqual({
-        kind: 'backoff',
-        backoff: 100,
+        kind: 'retry'
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
@@ -484,8 +459,7 @@ describe('failure policies', () => {
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
-        kind: 'backoff',
-        backoff: 200,
+        kind: 'retry'
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
@@ -494,8 +468,7 @@ describe('failure policies', () => {
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
-        kind: 'backoff',
-        backoff: 400,
+        kind: 'retry'
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
@@ -518,8 +491,7 @@ describe('failure policies', () => {
       const event = { time: 0, registryCacheAge: 0 };
 
       expect(policy.afterFailure(failure)).toStrictEqual({
-        kind: 'backoff',
-        backoff: 100,
+        kind: 'retry'
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
@@ -528,8 +500,7 @@ describe('failure policies', () => {
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
-        kind: 'backoff',
-        backoff: 200,
+        kind: 'retry'
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
@@ -538,8 +509,7 @@ describe('failure policies', () => {
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
-        kind: 'backoff',
-        backoff: 400,
+        kind: 'retry'
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
@@ -571,8 +541,7 @@ describe('failure policies', () => {
       const event = { time: 0, registryCacheAge: 0 };
 
       expect(policy.afterFailure(failure)).toStrictEqual({
-        kind: 'backoff',
-        backoff: 100,
+        kind: 'retry'
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
@@ -581,8 +550,7 @@ describe('failure policies', () => {
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
-        kind: 'backoff',
-        backoff: 200,
+        kind: 'retry'
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
@@ -591,8 +559,7 @@ describe('failure policies', () => {
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
-        kind: 'backoff',
-        backoff: 400,
+        kind: 'retry'
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
@@ -611,8 +578,7 @@ describe('failure policies', () => {
       expect(policy.afterSuccess(event)).toStrictEqual({ kind: 'continue' });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
-        kind: 'backoff',
-        backoff: 100,
+        kind: 'retry'
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
@@ -621,8 +587,7 @@ describe('failure policies', () => {
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
-        kind: 'backoff',
-        backoff: 200,
+        kind: 'retry'
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
@@ -631,8 +596,7 @@ describe('failure policies', () => {
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
-        kind: 'backoff',
-        backoff: 400,
+        kind: 'retry'
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
@@ -653,8 +617,7 @@ describe('failure policies', () => {
       const event = { time: 0, registryCacheAge: 0 };
 
       expect(policy.afterFailure(failure)).toStrictEqual({
-        kind: 'backoff',
-        backoff: 100,
+        kind: 'retry'
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
@@ -663,8 +626,7 @@ describe('failure policies', () => {
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
-        kind: 'backoff',
-        backoff: 200,
+        kind: 'retry'
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
@@ -673,8 +635,7 @@ describe('failure policies', () => {
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
-        kind: 'backoff',
-        backoff: 400,
+        kind: 'retry'
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
@@ -693,8 +654,7 @@ describe('failure policies', () => {
 
       policy.reset();
       expect(policy.afterFailure(failure)).toStrictEqual({
-        kind: 'backoff',
-        backoff: 100,
+        kind: 'retry'
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
@@ -703,8 +663,7 @@ describe('failure policies', () => {
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
-        kind: 'backoff',
-        backoff: 200,
+        kind: 'retry'
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
@@ -713,8 +672,7 @@ describe('failure policies', () => {
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
-        kind: 'backoff',
-        backoff: 400,
+        kind: 'retry'
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
@@ -733,8 +691,7 @@ describe('failure policies', () => {
 
       policy.reset();
       expect(policy.afterFailure(failure)).toStrictEqual({
-        kind: 'backoff',
-        backoff: 100,
+        kind: 'retry'
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
@@ -743,8 +700,7 @@ describe('failure policies', () => {
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
-        kind: 'backoff',
-        backoff: 200,
+        kind: 'retry'
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
@@ -753,8 +709,7 @@ describe('failure policies', () => {
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
-        kind: 'backoff',
-        backoff: 400,
+        kind: 'retry'
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
