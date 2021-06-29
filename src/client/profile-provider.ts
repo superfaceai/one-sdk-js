@@ -70,7 +70,7 @@ export class BoundProfileProvider {
     events?: Events
   ) {
     this.profileValidator = new ProfileParameterValidator(this.profileAst);
-    //TODO: Pass metadata here?
+
     this.fetchInstance = new CrossFetch();
     this.fetchInstance.metadata = {
       profile: profileAstId(profileAst),
@@ -138,6 +138,8 @@ export class BoundProfileProvider {
       },
       { fetchInstance: this.fetchInstance }
     );
+    interpreter.metadata = this.fetchInstance.metadata;
+    interpreter.events = this.fetchInstance.events;
 
     const result = await interpreter.perform(this.mapAst);
     if (result.isErr()) {
