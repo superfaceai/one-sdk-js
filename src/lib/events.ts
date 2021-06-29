@@ -190,45 +190,44 @@ function replacementFunction<E extends keyof EventTypes>(
 
     // Before hook - runs before the function is called and takes and returns its arguments
     let functionArgs = args;
+    let retry = true;
+    while (retry) {
+      if (metadata.placement === 'before' || metadata.placement === 'around') {
+        const hookResult = await events.emit(`pre-${metadata.eventName}`, [
+          {
+            time: new Date(),
+            profile: this.metadata?.profile,
+            usecase: this.metadata?.usecase,
+            provider: this.metadata?.provider,
+          },
+          functionArgs,
+        ] as any);
 
-    if (metadata.placement === 'before' || metadata.placement === 'around') {
-      const hookResult = await events.emit(`pre-${metadata.eventName}`, [
-        {
-          time: new Date(),
-          profile: this.metadata?.profile,
-          usecase: this.metadata?.usecase,
-          provider: this.metadata?.provider,
-        },
-        functionArgs,
-      ] as any);
+        if (hookResult.kind === 'modify') {
+          functionArgs = hookResult.newArgs as Parameters<EventTypes[E][0]>;
+        }
 
-      if (hookResult.kind === 'modify') {
-        functionArgs = hookResult.newArgs as Parameters<EventTypes[E][0]>;
+        if (hookResult.kind === 'abort') {
+          return hookResult.newResult;
+        }
+
+        if (hookResult.kind === 'continue') {
+          // DO NOTHING YAY!
+        }
       }
 
-      if (hookResult.kind === 'abort') {
-        return hookResult.newResult;
+      let result: Promise<ReturnType<EventTypes[E][0]>>;
+      try {
+        result = Promise.resolve(
+          await originalFunction.apply(this, functionArgs)
+        );
+      } catch (err) {
+        result = Promise.reject(err);
       }
 
-      if (hookResult.kind === 'continue') {
-        // DO NOTHING YAY!
-      }
-    }
-
-    let result: Promise<ReturnType<EventTypes[E][0]>>;
-    try {
-      result = Promise.resolve(
-        await originalFunction.apply(this, functionArgs)
-      );
-    } catch (err) {
-      result = Promise.reject(err);
-    }
-
-    // After hook - runs after the function is called and takes the result
-    // May modify it, return different or retry
-    if (metadata.placement === 'after' || metadata.placement === 'around') {
-      let retry = true;
-      while (retry) {
+      // After hook - runs after the function is called and takes the result
+      // May modify it, return different or retry
+      if (metadata.placement === 'after' || metadata.placement === 'around') {
         const hookResult = await events.emit(`post-${metadata.eventName}`, [
           {
             time: new Date(),
@@ -279,9 +278,9 @@ function replacementFunction<E extends keyof EventTypes>(
         // This should be unreachable, but let's not do infinite loops in case something goes terribly wrong
         retry = false;
       }
-    }
 
-    return result;
+      return result;
+    }
   } as unknown as EventTypes[E][0];
 }
 
