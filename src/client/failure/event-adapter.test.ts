@@ -291,7 +291,7 @@ describe('event-adapter', () => {
     const provider = await client.getProvider('provider');
     const result = await useCase.perform(undefined, { provider });
 
-    expect(result.unwrap()).toEqual({ message: 'hello' });
+    expect(result.isOk() && result.value).toEqual({ message: 'hello' });
     expect((await endpoint.getSeenRequests()).length).toEqual(1);
     expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(1);
   }, 30000);
@@ -437,6 +437,7 @@ describe('event-adapter', () => {
     expect(result.isErr()).toEqual(true);
     expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(1);
   }, 30000);
+
   //Circuit breaker
   it('use circuit-breaker policy - aborts after HTTP 500', async () => {
     const mockLoadSync = jest.fn();
@@ -492,7 +493,7 @@ describe('event-adapter', () => {
     const provider = await client.getProvider('provider');
     const result = await useCase.perform(undefined, { provider });
 
-    expect(() => result.unwrap()).toThrowError(
+    expect(result.isErr() && result.error).toEqual(
       new Error('circuit breaker is open')
     );
     //We send request twice
@@ -578,7 +579,7 @@ describe('event-adapter', () => {
     const provider = await client.getProvider('provider');
     const result = await useCase.perform(undefined, { provider });
 
-    expect(result.unwrap()).toEqual({ message: 'hello' });
+    expect(result.isOk() && result.value).toEqual({ message: 'hello' });
 
     //We waited because of backoff
     expect(secondRequestTime).toBeDefined();
@@ -660,7 +661,9 @@ describe('event-adapter', () => {
     const useCase = profile.getUseCase('Test');
     const result = await useCase.perform(undefined, { provider: 'provider' });
 
-    expect(result.unwrap()).toEqual({ message: 'hello from second provider' });
+    expect(result.isOk() && result.value).toEqual({
+      message: 'hello from second provider',
+    });
     //We send request twice
     expect((await endpoint.getSeenRequests()).length).toEqual(2);
     expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(2);
@@ -735,7 +738,9 @@ describe('event-adapter', () => {
     const useCase = profile.getUseCase('Test');
     const result = await useCase.perform(undefined);
 
-    expect(result.unwrap()).toEqual({ message: 'hello from second provider' });
+    expect(result.isOk() && result.value).toEqual({
+      message: 'hello from second provider',
+    });
     //We send request twice
     expect((await endpoint.getSeenRequests()).length).toEqual(2);
     expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(2);
@@ -827,7 +832,9 @@ describe('event-adapter', () => {
     //Try first provider two times then switch to second and return value
     let result = await useCase.perform(undefined);
 
-    expect(result.unwrap()).toEqual({ message: 'hello from second provider' });
+    expect(result.isOk() && result.value).toEqual({
+      message: 'hello from second provider',
+    });
 
     //Wait
     await sleep(30000);
@@ -835,7 +842,7 @@ describe('event-adapter', () => {
     //Try first provider and return value
     result = await useCase.perform(undefined);
 
-    expect(result.unwrap()).toEqual({ message: 'hello' });
+    expect(result.isOk() && result.value).toEqual({ message: 'hello' });
     //We send request twice
     expect((await endpoint.getSeenRequests()).length).toEqual(3);
     expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(3);
