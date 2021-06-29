@@ -45,7 +45,7 @@ const mockProfileDocument: ProfileDocumentNode = {
   ],
 };
 
-const mockMapDocument: MapDocumentNode = {
+const mockOkMapDocument: MapDocumentNode = {
   kind: 'MapDocument',
   header: {
     kind: 'MapHeader',
@@ -69,7 +69,68 @@ const mockMapDocument: MapDocumentNode = {
         {
           kind: 'HttpCallStatement',
           method: 'GET',
-          url: '/test',
+          url: '/ok',
+          request: {
+            security: [],
+            kind: 'HttpRequest',
+          },
+          responseHandlers: [
+            {
+              kind: 'HttpResponseHandler',
+              statusCode: 200,
+              contentType: 'application/json',
+              statements: [
+                {
+                  kind: 'OutcomeStatement',
+                  isError: false,
+                  terminateFlow: false,
+                  value: {
+                    kind: 'ObjectLiteral',
+                    fields: [
+                      {
+                        kind: 'Assignment',
+                        key: ['message'],
+                        value: {
+                          kind: 'PrimitiveLiteral',
+                          value: 'hello',
+                        },
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  ],
+};
+const mockErrMapDocument: MapDocumentNode = {
+  kind: 'MapDocument',
+  header: {
+    kind: 'MapHeader',
+    profile: {
+      scope: 'starwars',
+      name: 'character-information',
+      version: {
+        major: 1,
+        minor: 0,
+        patch: 0,
+      },
+    },
+    provider: 'provider',
+  },
+  definitions: [
+    {
+      kind: 'MapDefinition',
+      name: 'Test',
+      usecaseName: 'Test',
+      statements: [
+        {
+          kind: 'HttpCallStatement',
+          method: 'GET',
+          url: '/err',
           request: {
             security: [],
             kind: 'HttpRequest',
@@ -191,7 +252,7 @@ describe('event-adapter', () => {
 
     const mockLoadSyn = jest.fn();
 
-    const endpoint = await mockServer.get('/test').thenJson(200, {});
+    const endpoint = await mockServer.get('/ok').thenJson(200, {});
 
     const mockSuperJson = new SuperJson({
       profiles: {
@@ -218,7 +279,7 @@ describe('event-adapter', () => {
     //Mocking bounded provider
     const mockBoundProfileProvider = new BoundProfileProvider(
       mockProfileDocument,
-      mockMapDocument,
+      mockOkMapDocument,
       'provider',
       { baseUrl: mockServer.url, security: [] },
       client
@@ -246,7 +307,7 @@ describe('event-adapter', () => {
 
     const mockLoadSyn = jest.fn();
 
-    const endpoint = await mockServer.get('/test').thenJson(500, {});
+    const endpoint = await mockServer.get('/err').thenJson(500, {});
 
     const mockSuperJson = new SuperJson({
       profiles: {
@@ -272,7 +333,7 @@ describe('event-adapter', () => {
     //Mocking bounded provider
     const mockBoundProfileProvider = new BoundProfileProvider(
       mockProfileDocument,
-      mockMapDocument,
+      mockErrMapDocument,
       'provider',
       { baseUrl: mockServer.url, security: [] },
       client
@@ -298,7 +359,7 @@ describe('event-adapter', () => {
 
     const mockLoadSyn = jest.fn();
 
-    await mockServer.get('/test').thenCloseConnection();
+    await mockServer.get('/err').thenCloseConnection();
 
     const mockSuperJson = new SuperJson({
       profiles: {
@@ -324,7 +385,7 @@ describe('event-adapter', () => {
     //Mocking bounded provider
     const mockBoundProfileProvider = new BoundProfileProvider(
       mockProfileDocument,
-      mockMapDocument,
+      mockErrMapDocument,
       'provider',
       { baseUrl: mockServer.url, security: [] },
       client
@@ -349,7 +410,7 @@ describe('event-adapter', () => {
 
     const mockLoadSyn = jest.fn();
 
-    await mockServer.get('/test').thenTimeout();
+    await mockServer.get('/err').thenTimeout();
 
     const mockSuperJson = new SuperJson({
       profiles: {
@@ -375,7 +436,7 @@ describe('event-adapter', () => {
     //Mocking bounded provider
     const mockBoundProfileProvider = new BoundProfileProvider(
       mockProfileDocument,
-      mockMapDocument,
+      mockErrMapDocument,
       'provider',
       { baseUrl: mockServer.url, security: [] },
       client
@@ -400,7 +461,7 @@ describe('event-adapter', () => {
 
     const mockLoadSyn = jest.fn();
 
-    const endpoint = await mockServer.get('/test').thenJson(500, {});
+    const endpoint = await mockServer.get('/err').thenJson(500, {});
 
     const mockSuperJson = new SuperJson({
       profiles: {
@@ -437,7 +498,7 @@ describe('event-adapter', () => {
     //Mocking bounded provider
     const mockBoundProfileProvider = new BoundProfileProvider(
       mockProfileDocument,
-      mockMapDocument,
+      mockErrMapDocument,
       'provider',
       { baseUrl: mockServer.url, security: [] },
       client
@@ -470,7 +531,7 @@ describe('event-adapter', () => {
     let secondRequestTime: number | undefined;
 
     let retry = true;
-    const endpoint = await mockServer.get('/test').thenCallback(() => {
+    const endpoint = await mockServer.get('/err').thenCallback(() => {
       if (retry) {
         retry = false;
         firstRequestTime = Date.now();
@@ -527,7 +588,7 @@ describe('event-adapter', () => {
     //Mocking bounded provider
     const mockBoundProfileProvider = new BoundProfileProvider(
       mockProfileDocument,
-      mockMapDocument,
+      mockErrMapDocument,
       'provider',
       { baseUrl: mockServer.url, security: [] },
       client
@@ -562,7 +623,7 @@ describe('event-adapter', () => {
 
     const mockLoadSyn = jest.fn();
 
-    const endpoint = await mockServer.get('/test').thenJson(500, {});
+    const endpoint = await mockServer.get('/err').thenJson(500, {});
     const secondEndpoint = await mockServer.get('/second').thenJson(200, {});
 
     const mockSuperJson = new SuperJson({
@@ -605,7 +666,7 @@ describe('event-adapter', () => {
     //Mocking first bounded provider
     const firstMockBoundProfileProvider = new BoundProfileProvider(
       mockProfileDocument,
-      mockMapDocument,
+      mockErrMapDocument,
       'provider',
       { baseUrl: mockServer.url, security: [] },
       client
@@ -641,7 +702,7 @@ describe('event-adapter', () => {
 
     const mockLoadSyn = jest.fn();
 
-    const endpoint = await mockServer.get('/test').thenJson(500, {});
+    const endpoint = await mockServer.get('/err').thenJson(500, {});
     const secondEndpoint = await mockServer.get('/second').thenJson(200, {});
 
     const mockSuperJson = new SuperJson({
@@ -684,7 +745,7 @@ describe('event-adapter', () => {
     //Mocking first bounded provider
     const firstMockBoundProfileProvider = new BoundProfileProvider(
       mockProfileDocument,
-      mockMapDocument,
+      mockErrMapDocument,
       'provider',
       { baseUrl: mockServer.url, security: [] },
       client
@@ -721,7 +782,7 @@ describe('event-adapter', () => {
     const mockLoadSyn = jest.fn();
 
     let retry = 0;
-    const endpoint = await mockServer.get('/test').thenCallback(() => {
+    const endpoint = await mockServer.get('/ok').thenCallback(() => {
       if (retry < 2) {
         retry++;
 
@@ -778,7 +839,7 @@ describe('event-adapter', () => {
     //Mocking first bounded provider
     const firstMockBoundProfileProvider = new BoundProfileProvider(
       mockProfileDocument,
-      mockMapDocument,
+      mockOkMapDocument,
       'provider',
       { baseUrl: mockServer.url, security: [] },
       client
