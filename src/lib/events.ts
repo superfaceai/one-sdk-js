@@ -7,6 +7,7 @@ import { UseCase } from '../client';
 import { FetchInstance } from '../internal/interpreter/http/interfaces';
 
 type AnyFunction = (...args: any[]) => any;
+type AsyncFunction = (...args: any[]) => Promise<any>;
 
 type MaybePromise<T> = T | Promise<T>;
 type ResolvedPromise<T> = T extends Promise<infer R> ? R : T;
@@ -27,7 +28,8 @@ type EventContextBase = {
   readonly profile?: string;
   readonly provider?: string;
 };
-export type BeforeHookResult<Target extends AnyFunction> =
+
+export type BeforeHookResult<Target extends AsyncFunction> = MaybePromise<
   | {
       kind: 'continue';
     }
@@ -38,17 +40,18 @@ export type BeforeHookResult<Target extends AnyFunction> =
   | {
       kind: 'abort';
       newResult: ReturnType<Target>;
-    };
+    }
+>;
 
 export type BeforeHook<
   EventContext extends EventContextBase,
-  Target extends AnyFunction
+  Target extends AsyncFunction
 > = (
   context: EventContext,
   args: Parameters<Target>
-) => MaybePromise<BeforeHookResult<Target>>;
+) => BeforeHookResult<Target>;
 
-export type AfterHookResult<Target extends AnyFunction> =
+export type AfterHookResult<Target extends AsyncFunction> = MaybePromise<
   | {
       kind: 'continue';
     }
@@ -59,16 +62,26 @@ export type AfterHookResult<Target extends AnyFunction> =
   | {
       kind: 'retry';
       newArgs?: Parameters<Target>;
-    };
+    }
+>;
 
 export type AfterHook<
   EventContext extends EventContextBase,
-  Target extends AnyFunction
+  Target extends AsyncFunction
 > = (
   context: EventContext,
   args: Parameters<Target>,
   result: ReturnType<Target>
-) => MaybePromise<AfterHookResult<Target>>;
+) => AfterHookResult<Target>;
+
+type VoidEventTypes = {
+  failure: EventContextBase;
+  success: EventContextBase;
+};
+
+type VoidEventHook<EventContext extends EventContextBase> = (
+  context: EventContext
+) => void;
 
 type EventTypes = {
   perform: [InstanceType<typeof UseCase>['perform'], EventContextBase];
@@ -86,7 +99,8 @@ export type EventParams = {
       EventTypes[K][1],
       EventTypes[K][0]
     >;
-  };
+  } &
+  { [K in keyof VoidEventTypes]: VoidEventHook<VoidEventTypes[K]> };
 
 type EventListeners = {
   [E in keyof EventParams]?: PriorityCallbackTuple[];
@@ -111,13 +125,11 @@ export class Events {
       filter?: Filter;
     },
     callback: EventParams[E]
-  ): this {
+  ): void {
     this.listeners[event] = [
       ...(this.listeners[event] ?? []),
       priorityCallbackTuple<E>(options.priority, callback, options.filter),
     ].sort(([priority1], [priority2]) => priority1 - priority2);
-
-    return this;
   }
 
   public async emit<E extends keyof EventParams>(
@@ -191,15 +203,16 @@ function replacementFunction<E extends keyof EventTypes>(
     // Before hook - runs before the function is called and takes and returns its arguments
     let functionArgs = args;
     let retry = true;
+    const baseContext: EventContextBase = {
+      time: new Date(),
+      profile: this.metadata?.profile,
+      usecase: this.metadata?.usecase,
+      provider: this.metadata?.provider,
+    };
     while (retry) {
       if (metadata.placement === 'before' || metadata.placement === 'around') {
         const hookResult = await events.emit(`pre-${metadata.eventName}`, [
-          {
-            time: new Date(),
-            profile: this.metadata?.profile,
-            usecase: this.metadata?.usecase,
-            provider: this.metadata?.provider,
-          },
+          baseContext,
           functionArgs,
         ] as any);
 
@@ -229,18 +242,7 @@ function replacementFunction<E extends keyof EventTypes>(
       // May modify it, return different or retry
       if (metadata.placement === 'after' || metadata.placement === 'around') {
         const hookResult = await events.emit(`post-${metadata.eventName}`, [
-          {
-            time: new Date(),
-            profile: this.metadata?.profile,
-            usecase: this.metadata?.usecase,
-            provider: this.metadata?.provider,
-            //FIX: Do we need this
-            filter: {
-              profile: this.metadata?.profile,
-              usecase: this.metadata?.usecase,
-              provider: this.metadata?.provider,
-            },
-          },
+          baseContext,
           functionArgs as any,
           result,
         ] as any);
