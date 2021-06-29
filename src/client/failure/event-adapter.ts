@@ -166,7 +166,11 @@ export function registerHooks(hookContext: HooksContext, events: Events): void {
         context.time.getTime()
       );
       if (overidenResolution) {
-        // console.log('OVERIDE RESULT IN POST FETCH', overidenResolution);
+        console.timeLog(
+          'STATE',
+          'OVERIDE RESULT IN POST FETCH',
+          overidenResolution
+        );
         switch (overidenResolution.kind) {
           case 'switch-provider': {
             hookContext[`${context.profile}/${context.usecase}`].queuedAction =
