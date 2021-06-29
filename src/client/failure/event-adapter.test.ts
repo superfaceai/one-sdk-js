@@ -1,8 +1,10 @@
 import { MapDocumentNode, ProfileDocumentNode } from '@superfaceai/ast';
 import { getLocal } from 'mockttp';
 
-import { BackoffKind, OnFail } from '../../internal';
+import { BackoffKind, OnFail, SuperJson } from '../../internal';
 import { ok, sleep } from '../../lib';
+import { invalidateSuperfaceClientCache, SuperfaceClient } from '../client';
+import { BoundProfileProvider } from '../profile-provider';
 
 const mockProfileDocument: ProfileDocumentNode = {
   kind: 'ProfileDocument',
@@ -239,18 +241,12 @@ describe('event-adapter', () => {
 
   afterEach(async () => {
     await mockServer.stop();
-    jest.resetAllMocks();
-    jest.resetModules();
-    jest.resetModules();
+    invalidateSuperfaceClientCache();
   });
 
   //Without retry policy
   it('does not use retry policy - returns after HTTP 200', async () => {
-    const { SuperfaceClient } = await import('../client');
-    const { SuperJson } = await import('../../internal');
-    const { BoundProfileProvider } = await import('../profile-provider');
-
-    const mockLoadSyn = jest.fn();
+    const mockLoadSync = jest.fn();
 
     const endpoint = await mockServer.get('/ok').thenJson(200, {});
 
@@ -270,8 +266,8 @@ describe('event-adapter', () => {
       },
     });
 
-    mockLoadSyn.mockReturnValue(ok(mockSuperJson));
-    SuperJson.loadSync = mockLoadSyn;
+    mockLoadSync.mockReturnValue(ok(mockSuperJson));
+    SuperJson.loadSync = mockLoadSync;
 
     //Not mocked client
     const client = new SuperfaceClient();
@@ -301,11 +297,7 @@ describe('event-adapter', () => {
   }, 30000);
 
   it('does not use retry policy - aborts after HTTP 500', async () => {
-    const { SuperfaceClient } = await import('../client');
-    const { SuperJson } = await import('../../internal');
-    const { BoundProfileProvider } = await import('../profile-provider');
-
-    const mockLoadSyn = jest.fn();
+    const mockLoadSync = jest.fn();
 
     const endpoint = await mockServer.get('/err').thenJson(500, {});
 
@@ -325,8 +317,8 @@ describe('event-adapter', () => {
       },
     });
 
-    mockLoadSyn.mockReturnValue(ok(mockSuperJson));
-    SuperJson.loadSync = mockLoadSyn;
+    mockLoadSync.mockReturnValue(ok(mockSuperJson));
+    SuperJson.loadSync = mockLoadSync;
 
     const client = new SuperfaceClient();
 
@@ -353,11 +345,7 @@ describe('event-adapter', () => {
   }, 30000);
 
   it('does not use retry policy - aborts after closed connection', async () => {
-    const { SuperfaceClient } = await import('../client');
-    const { SuperJson } = await import('../../internal');
-    const { BoundProfileProvider } = await import('../profile-provider');
-
-    const mockLoadSyn = jest.fn();
+    const mockLoadSync = jest.fn();
 
     await mockServer.get('/err').thenCloseConnection();
 
@@ -377,8 +365,8 @@ describe('event-adapter', () => {
       },
     });
 
-    mockLoadSyn.mockReturnValue(ok(mockSuperJson));
-    SuperJson.loadSync = mockLoadSyn;
+    mockLoadSync.mockReturnValue(ok(mockSuperJson));
+    SuperJson.loadSync = mockLoadSync;
 
     const client = new SuperfaceClient();
 
@@ -404,11 +392,7 @@ describe('event-adapter', () => {
   }, 30000);
 
   it('does not use retry policy - aborts after timeout', async () => {
-    const { SuperfaceClient } = await import('../client');
-    const { SuperJson } = await import('../../internal');
-    const { BoundProfileProvider } = await import('../profile-provider');
-
-    const mockLoadSyn = jest.fn();
+    const mockLoadSync = jest.fn();
 
     await mockServer.get('/err').thenTimeout();
 
@@ -428,8 +412,8 @@ describe('event-adapter', () => {
       },
     });
 
-    mockLoadSyn.mockReturnValue(ok(mockSuperJson));
-    SuperJson.loadSync = mockLoadSyn;
+    mockLoadSync.mockReturnValue(ok(mockSuperJson));
+    SuperJson.loadSync = mockLoadSync;
 
     const client = new SuperfaceClient();
 
@@ -455,11 +439,7 @@ describe('event-adapter', () => {
   }, 30000);
   //Circuit breaker
   it('use circuit-breaker policy - aborts after HTTP 500', async () => {
-    const { SuperfaceClient } = await import('../client');
-    const { SuperJson } = await import('../../internal');
-    const { BoundProfileProvider } = await import('../profile-provider');
-
-    const mockLoadSyn = jest.fn();
+    const mockLoadSync = jest.fn();
 
     const endpoint = await mockServer.get('/err').thenJson(500, {});
 
@@ -490,8 +470,8 @@ describe('event-adapter', () => {
       },
     });
 
-    mockLoadSyn.mockReturnValue(ok(mockSuperJson));
-    SuperJson.loadSync = mockLoadSyn;
+    mockLoadSync.mockReturnValue(ok(mockSuperJson));
+    SuperJson.loadSync = mockLoadSync;
 
     const client = new SuperfaceClient();
 
@@ -521,11 +501,7 @@ describe('event-adapter', () => {
   }, 30000);
 
   it('use circuit-breaker policy with backoff - aborts after HTTP 500', async () => {
-    const { SuperfaceClient } = await import('../client');
-    const { SuperJson } = await import('../../internal');
-    const { BoundProfileProvider } = await import('../profile-provider');
-
-    const mockLoadSyn = jest.fn();
+    const mockLoadSync = jest.fn();
     const backoffTime = 5000;
     let firstRequestTime: number | undefined;
     let secondRequestTime: number | undefined;
@@ -580,8 +556,8 @@ describe('event-adapter', () => {
       },
     });
 
-    mockLoadSyn.mockReturnValue(ok(mockSuperJson));
-    SuperJson.loadSync = mockLoadSyn;
+    mockLoadSync.mockReturnValue(ok(mockSuperJson));
+    SuperJson.loadSync = mockLoadSync;
 
     const client = new SuperfaceClient();
 
@@ -617,11 +593,7 @@ describe('event-adapter', () => {
   }, 30000);
 
   it('use circuit-breaker policy - switch providers after HTTP 500, using default provider', async () => {
-    const { SuperfaceClient } = await import('../client');
-    const { SuperJson } = await import('../../internal');
-    const { BoundProfileProvider } = await import('../profile-provider');
-
-    const mockLoadSyn = jest.fn();
+    const mockLoadSync = jest.fn();
 
     const endpoint = await mockServer.get('/err').thenJson(500, {});
     const secondEndpoint = await mockServer.get('/second').thenJson(200, {});
@@ -658,8 +630,8 @@ describe('event-adapter', () => {
       },
     });
 
-    mockLoadSyn.mockReturnValue(ok(mockSuperJson));
-    SuperJson.loadSync = mockLoadSyn;
+    mockLoadSync.mockReturnValue(ok(mockSuperJson));
+    SuperJson.loadSync = mockLoadSync;
 
     const client = new SuperfaceClient();
 
@@ -696,11 +668,7 @@ describe('event-adapter', () => {
   }, 30000);
 
   it('use circuit-breaker policy - switch providers after HTTP 500, using provider from user', async () => {
-    const { SuperfaceClient } = await import('../client');
-    const { SuperJson } = await import('../../internal');
-    const { BoundProfileProvider } = await import('../profile-provider');
-
-    const mockLoadSyn = jest.fn();
+    const mockLoadSync = jest.fn();
 
     const endpoint = await mockServer.get('/err').thenJson(500, {});
     const secondEndpoint = await mockServer.get('/second').thenJson(200, {});
@@ -737,8 +705,8 @@ describe('event-adapter', () => {
       },
     });
 
-    mockLoadSyn.mockReturnValue(ok(mockSuperJson));
-    SuperJson.loadSync = mockLoadSyn;
+    mockLoadSync.mockReturnValue(ok(mockSuperJson));
+    SuperJson.loadSync = mockLoadSync;
 
     const client = new SuperfaceClient();
 
@@ -775,11 +743,7 @@ describe('event-adapter', () => {
   }, 30000);
 
   it('use circuit-breaker policy - switch providers after HTTP 500 and switch back', async () => {
-    const { SuperfaceClient } = await import('../client');
-    const { SuperJson } = await import('../../internal');
-    const { BoundProfileProvider } = await import('../profile-provider');
-
-    const mockLoadSyn = jest.fn();
+    const mockLoadSync = jest.fn();
 
     let retry = 0;
     const endpoint = await mockServer.get('/ok').thenCallback(() => {
@@ -831,8 +795,8 @@ describe('event-adapter', () => {
       },
     });
 
-    mockLoadSyn.mockReturnValue(ok(mockSuperJson));
-    SuperJson.loadSync = mockLoadSyn;
+    mockLoadSync.mockReturnValue(ok(mockSuperJson));
+    SuperJson.loadSync = mockLoadSync;
 
     const client = new SuperfaceClient();
 
