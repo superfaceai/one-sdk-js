@@ -1,15 +1,18 @@
 import { HttpCallStatementNode, MapDocumentNode } from '@superfaceai/ast';
 
+import { HTTPError } from '../..';
+import { MapInterpreterExternalHandler } from '../../internal/interpreter/external-handler';
+import { HttpResponse } from '../../internal/interpreter/http';
 import {
   eventInterceptor,
   Events,
   Interceptable,
   InterceptableMetadata,
 } from '../../lib/events';
-import { HttpResponse } from './http';
-import { HTTPError } from './map-interpreter.errors';
 
-export class MapInterpreterEventDispatcher implements Interceptable {
+export class MapInterpreterEventAdapter
+  implements Interceptable, MapInterpreterExternalHandler
+{
   constructor(
     public readonly metadata?: InterceptableMetadata,
     public readonly events?: Events

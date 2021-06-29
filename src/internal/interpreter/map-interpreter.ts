@@ -28,7 +28,7 @@ import createDebug from 'debug';
 
 import { err, ok, Result } from '../../lib';
 import { UnexpectedError } from '../errors';
-import { MapInterpreterEventDispatcher } from './events';
+import { MapInterpreterExternalHandler } from './external-handler';
 import { HttpClient, HttpResponse, SecurityConfiguration } from './http';
 import { FetchInstance } from './http/interfaces';
 import {
@@ -120,21 +120,20 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
   private ast?: MapDocumentNode;
 
   private readonly http: HttpClient;
-  private readonly eventDispatcher: MapInterpreterEventDispatcher;
+  private readonly externalHandler: MapInterpreterExternalHandler;
 
   constructor(
     private readonly parameters: MapParameters<TInput>,
     {
       fetchInstance,
-      eventDispatcher,
+      externalHandler,
     }: {
       fetchInstance: FetchInstance;
-      eventDispatcher?: MapInterpreterEventDispatcher;
+      externalHandler?: MapInterpreterExternalHandler;
     }
   ) {
     this.http = new HttpClient(fetchInstance);
-    this.eventDispatcher =
-      eventDispatcher ?? new MapInterpreterEventDispatcher();
+    this.externalHandler = externalHandler ?? {};
   }
 
   async perform(
@@ -311,7 +310,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
       }
     }
 
-    await this.eventDispatcher.unhandledHttp(this.ast, node, response);
+    await this.externalHandler.unhandledHttp?.(this.ast, node, response);
   }
 
   async visitHttpRequestNode(node: HttpRequestNode): Promise<HttpRequest> {

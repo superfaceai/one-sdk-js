@@ -6,7 +6,7 @@
 import createDebug from 'debug';
 
 import { UseCase } from '../client';
-import { MapInterpreterEventDispatcher } from '../internal/interpreter/events';
+import { MapInterpreterEventAdapter } from '../client/failure/map-interpreter-adapter';
 import { FetchInstance } from '../internal/interpreter/http/interfaces';
 
 const debug = createDebug('superface:events');
@@ -92,7 +92,7 @@ type EventTypes = {
   perform: [InstanceType<typeof UseCase>['perform'], EventContextBase];
   fetch: [FetchInstance['fetch'], EventContextBase];
   'unhandled-http': [
-    InstanceType<typeof MapInterpreterEventDispatcher>['unhandledHttp'],
+    InstanceType<typeof MapInterpreterEventAdapter>['unhandledHttp'],
     EventContextBase
   ];
 };
@@ -242,21 +242,6 @@ function replacementFunction<E extends keyof EventTypes>(
     // Before hook - runs before the function is called and takes and returns its arguments
     let functionArgs = args;
     let retry = true;
-    // const baseContext: EventContextBase = {
-    //   time: new Date(),
-    //   profile: this.metadata?.profile,
-    //   usecase: this.metadata?.usecase,
-    //   provider: this.metadata?.provider,
-    // };
-    console.timeLog(
-      'STATE',
-      'REPALCE context',
-      ' place ',
-      metadata.placement,
-      ' metadata.eventName ',
-      metadata.eventName
-    );
-
     while (retry) {
       if (metadata.placement === 'before' || metadata.placement === 'around') {
         const hookResult = await events.emit(`pre-${metadata.eventName}`, [
