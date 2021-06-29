@@ -27,6 +27,12 @@ import {
 import createDebug from 'debug';
 
 import { err, ok, Result } from '../../lib';
+import {
+  eventInterceptor,
+  Events,
+  Interceptable,
+  InterceptableMetadata,
+} from '../../lib/events';
 import { UnexpectedError } from '../errors';
 import { HttpClient, HttpResponse, SecurityConfiguration } from './http';
 import { FetchInstance } from './http/interfaces';
@@ -113,8 +119,11 @@ type IterationDefinition = {
 };
 
 export class MapInterpreter<TInput extends NonPrimitive | undefined>
-  implements MapAstVisitor
+  implements MapAstVisitor, Interceptable
 {
+  public metadata: InterceptableMetadata | undefined;
+  public events: Events | undefined;
+
   private operations: Record<string, OperationDefinitionNode | undefined> = {};
   private stack: Stack[] = [];
   private ast?: MapDocumentNode;
@@ -300,6 +309,18 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
         return;
       }
     }
+
+    await this.unahndledHttp(node, response);
+  }
+
+  @eventInterceptor({
+    eventName: 'unhandled-http',
+    placement: 'before',
+  })
+  async unahndledHttp(
+    node: HttpCallStatementNode,
+    response: HttpResponse
+  ): Promise<void> {
     if (response.statusCode >= 400) {
       throw new HTTPError(
         'HTTP Error',
