@@ -3,7 +3,7 @@ import { clone } from '../../lib/object';
 import { SDKExecutionError } from '../errors';
 import { castToNonPrimitive, mergeVariables } from '../interpreter/variables';
 import {
-  BackOffKind,
+  BackoffKind,
   FILE_URI_PROTOCOL,
   isFileURIString,
   isVersionString,
@@ -99,15 +99,15 @@ export function normalizeRetryPolicy(
     if (!retryPolicy.backoff) {
       return;
     }
-    if (retryPolicy.backoff === BackOffKind.EXPONENTIAL) {
-      return { kind: BackOffKind.EXPONENTIAL };
+    if (retryPolicy.backoff === BackoffKind.EXPONENTIAL) {
+      return { kind: BackoffKind.EXPONENTIAL };
     }
     if (
       'kind' in retryPolicy.backoff &&
-      retryPolicy.backoff.kind === BackOffKind.EXPONENTIAL
+      retryPolicy.backoff.kind === BackoffKind.EXPONENTIAL
     ) {
       return {
-        kind: BackOffKind.EXPONENTIAL,
+        kind: BackoffKind.EXPONENTIAL,
         start: retryPolicy.backoff?.start ?? baseOnFail?.backoff?.start,
         factor: retryPolicy.backoff?.factor ?? baseOnFail?.backoff?.factor,
       };
@@ -122,7 +122,7 @@ export function normalizeRetryPolicy(
         `Check your super.json`,
         `Check property "kind" in [profile].providers.[provider].defaults.[usecase].retryPolicy.backoff with value "${retryPolicy.backoff.kind}"`,
         `Change value of property "kind" in retryPolicy.backoff to one of possible values: ${Object.values(
-          BackOffKind
+          BackoffKind
         ).join(', ')}`,
       ]
     );

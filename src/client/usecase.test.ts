@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { MapDocumentNode, ProfileDocumentNode } from '@superfaceai/ast';
 
+import { SuperJson } from '../internal';
 import { ok } from '../lib/result/result';
 import { SuperfaceClient } from './client';
 import { Profile, ProfileConfiguration } from './profile';
@@ -8,13 +9,21 @@ import { BoundProfileProvider } from './profile-provider';
 import { Provider, ProviderConfiguration } from './provider';
 import { UseCase } from './usecase';
 
-//Mock client
-jest.mock('./client');
+//Mock SuperJson static side
+const mockLoadSync = jest.fn();
 
 //Mock profile provider
 jest.mock('./profile-provider');
 
 describe('UseCase', () => {
+  const mockSuperJson = new SuperJson({
+    profiles: {
+      test: {
+        version: '1.0.0',
+      },
+    },
+    providers: {},
+  });
   const mockMapDocument: MapDocumentNode = {
     kind: 'MapDocument',
     header: {
@@ -47,6 +56,11 @@ describe('UseCase', () => {
     definitions: [],
   };
 
+  beforeEach(() => {
+    mockLoadSync.mockReturnValue(ok(mockSuperJson));
+    SuperJson.loadSync = mockLoadSync;
+  });
+
   afterEach(() => {
     jest.resetAllMocks();
   });
@@ -56,6 +70,7 @@ describe('UseCase', () => {
       const mockBoundProfileProvider = new BoundProfileProvider(
         mockProfileDocument,
         mockMapDocument,
+        'test',
         { security: [] }
       );
       const mockClient = new SuperfaceClient();
@@ -97,6 +112,7 @@ describe('UseCase', () => {
       const mockBoundProfileProvider = new BoundProfileProvider(
         mockProfileDocument,
         mockMapDocument,
+        'test',
         { security: [] }
       );
       const mockClient = new SuperfaceClient();

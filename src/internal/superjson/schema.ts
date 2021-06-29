@@ -44,7 +44,7 @@ export enum OnFail {
   CIRCUIT_BREAKER = 'circuit-breaker',
 }
 
-export enum BackOffKind {
+export enum BackoffKind {
   EXPONENTIAL = 'exponential',
 }
 /**
@@ -79,9 +79,9 @@ const retryPolicy = zod.union([
     requestTimeout: zod.number().int().positive().optional(),
     backoff: zod
       .union([
-        zod.literal(BackOffKind.EXPONENTIAL),
+        zod.literal(BackoffKind.EXPONENTIAL),
         zod.object({
-          kind: zod.literal(BackOffKind.EXPONENTIAL),
+          kind: zod.literal(BackoffKind.EXPONENTIAL),
           start: zod.number().int().positive().optional(),
           factor: zod.number().int().positive().optional(),
         }),
@@ -100,7 +100,7 @@ const normalizedRetryPolicy = zod.union([
     requestTimeout: zod.number().int().positive().optional(),
     backoff: zod
       .object({
-        kind: zod.literal(BackOffKind.EXPONENTIAL),
+        kind: zod.literal(BackoffKind.EXPONENTIAL),
         start: zod.number().int().positive().optional(),
         factor: zod.number().int().positive().optional(),
       })

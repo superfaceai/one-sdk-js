@@ -11,8 +11,8 @@ export class MapInterpreterErrorBase extends ErrorBase {
   private path?: string[];
 
   constructor(
-    public kind: string,
-    public message: string,
+    public override kind: string,
+    public override message: string,
     public metadata?: ErrorMetadata
   ) {
     super(kind, message);
@@ -62,7 +62,10 @@ export class MapInterpreterErrorBase extends ErrorBase {
 }
 
 export class MapASTError extends MapInterpreterErrorBase {
-  constructor(public message: string, public metadata?: ErrorMetadata) {
+  constructor(
+    public override message: string,
+    public override metadata?: ErrorMetadata
+  ) {
     super('MapASTError', message, metadata);
   }
 
@@ -81,8 +84,8 @@ export class MapASTError extends MapInterpreterErrorBase {
 
 export class HTTPError extends MapInterpreterErrorBase {
   constructor(
-    public message: string,
-    public metadata?: ErrorMetadata,
+    public override message: string,
+    public override metadata?: ErrorMetadata,
     public statusCode?: number,
     public request?: {
       body?: unknown;
@@ -100,9 +103,9 @@ export class HTTPError extends MapInterpreterErrorBase {
 
 export class MappedHTTPError<T> extends HTTPError {
   constructor(
-    public message: string,
-    public statusCode?: number,
-    public metadata?: { node?: MapASTNode; ast?: MapDocumentNode },
+    public override message: string,
+    public override statusCode?: number,
+    public override metadata?: { node?: MapASTNode; ast?: MapDocumentNode },
     public properties?: T
   ) {
     super(message, metadata, statusCode);
@@ -111,9 +114,9 @@ export class MappedHTTPError<T> extends HTTPError {
 
 export class JessieError extends MapInterpreterErrorBase {
   constructor(
-    public message: string,
+    public override message: string,
     public originalError: Error,
-    public metadata?: { node?: MapASTNode; ast?: MapDocumentNode }
+    public override metadata?: { node?: MapASTNode; ast?: MapDocumentNode }
   ) {
     super('JessieError', message);
   }

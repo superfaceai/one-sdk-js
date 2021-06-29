@@ -18,6 +18,7 @@ import {
 import { OnFail, SuperJson } from '../internal/superjson';
 import * as SuperJsonMutate from '../internal/superjson/mutate';
 import { err, ok } from '../lib';
+import { SuperfaceClient } from './client';
 import { ProfileConfiguration } from './profile';
 import { BoundProfileProvider, ProfileProvider } from './profile-provider';
 import { ProviderConfiguration } from './provider';
@@ -39,6 +40,9 @@ jest.mock('fs', () => ({
     readFile: jest.fn(),
   },
 }));
+
+//MockClient
+jest.mock('./client');
 
 //Mock super json
 const mockResolvePath = jest.fn();
@@ -150,6 +154,7 @@ describe('profile provider', () => {
         const mockBoundProfileProvider = new BoundProfileProvider(
           mockProfileDocument,
           mockMapDocument,
+          'test',
           { baseUrl: 'test/url', security: [] }
         );
 
@@ -184,6 +189,7 @@ describe('profile provider', () => {
         const mockBoundProfileProvider = new BoundProfileProvider(
           mockProfileDocument,
           mockMapDocument,
+          'test',
           { baseUrl: 'test/url', security: [] }
         );
 
@@ -213,6 +219,7 @@ describe('profile provider', () => {
         const mockBoundProfileProvider = new BoundProfileProvider(
           mockProfileDocument,
           mockMapDocument,
+          'test',
           { baseUrl: 'test/url', security: [] }
         );
 
@@ -249,6 +256,7 @@ describe('profile provider', () => {
         const mockBoundProfileProvider = new BoundProfileProvider(
           mockProfileDocument,
           mockMapDocument,
+          'test',
           {
             baseUrl: 'test/url',
             security: [],
@@ -277,6 +285,7 @@ describe('profile provider', () => {
 
   describe('ProfileProvider', () => {
     describe('when binding', () => {
+      const mockSuperfacClient = new SuperfaceClient();
       const mockFetchResponse = {
         provider: mockProviderJson,
         mapAst: mockMapDocument,
@@ -314,25 +323,31 @@ describe('profile provider', () => {
         const mockProfileProvider = new ProfileProvider(
           mockSuperJson,
           mockProfileDocument,
-          mockProviderConfiguration
+          mockProviderConfiguration,
+          mockSuperfacClient
         );
 
         const result = await mockProfileProvider.bind();
 
         expect(result.toString()).toEqual(
-          new BoundProfileProvider(mockProfileDocument, mockMapDocument, {
-            baseUrl: 'service/base/url',
-            profileProviderSettings: undefined,
-            security: [
-              {
-                type: SecurityType.HTTP,
-                id: 'test',
-                scheme: HttpScheme.BASIC,
-                username: 'test-username',
-                password: 'test-password',
-              },
-            ],
-          }).toString()
+          new BoundProfileProvider(
+            mockProfileDocument,
+            mockMapDocument,
+            'test',
+            {
+              baseUrl: 'service/base/url',
+              profileProviderSettings: undefined,
+              security: [
+                {
+                  type: SecurityType.HTTP,
+                  id: 'test',
+                  scheme: HttpScheme.BASIC,
+                  username: 'test-username',
+                  password: 'test-password',
+                },
+              ],
+            }
+          ).toString()
         );
       });
 
@@ -365,25 +380,31 @@ describe('profile provider', () => {
         const mockProfileProvider = new ProfileProvider(
           mockSuperJson,
           'test-profile',
-          mockProviderConfiguration
+          mockProviderConfiguration,
+          mockSuperfacClient
         );
 
         const result = await mockProfileProvider.bind();
 
         expect(result.toString()).toEqual(
-          new BoundProfileProvider(mockProfileDocument, mockMapDocument, {
-            baseUrl: 'service/base/url',
-            profileProviderSettings: undefined,
-            security: [
-              {
-                type: SecurityType.HTTP,
-                id: 'test',
-                scheme: HttpScheme.BASIC,
-                username: 'test-username',
-                password: 'test-password',
-              },
-            ],
-          }).toString()
+          new BoundProfileProvider(
+            mockProfileDocument,
+            mockMapDocument,
+            'test',
+            {
+              baseUrl: 'service/base/url',
+              profileProviderSettings: undefined,
+              security: [
+                {
+                  type: SecurityType.HTTP,
+                  id: 'test',
+                  scheme: HttpScheme.BASIC,
+                  username: 'test-username',
+                  password: 'test-password',
+                },
+              ],
+            }
+          ).toString()
         );
       });
 
@@ -416,25 +437,31 @@ describe('profile provider', () => {
         const mockProfileProvider = new ProfileProvider(
           mockSuperJson,
           new ProfileConfiguration('test-profile', '1.0.0'),
-          mockProviderConfiguration
+          mockProviderConfiguration,
+          mockSuperfacClient
         );
 
         const result = await mockProfileProvider.bind();
 
         expect(result.toString()).toEqual(
-          new BoundProfileProvider(mockProfileDocument, mockMapDocument, {
-            baseUrl: 'service/base/url',
-            profileProviderSettings: undefined,
-            security: [
-              {
-                type: SecurityType.HTTP,
-                id: 'test',
-                scheme: HttpScheme.BASIC,
-                username: 'test-username',
-                password: 'test-password',
-              },
-            ],
-          }).toString()
+          new BoundProfileProvider(
+            mockProfileDocument,
+            mockMapDocument,
+            'test',
+            {
+              baseUrl: 'service/base/url',
+              profileProviderSettings: undefined,
+              security: [
+                {
+                  type: SecurityType.HTTP,
+                  id: 'test',
+                  scheme: HttpScheme.BASIC,
+                  username: 'test-username',
+                  password: 'test-password',
+                },
+              ],
+            }
+          ).toString()
         );
       });
 
@@ -475,25 +502,31 @@ describe('profile provider', () => {
         const mockProfileProvider = new ProfileProvider(
           mockSuperJson,
           'test-profile',
-          mockProviderConfiguration
+          mockProviderConfiguration,
+          mockSuperfacClient
         );
 
         const result = await mockProfileProvider.bind();
 
         expect(result.toString()).toEqual(
-          new BoundProfileProvider(mockProfileDocument, mockMapDocument, {
-            baseUrl: 'service/base/url',
-            profileProviderSettings: undefined,
-            security: [
-              {
-                type: SecurityType.HTTP,
-                id: 'test',
-                scheme: HttpScheme.BASIC,
-                username: 'test-username',
-                password: 'test-password',
-              },
-            ],
-          }).toString()
+          new BoundProfileProvider(
+            mockProfileDocument,
+            mockMapDocument,
+            'test',
+            {
+              baseUrl: 'service/base/url',
+              profileProviderSettings: undefined,
+              security: [
+                {
+                  type: SecurityType.HTTP,
+                  id: 'test',
+                  scheme: HttpScheme.BASIC,
+                  username: 'test-username',
+                  password: 'test-password',
+                },
+              ],
+            }
+          ).toString()
         );
       });
 
@@ -531,25 +564,31 @@ describe('profile provider', () => {
         const mockProfileProvider = new ProfileProvider(
           mockSuperJson,
           'test-profile',
-          mockProviderConfiguration
+          mockProviderConfiguration,
+          mockSuperfacClient
         );
 
         const result = await mockProfileProvider.bind();
 
         expect(result.toString()).toEqual(
-          new BoundProfileProvider(mockProfileDocument, mockMapDocument, {
-            baseUrl: 'service/base/url',
-            profileProviderSettings: undefined,
-            security: [
-              {
-                type: SecurityType.HTTP,
-                id: 'test',
-                scheme: HttpScheme.BASIC,
-                username: 'test-username',
-                password: 'test-password',
-              },
-            ],
-          }).toString()
+          new BoundProfileProvider(
+            mockProfileDocument,
+            mockMapDocument,
+            'test',
+            {
+              baseUrl: 'service/base/url',
+              profileProviderSettings: undefined,
+              security: [
+                {
+                  type: SecurityType.HTTP,
+                  id: 'test',
+                  scheme: HttpScheme.BASIC,
+                  username: 'test-username',
+                  password: 'test-password',
+                },
+              ],
+            }
+          ).toString()
         );
       });
 
@@ -579,7 +618,8 @@ describe('profile provider', () => {
         const mockProfileProvider = new ProfileProvider(
           mockSuperJson,
           'test-profile',
-          mockProviderConfiguration
+          mockProviderConfiguration,
+          mockSuperfacClient
         );
         await expect(mockProfileProvider.bind()).rejects.toThrow(
           'Hint: Profiles can be installed using the superface cli tool: `superface install --help` for more info'
@@ -617,7 +657,8 @@ describe('profile provider', () => {
         const mockProfileProvider = new ProfileProvider(
           mockSuperJson,
           'test-profile',
-          mockProviderConfiguration
+          mockProviderConfiguration,
+          mockSuperfacClient
         );
         await expect(mockProfileProvider.bind()).rejects.toEqual(
           'NOT IMPLEMENTED: map provided locally but provider is not'
@@ -657,24 +698,30 @@ describe('profile provider', () => {
         const mockProfileProvider = new ProfileProvider(
           mockSuperJson,
           'test-profile',
-          mockProviderConfiguration
+          mockProviderConfiguration,
+          mockSuperfacClient
         );
         const result = await mockProfileProvider.bind();
 
         expect(result.toString()).toEqual(
-          new BoundProfileProvider(mockProfileDocument, mockMapDocument, {
-            baseUrl: 'service/base/url',
-            profileProviderSettings: undefined,
-            security: [
-              {
-                type: SecurityType.HTTP,
-                id: 'test',
-                scheme: HttpScheme.BASIC,
-                username: 'test-username',
-                password: 'test-password',
-              },
-            ],
-          }).toString()
+          new BoundProfileProvider(
+            mockProfileDocument,
+            mockMapDocument,
+            'test',
+            {
+              baseUrl: 'service/base/url',
+              profileProviderSettings: undefined,
+              security: [
+                {
+                  type: SecurityType.HTTP,
+                  id: 'test',
+                  scheme: HttpScheme.BASIC,
+                  username: 'test-username',
+                  password: 'test-password',
+                },
+              ],
+            }
+          ).toString()
         );
       });
 
@@ -721,25 +768,31 @@ describe('profile provider', () => {
         const mockProfileProvider = new ProfileProvider(
           mockSuperJson,
           mockProfileDocument,
-          mockProviderConfiguration
+          mockProviderConfiguration,
+          mockSuperfacClient
         );
 
         const result = await mockProfileProvider.bind({ security: [] });
 
         expect(result.toString()).toEqual(
-          new BoundProfileProvider(mockProfileDocument, mockMapDocument, {
-            baseUrl: 'service/base/url',
-            profileProviderSettings: undefined,
-            security: [
-              {
-                type: SecurityType.HTTP,
-                id: 'test',
-                scheme: HttpScheme.BASIC,
-                username: 'test-username',
-                password: 'test-password',
-              },
-            ],
-          }).toString()
+          new BoundProfileProvider(
+            mockProfileDocument,
+            mockMapDocument,
+            'test',
+            {
+              baseUrl: 'service/base/url',
+              profileProviderSettings: undefined,
+              security: [
+                {
+                  type: SecurityType.HTTP,
+                  id: 'test',
+                  scheme: HttpScheme.BASIC,
+                  username: 'test-username',
+                  password: 'test-password',
+                },
+              ],
+            }
+          ).toString()
         );
         mergeSecuritySpy.mockRestore();
       });
@@ -774,7 +827,8 @@ describe('profile provider', () => {
         const mockProfileProvider = new ProfileProvider(
           mockSuperJson,
           mockProfileDocument,
-          mockProviderJson
+          mockProviderJson,
+          mockSuperfacClient
         );
 
         await expect(mockProfileProvider.bind()).rejects.toThrow(
@@ -812,7 +866,8 @@ but a secret value was provided for security scheme: made-up-id`
         const mockProfileProvider = new ProfileProvider(
           mockSuperJson,
           mockProfileDocument,
-          mockProviderJson
+          mockProviderJson,
+          mockSuperfacClient
         );
 
         await expect(mockProfileProvider.bind()).rejects.toThrow(
@@ -850,7 +905,8 @@ but apiKey scheme requires: apikey`
         const mockProfileProvider = new ProfileProvider(
           mockSuperJson,
           mockProfileDocument,
-          mockProviderJson
+          mockProviderJson,
+          mockSuperfacClient
         );
 
         await expect(mockProfileProvider.bind()).rejects.toThrow(
@@ -888,7 +944,8 @@ but http scheme requires: username, password`
         const mockProfileProvider = new ProfileProvider(
           mockSuperJson,
           mockProfileDocument,
-          mockProviderJson
+          mockProviderJson,
+          mockSuperfacClient
         );
 
         await expect(mockProfileProvider.bind()).rejects.toThrow(
@@ -926,7 +983,8 @@ but http scheme requires: token`
         const mockProfileProvider = new ProfileProvider(
           mockSuperJson,
           mockProfileDocument,
-          mockProviderJson
+          mockProviderJson,
+          mockSuperfacClient
         );
 
         await expect(mockProfileProvider.bind()).rejects.toThrow(

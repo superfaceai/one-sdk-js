@@ -2,7 +2,8 @@ import { MapDocumentNode, ProfileDocumentNode } from '@superfaceai/ast';
 import { getLocal } from 'mockttp';
 
 import { BoundProfileProvider } from '../client';
-import { events } from './events';
+import { Events } from './events';
+import { err } from './result/result';
 
 jest.unmock('cross-fetch');
 
@@ -122,11 +123,14 @@ describe('events', () => {
 
   it('does something', async () => {
     const endpoint = await mockServer.get('/test').thenJson(200, {});
+    const events = new Events();
 
     const profile = new BoundProfileProvider(
       mockProfileDocument,
       mockMapDocument,
-      { baseUrl: mockServer.url, security: [] }
+      'provider',
+      { baseUrl: mockServer.url, security: [] },
+      events
     );
 
     let retry = true;
@@ -144,5 +148,36 @@ describe('events', () => {
     void result;
     const seenRequests = await endpoint.getSeenRequests();
     expect(seenRequests).toHaveLength(2);
+  });
+
+  it('handles rejection', async () => {
+    const events = new Events();
+    const profile = new BoundProfileProvider(
+      mockProfileDocument,
+      mockMapDocument,
+      'someprovider',
+      { baseUrl: 'https://unreachable.localhost', security: [] },
+      events
+    );
+
+    events.on(
+      'post-fetch',
+      { priority: 1 },
+      async (_context, _args, result) => {
+        try {
+          await result;
+
+          return { kind: 'continue' };
+        } catch (e) {
+          return {
+            kind: 'modify',
+            newResult: Promise.reject('modified rejection'),
+          };
+        }
+      }
+    );
+
+    const result = await profile.perform('Test');
+    expect(result).toStrictEqual(err('modified rejection'));
   });
 });

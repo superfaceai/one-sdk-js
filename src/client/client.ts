@@ -2,7 +2,7 @@ import { Config } from '../config';
 import { SuperJson } from '../internal';
 import { SDKExecutionError } from '../internal/errors';
 import { NonPrimitive } from '../internal/interpreter/variables';
-import { events, PerformContext } from '../lib/events';
+import { Events, PerformContext } from '../lib/events';
 import { exists } from '../lib/io';
 import { MetricReporter } from '../lib/reporter';
 import {
@@ -19,7 +19,7 @@ import { Provider, ProviderConfiguration } from './provider';
  */
 const SUPER_CACHE: { [path: string]: SuperJson } = {};
 
-export abstract class SuperfaceClientBase {
+export abstract class SuperfaceClientBase extends Events {
   public readonly superJson: SuperJson;
   private readonly metricReporter: MetricReporter;
   private boundCache: {
@@ -27,9 +27,14 @@ export abstract class SuperfaceClientBase {
   } = {};
 
   constructor() {
+    super();
     const superCacheKey = Config.superfacePath;
+
     if (SUPER_CACHE[superCacheKey] === undefined) {
       SUPER_CACHE[superCacheKey] = SuperJson.loadSync(superCacheKey).unwrap();
+    } else {
+      //TODO: better way of cummunicating this to user.
+      console.warn('Multiple SuperfaceClient bad');
     }
 
     this.superJson = SUPER_CACHE[superCacheKey];
@@ -44,14 +49,6 @@ export abstract class SuperfaceClientBase {
     }
   }
 
-  get profiles(): never {
-    throw 'TODO';
-  }
-
-  get providers(): never {
-    throw 'TODO';
-  }
-
   /** Returns a BoundProfileProvider that is cached according to `profileConfig` and `providerConfig` cache keys. */
   async cacheBoundProfileProvider(
     profileConfig: ProfileConfiguration,
@@ -64,7 +61,8 @@ export abstract class SuperfaceClientBase {
       const profileProvider = new ProfileProvider(
         this.superJson,
         profileConfig,
-        providerConfig
+        providerConfig,
+        this
       );
       const boundProfileProvider = await profileProvider.bind();
       this.boundCache[cacheKey] = boundProfileProvider;
@@ -84,13 +82,19 @@ export abstract class SuperfaceClientBase {
   }
 
   /** Returns a provider configuration for when no provider is passed to untyped `.perform`. */
-  async getProviderForProfile(profileId: string): Promise<Provider> {
+  async getProviderForProfile(
+    profileId: string,
+    provider?: string
+  ): Promise<Provider> {
     const knownProfileProviders = Object.keys(
       this.superJson.normalized.profiles[profileId]?.providers ?? {}
     );
 
     if (knownProfileProviders.length > 0) {
-      const name = knownProfileProviders[0];
+      const name =
+        provider !== undefined && knownProfileProviders.includes(provider)
+          ? provider
+          : knownProfileProviders[0];
 
       return this.getProvider(name);
     }
@@ -145,12 +149,34 @@ export abstract class SuperfaceClientBase {
       version = profileSettings.version;
     }
 
+    // TODO: load priority and add it to ProfileConfiguration?
+    const priority = profileSettings.priority;
+    if (!priority.every(p => this.superJson.normalized.providers[p])) {
+      throw new SDKExecutionError(
+        `Priority array of profile: ${profileId} contains unconfigured provider`,
+        [
+          `Profile "${profileId}" specifies a provider array [${priority.join(
+            ', '
+          )}] in super.json`,
+          `but there are only these providers configured [${Object.keys(
+            this.superJson.normalized.providers
+          ).join(', ')}]`,
+        ],
+        [
+          `Check that providers [${priority.join(
+            ', '
+          )}] are configured for profile "${profileId}"`,
+          'Paths in super.json are either absolute or relative to the location of super.json',
+        ]
+      );
+    }
+
     return new ProfileConfiguration(profileId, version);
   }
 
   private hookMetrics(): void {
     process.on('beforeExit', () => this.metricReporter.flush());
-    events.on('post-perform', { priority: 0 }, (context: PerformContext) => {
+    this.on('post-perform', { priority: 0 }, (context: PerformContext) => {
       console.log('performing');
       this.metricReporter.reportEvent({
         eventType: 'PerformMetrics',

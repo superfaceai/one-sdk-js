@@ -1,5 +1,6 @@
 import 'isomorphic-form-data';
 
+import { AbortController } from 'abort-controller';
 import fetch, { Headers } from 'cross-fetch';
 
 import {
@@ -12,10 +13,26 @@ import {
   isUrlSearchParamsBody,
   JSON_CONTENT,
 } from '../internal/interpreter/http/interfaces';
-import { eventInterceptor, Interceptable } from './events';
+import {
+  eventInterceptor,
+  Events,
+  Interceptable,
+  InterceptableMetadata,
+} from './events';
+
+export type CrossFetchError =
+  | {
+      kind: 'network';
+      issue: 'unsigned-ssl' | 'dns' | 'timeout' | 'reject';
+    }
+  | {
+      kind: 'request';
+      issue: 'abort' | 'timeout';
+    };
 
 export class CrossFetch implements FetchInstance, Interceptable {
-  public metadata: { usecase: string; profile: string } | undefined;
+  public metadata: InterceptableMetadata | undefined;
+  public events: Events | undefined;
 
   @eventInterceptor({
     eventName: 'fetch',
@@ -37,9 +54,10 @@ export class CrossFetch implements FetchInstance, Interceptable {
       body: this.body(parameters.body),
     };
 
-    const response = await fetch(
+    const response = await CrossFetch.fetchWithTimeout(
       url + this.queryParameters(parameters.queryParameters),
-      request
+      request,
+      parameters.timeout
     );
 
     const headers: Record<string, string> = {};
@@ -65,6 +83,64 @@ export class CrossFetch implements FetchInstance, Interceptable {
       headers,
       body,
     };
+  }
+
+  private static async fetchWithTimeout(
+    url: string,
+    options: RequestInit,
+    timeout?: number
+  ): Promise<Response> {
+    const abort = new AbortController();
+
+    let timeoutHandle = undefined;
+    if (timeout !== undefined) {
+      timeoutHandle = setTimeout(() => abort.abort(), timeout);
+    }
+    options.signal = abort.signal;
+
+    try {
+      return await fetch(url, options);
+    } catch (err: unknown) {
+      throw CrossFetch.normalizeError(err);
+    } finally {
+      if (timeoutHandle !== undefined) {
+        clearTimeout(timeoutHandle);
+      }
+    }
+  }
+
+  private static normalizeError(err: unknown): CrossFetchError {
+    if (typeof err !== 'object' || err === null) {
+      throw err;
+    }
+
+    if (!('type' in err)) {
+      throw err;
+    }
+
+    const error: { type: string } = err as { type: string };
+    if (error.type === 'aborted') {
+      return { kind: 'network', issue: 'timeout' };
+    }
+
+    if (error.type === 'system') {
+      const systemError: { type: 'system'; code: string; errno: string } =
+        error as { type: 'system'; code: string; errno: string };
+
+      if (
+        systemError.code === 'ENOTFOUND' ||
+        systemError.code === 'EAI_AGAIN'
+      ) {
+        return { kind: 'network', issue: 'dns' };
+      }
+
+      // TODO: unsigned ssl?
+
+      return { kind: 'network', issue: 'reject' };
+    }
+
+    // TODO: Match other errors here
+    return { kind: 'request', issue: 'abort' };
   }
 
   private queryParameters(parameters?: Record<string, string>): string {

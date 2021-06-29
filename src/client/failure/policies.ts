@@ -12,6 +12,82 @@ import {
   SuccessResolution,
 } from './resolution';
 
+export class FailurePolicyRouter {
+  private currentProvider: string | undefined;
+
+  constructor(
+    private readonly providersOfUseCase: Record<string, FailurePolicy>,
+    private readonly priority: string[]
+  ) {}
+
+  public getCurrentProvider(): string | undefined {
+    return this.currentProvider;
+  }
+
+  public setCurrentProvider(provider: string): void {
+    // TODO: check if exists
+    // console.log('SETTTING FROM ', this.currentProvider, ' TO ', provider);
+    this.currentProvider = provider;
+  }
+
+  public beforeExecution(info: ExecutionInfo): ExecutionResolution {
+    //TODO: export to function
+    if (!this.currentProvider) {
+      throw 'Property currentProvider is not set in Router instance';
+    }
+    if (!this.providersOfUseCase[this.currentProvider]) {
+      throw `There is not any policy set for provider ${this.currentProvider} in Router instance`;
+    }
+    const innerResolution =
+      this.providersOfUseCase[this.currentProvider].beforeExecution(info);
+
+    return innerResolution;
+  }
+
+  public afterFailure(info: ExecutionFailure): FailureResolution {
+    if (!this.currentProvider) {
+      throw 'Property currentProvider is not set in Router instance';
+    }
+    if (!this.providersOfUseCase[this.currentProvider]) {
+      throw `There is not any policy set for provider ${this.currentProvider} in Router instance`;
+    }
+    const innerResolution =
+      this.providersOfUseCase[this.currentProvider].afterFailure(info);
+    // console.log('router after fail', innerResolution)
+
+    //TODO: some other checking logic?
+    if (innerResolution.kind !== 'abort' || this.priority.length === 0) {
+      return innerResolution;
+    }
+    const indexOfCurrentProvider = this.priority.indexOf(this.currentProvider);
+
+    //Priority does not contain another (with lesser priority) provider
+    if (indexOfCurrentProvider === this.priority.length) {
+      //Abort/retry/continue??
+      return { kind: 'abort', reason: 'no backup provider configured' };
+    }
+
+    this.currentProvider = this.priority[indexOfCurrentProvider + 1];
+
+    return { kind: 'switch-provider', provider: this.currentProvider };
+  }
+
+  public afterSuccess(info: ExecutionSuccess): SuccessResolution {
+    if (!this.currentProvider) {
+      throw 'Property currentProvider is not set in Router instance';
+    }
+
+    return this.providersOfUseCase[this.currentProvider].afterSuccess(info);
+  }
+
+  public reset(): void {
+    this.currentProvider = this.priority[0];
+    for (const policy of Object.values(this.providersOfUseCase)) {
+      policy.reset();
+    }
+  }
+}
+
 /** Simple policy which aborts on the first failure */
 export class AbortPolicy extends FailurePolicy {
   constructor(usecaseInfo: UsecaseInfo) {
@@ -182,7 +258,7 @@ export class CircuitBreakerPolicy extends FailurePolicy {
     }
 
     if (this.state === 'open') {
-      throw new Error('Unreachable');
+      throw new Error('Unreachable circuit breaker state');
     }
 
     const innerResponse = this.inner.afterFailure(info);
