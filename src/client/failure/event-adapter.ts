@@ -41,7 +41,6 @@ export type FailoverHooksContext = Record<
 >;
 
 export function registerHooks(hookContext: HooksContext, events: Events): void {
-  // console.log('registerFetchRetryHooks');
   // console.time('STATE');
 
   events.on('pre-fetch', { priority: 1 }, async (context, args) => {
@@ -59,8 +58,6 @@ export function registerHooks(hookContext: HooksContext, events: Events): void {
     // console.log('pre-fetch context', performContext, 't', Date.now());
     // if there is no configured context, ignore the event as well
     if (performContext === undefined) {
-      // console.log('pre-fetch return continue');
-
       return { kind: 'continue' };
     }
     const resolution = performContext.router.beforeExecution({
@@ -85,10 +82,7 @@ export function registerHooks(hookContext: HooksContext, events: Events): void {
         await sleep(resolution.backoff);
         if (resolution.timeout > 0) {
           const newArgs = clone(args);
-          // TODO: Add timeout to fetch params?
-          // newArgs[1].timeout = action.timeout;
-
-          // console.log('pre-fetch return', { kind: 'modify', newArgs });
+          newArgs[1].timeout = resolution.timeout;
 
           return { kind: 'modify', newArgs };
         }
@@ -135,8 +129,6 @@ export function registerHooks(hookContext: HooksContext, events: Events): void {
     const performContext = hookContext[`${context.profile}/${context.usecase}`];
     // if there is no configured context, ignore the event as well
     if (performContext === undefined) {
-      // console.log('perform context undefined');
-
       return { kind: 'continue' };
     }
 
@@ -166,11 +158,11 @@ export function registerHooks(hookContext: HooksContext, events: Events): void {
         context.time.getTime()
       );
       if (overidenResolution) {
-        console.timeLog(
-          'STATE',
-          'OVERIDE RESULT IN POST FETCH',
-          overidenResolution
-        );
+        // console.timeLog(
+        //   'STATE',
+        //   'OVERIDE RESULT IN POST FETCH',
+        //   overidenResolution
+        // );
         switch (overidenResolution.kind) {
           case 'switch-provider': {
             hookContext[`${context.profile}/${context.usecase}`].queuedAction =
@@ -182,12 +174,6 @@ export function registerHooks(hookContext: HooksContext, events: Events): void {
             // console.log('set context', hookContext)
             return { kind: 'continue' };
           }
-          //Moved here from before execution
-          case 'backoff':
-            await sleep(overidenResolution.backoff);
-
-            return { kind: 'retry' };
-
           case 'continue':
             return { kind: 'continue' };
 
@@ -286,7 +272,6 @@ export function registerHooks(hookContext: HooksContext, events: Events): void {
 
     // perform queued action here
     if (performContext.queuedAction !== undefined) {
-      // console.log('DO queuedAction!!!!!!!!!!!!!!!!!!!!');
       if (performContext.queuedAction.kind === 'switch-provider') {
         const action = performContext.queuedAction;
         performContext.queuedAction = undefined;

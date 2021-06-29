@@ -3,7 +3,6 @@ import { getLocal } from 'mockttp';
 
 import { BackoffKind, OnFail } from '../../internal';
 import { ok } from '../../lib';
-import { BoundProfileProvider } from '../profile-provider';
 
 const mockProfileDocument: ProfileDocumentNode = {
   kind: 'ProfileDocument',
@@ -187,6 +186,7 @@ describe('event-adapter', () => {
   it('does not use retry policy - returns after HTTP 200', async () => {
     const { SuperfaceClient } = await import('../client');
     const { SuperJson } = await import('../../internal');
+    const { BoundProfileProvider } = await import('../profile-provider');
 
     const mockLoadSyn = jest.fn();
 
@@ -241,6 +241,8 @@ describe('event-adapter', () => {
   it('does not use retry policy - aborts after HTTP 500', async () => {
     const { SuperfaceClient } = await import('../client');
     const { SuperJson } = await import('../../internal');
+    const { BoundProfileProvider } = await import('../profile-provider');
+
     const mockLoadSyn = jest.fn();
 
     const endpoint = await mockServer.get('/test').thenJson(500, {});
@@ -291,6 +293,8 @@ describe('event-adapter', () => {
   it('does not use retry policy - aborts after closed connection', async () => {
     const { SuperfaceClient } = await import('../client');
     const { SuperJson } = await import('../../internal');
+    const { BoundProfileProvider } = await import('../profile-provider');
+
     const mockLoadSyn = jest.fn();
 
     await mockServer.get('/test').thenCloseConnection();
@@ -340,6 +344,8 @@ describe('event-adapter', () => {
   it('does not use retry policy - aborts after timeout', async () => {
     const { SuperfaceClient } = await import('../client');
     const { SuperJson } = await import('../../internal');
+    const { BoundProfileProvider } = await import('../profile-provider');
+
     const mockLoadSyn = jest.fn();
 
     await mockServer.get('/test').thenTimeout();
@@ -389,6 +395,7 @@ describe('event-adapter', () => {
   it('use circuit-breaker policy - aborts after HTTP 500', async () => {
     const { SuperfaceClient } = await import('../client');
     const { SuperJson } = await import('../../internal');
+    const { BoundProfileProvider } = await import('../profile-provider');
 
     const mockLoadSyn = jest.fn();
 
@@ -454,6 +461,8 @@ describe('event-adapter', () => {
   it('use circuit-breaker policy with backoff - aborts after HTTP 500', async () => {
     const { SuperfaceClient } = await import('../client');
     const { SuperJson } = await import('../../internal');
+    const { BoundProfileProvider } = await import('../profile-provider');
+
     const mockLoadSyn = jest.fn();
     const backoffTime = 5000;
     let firstRequestTime: number | undefined;
@@ -548,6 +557,8 @@ describe('event-adapter', () => {
   it('use circuit-breaker policy - switch providers after HTTP 500, using default provider', async () => {
     const { SuperfaceClient } = await import('../client');
     const { SuperJson } = await import('../../internal');
+    const { BoundProfileProvider } = await import('../profile-provider');
+
     const mockLoadSyn = jest.fn();
 
     const endpoint = await mockServer.get('/test').thenJson(500, {});
@@ -625,6 +636,8 @@ describe('event-adapter', () => {
   it('use circuit-breaker policy - switch providers after HTTP 500, using provider from user', async () => {
     const { SuperfaceClient } = await import('../client');
     const { SuperJson } = await import('../../internal');
+    const { BoundProfileProvider } = await import('../profile-provider');
+
     const mockLoadSyn = jest.fn();
 
     const endpoint = await mockServer.get('/test').thenJson(500, {});

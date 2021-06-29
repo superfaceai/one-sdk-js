@@ -254,7 +254,6 @@ function replacementFunction<E extends keyof EventTypes>(
         }
 
         if (hookResult.kind === 'retry') {
-          console.timeLog('STATE', 'events post-', metadata.eventName);
           if (hookResult.newArgs !== undefined) {
             functionArgs = hookResult.newArgs as any;
           }
