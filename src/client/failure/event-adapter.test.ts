@@ -2,7 +2,7 @@ import { MapDocumentNode, ProfileDocumentNode } from '@superfaceai/ast';
 import { getLocal } from 'mockttp';
 
 import { BackoffKind, OnFail } from '../../internal';
-import { ok } from '../../lib';
+import { ok, sleep } from '../../lib';
 
 const mockProfileDocument: ProfileDocumentNode = {
   kind: 'ProfileDocument',
@@ -45,7 +45,7 @@ const mockProfileDocument: ProfileDocumentNode = {
   ],
 };
 
-const mockMapDocument: MapDocumentNode = {
+const mockOkMapDocument: MapDocumentNode = {
   kind: 'MapDocument',
   header: {
     kind: 'MapHeader',
@@ -69,7 +69,68 @@ const mockMapDocument: MapDocumentNode = {
         {
           kind: 'HttpCallStatement',
           method: 'GET',
-          url: '/test',
+          url: '/ok',
+          request: {
+            security: [],
+            kind: 'HttpRequest',
+          },
+          responseHandlers: [
+            {
+              kind: 'HttpResponseHandler',
+              statusCode: 200,
+              contentType: 'application/json',
+              statements: [
+                {
+                  kind: 'OutcomeStatement',
+                  isError: false,
+                  terminateFlow: false,
+                  value: {
+                    kind: 'ObjectLiteral',
+                    fields: [
+                      {
+                        kind: 'Assignment',
+                        key: ['message'],
+                        value: {
+                          kind: 'PrimitiveLiteral',
+                          value: 'hello',
+                        },
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  ],
+};
+const mockErrMapDocument: MapDocumentNode = {
+  kind: 'MapDocument',
+  header: {
+    kind: 'MapHeader',
+    profile: {
+      scope: 'starwars',
+      name: 'character-information',
+      version: {
+        major: 1,
+        minor: 0,
+        patch: 0,
+      },
+    },
+    provider: 'provider',
+  },
+  definitions: [
+    {
+      kind: 'MapDefinition',
+      name: 'Test',
+      usecaseName: 'Test',
+      statements: [
+        {
+          kind: 'HttpCallStatement',
+          method: 'GET',
+          url: '/err',
           request: {
             security: [],
             kind: 'HttpRequest',
@@ -180,6 +241,7 @@ describe('event-adapter', () => {
     await mockServer.stop();
     jest.resetAllMocks();
     jest.resetModules();
+    jest.resetModules();
   });
 
   //Without retry policy
@@ -190,7 +252,7 @@ describe('event-adapter', () => {
 
     const mockLoadSyn = jest.fn();
 
-    const endpoint = await mockServer.get('/test').thenJson(200, {});
+    const endpoint = await mockServer.get('/ok').thenJson(200, {});
 
     const mockSuperJson = new SuperJson({
       profiles: {
@@ -217,7 +279,7 @@ describe('event-adapter', () => {
     //Mocking bounded provider
     const mockBoundProfileProvider = new BoundProfileProvider(
       mockProfileDocument,
-      mockMapDocument,
+      mockOkMapDocument,
       'provider',
       { baseUrl: mockServer.url, security: [] },
       client
@@ -245,7 +307,7 @@ describe('event-adapter', () => {
 
     const mockLoadSyn = jest.fn();
 
-    const endpoint = await mockServer.get('/test').thenJson(500, {});
+    const endpoint = await mockServer.get('/err').thenJson(500, {});
 
     const mockSuperJson = new SuperJson({
       profiles: {
@@ -271,7 +333,7 @@ describe('event-adapter', () => {
     //Mocking bounded provider
     const mockBoundProfileProvider = new BoundProfileProvider(
       mockProfileDocument,
-      mockMapDocument,
+      mockErrMapDocument,
       'provider',
       { baseUrl: mockServer.url, security: [] },
       client
@@ -297,7 +359,7 @@ describe('event-adapter', () => {
 
     const mockLoadSyn = jest.fn();
 
-    await mockServer.get('/test').thenCloseConnection();
+    await mockServer.get('/err').thenCloseConnection();
 
     const mockSuperJson = new SuperJson({
       profiles: {
@@ -323,7 +385,7 @@ describe('event-adapter', () => {
     //Mocking bounded provider
     const mockBoundProfileProvider = new BoundProfileProvider(
       mockProfileDocument,
-      mockMapDocument,
+      mockErrMapDocument,
       'provider',
       { baseUrl: mockServer.url, security: [] },
       client
@@ -348,7 +410,7 @@ describe('event-adapter', () => {
 
     const mockLoadSyn = jest.fn();
 
-    await mockServer.get('/test').thenTimeout();
+    await mockServer.get('/err').thenTimeout();
 
     const mockSuperJson = new SuperJson({
       profiles: {
@@ -374,7 +436,7 @@ describe('event-adapter', () => {
     //Mocking bounded provider
     const mockBoundProfileProvider = new BoundProfileProvider(
       mockProfileDocument,
-      mockMapDocument,
+      mockErrMapDocument,
       'provider',
       { baseUrl: mockServer.url, security: [] },
       client
@@ -399,7 +461,7 @@ describe('event-adapter', () => {
 
     const mockLoadSyn = jest.fn();
 
-    const endpoint = await mockServer.get('/test').thenJson(500, {});
+    const endpoint = await mockServer.get('/err').thenJson(500, {});
 
     const mockSuperJson = new SuperJson({
       profiles: {
@@ -436,7 +498,7 @@ describe('event-adapter', () => {
     //Mocking bounded provider
     const mockBoundProfileProvider = new BoundProfileProvider(
       mockProfileDocument,
-      mockMapDocument,
+      mockErrMapDocument,
       'provider',
       { baseUrl: mockServer.url, security: [] },
       client
@@ -469,7 +531,7 @@ describe('event-adapter', () => {
     let secondRequestTime: number | undefined;
 
     let retry = true;
-    const endpoint = await mockServer.get('/test').thenCallback(() => {
+    const endpoint = await mockServer.get('/err').thenCallback(() => {
       if (retry) {
         retry = false;
         firstRequestTime = Date.now();
@@ -526,7 +588,7 @@ describe('event-adapter', () => {
     //Mocking bounded provider
     const mockBoundProfileProvider = new BoundProfileProvider(
       mockProfileDocument,
-      mockMapDocument,
+      mockErrMapDocument,
       'provider',
       { baseUrl: mockServer.url, security: [] },
       client
@@ -561,7 +623,7 @@ describe('event-adapter', () => {
 
     const mockLoadSyn = jest.fn();
 
-    const endpoint = await mockServer.get('/test').thenJson(500, {});
+    const endpoint = await mockServer.get('/err').thenJson(500, {});
     const secondEndpoint = await mockServer.get('/second').thenJson(200, {});
 
     const mockSuperJson = new SuperJson({
@@ -604,7 +666,7 @@ describe('event-adapter', () => {
     //Mocking first bounded provider
     const firstMockBoundProfileProvider = new BoundProfileProvider(
       mockProfileDocument,
-      mockMapDocument,
+      mockErrMapDocument,
       'provider',
       { baseUrl: mockServer.url, security: [] },
       client
@@ -640,7 +702,7 @@ describe('event-adapter', () => {
 
     const mockLoadSyn = jest.fn();
 
-    const endpoint = await mockServer.get('/test').thenJson(500, {});
+    const endpoint = await mockServer.get('/err').thenJson(500, {});
     const secondEndpoint = await mockServer.get('/second').thenJson(200, {});
 
     const mockSuperJson = new SuperJson({
@@ -683,7 +745,7 @@ describe('event-adapter', () => {
     //Mocking first bounded provider
     const firstMockBoundProfileProvider = new BoundProfileProvider(
       mockProfileDocument,
-      mockMapDocument,
+      mockErrMapDocument,
       'provider',
       { baseUrl: mockServer.url, security: [] },
       client
@@ -711,4 +773,108 @@ describe('event-adapter', () => {
     expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(2);
     expect((await secondEndpoint.getSeenRequests()).length).toEqual(1);
   }, 30000);
+
+  it('use circuit-breaker policy - switch providers after HTTP 500 and switch back', async () => {
+    const { SuperfaceClient } = await import('../client');
+    const { SuperJson } = await import('../../internal');
+    const { BoundProfileProvider } = await import('../profile-provider');
+
+    const mockLoadSyn = jest.fn();
+
+    let retry = 0;
+    const endpoint = await mockServer.get('/ok').thenCallback(() => {
+      if (retry < 2) {
+        retry++;
+
+        return {
+          statusCode: 500,
+          json: {},
+        };
+      }
+
+      return {
+        statusCode: 200,
+        json: {},
+      };
+    });
+    const secondEndpoint = await mockServer.get('/second').thenJson(200, {});
+
+    const mockSuperJson = new SuperJson({
+      profiles: {
+        ['starwars/character-information']: {
+          version: '1.0.0',
+          priority: ['provider', 'second'],
+          providers: {
+            provider: {
+              defaults: {
+                Test: {
+                  input: {},
+                  retryPolicy: {
+                    kind: OnFail.CIRCUIT_BREAKER,
+                    maxContiguousRetries: 2,
+                    requestTimeout: 1000,
+                  },
+                },
+              },
+            },
+            second: {},
+          },
+        },
+      },
+      providers: {
+        provider: {
+          security: [],
+        },
+        second: {
+          security: [],
+        },
+      },
+    });
+
+    mockLoadSyn.mockReturnValue(ok(mockSuperJson));
+    SuperJson.loadSync = mockLoadSyn;
+
+    const client = new SuperfaceClient();
+
+    //Mocking first bounded provider
+    const firstMockBoundProfileProvider = new BoundProfileProvider(
+      mockProfileDocument,
+      mockOkMapDocument,
+      'provider',
+      { baseUrl: mockServer.url, security: [] },
+      client
+    );
+    //Mocking first bounded provider
+    const secondMockBoundProfileProvider = new BoundProfileProvider(
+      mockProfileDocument,
+      secondMockMapDocument,
+      'second',
+      { baseUrl: mockServer.url, security: [] },
+      client
+    );
+    const cacheBoundProfileProviderSpy = jest
+      .spyOn(client, 'cacheBoundProfileProvider')
+      .mockResolvedValueOnce(firstMockBoundProfileProvider)
+      .mockResolvedValueOnce(secondMockBoundProfileProvider)
+      .mockResolvedValueOnce(firstMockBoundProfileProvider);
+
+    const profile = await client.getProfile('starwars/character-information');
+    const useCase = profile.getUseCase('Test');
+    //Try first provider two times then switch to second and return value
+    let result = await useCase.perform(undefined);
+
+    expect(result.unwrap()).toEqual({ message: 'hello from second provider' });
+
+    //Wait
+    await sleep(30000);
+
+    //Try first provider and return value
+    result = await useCase.perform(undefined);
+
+    expect(result.unwrap()).toEqual({ message: 'hello' });
+    //We send request twice
+    expect((await endpoint.getSeenRequests()).length).toEqual(3);
+    expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(3);
+    expect((await secondEndpoint.getSeenRequests()).length).toEqual(1);
+  }, 60000);
 });

@@ -1,4 +1,3 @@
-import { NetworkErrors } from '../../internal/interpreter/http';
 import { FetchResponse } from '../../internal/interpreter/http/interfaces';
 import { clone, sleep } from '../../lib';
 import { Events } from '../../lib/events';
@@ -41,8 +40,7 @@ export type FailoverHooksContext = Record<
 >;
 
 export function registerHooks(hookContext: HooksContext, events: Events): void {
-  // console.log('registerFetchRetryHooks');
-  console.time('STATE');
+  // console.time('STATE');
 
   events.on('pre-fetch', { priority: 1 }, async (context, args) => {
     // console.timeLog('STATE', 'pre-fetch');
@@ -172,7 +170,6 @@ export function registerHooks(hookContext: HooksContext, events: Events): void {
                 provider: overidenResolution.provider,
               };
 
-            // console.log('set context', hookContext)
             return { kind: 'continue' };
           }
           case 'continue':
@@ -202,9 +199,6 @@ export function registerHooks(hookContext: HooksContext, events: Events): void {
     if (error !== undefined) {
       // console.log('post-fetch is err', error, typeof error);
 
-      if (typeof error === 'string' && error === NetworkErrors.TIMEOUT_ERROR) {
-        // console.log('TIMEOUT');
-      }
       const resolution = performContext.router.afterFailure({
         time: context.time.getTime(),
         registryCacheAge: 0, // TODO,

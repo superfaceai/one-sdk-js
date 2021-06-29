@@ -6,7 +6,7 @@
 import createDebug from 'debug';
 
 import { UseCase } from '../client';
-import { MapInterpreter } from '../internal';
+import { MapInterpreterEventDispatcher } from '../internal/interpreter/events';
 import { FetchInstance } from '../internal/interpreter/http/interfaces';
 
 const debug = createDebug('superface:events');
@@ -92,7 +92,7 @@ type EventTypes = {
   perform: [InstanceType<typeof UseCase>['perform'], EventContextBase];
   fetch: [FetchInstance['fetch'], EventContextBase];
   'unhandled-http': [
-    InstanceType<typeof MapInterpreter>['unahndledHttp'],
+    InstanceType<typeof MapInterpreterEventDispatcher>['unhandledHttp'],
     EventContextBase
   ];
 };
@@ -212,8 +212,29 @@ function replacementFunction<E extends keyof EventTypes>(
     this: Interceptable,
     ...args: Parameters<EventTypes[E][0]>
   ) {
-    const events = this.events;
+    if (debug.enabled) {
+      let metadataString = 'undefined';
+      if (this.metadata !== undefined) {
+        metadataString = `{ profile: ${
+          this.metadata.profile ?? 'undefined'
+        }, provider: ${this.metadata.provider ?? 'undefined'}, usecase: ${
+          this.metadata.usecase ?? 'undefined'
+        } }`;
+      }
 
+      let eventsString = 'undefined';
+      if (this.events !== undefined) {
+        eventsString = 'defined';
+      }
+
+      debug(
+        `Intercepted function for "${metadata.eventName}" (placement: ${
+          metadata.placement ?? ''
+        }) with context: { metadata: ${metadataString}, events: ${eventsString} }`
+      );
+    }
+
+    const events = this.events;
     if (!events) {
       return originalFunction.apply(this, args);
     }

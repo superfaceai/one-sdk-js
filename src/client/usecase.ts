@@ -124,7 +124,7 @@ class UseCaseBase implements Interceptable {
           },
           //TODO are these defauts ok?
           retryPolicy.maxContiguousRetries ?? 5,
-          60000,
+          30_000,
           retryPolicy.requestTimeout,
           backoff
         );

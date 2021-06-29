@@ -16,6 +16,7 @@ import {
   ProfileParameterError,
   ProfileParameterValidator,
 } from '../internal/interpreter';
+import { MapInterpreterEventDispatcher } from '../internal/interpreter/events';
 import { FetchInstance } from '../internal/interpreter/http/interfaces';
 import { SecurityConfiguration } from '../internal/interpreter/http/security';
 import {
@@ -136,10 +137,14 @@ export class BoundProfileProvider {
         serviceBaseUrl: this.configuration.baseUrl,
         security: this.configuration.security,
       },
-      { fetchInstance: this.fetchInstance }
+      {
+        fetchInstance: this.fetchInstance,
+        eventDispatcher: new MapInterpreterEventDispatcher(
+          this.fetchInstance.metadata,
+          this.fetchInstance.events
+        ),
+      }
     );
-    interpreter.metadata = this.fetchInstance.metadata;
-    interpreter.events = this.fetchInstance.events;
 
     const result = await interpreter.perform(this.mapAst);
     if (result.isErr()) {
