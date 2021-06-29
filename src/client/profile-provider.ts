@@ -16,7 +16,6 @@ import {
   ProfileParameterError,
   ProfileParameterValidator,
 } from '../internal/interpreter';
-import { MapInterpreterEventDispatcher } from '../internal/interpreter/events';
 import { FetchInstance } from '../internal/interpreter/http/interfaces';
 import { SecurityConfiguration } from '../internal/interpreter/http/security';
 import {
@@ -39,6 +38,7 @@ import { mergeSecurity } from '../internal/superjson/mutate';
 import { err, ok, Result } from '../lib';
 import { Events, Interceptable } from '../lib/events';
 import { CrossFetch } from '../lib/fetch';
+import { MapInterpreterEventAdapter } from './failure/map-interpreter-adapter';
 import { ProfileConfiguration } from './profile';
 import { ProviderConfiguration } from './provider';
 import { fetchBind } from './registry';
@@ -139,7 +139,7 @@ export class BoundProfileProvider {
       },
       {
         fetchInstance: this.fetchInstance,
-        eventDispatcher: new MapInterpreterEventDispatcher(
+        externalHandler: new MapInterpreterEventAdapter(
           this.fetchInstance.metadata,
           this.fetchInstance.events
         ),
