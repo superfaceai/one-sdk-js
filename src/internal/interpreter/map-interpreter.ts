@@ -27,17 +27,11 @@ import {
 import createDebug from 'debug';
 
 import { err, ok, Result } from '../../lib';
-import {
-  eventInterceptor,
-  Events,
-  Interceptable,
-  InterceptableMetadata,
-} from '../../lib/events';
 import { UnexpectedError } from '../errors';
+import { MapInterpreterEventDispatcher } from './events';
 import { HttpClient, HttpResponse, SecurityConfiguration } from './http';
 import { FetchInstance } from './http/interfaces';
 import {
-  HTTPError,
   JessieError,
   MapASTError,
   MapInterpreterError,
@@ -119,21 +113,28 @@ type IterationDefinition = {
 };
 
 export class MapInterpreter<TInput extends NonPrimitive | undefined>
-  implements MapAstVisitor, Interceptable
+  implements MapAstVisitor
 {
-  public metadata: InterceptableMetadata | undefined;
-  public events: Events | undefined;
-
   private operations: Record<string, OperationDefinitionNode | undefined> = {};
   private stack: Stack[] = [];
   private ast?: MapDocumentNode;
-  private http: HttpClient;
+
+  private readonly http: HttpClient;
+  private readonly eventDispatcher: MapInterpreterEventDispatcher;
 
   constructor(
     private readonly parameters: MapParameters<TInput>,
-    { fetchInstance }: { fetchInstance: FetchInstance }
+    {
+      fetchInstance,
+      eventDispatcher,
+    }: {
+      fetchInstance: FetchInstance;
+      eventDispatcher?: MapInterpreterEventDispatcher;
+    }
   ) {
     this.http = new HttpClient(fetchInstance);
+    this.eventDispatcher =
+      eventDispatcher ?? new MapInterpreterEventDispatcher();
   }
 
   async perform(
@@ -310,26 +311,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
       }
     }
 
-    await this.unahndledHttp(node, response);
-  }
-
-  @eventInterceptor({
-    eventName: 'unhandled-http',
-    placement: 'before',
-  })
-  async unahndledHttp(
-    node: HttpCallStatementNode,
-    response: HttpResponse
-  ): Promise<void> {
-    if (response.statusCode >= 400) {
-      throw new HTTPError(
-        'HTTP Error',
-        { node, ast: this.ast },
-        response.statusCode,
-        response.debug.request,
-        { body: response.body, headers: response.headers }
-      );
-    }
+    await this.eventDispatcher.unhandledHttp(this.ast, node, response);
   }
 
   async visitHttpRequestNode(node: HttpRequestNode): Promise<HttpRequest> {

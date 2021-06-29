@@ -40,8 +40,7 @@ export type FailoverHooksContext = Record<
 >;
 
 export function registerHooks(hookContext: HooksContext, events: Events): void {
-  // console.log('registerFetchRetryHooks');
-  console.time('STATE');
+  // console.time('STATE');
 
   events.on('pre-fetch', { priority: 1 }, async (context, args) => {
     // console.timeLog('STATE', 'pre-fetch');
