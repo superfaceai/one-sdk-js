@@ -3,8 +3,13 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import createDebug from 'debug';
+
 import { UseCase } from '../client';
+import { MapInterpreter } from '../internal';
 import { FetchInstance } from '../internal/interpreter/http/interfaces';
+
+const debug = createDebug('superface:events');
 
 type AnyFunction = (...args: any[]) => any;
 type AsyncFunction = (...args: any[]) => Promise<any>;
@@ -86,6 +91,10 @@ type VoidEventHook<EventContext extends EventContextBase> = (
 type EventTypes = {
   perform: [InstanceType<typeof UseCase>['perform'], EventContextBase];
   fetch: [FetchInstance['fetch'], EventContextBase];
+  'unhandled-http': [
+    InstanceType<typeof MapInterpreter>['unahndledHttp'],
+    EventContextBase
+  ];
 };
 
 export type EventParams = {
@@ -126,6 +135,10 @@ export class Events {
     },
     callback: EventParams[E]
   ): void {
+    debug(
+      `Attaching listener for event "${event}" with priority ${options.priority}`
+    );
+
     this.listeners[event] = [
       ...(this.listeners[event] ?? []),
       priorityCallbackTuple<E>(options.priority, callback, options.filter),
@@ -136,6 +149,8 @@ export class Events {
     event: E,
     parameters: Parameters<EventParams[E]>
   ): Promise<ResolvedPromise<ReturnType<EventParams[E]>>> {
+    debug(`Emitting event "${event}"`);
+
     const listeners = this.listeners[event];
     const [context] = parameters;
     let params = parameters;
@@ -156,6 +171,9 @@ export class Events {
           continue;
         }
         const hookResult = await callback(...params);
+        debug(
+          `Event "${event}" listener ${i} result: ${hookResult.kind as string}`
+        );
 
         if (hookResult.kind === 'modify') {
           params = [context, hookResult.newArgs] as any;
@@ -280,14 +298,18 @@ export function eventInterceptor<E extends keyof EventTypes>(
   descriptor: TypedPropertyDescriptor<EventTypes[E][0]>
 ) => PropertyDescriptor {
   return function (
-    _target: Interceptable,
-    _propertyKey: string,
+    target: Interceptable,
+    propertyKey: string,
     descriptor: TypedPropertyDescriptor<EventTypes[E][0]>
   ): PropertyDescriptor {
     const metadata = {
       ...eventInterceptorMetadataDefaults,
       ...eventMetadata,
     };
+    debug(
+      `Attaching interceptor for event "${metadata.eventName}" (placement: ${metadata.placement}) onto ${target.constructor.name}::${propertyKey}`
+    );
+
     if (descriptor.value === undefined) {
       throw new Error(
         'Something went horribly wrong, Godzilla might be involved!'
