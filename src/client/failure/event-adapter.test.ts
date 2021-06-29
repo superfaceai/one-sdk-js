@@ -2,7 +2,7 @@ import { MapDocumentNode, ProfileDocumentNode } from '@superfaceai/ast';
 import { getLocal } from 'mockttp';
 
 import { BackoffKind, OnFail } from '../../internal';
-import { ok } from '../../lib';
+import { ok, sleep } from '../../lib';
 
 const mockProfileDocument: ProfileDocumentNode = {
   kind: 'ProfileDocument',
@@ -179,6 +179,7 @@ describe('event-adapter', () => {
   afterEach(async () => {
     await mockServer.stop();
     jest.resetAllMocks();
+    jest.resetModules();
     jest.resetModules();
   });
 
@@ -711,4 +712,108 @@ describe('event-adapter', () => {
     expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(2);
     expect((await secondEndpoint.getSeenRequests()).length).toEqual(1);
   }, 30000);
+
+  it('use circuit-breaker policy - switch providers after HTTP 500 and switch back', async () => {
+    const { SuperfaceClient } = await import('../client');
+    const { SuperJson } = await import('../../internal');
+    const { BoundProfileProvider } = await import('../profile-provider');
+
+    const mockLoadSyn = jest.fn();
+
+    let retry = 0;
+    const endpoint = await mockServer.get('/test').thenCallback(() => {
+      if (retry < 2) {
+        retry++;
+
+        return {
+          statusCode: 500,
+          json: {},
+        };
+      }
+
+      return {
+        statusCode: 200,
+        json: {},
+      };
+    });
+    const secondEndpoint = await mockServer.get('/second').thenJson(200, {});
+
+    const mockSuperJson = new SuperJson({
+      profiles: {
+        ['starwars/character-information']: {
+          version: '1.0.0',
+          priority: ['provider', 'second'],
+          providers: {
+            provider: {
+              defaults: {
+                Test: {
+                  input: {},
+                  retryPolicy: {
+                    kind: OnFail.CIRCUIT_BREAKER,
+                    maxContiguousRetries: 2,
+                    requestTimeout: 1000,
+                  },
+                },
+              },
+            },
+            second: {},
+          },
+        },
+      },
+      providers: {
+        provider: {
+          security: [],
+        },
+        second: {
+          security: [],
+        },
+      },
+    });
+
+    mockLoadSyn.mockReturnValue(ok(mockSuperJson));
+    SuperJson.loadSync = mockLoadSyn;
+
+    const client = new SuperfaceClient();
+
+    //Mocking first bounded provider
+    const firstMockBoundProfileProvider = new BoundProfileProvider(
+      mockProfileDocument,
+      mockMapDocument,
+      'provider',
+      { baseUrl: mockServer.url, security: [] },
+      client
+    );
+    //Mocking first bounded provider
+    const secondMockBoundProfileProvider = new BoundProfileProvider(
+      mockProfileDocument,
+      secondMockMapDocument,
+      'second',
+      { baseUrl: mockServer.url, security: [] },
+      client
+    );
+    const cacheBoundProfileProviderSpy = jest
+      .spyOn(client, 'cacheBoundProfileProvider')
+      .mockResolvedValueOnce(firstMockBoundProfileProvider)
+      .mockResolvedValueOnce(secondMockBoundProfileProvider)
+      .mockResolvedValueOnce(firstMockBoundProfileProvider);
+
+    const profile = await client.getProfile('starwars/character-information');
+    const useCase = profile.getUseCase('Test');
+    //Try first provider two times then switch to second and return value
+    let result = await useCase.perform(undefined);
+
+    expect(result.unwrap()).toEqual({ message: 'hello from second provider' });
+
+    //Wait
+    await sleep(30000);
+
+    //Try first provider and return value
+    result = await useCase.perform(undefined);
+
+    expect(result.unwrap()).toEqual({ message: 'hello' });
+    //We send request twice
+    expect((await endpoint.getSeenRequests()).length).toEqual(3);
+    expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(3);
+    expect((await secondEndpoint.getSeenRequests()).length).toEqual(1);
+  }, 60000);
 });
