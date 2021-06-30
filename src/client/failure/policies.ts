@@ -117,7 +117,7 @@ export class AbortPolicy extends FailurePolicy {
   }
 
   override beforeExecution(_info: ExecutionInfo): ExecutionResolution {
-    return { kind: 'continue', timeout: 30 };
+    return { kind: 'continue', timeout: 30_000 };
   }
 
   override afterFailure(_info: ExecutionFailure): FailureResolution {
@@ -146,7 +146,7 @@ export class RetryPolicy extends FailurePolicy {
   constructor(
     usecaseInfo: UsecaseInfo,
     public readonly maxContiguousRetries: number = 5,
-    public readonly requestTimeout: number = 30,
+    public readonly requestTimeout: number = 30_000,
     private readonly backoff: Backoff = new ExponentialBackoff(50, 2.0)
   ) {
     super(usecaseInfo);

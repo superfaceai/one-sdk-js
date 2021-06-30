@@ -436,7 +436,7 @@ describe('event-adapter', () => {
 
     expect(result.isErr()).toEqual(true);
     expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(1);
-  }, 30000);
+  }, 50000);
 
   //Circuit breaker
   it('use circuit-breaker policy - aborts after HTTP 500', async () => {

@@ -60,7 +60,7 @@ describe('failure policies', () => {
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
         backoff: 100,
-        timeout: 30,
+        timeout: 30_000,
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
@@ -69,7 +69,7 @@ describe('failure policies', () => {
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
         backoff: 200,
-        timeout: 30,
+        timeout: 30_000,
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
@@ -78,7 +78,7 @@ describe('failure policies', () => {
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
         backoff: 400,
-        timeout: 30,
+        timeout: 30_000,
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
@@ -106,7 +106,7 @@ describe('failure policies', () => {
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
         backoff: 100,
-        timeout: 30,
+        timeout: 30_000,
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
@@ -115,7 +115,7 @@ describe('failure policies', () => {
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
         backoff: 200,
-        timeout: 30,
+        timeout: 30_000,
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
@@ -124,27 +124,27 @@ describe('failure policies', () => {
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
         backoff: 400,
-        timeout: 30,
+        timeout: 30_000,
       });
 
       expect(policy.afterSuccess(event)).toStrictEqual({ kind: 'continue' });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
         backoff: 200,
-        timeout: 30,
+        timeout: 30_000,
       });
 
       expect(policy.afterSuccess(event)).toStrictEqual({ kind: 'continue' });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
         backoff: 100,
-        timeout: 30,
+        timeout: 30_000,
       });
 
       expect(policy.afterSuccess(event)).toStrictEqual({ kind: 'continue' });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'continue',
-        timeout: 30,
+        timeout: 30_000,
       });
     });
 
@@ -155,19 +155,19 @@ describe('failure policies', () => {
       expect(policy.afterSuccess(event)).toStrictEqual({ kind: 'continue' });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'continue',
-        timeout: 30,
+        timeout: 30_000,
       });
 
       expect(policy.afterSuccess(event)).toStrictEqual({ kind: 'continue' });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'continue',
-        timeout: 30,
+        timeout: 30_000,
       });
 
       expect(policy.afterSuccess(event)).toStrictEqual({ kind: 'continue' });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'continue',
-        timeout: 30,
+        timeout: 30_000,
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
@@ -176,7 +176,7 @@ describe('failure policies', () => {
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
         backoff: 100,
-        timeout: 30,
+        timeout: 30_000,
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
@@ -185,20 +185,20 @@ describe('failure policies', () => {
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
         backoff: 200,
-        timeout: 30,
+        timeout: 30_000,
       });
 
       expect(policy.afterSuccess(event)).toStrictEqual({ kind: 'continue' });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
         backoff: 100,
-        timeout: 30,
+        timeout: 30_000,
       });
 
       expect(policy.afterSuccess(event)).toStrictEqual({ kind: 'continue' });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'continue',
-        timeout: 30,
+        timeout: 30_000,
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
@@ -207,13 +207,13 @@ describe('failure policies', () => {
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
         backoff: 100,
-        timeout: 30,
+        timeout: 30_000,
       });
 
       expect(policy.afterSuccess(event)).toStrictEqual({ kind: 'continue' });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'continue',
-        timeout: 30,
+        timeout: 30_000,
       });
     });
 
@@ -227,7 +227,7 @@ describe('failure policies', () => {
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
         backoff: 100,
-        timeout: 30,
+        timeout: 30_000,
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
@@ -236,7 +236,7 @@ describe('failure policies', () => {
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
         backoff: 200,
-        timeout: 30,
+        timeout: 30_000,
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
@@ -245,7 +245,7 @@ describe('failure policies', () => {
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
         backoff: 400,
-        timeout: 30,
+        timeout: 30_000,
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
@@ -260,7 +260,7 @@ describe('failure policies', () => {
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
         backoff: 100,
-        timeout: 30,
+        timeout: 30_000,
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
@@ -269,7 +269,7 @@ describe('failure policies', () => {
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
         backoff: 200,
-        timeout: 30,
+        timeout: 30_000,
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
@@ -278,7 +278,7 @@ describe('failure policies', () => {
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
         backoff: 400,
-        timeout: 30,
+        timeout: 30_000,
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
@@ -293,7 +293,7 @@ describe('failure policies', () => {
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
         backoff: 100,
-        timeout: 30,
+        timeout: 30_000,
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
@@ -302,7 +302,7 @@ describe('failure policies', () => {
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
         backoff: 200,
-        timeout: 30,
+        timeout: 30_000,
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
@@ -311,7 +311,7 @@ describe('failure policies', () => {
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
         backoff: 400,
-        timeout: 30,
+        timeout: 30_000,
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
@@ -330,30 +330,30 @@ describe('failure policies', () => {
     } as const;
 
     it('starts closed', () => {
-      const policy = new CircuitBreakerPolicy(usecaseInfo, 4, 1000, 30);
+      const policy = new CircuitBreakerPolicy(usecaseInfo, 4, 1000, 30_000);
       const event = { time: 0, registryCacheAge: 0 };
 
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'continue',
-        timeout: 30,
+        timeout: 30_000,
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'continue',
-        timeout: 30,
+        timeout: 30_000,
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'continue',
-        timeout: 30,
+        timeout: 30_000,
       });
     });
 
     it('stays closed when not enough contiguous failures happen', () => {
-      const policy = new CircuitBreakerPolicy(usecaseInfo, 4, 1000, 30);
+      const policy = new CircuitBreakerPolicy(usecaseInfo, 4, 1000, 30_000);
       const event = { time: 0, registryCacheAge: 0 };
 
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'continue',
-        timeout: 30,
+        timeout: 30_000,
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
@@ -361,7 +361,7 @@ describe('failure policies', () => {
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
-        timeout: 30,
+        timeout: 30_000,
         backoff: 100,
       });
 
@@ -370,7 +370,7 @@ describe('failure policies', () => {
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
-        timeout: 30,
+        timeout: 30_000,
         backoff: 200,
       });
 
@@ -379,33 +379,33 @@ describe('failure policies', () => {
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
-        timeout: 30,
+        timeout: 30_000,
         backoff: 400,
       });
 
       expect(policy.afterSuccess(event)).toStrictEqual({ kind: 'continue' });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
-        timeout: 30,
+        timeout: 30_000,
         backoff: 200,
       });
 
       expect(policy.afterSuccess(event)).toStrictEqual({ kind: 'continue' });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
-        timeout: 30,
+        timeout: 30_000,
         backoff: 100,
       });
 
       expect(policy.afterSuccess(event)).toStrictEqual({ kind: 'continue' });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'continue',
-        timeout: 30,
+        timeout: 30_000,
       });
     });
 
     it('closes when enough contiguous failures happen', () => {
-      const policy = new CircuitBreakerPolicy(usecaseInfo, 4, 1000, 30);
+      const policy = new CircuitBreakerPolicy(usecaseInfo, 4, 1000, 30_000);
       const event = { time: 0, registryCacheAge: 0 };
 
       expect(policy.afterFailure(failure)).toStrictEqual({
@@ -413,7 +413,7 @@ describe('failure policies', () => {
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
-        timeout: 30,
+        timeout: 30_000,
         backoff: 100,
       });
 
@@ -422,7 +422,7 @@ describe('failure policies', () => {
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
-        timeout: 30,
+        timeout: 30_000,
         backoff: 200,
       });
 
@@ -431,7 +431,7 @@ describe('failure policies', () => {
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
-        timeout: 30,
+        timeout: 30_000,
         backoff: 400,
       });
 
@@ -613,7 +613,7 @@ describe('failure policies', () => {
     });
 
     it('resets correctly', () => {
-      const policy = new CircuitBreakerPolicy(usecaseInfo, 4, 1000, 30);
+      const policy = new CircuitBreakerPolicy(usecaseInfo, 4, 1000, 30_000);
       const event = { time: 0, registryCacheAge: 0 };
 
       expect(policy.afterFailure(failure)).toStrictEqual({
@@ -621,7 +621,7 @@ describe('failure policies', () => {
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
-        timeout: 30,
+        timeout: 30_000,
         backoff: 100,
       });
 
@@ -630,7 +630,7 @@ describe('failure policies', () => {
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
-        timeout: 30,
+        timeout: 30_000,
         backoff: 200,
       });
 
@@ -639,7 +639,7 @@ describe('failure policies', () => {
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
-        timeout: 30,
+        timeout: 30_000,
         backoff: 400,
       });
 
@@ -658,7 +658,7 @@ describe('failure policies', () => {
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
-        timeout: 30,
+        timeout: 30_000,
         backoff: 100,
       });
 
@@ -667,7 +667,7 @@ describe('failure policies', () => {
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
-        timeout: 30,
+        timeout: 30_000,
         backoff: 200,
       });
 
@@ -676,7 +676,7 @@ describe('failure policies', () => {
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
-        timeout: 30,
+        timeout: 30_000,
         backoff: 400,
       });
 
@@ -695,7 +695,7 @@ describe('failure policies', () => {
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
-        timeout: 30,
+        timeout: 30_000,
         backoff: 100,
       });
 
@@ -704,7 +704,7 @@ describe('failure policies', () => {
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
-        timeout: 30,
+        timeout: 30_000,
         backoff: 200,
       });
 
@@ -713,7 +713,7 @@ describe('failure policies', () => {
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
-        timeout: 30,
+        timeout: 30_000,
         backoff: 400,
       });
 
