@@ -237,11 +237,11 @@ export function registerHooks(hookContext: HooksContext, events: Events): void {
 
     // perform queued action here
     if (performContext.queuedAction !== undefined) {
-      switch (performContext.queuedAction.kind) {
-        case 'switch-provider': {
-          const action = performContext.queuedAction;
-          performContext.queuedAction = undefined;
+      const action = performContext.queuedAction;
+      performContext.queuedAction = undefined;
 
+      switch (action.kind) {
+        case 'switch-provider': {
           return {
             kind: 'retry',
             newArgs: [args[0], { ...args[1], provider: action.provider }],

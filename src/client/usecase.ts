@@ -83,9 +83,7 @@ class UseCaseBase implements Interceptable {
     return boundProfileProvider;
   }
 
-  @eventInterceptor({
-    eventName: 'perform',
-  })
+  @eventInterceptor({ eventName: 'perform', placement: 'around' })
   protected async performUsecase<
     TInput extends NonPrimitive | undefined = Record<
       string,
@@ -98,7 +96,7 @@ class UseCaseBase implements Interceptable {
   ): Promise<Result<TOutput, PerformError>> {
     const boundProfileProvider = await this.bind(options);
 
-    // TOOD: rewrap the errors for public consumption?
+    // TODO: rewrap the errors for public consumption?
     return boundProfileProvider.perform<TInput, TOutput>(this.name, input);
   }
 
