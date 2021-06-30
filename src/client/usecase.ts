@@ -81,6 +81,23 @@ class UseCaseBase implements Interceptable {
     return boundProfileProvider;
   }
 
+  @eventInterceptor({ eventName: 'perform', placement: 'around' })
+  protected async performUsecase<
+    TInput extends NonPrimitive | undefined = Record<
+      string,
+      Variables | undefined
+    >,
+    TOutput = unknown
+  >(
+    input?: TInput,
+    options?: PerformOptions
+  ): Promise<Result<TOutput, PerformError>> {
+    const boundProfileProvider = await this.bind(options);
+
+    // TODO: rewrap the errors for public consumption?
+    return boundProfileProvider.perform<TInput, TOutput>(this.name, input);
+  }
+
   private hookPolicies(): void {
     //Prepare hook context
     const profileId = this.profile.configuration.id;
@@ -148,7 +165,6 @@ export class UseCase extends UseCaseBase {
     super(profile, name);
   }
 
-  @eventInterceptor({ eventName: 'perform', placement: 'around' })
   async perform<
     TInput extends NonPrimitive | undefined = Record<
       string,
@@ -159,15 +175,7 @@ export class UseCase extends UseCaseBase {
     input?: TInput,
     options?: PerformOptions
   ): Promise<Result<TOutput, PerformError>> {
-    const boundProfileProvider = await this.bind(options);
-
-    // TOOD: rewrap the errors for public consumption?
-    const result = await boundProfileProvider.perform<TInput, TOutput>(
-      this.name,
-      input
-    );
-
-    return result;
+    return this.performUsecase(input, options);
   }
 }
 
@@ -179,8 +187,6 @@ export class TypedUseCase<
     input: TInput,
     options?: PerformOptions
   ): Promise<Result<TOutput, PerformError>> {
-    const boundProfileProvider = await this.bind(options);
-
-    return await boundProfileProvider.perform(this.name, input);
+    return this.performUsecase(input, options);
   }
 }
