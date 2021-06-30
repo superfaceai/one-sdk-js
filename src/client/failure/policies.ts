@@ -35,14 +35,15 @@ export class FailurePolicyRouter {
   }
 
   public beforeExecution(info: ExecutionInfo): ExecutionResolution {
-    //TODO: export to function
     if (!this.currentProvider) {
-      throw 'Property currentProvider is not set in Router instance';
+      throw new Error('Property currentProvider is not set in Router instance');
     }
     if (!this.providersOfUseCase[this.currentProvider]) {
-      throw `There is not any policy set for provider ${this.currentProvider} in Router instance`;
+      throw new Error(
+        `There is not any policy set for provider ${this.currentProvider} in Router instance`
+      );
     }
-    //Try to switch back?
+    //Try to switch back to previous provider
     if (this.priority.length > 0 && this.currentProvider !== this.priority[0]) {
       const indexOfCurrentProvider = this.priority.indexOf(
         this.currentProvider
@@ -69,11 +70,14 @@ export class FailurePolicyRouter {
 
   public afterFailure(info: ExecutionFailure): FailureResolution {
     if (!this.currentProvider) {
-      throw 'Property currentProvider is not set in Router instance';
+      throw new Error('Property currentProvider is not set in Router instance');
     }
     if (!this.providersOfUseCase[this.currentProvider]) {
-      throw `There is not any policy set for provider ${this.currentProvider} in Router instance`;
+      throw new Error(
+        `There is not any policy set for provider ${this.currentProvider} in Router instance`
+      );
     }
+
     const innerResolution =
       this.providersOfUseCase[this.currentProvider].afterFailure(info);
 
@@ -96,7 +100,12 @@ export class FailurePolicyRouter {
 
   public afterSuccess(info: ExecutionSuccess): SuccessResolution {
     if (!this.currentProvider) {
-      throw 'Property currentProvider is not set in Router instance';
+      throw new Error('Property currentProvider is not set in Router instance');
+    }
+    if (!this.providersOfUseCase[this.currentProvider]) {
+      throw new Error(
+        `There is not any policy set for provider ${this.currentProvider} in Router instance`
+      );
     }
 
     return this.providersOfUseCase[this.currentProvider].afterSuccess(info);

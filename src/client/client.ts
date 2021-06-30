@@ -35,8 +35,6 @@ export abstract class SuperfaceClientBase extends Events {
     }
 
     this.superJson = SUPER_CACHE[superCacheKey];
-
-    // this.hookPolicies();
   }
 
   /** Returns a BoundProfileProvider that is cached according to `profileConfig` and `providerConfig` cache keys. */
