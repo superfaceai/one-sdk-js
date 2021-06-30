@@ -5,7 +5,6 @@ import { CrossFetch } from '../../lib/fetch';
 import { UnexpectedError } from '../errors';
 import { MapInterpreter } from './map-interpreter';
 import {
-  HTTPError,
   JessieError,
   MapASTError,
   MappedHTTPError,
@@ -520,45 +519,6 @@ describe('MapInterpreter errors', () => {
       expect(
         result.isErr() &&
           result.error instanceof MappedHTTPError &&
-          result.error.statusCode
-      ).toEqual(404);
-    });
-
-    it('should return unmapped HTTP error', async () => {
-      await mockServer
-        .get('/error')
-        .thenJson(404, { 'Content-Type': 'application/json; charset=utf-8' });
-      const url = mockServer.urlFor('/error');
-      const interpreter = new MapInterpreter(
-        {
-          usecase: 'Test',
-          security: [],
-        },
-        { fetchInstance }
-      );
-      const result = await interpreter.perform({
-        kind: 'MapDocument',
-        header,
-        definitions: [
-          {
-            kind: 'MapDefinition',
-            name: 'Test',
-            usecaseName: 'Test',
-            statements: [
-              {
-                kind: 'HttpCallStatement',
-                method: 'GET',
-                url,
-                responseHandlers: [],
-              },
-            ],
-          },
-        ],
-      });
-
-      expect(
-        result.isErr() &&
-          result.error instanceof HTTPError &&
           result.error.statusCode
       ).toEqual(404);
     });

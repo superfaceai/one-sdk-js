@@ -17,7 +17,10 @@ import { Provider, ProviderConfiguration } from './provider';
 /**
  * Cache for loaded super.json files so that they aren't reparsed each time a new superface client is created.
  */
-const SUPER_CACHE: { [path: string]: SuperJson } = {};
+let SUPER_CACHE: { [path: string]: SuperJson } = {};
+export function invalidateSuperfaceClientCache(): void {
+  SUPER_CACHE = {};
+}
 
 export abstract class SuperfaceClientBase extends Events {
   public readonly superJson: SuperJson;
@@ -32,9 +35,6 @@ export abstract class SuperfaceClientBase extends Events {
 
     if (SUPER_CACHE[superCacheKey] === undefined) {
       SUPER_CACHE[superCacheKey] = SuperJson.loadSync(superCacheKey).unwrap();
-    } else {
-      //TODO: better way of cummunicating this to user.
-      console.warn('Multiple SuperfaceClient bad');
     }
 
     this.superJson = SUPER_CACHE[superCacheKey];

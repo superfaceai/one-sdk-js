@@ -38,6 +38,7 @@ import { mergeSecurity } from '../internal/superjson/mutate';
 import { err, ok, Result } from '../lib';
 import { Events, Interceptable } from '../lib/events';
 import { CrossFetch } from '../lib/fetch';
+import { MapInterpreterEventAdapter } from './failure/map-interpreter-adapter';
 import { ProfileConfiguration } from './profile';
 import { ProviderConfiguration } from './provider';
 import { fetchBind } from './registry';
@@ -70,7 +71,7 @@ export class BoundProfileProvider {
     events?: Events
   ) {
     this.profileValidator = new ProfileParameterValidator(this.profileAst);
-    //TODO: Pass metadata here?
+
     this.fetchInstance = new CrossFetch();
     this.fetchInstance.metadata = {
       profile: profileAstId(profileAst),
@@ -136,7 +137,13 @@ export class BoundProfileProvider {
         serviceBaseUrl: this.configuration.baseUrl,
         security: this.configuration.security,
       },
-      { fetchInstance: this.fetchInstance }
+      {
+        fetchInstance: this.fetchInstance,
+        externalHandler: new MapInterpreterEventAdapter(
+          this.fetchInstance.metadata,
+          this.fetchInstance.events
+        ),
+      }
     );
 
     const result = await interpreter.perform(this.mapAst);

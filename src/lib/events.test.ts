@@ -121,7 +121,7 @@ describe('events', () => {
     await mockServer.stop();
   });
 
-  it('does something', async () => {
+  it('handles retry', async () => {
     const endpoint = await mockServer.get('/test').thenJson(200, {});
     const events = new Events();
 
@@ -132,6 +132,13 @@ describe('events', () => {
       { baseUrl: mockServer.url, security: [] },
       events
     );
+
+    let preFetchCount = 0;
+    events.on('pre-fetch', { priority: 1 }, () => {
+      preFetchCount += 1;
+
+      return { kind: 'continue' };
+    });
 
     let retry = true;
     events.on('post-fetch', { priority: 1 }, () => {
@@ -146,8 +153,11 @@ describe('events', () => {
 
     const result = await profile.perform('Test');
     void result;
+
     const seenRequests = await endpoint.getSeenRequests();
     expect(seenRequests).toHaveLength(2);
+
+    expect(preFetchCount).toBe(2);
   });
 
   it('handles rejection', async () => {
@@ -179,5 +189,86 @@ describe('events', () => {
 
     const result = await profile.perform('Test');
     expect(result).toStrictEqual(err('modified rejection'));
+  });
+
+  it('passes unhandled http responses to unhandled-http (201)', async () => {
+    const endpoint = await mockServer.get('/test').thenJson(201, {});
+
+    const events = new Events();
+    const profile = new BoundProfileProvider(
+      mockProfileDocument,
+      mockMapDocument,
+      'provider',
+      { baseUrl: mockServer.url, security: [] },
+      events
+    );
+
+    let hookCount = 0;
+    events.on('pre-unhandled-http', { priority: 1 }, () => {
+      hookCount += 1;
+
+      return { kind: 'continue' };
+    });
+
+    const result = await profile.perform('Test');
+    void result;
+
+    const seenRequests = await endpoint.getSeenRequests();
+    expect(seenRequests).toHaveLength(1);
+    expect(hookCount).toBe(1);
+  });
+
+  it('passes unhandled http responses to unhandled-http (400)', async () => {
+    const endpoint = await mockServer.get('/test').thenJson(400, {});
+
+    const events = new Events();
+    const profile = new BoundProfileProvider(
+      mockProfileDocument,
+      mockMapDocument,
+      'provider',
+      { baseUrl: mockServer.url, security: [] },
+      events
+    );
+
+    let hookCount = 0;
+    events.on('pre-unhandled-http', { priority: 1 }, () => {
+      hookCount += 1;
+
+      return { kind: 'continue' };
+    });
+
+    const result = await profile.perform('Test');
+    void result;
+
+    const seenRequests = await endpoint.getSeenRequests();
+    expect(seenRequests).toHaveLength(1);
+    expect(hookCount).toBe(1);
+  });
+
+  it('does not pass handled http response to unhandled-http (200)', async () => {
+    const endpoint = await mockServer.get('/test').thenJson(200, {});
+
+    const events = new Events();
+    const profile = new BoundProfileProvider(
+      mockProfileDocument,
+      mockMapDocument,
+      'provider',
+      { baseUrl: mockServer.url, security: [] },
+      events
+    );
+
+    let hookCount = 0;
+    events.on('pre-unhandled-http', { priority: 1 }, () => {
+      hookCount += 1;
+
+      return { kind: 'continue' };
+    });
+
+    const result = await profile.perform('Test');
+    void result;
+
+    const seenRequests = await endpoint.getSeenRequests();
+    expect(seenRequests).toHaveLength(1);
+    expect(hookCount).toBe(0);
   });
 });

@@ -14,12 +14,8 @@ import {
   InterceptableMetadata,
 } from '../lib/events';
 import { HooksContext, registerHooks } from './failure/event-adapter';
-import {
-  AbortPolicy,
-  CircuitBreakerPolicy,
-  FailurePolicyRouter,
-} from './failure/policies';
-import { FailurePolicy } from './failure/policy';
+import { CircuitBreakerPolicy, FailurePolicyRouter } from './failure/policies';
+import { FailurePolicy, UsecaseInfo } from './failure/policy';
 import { ProfileBase } from './profile';
 import { BoundProfileProvider } from './profile-provider';
 import { Provider, ProviderConfiguration } from './provider';
@@ -109,23 +105,24 @@ class UseCaseBase implements Interceptable {
   private hookPolicies(): void {
     //Prepare hook context
     const profileId = this.profile.configuration.id;
+
+    const usecaseInfo: UsecaseInfo = {
+      profileId,
+      usecaseName: this.name,
+      // TODO: Somehow know safety
+      usecaseSafety: 'unsafe',
+    };
+
     const providersOfUsecase: Record<string, FailurePolicy> = {};
     const profileSettings =
       this.profile.client.superJson.normalized.profiles[profileId];
     for (const [provider, providerSettings] of Object.entries(
       profileSettings.providers
     )) {
-      const retryPolicy = providerSettings.defaults[this.name]?.retryPolicy;
-      if (retryPolicy === undefined || retryPolicy.kind === OnFail.NONE) {
-        //TODO: do we use abort policy here?
-        const policy = new AbortPolicy({
-          profileId,
-          usecaseName: this.name,
-          usecaseSafety: 'unsafe',
-        });
-        providersOfUsecase[provider] = policy;
-        continue;
-      } else if (retryPolicy.kind === OnFail.CIRCUIT_BREAKER) {
+      const retryPolicy = providerSettings.defaults[this.name]?.retryPolicy ?? {
+        kind: OnFail.NONE,
+      };
+      if (retryPolicy.kind === OnFail.CIRCUIT_BREAKER) {
         let backoff: ExponentialBackoff | undefined = undefined;
         if (
           retryPolicy.backoff?.kind &&
@@ -136,29 +133,24 @@ class UseCaseBase implements Interceptable {
             retryPolicy.backoff.factor
           );
         }
+
         const policy = new CircuitBreakerPolicy(
-          {
-            profileId,
-            usecaseName: this.name,
-            // TODO: Somehow know safety
-            usecaseSafety: 'unsafe',
-          },
+          usecaseInfo,
           //TODO are these defauts ok?
           retryPolicy.maxContiguousRetries ?? 5,
-          60000,
+          30_000,
           retryPolicy.requestTimeout,
           backoff
         );
         providersOfUsecase[provider] = policy;
-      } else {
-        throw 'Unreachable';
       }
     }
 
     this.hookContext = {
       [`${profileId}/${this.name}`]: {
         router: new FailurePolicyRouter(
-          //here we need providers of usecase
+          usecaseInfo,
+          // here we need providers of usecase
           providersOfUsecase,
           profileSettings.priority
         ),

@@ -3,8 +3,13 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import createDebug from 'debug';
+
 import { UseCase } from '../client';
+import { MapInterpreterEventAdapter } from '../client/failure/map-interpreter-adapter';
 import { FetchInstance } from '../internal/interpreter/http/interfaces';
+
+const debug = createDebug('superface:events');
 
 type AnyFunction = (...args: any[]) => any;
 type AsyncFunction = (...args: any[]) => Promise<any>;
@@ -91,6 +96,10 @@ type VoidEventHook<EventContext extends EventContextBase> = (
 type EventTypes = {
   perform: [InstanceType<typeof UseCase>['perform'], PerformContext];
   fetch: [FetchInstance['fetch'], EventContextBase];
+  'unhandled-http': [
+    InstanceType<typeof MapInterpreterEventAdapter>['unhandledHttp'],
+    EventContextBase
+  ];
 };
 
 export type EventParams = {
@@ -131,6 +140,10 @@ export class Events {
     },
     callback: EventParams[E]
   ): void {
+    debug(
+      `Attaching listener for event "${event}" with priority ${options.priority}`
+    );
+
     this.listeners[event] = [
       ...(this.listeners[event] ?? []),
       priorityCallbackTuple<E>(options.priority, callback, options.filter),
@@ -141,6 +154,8 @@ export class Events {
     event: E,
     parameters: Parameters<EventParams[E]>
   ): Promise<ResolvedPromise<ReturnType<EventParams[E]>>> {
+    debug(`Emitting event "${event}"`);
+
     const listeners = this.listeners[event];
     const [context] = parameters;
     let params = parameters;
@@ -161,6 +176,9 @@ export class Events {
           continue;
         }
         const hookResult = await callback(...params);
+        debug(
+          `Event "${event}" listener ${i} result: ${hookResult.kind as string}`
+        );
 
         if (hookResult.kind === 'modify') {
           params = [context, hookResult.newArgs] as any;
@@ -199,8 +217,29 @@ function replacementFunction<E extends keyof EventTypes>(
     this: Interceptable,
     ...args: Parameters<EventTypes[E][0]>
   ) {
-    const events = this.events;
+    if (debug.enabled) {
+      let metadataString = 'undefined';
+      if (this.metadata !== undefined) {
+        metadataString = `{ profile: ${
+          this.metadata.profile ?? 'undefined'
+        }, provider: ${this.metadata.provider ?? 'undefined'}, usecase: ${
+          this.metadata.usecase ?? 'undefined'
+        } }`;
+      }
 
+      let eventsString = 'undefined';
+      if (this.events !== undefined) {
+        eventsString = 'defined';
+      }
+
+      debug(
+        `Intercepted function for "${metadata.eventName}" (placement: ${
+          metadata.placement ?? ''
+        }) with context: { metadata: ${metadataString}, events: ${eventsString} }`
+      );
+    }
+
+    const events = this.events;
     if (!events) {
       return originalFunction.apply(this, args);
     }
@@ -208,16 +247,15 @@ function replacementFunction<E extends keyof EventTypes>(
     // Before hook - runs before the function is called and takes and returns its arguments
     let functionArgs = args;
     let retry = true;
-    const baseContext: EventContextBase = {
-      time: new Date(),
-      profile: this.metadata?.profile,
-      usecase: this.metadata?.usecase,
-      provider: this.metadata?.provider,
-    };
     while (retry) {
       if (metadata.placement === 'before' || metadata.placement === 'around') {
         const hookResult = await events.emit(`pre-${metadata.eventName}`, [
-          baseContext,
+          {
+            time: new Date(),
+            profile: this.metadata?.profile,
+            usecase: this.metadata?.usecase,
+            provider: this.metadata?.provider,
+          },
           functionArgs,
         ] as any);
 
@@ -239,6 +277,7 @@ function replacementFunction<E extends keyof EventTypes>(
         result = Promise.resolve(
           await originalFunction.apply(this, functionArgs)
         );
+        console.timeLog('STATE', 'res', result);
       } catch (err) {
         result = Promise.reject(err);
       }
@@ -246,8 +285,20 @@ function replacementFunction<E extends keyof EventTypes>(
       // After hook - runs after the function is called and takes the result
       // May modify it, return different or retry
       if (metadata.placement === 'after' || metadata.placement === 'around') {
+        console.timeLog(
+          'STATE',
+          'events emit met args ',
+          functionArgs,
+          ' res ',
+          result
+        );
         const hookResult = await events.emit(`post-${metadata.eventName}`, [
-          baseContext,
+          {
+            time: new Date(),
+            profile: this.metadata?.profile,
+            usecase: this.metadata?.usecase,
+            provider: this.metadata?.provider,
+          },
           functionArgs as any,
           result,
         ] as any);
@@ -285,14 +336,18 @@ export function eventInterceptor<E extends keyof EventTypes>(
   descriptor: TypedPropertyDescriptor<EventTypes[E][0]>
 ) => PropertyDescriptor {
   return function (
-    _target: Interceptable,
-    _propertyKey: string,
+    target: Interceptable,
+    propertyKey: string,
     descriptor: TypedPropertyDescriptor<EventTypes[E][0]>
   ): PropertyDescriptor {
     const metadata = {
       ...eventInterceptorMetadataDefaults,
       ...eventMetadata,
     };
+    debug(
+      `Attaching interceptor for event "${metadata.eventName}" (placement: ${metadata.placement}) onto ${target.constructor.name}::${propertyKey}`
+    );
+
     if (descriptor.value === undefined) {
       throw new Error(
         'Something went horribly wrong, Godzilla might be involved!'

@@ -28,10 +28,10 @@ import createDebug from 'debug';
 
 import { err, ok, Result } from '../../lib';
 import { UnexpectedError } from '../errors';
+import { MapInterpreterExternalHandler } from './external-handler';
 import { HttpClient, HttpResponse, SecurityConfiguration } from './http';
 import { FetchInstance } from './http/interfaces';
 import {
-  HTTPError,
   JessieError,
   MapASTError,
   MapInterpreterError,
@@ -118,13 +118,22 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
   private operations: Record<string, OperationDefinitionNode | undefined> = {};
   private stack: Stack[] = [];
   private ast?: MapDocumentNode;
-  private http: HttpClient;
+
+  private readonly http: HttpClient;
+  private readonly externalHandler: MapInterpreterExternalHandler;
 
   constructor(
     private readonly parameters: MapParameters<TInput>,
-    { fetchInstance }: { fetchInstance: FetchInstance }
+    {
+      fetchInstance,
+      externalHandler,
+    }: {
+      fetchInstance: FetchInstance;
+      externalHandler?: MapInterpreterExternalHandler;
+    }
   ) {
     this.http = new HttpClient(fetchInstance);
+    this.externalHandler = externalHandler ?? {};
   }
 
   async perform(
@@ -275,39 +284,43 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
         .join(', ');
     }
 
-    debug('Performing http request:', node.url);
-    const response = await this.http.request(node.url, {
-      method: node.method,
-      headers: request?.headers,
-      contentType: request?.contentType ?? 'application/json',
-      accept,
-      baseUrl: this.parameters.serviceBaseUrl,
-      queryParameters: request?.queryParameters,
-      pathParameters: this.variables,
-      body: request?.body,
-      securityRequirements: request?.security,
-      securityConfiguration: this.parameters.security,
-    });
+    let retry = true;
+    while (retry) {
+      debug('Performing http request:', node.url);
+      const response = await this.http.request(node.url, {
+        method: node.method,
+        headers: request?.headers,
+        contentType: request?.contentType ?? 'application/json',
+        accept,
+        baseUrl: this.parameters.serviceBaseUrl,
+        queryParameters: request?.queryParameters,
+        pathParameters: this.variables,
+        body: request?.body,
+        securityRequirements: request?.security,
+        securityConfiguration: this.parameters.security,
+      });
 
-    for (const [handler] of responseHandlers) {
-      const [match, result] = await handler(response);
+      for (const [handler] of responseHandlers) {
+        const [match, result] = await handler(response);
 
-      if (match) {
-        if (result) {
-          this.stackTop.result = result;
+        if (match) {
+          if (result) {
+            this.stackTop.result = result;
+          }
+
+          return;
         }
-
-        return;
       }
-    }
-    if (response.statusCode >= 400) {
-      throw new HTTPError(
-        'HTTP Error',
-        { node, ast: this.ast },
-        response.statusCode,
-        response.debug.request,
-        { body: response.body, headers: response.headers }
-      );
+
+      const action =
+        (await this.externalHandler.unhandledHttp?.(
+          this.ast,
+          node,
+          response
+        )) ?? 'continue';
+      if (action !== 'retry') {
+        retry = false;
+      }
     }
   }
 
