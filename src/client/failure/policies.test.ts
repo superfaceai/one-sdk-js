@@ -1,4 +1,9 @@
-import { AbortPolicy, CircuitBreakerPolicy, RetryPolicy } from './policies';
+import {
+  AbortPolicy,
+  CircuitBreakerPolicy,
+  FailurePolicyRouter,
+  RetryPolicy,
+} from './policies';
 import { UsecaseInfo } from './policy';
 
 describe('failure policies', () => {
@@ -724,6 +729,268 @@ describe('failure policies', () => {
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'abort',
         reason: 'circuit breaker is open',
+      });
+    });
+  });
+
+  describe('FailurePolicyRouter', () => {
+    const profileId = 'scope/name/usecase';
+    const usecaseName = 'usecase';
+    const usecaseSafety = 'safe';
+
+    describe('setCurrentProvider', () => {
+      it('sets current provider', () => {
+        const router = new FailurePolicyRouter(
+          { profileId, usecaseSafety, usecaseName },
+          {},
+          []
+        );
+
+        expect(router.getCurrentProvider()).toBeUndefined();
+
+        router.setCurrentProvider('provider');
+
+        expect(router.getCurrentProvider()).toBeDefined();
+        expect(
+          router.afterFailure({
+            kind: 'network',
+            issue: 'timeout',
+            time: 0,
+            registryCacheAge: 0,
+          })
+        ).toEqual({ kind: 'abort', reason: 'abort policy selected' });
+      });
+    });
+
+    describe('beforeExecution', () => {
+      it('throws if current provider is undefined', () => {
+        const router = new FailurePolicyRouter(
+          { profileId, usecaseSafety, usecaseName },
+          {},
+          []
+        );
+        expect(() =>
+          router.beforeExecution({ time: 0, registryCacheAge: 0 })
+        ).toThrowError(
+          new Error('Property currentProvider is not set in Router instance')
+        );
+      });
+
+      it('returns inner resolution', () => {
+        const router = new FailurePolicyRouter(
+          { profileId, usecaseSafety, usecaseName },
+          {},
+          []
+        );
+        router.setCurrentProvider('provider');
+
+        expect(
+          router.beforeExecution({ time: 0, registryCacheAge: 0 })
+        ).toEqual({ kind: 'continue', timeout: 30_000 });
+      });
+
+      it('switches back to first functional provider with higher priority', () => {
+        const retryPolicy = new RetryPolicy({
+          profileId,
+          usecaseSafety,
+          usecaseName,
+        });
+        const router = new FailurePolicyRouter(
+          { profileId, usecaseSafety, usecaseName },
+          {
+            first: retryPolicy,
+            second: new AbortPolicy({ profileId, usecaseSafety, usecaseName }),
+            third: new AbortPolicy({ profileId, usecaseSafety, usecaseName }),
+          },
+          ['first', 'second', 'third']
+        );
+
+        //first provider broken
+        retryPolicy.afterFailure({
+          kind: 'network',
+          issue: 'timeout',
+          time: 0,
+          registryCacheAge: 0,
+        });
+
+        //set current
+        router.setCurrentProvider('third');
+
+        expect(
+          router.beforeExecution({ time: 0, registryCacheAge: 0 })
+        ).toEqual({
+          kind: 'switch-provider',
+          //Switch to second
+          provider: 'second',
+        });
+      });
+
+      it('switches back to functional provider with higher priority', () => {
+        const router = new FailurePolicyRouter(
+          { profileId, usecaseSafety, usecaseName },
+          {
+            first: new AbortPolicy({ profileId, usecaseSafety, usecaseName }),
+            second: new AbortPolicy({ profileId, usecaseSafety, usecaseName }),
+            third: new AbortPolicy({ profileId, usecaseSafety, usecaseName }),
+          },
+          ['first', 'second', 'third']
+        );
+
+        //set current
+        router.setCurrentProvider('third');
+
+        expect(
+          router.beforeExecution({ time: 0, registryCacheAge: 0 })
+        ).toEqual({
+          kind: 'switch-provider',
+          //Switch to second
+          provider: 'first',
+        });
+      });
+    });
+    describe('afterFailure', () => {
+      it('throws if current provider is undefined', () => {
+        const router = new FailurePolicyRouter(
+          { profileId, usecaseSafety, usecaseName },
+          {},
+          []
+        );
+        expect(() =>
+          router.afterFailure({
+            kind: 'network',
+            issue: 'timeout',
+            time: 0,
+            registryCacheAge: 0,
+          })
+        ).toThrowError(
+          new Error('Property currentProvider is not set in Router instance')
+        );
+      });
+
+      it('returns inner resolution', () => {
+        const router = new FailurePolicyRouter(
+          { profileId, usecaseSafety, usecaseName },
+          { first: new RetryPolicy({ profileId, usecaseSafety, usecaseName }) },
+          ['first']
+        );
+        router.setCurrentProvider('first');
+
+        expect(
+          router.afterFailure({
+            kind: 'network',
+            issue: 'timeout',
+            time: 0,
+            registryCacheAge: 0,
+          })
+        ).toEqual({ kind: 'retry' });
+      });
+
+      it('aborts when there is not another provider', () => {
+        const router = new FailurePolicyRouter(
+          { profileId, usecaseSafety, usecaseName },
+          { first: new AbortPolicy({ profileId, usecaseSafety, usecaseName }) },
+          ['first']
+        );
+        router.setCurrentProvider('first');
+
+        expect(
+          router.afterFailure({
+            kind: 'network',
+            issue: 'timeout',
+            time: 0,
+            registryCacheAge: 0,
+          })
+        ).toEqual({ kind: 'abort', reason: 'no backup provider configured' });
+      });
+
+      it('switches to another provider with lesser priority', () => {
+        const router = new FailurePolicyRouter(
+          { profileId, usecaseSafety, usecaseName },
+          {
+            first: new AbortPolicy({ profileId, usecaseSafety, usecaseName }),
+            second: new AbortPolicy({ profileId, usecaseSafety, usecaseName }),
+            third: new AbortPolicy({ profileId, usecaseSafety, usecaseName }),
+          },
+          ['first', 'second', 'third']
+        );
+        router.setCurrentProvider('first');
+
+        expect(
+          router.afterFailure({
+            kind: 'network',
+            issue: 'timeout',
+            time: 0,
+            registryCacheAge: 0,
+          })
+        ).toEqual({ kind: 'switch-provider', provider: 'second' });
+      });
+
+      it('switches to first functional provider with lesser priority', () => {
+        const retryPolicy = new RetryPolicy(
+          {
+            profileId,
+            usecaseSafety,
+            usecaseName,
+          },
+          1,
+          60_000
+        );
+
+        const router = new FailurePolicyRouter(
+          { profileId, usecaseSafety, usecaseName },
+          {
+            first: new AbortPolicy({ profileId, usecaseSafety, usecaseName }),
+            second: retryPolicy,
+            third: new AbortPolicy({ profileId, usecaseSafety, usecaseName }),
+          },
+          ['first', 'second', 'third']
+        );
+        retryPolicy.afterFailure({
+          kind: 'network',
+          issue: 'timeout',
+          time: 0,
+          registryCacheAge: 0,
+        });
+
+        router.setCurrentProvider('first');
+
+        expect(
+          router.afterFailure({
+            kind: 'network',
+            issue: 'timeout',
+            time: 0,
+            registryCacheAge: 0,
+          })
+        ).toEqual({ kind: 'switch-provider', provider: 'third' });
+      });
+    });
+    describe('afterSuccess', () => {
+      it('throws if current provider is undefined', () => {
+        const router = new FailurePolicyRouter(
+          { profileId, usecaseSafety, usecaseName },
+          {},
+          []
+        );
+        expect(() =>
+          router.afterSuccess({ time: 0, registryCacheAge: 0 })
+        ).toThrowError(
+          new Error('Property currentProvider is not set in Router instance')
+        );
+      });
+
+      it('returns inner resolution', () => {
+        const router = new FailurePolicyRouter(
+          { profileId, usecaseSafety, usecaseName },
+          {
+            first: new AbortPolicy({ profileId, usecaseSafety, usecaseName }),
+          },
+          ['first']
+        );
+        router.setCurrentProvider('first');
+
+        expect(router.afterSuccess({ time: 0, registryCacheAge: 0 })).toEqual({
+          kind: 'continue',
+        });
       });
     });
   });
