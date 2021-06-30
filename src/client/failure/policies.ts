@@ -84,7 +84,7 @@ export class FailurePolicyRouter {
     const indexOfCurrentProvider = this.priority.indexOf(this.currentProvider);
 
     //Priority does not contain another (with lesser priority) provider
-    if (indexOfCurrentProvider === this.priority.length) {
+    if (indexOfCurrentProvider === this.priority.length - 1) {
       //Abort/retry/continue??
       return { kind: 'abort', reason: 'no backup provider configured' };
     }
