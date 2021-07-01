@@ -54,8 +54,12 @@ export class FailurePolicyRouter {
             : true
         );
 
-      //Switch back to previous
-      if (provider) {
+      //TODO: solve AbortPolicy infinite loop problem
+      //Switch back to previous but do not switch back to AbortPolicy
+      if (
+        provider &&
+        !(this.providersOfUseCase[provider] instanceof AbortPolicy)
+      ) {
         return {
           kind: 'switch-provider',
           provider,

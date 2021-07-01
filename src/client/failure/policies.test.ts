@@ -799,7 +799,11 @@ describe('failure policies', () => {
           { profileId, usecaseSafety, usecaseName },
           {
             first: retryPolicy,
-            second: new AbortPolicy({ profileId, usecaseSafety, usecaseName }),
+            second: new RetryPolicy({
+              profileId,
+              usecaseSafety,
+              usecaseName,
+            }),
             third: new AbortPolicy({ profileId, usecaseSafety, usecaseName }),
           },
           ['first', 'second', 'third']
@@ -829,8 +833,16 @@ describe('failure policies', () => {
         const router = new FailurePolicyRouter(
           { profileId, usecaseSafety, usecaseName },
           {
-            first: new AbortPolicy({ profileId, usecaseSafety, usecaseName }),
-            second: new AbortPolicy({ profileId, usecaseSafety, usecaseName }),
+            first: new RetryPolicy({
+              profileId,
+              usecaseSafety,
+              usecaseName,
+            }),
+            second: new RetryPolicy({
+              profileId,
+              usecaseSafety,
+              usecaseName,
+            }),
             third: new AbortPolicy({ profileId, usecaseSafety, usecaseName }),
           },
           ['first', 'second', 'third']
