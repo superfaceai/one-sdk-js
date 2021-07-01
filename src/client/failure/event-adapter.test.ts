@@ -44,6 +44,31 @@ const mockProfileDocument: ProfileDocumentNode = {
         },
       },
     },
+    {
+      kind: 'UseCaseDefinition',
+      useCaseName: 'SecondUseCase',
+      safety: 'safe',
+      result: {
+        kind: 'UseCaseSlotDefinition',
+        type: {
+          kind: 'ObjectDefinition',
+          fields: [
+            {
+              kind: 'FieldDefinition',
+              fieldName: 'message',
+              required: true,
+              type: {
+                kind: 'NonNullDefinition',
+                type: {
+                  kind: 'PrimitiveTypeName',
+                  name: 'string',
+                },
+              },
+            },
+          ],
+        },
+      },
+    },
   ],
 };
 
@@ -95,6 +120,49 @@ const mockOkMapDocument: MapDocumentNode = {
                         value: {
                           kind: 'PrimitiveLiteral',
                           value: 'hello',
+                        },
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+    {
+      kind: 'MapDefinition',
+      name: 'SecondUseCase',
+      usecaseName: 'SecondUseCase',
+      statements: [
+        {
+          kind: 'HttpCallStatement',
+          method: 'GET',
+          url: '/ok',
+          request: {
+            security: [],
+            kind: 'HttpRequest',
+          },
+          responseHandlers: [
+            {
+              kind: 'HttpResponseHandler',
+              statusCode: 200,
+              contentType: 'application/json',
+              statements: [
+                {
+                  kind: 'OutcomeStatement',
+                  isError: false,
+                  terminateFlow: false,
+                  value: {
+                    kind: 'ObjectLiteral',
+                    fields: [
+                      {
+                        kind: 'Assignment',
+                        key: ['message'],
+                        value: {
+                          kind: 'PrimitiveLiteral',
+                          value: 'hello from first provider and second usecase',
                         },
                       },
                     ],
@@ -218,6 +286,50 @@ const secondMockMapDocument: MapDocumentNode = {
                         value: {
                           kind: 'PrimitiveLiteral',
                           value: 'hello from second provider',
+                        },
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+    {
+      kind: 'MapDefinition',
+      name: 'SecondUseCase',
+      usecaseName: 'SecondUseCase',
+      statements: [
+        {
+          kind: 'HttpCallStatement',
+          method: 'GET',
+          url: '/second',
+          request: {
+            security: [],
+            kind: 'HttpRequest',
+          },
+          responseHandlers: [
+            {
+              kind: 'HttpResponseHandler',
+              statusCode: 200,
+              contentType: 'application/json',
+              statements: [
+                {
+                  kind: 'OutcomeStatement',
+                  isError: false,
+                  terminateFlow: false,
+                  value: {
+                    kind: 'ObjectLiteral',
+                    fields: [
+                      {
+                        kind: 'Assignment',
+                        key: ['message'],
+                        value: {
+                          kind: 'PrimitiveLiteral',
+                          value:
+                            'hello from second provider and second usecase',
                         },
                       },
                     ],
@@ -747,7 +859,7 @@ describe('event-adapter', () => {
     expect((await secondEndpoint.getSeenRequests()).length).toEqual(1);
   }, 30000);
 
-  it('use circuit-breaker policy - switch providers after HTTP 500 and switch back', async () => {
+  it('use circuit-breaker policy - switch providers after HTTP 500 and switch back - default provider', async () => {
     const mockLoadSync = jest.fn();
 
     let retry = 0;
@@ -843,6 +955,213 @@ describe('event-adapter', () => {
     result = await useCase.perform(undefined);
 
     expect(result.isOk() && result.value).toEqual({ message: 'hello' });
+    //We send request twice
+    expect((await endpoint.getSeenRequests()).length).toEqual(3);
+    expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(3);
+    expect((await secondEndpoint.getSeenRequests()).length).toEqual(1);
+  }, 60000);
+
+  it('use circuit-breaker policy - switch providers after HTTP 500 and switch back - provider from user', async () => {
+    const mockLoadSync = jest.fn();
+
+    let retry = 0;
+    const endpoint = await mockServer.get('/ok').thenCallback(() => {
+      if (retry < 2) {
+        retry++;
+
+        return {
+          statusCode: 500,
+          json: {},
+        };
+      }
+
+      return {
+        statusCode: 200,
+        json: {},
+      };
+    });
+    const secondEndpoint = await mockServer.get('/second').thenJson(200, {});
+
+    const mockSuperJson = new SuperJson({
+      profiles: {
+        ['starwars/character-information']: {
+          version: '1.0.0',
+          priority: ['provider', 'second'],
+          providers: {
+            provider: {
+              defaults: {
+                Test: {
+                  input: {},
+                  retryPolicy: {
+                    kind: OnFail.CIRCUIT_BREAKER,
+                    maxContiguousRetries: 2,
+                    requestTimeout: 1000,
+                  },
+                },
+              },
+            },
+            second: {},
+          },
+        },
+      },
+      providers: {
+        provider: {
+          security: [],
+        },
+        second: {
+          security: [],
+        },
+      },
+    });
+
+    mockLoadSync.mockReturnValue(ok(mockSuperJson));
+    SuperJson.loadSync = mockLoadSync;
+
+    const client = new SuperfaceClient();
+
+    //Mocking first bounded provider
+    const firstMockBoundProfileProvider = new BoundProfileProvider(
+      mockProfileDocument,
+      mockOkMapDocument,
+      'provider',
+      { baseUrl: mockServer.url, security: [] },
+      client
+    );
+    //Mocking first bounded provider
+    const secondMockBoundProfileProvider = new BoundProfileProvider(
+      mockProfileDocument,
+      secondMockMapDocument,
+      'second',
+      { baseUrl: mockServer.url, security: [] },
+      client
+    );
+    const cacheBoundProfileProviderSpy = jest
+      .spyOn(client, 'cacheBoundProfileProvider')
+      .mockResolvedValueOnce(firstMockBoundProfileProvider)
+      .mockResolvedValueOnce(secondMockBoundProfileProvider)
+      .mockResolvedValueOnce(firstMockBoundProfileProvider);
+
+    const profile = await client.getProfile('starwars/character-information');
+    const useCase = profile.getUseCase('Test');
+    //Try first provider two times then switch to second and return value
+    let result = await useCase.perform(undefined, { provider: 'provider' });
+
+    expect(result.isOk() && result.value).toEqual({
+      message: 'hello from second provider',
+    });
+
+    //Wait
+    await sleep(30000);
+
+    //Try first provider and return value
+    result = await useCase.perform(undefined, { provider: 'provider' });
+
+    expect(result.isOk() && result.value).toEqual({ message: 'hello' });
+    //We send request twice
+    expect((await endpoint.getSeenRequests()).length).toEqual(3);
+    expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(3);
+    expect((await secondEndpoint.getSeenRequests()).length).toEqual(1);
+  }, 60000);
+
+  it('use circuit-breaker policy - switch providers after HTTP 500 and perform another usecase', async () => {
+    const mockLoadSync = jest.fn();
+
+    let retry = 0;
+    const endpoint = await mockServer.get('/ok').thenCallback(() => {
+      if (retry < 2) {
+        retry++;
+
+        return {
+          statusCode: 500,
+          json: {},
+        };
+      }
+
+      return {
+        statusCode: 200,
+        json: {},
+      };
+    });
+    const secondEndpoint = await mockServer.get('/second').thenJson(200, {});
+
+    const mockSuperJson = new SuperJson({
+      profiles: {
+        ['starwars/character-information']: {
+          version: '1.0.0',
+          priority: ['provider', 'second'],
+          providers: {
+            provider: {
+              defaults: {
+                Test: {
+                  input: {},
+                  retryPolicy: {
+                    kind: OnFail.CIRCUIT_BREAKER,
+                    maxContiguousRetries: 2,
+                    requestTimeout: 1000,
+                  },
+                },
+              },
+            },
+            second: {},
+          },
+        },
+      },
+      providers: {
+        provider: {
+          security: [],
+        },
+        second: {
+          security: [],
+        },
+      },
+    });
+
+    mockLoadSync.mockReturnValue(ok(mockSuperJson));
+    SuperJson.loadSync = mockLoadSync;
+
+    const client = new SuperfaceClient();
+
+    //Mocking first bounded provider
+    const firstMockBoundProfileProvider = new BoundProfileProvider(
+      mockProfileDocument,
+      mockOkMapDocument,
+      'provider',
+      { baseUrl: mockServer.url, security: [] },
+      client
+    );
+    //Mocking first bounded provider
+    const secondMockBoundProfileProvider = new BoundProfileProvider(
+      mockProfileDocument,
+      secondMockMapDocument,
+      'second',
+      { baseUrl: mockServer.url, security: [] },
+      client
+    );
+    const cacheBoundProfileProviderSpy = jest
+      .spyOn(client, 'cacheBoundProfileProvider')
+      .mockResolvedValueOnce(firstMockBoundProfileProvider)
+      .mockResolvedValueOnce(secondMockBoundProfileProvider)
+      .mockResolvedValueOnce(firstMockBoundProfileProvider);
+
+    const profile = await client.getProfile('starwars/character-information');
+    let useCase = profile.getUseCase('Test');
+    //Try first provider two times then switch to second and return value
+    let result = await useCase.perform(undefined);
+
+    expect(result.isOk() && result.value).toEqual({
+      message: 'hello from second provider',
+    });
+
+    //Wait
+    await sleep(30000);
+
+    //Try first provider second usecase and return value
+    useCase = profile.getUseCase('SecondUseCase');
+    result = await useCase.perform(undefined);
+
+    expect(result.isOk() && result.value).toEqual({
+      message: 'hello from first provider and second usecase',
+    });
     //We send request twice
     expect((await endpoint.getSeenRequests()).length).toEqual(3);
     expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(3);
