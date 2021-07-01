@@ -1,15 +1,13 @@
 import { MapDocumentNode, ProfileDocumentNode } from '@superfaceai/ast';
-import {
-  ProfileConfiguration,
-  ProviderConfiguration,
-} from '@superfaceai/one-sdk';
 import { getLocal } from 'mockttp';
 import { string } from 'zod';
 
 import { BackoffKind, OnFail, SuperJson } from '../../internal';
 import { ok, sleep } from '../../lib';
 import { createTypedClient, invalidateSuperfaceClientCache } from '../client';
+import { ProfileConfiguration } from '../profile';
 import { BoundProfileProvider } from '../profile-provider';
+import { ProviderConfiguration } from '../provider';
 
 const firstMockProfileDocument: ProfileDocumentNode = {
   kind: 'ProfileDocument',
