@@ -188,7 +188,7 @@ class UseCaseBase implements Interceptable {
         if (profileEntry.defaults && profileEntry.defaults[this.name]) {
           if (profileEntry.defaults[this.name].providerFailover === true) {
             console.warn(
-              `Super.json does not set provider failover priority but provider failover is allowed for usecase "${this.name}".\nTo allow provider failover please set property "priority" in "${profileId}.priority"`
+              `Super.json does not set provider failover priority but provider failover is allowed for usecase "${this.name}".\nTo allow provider failover please set property "priority" in "${profileId}.priority".\nSetting priority according to order of providers in "${profileId}.providers"`
             );
           }
         }
