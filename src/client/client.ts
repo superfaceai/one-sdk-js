@@ -24,7 +24,7 @@ export function invalidateSuperfaceClientCache(): void {
 
 export abstract class SuperfaceClientBase extends Events {
   public readonly superJson: SuperJson;
-  private readonly metricReporter: MetricReporter;
+  private readonly metricReporter: MetricReporter | undefined;
   private boundCache: {
     [key: string]: BoundProfileProvider;
   } = {};
@@ -39,13 +39,13 @@ export abstract class SuperfaceClientBase extends Events {
 
     this.superJson = SUPER_CACHE[superCacheKey];
 
-    this.metricReporter = new MetricReporter(this.superJson);
-    this.metricReporter.reportEvent({
-      eventType: 'SDKInit',
-      occurredAt: new Date(),
-    });
     if (!Config.disableReporting) {
       this.hookMetrics();
+      this.metricReporter = new MetricReporter(this.superJson);
+      this.metricReporter.reportEvent({
+        eventType: 'SDKInit',
+        occurredAt: new Date(),
+      });
     }
   }
 
@@ -175,10 +175,10 @@ export abstract class SuperfaceClientBase extends Events {
   }
 
   private hookMetrics(): void {
-    process.on('beforeExit', () => this.metricReporter.flush());
+    console.log('metrics be hooked');
+    process.on('beforeExit', () => this.metricReporter?.flush());
     this.on('post-perform', { priority: 0 }, (context: PerformContext) => {
-      console.log('performing');
-      this.metricReporter.reportEvent({
+      this.metricReporter?.reportEvent({
         eventType: 'PerformMetrics',
         profile: context.profile,
         success: true,

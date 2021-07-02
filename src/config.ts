@@ -68,6 +68,7 @@ export const Config = {
   sdkAuthToken: getSdkAuthToken(),
   superfacePath: process.env[SUPERFACE_PATH_NAME] ?? DEFAULT_SUPERFACE_PATH,
   metricDebounceTime: getMetricDebounceTime(),
-  disableReporting: !!process.env[DISABLE_REPORTING],
+  disableReporting:
+    process.env.NODE_ENV === 'test' ? true : !!process.env[DISABLE_REPORTING],
 };
 export type Config = typeof Config;

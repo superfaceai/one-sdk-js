@@ -1473,7 +1473,6 @@ describe('SuperJson', () => {
           mockProfileProviderEntry
         )
       ).toEqual(true);
-      console.log(superjson.normalized.profiles[mockProfileName]);
       expect(superjson.normalized.profiles[mockProfileName]).toEqual({
         defaults: {},
         priority: [mockProviderName],

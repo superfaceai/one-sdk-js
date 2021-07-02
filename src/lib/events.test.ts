@@ -5,8 +5,6 @@ import { BoundProfileProvider } from '../client';
 import { Events } from './events';
 import { err } from './result/result';
 
-jest.unmock('cross-fetch');
-
 const mockProfileDocument: ProfileDocumentNode = {
   kind: 'ProfileDocument',
   header: {

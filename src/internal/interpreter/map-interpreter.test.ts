@@ -5,7 +5,6 @@ import { CrossFetch } from '../../lib/fetch';
 import { ApiKeyPlacement, HttpScheme, SecurityType } from '../providerjson';
 import { MapInterpreter } from './map-interpreter';
 
-jest.unmock('cross-fetch');
 const mockServer = getLocal();
 const fetchInstance = new CrossFetch();
 const header: MapHeaderNode = {

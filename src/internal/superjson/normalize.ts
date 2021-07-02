@@ -203,7 +203,6 @@ export function normalizeProfileSettings(
   profileEntry: ProfileEntry,
   topProviderOrder: string[]
 ): NormalizedProfileSettings {
-  console.log(profileEntry, topProviderOrder);
   if (typeof profileEntry === 'string') {
     if (isVersionString(profileEntry)) {
       return {
@@ -253,7 +252,6 @@ export function normalizeProfileSettings(
         normalizedSettings.defaults
       );
   }
-  console.log(profileEntry, normalizedSettings);
   if (normalizedSettings.priority.length === 0) {
     const providerOrder = Object.keys(profileEntry.providers || {});
     normalizedSettings.priority =

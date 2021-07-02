@@ -10,8 +10,6 @@ import {
   MappedHTTPError,
 } from './map-interpreter.errors';
 
-jest.unmock('cross-fetch');
-
 const mockServer = getLocal();
 const fetchInstance = new CrossFetch();
 const header: MapHeaderNode = {
