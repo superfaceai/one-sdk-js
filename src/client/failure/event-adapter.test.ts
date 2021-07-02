@@ -759,6 +759,11 @@ describe('event-adapter', () => {
       profiles: {
         ['starwars/character-information']: {
           version: '1.0.0',
+          defaults: {
+            Test: {
+              providerFailover: true,
+            },
+          },
           priority: ['provider', 'second'],
           providers: {
             provider: {
@@ -850,6 +855,11 @@ describe('event-adapter', () => {
       profiles: {
         ['starwars/character-information']: {
           version: '1.0.0',
+          defaults: {
+            Test: {
+              providerFailover: true,
+            },
+          },
           priority: ['provider', 'second'],
           providers: {
             provider: {
@@ -931,6 +941,204 @@ describe('event-adapter', () => {
     expect((await secondEndpoint.getSeenRequests()).length).toEqual(1);
   }, 20000);
 
+  it('use circuit-breaker policy - no not switch providers after HTTP 500, providerFailover is false', async () => {
+    const mockLoadSync = jest.fn();
+
+    const endpoint = await mockServer.get('/first').thenJson(500, {});
+    const secondEndpoint = await mockServer.get('/second').thenJson(200, {});
+
+    const mockSuperJson = new SuperJson({
+      profiles: {
+        ['starwars/character-information']: {
+          version: '1.0.0',
+          defaults: {
+            Test: {
+              //False
+              providerFailover: false,
+            },
+          },
+          //Set
+          priority: ['provider', 'second'],
+          providers: {
+            provider: {
+              defaults: {
+                Test: {
+                  input: {},
+                  retryPolicy: {
+                    kind: OnFail.CIRCUIT_BREAKER,
+                    maxContiguousRetries: 2,
+                    requestTimeout: 1000,
+                  },
+                },
+              },
+            },
+            second: {},
+          },
+        },
+      },
+      providers: {
+        provider: {
+          security: [],
+        },
+        second: {
+          security: [],
+        },
+      },
+    });
+
+    mockLoadSync.mockReturnValue(ok(mockSuperJson));
+    SuperJson.loadSync = mockLoadSync;
+
+    const client = new SuperfaceClient();
+
+    //Mocking first bounded provider
+    const firstMockBoundProfileProvider = new BoundProfileProvider(
+      firstMockProfileDocument,
+      firstMockMapDocument,
+      'provider',
+      { baseUrl: mockServer.url, security: [] },
+      client
+    );
+    //Mocking first bounded provider
+    const secondMockBoundProfileProvider = new BoundProfileProvider(
+      firstMockProfileDocument,
+      secondMockMapDocument,
+      'second',
+      { baseUrl: mockServer.url, security: [] },
+      client
+    );
+    const cacheBoundProfileProviderSpy = jest
+      .spyOn(client, 'cacheBoundProfileProvider')
+      .mockImplementation(
+        (
+          _profileConfig: ProfileConfiguration,
+          providerConfig: ProviderConfiguration
+        ) => {
+          if (providerConfig.name === 'provider') {
+            return new Promise(resolve =>
+              resolve(firstMockBoundProfileProvider)
+            );
+          }
+
+          return new Promise(resolve =>
+            resolve(secondMockBoundProfileProvider)
+          );
+        }
+      );
+
+    const profile = await client.getProfile('starwars/character-information');
+    const useCase = profile.getUseCase('Test');
+    const result = await useCase.perform(undefined);
+
+    expect(result.isErr() && result.error).toEqual(
+      new Error('circuit breaker is open')
+    );
+    //We send request twice - to the first provider url
+    expect((await endpoint.getSeenRequests()).length).toEqual(2);
+    //We did not switch to second provider
+    expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(1);
+    expect((await secondEndpoint.getSeenRequests()).length).toEqual(0);
+  }, 20000);
+
+  it('use circuit-breaker policy - no not switch providers after HTTP 500, priority array is empty', async () => {
+    const mockLoadSync = jest.fn();
+
+    const endpoint = await mockServer.get('/first').thenJson(500, {});
+    const secondEndpoint = await mockServer.get('/second').thenJson(200, {});
+
+    const mockSuperJson = new SuperJson({
+      profiles: {
+        ['starwars/character-information']: {
+          version: '1.0.0',
+          defaults: {
+            Test: {
+              //True
+              providerFailover: true,
+            },
+          },
+          //
+          priority: [],
+          providers: {
+            provider: {
+              defaults: {
+                Test: {
+                  input: {},
+                  retryPolicy: {
+                    kind: OnFail.CIRCUIT_BREAKER,
+                    maxContiguousRetries: 2,
+                    requestTimeout: 1000,
+                  },
+                },
+              },
+            },
+            second: {},
+          },
+        },
+      },
+      providers: {
+        provider: {
+          security: [],
+        },
+        second: {
+          security: [],
+        },
+      },
+    });
+
+    mockLoadSync.mockReturnValue(ok(mockSuperJson));
+    SuperJson.loadSync = mockLoadSync;
+
+    const client = new SuperfaceClient();
+
+    //Mocking first bounded provider
+    const firstMockBoundProfileProvider = new BoundProfileProvider(
+      firstMockProfileDocument,
+      firstMockMapDocument,
+      'provider',
+      { baseUrl: mockServer.url, security: [] },
+      client
+    );
+    //Mocking first bounded provider
+    const secondMockBoundProfileProvider = new BoundProfileProvider(
+      firstMockProfileDocument,
+      secondMockMapDocument,
+      'second',
+      { baseUrl: mockServer.url, security: [] },
+      client
+    );
+    const cacheBoundProfileProviderSpy = jest
+      .spyOn(client, 'cacheBoundProfileProvider')
+      .mockImplementation(
+        (
+          _profileConfig: ProfileConfiguration,
+          providerConfig: ProviderConfiguration
+        ) => {
+          if (providerConfig.name === 'provider') {
+            return new Promise(resolve =>
+              resolve(firstMockBoundProfileProvider)
+            );
+          }
+
+          return new Promise(resolve =>
+            resolve(secondMockBoundProfileProvider)
+          );
+        }
+      );
+
+    const profile = await client.getProfile('starwars/character-information');
+    const useCase = profile.getUseCase('Test');
+    const result = await useCase.perform(undefined);
+
+    expect(result.isErr() && result.error).toEqual(
+      new Error('circuit breaker is open')
+    );
+    //We send request twice - to the first provider url
+    expect((await endpoint.getSeenRequests()).length).toEqual(2);
+    //We did not switch to second provider
+    expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(1);
+    expect((await secondEndpoint.getSeenRequests()).length).toEqual(0);
+  }, 20000);
+
   it('use circuit-breaker policy - switch providers after HTTP 500 and switch back - default provider', async () => {
     const mockLoadSync = jest.fn();
 
@@ -956,6 +1164,11 @@ describe('event-adapter', () => {
       profiles: {
         ['starwars/character-information']: {
           version: '1.0.0',
+          defaults: {
+            Test: {
+              providerFailover: true,
+            },
+          },
           priority: ['provider', 'second'],
           providers: {
             provider: {
@@ -1071,6 +1284,11 @@ describe('event-adapter', () => {
       profiles: {
         ['starwars/character-information']: {
           version: '1.0.0',
+          defaults: {
+            Test: {
+              providerFailover: true,
+            },
+          },
           priority: ['provider', 'second'],
           providers: {
             provider: {
@@ -1186,6 +1404,11 @@ describe('event-adapter', () => {
       profiles: {
         ['starwars/character-information']: {
           version: '1.0.0',
+          defaults: {
+            Test: {
+              providerFailover: true,
+            },
+          },
           priority: ['provider', 'second'],
           providers: {
             provider: {
@@ -1303,6 +1526,11 @@ describe('event-adapter', () => {
         ['starwars/character-information']: {
           version: '1.0.0',
           priority: ['provider', 'second'],
+          defaults: {
+            Test: {
+              providerFailover: true,
+            },
+          },
           providers: {
             provider: {
               defaults: {
@@ -1429,6 +1657,11 @@ describe('event-adapter', () => {
       profiles: {
         ['starwars/character-information']: {
           version: '1.0.0',
+          defaults: {
+            Test: {
+              providerFailover: true,
+            },
+          },
           priority: ['provider', 'second'],
           providers: {
             provider: {

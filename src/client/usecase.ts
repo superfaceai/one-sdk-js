@@ -148,7 +148,10 @@ class UseCaseBase implements Interceptable {
           usecaseInfo,
           // here we need providers of usecase
           providersOfUsecase,
-          profileSettings.priority
+          //Use priority only when provider failover is true
+          profileSettings.defaults[this.name]?.providerFailover
+            ? profileSettings.priority
+            : []
         ),
         queuedAction: undefined,
       },
