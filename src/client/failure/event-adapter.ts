@@ -1,7 +1,19 @@
+import createDebug from 'debug';
+
 import { clone, sleep } from '../../lib';
 import { Events } from '../../lib/events';
 import { CrossFetchError } from '../../lib/fetch';
 import { FailurePolicyRouter } from './policies';
+
+const debug = createDebug('superface:failover');
+const debugSensitive = createDebug('superface:failover:sensitive');
+debugSensitive(
+  `
+WARNING: YOU HAVE ALLOWED LOGGING SENSITIVE INFORMATION.
+THIS LOGGING LEVEL DOES NOT PREVENT LEAKING SECRETS AND SHOULD NOT BE USED IF THE LOGS ARE GOING TO BE SHARED.
+CONSIDER DISABLING SENSITIVE INFORMATION LOGGING BY APPENDING THE DEBUG ENVIRONMENT VARIABLE WITH ",-*:sensitive".
+`
+);
 
 export type HooksContext = Record<
   // profile/usecase
@@ -22,6 +34,8 @@ export type HooksContext = Record<
 
 export function registerHooks(hookContext: HooksContext, events: Events): void {
   events.on('pre-fetch', { priority: 1 }, async (context, args) => {
+    debug('Handling event pre-fetch with context:', context);
+    debugSensitive('\targs:', args);
     // only listen to fetch events in perform context
     if (
       context.profile === undefined ||
@@ -89,7 +103,10 @@ export function registerHooks(hookContext: HooksContext, events: Events): void {
     return { kind: 'continue' };
   });
 
-  events.on('post-fetch', { priority: 1 }, async (context, _args, res) => {
+  events.on('post-fetch', { priority: 1 }, async (context, args, res) => {
+    debug('Handling event post-fetch with context:', context);
+    debugSensitive('\targs:', args);
+    debugSensitive('\tresult:', res);
     // only listen to fetch events in perform context
     if (
       context.profile === undefined ||
@@ -154,6 +171,8 @@ export function registerHooks(hookContext: HooksContext, events: Events): void {
   });
 
   events.on('pre-unhandled-http', { priority: 1 }, async (context, args) => {
+    debug('Handling event pre-unhandled-http with context:', context);
+    debugSensitive('\targs:', args);
     // common handling
     if (
       context.profile === undefined ||
@@ -214,12 +233,10 @@ export function registerHooks(hookContext: HooksContext, events: Events): void {
     }
   });
 
-  events.on('pre-perform', { priority: 1 }, async () => {
-    // TODO: anything here?
-    return { kind: 'continue' };
-  });
-
-  events.on('post-perform', { priority: 1 }, async (context, args, res) => {
+  events.on('post-bind', { priority: 1 }, async (context, args, res) => {
+    debug('Handling event post-bind with context:', context);
+    debugSensitive('\targs:', args);
+    debugSensitive('\tresult:', res);
     // this shouldn't happen but if it does just continue for now
     if (
       context.profile === undefined ||
@@ -242,6 +259,8 @@ export function registerHooks(hookContext: HooksContext, events: Events): void {
 
       switch (action.kind) {
         case 'switch-provider': {
+          debug('switching to', action.provider);
+
           return {
             kind: 'retry',
             newArgs: [args[0], { ...args[1], provider: action.provider }],
