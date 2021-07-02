@@ -978,7 +978,7 @@ describe('event-adapter typed', () => {
     expect((await secondEndpoint.getSeenRequests()).length).toEqual(1);
   }, 20000);
 
-  it('use circuit-breaker policy - no not switch providers after HTTP 500, providerFailover is false', async () => {
+  it('use circuit-breaker policy - do not switch providers after HTTP 500, providerFailover is false', async () => {
     const mockLoadSync = jest.fn();
 
     const endpoint = await mockServer.get('/first').thenJson(500, {});
@@ -1082,7 +1082,7 @@ describe('event-adapter typed', () => {
     expect((await secondEndpoint.getSeenRequests()).length).toEqual(0);
   }, 20000);
 
-  it('use circuit-breaker policy - no not switch providers after HTTP 500, priority array is empty', async () => {
+  it('use circuit-breaker policy - switch providers after HTTP 500, implicit priority array', async () => {
     const mockLoadSync = jest.fn();
 
     const endpoint = await mockServer.get('/first').thenJson(500, {});
@@ -1174,14 +1174,14 @@ describe('event-adapter typed', () => {
     const useCase = profile.getUseCase('Test');
     const result = await useCase.perform(undefined);
 
-    expect(result.isErr() && result.error).toEqual(
-      new Error('circuit breaker is open')
-    );
+    expect(result.isOk() && result.value).toEqual({
+      message: 'hello from second provider',
+    });
     //We send request twice - to the first provider url
     expect((await endpoint.getSeenRequests()).length).toEqual(2);
     //We did not switch to second provider
-    expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(1);
-    expect((await secondEndpoint.getSeenRequests()).length).toEqual(0);
+    expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(2);
+    expect((await secondEndpoint.getSeenRequests()).length).toEqual(1);
   }, 20000);
 
   it('use circuit-breaker policy - switch providers after HTTP 500 and switch back - default provider', async () => {
