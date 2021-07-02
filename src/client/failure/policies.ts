@@ -35,29 +35,34 @@ export class FailurePolicyRouter {
   }
 
   public beforeExecution(info: ExecutionInfo): ExecutionResolution {
-    //TODO: export to function
     if (!this.currentProvider) {
-      throw 'Property currentProvider is not set in Router instance';
+      throw new Error('Property currentProvider is not set in Router instance');
     }
-    if (!this.providersOfUseCase[this.currentProvider]) {
-      throw `There is not any policy set for provider ${this.currentProvider} in Router instance`;
-    }
-    //Try to switch back?
+
+    //Try to switch back to previous provider
     if (this.priority.length > 0 && this.currentProvider !== this.priority[0]) {
       const indexOfCurrentProvider = this.priority.indexOf(
         this.currentProvider
       );
 
-      const previousProviderResolition =
-        this.providersOfUseCase[
-          this.priority[indexOfCurrentProvider - 1]
-        ].beforeExecution(info);
+      const provider = this.priority
+        .filter((_p: string, i: number) => i < indexOfCurrentProvider)
+        .find((p: string) =>
+          this.providersOfUseCase[p]
+            ? this.providersOfUseCase[p].beforeExecution(info).kind ===
+              'continue'
+            : true
+        );
 
-      //Switch back to previous
-      if (previousProviderResolition.kind === 'continue') {
+      //TODO: solve AbortPolicy infinite loop problem
+      //Switch back to previous but do not switch back to AbortPolicy
+      if (
+        provider &&
+        !(this.providersOfUseCase[provider] instanceof AbortPolicy)
+      ) {
         return {
           kind: 'switch-provider',
-          provider: this.priority[indexOfCurrentProvider - 1],
+          provider,
         };
       }
     }
@@ -69,11 +74,9 @@ export class FailurePolicyRouter {
 
   public afterFailure(info: ExecutionFailure): FailureResolution {
     if (!this.currentProvider) {
-      throw 'Property currentProvider is not set in Router instance';
+      throw new Error('Property currentProvider is not set in Router instance');
     }
-    if (!this.providersOfUseCase[this.currentProvider]) {
-      throw `There is not any policy set for provider ${this.currentProvider} in Router instance`;
-    }
+
     const innerResolution =
       this.providersOfUseCase[this.currentProvider].afterFailure(info);
 
@@ -82,21 +85,26 @@ export class FailurePolicyRouter {
       return innerResolution;
     }
     const indexOfCurrentProvider = this.priority.indexOf(this.currentProvider);
+    const provider = this.priority
+      .filter((_p: string, i: number) => i > indexOfCurrentProvider)
+      .find((p: string) => {
+        return this.providersOfUseCase[p]
+          ? this.providersOfUseCase[p].beforeExecution(info).kind === 'continue'
+          : true;
+      });
 
     //Priority does not contain another (with lesser priority) provider
-    if (indexOfCurrentProvider === this.priority.length - 1) {
-      //Abort/retry/continue??
+    if (!provider) {
       return { kind: 'abort', reason: 'no backup provider configured' };
     }
-
-    this.currentProvider = this.priority[indexOfCurrentProvider + 1];
+    this.currentProvider = provider;
 
     return { kind: 'switch-provider', provider: this.currentProvider };
   }
 
   public afterSuccess(info: ExecutionSuccess): SuccessResolution {
     if (!this.currentProvider) {
-      throw 'Property currentProvider is not set in Router instance';
+      throw new Error('Property currentProvider is not set in Router instance');
     }
 
     return this.providersOfUseCase[this.currentProvider].afterSuccess(info);
@@ -121,6 +129,7 @@ export class AbortPolicy extends FailurePolicy {
   }
 
   override afterFailure(_info: ExecutionFailure): FailureResolution {
+    //TODO: Eda said this maybe should be continue
     return { kind: 'abort', reason: 'abort policy selected' };
   }
 

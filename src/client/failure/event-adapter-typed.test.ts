@@ -1,9 +1,10 @@
 import { MapDocumentNode, ProfileDocumentNode } from '@superfaceai/ast';
 import { getLocal } from 'mockttp';
+import { string } from 'zod';
 
 import { BackoffKind, OnFail, SuperJson } from '../../internal';
 import { ok, sleep } from '../../lib';
-import { invalidateSuperfaceClientCache, SuperfaceClient } from '../client';
+import { createTypedClient, invalidateSuperfaceClientCache } from '../client';
 import { ProfileConfiguration } from '../profile';
 import { BoundProfileProvider } from '../profile-provider';
 import { ProviderConfiguration } from '../provider';
@@ -128,7 +129,7 @@ const firstMockMapDocument: MapDocumentNode = {
         patch: 0,
       },
     },
-    provider: 'provider',
+    provider: 'first',
   },
   definitions: [
     {
@@ -390,7 +391,7 @@ const thirdMockMapDocument: MapDocumentNode = {
 
 const mockServer = getLocal();
 
-describe('event-adapter', () => {
+describe('event-adapter typed', () => {
   beforeEach(async () => {
     await mockServer.start();
   });
@@ -411,12 +412,12 @@ describe('event-adapter', () => {
         ['starwars/character-information']: {
           version: '1.0.0',
           providers: {
-            provider: {},
+            first: {},
           },
         },
       },
       providers: {
-        provider: {
+        first: {
           security: [],
         },
       },
@@ -426,13 +427,19 @@ describe('event-adapter', () => {
     SuperJson.loadSync = mockLoadSync;
 
     //Not mocked client
-    const client = new SuperfaceClient();
+    const TypedClient = createTypedClient({
+      ['starwars/character-information']: {
+        Test: [undefined, { message: string }],
+      },
+    });
+
+    const client = new TypedClient();
 
     //Mocking bounded provider
     const mockBoundProfileProvider = new BoundProfileProvider(
       firstMockProfileDocument,
       firstMockMapDocument,
-      'provider',
+      'first',
       { baseUrl: mockServer.url, security: [] },
       client
     );
@@ -443,9 +450,8 @@ describe('event-adapter', () => {
 
     //Run it as usual
     const profile = await client.getProfile('starwars/character-information');
-    const useCase = profile.getUseCase('Test');
-    const provider = await client.getProvider('provider');
-    const result = await useCase.perform(undefined, { provider });
+    const provider = await client.getProvider('first');
+    const result = await profile.useCases.Test.perform(undefined, { provider });
 
     expect(result.isOk() && result.value).toEqual({ message: 'hello' });
     expect((await endpoint.getSeenRequests()).length).toEqual(1);
@@ -462,12 +468,12 @@ describe('event-adapter', () => {
         ['starwars/character-information']: {
           version: '1.0.0',
           providers: {
-            provider: {},
+            first: {},
           },
         },
       },
       providers: {
-        provider: {
+        first: {
           security: [],
         },
       },
@@ -476,13 +482,20 @@ describe('event-adapter', () => {
     mockLoadSync.mockReturnValue(ok(mockSuperJson));
     SuperJson.loadSync = mockLoadSync;
 
-    const client = new SuperfaceClient();
+    //Not mocked client
+    const TypedClient = createTypedClient({
+      ['starwars/character-information']: {
+        Test: [undefined, { message: string }],
+      },
+    });
+
+    const client = new TypedClient();
 
     //Mocking bounded provider
     const mockBoundProfileProvider = new BoundProfileProvider(
       firstMockProfileDocument,
       firstMockMapDocument,
-      'provider',
+      'first',
       { baseUrl: mockServer.url, security: [] },
       client
     );
@@ -491,9 +504,8 @@ describe('event-adapter', () => {
       .mockResolvedValue(mockBoundProfileProvider);
 
     const profile = await client.getProfile('starwars/character-information');
-    const useCase = profile.getUseCase('Test');
-    const provider = await client.getProvider('provider');
-    const result = await useCase.perform(undefined, { provider });
+    const provider = await client.getProvider('first');
+    const result = await profile.useCases.Test.perform(undefined, { provider });
 
     expect(result.isErr()).toEqual(true);
     expect((await endpoint.getSeenRequests()).length).toEqual(1);
@@ -510,12 +522,12 @@ describe('event-adapter', () => {
         ['starwars/character-information']: {
           version: '1.0.0',
           providers: {
-            provider: {},
+            first: {},
           },
         },
       },
       providers: {
-        provider: {
+        first: {
           security: [],
         },
       },
@@ -524,13 +536,19 @@ describe('event-adapter', () => {
     mockLoadSync.mockReturnValue(ok(mockSuperJson));
     SuperJson.loadSync = mockLoadSync;
 
-    const client = new SuperfaceClient();
+    const TypedClient = createTypedClient({
+      ['starwars/character-information']: {
+        Test: [undefined, { message: string }],
+      },
+    });
+
+    const client = new TypedClient();
 
     //Mocking bounded provider
     const mockBoundProfileProvider = new BoundProfileProvider(
       firstMockProfileDocument,
       firstMockMapDocument,
-      'provider',
+      'first',
       { baseUrl: mockServer.url, security: [] },
       client
     );
@@ -539,9 +557,8 @@ describe('event-adapter', () => {
       .mockResolvedValue(mockBoundProfileProvider);
 
     const profile = await client.getProfile('starwars/character-information');
-    const useCase = profile.getUseCase('Test');
-    const provider = await client.getProvider('provider');
-    const result = await useCase.perform(undefined, { provider });
+    const provider = await client.getProvider('first');
+    const result = await profile.useCases.Test.perform(undefined, { provider });
 
     expect(result.isErr()).toEqual(true);
     expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(1);
@@ -557,12 +574,12 @@ describe('event-adapter', () => {
         ['starwars/character-information']: {
           version: '1.0.0',
           providers: {
-            provider: {},
+            first: {},
           },
         },
       },
       providers: {
-        provider: {
+        first: {
           security: [],
         },
       },
@@ -571,13 +588,18 @@ describe('event-adapter', () => {
     mockLoadSync.mockReturnValue(ok(mockSuperJson));
     SuperJson.loadSync = mockLoadSync;
 
-    const client = new SuperfaceClient();
+    const TypedClient = createTypedClient({
+      ['starwars/character-information']: {
+        Test: [undefined, { message: string }],
+      },
+    });
 
+    const client = new TypedClient();
     //Mocking bounded provider
     const mockBoundProfileProvider = new BoundProfileProvider(
       firstMockProfileDocument,
       firstMockMapDocument,
-      'provider',
+      'first',
       { baseUrl: mockServer.url, security: [] },
       client
     );
@@ -587,14 +609,13 @@ describe('event-adapter', () => {
 
     const profile = await client.getProfile('starwars/character-information');
     const useCase = profile.getUseCase('Test');
-    const provider = await client.getProvider('provider');
+    const provider = await client.getProvider('first');
     const result = await useCase.perform(undefined, { provider });
 
     expect(result.isErr()).toEqual(true);
     expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(1);
   }, 40000);
 
-  //Circuit breaker
   it('use circuit-breaker policy - aborts after HTTP 500', async () => {
     const mockLoadSync = jest.fn();
 
@@ -605,7 +626,7 @@ describe('event-adapter', () => {
         ['starwars/character-information']: {
           version: '1.0.1',
           providers: {
-            provider: {
+            first: {
               defaults: {
                 Test: {
                   input: {},
@@ -621,7 +642,7 @@ describe('event-adapter', () => {
         },
       },
       providers: {
-        provider: {
+        first: {
           security: [],
         },
       },
@@ -630,13 +651,18 @@ describe('event-adapter', () => {
     mockLoadSync.mockReturnValue(ok(mockSuperJson));
     SuperJson.loadSync = mockLoadSync;
 
-    const client = new SuperfaceClient();
+    const TypedClient = createTypedClient({
+      ['starwars/character-information']: {
+        Test: [undefined, { message: string }],
+      },
+    });
 
+    const client = new TypedClient();
     //Mocking bounded provider
     const mockBoundProfileProvider = new BoundProfileProvider(
       firstMockProfileDocument,
       firstMockMapDocument,
-      'provider',
+      'first',
       { baseUrl: mockServer.url, security: [] },
       client
     );
@@ -645,9 +671,8 @@ describe('event-adapter', () => {
       .mockResolvedValue(mockBoundProfileProvider);
 
     const profile = await client.getProfile('starwars/character-information');
-    const useCase = profile.getUseCase('Test');
-    const provider = await client.getProvider('provider');
-    const result = await useCase.perform(undefined, { provider });
+    const provider = await client.getProvider('first');
+    const result = await profile.useCases.Test.perform(undefined, { provider });
 
     expect(result.isErr() && result.error).toEqual(
       new Error('circuit breaker is open')
@@ -687,7 +712,7 @@ describe('event-adapter', () => {
         ['starwars/character-information']: {
           version: '1.0.1',
           providers: {
-            provider: {
+            first: {
               defaults: {
                 Test: {
                   input: {},
@@ -707,7 +732,7 @@ describe('event-adapter', () => {
         },
       },
       providers: {
-        provider: {
+        first: {
           security: [],
         },
       },
@@ -716,13 +741,19 @@ describe('event-adapter', () => {
     mockLoadSync.mockReturnValue(ok(mockSuperJson));
     SuperJson.loadSync = mockLoadSync;
 
-    const client = new SuperfaceClient();
+    const TypedClient = createTypedClient({
+      ['starwars/character-information']: {
+        Test: [undefined, { message: string }],
+      },
+    });
+
+    const client = new TypedClient();
 
     //Mocking bounded provider
     const mockBoundProfileProvider = new BoundProfileProvider(
       firstMockProfileDocument,
       firstMockMapDocument,
-      'provider',
+      'first',
       { baseUrl: mockServer.url, security: [] },
       client
     );
@@ -731,9 +762,8 @@ describe('event-adapter', () => {
       .mockResolvedValue(mockBoundProfileProvider);
 
     const profile = await client.getProfile('starwars/character-information');
-    const useCase = profile.getUseCase('Test');
-    const provider = await client.getProvider('provider');
-    const result = await useCase.perform(undefined, { provider });
+    const provider = await client.getProvider('first');
+    const result = await profile.useCases.Test.perform(undefined, { provider });
 
     expect(result.isOk() && result.value).toEqual({ message: 'hello' });
 
@@ -764,9 +794,9 @@ describe('event-adapter', () => {
               providerFailover: true,
             },
           },
-          priority: ['provider', 'second'],
+          priority: ['first', 'second'],
           providers: {
-            provider: {
+            first: {
               defaults: {
                 Test: {
                   input: {},
@@ -783,7 +813,7 @@ describe('event-adapter', () => {
         },
       },
       providers: {
-        provider: {
+        first: {
           security: [],
         },
         second: {
@@ -795,13 +825,18 @@ describe('event-adapter', () => {
     mockLoadSync.mockReturnValue(ok(mockSuperJson));
     SuperJson.loadSync = mockLoadSync;
 
-    const client = new SuperfaceClient();
+    const TypedClient = createTypedClient({
+      ['starwars/character-information']: {
+        Test: [undefined, { message: string }],
+      },
+    });
+    const client = new TypedClient();
 
     //Mocking first bounded provider
     const firstMockBoundProfileProvider = new BoundProfileProvider(
       firstMockProfileDocument,
       firstMockMapDocument,
-      'provider',
+      'first',
       { baseUrl: mockServer.url, security: [] },
       client
     );
@@ -820,7 +855,7 @@ describe('event-adapter', () => {
           _profileConfig: ProfileConfiguration,
           providerConfig: ProviderConfiguration
         ) => {
-          if (providerConfig.name === 'provider') {
+          if (providerConfig.name === 'first') {
             return new Promise(resolve =>
               resolve(firstMockBoundProfileProvider)
             );
@@ -833,8 +868,7 @@ describe('event-adapter', () => {
       );
 
     const profile = await client.getProfile('starwars/character-information');
-    const useCase = profile.getUseCase('Test');
-    const result = await useCase.perform(undefined);
+    const result = await profile.useCases.Test.perform(undefined);
 
     expect(result.isOk() && result.value).toEqual({
       message: 'hello from second provider',
@@ -855,14 +889,14 @@ describe('event-adapter', () => {
       profiles: {
         ['starwars/character-information']: {
           version: '1.0.0',
+          priority: ['first', 'second'],
           defaults: {
             Test: {
               providerFailover: true,
             },
           },
-          priority: ['provider', 'second'],
           providers: {
-            provider: {
+            first: {
               defaults: {
                 Test: {
                   input: {},
@@ -879,7 +913,7 @@ describe('event-adapter', () => {
         },
       },
       providers: {
-        provider: {
+        first: {
           security: [],
         },
         second: {
@@ -891,13 +925,17 @@ describe('event-adapter', () => {
     mockLoadSync.mockReturnValue(ok(mockSuperJson));
     SuperJson.loadSync = mockLoadSync;
 
-    const client = new SuperfaceClient();
-
+    const TypedClient = createTypedClient({
+      ['starwars/character-information']: {
+        Test: [undefined, { message: string }],
+      },
+    });
+    const client = new TypedClient();
     //Mocking first bounded provider
     const firstMockBoundProfileProvider = new BoundProfileProvider(
       firstMockProfileDocument,
       firstMockMapDocument,
-      'provider',
+      'first',
       { baseUrl: mockServer.url, security: [] },
       client
     );
@@ -916,7 +954,7 @@ describe('event-adapter', () => {
           _profileConfig: ProfileConfiguration,
           providerConfig: ProviderConfiguration
         ) => {
-          if (providerConfig.name === 'provider') {
+          if (providerConfig.name === 'first') {
             return new Promise(resolve =>
               resolve(firstMockBoundProfileProvider)
             );
@@ -929,8 +967,7 @@ describe('event-adapter', () => {
       );
 
     const profile = await client.getProfile('starwars/character-information');
-    const useCase = profile.getUseCase('Test');
-    const result = await useCase.perform(undefined);
+    const result = await profile.useCases.Test.perform(undefined);
 
     expect(result.isOk() && result.value).toEqual({
       message: 'hello from second provider',
@@ -989,7 +1026,12 @@ describe('event-adapter', () => {
     mockLoadSync.mockReturnValue(ok(mockSuperJson));
     SuperJson.loadSync = mockLoadSync;
 
-    const client = new SuperfaceClient();
+    const TypedClient = createTypedClient({
+      ['starwars/character-information']: {
+        Test: [undefined, { message: string }],
+      },
+    });
+    const client = new TypedClient();
 
     //Mocking first bounded provider
     const firstMockBoundProfileProvider = new BoundProfileProvider(
@@ -1040,7 +1082,7 @@ describe('event-adapter', () => {
     expect((await secondEndpoint.getSeenRequests()).length).toEqual(0);
   }, 20000);
 
-  it('use circuit-breaker policy - switch providers after HTTP 500, use implict priority array', async () => {
+  it('use circuit-breaker policy - switch providers after HTTP 500, implicit priority array', async () => {
     const mockLoadSync = jest.fn();
 
     const endpoint = await mockServer.get('/first').thenJson(500, {});
@@ -1056,7 +1098,6 @@ describe('event-adapter', () => {
               providerFailover: true,
             },
           },
-          //
           priority: [],
           providers: {
             provider: {
@@ -1087,8 +1128,12 @@ describe('event-adapter', () => {
 
     mockLoadSync.mockReturnValue(ok(mockSuperJson));
     SuperJson.loadSync = mockLoadSync;
-
-    const client = new SuperfaceClient();
+    const TypedClient = createTypedClient({
+      ['starwars/character-information']: {
+        Test: [undefined, { message: string }],
+      },
+    });
+    const client = new TypedClient();
 
     //Mocking first bounded provider
     const firstMockBoundProfileProvider = new BoundProfileProvider(
@@ -1169,9 +1214,9 @@ describe('event-adapter', () => {
               providerFailover: true,
             },
           },
-          priority: ['provider', 'second'],
+          priority: ['first', 'second'],
           providers: {
-            provider: {
+            first: {
               defaults: {
                 Test: {
                   input: {},
@@ -1188,7 +1233,7 @@ describe('event-adapter', () => {
         },
       },
       providers: {
-        provider: {
+        first: {
           security: [],
         },
         second: {
@@ -1200,13 +1245,17 @@ describe('event-adapter', () => {
     mockLoadSync.mockReturnValue(ok(mockSuperJson));
     SuperJson.loadSync = mockLoadSync;
 
-    const client = new SuperfaceClient();
-
+    const TypedClient = createTypedClient({
+      ['starwars/character-information']: {
+        Test: [undefined, { message: string }],
+      },
+    });
+    const client = new TypedClient();
     //Mocking first bounded provider
     const firstMockBoundProfileProvider = new BoundProfileProvider(
       firstMockProfileDocument,
       firstMockMapDocument,
-      'provider',
+      'first',
       { baseUrl: mockServer.url, security: [] },
       client
     );
@@ -1225,7 +1274,7 @@ describe('event-adapter', () => {
           _profileConfig: ProfileConfiguration,
           providerConfig: ProviderConfiguration
         ) => {
-          if (providerConfig.name === 'provider') {
+          if (providerConfig.name === 'first') {
             return new Promise(resolve =>
               resolve(firstMockBoundProfileProvider)
             );
@@ -1238,9 +1287,8 @@ describe('event-adapter', () => {
       );
 
     const profile = await client.getProfile('starwars/character-information');
-    const useCase = profile.getUseCase('Test');
     //Try first provider two times then switch to second and return value
-    let result = await useCase.perform(undefined);
+    let result = await profile.useCases.Test.perform(undefined);
 
     expect(result.isOk() && result.value).toEqual({
       message: 'hello from second provider',
@@ -1250,7 +1298,7 @@ describe('event-adapter', () => {
     await sleep(30000);
 
     //Try first provider and return value
-    result = await useCase.perform(undefined);
+    result = await profile.useCases.Test.perform(undefined);
 
     expect(result.isOk() && result.value).toEqual({ message: 'hello' });
     //We send request twice
@@ -1258,246 +1306,6 @@ describe('event-adapter', () => {
     expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(3);
     expect((await secondEndpoint.getSeenRequests()).length).toEqual(1);
   }, 40000);
-
-  it('use circuit-breaker policy - switch providers after HTTP 500 and switch back - provider from user', async () => {
-    const mockLoadSync = jest.fn();
-
-    let retry = 0;
-    const endpoint = await mockServer.get('/first').thenCallback(() => {
-      if (retry < 2) {
-        retry++;
-
-        return {
-          statusCode: 500,
-          json: {},
-        };
-      }
-
-      return {
-        statusCode: 200,
-        json: {},
-      };
-    });
-    const secondEndpoint = await mockServer.get('/second').thenJson(200, {});
-
-    const mockSuperJson = new SuperJson({
-      profiles: {
-        ['starwars/character-information']: {
-          version: '1.0.0',
-          defaults: {
-            Test: {
-              providerFailover: true,
-            },
-          },
-          priority: ['provider', 'second'],
-          providers: {
-            provider: {
-              defaults: {
-                Test: {
-                  input: {},
-                  retryPolicy: {
-                    kind: OnFail.CIRCUIT_BREAKER,
-                    maxContiguousRetries: 2,
-                    requestTimeout: 1000,
-                  },
-                },
-              },
-            },
-            second: {},
-          },
-        },
-      },
-      providers: {
-        provider: {
-          security: [],
-        },
-        second: {
-          security: [],
-        },
-      },
-    });
-
-    mockLoadSync.mockReturnValue(ok(mockSuperJson));
-    SuperJson.loadSync = mockLoadSync;
-
-    const client = new SuperfaceClient();
-
-    //Mocking first bounded provider
-    const firstMockBoundProfileProvider = new BoundProfileProvider(
-      firstMockProfileDocument,
-      firstMockMapDocument,
-      'provider',
-      { baseUrl: mockServer.url, security: [] },
-      client
-    );
-    //Mocking first bounded provider
-    const secondMockBoundProfileProvider = new BoundProfileProvider(
-      firstMockProfileDocument,
-      secondMockMapDocument,
-      'second',
-      { baseUrl: mockServer.url, security: [] },
-      client
-    );
-    const cacheBoundProfileProviderSpy = jest
-      .spyOn(client, 'cacheBoundProfileProvider')
-      .mockImplementation(
-        (
-          _profileConfig: ProfileConfiguration,
-          providerConfig: ProviderConfiguration
-        ) => {
-          if (providerConfig.name === 'provider') {
-            return new Promise(resolve =>
-              resolve(firstMockBoundProfileProvider)
-            );
-          }
-
-          return new Promise(resolve =>
-            resolve(secondMockBoundProfileProvider)
-          );
-        }
-      );
-
-    const profile = await client.getProfile('starwars/character-information');
-    const useCase = profile.getUseCase('Test');
-    //Try first provider two times then switch to second and return value
-    let result = await useCase.perform(undefined, { provider: 'provider' });
-
-    expect(result.isOk() && result.value).toEqual({
-      message: 'hello from second provider',
-    });
-
-    //Wait
-    await sleep(30000);
-
-    //Try first provider and return value
-    result = await useCase.perform(undefined, { provider: 'provider' });
-
-    expect(result.isOk() && result.value).toEqual({ message: 'hello' });
-    //We send request twice
-    expect((await endpoint.getSeenRequests()).length).toEqual(3);
-    expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(3);
-    expect((await secondEndpoint.getSeenRequests()).length).toEqual(1);
-  }, 40000);
-
-  it('use circuit-breaker policy - switch providers after HTTP 500 and perform another usecase', async () => {
-    const mockLoadSync = jest.fn();
-
-    let retry = 0;
-    const endpoint = await mockServer.get('/first').thenCallback(() => {
-      if (retry < 2) {
-        retry++;
-
-        return {
-          statusCode: 500,
-          json: {},
-        };
-      }
-
-      return {
-        statusCode: 200,
-        json: {},
-      };
-    });
-    const secondEndpoint = await mockServer.get('/second').thenJson(200, {});
-
-    const mockSuperJson = new SuperJson({
-      profiles: {
-        ['starwars/character-information']: {
-          version: '1.0.0',
-          defaults: {
-            Test: {
-              providerFailover: true,
-            },
-          },
-          priority: ['provider', 'second'],
-          providers: {
-            provider: {
-              defaults: {
-                Test: {
-                  input: {},
-                  retryPolicy: {
-                    kind: OnFail.CIRCUIT_BREAKER,
-                    maxContiguousRetries: 2,
-                    requestTimeout: 1000,
-                  },
-                },
-              },
-            },
-            second: {},
-          },
-        },
-      },
-      providers: {
-        provider: {
-          security: [],
-        },
-        second: {
-          security: [],
-        },
-      },
-    });
-
-    mockLoadSync.mockReturnValue(ok(mockSuperJson));
-    SuperJson.loadSync = mockLoadSync;
-
-    const client = new SuperfaceClient();
-
-    //Mocking first bounded provider
-    const firstMockBoundProfileProvider = new BoundProfileProvider(
-      firstMockProfileDocument,
-      firstMockMapDocument,
-      'provider',
-      { baseUrl: mockServer.url, security: [] },
-      client
-    );
-    //Mocking first bounded provider
-    const secondMockBoundProfileProvider = new BoundProfileProvider(
-      firstMockProfileDocument,
-      secondMockMapDocument,
-      'second',
-      { baseUrl: mockServer.url, security: [] },
-      client
-    );
-    const cacheBoundProfileProviderSpy = jest
-      .spyOn(client, 'cacheBoundProfileProvider')
-      .mockImplementation(
-        (
-          _profileConfig: ProfileConfiguration,
-          providerConfig: ProviderConfiguration
-        ) => {
-          if (providerConfig.name === 'provider') {
-            return new Promise(resolve =>
-              resolve(firstMockBoundProfileProvider)
-            );
-          }
-
-          return new Promise(resolve =>
-            resolve(secondMockBoundProfileProvider)
-          );
-        }
-      );
-
-    const profile = await client.getProfile('starwars/character-information');
-    let useCase = profile.getUseCase('Test');
-    //Try first provider two times then switch to second and return value
-    let result = await useCase.perform(undefined);
-
-    expect(result.isOk() && result.value).toEqual({
-      message: 'hello from second provider',
-    });
-
-    //Try first provider second usecase and return value
-    useCase = profile.getUseCase('SecondUseCase');
-    result = await useCase.perform(undefined);
-
-    expect(result.isOk() && result.value).toEqual({
-      message: 'hello from first provider and second usecase',
-    });
-    //We send request twice
-    expect((await endpoint.getSeenRequests()).length).toEqual(3);
-    expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(3);
-    expect((await secondEndpoint.getSeenRequests()).length).toEqual(1);
-  }, 20000);
 
   it('use circuit-breaker policy - switch providers after HTTP 500, perform another usecase and switch profile', async () => {
     const mockLoadSync = jest.fn();
@@ -1525,12 +1333,12 @@ describe('event-adapter', () => {
       profiles: {
         ['starwars/character-information']: {
           version: '1.0.0',
-          priority: ['provider', 'second'],
           defaults: {
             Test: {
               providerFailover: true,
             },
           },
+          priority: ['provider', 'second'],
           providers: {
             provider: {
               defaults: {
@@ -1568,8 +1376,16 @@ describe('event-adapter', () => {
     mockLoadSync.mockReturnValue(ok(mockSuperJson));
     SuperJson.loadSync = mockLoadSync;
 
-    const client = new SuperfaceClient();
-
+    const TypedClient = createTypedClient({
+      ['starwars/character-information']: {
+        Test: [undefined, { message: string }],
+        SecondUseCase: [undefined, { message: string }],
+      },
+      ['startrek/character-information']: {
+        Test: [undefined, { message: string }],
+      },
+    });
+    const client = new TypedClient();
     //Mocking first bounded provider
     const firstMockBoundProfileProvider = new BoundProfileProvider(
       firstMockProfileDocument,
@@ -1616,26 +1432,25 @@ describe('event-adapter', () => {
         }
       );
 
-    let profile = await client.getProfile('starwars/character-information');
-    let useCase = profile.getUseCase('Test');
+    const profile = await client.getProfile('starwars/character-information');
     //Try first provider two times then switch to second and return value
-    let result = await useCase.perform(undefined);
+    let result = await profile.useCases.Test.perform(undefined);
 
     expect(result.isOk() && result.value).toEqual({
       message: 'hello from second provider',
     });
 
     //Try first provider second usecase and return value
-    useCase = profile.getUseCase('SecondUseCase');
-    result = await useCase.perform(undefined);
+    result = await profile.useCases.SecondUseCase.perform(undefined);
 
     expect(result.isOk() && result.value).toEqual({
       message: 'hello from first provider and second usecase',
     });
 
-    profile = await client.getProfile('startrek/character-information');
-    useCase = profile.getUseCase('Test');
-    result = await useCase.perform(undefined);
+    const secondProfile = await client.getProfile(
+      'startrek/character-information'
+    );
+    result = await secondProfile.useCases.Test.perform(undefined);
 
     expect(result.isOk() && result.value).toEqual({
       message: 'hello from third provider',
@@ -1700,7 +1515,12 @@ describe('event-adapter', () => {
     mockLoadSync.mockReturnValue(ok(mockSuperJson));
     SuperJson.loadSync = mockLoadSync;
 
-    const client = new SuperfaceClient();
+    const TypedClient = createTypedClient({
+      ['starwars/character-information']: {
+        Test: [undefined, { message: string }],
+      },
+    });
+    const client = new TypedClient();
 
     //Mocking first bounded provider
     const firstMockBoundProfileProvider = new BoundProfileProvider(

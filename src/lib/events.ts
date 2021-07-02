@@ -94,12 +94,16 @@ type VoidEventHook<EventContext extends EventContextBase> = (
 ) => void;
 
 type EventTypes = {
-  perform: [InstanceType<typeof UseCase>['perform'], PerformContext];
+  perform: [
+    InstanceType<typeof UseCase>['performBoundUsecase'],
+    PerformContext
+  ];
   fetch: [FetchInstance['fetch'], EventContextBase];
   'unhandled-http': [
     InstanceType<typeof MapInterpreterEventAdapter>['unhandledHttp'],
     EventContextBase
   ];
+  bind: [InstanceType<typeof UseCase>['bindAndPerform'], EventContextBase];
 };
 
 export type EventParams = {
@@ -277,7 +281,6 @@ function replacementFunction<E extends keyof EventTypes>(
         result = Promise.resolve(
           await originalFunction.apply(this, functionArgs)
         );
-        console.timeLog('STATE', 'res', result);
       } catch (err) {
         result = Promise.reject(err);
       }
@@ -285,13 +288,6 @@ function replacementFunction<E extends keyof EventTypes>(
       // After hook - runs after the function is called and takes the result
       // May modify it, return different or retry
       if (metadata.placement === 'after' || metadata.placement === 'around') {
-        console.timeLog(
-          'STATE',
-          'events emit met args ',
-          functionArgs,
-          ' res ',
-          result
-        );
         const hookResult = await events.emit(`post-${metadata.eventName}`, [
           {
             time: new Date(),

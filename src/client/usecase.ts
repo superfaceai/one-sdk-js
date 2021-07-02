@@ -1,9 +1,12 @@
+import createDebug from 'debug';
+
 import {
   BackoffKind,
   MapInterpreterError,
   OnFail,
   ProfileParameterError,
 } from '../internal';
+import { UnexpectedError } from '../internal/errors';
 import { NonPrimitive, Variables } from '../internal/interpreter/variables';
 import { Result } from '../lib';
 import { ExponentialBackoff } from '../lib/backoff';
@@ -20,6 +23,8 @@ import { ProfileBase } from './profile';
 import { BoundProfileProvider } from './profile-provider';
 import { Provider, ProviderConfiguration } from './provider';
 
+const debug = createDebug('superface:usecase');
+
 export type PerformOptions = {
   provider?: Provider | string;
 };
@@ -32,6 +37,7 @@ class UseCaseBase implements Interceptable {
   public events: Events;
 
   private hookContext: HooksContext = {};
+  private boundProfileProvider: BoundProfileProvider | undefined;
 
   constructor(
     public readonly profile: ProfileBase,
@@ -46,9 +52,7 @@ class UseCaseBase implements Interceptable {
     this.hookPolicies();
   }
 
-  protected async bind(
-    options?: PerformOptions
-  ): Promise<BoundProfileProvider> {
+  private async bind(options?: PerformOptions): Promise<void> {
     let providerConfig: ProviderConfiguration;
 
     if (typeof options?.provider === 'string') {
@@ -72,19 +76,33 @@ class UseCaseBase implements Interceptable {
     ].router.setCurrentProvider(providerConfig.name);
 
     //In this instance we can set metadata for events
-    const boundProfileProvider =
+    this.boundProfileProvider =
       await this.profile.client.cacheBoundProfileProvider(
         this.profile.configuration,
         providerConfig
       );
-
-    this.metadata.provider = providerConfig.name;
-
-    return boundProfileProvider;
   }
 
   @eventInterceptor({ eventName: 'perform', placement: 'around' })
-  protected async performUsecase<
+  private async performBoundUsecase<
+    TInput extends NonPrimitive | undefined = Record<
+      string,
+      Variables | undefined
+    >,
+    TOutput = unknown
+  >(input?: TInput): Promise<Result<TOutput, PerformError>> {
+    if (this.boundProfileProvider === undefined) {
+      throw new UnexpectedError(
+        'Unreachable code reached: BoundProfileProvider is undefined.'
+      );
+    }
+
+    // TODO: rewrap the errors for public consumption?
+    return this.boundProfileProvider.perform<TInput, TOutput>(this.name, input);
+  }
+
+  @eventInterceptor({ eventName: 'bind', placement: 'around' })
+  protected async bindAndPerform<
     TInput extends NonPrimitive | undefined = Record<
       string,
       Variables | undefined
@@ -94,10 +112,11 @@ class UseCaseBase implements Interceptable {
     input?: TInput,
     options?: PerformOptions
   ): Promise<Result<TOutput, PerformError>> {
-    const boundProfileProvider = await this.bind(options);
+    await this.bind(options);
 
-    // TODO: rewrap the errors for public consumption?
-    return boundProfileProvider.perform<TInput, TOutput>(this.name, input);
+    debug('bound', this.boundProfileProvider);
+
+    return this.performBoundUsecase(input);
   }
 
   private hookPolicies(): void {
@@ -150,11 +169,15 @@ class UseCaseBase implements Interceptable {
           usecaseInfo,
           // here we need providers of usecase
           providersOfUsecase,
-          profileSettings.priority
+          //Use priority only when provider failover is true
+          profileSettings.defaults[this.name]?.providerFailover
+            ? profileSettings.priority
+            : []
         ),
         queuedAction: undefined,
       },
     };
+
     registerHooks(this.hookContext, this.profile.client);
   }
 }
@@ -177,7 +200,7 @@ export class UseCase extends UseCaseBase {
     input?: TInput,
     options?: PerformOptions
   ): Promise<Result<TOutput, PerformError>> {
-    return this.performUsecase(input, options);
+    return this.bindAndPerform(input, options);
   }
 }
 
@@ -189,6 +212,6 @@ export class TypedUseCase<
     input: TInput,
     options?: PerformOptions
   ): Promise<Result<TOutput, PerformError>> {
-    return this.performUsecase(input, options);
+    return this.bindAndPerform(input, options);
   }
 }

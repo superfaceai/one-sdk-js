@@ -38,7 +38,6 @@ export abstract class SuperfaceClientBase extends Events {
     }
 
     this.superJson = SUPER_CACHE[superCacheKey];
-
     if (!Config.disableReporting) {
       this.hookMetrics();
       this.metricReporter = new MetricReporter(this.superJson);
