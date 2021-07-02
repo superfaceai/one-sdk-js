@@ -89,12 +89,16 @@ type VoidEventHook<EventContext extends EventContextBase> = (
 ) => void;
 
 type EventTypes = {
-  perform: [InstanceType<typeof UseCase>['perform'], EventContextBase];
+  perform: [
+    InstanceType<typeof UseCase>['performBoundUsecase'],
+    EventContextBase
+  ];
   fetch: [FetchInstance['fetch'], EventContextBase];
   'unhandled-http': [
     InstanceType<typeof MapInterpreterEventAdapter>['unhandledHttp'],
     EventContextBase
   ];
+  bind: [InstanceType<typeof UseCase>['bindAndPerform'], EventContextBase];
 };
 
 export type EventParams = {
