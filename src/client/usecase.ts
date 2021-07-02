@@ -163,6 +163,38 @@ class UseCaseBase implements Interceptable {
       }
     }
 
+    //Check providerFailover/priority array
+    const profileEntry =
+      this.profile.client.superJson.document.profiles?.[profileId];
+    if (profileEntry && typeof profileEntry !== 'string') {
+      //Check if priority is not empty and providerFailover is not true
+      if (profileEntry.priority && profileEntry.priority.length > 0) {
+        if (profileEntry.defaults && profileEntry.defaults[this.name]) {
+          if (profileEntry.defaults[this.name].providerFailover !== true) {
+            console.warn(
+              `Super.json sets provider failover priority to: "${profileEntry.priority.join(
+                ', '
+              )}" but provider failover is not allowed for usecase "${
+                this.name
+              }".\nTo allow provider failover please set property "providerFailover" in "${profileId}.defaults[${
+                this.name
+              }]" to true`
+            );
+          }
+        }
+      }
+      //Check if priority is empty and providerFailover is true
+      if (!profileEntry.priority || profileEntry.priority.length === 0) {
+        if (profileEntry.defaults && profileEntry.defaults[this.name]) {
+          if (profileEntry.defaults[this.name].providerFailover === true) {
+            console.warn(
+              `Super.json does not set provider failover priority but provider failover is allowed for usecase "${this.name}".\nTo allow provider failover please set property "priority" in "${profileId}.priority"`
+            );
+          }
+        }
+      }
+    }
+
     this.hookContext = {
       [`${profileId}/${this.name}`]: {
         router: new FailurePolicyRouter(
