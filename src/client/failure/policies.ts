@@ -18,11 +18,18 @@ export class FailurePolicyRouter {
   private currentProvider: string | undefined;
   private allowFailover = true;
 
+  private readonly providersOfUseCase: Record<string, FailurePolicy>;
+
   constructor(
-    private readonly usecaseInfo: UsecaseInfo,
-    private readonly providersOfUseCase: Record<string, FailurePolicy>,
+    private readonly instantiateFailurePolicy: (
+      provider: string
+    ) => FailurePolicy,
     private readonly priority: string[]
-  ) {}
+  ) {
+    this.providersOfUseCase = Object.fromEntries(
+      priority.map(provider => [provider, instantiateFailurePolicy(provider)])
+    );
+  }
 
   private switchProviders(
     info: ExecutionInfo
@@ -35,17 +42,16 @@ export class FailurePolicyRouter {
     const indexOfCurrentProvider = this.priority.indexOf(this.currentProvider);
     const provider = this.priority
       .filter((_p: string, i: number) => i > indexOfCurrentProvider)
-      .find((p: string) => {
-        return this.providersOfUseCase[p]
-          ? this.providersOfUseCase[p].beforeExecution(info).kind === 'continue'
-          : true;
-      });
+      .find(
+        (p: string) =>
+          this.providersOfUseCase[p].beforeExecution(info).kind === 'continue'
+      );
 
     //Priority does not contain another (with lesser priority) provider
     if (!provider) {
       return { kind: 'abort', reason: 'no backup provider configured' };
     }
-    this.currentProvider = provider;
+    this.setCurrentProvider(provider);
 
     return { kind: 'switch-provider', provider: this.currentProvider };
   }
@@ -61,7 +67,8 @@ export class FailurePolicyRouter {
   public setCurrentProvider(provider: string): void {
     // create a policy ad-hoc if a provider that hasn't been preconfigured was provided
     if (!(provider in this.providersOfUseCase)) {
-      this.providersOfUseCase[provider] = new AbortPolicy(this.usecaseInfo);
+      this.providersOfUseCase[provider] =
+        this.instantiateFailurePolicy(provider);
     }
 
     this.currentProvider = provider;
@@ -84,11 +91,9 @@ export class FailurePolicyRouter {
 
       const provider = this.priority
         .filter((_p: string, i: number) => i < indexOfCurrentProvider)
-        .find((p: string) =>
-          this.providersOfUseCase[p]
-            ? this.providersOfUseCase[p].beforeExecution(info).kind ===
-              'continue'
-            : true
+        .find(
+          (p: string) =>
+            this.providersOfUseCase[p].beforeExecution(info).kind === 'continue'
         );
 
       //TODO: solve AbortPolicy infinite loop problem
@@ -146,7 +151,7 @@ export class FailurePolicyRouter {
   }
 
   public reset(): void {
-    this.currentProvider = this.priority[0];
+    this.setCurrentProvider(this.priority[0]);
     for (const policy of Object.values(this.providersOfUseCase)) {
       policy.reset();
     }

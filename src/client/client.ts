@@ -4,6 +4,10 @@ import { NonPrimitive } from '../internal/interpreter/variables';
 import { Events } from '../lib/events';
 import { exists } from '../lib/io';
 import {
+  HooksContext,
+  registerHooks as registerFailoverHooks,
+} from './failure/event-adapter';
+import {
   Profile,
   ProfileConfiguration,
   TypedProfile,
@@ -26,6 +30,8 @@ export abstract class SuperfaceClientBase extends Events {
     [key: string]: BoundProfileProvider;
   } = {};
 
+  public hookContext: HooksContext = {};
+
   constructor() {
     super();
     const superCacheKey = process.env.SUPERFACE_PATH ?? SuperJson.defaultPath();
@@ -35,6 +41,7 @@ export abstract class SuperfaceClientBase extends Events {
     }
 
     this.superJson = SUPER_CACHE[superCacheKey];
+    registerFailoverHooks(this.hookContext, this);
   }
 
   /** Returns a BoundProfileProvider that is cached according to `profileConfig` and `providerConfig` cache keys. */
@@ -63,6 +70,16 @@ export abstract class SuperfaceClientBase extends Events {
   async getProvider(providerName: string): Promise<Provider> {
     const providerSettings = this.superJson.normalized.providers[providerName];
 
+    if (providerSettings === undefined) {
+      throw new SDKExecutionError(
+        `Provider not configured: ${providerName}`,
+        [`Provider "${providerName}" was not configured in super.json`],
+        [
+          `Providers can be configured using the superface cli tool: \`superface configure --help\` for more info`,
+        ]
+      );
+    }
+
     return new Provider(
       this,
       new ProviderConfiguration(providerName, providerSettings.security)
@@ -70,19 +87,13 @@ export abstract class SuperfaceClientBase extends Events {
   }
 
   /** Returns a provider configuration for when no provider is passed to untyped `.perform`. */
-  async getProviderForProfile(
-    profileId: string,
-    provider?: string
-  ): Promise<Provider> {
+  async getProviderForProfile(profileId: string): Promise<Provider> {
     const knownProfileProviders = Object.keys(
       this.superJson.normalized.profiles[profileId]?.providers ?? {}
     );
 
     if (knownProfileProviders.length > 0) {
-      const name =
-        provider !== undefined && knownProfileProviders.includes(provider)
-          ? provider
-          : knownProfileProviders[0];
+      const name = knownProfileProviders[0];
 
       return this.getProvider(name);
     }

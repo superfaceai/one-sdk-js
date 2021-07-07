@@ -16,8 +16,11 @@ import {
   Interceptable,
   InterceptableMetadata,
 } from '../lib/events';
-import { HooksContext, registerHooks } from './failure/event-adapter';
-import { CircuitBreakerPolicy, FailurePolicyRouter } from './failure/policies';
+import {
+  AbortPolicy,
+  CircuitBreakerPolicy,
+  FailurePolicyRouter,
+} from './failure/policies';
 import { FailurePolicy, UsecaseInfo } from './failure/policy';
 import { ProfileBase } from './profile';
 import { BoundProfileProvider } from './profile-provider';
@@ -36,7 +39,6 @@ class UseCaseBase implements Interceptable {
   public metadata: InterceptableMetadata;
   public events: Events;
 
-  protected hookContext: HooksContext = {};
   private boundProfileProvider: BoundProfileProvider | undefined;
 
   constructor(
@@ -49,31 +51,32 @@ class UseCaseBase implements Interceptable {
     };
     this.events = this.profile.client;
 
-    this.hookPolicies();
+    this.configureHookContext();
   }
 
   private async bind(options?: PerformOptions): Promise<void> {
+    const hookRouter =
+      this.profile.client.hookContext[
+        `${this.profile.configuration.id}/${this.name}`
+      ].router;
+
     let providerConfig: ProviderConfiguration;
 
-    if (typeof options?.provider === 'string') {
-      const provider = await this.profile.client.getProviderForProfile(
-        this.profile.configuration.id,
-        options.provider
-      );
-      providerConfig = provider.configuration;
-    } else if (options?.provider?.configuration !== undefined) {
-      providerConfig = options.provider.configuration;
-    } else {
+    const chosenProvider = options?.provider ?? hookRouter.getCurrentProvider();
+    if (chosenProvider === undefined) {
       const provider = await this.profile.client.getProviderForProfile(
         this.profile.configuration.id
       );
       providerConfig = provider.configuration;
+    } else if (typeof chosenProvider === 'string') {
+      const provider = await this.profile.client.getProvider(chosenProvider);
+      providerConfig = provider.configuration;
+    } else {
+      providerConfig = chosenProvider.configuration;
     }
 
     this.metadata.provider = providerConfig.name;
-    this.hookContext[
-      `${this.profile.configuration.id}/${this.name}`
-    ].router.setCurrentProvider(providerConfig.name);
+    hookRouter.setCurrentProvider(providerConfig.name);
 
     //In this instance we can set metadata for events
     this.boundProfileProvider =
@@ -114,15 +117,78 @@ class UseCaseBase implements Interceptable {
   ): Promise<Result<TOutput, PerformError>> {
     await this.bind(options);
 
-    debug('bound', this.boundProfileProvider);
+    debug('bound provider', this.boundProfileProvider);
 
     return this.performBoundUsecase(input);
   }
 
-  private hookPolicies(): void {
-    //Prepare hook context
+  private checkWarnFailoverMisconfiguration() {
     const profileId = this.profile.configuration.id;
 
+    // Check providerFailover/priority array
+    const profileEntry =
+      this.profile.client.superJson.normalized.profiles[profileId];
+
+    if (profileEntry.defaults[this.name] === undefined) {
+      return;
+    }
+
+    const failoverEnabled =
+      profileEntry.defaults[this.name].providerFailover === true;
+    const priorityEmpty = profileEntry.priority.length === 0;
+
+    // If priority array is not empty but failover is not enable, issue a warning
+    if (!priorityEmpty && !failoverEnabled) {
+      console.warn(
+        `Super.json sets provider failover priority to: "${profileEntry.priority.join(
+          ', '
+        )}" but provider failover is not allowed for usecase "${
+          this.name
+        }".\nTo allow provider failover please set property "providerFailover" in "${profileId}.defaults[${
+          this.name
+        }]" to true`
+      );
+    }
+
+    // If priority array is empty and failover is enabled, issue a warning
+    if (priorityEmpty && failoverEnabled) {
+      console.warn(
+        `Super.json does not set provider failover priority but provider failover is allowed for usecase "${this.name}".\nTo allow provider failover please set property "priority" in "${profileId}.priority".\nSetting priority according to order of providers in "${profileId}.providers"`
+      );
+    }
+  }
+
+  private configureHookContext() {
+    this.checkWarnFailoverMisconfiguration();
+
+    const profileId = this.profile.configuration.id;
+    const profileSettings =
+      this.profile.client.superJson.normalized.profiles[profileId];
+
+    const key = `${profileId}/${this.name}`;
+
+    if (this.profile.client.hookContext[key] === undefined) {
+      this.profile.client.hookContext[key] = {
+        router: new FailurePolicyRouter(
+          provider => this.instantiateFailurePolicy(provider),
+          // Use priority only when provider failover is enabled
+          profileSettings.defaults[this.name]?.providerFailover === true
+            ? profileSettings.priority
+            : []
+        ),
+        queuedAction: undefined,
+      };
+    }
+  }
+
+  protected toggleFailover(enabled: boolean) {
+    this.profile.client.hookContext[
+      `${this.profile.configuration.id}/${this.name}`
+    ].router.setAllowFailover(enabled);
+  }
+
+  private instantiateFailurePolicy(provider: string): FailurePolicy {
+    const profileId = this.profile.configuration.id;
     const usecaseInfo: UsecaseInfo = {
       profileId,
       usecaseName: this.name,
@@ -130,87 +196,38 @@ class UseCaseBase implements Interceptable {
       usecaseSafety: 'unsafe',
     };
 
-    const providersOfUsecase: Record<string, FailurePolicy> = {};
     const profileSettings =
       this.profile.client.superJson.normalized.profiles[profileId];
-    for (const [provider, providerSettings] of Object.entries(
-      profileSettings.providers
-    )) {
-      const retryPolicy = providerSettings.defaults[this.name]?.retryPolicy ?? {
-        kind: OnFail.NONE,
-      };
-      if (retryPolicy.kind === OnFail.CIRCUIT_BREAKER) {
-        let backoff: ExponentialBackoff | undefined = undefined;
-        if (
-          retryPolicy.backoff?.kind &&
-          retryPolicy.backoff?.kind === BackoffKind.EXPONENTIAL
-        ) {
-          backoff = new ExponentialBackoff(
-            retryPolicy.backoff.start ?? 2000,
-            retryPolicy.backoff.factor
-          );
-        }
+    const retryPolicyConfig = profileSettings.providers[provider]?.defaults[
+      this.name
+    ]?.retryPolicy ?? { kind: OnFail.NONE };
 
-        const policy = new CircuitBreakerPolicy(
-          usecaseInfo,
-          //TODO are these defauts ok?
-          retryPolicy.maxContiguousRetries ?? 5,
-          30_000,
-          retryPolicy.requestTimeout,
-          backoff
+    let policy: FailurePolicy;
+    if (retryPolicyConfig.kind === OnFail.CIRCUIT_BREAKER) {
+      let backoff: ExponentialBackoff | undefined = undefined;
+      if (
+        retryPolicyConfig.backoff?.kind &&
+        retryPolicyConfig.backoff?.kind === BackoffKind.EXPONENTIAL
+      ) {
+        backoff = new ExponentialBackoff(
+          retryPolicyConfig.backoff.start ?? 2000,
+          retryPolicyConfig.backoff.factor
         );
-        providersOfUsecase[provider] = policy;
       }
+
+      policy = new CircuitBreakerPolicy(
+        usecaseInfo,
+        //TODO are these defauts ok?
+        retryPolicyConfig.maxContiguousRetries ?? 5,
+        30_000,
+        retryPolicyConfig.requestTimeout,
+        backoff
+      );
+    } else {
+      policy = new AbortPolicy(usecaseInfo);
     }
 
-    //Check providerFailover/priority array
-    const profileEntry =
-      this.profile.client.superJson.document.profiles?.[profileId];
-    if (profileEntry && typeof profileEntry !== 'string') {
-      //Check if priority is not empty and providerFailover is not true
-      if (profileEntry.priority && profileEntry.priority.length > 0) {
-        if (profileEntry.defaults && profileEntry.defaults[this.name]) {
-          if (profileEntry.defaults[this.name].providerFailover !== true) {
-            console.warn(
-              `Super.json sets provider failover priority to: "${profileEntry.priority.join(
-                ', '
-              )}" but provider failover is not allowed for usecase "${
-                this.name
-              }".\nTo allow provider failover please set property "providerFailover" in "${profileId}.defaults[${
-                this.name
-              }]" to true`
-            );
-          }
-        }
-      }
-      //Check if priority is empty and providerFailover is true
-      if (!profileEntry.priority || profileEntry.priority.length === 0) {
-        if (profileEntry.defaults && profileEntry.defaults[this.name]) {
-          if (profileEntry.defaults[this.name].providerFailover === true) {
-            console.warn(
-              `Super.json does not set provider failover priority but provider failover is allowed for usecase "${this.name}".\nTo allow provider failover please set property "priority" in "${profileId}.priority".\nSetting priority according to order of providers in "${profileId}.providers"`
-            );
-          }
-        }
-      }
-    }
-
-    this.hookContext = {
-      [`${profileId}/${this.name}`]: {
-        router: new FailurePolicyRouter(
-          usecaseInfo,
-          // here we need providers of usecase
-          providersOfUsecase,
-          //Use priority only when provider failover is true
-          profileSettings.defaults[this.name]?.providerFailover
-            ? profileSettings.priority
-            : []
-        ),
-        queuedAction: undefined,
-      },
-    };
-
-    registerHooks(this.hookContext, this.profile.client);
+    return policy;
   }
 }
 
@@ -232,12 +249,10 @@ export class UseCase extends UseCaseBase {
     input?: TInput,
     options?: PerformOptions
   ): Promise<Result<TOutput, PerformError>> {
-    //Disable failover when user specified provider
-    if (options?.provider) {
-      this.hookContext[
-        `${this.profile.configuration.id}/${this.name}`
-      ].router.setAllowFailover(false);
-    }
+    // Disable failover when user specified provider
+    // needs to happen here because bindAndPerform is subject to retry from event hooks
+    // including provider failover
+    this.toggleFailover(options?.provider === undefined);
 
     return this.bindAndPerform(input, options);
   }
@@ -251,12 +266,10 @@ export class TypedUseCase<
     input: TInput,
     options?: PerformOptions
   ): Promise<Result<TOutput, PerformError>> {
-    //Disable failover when user specified provider
-    if (options?.provider) {
-      this.hookContext[
-        `${this.profile.configuration.id}/${this.name}`
-      ].router.setAllowFailover(false);
-    }
+    // Disable failover when user specified provider
+    // needs to happen here because bindAndPerform is subject to retry from event hooks
+    // including provider failover
+    this.toggleFailover(options?.provider === undefined);
 
     return this.bindAndPerform(input, options);
   }
