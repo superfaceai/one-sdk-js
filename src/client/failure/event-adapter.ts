@@ -233,7 +233,7 @@ export function registerHooks(hookContext: HooksContext, events: Events): void {
     }
   });
 
-  events.on('post-bind', { priority: 1 }, async (context, args, res) => {
+  events.on('post-bind-and-perform', { priority: 1 }, async (context, args, res) => {
     debug('Handling event post-bind with context:', context);
     debugSensitive('\targs:', args);
     debugSensitive('\tresult:', res);
