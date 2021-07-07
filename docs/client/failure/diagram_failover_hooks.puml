@@ -8,7 +8,7 @@ floating note
 
 	Queued actions are:
 	* ""no-intercept"" - handler forwards
-	* ""recache"" - entire perform is retries with bind cache invalidated for given provider
+	* ""recache"" - entire perform is retried with bind cache invalidated for given provider
 	* ""switch-provider"" - entire peform is retried with another provider
 end note
 
