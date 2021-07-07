@@ -14,15 +14,22 @@ import {
 
 export class FailurePolicyRouter {
   private currentProvider: string | undefined;
+  private allowFailover: boolean;
 
   constructor(
     private readonly usecaseInfo: UsecaseInfo,
     private readonly providersOfUseCase: Record<string, FailurePolicy>,
     private readonly priority: string[]
-  ) {}
+  ) {
+    this.allowFailover = true;
+  }
 
   public getCurrentProvider(): string | undefined {
     return this.currentProvider;
+  }
+
+  public setAllowFailover(allowFailover: boolean): void {
+    this.allowFailover = allowFailover;
   }
 
   public setCurrentProvider(provider: string): void {
@@ -40,7 +47,11 @@ export class FailurePolicyRouter {
     }
 
     //Try to switch back to previous provider
-    if (this.priority.length > 0 && this.currentProvider !== this.priority[0]) {
+    if (
+      this.allowFailover &&
+      this.priority.length > 0 &&
+      this.currentProvider !== this.priority[0]
+    ) {
       const indexOfCurrentProvider = this.priority.indexOf(
         this.currentProvider
       );
@@ -81,9 +92,14 @@ export class FailurePolicyRouter {
       this.providersOfUseCase[this.currentProvider].afterFailure(info);
 
     //TODO: some other checking logic?
-    if (innerResolution.kind !== 'abort' || this.priority.length === 0) {
+    if (
+      !this.allowFailover ||
+      innerResolution.kind !== 'abort' ||
+      this.priority.length === 0
+    ) {
       return innerResolution;
     }
+    //Try to switch providers
     const indexOfCurrentProvider = this.priority.indexOf(this.currentProvider);
     const provider = this.priority
       .filter((_p: string, i: number) => i > indexOfCurrentProvider)
