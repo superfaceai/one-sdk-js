@@ -31,17 +31,6 @@ export class FailurePolicyRouter {
       throw new Error('Property currentProvider is not set in Router instance');
     }
 
-    console.timeLog(
-      'STATE',
-      'current ',
-      this.currentProvider,
-      ' priority ',
-      this.priority,
-      ' providers ',
-      this.providersOfUseCase,
-      ' found provider'
-    );
-
     //Try to switch providers
     const indexOfCurrentProvider = this.priority.indexOf(this.currentProvider);
     const provider = this.priority
@@ -57,7 +46,6 @@ export class FailurePolicyRouter {
       return { kind: 'abort', reason: 'no backup provider configured' };
     }
     this.currentProvider = provider;
-    console.timeLog('STATE', 'sw to ', this.currentProvider);
 
     return { kind: 'switch-provider', provider: this.currentProvider };
   }
@@ -109,8 +97,6 @@ export class FailurePolicyRouter {
         provider &&
         !(this.providersOfUseCase[provider] instanceof AbortPolicy)
       ) {
-        console.timeLog('STATE', 'switch forward to ', this.currentProvider);
-
         return {
           kind: 'switch-provider',
           provider,
@@ -125,21 +111,8 @@ export class FailurePolicyRouter {
       innerResolution.kind === 'abort' &&
       this.priority.length > 0
     ) {
-      console.timeLog(
-        'STATE',
-        'allow',
-        this.allowFailover,
-        ' prio ',
-        this.priority,
-        'be cb inner return ',
-        innerResolution,
-        'cur ',
-        this.currentProvider
-      );
-
       return this.switchProviders(info);
     }
-    console.timeLog('STATE', 'RETURN FIN', innerResolution);
 
     return innerResolution;
   }
@@ -230,16 +203,12 @@ export class RetryPolicy extends FailurePolicy {
   override beforeExecution(info: ExecutionInfo): ExecutionResolution {
     // positive balance means no backoff
     if (this.balance >= 0) {
-      console.timeLog('STATE', 'retry policy BE contine');
-
       return { kind: 'continue', timeout: this.requestTimeout };
     }
 
     // don't apply backoff if enough time has elapsed since then anyway
     const sinceLastCall = info.time - this.lastCallTime;
     const backoff = Math.max(0, this.backoff.current - sinceLastCall);
-    console.timeLog('STATE', 'retry policy BE backoff');
-    console.timeLog('STATE', 'retry policy BE backoff');
 
     return { kind: 'backoff', backoff: backoff, timeout: this.requestTimeout };
   }
@@ -251,8 +220,6 @@ export class RetryPolicy extends FailurePolicy {
 
     if (-this.streak > this.maxContiguousRetries) {
       // abort when we fail too much
-      console.timeLog('STATE', 'retry policy AF fail to much');
-
       return { kind: 'abort', reason: 'max retries exceeded' };
     }
 
@@ -331,12 +298,9 @@ export class CircuitBreakerPolicy extends FailurePolicy {
     if (this.state === 'open') {
       if (info.time >= this.openTime + this.resetTimeout) {
         this.halfOpen();
-        console.timeLog('STATE', 'CB BE contine');
 
         return { kind: 'continue', timeout: this.inner.requestTimeout };
       } else {
-        console.timeLog('STATE', 'CB BE abort first');
-
         return { kind: 'abort', reason: 'circuit breaker is open' };
       }
     }
@@ -345,7 +309,6 @@ export class CircuitBreakerPolicy extends FailurePolicy {
 
     if (innerResponse.kind === 'abort') {
       this.open(info.time);
-      console.timeLog('STATE', 'CB BE abort second');
 
       return { kind: 'abort', reason: 'circuit breaker is open' };
     }
@@ -356,7 +319,6 @@ export class CircuitBreakerPolicy extends FailurePolicy {
   override afterFailure(info: ExecutionFailure): FailureResolution {
     if (this.state === 'half-open') {
       this.open(info.time);
-      console.timeLog('STATE', 'CB AF abort first');
 
       return { kind: 'abort', reason: 'circuit breaker is open' };
     }
@@ -369,7 +331,6 @@ export class CircuitBreakerPolicy extends FailurePolicy {
 
     if (innerResponse.kind === 'abort') {
       this.open(info.time);
-      console.timeLog('STATE', 'CB AF abort second');
 
       return { kind: 'abort', reason: 'circuit breaker is open' };
     }
