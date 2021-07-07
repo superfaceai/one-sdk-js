@@ -60,6 +60,7 @@ partition bind-and-perform {
 	note right
 		Performs __queued action__
 		Calls **""afterSuccess""**
+		May retry
 		// TODO: Catches other kinds of failures?
 	end note
 }
