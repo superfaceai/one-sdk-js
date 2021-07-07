@@ -7,9 +7,11 @@ import {
   UsecaseInfo,
 } from './policy';
 import {
+  AbortResolution,
   ExecutionResolution,
   FailureResolution,
   SuccessResolution,
+  SwitchProviderResolution,
 } from './resolution';
 
 export class FailurePolicyRouter {
@@ -21,6 +23,32 @@ export class FailurePolicyRouter {
     private readonly providersOfUseCase: Record<string, FailurePolicy>,
     private readonly priority: string[]
   ) {}
+
+  private switchProviders(
+    info: ExecutionInfo
+  ): AbortResolution | SwitchProviderResolution {
+    if (!this.currentProvider) {
+      throw new Error('Property currentProvider is not set in Router instance');
+    }
+
+    //Try to switch providers
+    const indexOfCurrentProvider = this.priority.indexOf(this.currentProvider);
+    const provider = this.priority
+      .filter((_p: string, i: number) => i > indexOfCurrentProvider)
+      .find((p: string) => {
+        return this.providersOfUseCase[p]
+          ? this.providersOfUseCase[p].beforeExecution(info).kind === 'continue'
+          : true;
+      });
+
+    //Priority does not contain another (with lesser priority) provider
+    if (!provider) {
+      return { kind: 'abort', reason: 'no backup provider configured' };
+    }
+    this.currentProvider = provider;
+
+    return { kind: 'switch-provider', provider: this.currentProvider };
+  }
 
   public getCurrentProvider(): string | undefined {
     return this.currentProvider;
@@ -78,6 +106,14 @@ export class FailurePolicyRouter {
     const innerResolution =
       this.providersOfUseCase[this.currentProvider].beforeExecution(info);
 
+    if (
+      this.allowFailover &&
+      innerResolution.kind === 'abort' &&
+      this.priority.length > 0
+    ) {
+      return this.switchProviders(info);
+    }
+
     return innerResolution;
   }
 
@@ -97,23 +133,8 @@ export class FailurePolicyRouter {
     ) {
       return innerResolution;
     }
-    //Try to switch providers
-    const indexOfCurrentProvider = this.priority.indexOf(this.currentProvider);
-    const provider = this.priority
-      .filter((_p: string, i: number) => i > indexOfCurrentProvider)
-      .find((p: string) => {
-        return this.providersOfUseCase[p]
-          ? this.providersOfUseCase[p].beforeExecution(info).kind === 'continue'
-          : true;
-      });
 
-    //Priority does not contain another (with lesser priority) provider
-    if (!provider) {
-      return { kind: 'abort', reason: 'no backup provider configured' };
-    }
-    this.currentProvider = provider;
-
-    return { kind: 'switch-provider', provider: this.currentProvider };
+    return this.switchProviders(info);
   }
 
   public afterSuccess(info: ExecutionSuccess): SuccessResolution {

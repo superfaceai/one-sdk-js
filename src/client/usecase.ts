@@ -36,7 +36,7 @@ class UseCaseBase implements Interceptable {
   public metadata: InterceptableMetadata;
   public events: Events;
 
-  private hookContext: HooksContext = {};
+  protected hookContext: HooksContext = {};
   private boundProfileProvider: BoundProfileProvider | undefined;
 
   constructor(
@@ -74,12 +74,6 @@ class UseCaseBase implements Interceptable {
     this.hookContext[
       `${this.profile.configuration.id}/${this.name}`
     ].router.setCurrentProvider(providerConfig.name);
-    //Disable failover when user specified provider
-    if (options?.provider) {
-      this.hookContext[
-        `${this.profile.configuration.id}/${this.name}`
-      ].router.setAllowFailover(false);
-    }
 
     //In this instance we can set metadata for events
     this.boundProfileProvider =
@@ -238,6 +232,13 @@ export class UseCase extends UseCaseBase {
     input?: TInput,
     options?: PerformOptions
   ): Promise<Result<TOutput, PerformError>> {
+    //Disable failover when user specified provider
+    if (options?.provider) {
+      this.hookContext[
+        `${this.profile.configuration.id}/${this.name}`
+      ].router.setAllowFailover(false);
+    }
+
     return this.bindAndPerform(input, options);
   }
 }
@@ -250,6 +251,13 @@ export class TypedUseCase<
     input: TInput,
     options?: PerformOptions
   ): Promise<Result<TOutput, PerformError>> {
+    //Disable failover when user specified provider
+    if (options?.provider) {
+      this.hookContext[
+        `${this.profile.configuration.id}/${this.name}`
+      ].router.setAllowFailover(false);
+    }
+
     return this.bindAndPerform(input, options);
   }
 }
