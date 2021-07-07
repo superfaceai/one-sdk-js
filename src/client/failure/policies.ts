@@ -20,8 +20,7 @@ export class FailurePolicyRouter {
     private readonly usecaseInfo: UsecaseInfo,
     private readonly providersOfUseCase: Record<string, FailurePolicy>,
     private readonly priority: string[]
-  ) {
-  }
+  ) {}
 
   public getCurrentProvider(): string | undefined {
     return this.currentProvider;
