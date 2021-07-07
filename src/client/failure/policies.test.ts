@@ -975,7 +975,7 @@ describe('failure policies', () => {
         ).toEqual({ kind: 'switch-provider', provider: 'second' });
       });
 
-      it('does nor switch to another provider filover not allowed', () => {
+      it('does not switch to another provider - failover not allowed', () => {
         const router = new FailurePolicyRouter(
           { profileId, usecaseSafety, usecaseName },
           {
