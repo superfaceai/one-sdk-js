@@ -12,6 +12,112 @@ import {
   SuccessResolution,
 } from './resolution';
 
+export class FailurePolicyRouter {
+  private currentProvider: string | undefined;
+
+  constructor(
+    private readonly usecaseInfo: UsecaseInfo,
+    private readonly providersOfUseCase: Record<string, FailurePolicy>,
+    private readonly priority: string[]
+  ) {}
+
+  public getCurrentProvider(): string | undefined {
+    return this.currentProvider;
+  }
+
+  public setCurrentProvider(provider: string): void {
+    // create a policy ad-hoc if a provider that hasn't been preconfigured was provided
+    if (!(provider in this.providersOfUseCase)) {
+      this.providersOfUseCase[provider] = new AbortPolicy(this.usecaseInfo);
+    }
+
+    this.currentProvider = provider;
+  }
+
+  public beforeExecution(info: ExecutionInfo): ExecutionResolution {
+    if (!this.currentProvider) {
+      throw new Error('Property currentProvider is not set in Router instance');
+    }
+
+    //Try to switch back to previous provider
+    if (this.priority.length > 0 && this.currentProvider !== this.priority[0]) {
+      const indexOfCurrentProvider = this.priority.indexOf(
+        this.currentProvider
+      );
+
+      const provider = this.priority
+        .filter((_p: string, i: number) => i < indexOfCurrentProvider)
+        .find((p: string) =>
+          this.providersOfUseCase[p]
+            ? this.providersOfUseCase[p].beforeExecution(info).kind ===
+              'continue'
+            : true
+        );
+
+      //TODO: solve AbortPolicy infinite loop problem
+      //Switch back to previous but do not switch back to AbortPolicy
+      if (
+        provider &&
+        !(this.providersOfUseCase[provider] instanceof AbortPolicy)
+      ) {
+        return {
+          kind: 'switch-provider',
+          provider,
+        };
+      }
+    }
+    const innerResolution =
+      this.providersOfUseCase[this.currentProvider].beforeExecution(info);
+
+    return innerResolution;
+  }
+
+  public afterFailure(info: ExecutionFailure): FailureResolution {
+    if (!this.currentProvider) {
+      throw new Error('Property currentProvider is not set in Router instance');
+    }
+
+    const innerResolution =
+      this.providersOfUseCase[this.currentProvider].afterFailure(info);
+
+    //TODO: some other checking logic?
+    if (innerResolution.kind !== 'abort' || this.priority.length === 0) {
+      return innerResolution;
+    }
+    const indexOfCurrentProvider = this.priority.indexOf(this.currentProvider);
+    const provider = this.priority
+      .filter((_p: string, i: number) => i > indexOfCurrentProvider)
+      .find((p: string) => {
+        return this.providersOfUseCase[p]
+          ? this.providersOfUseCase[p].beforeExecution(info).kind === 'continue'
+          : true;
+      });
+
+    //Priority does not contain another (with lesser priority) provider
+    if (!provider) {
+      return { kind: 'abort', reason: 'no backup provider configured' };
+    }
+    this.currentProvider = provider;
+
+    return { kind: 'switch-provider', provider: this.currentProvider };
+  }
+
+  public afterSuccess(info: ExecutionSuccess): SuccessResolution {
+    if (!this.currentProvider) {
+      throw new Error('Property currentProvider is not set in Router instance');
+    }
+
+    return this.providersOfUseCase[this.currentProvider].afterSuccess(info);
+  }
+
+  public reset(): void {
+    this.currentProvider = this.priority[0];
+    for (const policy of Object.values(this.providersOfUseCase)) {
+      policy.reset();
+    }
+  }
+}
+
 /** Simple policy which aborts on the first failure */
 export class AbortPolicy extends FailurePolicy {
   constructor(usecaseInfo: UsecaseInfo) {
@@ -19,10 +125,11 @@ export class AbortPolicy extends FailurePolicy {
   }
 
   override beforeExecution(_info: ExecutionInfo): ExecutionResolution {
-    return { kind: 'continue', timeout: 30 };
+    return { kind: 'continue', timeout: 30_000 };
   }
 
   override afterFailure(_info: ExecutionFailure): FailureResolution {
+    //TODO: Eda said this maybe should be continue
     return { kind: 'abort', reason: 'abort policy selected' };
   }
 
@@ -48,7 +155,7 @@ export class RetryPolicy extends FailurePolicy {
   constructor(
     usecaseInfo: UsecaseInfo,
     public readonly maxContiguousRetries: number = 5,
-    public readonly requestTimeout: number = 30,
+    public readonly requestTimeout: number = 30_000,
     private readonly backoff: Backoff = new ExponentialBackoff(50, 2.0)
   ) {
     super(usecaseInfo);
@@ -182,7 +289,7 @@ export class CircuitBreakerPolicy extends FailurePolicy {
     }
 
     if (this.state === 'open') {
-      throw new Error('Unreachable');
+      throw new Error('Unreachable circuit breaker state');
     }
 
     const innerResponse = this.inner.afterFailure(info);

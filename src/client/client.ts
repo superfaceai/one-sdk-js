@@ -1,6 +1,7 @@
 import { SuperJson } from '../internal';
 import { SDKExecutionError } from '../internal/errors';
 import { NonPrimitive } from '../internal/interpreter/variables';
+import { Events } from '../lib/events';
 import { exists } from '../lib/io';
 import {
   Profile,
@@ -14,15 +15,19 @@ import { Provider, ProviderConfiguration } from './provider';
 /**
  * Cache for loaded super.json files so that they aren't reparsed each time a new superface client is created.
  */
-const SUPER_CACHE: { [path: string]: SuperJson } = {};
+let SUPER_CACHE: { [path: string]: SuperJson } = {};
+export function invalidateSuperfaceClientCache(): void {
+  SUPER_CACHE = {};
+}
 
-export abstract class SuperfaceClientBase {
+export abstract class SuperfaceClientBase extends Events {
   public readonly superJson: SuperJson;
   private boundCache: {
     [key: string]: BoundProfileProvider;
   } = {};
 
   constructor() {
+    super();
     const superCacheKey = process.env.SUPERFACE_PATH ?? SuperJson.defaultPath();
 
     if (SUPER_CACHE[superCacheKey] === undefined) {
@@ -30,14 +35,6 @@ export abstract class SuperfaceClientBase {
     }
 
     this.superJson = SUPER_CACHE[superCacheKey];
-  }
-
-  get profiles(): never {
-    throw 'TODO';
-  }
-
-  get providers(): never {
-    throw 'TODO';
   }
 
   /** Returns a BoundProfileProvider that is cached according to `profileConfig` and `providerConfig` cache keys. */
@@ -52,7 +49,8 @@ export abstract class SuperfaceClientBase {
       const profileProvider = new ProfileProvider(
         this.superJson,
         profileConfig,
-        providerConfig
+        providerConfig,
+        this
       );
       const boundProfileProvider = await profileProvider.bind();
       this.boundCache[cacheKey] = boundProfileProvider;
@@ -72,13 +70,19 @@ export abstract class SuperfaceClientBase {
   }
 
   /** Returns a provider configuration for when no provider is passed to untyped `.perform`. */
-  async getProviderForProfile(profileId: string): Promise<Provider> {
+  async getProviderForProfile(
+    profileId: string,
+    provider?: string
+  ): Promise<Provider> {
     const knownProfileProviders = Object.keys(
       this.superJson.normalized.profiles[profileId]?.providers ?? {}
     );
 
     if (knownProfileProviders.length > 0) {
-      const name = knownProfileProviders[0];
+      const name =
+        provider !== undefined && knownProfileProviders.includes(provider)
+          ? provider
+          : knownProfileProviders[0];
 
       return this.getProvider(name);
     }
@@ -131,6 +135,28 @@ export abstract class SuperfaceClientBase {
       version = 'unknown';
     } else {
       version = profileSettings.version;
+    }
+
+    // TODO: load priority and add it to ProfileConfiguration?
+    const priority = profileSettings.priority;
+    if (!priority.every(p => this.superJson.normalized.providers[p])) {
+      throw new SDKExecutionError(
+        `Priority array of profile: ${profileId} contains unconfigured provider`,
+        [
+          `Profile "${profileId}" specifies a provider array [${priority.join(
+            ', '
+          )}] in super.json`,
+          `but there are only these providers configured [${Object.keys(
+            this.superJson.normalized.providers
+          ).join(', ')}]`,
+        ],
+        [
+          `Check that providers [${priority.join(
+            ', '
+          )}] are configured for profile "${profileId}"`,
+          'Paths in super.json are either absolute or relative to the location of super.json',
+        ]
+      );
     }
 
     return new ProfileConfiguration(profileId, version);

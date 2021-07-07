@@ -83,6 +83,7 @@ export type ExecutionResolution =
 export type FailureResolution =
   | AbortResolution
   | RetryResolution
-  | ContinueResolution;
+  | ContinueResolution
+  | SwitchProviderResolution;
 
 export type SuccessResolution = ContinueResolution;

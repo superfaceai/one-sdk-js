@@ -1,9 +1,11 @@
+import { SuperJson } from '../internal';
+import { ok } from '../lib';
 import { SuperfaceClient } from './client';
 import { Profile, ProfileConfiguration, TypedProfile } from './profile';
 import { UseCase } from './usecase';
 
-//Mock client
-jest.mock('./client');
+//Mock SuperJson static side
+const mockLoadSync = jest.fn();
 
 describe('Profile Configuration', () => {
   it('should cache key correctly', async () => {
@@ -15,11 +17,21 @@ describe('Profile Configuration', () => {
 });
 
 describe('Profile', () => {
+  const mockSuperJson = new SuperJson({
+    profiles: {
+      test: {
+        version: '1.0.0',
+      },
+    },
+    providers: {},
+  });
   afterEach(() => {
     jest.resetAllMocks();
   });
 
   it('should call getUseCases correctly', async () => {
+    mockLoadSync.mockReturnValue(ok(mockSuperJson));
+    SuperJson.loadSync = mockLoadSync;
     const mockClient = new SuperfaceClient();
     const mockProfileConfiguration = new ProfileConfiguration('test', '1.0.0');
 
@@ -32,8 +44,20 @@ describe('Profile', () => {
 });
 
 describe('TypedProfile', () => {
+  const mockSuperJson = new SuperJson({
+    profiles: {
+      test: {
+        version: '1.0.0',
+      },
+    },
+    providers: {},
+  });
   afterEach(() => {
     jest.resetAllMocks();
+  });
+  beforeEach(() => {
+    mockLoadSync.mockReturnValue(ok(mockSuperJson));
+    SuperJson.loadSync = mockLoadSync;
   });
   describe('getUseCases', () => {
     it('should get usecase correctly', async () => {

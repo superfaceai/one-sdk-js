@@ -136,8 +136,10 @@ export function addProfileProvider(
 
   // if specified profile has shorthand notation
   if (typeof targetedProfile === 'string') {
-    document.profiles[profileName] = targetedProfile =
-      normalizeProfileSettings(targetedProfile);
+    document.profiles[profileName] = targetedProfile = normalizeProfileSettings(
+      targetedProfile,
+      [providerName]
+    );
 
     targetedProfile.providers = {
       [providerName]: payload,
@@ -154,6 +156,11 @@ export function addProfileProvider(
       ...targetedProfile.providers,
       [providerName]: payload,
     };
+
+    targetedProfile.priority = [
+      ...(targetedProfile.priority || []),
+      providerName,
+    ];
 
     return true;
   }
@@ -321,8 +328,10 @@ export function addPriority(
 
   //if specified profile has shorthand notation
   if (typeof targetedProfile === 'string') {
-    document.profiles[profileName] = targetedProfile =
-      normalizeProfileSettings(targetedProfile);
+    document.profiles[profileName] = targetedProfile = normalizeProfileSettings(
+      targetedProfile,
+      Object.keys(document.providers ?? {})
+    );
   }
 
   //check profile providers property

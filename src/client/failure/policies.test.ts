@@ -1,4 +1,9 @@
-import { AbortPolicy, CircuitBreakerPolicy, RetryPolicy } from './policies';
+import {
+  AbortPolicy,
+  CircuitBreakerPolicy,
+  FailurePolicyRouter,
+  RetryPolicy,
+} from './policies';
 import { UsecaseInfo } from './policy';
 
 describe('failure policies', () => {
@@ -60,7 +65,7 @@ describe('failure policies', () => {
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
         backoff: 100,
-        timeout: 30,
+        timeout: 30_000,
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
@@ -69,7 +74,7 @@ describe('failure policies', () => {
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
         backoff: 200,
-        timeout: 30,
+        timeout: 30_000,
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
@@ -78,7 +83,7 @@ describe('failure policies', () => {
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
         backoff: 400,
-        timeout: 30,
+        timeout: 30_000,
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
@@ -100,45 +105,51 @@ describe('failure policies', () => {
       const policy = new RetryPolicy(usecaseInfo, 3);
       const event = { time: 0, registryCacheAge: 0 };
 
-      expect(policy.afterFailure(failure)).toStrictEqual({ kind: 'retry' });
+      expect(policy.afterFailure(failure)).toStrictEqual({
+        kind: 'retry',
+      });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
         backoff: 100,
-        timeout: 30,
+        timeout: 30_000,
       });
 
-      expect(policy.afterFailure(failure)).toStrictEqual({ kind: 'retry' });
+      expect(policy.afterFailure(failure)).toStrictEqual({
+        kind: 'retry',
+      });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
         backoff: 200,
-        timeout: 30,
+        timeout: 30_000,
       });
 
-      expect(policy.afterFailure(failure)).toStrictEqual({ kind: 'retry' });
+      expect(policy.afterFailure(failure)).toStrictEqual({
+        kind: 'retry',
+      });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
         backoff: 400,
-        timeout: 30,
+        timeout: 30_000,
       });
 
       expect(policy.afterSuccess(event)).toStrictEqual({ kind: 'continue' });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
         backoff: 200,
-        timeout: 30,
+        timeout: 30_000,
       });
 
       expect(policy.afterSuccess(event)).toStrictEqual({ kind: 'continue' });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
         backoff: 100,
-        timeout: 30,
+        timeout: 30_000,
       });
 
       expect(policy.afterSuccess(event)).toStrictEqual({ kind: 'continue' });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'continue',
-        timeout: 30,
+        timeout: 30_000,
       });
     });
 
@@ -149,59 +160,65 @@ describe('failure policies', () => {
       expect(policy.afterSuccess(event)).toStrictEqual({ kind: 'continue' });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'continue',
-        timeout: 30,
+        timeout: 30_000,
       });
 
       expect(policy.afterSuccess(event)).toStrictEqual({ kind: 'continue' });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'continue',
-        timeout: 30,
+        timeout: 30_000,
       });
 
       expect(policy.afterSuccess(event)).toStrictEqual({ kind: 'continue' });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'continue',
-        timeout: 30,
+        timeout: 30_000,
       });
 
-      expect(policy.afterFailure(failure)).toStrictEqual({ kind: 'retry' });
+      expect(policy.afterFailure(failure)).toStrictEqual({
+        kind: 'retry',
+      });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
         backoff: 100,
-        timeout: 30,
+        timeout: 30_000,
       });
 
-      expect(policy.afterFailure(failure)).toStrictEqual({ kind: 'retry' });
+      expect(policy.afterFailure(failure)).toStrictEqual({
+        kind: 'retry',
+      });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
         backoff: 200,
-        timeout: 30,
+        timeout: 30_000,
       });
 
       expect(policy.afterSuccess(event)).toStrictEqual({ kind: 'continue' });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
         backoff: 100,
-        timeout: 30,
+        timeout: 30_000,
       });
 
       expect(policy.afterSuccess(event)).toStrictEqual({ kind: 'continue' });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'continue',
-        timeout: 30,
+        timeout: 30_000,
       });
 
-      expect(policy.afterFailure(failure)).toStrictEqual({ kind: 'retry' });
+      expect(policy.afterFailure(failure)).toStrictEqual({
+        kind: 'retry',
+      });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
         backoff: 100,
-        timeout: 30,
+        timeout: 30_000,
       });
 
       expect(policy.afterSuccess(event)).toStrictEqual({ kind: 'continue' });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'continue',
-        timeout: 30,
+        timeout: 30_000,
       });
     });
 
@@ -215,7 +232,7 @@ describe('failure policies', () => {
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
         backoff: 100,
-        timeout: 30,
+        timeout: 30_000,
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
@@ -224,7 +241,7 @@ describe('failure policies', () => {
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
         backoff: 200,
-        timeout: 30,
+        timeout: 30_000,
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
@@ -233,7 +250,7 @@ describe('failure policies', () => {
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
         backoff: 400,
-        timeout: 30,
+        timeout: 30_000,
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
@@ -248,7 +265,7 @@ describe('failure policies', () => {
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
         backoff: 100,
-        timeout: 30,
+        timeout: 30_000,
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
@@ -257,7 +274,7 @@ describe('failure policies', () => {
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
         backoff: 200,
-        timeout: 30,
+        timeout: 30_000,
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
@@ -266,7 +283,7 @@ describe('failure policies', () => {
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
         backoff: 400,
-        timeout: 30,
+        timeout: 30_000,
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
@@ -281,7 +298,7 @@ describe('failure policies', () => {
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
         backoff: 100,
-        timeout: 30,
+        timeout: 30_000,
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
@@ -290,7 +307,7 @@ describe('failure policies', () => {
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
         backoff: 200,
-        timeout: 30,
+        timeout: 30_000,
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
@@ -299,7 +316,7 @@ describe('failure policies', () => {
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
         backoff: 400,
-        timeout: 30,
+        timeout: 30_000,
       });
 
       expect(policy.afterFailure(failure)).toStrictEqual({
@@ -318,96 +335,108 @@ describe('failure policies', () => {
     } as const;
 
     it('starts closed', () => {
-      const policy = new CircuitBreakerPolicy(usecaseInfo, 4, 1000, 30);
+      const policy = new CircuitBreakerPolicy(usecaseInfo, 4, 1000, 30_000);
       const event = { time: 0, registryCacheAge: 0 };
 
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'continue',
-        timeout: 30,
+        timeout: 30_000,
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'continue',
-        timeout: 30,
+        timeout: 30_000,
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'continue',
-        timeout: 30,
+        timeout: 30_000,
       });
     });
 
     it('stays closed when not enough contiguous failures happen', () => {
-      const policy = new CircuitBreakerPolicy(usecaseInfo, 4, 1000, 30);
+      const policy = new CircuitBreakerPolicy(usecaseInfo, 4, 1000, 30_000);
       const event = { time: 0, registryCacheAge: 0 };
 
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'continue',
-        timeout: 30,
+        timeout: 30_000,
       });
 
-      expect(policy.afterFailure(failure)).toStrictEqual({ kind: 'retry' });
+      expect(policy.afterFailure(failure)).toStrictEqual({
+        kind: 'retry',
+      });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
-        timeout: 30,
+        timeout: 30_000,
         backoff: 100,
       });
 
-      expect(policy.afterFailure(failure)).toStrictEqual({ kind: 'retry' });
+      expect(policy.afterFailure(failure)).toStrictEqual({
+        kind: 'retry',
+      });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
-        timeout: 30,
+        timeout: 30_000,
         backoff: 200,
       });
 
-      expect(policy.afterFailure(failure)).toStrictEqual({ kind: 'retry' });
+      expect(policy.afterFailure(failure)).toStrictEqual({
+        kind: 'retry',
+      });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
-        timeout: 30,
+        timeout: 30_000,
         backoff: 400,
       });
 
       expect(policy.afterSuccess(event)).toStrictEqual({ kind: 'continue' });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
-        timeout: 30,
+        timeout: 30_000,
         backoff: 200,
       });
 
       expect(policy.afterSuccess(event)).toStrictEqual({ kind: 'continue' });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
-        timeout: 30,
+        timeout: 30_000,
         backoff: 100,
       });
 
       expect(policy.afterSuccess(event)).toStrictEqual({ kind: 'continue' });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'continue',
-        timeout: 30,
+        timeout: 30_000,
       });
     });
 
     it('closes when enough contiguous failures happen', () => {
-      const policy = new CircuitBreakerPolicy(usecaseInfo, 4, 1000, 30);
+      const policy = new CircuitBreakerPolicy(usecaseInfo, 4, 1000, 30_000);
       const event = { time: 0, registryCacheAge: 0 };
 
-      expect(policy.afterFailure(failure)).toStrictEqual({ kind: 'retry' });
+      expect(policy.afterFailure(failure)).toStrictEqual({
+        kind: 'retry',
+      });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
-        timeout: 30,
+        timeout: 30_000,
         backoff: 100,
       });
 
-      expect(policy.afterFailure(failure)).toStrictEqual({ kind: 'retry' });
+      expect(policy.afterFailure(failure)).toStrictEqual({
+        kind: 'retry',
+      });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
-        timeout: 30,
+        timeout: 30_000,
         backoff: 200,
       });
 
-      expect(policy.afterFailure(failure)).toStrictEqual({ kind: 'retry' });
+      expect(policy.afterFailure(failure)).toStrictEqual({
+        kind: 'retry',
+      });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
-        timeout: 30,
+        timeout: 30_000,
         backoff: 400,
       });
 
@@ -425,21 +454,27 @@ describe('failure policies', () => {
       const policy = new CircuitBreakerPolicy(usecaseInfo, 4, 1000, 40);
       const event = { time: 0, registryCacheAge: 0 };
 
-      expect(policy.afterFailure(failure)).toStrictEqual({ kind: 'retry' });
+      expect(policy.afterFailure(failure)).toStrictEqual({
+        kind: 'retry',
+      });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
         timeout: 40,
         backoff: 100,
       });
 
-      expect(policy.afterFailure(failure)).toStrictEqual({ kind: 'retry' });
+      expect(policy.afterFailure(failure)).toStrictEqual({
+        kind: 'retry',
+      });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
         timeout: 40,
         backoff: 200,
       });
 
-      expect(policy.afterFailure(failure)).toStrictEqual({ kind: 'retry' });
+      expect(policy.afterFailure(failure)).toStrictEqual({
+        kind: 'retry',
+      });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
         timeout: 40,
@@ -460,21 +495,27 @@ describe('failure policies', () => {
       const policy = new CircuitBreakerPolicy(usecaseInfo, 4, 1000, 40);
       const event = { time: 0, registryCacheAge: 0 };
 
-      expect(policy.afterFailure(failure)).toStrictEqual({ kind: 'retry' });
+      expect(policy.afterFailure(failure)).toStrictEqual({
+        kind: 'retry',
+      });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
         timeout: 40,
         backoff: 100,
       });
 
-      expect(policy.afterFailure(failure)).toStrictEqual({ kind: 'retry' });
+      expect(policy.afterFailure(failure)).toStrictEqual({
+        kind: 'retry',
+      });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
         timeout: 40,
         backoff: 200,
       });
 
-      expect(policy.afterFailure(failure)).toStrictEqual({ kind: 'retry' });
+      expect(policy.afterFailure(failure)).toStrictEqual({
+        kind: 'retry',
+      });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
         timeout: 40,
@@ -504,21 +545,27 @@ describe('failure policies', () => {
       const policy = new CircuitBreakerPolicy(usecaseInfo, 4, 1000, 40);
       const event = { time: 0, registryCacheAge: 0 };
 
-      expect(policy.afterFailure(failure)).toStrictEqual({ kind: 'retry' });
+      expect(policy.afterFailure(failure)).toStrictEqual({
+        kind: 'retry',
+      });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
         timeout: 40,
         backoff: 100,
       });
 
-      expect(policy.afterFailure(failure)).toStrictEqual({ kind: 'retry' });
+      expect(policy.afterFailure(failure)).toStrictEqual({
+        kind: 'retry',
+      });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
         timeout: 40,
         backoff: 200,
       });
 
-      expect(policy.afterFailure(failure)).toStrictEqual({ kind: 'retry' });
+      expect(policy.afterFailure(failure)).toStrictEqual({
+        kind: 'retry',
+      });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
         timeout: 40,
@@ -535,21 +582,27 @@ describe('failure policies', () => {
       ).toStrictEqual({ kind: 'continue', timeout: 40 });
       expect(policy.afterSuccess(event)).toStrictEqual({ kind: 'continue' });
 
-      expect(policy.afterFailure(failure)).toStrictEqual({ kind: 'retry' });
+      expect(policy.afterFailure(failure)).toStrictEqual({
+        kind: 'retry',
+      });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
         timeout: 40,
         backoff: 100,
       });
 
-      expect(policy.afterFailure(failure)).toStrictEqual({ kind: 'retry' });
+      expect(policy.afterFailure(failure)).toStrictEqual({
+        kind: 'retry',
+      });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
         timeout: 40,
         backoff: 200,
       });
 
-      expect(policy.afterFailure(failure)).toStrictEqual({ kind: 'retry' });
+      expect(policy.afterFailure(failure)).toStrictEqual({
+        kind: 'retry',
+      });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
         timeout: 40,
@@ -565,27 +618,33 @@ describe('failure policies', () => {
     });
 
     it('resets correctly', () => {
-      const policy = new CircuitBreakerPolicy(usecaseInfo, 4, 1000, 30);
+      const policy = new CircuitBreakerPolicy(usecaseInfo, 4, 1000, 30_000);
       const event = { time: 0, registryCacheAge: 0 };
 
-      expect(policy.afterFailure(failure)).toStrictEqual({ kind: 'retry' });
+      expect(policy.afterFailure(failure)).toStrictEqual({
+        kind: 'retry',
+      });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
-        timeout: 30,
+        timeout: 30_000,
         backoff: 100,
       });
 
-      expect(policy.afterFailure(failure)).toStrictEqual({ kind: 'retry' });
+      expect(policy.afterFailure(failure)).toStrictEqual({
+        kind: 'retry',
+      });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
-        timeout: 30,
+        timeout: 30_000,
         backoff: 200,
       });
 
-      expect(policy.afterFailure(failure)).toStrictEqual({ kind: 'retry' });
+      expect(policy.afterFailure(failure)).toStrictEqual({
+        kind: 'retry',
+      });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
-        timeout: 30,
+        timeout: 30_000,
         backoff: 400,
       });
 
@@ -599,24 +658,30 @@ describe('failure policies', () => {
       });
 
       policy.reset();
-      expect(policy.afterFailure(failure)).toStrictEqual({ kind: 'retry' });
+      expect(policy.afterFailure(failure)).toStrictEqual({
+        kind: 'retry',
+      });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
-        timeout: 30,
+        timeout: 30_000,
         backoff: 100,
       });
 
-      expect(policy.afterFailure(failure)).toStrictEqual({ kind: 'retry' });
+      expect(policy.afterFailure(failure)).toStrictEqual({
+        kind: 'retry',
+      });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
-        timeout: 30,
+        timeout: 30_000,
         backoff: 200,
       });
 
-      expect(policy.afterFailure(failure)).toStrictEqual({ kind: 'retry' });
+      expect(policy.afterFailure(failure)).toStrictEqual({
+        kind: 'retry',
+      });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
-        timeout: 30,
+        timeout: 30_000,
         backoff: 400,
       });
 
@@ -630,24 +695,30 @@ describe('failure policies', () => {
       });
 
       policy.reset();
-      expect(policy.afterFailure(failure)).toStrictEqual({ kind: 'retry' });
+      expect(policy.afterFailure(failure)).toStrictEqual({
+        kind: 'retry',
+      });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
-        timeout: 30,
+        timeout: 30_000,
         backoff: 100,
       });
 
-      expect(policy.afterFailure(failure)).toStrictEqual({ kind: 'retry' });
+      expect(policy.afterFailure(failure)).toStrictEqual({
+        kind: 'retry',
+      });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
-        timeout: 30,
+        timeout: 30_000,
         backoff: 200,
       });
 
-      expect(policy.afterFailure(failure)).toStrictEqual({ kind: 'retry' });
+      expect(policy.afterFailure(failure)).toStrictEqual({
+        kind: 'retry',
+      });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'backoff',
-        timeout: 30,
+        timeout: 30_000,
         backoff: 400,
       });
 
@@ -658,6 +729,280 @@ describe('failure policies', () => {
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'abort',
         reason: 'circuit breaker is open',
+      });
+    });
+  });
+
+  describe('FailurePolicyRouter', () => {
+    const profileId = 'scope/name/usecase';
+    const usecaseName = 'usecase';
+    const usecaseSafety = 'safe';
+
+    describe('setCurrentProvider', () => {
+      it('sets current provider', () => {
+        const router = new FailurePolicyRouter(
+          { profileId, usecaseSafety, usecaseName },
+          {},
+          []
+        );
+
+        expect(router.getCurrentProvider()).toBeUndefined();
+
+        router.setCurrentProvider('provider');
+
+        expect(router.getCurrentProvider()).toBeDefined();
+        expect(
+          router.afterFailure({
+            kind: 'network',
+            issue: 'timeout',
+            time: 0,
+            registryCacheAge: 0,
+          })
+        ).toEqual({ kind: 'abort', reason: 'abort policy selected' });
+      });
+    });
+
+    describe('beforeExecution', () => {
+      it('throws if current provider is undefined', () => {
+        const router = new FailurePolicyRouter(
+          { profileId, usecaseSafety, usecaseName },
+          {},
+          []
+        );
+        expect(() =>
+          router.beforeExecution({ time: 0, registryCacheAge: 0 })
+        ).toThrowError(
+          new Error('Property currentProvider is not set in Router instance')
+        );
+      });
+
+      it('returns inner resolution', () => {
+        const router = new FailurePolicyRouter(
+          { profileId, usecaseSafety, usecaseName },
+          {},
+          []
+        );
+        router.setCurrentProvider('provider');
+
+        expect(
+          router.beforeExecution({ time: 0, registryCacheAge: 0 })
+        ).toEqual({ kind: 'continue', timeout: 30_000 });
+      });
+
+      it('switches back to first functional provider with higher priority', () => {
+        const retryPolicy = new RetryPolicy({
+          profileId,
+          usecaseSafety,
+          usecaseName,
+        });
+        const router = new FailurePolicyRouter(
+          { profileId, usecaseSafety, usecaseName },
+          {
+            first: retryPolicy,
+            second: new RetryPolicy({
+              profileId,
+              usecaseSafety,
+              usecaseName,
+            }),
+            third: new AbortPolicy({ profileId, usecaseSafety, usecaseName }),
+          },
+          ['first', 'second', 'third']
+        );
+
+        //first provider broken
+        retryPolicy.afterFailure({
+          kind: 'network',
+          issue: 'timeout',
+          time: 0,
+          registryCacheAge: 0,
+        });
+
+        //set current
+        router.setCurrentProvider('third');
+
+        expect(
+          router.beforeExecution({ time: 0, registryCacheAge: 0 })
+        ).toEqual({
+          kind: 'switch-provider',
+          //Switch to second
+          provider: 'second',
+        });
+      });
+
+      it('switches back to functional provider with higher priority', () => {
+        const router = new FailurePolicyRouter(
+          { profileId, usecaseSafety, usecaseName },
+          {
+            first: new RetryPolicy({
+              profileId,
+              usecaseSafety,
+              usecaseName,
+            }),
+            second: new RetryPolicy({
+              profileId,
+              usecaseSafety,
+              usecaseName,
+            }),
+            third: new AbortPolicy({ profileId, usecaseSafety, usecaseName }),
+          },
+          ['first', 'second', 'third']
+        );
+
+        //set current
+        router.setCurrentProvider('third');
+
+        expect(
+          router.beforeExecution({ time: 0, registryCacheAge: 0 })
+        ).toEqual({
+          kind: 'switch-provider',
+          //Switch to second
+          provider: 'first',
+        });
+      });
+    });
+    describe('afterFailure', () => {
+      it('throws if current provider is undefined', () => {
+        const router = new FailurePolicyRouter(
+          { profileId, usecaseSafety, usecaseName },
+          {},
+          []
+        );
+        expect(() =>
+          router.afterFailure({
+            kind: 'network',
+            issue: 'timeout',
+            time: 0,
+            registryCacheAge: 0,
+          })
+        ).toThrowError(
+          new Error('Property currentProvider is not set in Router instance')
+        );
+      });
+
+      it('returns inner resolution', () => {
+        const router = new FailurePolicyRouter(
+          { profileId, usecaseSafety, usecaseName },
+          { first: new RetryPolicy({ profileId, usecaseSafety, usecaseName }) },
+          ['first']
+        );
+        router.setCurrentProvider('first');
+
+        expect(
+          router.afterFailure({
+            kind: 'network',
+            issue: 'timeout',
+            time: 0,
+            registryCacheAge: 0,
+          })
+        ).toEqual({ kind: 'retry' });
+      });
+
+      it('aborts when there is not another provider', () => {
+        const router = new FailurePolicyRouter(
+          { profileId, usecaseSafety, usecaseName },
+          { first: new AbortPolicy({ profileId, usecaseSafety, usecaseName }) },
+          ['first']
+        );
+        router.setCurrentProvider('first');
+
+        expect(
+          router.afterFailure({
+            kind: 'network',
+            issue: 'timeout',
+            time: 0,
+            registryCacheAge: 0,
+          })
+        ).toEqual({ kind: 'abort', reason: 'no backup provider configured' });
+      });
+
+      it('switches to another provider with lesser priority', () => {
+        const router = new FailurePolicyRouter(
+          { profileId, usecaseSafety, usecaseName },
+          {
+            first: new AbortPolicy({ profileId, usecaseSafety, usecaseName }),
+            second: new AbortPolicy({ profileId, usecaseSafety, usecaseName }),
+            third: new AbortPolicy({ profileId, usecaseSafety, usecaseName }),
+          },
+          ['first', 'second', 'third']
+        );
+        router.setCurrentProvider('first');
+
+        expect(
+          router.afterFailure({
+            kind: 'network',
+            issue: 'timeout',
+            time: 0,
+            registryCacheAge: 0,
+          })
+        ).toEqual({ kind: 'switch-provider', provider: 'second' });
+      });
+
+      it('switches to first functional provider with lesser priority', () => {
+        const retryPolicy = new RetryPolicy(
+          {
+            profileId,
+            usecaseSafety,
+            usecaseName,
+          },
+          1,
+          60_000
+        );
+
+        const router = new FailurePolicyRouter(
+          { profileId, usecaseSafety, usecaseName },
+          {
+            first: new AbortPolicy({ profileId, usecaseSafety, usecaseName }),
+            second: retryPolicy,
+            third: new AbortPolicy({ profileId, usecaseSafety, usecaseName }),
+          },
+          ['first', 'second', 'third']
+        );
+        retryPolicy.afterFailure({
+          kind: 'network',
+          issue: 'timeout',
+          time: 0,
+          registryCacheAge: 0,
+        });
+
+        router.setCurrentProvider('first');
+
+        expect(
+          router.afterFailure({
+            kind: 'network',
+            issue: 'timeout',
+            time: 0,
+            registryCacheAge: 0,
+          })
+        ).toEqual({ kind: 'switch-provider', provider: 'third' });
+      });
+    });
+    describe('afterSuccess', () => {
+      it('throws if current provider is undefined', () => {
+        const router = new FailurePolicyRouter(
+          { profileId, usecaseSafety, usecaseName },
+          {},
+          []
+        );
+        expect(() =>
+          router.afterSuccess({ time: 0, registryCacheAge: 0 })
+        ).toThrowError(
+          new Error('Property currentProvider is not set in Router instance')
+        );
+      });
+
+      it('returns inner resolution', () => {
+        const router = new FailurePolicyRouter(
+          { profileId, usecaseSafety, usecaseName },
+          {
+            first: new AbortPolicy({ profileId, usecaseSafety, usecaseName }),
+          },
+          ['first']
+        );
+        router.setCurrentProvider('first');
+
+        expect(router.afterSuccess({ time: 0, registryCacheAge: 0 })).toEqual({
+          kind: 'continue',
+        });
       });
     });
   });

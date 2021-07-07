@@ -62,7 +62,10 @@ export class MapInterpreterErrorBase extends ErrorBase {
 }
 
 export class MapASTError extends MapInterpreterErrorBase {
-  constructor(public override message: string, public override metadata?: ErrorMetadata) {
+  constructor(
+    public override message: string,
+    public override metadata?: ErrorMetadata
+  ) {
     super('MapASTError', message, metadata);
   }
 

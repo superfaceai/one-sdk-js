@@ -15,6 +15,8 @@ jest.mock('fs', () => ({
   },
 }));
 
+jest.mock('./failure/event-adapter');
+
 describe('superface client', () => {
   //Mock env path
   const ENV_VARIABLE = 'SUPERFACE_PATH';
@@ -217,22 +219,6 @@ but this path does not exist or is not accessible`
 
       const provider = await client.getProviderForProfile('baz');
       expect(provider.configuration.name).toBe('quz');
-    });
-  });
-
-  describe('profiles getter', () => {
-    it('throws when on profiles are not implemented', () => {
-      const client = new SuperfaceClient();
-
-      expect(() => client.profiles).toThrow('TODO');
-    });
-  });
-
-  describe('providers getter', () => {
-    it('throws when on providers are not implemented', () => {
-      const client = new SuperfaceClient();
-
-      expect(() => client.providers).toThrow('TODO');
     });
   });
 });

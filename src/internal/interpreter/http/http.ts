@@ -51,6 +51,10 @@ export interface HttpResponse {
   };
 }
 
+export enum NetworkErrors {
+  TIMEOUT_ERROR = 'TIMEOUT_ERROR',
+}
+
 export const createUrl = (
   inputUrl: string,
   parameters?: {

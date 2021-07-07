@@ -36,8 +36,9 @@ import {
 } from '../internal/superjson';
 import { mergeSecurity } from '../internal/superjson/mutate';
 import { err, ok, Result } from '../lib';
-import { Interceptable } from '../lib/events';
+import { Events, Interceptable } from '../lib/events';
 import { CrossFetch } from '../lib/fetch';
+import { MapInterpreterEventAdapter } from './failure/map-interpreter-adapter';
 import { ProfileConfiguration } from './profile';
 import { ProviderConfiguration } from './provider';
 import { fetchBind } from './registry';
@@ -54,20 +55,29 @@ const boundProfileProviderDebug = createDebug(
   'superface:bound-profile-provider'
 );
 export class BoundProfileProvider {
+  //TODO: Interceptable and set metadata
   private profileValidator: ProfileParameterValidator;
   private fetchInstance: FetchInstance & Interceptable;
 
   constructor(
     private readonly profileAst: ProfileDocumentNode,
     private readonly mapAst: MapDocumentNode,
+    private readonly providerName: string,
     private readonly configuration: {
       baseUrl?: string;
       profileProviderSettings?: NormalizedProfileProviderSettings;
       security: SecurityConfiguration[];
-    }
+    },
+    events?: Events
   ) {
     this.profileValidator = new ProfileParameterValidator(this.profileAst);
+
     this.fetchInstance = new CrossFetch();
+    this.fetchInstance.metadata = {
+      profile: profileAstId(profileAst),
+      provider: providerName,
+    };
+    this.fetchInstance.events = events;
   }
 
   private composeInput(
@@ -104,6 +114,7 @@ export class BoundProfileProvider {
     this.fetchInstance.metadata = {
       profile: profileAstId(this.profileAst),
       usecase,
+      provider: this.providerName,
     };
     // compose and validate the input
     const composedInput = this.composeInput(usecase, input);
@@ -126,7 +137,13 @@ export class BoundProfileProvider {
         serviceBaseUrl: this.configuration.baseUrl,
         security: this.configuration.security,
       },
-      { fetchInstance: this.fetchInstance }
+      {
+        fetchInstance: this.fetchInstance,
+        externalHandler: new MapInterpreterEventAdapter(
+          this.fetchInstance.metadata,
+          this.fetchInstance.events
+        ),
+      }
     );
 
     const result = await interpreter.perform(this.mapAst);
@@ -160,11 +177,13 @@ const profileProviderDebug = createDebug('superface:profile-provider');
 export class ProfileProvider {
   constructor(
     /** Preloaded superJson instance */
+    //TODO: Use superJson from events/Client?
     public readonly superJson: SuperJson,
     /** profile id, url, ast node or configuration instance */
     private profile: string | ProfileDocumentNode | ProfileConfiguration,
     /** provider name, url or configuration instance */
     private provider: string | ProviderJson | ProviderConfiguration,
+    private events: Events,
     /** url or ast node */
     private map?: string | MapDocumentNode
   ) {}
@@ -267,14 +286,20 @@ export class ProfileProvider {
       providerName
     );
 
-    return new BoundProfileProvider(profileAst, mapAst, {
-      baseUrl,
-      profileProviderSettings:
-        this.superJson.normalized.profiles[profileId]?.providers[
-          providerInfo.name
-        ],
-      security: securityConfiguration,
-    });
+    return new BoundProfileProvider(
+      profileAst,
+      mapAst,
+      providerInfo.name,
+      {
+        baseUrl,
+        profileProviderSettings:
+          this.superJson.normalized.profiles[profileId]?.providers[
+            providerInfo.name
+          ],
+        security: securityConfiguration,
+      },
+      this.events
+    );
   }
 
   private async resolveProfileAst(): Promise<ProfileDocumentNode | undefined> {

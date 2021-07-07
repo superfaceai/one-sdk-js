@@ -3,25 +3,38 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import createDebug from 'debug';
+
 import { UseCase } from '../client';
+import { MapInterpreterEventAdapter } from '../client/failure/map-interpreter-adapter';
 import { FetchInstance } from '../internal/interpreter/http/interfaces';
 
-type AnyFunction = (...args: any[]) => any;
+const debug = createDebug('superface:events');
 
+type AnyFunction = (...args: any[]) => any;
+type AsyncFunction = (...args: any[]) => Promise<any>;
+
+type MaybePromise<T> = T | Promise<T>;
+type ResolvedPromise<T> = T extends Promise<infer R> ? R : T;
+
+export type InterceptableMetadata = {
+  provider?: string;
+  profile?: string;
+  usecase?: string;
+};
 export type Interceptable = {
-  metadata?: {
-    provider?: string;
-    profile?: string;
-    usecase?: string;
-  };
+  metadata?: InterceptableMetadata;
+  events?: Events;
 };
 
 type EventContextBase = {
   readonly time: Date;
   readonly usecase?: string;
   readonly profile?: string;
+  readonly provider?: string;
 };
-export type BeforeHookResult<Target extends AnyFunction> =
+
+export type BeforeHookResult<Target extends AsyncFunction> = MaybePromise<
   | {
       kind: 'continue';
     }
@@ -32,17 +45,18 @@ export type BeforeHookResult<Target extends AnyFunction> =
   | {
       kind: 'abort';
       newResult: ReturnType<Target>;
-    };
+    }
+>;
 
 export type BeforeHook<
   EventContext extends EventContextBase,
-  Target extends AnyFunction
+  Target extends AsyncFunction
 > = (
   context: EventContext,
   args: Parameters<Target>
 ) => BeforeHookResult<Target>;
 
-export type AfterHookResult<Target extends AnyFunction> =
+export type AfterHookResult<Target extends AsyncFunction> = MaybePromise<
   | {
       kind: 'continue';
     }
@@ -53,20 +67,38 @@ export type AfterHookResult<Target extends AnyFunction> =
   | {
       kind: 'retry';
       newArgs?: Parameters<Target>;
-    };
+    }
+>;
 
 export type AfterHook<
   EventContext extends EventContextBase,
-  Target extends AnyFunction
+  Target extends AsyncFunction
 > = (
   context: EventContext,
   args: Parameters<Target>,
   result: ReturnType<Target>
 ) => AfterHookResult<Target>;
 
+type VoidEventTypes = {
+  failure: EventContextBase;
+  success: EventContextBase;
+};
+
+type VoidEventHook<EventContext extends EventContextBase> = (
+  context: EventContext
+) => void;
+
 type EventTypes = {
-  perform: [InstanceType<typeof UseCase>['perform'], EventContextBase];
+  perform: [
+    InstanceType<typeof UseCase>['performBoundUsecase'],
+    EventContextBase
+  ];
   fetch: [FetchInstance['fetch'], EventContextBase];
+  'unhandled-http': [
+    InstanceType<typeof MapInterpreterEventAdapter>['unhandledHttp'],
+    EventContextBase
+  ];
+  bind: [InstanceType<typeof UseCase>['bindAndPerform'], EventContextBase];
 };
 
 export type EventParams = {
@@ -80,20 +112,8 @@ export type EventParams = {
       EventTypes[K][1],
       EventTypes[K][0]
     >;
-  };
-
-// export type EventParams = {
-//   'pre-perform': BeforeHook<
-//     EventContextBase,
-//     InstanceType<typeof UseCase>['perform']
-//   >;
-//   'post-perform': AfterHook<
-//     EventContextBase,
-//     InstanceType<typeof UseCase>['perform']
-//   >;
-//   'pre-fetch': BeforeHook<EventContextBase, FetchInstance['fetch']>;
-//   'post-fetch': AfterHook<EventContextBase, FetchInstance['fetch']>;
-// };
+  } &
+  { [K in keyof VoidEventTypes]: VoidEventHook<VoidEventTypes[K]> };
 
 type EventListeners = {
   [E in keyof EventParams]?: PriorityCallbackTuple[];
@@ -108,7 +128,7 @@ function priorityCallbackTuple<T extends keyof EventParams>(
   return [priority, callback, filter];
 }
 
-class Events {
+export class Events {
   private listeners: EventListeners = {};
 
   public on<E extends keyof EventParams>(
@@ -118,22 +138,27 @@ class Events {
       filter?: Filter;
     },
     callback: EventParams[E]
-  ): this {
+  ): void {
+    debug(
+      `Attaching listener for event "${event}" with priority ${options.priority}`
+    );
+
     this.listeners[event] = [
       ...(this.listeners[event] ?? []),
       priorityCallbackTuple<E>(options.priority, callback, options.filter),
     ].sort(([priority1], [priority2]) => priority1 - priority2);
-
-    return this;
   }
 
   public async emit<E extends keyof EventParams>(
     event: E,
     parameters: Parameters<EventParams[E]>
-  ): Promise<ReturnType<EventParams[E]>> {
+  ): Promise<ResolvedPromise<ReturnType<EventParams[E]>>> {
+    debug(`Emitting event "${event}"`);
+
     const listeners = this.listeners[event];
     const [context] = parameters;
-    let subresult = parameters;
+    let params = parameters;
+    let subresult: any = { kind: 'continue' };
     if (listeners !== undefined && listeners.length > 0) {
       for (let i = 0; i < listeners.length; i++) {
         const [, callback, filter] = listeners[i];
@@ -149,11 +174,27 @@ class Events {
         ) {
           continue;
         }
-        subresult = await callback(...parameters);
+        const hookResult = await callback(...params);
+        debug(
+          `Event "${event}" listener ${i} result: ${hookResult.kind as string}`
+        );
+
+        if (hookResult.kind === 'modify') {
+          params = [context, hookResult.newArgs] as any;
+          subresult = hookResult;
+        }
+
+        if (hookResult.kind === 'abort' || hookResult.kind === 'retry') {
+          return hookResult;
+        }
+
+        if (hookResult.kind === 'continue') {
+          // DO NOTHING YAY!
+        }
       }
     }
 
-    return subresult as any;
+    return subresult;
   }
 }
 
@@ -175,47 +216,79 @@ function replacementFunction<E extends keyof EventTypes>(
     this: Interceptable,
     ...args: Parameters<EventTypes[E][0]>
   ) {
-    // Before hook - runs before the function is called and takes and returns its arguments
-    let functionArgs = args;
-    if (metadata.placement === 'before' || metadata.placement === 'around') {
-      const hookResult = await events.emit(`pre-${metadata.eventName}`, [
-        {
-          time: new Date(),
-          profile: this.metadata?.profile,
-          usecase: this.metadata?.usecase,
-        },
-        functionArgs,
-      ] as any);
-
-      if (hookResult.kind === 'modify') {
-        functionArgs = hookResult.newArgs as Parameters<EventTypes[E][0]>;
+    if (debug.enabled) {
+      let metadataString = 'undefined';
+      if (this.metadata !== undefined) {
+        metadataString = `{ profile: ${
+          this.metadata.profile ?? 'undefined'
+        }, provider: ${this.metadata.provider ?? 'undefined'}, usecase: ${
+          this.metadata.usecase ?? 'undefined'
+        } }`;
       }
 
-      if (hookResult.kind === 'abort') {
-        return hookResult.newResult;
+      let eventsString = 'undefined';
+      if (this.events !== undefined) {
+        eventsString = 'defined';
       }
 
-      if (hookResult.kind === 'continue') {
-        // DO NOTHING YAY!
-      }
+      debug(
+        `Intercepted function for "${metadata.eventName}" (placement: ${
+          metadata.placement ?? ''
+        }) with context: { metadata: ${metadataString}, events: ${eventsString} }`
+      );
     }
 
-    let result = (await originalFunction.apply(
-      this,
-      functionArgs
-    )) as ReturnType<EventTypes[E][0]>;
+    const events = this.events;
+    if (!events) {
+      return originalFunction.apply(this, args);
+    }
 
-    // After hook - runs after the function is called and takes the result
-    // May modify it, return different or retry
-    if (metadata.placement === 'after' || metadata.placement === 'around') {
-      let retry = true;
-      while (retry) {
+    // Before hook - runs before the function is called and takes and returns its arguments
+    let functionArgs = args;
+    let retry = true;
+    while (retry) {
+      if (metadata.placement === 'before' || metadata.placement === 'around') {
+        const hookResult = await events.emit(`pre-${metadata.eventName}`, [
+          {
+            time: new Date(),
+            profile: this.metadata?.profile,
+            usecase: this.metadata?.usecase,
+            provider: this.metadata?.provider,
+          },
+          functionArgs,
+        ] as any);
+
+        if (hookResult.kind === 'modify') {
+          functionArgs = hookResult.newArgs as Parameters<EventTypes[E][0]>;
+        }
+
+        if (hookResult.kind === 'abort') {
+          return hookResult.newResult;
+        }
+
+        if (hookResult.kind === 'continue') {
+          // DO NOTHING YAY!
+        }
+      }
+
+      let result: Promise<ReturnType<EventTypes[E][0]>>;
+      try {
+        result = Promise.resolve(
+          await originalFunction.apply(this, functionArgs)
+        );
+      } catch (err) {
+        result = Promise.reject(err);
+      }
+
+      // After hook - runs after the function is called and takes the result
+      // May modify it, return different or retry
+      if (metadata.placement === 'after' || metadata.placement === 'around') {
         const hookResult = await events.emit(`post-${metadata.eventName}`, [
           {
-            filter: {
-              profile: this.metadata?.profile,
-              usecase: this.metadata?.usecase,
-            },
+            time: new Date(),
+            profile: this.metadata?.profile,
+            usecase: this.metadata?.usecase,
+            provider: this.metadata?.provider,
           },
           functionArgs as any,
           result,
@@ -231,9 +304,7 @@ function replacementFunction<E extends keyof EventTypes>(
 
         if (hookResult.kind === 'retry') {
           if (hookResult.newArgs !== undefined) {
-            result = await originalFunction?.apply(this, hookResult.newArgs);
-          } else {
-            result = await originalFunction?.apply(this, functionArgs);
+            functionArgs = hookResult.newArgs as any;
           }
 
           continue;
@@ -242,9 +313,9 @@ function replacementFunction<E extends keyof EventTypes>(
         // This should be unreachable, but let's not do infinite loops in case something goes terribly wrong
         retry = false;
       }
-    }
 
-    return result;
+      return result;
+    }
   } as unknown as EventTypes[E][0];
 }
 
@@ -256,14 +327,17 @@ export function eventInterceptor<E extends keyof EventTypes>(
   descriptor: TypedPropertyDescriptor<EventTypes[E][0]>
 ) => PropertyDescriptor {
   return function (
-    _target: Interceptable,
-    _propertyKey: string,
+    target: Interceptable,
+    propertyKey: string,
     descriptor: TypedPropertyDescriptor<EventTypes[E][0]>
   ): PropertyDescriptor {
     const metadata = {
       ...eventInterceptorMetadataDefaults,
       ...eventMetadata,
     };
+    debug(
+      `Attaching interceptor for event "${metadata.eventName}" (placement: ${metadata.placement}) onto ${target.constructor.name}::${propertyKey}`
+    );
 
     if (descriptor.value === undefined) {
       throw new Error(
@@ -277,13 +351,3 @@ export function eventInterceptor<E extends keyof EventTypes>(
     return descriptor;
   };
 }
-
-export function tap(callback: (...args: any) => void) {
-  return function <T extends any[]>(...args: T): T {
-    callback(...args);
-
-    return args;
-  };
-}
-
-export const events = new Events();
