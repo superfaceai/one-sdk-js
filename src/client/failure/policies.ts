@@ -14,7 +14,7 @@ import {
 
 export class FailurePolicyRouter {
   private currentProvider: string | undefined;
-  private allowFailover: boolean;
+  private allowFailover = true;
 
   constructor(
     private readonly usecaseInfo: UsecaseInfo,
