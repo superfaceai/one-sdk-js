@@ -789,6 +789,44 @@ describe('failure policies', () => {
         ).toEqual({ kind: 'continue', timeout: 30_000 });
       });
 
+      it('does not switch back - failover is not allowed', () => {
+        const retryPolicy = new RetryPolicy({
+          profileId,
+          usecaseSafety,
+          usecaseName,
+        });
+        const router = new FailurePolicyRouter(
+          { profileId, usecaseSafety, usecaseName },
+          {
+            first: retryPolicy,
+            second: new RetryPolicy({
+              profileId,
+              usecaseSafety,
+              usecaseName,
+            }),
+            third: new AbortPolicy({ profileId, usecaseSafety, usecaseName }),
+          },
+          ['first', 'second', 'third']
+        );
+
+        //first provider broken
+        retryPolicy.afterFailure({
+          kind: 'network',
+          issue: 'timeout',
+          time: 0,
+          registryCacheAge: 0,
+        });
+
+        //set current
+        router.setCurrentProvider('third');
+
+        //Disable failover
+        router.setAllowFailover(false);
+
+        expect(
+          router.beforeExecution({ time: 0, registryCacheAge: 0 })
+        ).toEqual({ kind: 'continue', timeout: 30_000 });
+      });
       it('switches back to first functional provider with higher priority', () => {
         const retryPolicy = new RetryPolicy({
           profileId,
@@ -935,6 +973,28 @@ describe('failure policies', () => {
             registryCacheAge: 0,
           })
         ).toEqual({ kind: 'switch-provider', provider: 'second' });
+      });
+
+      it('does not switch to another provider - failover not allowed', () => {
+        const router = new FailurePolicyRouter(
+          { profileId, usecaseSafety, usecaseName },
+          {
+            first: new AbortPolicy({ profileId, usecaseSafety, usecaseName }),
+            second: new AbortPolicy({ profileId, usecaseSafety, usecaseName }),
+            third: new AbortPolicy({ profileId, usecaseSafety, usecaseName }),
+          },
+          ['first', 'second', 'third']
+        );
+        router.setCurrentProvider('first');
+        router.setAllowFailover(false);
+        expect(
+          router.afterFailure({
+            kind: 'network',
+            issue: 'timeout',
+            time: 0,
+            registryCacheAge: 0,
+          })
+        ).toEqual({ kind: 'abort', reason: 'abort policy selected' });
       });
 
       it('switches to first functional provider with lesser priority', () => {
