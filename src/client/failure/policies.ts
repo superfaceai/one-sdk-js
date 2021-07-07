@@ -21,7 +21,6 @@ export class FailurePolicyRouter {
     private readonly providersOfUseCase: Record<string, FailurePolicy>,
     private readonly priority: string[]
   ) {
-    this.allowFailover = true;
   }
 
   public getCurrentProvider(): string | undefined {
