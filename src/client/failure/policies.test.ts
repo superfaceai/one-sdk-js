@@ -789,7 +789,7 @@ describe('failure policies', () => {
         ).toEqual({ kind: 'continue', timeout: 30_000 });
       });
 
-      it('doens not switch back - failover is not allowed', () => {
+      it('does not switch back - failover is not allowed', () => {
         const retryPolicy = new RetryPolicy({
           profileId,
           usecaseSafety,
