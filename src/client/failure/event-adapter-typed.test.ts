@@ -1186,6 +1186,125 @@ describe('event-adapter typed', () => {
     expect((await secondEndpoint.getSeenRequests()).length).toEqual(1);
   }, 20000);
 
+  it('use two circuit-breaker policies - switch providers after HTTP 500', async () => {
+    const mockLoadSync = jest.fn();
+
+    const endpoint = await mockServer.get('/first').thenJson(500, {});
+    const secondEndpoint = await mockServer.get('/second').thenJson(200, {});
+
+    const mockSuperJson = new SuperJson({
+      profiles: {
+        ['starwars/character-information']: {
+          version: '1.0.0',
+          defaults: {
+            Test: {
+              providerFailover: true,
+            },
+          },
+          priority: [],
+          providers: {
+            first: {
+              defaults: {
+                Test: {
+                  input: {},
+                  retryPolicy: {
+                    kind: OnFail.CIRCUIT_BREAKER,
+                    maxContiguousRetries: 2,
+                    requestTimeout: 1000,
+                  },
+                },
+              },
+            },
+            second: {
+              defaults: {
+                Test: {
+                  input: {},
+                  retryPolicy: {
+                    kind: OnFail.CIRCUIT_BREAKER,
+                    maxContiguousRetries: 2,
+                    requestTimeout: 1000,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      providers: {
+        first: {
+          security: [],
+        },
+        second: {
+          security: [],
+        },
+      },
+    });
+
+    mockLoadSync.mockReturnValue(ok(mockSuperJson));
+    SuperJson.loadSync = mockLoadSync;
+
+    mockLoadSync.mockReturnValue(ok(mockSuperJson));
+    SuperJson.loadSync = mockLoadSync;
+    const TypedClient = createTypedClient({
+      ['starwars/character-information']: {
+        Test: [undefined, { message: string }],
+      },
+    });
+    const client = new TypedClient();
+
+    //Mocking first bounded provider
+    const firstMockBoundProfileProvider = new BoundProfileProvider(
+      firstMockProfileDocument,
+      firstMockMapDocument,
+      'first',
+      { baseUrl: mockServer.url, security: [] },
+      client
+    );
+    //Mocking first bounded provider
+    const secondMockBoundProfileProvider = new BoundProfileProvider(
+      firstMockProfileDocument,
+      secondMockMapDocument,
+      'second',
+      { baseUrl: mockServer.url, security: [] },
+      client
+    );
+    const cacheBoundProfileProviderSpy = jest
+      .spyOn(client, 'cacheBoundProfileProvider')
+      .mockImplementation(
+        (
+          _profileConfig: ProfileConfiguration,
+          providerConfig: ProviderConfiguration
+        ) => {
+          if (providerConfig.name === 'first') {
+            return new Promise(resolve =>
+              resolve(firstMockBoundProfileProvider)
+            );
+          }
+
+          return new Promise(resolve =>
+            resolve(secondMockBoundProfileProvider)
+          );
+        }
+      );
+
+    const profile = await client.getProfile('starwars/character-information');
+    const useCase = profile.getUseCase('Test');
+    let result = await useCase.perform(undefined);
+
+    expect(result.isOk() && result.value).toEqual({
+      message: 'hello from second provider',
+    });
+    result = await useCase.perform(undefined);
+    expect(result.isOk() && result.value).toEqual({
+      message: 'hello from second provider',
+    });
+
+    //We send request twice - to the first provider url
+    expect((await endpoint.getSeenRequests()).length).toEqual(2);
+    expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(4);
+    expect((await secondEndpoint.getSeenRequests()).length).toEqual(2);
+  }, 20000);
+
   it('use circuit-breaker policy - switch providers after HTTP 500 and switch back - default provider', async () => {
     const mockLoadSync = jest.fn();
 

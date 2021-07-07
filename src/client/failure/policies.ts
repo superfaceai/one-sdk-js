@@ -7,9 +7,11 @@ import {
   UsecaseInfo,
 } from './policy';
 import {
+  AbortResolution,
   ExecutionResolution,
   FailureResolution,
   SuccessResolution,
+  SwitchProviderResolution,
 } from './resolution';
 
 export class FailurePolicyRouter {
@@ -21,6 +23,44 @@ export class FailurePolicyRouter {
     private readonly providersOfUseCase: Record<string, FailurePolicy>,
     private readonly priority: string[]
   ) {}
+
+  private switchProviders(
+    info: ExecutionInfo
+  ): AbortResolution | SwitchProviderResolution {
+    if (!this.currentProvider) {
+      throw new Error('Property currentProvider is not set in Router instance');
+    }
+
+    console.timeLog(
+      'STATE',
+      'current ',
+      this.currentProvider,
+      ' priority ',
+      this.priority,
+      ' providers ',
+      this.providersOfUseCase,
+      ' found provider'
+    );
+
+    //Try to switch providers
+    const indexOfCurrentProvider = this.priority.indexOf(this.currentProvider);
+    const provider = this.priority
+      .filter((_p: string, i: number) => i > indexOfCurrentProvider)
+      .find((p: string) => {
+        return this.providersOfUseCase[p]
+          ? this.providersOfUseCase[p].beforeExecution(info).kind === 'continue'
+          : true;
+      });
+
+    //Priority does not contain another (with lesser priority) provider
+    if (!provider) {
+      return { kind: 'abort', reason: 'no backup provider configured' };
+    }
+    this.currentProvider = provider;
+    console.timeLog('STATE', 'sw to ', this.currentProvider);
+
+    return { kind: 'switch-provider', provider: this.currentProvider };
+  }
 
   public getCurrentProvider(): string | undefined {
     return this.currentProvider;
@@ -69,6 +109,8 @@ export class FailurePolicyRouter {
         provider &&
         !(this.providersOfUseCase[provider] instanceof AbortPolicy)
       ) {
+        console.timeLog('STATE', 'switch forward to ', this.currentProvider);
+
         return {
           kind: 'switch-provider',
           provider,
@@ -77,6 +119,27 @@ export class FailurePolicyRouter {
     }
     const innerResolution =
       this.providersOfUseCase[this.currentProvider].beforeExecution(info);
+
+    if (
+      this.allowFailover &&
+      innerResolution.kind === 'abort' &&
+      this.priority.length > 0
+    ) {
+      console.timeLog(
+        'STATE',
+        'allow',
+        this.allowFailover,
+        ' prio ',
+        this.priority,
+        'be cb inner return ',
+        innerResolution,
+        'cur ',
+        this.currentProvider
+      );
+
+      return this.switchProviders(info);
+    }
+    console.timeLog('STATE', 'RETURN FIN', innerResolution);
 
     return innerResolution;
   }
@@ -97,23 +160,8 @@ export class FailurePolicyRouter {
     ) {
       return innerResolution;
     }
-    //Try to switch providers
-    const indexOfCurrentProvider = this.priority.indexOf(this.currentProvider);
-    const provider = this.priority
-      .filter((_p: string, i: number) => i > indexOfCurrentProvider)
-      .find((p: string) => {
-        return this.providersOfUseCase[p]
-          ? this.providersOfUseCase[p].beforeExecution(info).kind === 'continue'
-          : true;
-      });
 
-    //Priority does not contain another (with lesser priority) provider
-    if (!provider) {
-      return { kind: 'abort', reason: 'no backup provider configured' };
-    }
-    this.currentProvider = provider;
-
-    return { kind: 'switch-provider', provider: this.currentProvider };
+    return this.switchProviders(info);
   }
 
   public afterSuccess(info: ExecutionSuccess): SuccessResolution {
@@ -182,12 +230,16 @@ export class RetryPolicy extends FailurePolicy {
   override beforeExecution(info: ExecutionInfo): ExecutionResolution {
     // positive balance means no backoff
     if (this.balance >= 0) {
+      console.timeLog('STATE', 'retry policy BE contine');
+
       return { kind: 'continue', timeout: this.requestTimeout };
     }
 
     // don't apply backoff if enough time has elapsed since then anyway
     const sinceLastCall = info.time - this.lastCallTime;
     const backoff = Math.max(0, this.backoff.current - sinceLastCall);
+    console.timeLog('STATE', 'retry policy BE backoff');
+    console.timeLog('STATE', 'retry policy BE backoff');
 
     return { kind: 'backoff', backoff: backoff, timeout: this.requestTimeout };
   }
@@ -199,6 +251,8 @@ export class RetryPolicy extends FailurePolicy {
 
     if (-this.streak > this.maxContiguousRetries) {
       // abort when we fail too much
+      console.timeLog('STATE', 'retry policy AF fail to much');
+
       return { kind: 'abort', reason: 'max retries exceeded' };
     }
 
@@ -277,9 +331,12 @@ export class CircuitBreakerPolicy extends FailurePolicy {
     if (this.state === 'open') {
       if (info.time >= this.openTime + this.resetTimeout) {
         this.halfOpen();
+        console.timeLog('STATE', 'CB BE contine');
 
         return { kind: 'continue', timeout: this.inner.requestTimeout };
       } else {
+        console.timeLog('STATE', 'CB BE abort first');
+
         return { kind: 'abort', reason: 'circuit breaker is open' };
       }
     }
@@ -288,6 +345,7 @@ export class CircuitBreakerPolicy extends FailurePolicy {
 
     if (innerResponse.kind === 'abort') {
       this.open(info.time);
+      console.timeLog('STATE', 'CB BE abort second');
 
       return { kind: 'abort', reason: 'circuit breaker is open' };
     }
@@ -298,6 +356,7 @@ export class CircuitBreakerPolicy extends FailurePolicy {
   override afterFailure(info: ExecutionFailure): FailureResolution {
     if (this.state === 'half-open') {
       this.open(info.time);
+      console.timeLog('STATE', 'CB AF abort first');
 
       return { kind: 'abort', reason: 'circuit breaker is open' };
     }
@@ -310,6 +369,7 @@ export class CircuitBreakerPolicy extends FailurePolicy {
 
     if (innerResponse.kind === 'abort') {
       this.open(info.time);
+      console.timeLog('STATE', 'CB AF abort second');
 
       return { kind: 'abort', reason: 'circuit breaker is open' };
     }

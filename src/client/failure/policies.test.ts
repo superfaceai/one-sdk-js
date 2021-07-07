@@ -897,6 +897,40 @@ describe('failure policies', () => {
           provider: 'first',
         });
       });
+
+      it('switches to another provider with lesser priority', () => {
+        const retryPolicy = new CircuitBreakerPolicy(
+          {
+            profileId,
+            usecaseSafety,
+            usecaseName,
+          },
+          1,
+          30_000
+        );
+        const router = new FailurePolicyRouter(
+          { profileId, usecaseSafety, usecaseName },
+          {
+            first: retryPolicy,
+            second: new AbortPolicy({ profileId, usecaseSafety, usecaseName }),
+            third: new AbortPolicy({ profileId, usecaseSafety, usecaseName }),
+          },
+          ['first', 'second', 'third']
+        );
+        //first provider broken
+        retryPolicy.afterFailure({
+          kind: 'network',
+          issue: 'timeout',
+          time: 0,
+          registryCacheAge: 0,
+        });
+
+        router.setCurrentProvider('first');
+
+        expect(
+          router.beforeExecution({ time: 0, registryCacheAge: 0 })
+        ).toEqual({ kind: 'switch-provider', provider: 'second' });
+      });
     });
     describe('afterFailure', () => {
       it('throws if current provider is undefined', () => {
