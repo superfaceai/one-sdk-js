@@ -1,0 +1,70 @@
+@startuml
+
+start
+
+floating note
+	All handlers check event context to only
+	handle events inside usecase perform
+
+	Queued actions are:
+	* ""no-intercept"" - handler forwards
+	* ""recache"" - entire perform is retried with bind cache invalidated for given provider
+	* ""switch-provider"" - entire peform is retried with another provider
+end note
+
+partition bind-and-perform {
+	:pre-bind-and-perform;
+	note right
+		//No handler//
+	end note
+
+	partition perform {
+		:pre-perform;
+		note left
+			//No handler//
+		end note
+
+		partition unhandled-http {
+			partition fetch {
+				:pre-fetch;
+				note left
+					Calls **""beforeExecution""**
+					Adds timeout to args
+					Emits __queued action__
+				end note
+
+				:post-fetch;
+				note right
+					Forwards __queued action__
+					Calls **""afterFailure""** (kind 'network' or 'request')
+					May retry
+					Emits queued action
+				end note
+			}
+			:pre-unhandled-http;
+			note left
+				Forwards __queued action__
+				Calls **""afterFailure""** (kind 'http', code >= 400)
+				May retry
+				Emits queued action
+			end note
+		}
+
+		:post-perform;
+		note right
+			//No handler//
+		end note
+	}
+
+	:post-bind-and-perform;
+	note right
+		Performs __queued action__
+		Calls **""afterSuccess""**
+		May retry
+		// TODO: Catches other kinds of failures?
+	end note
+}
+
+stop
+
+@enduml
