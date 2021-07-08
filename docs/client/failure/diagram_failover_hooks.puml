@@ -14,8 +14,9 @@ end note
 
 partition bind-and-perform {
 	:pre-bind-and-perform;
-	note right
-		//No handler//
+	note left
+		Calls **""beforeExecution""** (failover restore)
+		Emits __queued action__
 	end note
 
 	partition perform {
@@ -38,14 +39,14 @@ partition bind-and-perform {
 					Forwards __queued action__
 					Calls **""afterFailure""** (kind 'network' or 'request')
 					May retry
-					Emits queued action
+					Emits __queued action__
 				end note
 			}
 			:pre-unhandled-http;
 			note left
 				Forwards __queued action__
 				Calls **""afterFailure""** (kind 'http', code >= 400)
-				May retry
+				May retry (by override return value)
 				Emits queued action
 			end note
 		}
