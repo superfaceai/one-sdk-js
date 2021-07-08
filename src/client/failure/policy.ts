@@ -1,3 +1,6 @@
+import { HttpResponse } from '@superfaceai/one-sdk';
+
+import { CrossFetchError } from '../../lib/fetch';
 import {
   ExecutionResolution,
   FailureResolution,
@@ -45,6 +48,15 @@ export type HTTPFailure = {
 export type ExecutionFailure = NetworkFailure | RequestFailure | HTTPFailure;
 
 export type ExecutionSuccess = BaseEvent;
+
+export class FailurePolicyError extends Error {
+  constructor(
+    public readonly reason: string,
+    public readonly originalError?: CrossFetchError | HttpResponse
+  ) {
+    super(reason);
+  }
+}
 
 /**
  * Failure policy governs the behavior of SDK in face of execution (perform) failures.

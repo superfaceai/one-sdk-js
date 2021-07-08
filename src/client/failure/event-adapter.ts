@@ -4,6 +4,7 @@ import { clone, sleep } from '../../lib';
 import { Events } from '../../lib/events';
 import { CrossFetchError } from '../../lib/fetch';
 import { FailurePolicyRouter } from './policies';
+import { FailurePolicyError } from './policy';
 
 const debug = createDebug('superface:failover');
 const debugSensitive = createDebug('superface:failover:sensitive');
@@ -80,7 +81,7 @@ export function registerHooks(hookContext: HooksContext, events: Events): void {
 
         return {
           kind: 'abort',
-          newResult: Promise.reject(new Error(resolution.reason)),
+          newResult: Promise.reject(new FailurePolicyError(resolution.reason)),
         };
 
       case 'recache':
@@ -154,7 +155,9 @@ export function registerHooks(hookContext: HooksContext, events: Events): void {
 
         return {
           kind: 'modify',
-          newResult: Promise.reject(new Error(resolution.reason)),
+          newResult: Promise.reject(
+            new FailurePolicyError(resolution.reason, error)
+          ),
         };
 
       case 'switch-provider':
@@ -217,7 +220,9 @@ export function registerHooks(hookContext: HooksContext, events: Events): void {
 
         return {
           kind: 'abort',
-          newResult: Promise.reject(new Error(resolution.reason)),
+          newResult: Promise.reject(
+            new FailurePolicyError(resolution.reason, response)
+          ),
         };
 
       case 'switch-provider':
