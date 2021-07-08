@@ -154,17 +154,17 @@ export function normalizeUsecaseDefaults(
   for (const [usecase, defs] of Object.entries(defaults)) {
     const previousInput = castToNonPrimitive(normalized[usecase]?.input) ?? {};
 
+    let providerFailover = defs.providerFailover;
+    if (providerFailover === undefined) {
+      providerFailover = normalized[usecase]?.providerFailover;
+    }
+
     normalized[usecase] = {
       input: mergeVariables(
         previousInput,
         castToNonPrimitive(defs.input) ?? {}
       ),
-      providerFailover:
-        defs.providerFailover !== undefined
-          ? defs.providerFailover
-          : normalized[usecase]?.providerFailover !== undefined
-          ? normalized[usecase].providerFailover
-          : false,
+      providerFailover: providerFailover ?? false,
     };
   }
 

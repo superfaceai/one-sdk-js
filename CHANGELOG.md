@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- `SuperfaceClient::getProvider` throws if the provider is not found
+- `SuperfaceClient::getProviderForProfile` no longer takes an optional non-documented preference argument
+- `FailurePolicyRouter::constructor` now takes a function which is called to instantiate policy for specified provider
+
+### Fixed
+- 
+
 ## [0.0.29-beta.4] - 2021-07-02
 
 ## [0.0.29-beta.3] - 2021-07-02

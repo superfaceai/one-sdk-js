@@ -1246,7 +1246,7 @@ describe('event-adapter', () => {
 
     //We send request twice - to the first provider url
     expect((await endpoint.getSeenRequests()).length).toEqual(2);
-    expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(4);
+    expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(3);
     expect((await secondEndpoint.getSeenRequests()).length).toEqual(2);
   }, 20000);
 
@@ -1366,7 +1366,7 @@ describe('event-adapter', () => {
     expect(result.isOk() && result.value).toEqual({ message: 'hello' });
     //We send request twice
     expect((await endpoint.getSeenRequests()).length).toEqual(3);
-    expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(3);
+    expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(4);
     expect((await secondEndpoint.getSeenRequests()).length).toEqual(1);
   }, 40000);
 

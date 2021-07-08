@@ -741,8 +741,7 @@ describe('failure policies', () => {
     describe('setCurrentProvider', () => {
       it('sets current provider', () => {
         const router = new FailurePolicyRouter(
-          { profileId, usecaseSafety, usecaseName },
-          {},
+          () => new AbortPolicy({ profileId, usecaseSafety, usecaseName }),
           []
         );
 
@@ -765,8 +764,7 @@ describe('failure policies', () => {
     describe('beforeExecution', () => {
       it('throws if current provider is undefined', () => {
         const router = new FailurePolicyRouter(
-          { profileId, usecaseSafety, usecaseName },
-          {},
+          () => new AbortPolicy({ profileId, usecaseSafety, usecaseName }),
           []
         );
         expect(() =>
@@ -778,8 +776,7 @@ describe('failure policies', () => {
 
       it('returns inner resolution', () => {
         const router = new FailurePolicyRouter(
-          { profileId, usecaseSafety, usecaseName },
-          {},
+          () => new AbortPolicy({ profileId, usecaseSafety, usecaseName }),
           []
         );
         router.setCurrentProvider('provider');
@@ -796,15 +793,18 @@ describe('failure policies', () => {
           usecaseName,
         });
         const router = new FailurePolicyRouter(
-          { profileId, usecaseSafety, usecaseName },
-          {
-            first: retryPolicy,
-            second: new RetryPolicy({
-              profileId,
-              usecaseSafety,
-              usecaseName,
-            }),
-            third: new AbortPolicy({ profileId, usecaseSafety, usecaseName }),
+          provider => {
+            if (provider === 'first') {
+              return retryPolicy;
+            } else if (provider === 'second') {
+              return new RetryPolicy({
+                profileId,
+                usecaseSafety,
+                usecaseName,
+              });
+            } else {
+              return new AbortPolicy({ profileId, usecaseSafety, usecaseName });
+            }
           },
           ['first', 'second', 'third']
         );
@@ -834,15 +834,18 @@ describe('failure policies', () => {
           usecaseName,
         });
         const router = new FailurePolicyRouter(
-          { profileId, usecaseSafety, usecaseName },
-          {
-            first: retryPolicy,
-            second: new RetryPolicy({
-              profileId,
-              usecaseSafety,
-              usecaseName,
-            }),
-            third: new AbortPolicy({ profileId, usecaseSafety, usecaseName }),
+          provider => {
+            if (provider === 'first') {
+              return retryPolicy;
+            } else if (provider === 'second') {
+              return new RetryPolicy({
+                profileId,
+                usecaseSafety,
+                usecaseName,
+              });
+            } else {
+              return new AbortPolicy({ profileId, usecaseSafety, usecaseName });
+            }
           },
           ['first', 'second', 'third']
         );
@@ -869,19 +872,22 @@ describe('failure policies', () => {
 
       it('switches back to functional provider with higher priority', () => {
         const router = new FailurePolicyRouter(
-          { profileId, usecaseSafety, usecaseName },
-          {
-            first: new RetryPolicy({
-              profileId,
-              usecaseSafety,
-              usecaseName,
-            }),
-            second: new RetryPolicy({
-              profileId,
-              usecaseSafety,
-              usecaseName,
-            }),
-            third: new AbortPolicy({ profileId, usecaseSafety, usecaseName }),
+          provider => {
+            if (provider === 'first') {
+              return new RetryPolicy({
+                profileId,
+                usecaseSafety,
+                usecaseName,
+              });
+            } else if (provider === 'second') {
+              return new RetryPolicy({
+                profileId,
+                usecaseSafety,
+                usecaseName,
+              });
+            } else {
+              return new AbortPolicy({ profileId, usecaseSafety, usecaseName });
+            }
           },
           ['first', 'second', 'third']
         );
@@ -909,11 +915,14 @@ describe('failure policies', () => {
           30_000
         );
         const router = new FailurePolicyRouter(
-          { profileId, usecaseSafety, usecaseName },
-          {
-            first: retryPolicy,
-            second: new AbortPolicy({ profileId, usecaseSafety, usecaseName }),
-            third: new AbortPolicy({ profileId, usecaseSafety, usecaseName }),
+          provider => {
+            if (provider === 'first') {
+              return retryPolicy;
+            } else if (provider === 'second') {
+              return new AbortPolicy({ profileId, usecaseSafety, usecaseName });
+            } else {
+              return new AbortPolicy({ profileId, usecaseSafety, usecaseName });
+            }
           },
           ['first', 'second', 'third']
         );
@@ -935,8 +944,7 @@ describe('failure policies', () => {
     describe('afterFailure', () => {
       it('throws if current provider is undefined', () => {
         const router = new FailurePolicyRouter(
-          { profileId, usecaseSafety, usecaseName },
-          {},
+          () => new AbortPolicy({ profileId, usecaseSafety, usecaseName }),
           []
         );
         expect(() =>
@@ -953,8 +961,7 @@ describe('failure policies', () => {
 
       it('returns inner resolution', () => {
         const router = new FailurePolicyRouter(
-          { profileId, usecaseSafety, usecaseName },
-          { first: new RetryPolicy({ profileId, usecaseSafety, usecaseName }) },
+          () => new RetryPolicy({ profileId, usecaseSafety, usecaseName }),
           ['first']
         );
         router.setCurrentProvider('first');
@@ -971,8 +978,7 @@ describe('failure policies', () => {
 
       it('aborts when there is not another provider', () => {
         const router = new FailurePolicyRouter(
-          { profileId, usecaseSafety, usecaseName },
-          { first: new AbortPolicy({ profileId, usecaseSafety, usecaseName }) },
+          () => new AbortPolicy({ profileId, usecaseSafety, usecaseName }),
           ['first']
         );
         router.setCurrentProvider('first');
@@ -989,12 +995,7 @@ describe('failure policies', () => {
 
       it('switches to another provider with lesser priority', () => {
         const router = new FailurePolicyRouter(
-          { profileId, usecaseSafety, usecaseName },
-          {
-            first: new AbortPolicy({ profileId, usecaseSafety, usecaseName }),
-            second: new AbortPolicy({ profileId, usecaseSafety, usecaseName }),
-            third: new AbortPolicy({ profileId, usecaseSafety, usecaseName }),
-          },
+          () => new AbortPolicy({ profileId, usecaseSafety, usecaseName }),
           ['first', 'second', 'third']
         );
         router.setCurrentProvider('first');
@@ -1011,12 +1012,7 @@ describe('failure policies', () => {
 
       it('does not switch to another provider - failover not allowed', () => {
         const router = new FailurePolicyRouter(
-          { profileId, usecaseSafety, usecaseName },
-          {
-            first: new AbortPolicy({ profileId, usecaseSafety, usecaseName }),
-            second: new AbortPolicy({ profileId, usecaseSafety, usecaseName }),
-            third: new AbortPolicy({ profileId, usecaseSafety, usecaseName }),
-          },
+          () => new AbortPolicy({ profileId, usecaseSafety, usecaseName }),
           ['first', 'second', 'third']
         );
         router.setCurrentProvider('first');
@@ -1043,11 +1039,14 @@ describe('failure policies', () => {
         );
 
         const router = new FailurePolicyRouter(
-          { profileId, usecaseSafety, usecaseName },
-          {
-            first: new AbortPolicy({ profileId, usecaseSafety, usecaseName }),
-            second: retryPolicy,
-            third: new AbortPolicy({ profileId, usecaseSafety, usecaseName }),
+          provider => {
+            if (provider === 'first') {
+              return new AbortPolicy({ profileId, usecaseSafety, usecaseName });
+            } else if (provider === 'second') {
+              return retryPolicy;
+            } else {
+              return new AbortPolicy({ profileId, usecaseSafety, usecaseName });
+            }
           },
           ['first', 'second', 'third']
         );
@@ -1073,8 +1072,7 @@ describe('failure policies', () => {
     describe('afterSuccess', () => {
       it('throws if current provider is undefined', () => {
         const router = new FailurePolicyRouter(
-          { profileId, usecaseSafety, usecaseName },
-          {},
+          () => new AbortPolicy({ profileId, usecaseSafety, usecaseName }),
           []
         );
         expect(() =>
@@ -1086,10 +1084,7 @@ describe('failure policies', () => {
 
       it('returns inner resolution', () => {
         const router = new FailurePolicyRouter(
-          { profileId, usecaseSafety, usecaseName },
-          {
-            first: new AbortPolicy({ profileId, usecaseSafety, usecaseName }),
-          },
+          () => new AbortPolicy({ profileId, usecaseSafety, usecaseName }),
           ['first']
         );
         router.setCurrentProvider('first');
