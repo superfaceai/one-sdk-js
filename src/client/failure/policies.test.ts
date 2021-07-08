@@ -26,15 +26,15 @@ describe('failure policies', () => {
     it('always aborts on failure', () => {
       expect(policy.afterFailure(failure)).toStrictEqual({
         kind: 'abort',
-        reason: 'abort policy selected',
+        reason: expect.stringContaining('abort'),
       });
       expect(policy.afterFailure(failure)).toStrictEqual({
         kind: 'abort',
-        reason: 'abort policy selected',
+        reason: expect.stringContaining('abort'),
       });
       expect(policy.afterFailure(failure)).toStrictEqual({
         kind: 'abort',
-        reason: 'abort policy selected',
+        reason: expect.stringContaining('abort'),
       });
     });
 
@@ -88,7 +88,7 @@ describe('failure policies', () => {
 
       expect(policy.afterFailure(failure)).toStrictEqual({
         kind: 'abort',
-        reason: 'max retries exceeded',
+        reason: expect.stringContaining(`Max (3) retries exceeded`),
       });
     });
 
@@ -255,7 +255,7 @@ describe('failure policies', () => {
 
       expect(policy.afterFailure(failure)).toStrictEqual({
         kind: 'abort',
-        reason: 'max retries exceeded',
+        reason: expect.stringContaining('Max (3) retries exceeded'),
       });
 
       policy.reset();
@@ -288,7 +288,7 @@ describe('failure policies', () => {
 
       expect(policy.afterFailure(failure)).toStrictEqual({
         kind: 'abort',
-        reason: 'max retries exceeded',
+        reason: expect.stringContaining('Max (3) retries exceeded'),
       });
 
       policy.reset();
@@ -321,7 +321,7 @@ describe('failure policies', () => {
 
       expect(policy.afterFailure(failure)).toStrictEqual({
         kind: 'abort',
-        reason: 'max retries exceeded',
+        reason: expect.stringContaining('Max (3) retries exceeded'),
       });
     });
   });
@@ -442,11 +442,11 @@ describe('failure policies', () => {
 
       expect(policy.afterFailure(failure)).toStrictEqual({
         kind: 'abort',
-        reason: 'circuit breaker is open',
+        reason: expect.stringContaining('Circuit breaker is open'),
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'abort',
-        reason: 'circuit breaker is open',
+        reason: expect.stringContaining('circuit breaker is open'),
       });
     });
 
@@ -483,7 +483,7 @@ describe('failure policies', () => {
 
       expect(policy.afterFailure(failure)).toStrictEqual({
         kind: 'abort',
-        reason: 'circuit breaker is open',
+        reason: expect.stringContaining('Circuit breaker is open'),
       });
 
       expect(
@@ -524,7 +524,7 @@ describe('failure policies', () => {
 
       expect(policy.afterFailure(failure)).toStrictEqual({
         kind: 'abort',
-        reason: 'circuit breaker is open',
+        reason: expect.stringContaining('Circuit breaker is open'),
       });
 
       expect(
@@ -532,12 +532,12 @@ describe('failure policies', () => {
       ).toStrictEqual({ kind: 'continue', timeout: 40 });
       expect(policy.afterFailure(failure)).toStrictEqual({
         kind: 'abort',
-        reason: 'circuit breaker is open',
+        reason: expect.stringContaining('Circuit breaker is open'),
       });
 
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'abort',
-        reason: 'circuit breaker is open',
+        reason: expect.stringContaining('circuit breaker is open'),
       });
     });
 
@@ -574,7 +574,7 @@ describe('failure policies', () => {
 
       expect(policy.afterFailure(failure)).toStrictEqual({
         kind: 'abort',
-        reason: 'circuit breaker is open',
+        reason: expect.stringContaining('Circuit breaker is open'),
       });
 
       expect(
@@ -650,11 +650,11 @@ describe('failure policies', () => {
 
       expect(policy.afterFailure(failure)).toStrictEqual({
         kind: 'abort',
-        reason: 'circuit breaker is open',
+        reason: expect.stringContaining('Circuit breaker is open'),
       });
-      expect(policy.beforeExecution(event)).toStrictEqual({
+      expect(policy.beforeExecution(event)).toEqual({
         kind: 'abort',
-        reason: 'circuit breaker is open',
+        reason: expect.stringContaining('circuit breaker is open'),
       });
 
       policy.reset();
@@ -687,11 +687,11 @@ describe('failure policies', () => {
 
       expect(policy.afterFailure(failure)).toStrictEqual({
         kind: 'abort',
-        reason: 'circuit breaker is open',
+        reason: expect.stringContaining('Circuit breaker is open'),
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'abort',
-        reason: 'circuit breaker is open',
+        reason: expect.stringContaining('circuit breaker is open'),
       });
 
       policy.reset();
@@ -724,11 +724,11 @@ describe('failure policies', () => {
 
       expect(policy.afterFailure(failure)).toStrictEqual({
         kind: 'abort',
-        reason: 'circuit breaker is open',
+        reason: expect.stringContaining('Circuit breaker is open'),
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'abort',
-        reason: 'circuit breaker is open',
+        reason: expect.stringContaining('circuit breaker is open'),
       });
     });
   });
@@ -757,7 +757,12 @@ describe('failure policies', () => {
             time: 0,
             registryCacheAge: 0,
           })
-        ).toEqual({ kind: 'abort', reason: 'abort policy selected' });
+        ).toEqual({
+          kind: 'abort',
+          reason: expect.stringContaining(
+            'Request ended with network error there is an issue with: timeout'
+          ),
+        });
       });
     });
 
@@ -1024,7 +1029,12 @@ describe('failure policies', () => {
             time: 0,
             registryCacheAge: 0,
           })
-        ).toEqual({ kind: 'abort', reason: 'abort policy selected' });
+        ).toEqual({
+          kind: 'abort',
+          reason: expect.stringContaining(
+            'Request ended with network error there is an issue with: timeout'
+          ),
+        });
       });
 
       it('switches to first functional provider with lesser priority', () => {

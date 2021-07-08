@@ -1,5 +1,4 @@
-import { HttpResponse } from '@superfaceai/one-sdk';
-
+import { HttpResponse } from '../../internal/interpreter/http';
 import { CrossFetchError } from '../../lib/fetch';
 import {
   ExecutionResolution,
