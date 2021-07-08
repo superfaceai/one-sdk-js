@@ -1741,3 +1741,259 @@ describe('event-adapter', () => {
     expect((await secondEndpoint.getSeenRequests()).length).toEqual(1);
   }, 20000);
 });
+
+describe('hook context', () => {
+  beforeEach(async () => {
+    await mockServer.start();
+  });
+
+  afterEach(async () => {
+    await mockServer.stop();
+  });
+
+  it('preserves hook context within one client', async () => {
+    const mockLoadSync = jest.fn();
+
+    const endpoint = await mockServer.get('/first').thenJson(500, {});
+    const secondEndpoint = await mockServer.get('/second').thenJson(200, {});
+
+    const mockSuperJson = new SuperJson({
+      profiles: {
+        ['starwars/character-information']: {
+          version: '1.0.0',
+          defaults: {
+            Test: {
+              providerFailover: true,
+            },
+          },
+          priority: [],
+          providers: {
+            provider: {
+              defaults: {
+                Test: {
+                  input: {},
+                  retryPolicy: {
+                    kind: OnFail.CIRCUIT_BREAKER,
+                    maxContiguousRetries: 2,
+                    requestTimeout: 1000,
+                  },
+                },
+              },
+            },
+            second: {
+              defaults: {
+                Test: {
+                  input: {},
+                  retryPolicy: {
+                    kind: OnFail.CIRCUIT_BREAKER,
+                    maxContiguousRetries: 2,
+                    requestTimeout: 1000,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      providers: {
+        provider: {
+          security: [],
+        },
+        second: {
+          security: [],
+        },
+      },
+    });
+
+    mockLoadSync.mockReturnValue(ok(mockSuperJson));
+    SuperJson.loadSync = mockLoadSync;
+
+    const client = new SuperfaceClient();
+    {
+      const firstMockBoundProfileProvider = new BoundProfileProvider(
+        firstMockProfileDocument,
+        firstMockMapDocument,
+        'provider',
+        { baseUrl: mockServer.url, security: [] },
+        client
+      );
+      const secondMockBoundProfileProvider = new BoundProfileProvider(
+        firstMockProfileDocument,
+        secondMockMapDocument,
+        'second',
+        { baseUrl: mockServer.url, security: [] },
+        client
+      );
+      jest
+        .spyOn(client, 'cacheBoundProfileProvider')
+        .mockImplementation(
+          (
+            _profileConfig: ProfileConfiguration,
+            providerConfig: ProviderConfiguration
+          ) => {
+            if (providerConfig.name === 'provider') {
+              return Promise.resolve(firstMockBoundProfileProvider);
+            }
+
+            return Promise.resolve(secondMockBoundProfileProvider);
+          }
+        );
+    }
+
+    let result = await (await client.getProfile('starwars/character-information')).getUseCase('Test').perform(undefined);
+    expect(result.isOk() && result.value).toEqual({
+      message: 'hello from second provider',
+    });
+
+    result = await (await client.getProfile('starwars/character-information')).getUseCase('Test').perform(undefined);
+    expect(result.isOk() && result.value).toEqual({
+      message: 'hello from second provider',
+    });
+
+    // the initial two failover requests
+    expect((await endpoint.getSeenRequests()).length).toEqual(2);
+
+    // the two results
+    expect((await secondEndpoint.getSeenRequests()).length).toEqual(2);
+  });
+
+  it('does not preserve hook context across clients', async () => {
+    const mockLoadSync = jest.fn();
+
+    const endpoint = await mockServer.get('/first').thenJson(500, {});
+    const secondEndpoint = await mockServer.get('/second').thenJson(200, {});
+
+    const mockSuperJson = new SuperJson({
+      profiles: {
+        ['starwars/character-information']: {
+          version: '1.0.0',
+          defaults: {
+            Test: {
+              providerFailover: true,
+            },
+          },
+          priority: [],
+          providers: {
+            provider: {
+              defaults: {
+                Test: {
+                  input: {},
+                  retryPolicy: {
+                    kind: OnFail.CIRCUIT_BREAKER,
+                    maxContiguousRetries: 2,
+                    requestTimeout: 1000,
+                  },
+                },
+              },
+            },
+            second: {
+              defaults: {
+                Test: {
+                  input: {},
+                  retryPolicy: {
+                    kind: OnFail.CIRCUIT_BREAKER,
+                    maxContiguousRetries: 2,
+                    requestTimeout: 1000,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      providers: {
+        provider: {
+          security: [],
+        },
+        second: {
+          security: [],
+        },
+      },
+    });
+
+    mockLoadSync.mockReturnValue(ok(mockSuperJson));
+    SuperJson.loadSync = mockLoadSync;
+
+    {
+      const client = new SuperfaceClient();
+      {
+        const firstMockBoundProfileProvider = new BoundProfileProvider(
+          firstMockProfileDocument,
+          firstMockMapDocument,
+          'provider',
+          { baseUrl: mockServer.url, security: [] },
+          client
+        );
+        const secondMockBoundProfileProvider = new BoundProfileProvider(
+          firstMockProfileDocument,
+          secondMockMapDocument,
+          'second',
+          { baseUrl: mockServer.url, security: [] },
+          client
+        );
+        jest
+          .spyOn(client, 'cacheBoundProfileProvider')
+          .mockImplementation(
+            (
+              _profileConfig: ProfileConfiguration,
+              providerConfig: ProviderConfiguration
+            ) => {
+              if (providerConfig.name === 'provider') {
+                return Promise.resolve(firstMockBoundProfileProvider);
+              }
+
+              return Promise.resolve(secondMockBoundProfileProvider);
+            }
+          );
+      }
+      const result = await (await client.getProfile('starwars/character-information')).getUseCase('Test').perform(undefined);
+      expect(result.isOk() && result.value).toEqual({
+        message: 'hello from second provider',
+      });
+    }
+
+    {
+      const client = new SuperfaceClient();
+      {
+        const firstMockBoundProfileProvider = new BoundProfileProvider(
+          firstMockProfileDocument,
+          firstMockMapDocument,
+          'provider',
+          { baseUrl: mockServer.url, security: [] },
+          client
+        );
+        const secondMockBoundProfileProvider = new BoundProfileProvider(
+          firstMockProfileDocument,
+          secondMockMapDocument,
+          'second',
+          { baseUrl: mockServer.url, security: [] },
+          client
+        );
+        jest
+          .spyOn(client, 'cacheBoundProfileProvider')
+          .mockImplementation(
+            (
+              _profileConfig: ProfileConfiguration,
+              providerConfig: ProviderConfiguration
+            ) => {
+              if (providerConfig.name === 'provider') {
+                return Promise.resolve(firstMockBoundProfileProvider);
+              }
+
+              return Promise.resolve(secondMockBoundProfileProvider);
+            }
+          );
+      }
+      const result = await (await client.getProfile('starwars/character-information')).getUseCase('Test').perform(undefined);
+      expect(result.isOk() && result.value).toEqual({
+        message: 'hello from second provider',
+      });
+    }
+
+    // the initial two failover requests for each client
+    expect((await endpoint.getSeenRequests()).length).toEqual(4);
+
+    // the two results
+    expect((await secondEndpoint.getSeenRequests()).length).toEqual(2);
+  });
+});
