@@ -8,6 +8,7 @@ import createDebug from 'debug';
 import { UseCase } from '../client';
 import { MapInterpreterEventAdapter } from '../client/failure/map-interpreter-adapter';
 import { FetchInstance } from '../internal/interpreter/http/interfaces';
+import { CrossFetchError } from './fetch';
 
 const debug = createDebug('superface:events');
 
@@ -46,6 +47,7 @@ export type BeforeHookResult<Target extends AsyncFunction> = MaybePromise<
       kind: 'abort';
       newResult: ReturnType<Target>;
     }
+  | void
 >;
 
 export type BeforeHook<
@@ -68,6 +70,7 @@ export type AfterHookResult<Target extends AsyncFunction> = MaybePromise<
       kind: 'retry';
       newArgs?: Parameters<Target>;
     }
+  | void
 >;
 
 export type AfterHook<
@@ -84,9 +87,28 @@ export type PerformContext = EventContextBase & {
   provider: string;
 };
 
+export type ProviderSwitchContext = EventContextBase & {
+  provider: string;
+  toProvider?: string;
+  profile: string;
+  reason: CrossFetchError;
+};
+
+export type SuccessContext = EventContextBase & {
+  profile: string;
+  usecase: string;
+  provider: string;
+};
+export type FailureContext = EventContextBase & {
+  profile: string;
+  usecase: string;
+  provider: string;
+};
+
 type VoidEventTypes = {
-  failure: EventContextBase;
-  success: EventContextBase;
+  failure: FailureContext;
+  success: SuccessContext;
+  'provider-switch': ProviderSwitchContext;
 };
 
 type VoidEventHook<EventContext extends EventContextBase> = (
@@ -181,20 +203,17 @@ export class Events {
         }
         const hookResult = await callback(...params);
         debug(
-          `Event "${event}" listener ${i} result: ${hookResult.kind as string}`
+          `Event "${event}" listener ${i} result: ${
+            (hookResult?.kind ?? 'continue') as string
+          }`
         );
-
-        if (hookResult.kind === 'modify') {
+        if (hookResult === undefined || hookResult.kind === 'continue') {
+          // DO NOTHING YAY!
+        } else if (hookResult.kind === 'modify') {
           params = [context, hookResult.newArgs] as any;
           subresult = hookResult;
-        }
-
-        if (hookResult.kind === 'abort' || hookResult.kind === 'retry') {
+        } else if (hookResult.kind === 'abort' || hookResult.kind === 'retry') {
           return hookResult;
-        }
-
-        if (hookResult.kind === 'continue') {
-          // DO NOTHING YAY!
         }
       }
     }
@@ -263,16 +282,12 @@ function replacementFunction<E extends keyof EventTypes>(
           functionArgs,
         ] as any);
 
-        if (hookResult.kind === 'modify') {
-          functionArgs = hookResult.newArgs as Parameters<EventTypes[E][0]>;
-        }
-
-        if (hookResult.kind === 'abort') {
-          return hookResult.newResult;
-        }
-
-        if (hookResult.kind === 'continue') {
+        if (hookResult === undefined || hookResult.kind === 'continue') {
           // DO NOTHING YAY!
+        } else if (hookResult.kind === 'modify') {
+          functionArgs = hookResult.newArgs as Parameters<EventTypes[E][0]>;
+        } else if (hookResult.kind === 'abort') {
+          return hookResult.newResult;
         }
       }
 
@@ -299,7 +314,7 @@ function replacementFunction<E extends keyof EventTypes>(
           result,
         ] as any);
 
-        if (hookResult.kind === 'continue') {
+        if (hookResult === undefined || hookResult.kind === 'continue') {
           return result;
         }
 

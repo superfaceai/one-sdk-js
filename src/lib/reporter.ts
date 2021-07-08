@@ -1,3 +1,5 @@
+import createDebug from 'debug';
+
 import { Config } from '../config';
 import {
   FetchInstance,
@@ -5,7 +7,9 @@ import {
   stringBody,
 } from '../internal/interpreter/http/interfaces';
 import { AnonymizedSuperJsonDocument, SuperJson } from '../internal/superjson';
-import { CrossFetch } from './fetch';
+import { CrossFetch, CrossFetchError } from './fetch';
+
+const debug = createDebug('superface:metric-reporter');
 
 type EventBase = {
   event_type: 'SDKInit' | 'Metrics' | 'ProviderChange';
@@ -40,7 +44,34 @@ export const enum FailoverReason {
   NETWORK_ERROR_SSL = 'NETWORK_ERROR_SSL',
   NETWORK_ERROR_CONNECTION = 'NETWORK_ERROR_CONNECTION',
   NETWORK_ERROR_TIMEOUT = 'NETWORK_ERROR_TIMEOUT',
+  REQUEST_ERROR_TIMEOUT = 'REQUEST_ERROR_TIMEOUT',
+  REQUEST_ERROR_ABORT = 'REQUEST_ERROR_ABORT',
   HTTP_ERROR_500 = 'HTTP_ERROR_500',
+}
+
+// TODO: Make this better
+function crossFetchErrorToFailoverReason(
+  error: CrossFetchError
+): FailoverReason {
+  if (error.kind === 'network') {
+    switch (error.issue) {
+      case 'dns':
+        return FailoverReason.NETWORK_ERROR_DNS;
+      case 'timeout':
+        return FailoverReason.NETWORK_ERROR_TIMEOUT;
+      case 'unsigned-ssl':
+        return FailoverReason.NETWORK_ERROR_SSL;
+      case 'reject':
+        return FailoverReason.NETWORK_ERROR_CONNECTION;
+    }
+  } else {
+    switch (error.issue) {
+      case 'timeout':
+        return FailoverReason.REQUEST_ERROR_TIMEOUT;
+      case 'abort':
+        return FailoverReason.REQUEST_ERROR_ABORT;
+    }
+  }
 }
 
 type ProviderChangeEvent = EventBase & {
@@ -48,7 +79,7 @@ type ProviderChangeEvent = EventBase & {
   data: {
     profile: string;
     from_provider: string;
-    to_provider: string;
+    to_provider?: string;
     failover_reasons?: {
       reason: FailoverReason;
       occurred_at: string;
@@ -77,10 +108,10 @@ export type PerformMetricsInput = EventInputBase & {
 export type ProviderChangeInput = EventInputBase & {
   eventType: 'ProviderChange';
   from: string;
-  to: string;
+  to?: string;
   profile: string;
   reasons?: {
-    reason: FailoverReason;
+    reason: CrossFetchError;
     occurredAt: Date;
   }[];
 };
@@ -139,7 +170,6 @@ export class MetricReporter {
     eventType: _,
     ...metrics
   }: PerformMetricsInput): void {
-    console.log(metrics);
     this.performMetrics.push(metrics);
     if (this.timer !== undefined) {
       clearTimeout(this.timer);
@@ -151,7 +181,7 @@ export class MetricReporter {
         clearTimeout(this.timer);
         this.timer = undefined;
       }
-    }, 10000);
+    }, Config.metricDebounceTime);
   }
 
   private reportProviderChangeEvent(event: ProviderChangeInput): void {
@@ -181,7 +211,7 @@ export class MetricReporter {
         from_provider: input.from,
         to_provider: input.to,
         failover_reasons: input.reasons?.map(reason => ({
-          reason: reason.reason,
+          reason: crossFetchErrorToFailoverReason(reason.reason),
           occurred_at: reason.occurredAt.toISOString(),
         })),
       },
@@ -235,14 +265,6 @@ export class MetricReporter {
   // TODO: move this to other http calls
   private sendEvent(payload: SDKEvent) {
     const url = new URL('/insights/sdk_event', Config.superfaceApiUrl).href;
-    console.log(
-      'calling',
-      url,
-      'with',
-      require('util').inspect(payload, false, 10),
-      'and',
-      this.sdkToken
-    );
     void this.fetchInstance
       .fetch(url, {
         method: 'POST',
@@ -254,6 +276,16 @@ export class MetricReporter {
             : {}),
         },
       })
-      .then(console.log);
+      .then(result => {
+        debug(
+          'Succesfully sent metrics. Sent: ',
+          payload.data,
+          'Response: ',
+          result
+        );
+      })
+      .catch(error => {
+        debug('Unsuccesfully tried to send metrics: ', error);
+      });
   }
 }

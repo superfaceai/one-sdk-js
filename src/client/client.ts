@@ -2,7 +2,7 @@ import { Config } from '../config';
 import { SuperJson } from '../internal';
 import { SDKExecutionError } from '../internal/errors';
 import { NonPrimitive } from '../internal/interpreter/variables';
-import { Events, PerformContext } from '../lib/events';
+import { Events, FailureContext, SuccessContext } from '../lib/events';
 import { exists } from '../lib/io';
 import { MetricReporter } from '../lib/reporter';
 import {
@@ -185,9 +185,8 @@ export abstract class SuperfaceClientBase extends Events {
   }
 
   private hookMetrics(): void {
-    console.log('metrics be hooked');
     process.on('beforeExit', () => this.metricReporter?.flush());
-    this.on('post-perform', { priority: 0 }, (context: PerformContext) => {
+    this.on('success', { priority: 0 }, (context: SuccessContext) => {
       this.metricReporter?.reportEvent({
         eventType: 'PerformMetrics',
         profile: context.profile,
@@ -197,6 +196,27 @@ export abstract class SuperfaceClientBase extends Events {
       });
 
       return { kind: 'continue' };
+    });
+    this.on('failure', { priority: 0 }, (context: FailureContext) => {
+      this.metricReporter?.reportEvent({
+        eventType: 'PerformMetrics',
+        profile: context.profile,
+        success: false,
+        provider: context.provider,
+        occurredAt: context.time,
+      });
+
+      return { kind: 'continue' };
+    });
+    this.on('provider-switch', { priority: 1000 }, context => {
+      this.metricReporter?.reportEvent({
+        eventType: 'ProviderChange',
+        profile: context.profile,
+        from: context.provider,
+        to: context.toProvider,
+        occurredAt: context.time,
+        reasons: [{ reason: context.reason, occurredAt: context.time }],
+      });
     });
   }
 }

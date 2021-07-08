@@ -134,6 +134,14 @@ export function registerHooks(hookContext: HooksContext, events: Events): void {
       return { kind: 'continue' };
     } catch (err: unknown) {
       error = err as CrossFetchError;
+      void events.emit('failure', [
+        {
+          time: new Date(),
+          usecase: context.usecase,
+          profile: context.profile,
+          provider: context.provider,
+        },
+      ]);
     }
 
     const resolution = performContext.router.afterFailure({
@@ -150,6 +158,15 @@ export function registerHooks(hookContext: HooksContext, events: Events): void {
         return { kind: 'retry' };
 
       case 'abort':
+        void events.emit('provider-switch', [
+          {
+            time: new Date(),
+            provider: context.provider,
+            usecase: context.usecase,
+            profile: context.profile,
+            reason: error,
+          },
+        ]);
         performContext.queuedAction = { kind: 'no-intercept' };
 
         return {
@@ -158,6 +175,16 @@ export function registerHooks(hookContext: HooksContext, events: Events): void {
         };
 
       case 'switch-provider':
+        void events.emit('provider-switch', [
+          {
+            time: new Date(),
+            toProvider: resolution.provider,
+            provider: context.provider,
+            usecase: context.usecase,
+            profile: context.profile,
+            reason: error,
+          },
+        ]);
         performContext.queuedAction = {
           kind: 'switch-provider',
           provider: resolution.provider,
@@ -283,6 +310,14 @@ export function registerHooks(hookContext: HooksContext, events: Events): void {
     }
 
     if (error === undefined) {
+      void events.emit('success', [
+        {
+          time: new Date(),
+          usecase: context.usecase,
+          profile: context.profile,
+          provider: context.provider,
+        },
+      ]);
       const resolution = performContext.router.afterSuccess({
         time: context.time.getTime(),
         registryCacheAge: 0, // TODO
@@ -292,6 +327,15 @@ export function registerHooks(hookContext: HooksContext, events: Events): void {
         return { kind: 'continue' };
       }
     }
+
+    void events.emit('failure', [
+      {
+        time: new Date(),
+        usecase: context.usecase,
+        profile: context.profile,
+        provider: context.provider,
+      },
+    ]);
 
     // TODO: Peform-level failure here
     // const resolution = performContext.router.afterFailure({

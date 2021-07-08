@@ -115,6 +115,7 @@ class UseCaseBase implements Interceptable {
     input?: TInput,
     options?: PerformOptions
   ): Promise<Result<TOutput, PerformError>> {
+    console.log(options);
     await this.bind(options);
 
     debug('bound provider', this.boundProfileProvider);
