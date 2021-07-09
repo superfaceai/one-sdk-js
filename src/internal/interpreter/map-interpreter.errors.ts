@@ -59,6 +59,22 @@ export class MapInterpreterErrorBase extends ErrorBase {
 
     return this.path;
   }
+
+  override toString(): string {
+    return [
+      `${this.constructor.name}: ${this.message}`,
+      this.astPath ? `AST Path: ${this.astPath.join('.')}` : undefined,
+      this.metadata?.node?.location
+        ? `Original Map Location: Line ${this.metadata.node.location.line}, column ${this.metadata.node.location.column}`
+        : undefined,
+    ]
+      .filter(line => !!line)
+      .join('\n');
+  }
+
+  [Symbol.toStringTag](): string {
+    return this.toString()
+  }
 }
 
 export class MapASTError extends MapInterpreterErrorBase {
@@ -67,18 +83,6 @@ export class MapASTError extends MapInterpreterErrorBase {
     public override metadata?: ErrorMetadata
   ) {
     super('MapASTError', message, metadata);
-  }
-
-  public override toString(): string {
-    return [
-      `MapASTError: ${this.message}`,
-      this.astPath ? `AST Path: ${this.astPath.join('.')}` : undefined,
-      this.metadata?.node?.location
-        ? `Original Map Location: Line ${this.metadata.node.location.line}, column ${this.metadata.node.location.column}`
-        : undefined,
-    ]
-      .filter(line => !!line)
-      .join('\n');
   }
 }
 
