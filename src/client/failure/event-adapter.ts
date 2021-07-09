@@ -260,57 +260,79 @@ export function registerHooks(hookContext: HooksContext, events: Events): void {
     }
   });
 
-  events.on('post-bind', { priority: 1 }, async (context, args, res) => {
-    debug('Handling event post-bind with context:', context);
-    debugSensitive('\targs:', args);
-    debugSensitive('\tresult:', res);
-    // this shouldn't happen but if it does just continue for now
-    if (
-      context.profile === undefined ||
-      context.usecase === undefined ||
-      context.provider === undefined
-    ) {
-      return { kind: 'continue' };
-    }
-    const performContext = hookContext[`${context.profile}/${context.usecase}`];
-
-    // if there is no configured context, ignore the event
-    if (performContext === undefined) {
-      return { kind: 'continue' };
-    }
-
-    // perform queued action here
-    if (performContext.queuedAction !== undefined) {
-      const action = performContext.queuedAction;
-      performContext.queuedAction = undefined;
-
-      switch (action.kind) {
-        case 'switch-provider': {
-          debug('switching to', action.provider);
-
-          return {
-            kind: 'retry',
-            newArgs: [args[0], { ...args[1], provider: action.provider }],
-          };
-        }
-
-        case 'recache':
-          throw 'Not Implemented'; // TODO: how to recache?
-
-        case 'no-intercept':
-          return { kind: 'continue' };
+  events.on(
+    'post-bind-and-perform',
+    { priority: 1 },
+    async (context, args, res) => {
+      debug('Handling event post-bind with context:', context);
+      debugSensitive('\targs:', args);
+      debugSensitive('\tresult:', res);
+      // this shouldn't happen but if it does just continue for now
+      if (
+        context.profile === undefined ||
+        context.usecase === undefined ||
+        context.provider === undefined
+      ) {
+        return { kind: 'continue' };
       }
-    }
+      const performContext =
+        hookContext[`${context.profile}/${context.usecase}`];
 
-    let error;
-    try {
-      await res;
-    } catch (err: unknown) {
-      error = err;
-    }
+      // if there is no configured context, ignore the event
+      if (performContext === undefined) {
+        return { kind: 'continue' };
+      }
 
-    if (error === undefined) {
-      void events.emit('success', [
+      // perform queued action here
+      if (performContext.queuedAction !== undefined) {
+        const action = performContext.queuedAction;
+        performContext.queuedAction = undefined;
+
+        switch (action.kind) {
+          case 'switch-provider': {
+            debug('switching to', action.provider);
+
+            return {
+              kind: 'retry',
+              newArgs: [args[0], { ...args[1], provider: action.provider }],
+            };
+          }
+
+          case 'recache':
+            throw 'Not Implemented'; // TODO: how to recache?
+
+          case 'no-intercept':
+            return { kind: 'continue' };
+        }
+      }
+
+      let error;
+      try {
+        await res;
+      } catch (err: unknown) {
+        error = err;
+      }
+
+      if (error === undefined) {
+        void events.emit('success', [
+          {
+            time: new Date(),
+            usecase: context.usecase,
+            profile: context.profile,
+            provider: context.provider,
+          },
+        ]);
+        const resolution = performContext.router.afterSuccess({
+          time: context.time.getTime(),
+          registryCacheAge: 0, // TODO
+        });
+
+        if (resolution.kind === 'continue') {
+          return { kind: 'continue' };
+        }
+      }
+
+      void events.emit('failure', [
         {
           time: new Date(),
           usecase: context.usecase,
@@ -318,31 +340,14 @@ export function registerHooks(hookContext: HooksContext, events: Events): void {
           provider: context.provider,
         },
       ]);
-      const resolution = performContext.router.afterSuccess({
-        time: context.time.getTime(),
-        registryCacheAge: 0, // TODO
-      });
 
-      if (resolution.kind === 'continue') {
-        return { kind: 'continue' };
-      }
+      // TODO: Peform-level failure here
+      // const resolution = performContext.router.afterFailure({
+      //   time: context.time.getTime(),
+      //   registryCacheAge: 0, // TODO
+      // });
+
+      return { kind: 'continue' };
     }
-
-    void events.emit('failure', [
-      {
-        time: new Date(),
-        usecase: context.usecase,
-        profile: context.profile,
-        provider: context.provider,
-      },
-    ]);
-
-    // TODO: Peform-level failure here
-    // const resolution = performContext.router.afterFailure({
-    //   time: context.time.getTime(),
-    //   registryCacheAge: 0, // TODO
-    // });
-
-    return { kind: 'continue' };
-  });
+  );
 }

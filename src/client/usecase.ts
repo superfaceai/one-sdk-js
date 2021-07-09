@@ -104,7 +104,7 @@ class UseCaseBase implements Interceptable {
     return this.boundProfileProvider.perform<TInput, TOutput>(this.name, input);
   }
 
-  @eventInterceptor({ eventName: 'bind', placement: 'around' })
+  @eventInterceptor({ eventName: 'bind-and-perform', placement: 'around' })
   protected async bindAndPerform<
     TInput extends NonPrimitive | undefined = Record<
       string,

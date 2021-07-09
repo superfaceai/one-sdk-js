@@ -125,7 +125,10 @@ type EventTypes = {
     InstanceType<typeof MapInterpreterEventAdapter>['unhandledHttp'],
     EventContextBase
   ];
-  bind: [InstanceType<typeof UseCase>['bindAndPerform'], EventContextBase];
+  'bind-and-perform': [
+    InstanceType<typeof UseCase>['bindAndPerform'],
+    EventContextBase
+  ];
 };
 
 export type EventParams = {
