@@ -63,12 +63,28 @@ function getMetricDebounceTime(): number {
   }
 }
 
-export const Config = {
-  superfaceApiUrl: getSuperfaceApiUrl(),
-  sdkAuthToken: getSdkAuthToken(),
-  superfacePath: process.env[SUPERFACE_PATH_NAME] ?? DEFAULT_SUPERFACE_PATH,
-  metricDebounceTime: getMetricDebounceTime(),
-  disableReporting:
-    process.env.NODE_ENV === 'test' ? true : !!process.env[DISABLE_REPORTING],
+export type Config = {
+  superfaceApiUrl: string;
+  sdkAuthToken?: string;
+  superfacePath: string;
+  metricDebounceTime: number;
+  disableReporting: boolean;
 };
-export type Config = typeof Config;
+
+let configCache: Config | undefined;
+export const Config = (): Config => {
+  if (configCache === undefined) {
+    configCache = {
+      superfaceApiUrl: getSuperfaceApiUrl(),
+      sdkAuthToken: getSdkAuthToken(),
+      superfacePath: process.env[SUPERFACE_PATH_NAME] ?? DEFAULT_SUPERFACE_PATH,
+      metricDebounceTime: getMetricDebounceTime(),
+      disableReporting:
+        process.env.NODE_ENV === 'test'
+          ? true
+          : !!process.env[DISABLE_REPORTING],
+    };
+  }
+
+  return configCache;
+};

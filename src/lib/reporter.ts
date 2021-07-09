@@ -131,7 +131,7 @@ export class MetricReporter {
 
   constructor(superJson: SuperJson) {
     this.fetchInstance = new CrossFetch();
-    this.sdkToken = Config.sdkAuthToken;
+    this.sdkToken = Config().sdkAuthToken;
     this.configHash = superJson.configHash;
     this.anonymizedSuperJson = superJson.anonymized;
   }
@@ -181,7 +181,7 @@ export class MetricReporter {
         clearTimeout(this.timer);
         this.timer = undefined;
       }
-    }, Config.metricDebounceTime);
+    }, Config().metricDebounceTime);
   }
 
   private reportProviderChangeEvent(event: ProviderChangeInput): void {
@@ -264,7 +264,7 @@ export class MetricReporter {
 
   // TODO: move this to other http calls
   private sendEvent(payload: SDKEvent) {
-    const url = new URL('/insights/sdk_event', Config.superfaceApiUrl).href;
+    const url = new URL('/insights/sdk_event', Config().superfaceApiUrl).href;
     void this.fetchInstance
       .fetch(url, {
         method: 'POST',

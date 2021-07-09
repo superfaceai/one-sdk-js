@@ -97,7 +97,7 @@ export class SuperJson {
   }
 
   static loadSync(path?: string): Result<SuperJson, string> {
-    const superfile = path ?? Config.superfacePath;
+    const superfile = path ?? Config().superfacePath;
 
     try {
       const statInfo = statSync(superfile);
@@ -133,7 +133,7 @@ export class SuperJson {
    * Attempts to load super.json file from expected location `cwd/superface/super.json`
    */
   static async load(path?: string): Promise<Result<SuperJson, string>> {
-    const superfile = path ?? Config.superfacePath;
+    const superfile = path ?? Config().superfacePath;
 
     try {
       const statInfo = await fsp.stat(superfile);

@@ -108,14 +108,14 @@ export async function fetchBind(
 }> {
   const fetchInstance = new CrossFetch();
   const http = new HttpClient(fetchInstance);
-  const sdkToken = Config.sdkAuthToken;
+  const sdkToken = Config().sdkAuthToken;
   registryDebug('Binding SDK to registry');
   const { body } = await http.request('/registry/bind', {
     method: 'POST',
     headers: sdkToken
       ? [`Authorization: SUPERFACE-SDK-TOKEN ${sdkToken}`]
       : undefined,
-    baseUrl: options?.registryUrl ?? Config.superfaceApiUrl,
+    baseUrl: options?.registryUrl ?? Config().superfaceApiUrl,
     accept: 'application/json',
     contentType: 'application/json',
     body: {

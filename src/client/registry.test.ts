@@ -47,8 +47,8 @@ describe('registry', () => {
   };
 
   beforeAll(() => {
-    Config.sdkAuthToken = MOCK_TOKEN;
-    Config.superfaceApiUrl = 'https://superface.dev';
+    Config().sdkAuthToken = MOCK_TOKEN;
+    Config().superfaceApiUrl = 'https://superface.dev';
   });
 
   afterAll(() => {
