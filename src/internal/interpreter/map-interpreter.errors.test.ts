@@ -5,6 +5,7 @@ import { CrossFetch } from '../../lib/fetch';
 import { UnexpectedError } from '../errors';
 import { MapInterpreter } from './map-interpreter';
 import {
+  HTTPError,
   JessieError,
   MapASTError,
   MappedHTTPError,
@@ -63,6 +64,92 @@ describe('MapInterpreter errors', () => {
         'assignments[0]',
         'value',
       ]);
+
+      expect(err.toString()).toEqual('')
+    });
+  });
+
+  describe('HTTPError', () => {
+    it('should correctly resolve AST path from node', () => {
+      const node: MapASTNode = {
+        kind: 'JessieExpression',
+        expression: '1 + 2',
+      };
+      const ast: MapDocumentNode = {
+        kind: 'MapDocument',
+        header,
+        definitions: [
+          {
+            kind: 'MapDefinition',
+            name: 'testMap',
+            usecaseName: 'testCase',
+            statements: [
+              {
+                kind: 'SetStatement',
+                assignments: [
+                  {
+                    kind: 'Assignment',
+                    key: ['result'],
+                    value: node,
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      };
+
+      const err = new HTTPError('Some http error', { node, ast }, 500);
+      expect(err.astPath).toStrictEqual([
+        'definitions[0]',
+        'statements[0]',
+        'assignments[0]',
+        'value',
+      ]);
+      
+      expect(err.toString()).toEqual('')
+    });
+  });
+
+  describe('JessieError', () => {
+    it('should correctly resolve AST path from node', () => {
+      const node: MapASTNode = {
+        kind: 'JessieExpression',
+        expression: '1 + 2',
+      };
+      const ast: MapDocumentNode = {
+        kind: 'MapDocument',
+        header,
+        definitions: [
+          {
+            kind: 'MapDefinition',
+            name: 'testMap',
+            usecaseName: 'testCase',
+            statements: [
+              {
+                kind: 'SetStatement',
+                assignments: [
+                  {
+                    kind: 'Assignment',
+                    key: ['result'],
+                    value: node,
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      };
+
+      const err = new JessieError('Some jessie error', new Error('original error'), { node, ast });
+      expect(err.astPath).toStrictEqual([
+        'definitions[0]',
+        'statements[0]',
+        'assignments[0]',
+        'value',
+      ]);
+      
+      expect(err.toString()).toEqual('')
     });
   });
 
