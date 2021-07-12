@@ -62,7 +62,7 @@ export class MapInterpreterErrorBase extends ErrorBase {
 
   override toString(): string {
     return [
-      `${this.constructor.name}: ${this.message}`,
+      `${this.kind}: ${this.message}`,
       this.astPath ? `AST Path: ${this.astPath.join('.')}` : undefined,
       this.metadata?.node?.location
         ? `Original Map Location: Line ${this.metadata.node.location.line}, column ${this.metadata.node.location.column}`
@@ -70,10 +70,6 @@ export class MapInterpreterErrorBase extends ErrorBase {
     ]
       .filter(line => !!line)
       .join('\n');
-  }
-
-  [Symbol.toStringTag](): string {
-    return this.toString()
   }
 }
 
@@ -103,6 +99,29 @@ export class HTTPError extends MapInterpreterErrorBase {
   ) {
     super('HTTPError', message, metadata);
   }
+
+  override toString(): string {
+    return [
+      `${this.kind}: ${this.message}`,
+      this.astPath ? `AST Path: ${this.astPath.join('.')}` : undefined,
+      this.metadata?.node?.location
+        ? `Original Map Location: Line ${this.metadata.node.location.line}, column ${this.metadata.node.location.column}`
+        : undefined,
+      this.request?.url ? `Request URL: ${this.request.url}` : undefined,
+      this.request?.headers
+        ? `Request headers:\n${Object.entries(this.request.headers)
+            .map(([key, value]) => `\t${key}: ${value}`)
+            .join('\n')}`
+        : undefined,
+      this.response?.headers
+        ? `Response headers:\n${Object.entries(this.response.headers)
+            .map(([key, value]) => `\t${key}: ${value}`)
+            .join('\n')}`
+        : undefined,
+    ]
+      .filter(line => !!line)
+      .join('\n');
+  }
 }
 
 export class MappedHTTPError<T> extends HTTPError {
@@ -127,7 +146,7 @@ export class JessieError extends MapInterpreterErrorBase {
 
   public override toString(): string {
     return [
-      this.message,
+      `${this.kind}: ${this.message}`,
       this.originalError.toString(),
       this.astPath ? `AST Path: ${this.astPath.join('.')}` : undefined,
       this.metadata?.node?.location
