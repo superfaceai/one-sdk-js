@@ -119,9 +119,7 @@ describe('MetricReporter', () => {
     await mockServer
       .post('/sdk-events')
       .always()
-      .thenCallback(async request => {
-        console.log(request);
-
+      .thenCallback(async () => {
         return {
           status: 200,
           body: 'hello',
@@ -143,8 +141,6 @@ describe('MetricReporter', () => {
     const profile = await client.getProfile('test-profile');
     await profile.getUseCase('Test').perform();
     await profile.getUseCase('Test').perform();
-    // console.log(result);
-
     expect(client).not.toBe(undefined);
     await new Promise(resolve => setTimeout(resolve, 20000));
   }, 25000);

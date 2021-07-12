@@ -123,6 +123,7 @@ export type EventInput =
 
 export class MetricReporter {
   private timer: NodeJS.Timeout | undefined;
+  private startTime: Date | undefined;
   private fetchInstance: FetchInstance;
   private readonly sdkToken: string | undefined;
   private performMetrics: Omit<PerformMetricsInput, 'eventType'>[] = [];
@@ -153,13 +154,36 @@ export class MetricReporter {
   }
 
   public flush(): void {
-    if (this.timer !== undefined) {
-      console.log('flushing');
-      this.sendEvent(this.aggregateMetrics());
-      this.performMetrics = [];
-      clearTimeout(this.timer);
-      this.timer = undefined;
+    const metrics = this.aggregateMetrics();
+    if (metrics === undefined) {
+      return;
     }
+    this.performMetrics = [];
+    this.startTime = undefined;
+    if (this.timer !== undefined) {
+      clearTimeout(this.timer);
+    }
+    this.timer = undefined;
+    this.sendEvent(metrics);
+  }
+
+  private setTimer(): void {
+    const now = new Date();
+    const timeHasElapsed =
+      this.startTime !== undefined &&
+      now.valueOf() - this.startTime.valueOf() >= Config().metricDebounceTime;
+    if (this.startTime === undefined) {
+      this.startTime = now;
+    }
+    if (timeHasElapsed) {
+      return;
+    }
+    if (this.timer !== undefined) {
+      clearTimeout(this.timer);
+    }
+    this.timer = setTimeout(() => {
+      this.flush();
+    }, 1000);
   }
 
   private reportSdkInitEvent(event: SDKInitInput): void {
@@ -171,17 +195,7 @@ export class MetricReporter {
     ...metrics
   }: PerformMetricsInput): void {
     this.performMetrics.push(metrics);
-    if (this.timer !== undefined) {
-      clearTimeout(this.timer);
-    }
-    this.timer = setTimeout(() => {
-      this.sendEvent(this.aggregateMetrics());
-      this.performMetrics = [];
-      if (this.timer !== undefined) {
-        clearTimeout(this.timer);
-        this.timer = undefined;
-      }
-    }, Config().metricDebounceTime);
+    this.setTimer();
   }
 
   private reportProviderChangeEvent(event: ProviderChangeInput): void {
@@ -218,7 +232,10 @@ export class MetricReporter {
     };
   }
 
-  private aggregateMetrics(): PerformMetricsEvent {
+  private aggregateMetrics(): PerformMetricsEvent | undefined {
+    if (this.performMetrics.length === 0) {
+      return undefined;
+    }
     const metrics: PerformMetricsEvent['data']['metrics'] = [];
     const dates = this.performMetrics.map(metric => metric.occurredAt).sort();
     const from = dates[0].toISOString();
