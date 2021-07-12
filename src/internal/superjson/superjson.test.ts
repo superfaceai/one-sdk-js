@@ -1405,6 +1405,195 @@ describe('SuperJson', () => {
         },
       });
     });
+
+    it('adds profile to super.json with priority and disabled providerFailover', () => {
+      const mockProfileName = 'profile';
+      const mockUseCaseName = 'usecase';
+
+      const mockProfileEntry: ProfileEntry = {
+        defaults: {
+          [mockUseCaseName]: {
+            providerFailover: false,
+          },
+        },
+        priority: ['test'],
+        file: 'some/path',
+        providers: { test: {} },
+      };
+
+      superjson = new SuperJson({
+        profiles: {
+          [mockProfileName]: '0.0.0',
+        },
+      });
+      expect(superjson.addProfile(mockProfileName, mockProfileEntry)).toEqual(
+        true
+      );
+      expect(superjson.normalized.profiles[mockProfileName]).toEqual({
+        defaults: {
+          [mockUseCaseName]: {
+            input: {},
+            providerFailover: false,
+          },
+        },
+        file: 'some/path',
+        priority: ['test'],
+        providers: {
+          test: {
+            defaults: {
+              [mockUseCaseName]: {
+                input: {},
+                retryPolicy: {
+                  kind: 'none',
+                },
+              },
+            },
+            mapRevision: undefined,
+            mapVariant: undefined,
+          },
+        },
+      });
+    });
+
+    it('adds profile to super.json with priority and enabled providerFailover', () => {
+      const mockProfileName = 'profile';
+      const mockUseCaseName = 'usecase';
+
+      const mockProfileEntry: ProfileEntry = {
+        defaults: {
+          [mockUseCaseName]: {
+            providerFailover: true,
+          },
+        },
+        priority: ['test'],
+        file: 'some/path',
+        providers: { test: {} },
+      };
+
+      superjson = new SuperJson({
+        profiles: {
+          [mockProfileName]: '0.0.0',
+        },
+      });
+      expect(superjson.addProfile(mockProfileName, mockProfileEntry)).toEqual(
+        true
+      );
+      expect(superjson.normalized.profiles[mockProfileName]).toEqual({
+        defaults: {
+          [mockUseCaseName]: {
+            input: {},
+            providerFailover: true,
+          },
+        },
+        file: 'some/path',
+        priority: ['test'],
+        providers: {
+          test: {
+            defaults: {
+              [mockUseCaseName]: {
+                input: {},
+                retryPolicy: {
+                  kind: 'none',
+                },
+              },
+            },
+            mapRevision: undefined,
+            mapVariant: undefined,
+          },
+        },
+      });
+    });
+
+    it('adds profile to super.json with existing priority, enabled providerFailover and retry policy', () => {
+      const mockProfileName = 'profile';
+      const mockUseCaseName = 'usecase';
+
+      const mockProfileEntry: ProfileEntry = {
+        defaults: {
+          [mockUseCaseName]: {
+            providerFailover: true,
+          },
+        },
+        priority: ['test'],
+        file: 'some/path',
+        providers: {
+          test: {
+            defaults: {
+              [mockUseCaseName]: {
+                input: {},
+                retryPolicy: {
+                  kind: OnFail.CIRCUIT_BREAKER,
+                  //Different numbers
+                  maxContiguousRetries: 10,
+                  requestTimeout: 60_000,
+                },
+              },
+            },
+            mapRevision: undefined,
+            mapVariant: undefined,
+          },
+        },
+      };
+
+      superjson = new SuperJson({
+        profiles: {
+          [mockProfileName]: {
+            defaults: {
+              [mockUseCaseName]: {
+                providerFailover: true,
+              },
+            },
+            priority: ['test'],
+            file: 'some/path',
+            providers: {
+              test: {
+                defaults: {
+                  [mockUseCaseName]: {
+                    input: {},
+                    retryPolicy: {
+                      kind: OnFail.CIRCUIT_BREAKER,
+                      maxContiguousRetries: 1,
+                      requestTimeout: 1500,
+                    },
+                  },
+                },
+                mapRevision: undefined,
+                mapVariant: undefined,
+              },
+            },
+          },
+        },
+      });
+      expect(superjson.addProfile(mockProfileName, mockProfileEntry)).toEqual(
+        true
+      );
+      expect(superjson.normalized.profiles[mockProfileName]).toEqual({
+        defaults: {
+          [mockUseCaseName]: {
+            input: {},
+            providerFailover: true,
+          },
+        },
+        file: 'some/path',
+        priority: ['test'],
+        providers: {
+          test: {
+            defaults: {
+              [mockUseCaseName]: {
+                input: {},
+                retryPolicy: {
+                  kind: OnFail.CIRCUIT_BREAKER,
+                  maxContiguousRetries: 10,
+                  requestTimeout: 60_000,
+                },
+              },
+            },
+            mapRevision: undefined,
+            mapVariant: undefined,
+          },
+        },
+      });
+    });
   });
 
   describe('when adding profile provider', () => {
