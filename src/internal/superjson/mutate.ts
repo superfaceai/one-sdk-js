@@ -1,6 +1,7 @@
 import { err, ok, Result } from '../../lib';
 import { isEmptyRecord } from '../interpreter/variables';
 import {
+  normalizeProfileProviderDefaults,
   normalizeProfileSettings,
   normalizeUsecaseDefaults,
 } from './normalize';
@@ -91,13 +92,19 @@ export function addProfile(
 
   // Priority #2: keep previous structure and merge
   let defaults: UsecaseDefaults | undefined;
+  let priority: string[] | undefined;
   if (typeof targetedProfile === 'string') {
     defaults = payload.defaults;
-  } else if (targetedProfile.defaults) {
-    defaults = normalizeUsecaseDefaults(
-      payload.defaults,
-      normalizeUsecaseDefaults(targetedProfile.defaults)
-    );
+  } else {
+    if (targetedProfile.defaults) {
+      defaults = normalizeUsecaseDefaults(
+        payload.defaults,
+        normalizeUsecaseDefaults(targetedProfile.defaults)
+      );
+    }
+    if (targetedProfile.priority) {
+      priority = targetedProfile.priority;
+    }
   }
 
   let providers: Record<string, ProfileProviderEntry> | undefined;
@@ -112,6 +119,7 @@ export function addProfile(
 
   document.profiles[profileName] = {
     ...payload,
+    priority,
     defaults,
     providers,
   };
@@ -190,9 +198,9 @@ export function addProfileProvider(
   if (typeof profileProvider === 'string') {
     defaults = payload.defaults;
   } else if (profileProvider.defaults) {
-    defaults = normalizeUsecaseDefaults(
+    defaults = normalizeProfileProviderDefaults(
       payload.defaults,
-      normalizeUsecaseDefaults(profileProvider.defaults)
+      normalizeUsecaseDefaults(targetedProfile.defaults)
     );
   }
 
