@@ -262,11 +262,14 @@ export class SuperJson {
       )) {
         const anonymizedProvider: typeof providers[number] = {
           provider,
-          priority: profileEntry.priority.findIndex(
-            providerName => provider === providerName
-          ),
           version: 'unknown',
         };
+        const providerPriority = profileEntry.priority.findIndex(
+          providerName => provider === providerName
+        );
+        if (providerPriority > -1) {
+          anonymizedProvider.priority = providerPriority;
+        }
         if ('file' in providerEntry) {
           anonymizedProvider.version = 'file';
         } else if (

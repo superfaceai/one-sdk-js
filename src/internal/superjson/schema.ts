@@ -407,7 +407,7 @@ export type AnonymizedSuperJsonDocument = {
       version: string | 'file';
       providers: {
         provider: string;
-        priority: number;
+        priority?: number;
         version: string | 'file';
       }[];
     }
