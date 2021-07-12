@@ -57,7 +57,7 @@ describe('MapInterpreter errors', () => {
         ],
       };
 
-      const err = new MapASTError('Some error', { node, ast });
+      const err = new MapASTError('Some map ast error', { node, ast });
       expect(err.astPath).toStrictEqual([
         'definitions[0]',
         'statements[0]',
@@ -65,7 +65,10 @@ describe('MapInterpreter errors', () => {
         'value',
       ]);
 
-      expect(err.toString()).toEqual('')
+      expect(err.toString()).toEqual(
+        `MapASTError: Some map ast error
+AST Path: definitions[0].statements[0].assignments[0].value`
+      );
     });
   });
 
@@ -99,15 +102,28 @@ describe('MapInterpreter errors', () => {
         ],
       };
 
-      const err = new HTTPError('Some http error', { node, ast }, 500);
+      const err = new HTTPError('Some http error', { node, ast }, 500, {
+        url: 'https://my-site.com/',
+        headers: {
+          'content-type': 'json',
+          Authorization: 'bearer jasldfhasfklgj',
+        },
+      });
       expect(err.astPath).toStrictEqual([
         'definitions[0]',
         'statements[0]',
         'assignments[0]',
         'value',
       ]);
-      
-      expect(err.toString()).toEqual('')
+
+      expect(err.toString()).toEqual(
+        `HTTPError: Some http error
+AST Path: definitions[0].statements[0].assignments[0].value
+Request URL: https://my-site.com/
+Request headers:
+\tcontent-type: json
+\tAuthorization: bearer jasldfhasfklgj`
+      );
     });
   });
 
@@ -141,15 +157,23 @@ describe('MapInterpreter errors', () => {
         ],
       };
 
-      const err = new JessieError('Some jessie error', new Error('original error'), { node, ast });
+      const err = new JessieError(
+        'Some jessie error',
+        new Error('original error'),
+        { node, ast }
+      );
       expect(err.astPath).toStrictEqual([
         'definitions[0]',
         'statements[0]',
         'assignments[0]',
         'value',
       ]);
-      
-      expect(err.toString()).toEqual('')
+
+      expect(err.toString()).toEqual(
+        `JessieError: Some jessie error
+Error: original error
+AST Path: definitions[0].statements[0].assignments[0].value`
+      );
     });
   });
 
