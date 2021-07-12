@@ -1,5 +1,13 @@
 export class ErrorBase {
   constructor(public kind: string, public message: string) {}
+
+  [Symbol.toStringTag](): string {
+    return this.toString();
+  }
+
+  toString(): string {
+    return `${this.kind}: ${this.message}`;
+  }
 }
 
 export class UnexpectedError extends ErrorBase {
