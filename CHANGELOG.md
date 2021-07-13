@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- `ErrorBase` now contains `toString()` method and getter for `Symbol.toStringTag`
+- `CrossFetchError` is now union of `NetworkFetchError` and `RequestFetchError` classes
 - `SuperfaceClient::getProvider` throws if the provider is not found
 - `SuperfaceClient::getProviderForProfile` no longer takes an optional non-documented preference argument
 - `FailurePolicyRouter::constructor` now takes a function which is called to instantiate policy for specified provider
