@@ -209,7 +209,7 @@ export function addProfileProvider(
     } else {
       //Merge existing with new
       defaults = mergeVariables(
-        castToNonPrimitive(targetedProfile.defaults) || {},
+        castToNonPrimitive(profileProvider.defaults) || {},
         castToNonPrimitive(payload.defaults) || {}
       ) as ProfileProviderDefaults;
     }
