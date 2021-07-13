@@ -19,7 +19,11 @@ import {
   Interceptable,
   InterceptableMetadata,
 } from './events';
-import { CrossFetchError, NetworkFetchError, RequestFetchError } from './fetch.errors';
+import {
+  CrossFetchError,
+  NetworkFetchError,
+  RequestFetchError,
+} from './fetch.errors';
 
 export class CrossFetch implements FetchInstance, Interceptable {
   public metadata: InterceptableMetadata | undefined;
@@ -111,7 +115,7 @@ export class CrossFetch implements FetchInstance, Interceptable {
 
     const error: { type: string } = err as { type: string };
     if (error.type === 'aborted') {
-      return new NetworkFetchError('timeout')
+      return new NetworkFetchError('timeout');
     }
 
     if (error.type === 'system') {
@@ -127,11 +131,11 @@ export class CrossFetch implements FetchInstance, Interceptable {
 
       // TODO: unsigned ssl?
 
-      return new NetworkFetchError('reject')
+      return new NetworkFetchError('reject');
     }
 
     // TODO: Match other errors here
-    return new RequestFetchError('abort')
+    return new RequestFetchError('abort');
   }
 
   private queryParameters(parameters?: Record<string, string>): string {

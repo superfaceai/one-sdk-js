@@ -466,7 +466,7 @@ AST Path: definitions[0].statements[0].assignments[0].value`
           },
         ],
       });
-      expect(result.isErr()).toEqual(true); 
+      expect(result.isErr()).toEqual(true);
       expect(() => {
         result.unwrap();
       }).toThrow('Security values for security scheme not found: nonexistent');

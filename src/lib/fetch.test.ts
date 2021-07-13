@@ -1,5 +1,6 @@
 import { getLocal } from 'mockttp';
 import { mocked } from 'ts-jest/utils';
+
 import { NetworkFetchError, RequestFetchError } from './fetch.errors';
 
 const mockServer = getLocal();
