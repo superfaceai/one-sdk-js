@@ -55,17 +55,8 @@ Hint: hint3
 `
       );
 
-      expect(error[Symbol.toStringTag]()).toBe(
-        `short
-
-long1
-long2
-long3
-
-Hint: hint1
-Hint: hint2
-Hint: hint3
-`
+      expect(Object.prototype.toString.call(error)).toBe(
+        '[object SdkExecutionError]'
       );
     });
 
