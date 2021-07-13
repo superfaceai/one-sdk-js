@@ -1,5 +1,3 @@
-import { ProfileProviderDefaults } from '@superfaceai/one-sdk';
-
 import { err, ok, Result } from '../../lib';
 import {
   castToNonPrimitive,
@@ -12,6 +10,7 @@ import {
   isFileURIString,
   isVersionString,
   ProfileEntry,
+  ProfileProviderDefaults,
   ProfileProviderEntry,
   ProfileProviderSettings,
   ProfileSettings,
