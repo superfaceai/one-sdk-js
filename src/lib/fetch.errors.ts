@@ -10,12 +10,11 @@ interface RequestError {
   issue: 'abort' | 'timeout';
 }
 
+export type FetchErrorIssue = NetworkError['issue'] | RequestError['issue'];
+
 export class FetchError extends ErrorBase {
-  constructor(
-    public override kind: string,
-    public issue: NetworkError['issue'] | RequestError['issue']
-  ) {
-    super(kind, `Fetch failed because of ${issue} issue`);
+  constructor(public override kind: string, public issue: FetchErrorIssue) {
+    super(kind, `Fetch failed: ${issue} issue`);
   }
 }
 
