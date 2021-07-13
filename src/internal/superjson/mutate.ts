@@ -1,10 +1,12 @@
+import { ProfileProviderDefaults } from '@superfaceai/one-sdk';
+
 import { err, ok, Result } from '../../lib';
-import { isEmptyRecord } from '../interpreter/variables';
 import {
-  normalizeProfileProviderDefaults,
-  normalizeProfileSettings,
-  normalizeUsecaseDefaults,
-} from './normalize';
+  castToNonPrimitive,
+  isEmptyRecord,
+  mergeVariables,
+} from '../interpreter/variables';
+import { normalizeProfileSettings } from './normalize';
 import {
   composeFileURI,
   isFileURIString,
@@ -97,10 +99,15 @@ export function addProfile(
     defaults = payload.defaults;
   } else {
     if (targetedProfile.defaults) {
-      defaults = normalizeUsecaseDefaults(
-        payload.defaults,
-        normalizeUsecaseDefaults(targetedProfile.defaults)
-      );
+      if (!payload.defaults) {
+        defaults = targetedProfile.defaults;
+      } else {
+        //Merge existing with new
+        defaults = mergeVariables(
+          castToNonPrimitive(targetedProfile.defaults) || {},
+          castToNonPrimitive(payload.defaults) || {}
+        ) as UsecaseDefaults;
+      }
     }
     if (targetedProfile.priority) {
       priority = targetedProfile.priority;
@@ -194,14 +201,19 @@ export function addProfileProvider(
   }
 
   // Priority #2: keep previous structure and merge
-  let defaults: UsecaseDefaults | undefined;
+  let defaults: ProfileProviderDefaults | undefined;
   if (typeof profileProvider === 'string') {
     defaults = payload.defaults;
   } else if (profileProvider.defaults) {
-    defaults = normalizeProfileProviderDefaults(
-      payload.defaults,
-      normalizeUsecaseDefaults(targetedProfile.defaults)
-    );
+    if (!payload.defaults) {
+      defaults = targetedProfile.defaults;
+    } else {
+      //Merge existing with new
+      defaults = mergeVariables(
+        castToNonPrimitive(targetedProfile.defaults) || {},
+        castToNonPrimitive(payload.defaults) || {}
+      ) as ProfileProviderDefaults;
+    }
   }
 
   // when specified profile provider has file & defaults
