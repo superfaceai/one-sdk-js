@@ -1,8 +1,8 @@
 export class ErrorBase {
   constructor(public kind: string, public message: string) {}
 
-  [Symbol.toStringTag](): string {
-    return this.toString();
+  get [Symbol.toStringTag](): string {
+    return this.kind;
   }
 
   toString(): string {
@@ -69,11 +69,11 @@ export class SDKExecutionError extends Error {
     return result + '\n';
   }
 
-  [Symbol.toStringTag](): string {
-    return this.formatLong();
+  get [Symbol.toStringTag](): string {
+    return this.name;
   }
 
   override toString(): string {
-    return this[Symbol.toStringTag]();
+    return this.formatLong();
   }
 }
