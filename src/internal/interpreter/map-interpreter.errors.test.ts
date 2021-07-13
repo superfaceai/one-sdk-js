@@ -253,10 +253,9 @@ AST Path: definitions[0].statements[0].assignments[0].value`
         ],
       });
       expect(result.isErr()).toEqual(true);
-      // expect(result.isErr() && result.error).toEqual({
-      //   error: 'Operation not found: my beloved operation',
-      // });
-      // ).rejects.toThrow('Operation not found: my beloved operation');
+      expect(() => {
+        result.unwrap();
+      }).toThrow('Operation not found: my beloved operation');
     });
 
     it('should fail when calling an API with relative URL but not providing baseUrl', async () => {
@@ -327,7 +326,9 @@ AST Path: definitions[0].statements[0].assignments[0].value`
         ],
       });
       expect(result.isErr()).toEqual(true);
-      // ).rejects.toThrow('Relative URL specified, but base URL not provided!');
+      expect(() => {
+        result.unwrap();
+      }).toThrow('Relative URL specified, but base URL not provided!');
     });
 
     it('should fail when calling an API with path parameters and some are missing', async () => {
@@ -411,9 +412,11 @@ AST Path: definitions[0].statements[0].assignments[0].value`
         ],
       });
       expect(result.isErr()).toEqual(true);
-      // ).rejects.toThrow(
-      //   'Values for URL replacement keys not found: missing, alsoMissing'
-      // );
+      expect(() => {
+        result.unwrap();
+      }).toThrow(
+        'Missing values for URL path replacement: missing, alsoMissing'
+      );
     });
 
     it('should fail when calling an API with Basic auth, but with no credentials', async () => {
@@ -463,7 +466,10 @@ AST Path: definitions[0].statements[0].assignments[0].value`
           },
         ],
       });
-      expect(result.isErr()).toEqual(true); // ('Missing credentials for Basic auth!');
+      expect(result.isErr()).toEqual(true); 
+      expect(() => {
+        result.unwrap();
+      }).toThrow('Security values for security scheme not found: nonexistent');
     });
 
     it('should fail when calling an API with Bearer auth, but with no credentials', async () => {
@@ -514,7 +520,9 @@ AST Path: definitions[0].statements[0].assignments[0].value`
         ],
       });
       expect(result.isErr()).toEqual(true);
-      // ).rejects.toThrow('Missing credentials for Bearer auth!');
+      expect(() => {
+        result.unwrap();
+      }).toThrow('Security values for security scheme not found: nonexistent');
     });
 
     it('should fail when calling an API with Apikey auth, but with no credentials', async () => {
@@ -565,7 +573,9 @@ AST Path: definitions[0].statements[0].assignments[0].value`
         ],
       });
       expect(result.isErr()).toEqual(true);
-      // ).rejects.toThrow('Missing credentials for Apikey auth!');
+      expect(() => {
+        result.unwrap();
+      }).toThrow('Security values for security scheme not found: nonexistent');
     });
 
     it('should map an error from API', async () => {
