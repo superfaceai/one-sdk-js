@@ -19,16 +19,7 @@ import {
   Interceptable,
   InterceptableMetadata,
 } from './events';
-
-export type CrossFetchError =
-  | {
-      kind: 'network';
-      issue: 'unsigned-ssl' | 'dns' | 'timeout' | 'reject';
-    }
-  | {
-      kind: 'request';
-      issue: 'abort' | 'timeout';
-    };
+import { CrossFetchError, NetworkFetchError, RequestFetchError } from './fetch.errors';
 
 export class CrossFetch implements FetchInstance, Interceptable {
   public metadata: InterceptableMetadata | undefined;
@@ -120,7 +111,7 @@ export class CrossFetch implements FetchInstance, Interceptable {
 
     const error: { type: string } = err as { type: string };
     if (error.type === 'aborted') {
-      return { kind: 'network', issue: 'timeout' };
+      return new NetworkFetchError('timeout')
     }
 
     if (error.type === 'system') {
@@ -131,16 +122,16 @@ export class CrossFetch implements FetchInstance, Interceptable {
         systemError.code === 'ENOTFOUND' ||
         systemError.code === 'EAI_AGAIN'
       ) {
-        return { kind: 'network', issue: 'dns' };
+        return new NetworkFetchError('dns');
       }
 
       // TODO: unsigned ssl?
 
-      return { kind: 'network', issue: 'reject' };
+      return new NetworkFetchError('reject')
     }
 
     // TODO: Match other errors here
-    return { kind: 'request', issue: 'abort' };
+    return new RequestFetchError('abort')
   }
 
   private queryParameters(parameters?: Record<string, string>): string {
