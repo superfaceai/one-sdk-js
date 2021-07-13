@@ -256,6 +256,37 @@ describe('SuperJson', () => {
       expect(SuperJson.loadSync('test').isErr()).toEqual(true);
     });
 
+    it('returns err when there is an error during parsing super.json - defaults missing', () => {
+      mocked(statSync).mockReturnValue(mockStats);
+      mocked(readFileSync).mockReturnValue(`{
+        "profiles": {
+          "send-message": {
+            "version": "1.0.0",
+            "providers": {
+              "acme": {
+                "RetrieveCharacterInformation": {
+                  "retryPolicy": "circuit-breaker"
+                },
+                "mapVariant": "my-bugfix",
+                "mapRevision": "1113"
+              }
+            }
+          }
+        },
+        "providers": {
+          "acme": {
+            "security": [
+              {
+                "id": "myApiKey",
+                "apikey": "SECRET"
+              }
+            ]
+          }
+        }
+      }`);
+      expect(SuperJson.loadSync('test').isErr()).toEqual(true);
+    });
+
     it('returns new super.json', () => {
       mocked(statSync).mockReturnValue(mockStats);
       mocked(readFileSync).mockReturnValue(
@@ -702,11 +733,6 @@ describe('SuperJson', () => {
         },
         "providers": {
           "swapidev": {
-            "deployments": {
-              "default": {
-                "baseUrl": "https://www.some.differentUrl"
-              }
-            },
             "security": [
               {
                 "id": "myBasicAuth",
@@ -725,15 +751,6 @@ describe('SuperJson', () => {
           },
           "twillio": {
             "security": []
-          }
-        },
-        "lock": {
-          "starwars/character-information@^1.1": {
-            "version": "1.1.5",
-            "resolved": "https://store.superface.ai/profile/starwars/character-information@1.1.5",
-              "integrity": "sha512-0NKGC8Nf/4vvDpWKB7bwxIazvNnNHnZBX6XlyBXNl+fW8tpTef3PNMJMSErTz9LFnuv61vsKbc36u/Ek2YChWg==",
-            "astResolved": "",
-            "astIntegrity": "sha512-0NKGC8Nf/4vvDpWKB7bwxIazvNnNHnZBX6XlyBXNl+fW8tpTef3PNMJMSErTz9LFnuv61vsKbc36u/Ek2YChWg=="
           }
         }
       }`;

@@ -26,9 +26,7 @@ describe('class SuperJson integration tests', () => {
           "security": [
             {
               "id": "myApiKey",
-              "apikey": "SECRET",
-              "in": "header",
-              "header": "x-api-key"
+              "apikey": "SECRET"
             }
           ]
         }
