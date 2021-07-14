@@ -1,4 +1,3 @@
-import { UsecaseDefaults } from '@superfaceai/one-sdk';
 import { promises as fsp, readFileSync, statSync } from 'fs';
 import {
   join as joinPath,
@@ -27,6 +26,7 @@ import {
   ProviderEntry,
   SecurityValues,
   trimFileURI,
+  UsecaseDefaults,
 } from './schema';
 import { SuperJson } from './superjson';
 

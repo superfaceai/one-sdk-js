@@ -1,4 +1,3 @@
-import { UsecaseDefaults } from '@superfaceai/one-sdk';
 import createDebug from 'debug';
 import { promises as fsp, readFileSync, statSync } from 'fs';
 import {
@@ -28,6 +27,7 @@ import {
   ProviderEntry,
   SuperJsonDocument,
   superJsonSchema,
+  UsecaseDefaults,
 } from './schema';
 
 const debug = createDebug('superface:superjson');
