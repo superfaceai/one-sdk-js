@@ -36,7 +36,6 @@ export function addProfileDefaults(
   }
 
   const targetedProfile = document.profiles[profileName];
-  let result = document.profiles[profileName];
 
   // if specified profile has shorthand notation
   let defaults: UsecaseDefaults | undefined;
@@ -44,17 +43,21 @@ export function addProfileDefaults(
     defaults = payload;
 
     if (isVersionString(targetedProfile)) {
-      result = {
+      document.profiles[profileName] = {
         version: targetedProfile,
         defaults,
       };
+
+      return true;
     }
 
     if (isFileURIString(targetedProfile)) {
-      result = {
+      document.profiles[profileName] = {
         file: targetedProfile,
         defaults,
       };
+
+      return true;
     }
   } else {
     if (targetedProfile.defaults) {
@@ -63,15 +66,23 @@ export function addProfileDefaults(
         castToNonPrimitive(targetedProfile.defaults) || {},
         castToNonPrimitive(payload) || {}
       ) as UsecaseDefaults;
-      result = {
+      document.profiles[profileName] = {
         ...targetedProfile,
         defaults,
       };
+
+      return true;
+    } else {
+      document.profiles[profileName] = {
+        ...targetedProfile,
+        defaults: payload,
+      };
+
+      return true;
     }
   }
-  document.profiles[profileName] = result;
 
-  return true;
+  return false;
 }
 export function addProfile(
   document: SuperJsonDocument,
