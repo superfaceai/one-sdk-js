@@ -59,6 +59,18 @@ export class MapInterpreterErrorBase extends ErrorBase {
 
     return this.path;
   }
+
+  override toString(): string {
+    return [
+      `${this.kind}: ${this.message}`,
+      this.astPath ? `AST Path: ${this.astPath.join('.')}` : undefined,
+      this.metadata?.node?.location
+        ? `Original Map Location: Line ${this.metadata.node.location.line}, column ${this.metadata.node.location.column}`
+        : undefined,
+    ]
+      .filter(line => !!line)
+      .join('\n');
+  }
 }
 
 export class MapASTError extends MapInterpreterErrorBase {
@@ -67,18 +79,6 @@ export class MapASTError extends MapInterpreterErrorBase {
     public override metadata?: ErrorMetadata
   ) {
     super('MapASTError', message, metadata);
-  }
-
-  public override toString(): string {
-    return [
-      `MapASTError: ${this.message}`,
-      this.astPath ? `AST Path: ${this.astPath.join('.')}` : undefined,
-      this.metadata?.node?.location
-        ? `Original Map Location: Line ${this.metadata.node.location.line}, column ${this.metadata.node.location.column}`
-        : undefined,
-    ]
-      .filter(line => !!line)
-      .join('\n');
   }
 }
 
@@ -123,7 +123,7 @@ export class JessieError extends MapInterpreterErrorBase {
 
   public override toString(): string {
     return [
-      this.message,
+      `${this.kind}: ${this.message}`,
       this.originalError.toString(),
       this.astPath ? `AST Path: ${this.astPath.join('.')}` : undefined,
       this.metadata?.node?.location
