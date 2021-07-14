@@ -99,19 +99,6 @@ export class HTTPError extends MapInterpreterErrorBase {
   ) {
     super('HTTPError', message, metadata);
   }
-
-  override toString(): string {
-    return [
-      `${this.kind}: ${this.message}`,
-      this.astPath ? `AST Path: ${this.astPath.join('.')}` : undefined,
-      this.metadata?.node?.location
-        ? `Original Map Location: Line ${this.metadata.node.location.line}, column ${this.metadata.node.location.column}`
-        : undefined,
-      this.request?.url ? `Request URL: ${this.request.url}` : undefined,
-    ]
-      .filter(line => !!line)
-      .join('\n');
-  }
 }
 
 export class MappedHTTPError<T> extends HTTPError {

@@ -118,8 +118,7 @@ AST Path: definitions[0].statements[0].assignments[0].value`
 
       expect(err.toString()).toEqual(
         `HTTPError: Some http error
-AST Path: definitions[0].statements[0].assignments[0].value
-Request URL: https://my-site.com/`
+AST Path: definitions[0].statements[0].assignments[0].value`
       );
     });
   });
