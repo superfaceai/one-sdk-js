@@ -108,11 +108,6 @@ export class HTTPError extends MapInterpreterErrorBase {
         ? `Original Map Location: Line ${this.metadata.node.location.line}, column ${this.metadata.node.location.column}`
         : undefined,
       this.request?.url ? `Request URL: ${this.request.url}` : undefined,
-      this.response?.headers
-        ? `Response headers:\n${Object.entries(this.response.headers)
-            .map(([key, value]) => `\t${key}: ${value}`)
-            .join('\n')}`
-        : undefined,
     ]
       .filter(line => !!line)
       .join('\n');
