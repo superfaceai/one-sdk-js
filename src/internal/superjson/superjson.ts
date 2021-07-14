@@ -1,3 +1,4 @@
+import { UsecaseDefaults } from '@superfaceai/one-sdk';
 import createDebug from 'debug';
 import { promises as fsp, readFileSync, statSync } from 'fs';
 import {
@@ -14,6 +15,7 @@ import { isAccessible } from '../../lib/io';
 import {
   addPriority,
   addProfile,
+  addProfileDefaults,
   addProfileProvider,
   addProvider,
 } from './mutate';
@@ -172,6 +174,14 @@ export class SuperJson {
   }
 
   // mutation //
+  addProfileDefaults(profileName: string, payload: UsecaseDefaults): boolean {
+    const result = addProfileDefaults(this.document, profileName, payload);
+    if (result) {
+      this.normalizedCache = undefined;
+    }
+
+    return result;
+  }
 
   addProfile(profileName: string, payload: ProfileEntry): boolean {
     const result = addProfile(this.document, profileName, payload);
