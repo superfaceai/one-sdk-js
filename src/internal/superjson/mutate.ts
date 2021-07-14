@@ -22,6 +22,57 @@ import {
   UsecaseDefaults,
 } from './schema';
 
+export function addProfileDefaults(
+  document: SuperJsonDocument,
+  profileName: string,
+  payload: UsecaseDefaults
+): boolean {
+  // if specified profile is not found
+  if (document.profiles === undefined) {
+    document.profiles = {};
+  }
+  if (document.profiles[profileName] === undefined) {
+    document.profiles[profileName] = '0.0.0';
+  }
+
+  const targetedProfile = document.profiles[profileName];
+  let result = document.profiles[profileName];
+
+  // if specified profile has shorthand notation
+  let defaults: UsecaseDefaults | undefined;
+  if (typeof targetedProfile === 'string') {
+    defaults = payload;
+
+    if (isVersionString(targetedProfile)) {
+      result = {
+        version: targetedProfile,
+        defaults,
+      };
+    }
+
+    if (isFileURIString(targetedProfile)) {
+      result = {
+        file: targetedProfile,
+        defaults,
+      };
+    }
+  } else {
+    if (targetedProfile.defaults) {
+      //Merge existing with new
+      defaults = mergeVariables(
+        castToNonPrimitive(targetedProfile.defaults) || {},
+        castToNonPrimitive(payload) || {}
+      ) as UsecaseDefaults;
+      result = {
+        ...targetedProfile,
+        defaults,
+      };
+    }
+  }
+  document.profiles[profileName] = result;
+
+  return true;
+}
 export function addProfile(
   document: SuperJsonDocument,
   profileName: string,

@@ -26,6 +26,7 @@ import {
   ProviderEntry,
   SecurityValues,
   trimFileURI,
+  UsecaseDefaults,
 } from './schema';
 import { SuperJson } from './superjson';
 
@@ -1189,6 +1190,152 @@ describe('SuperJson', () => {
             ],
           },
         },
+      });
+    });
+  });
+  describe('when adding profile default', () => {
+    it('adds profile deafults to empty super.json multiple times', () => {
+      const mockProfileName = 'profile';
+      const mockUseCaseName = 'usecase';
+
+      let mockProfileDeafultsEntry: UsecaseDefaults = {
+        [mockUseCaseName]: { providerFailover: false, input: { test: 'test' } },
+      };
+
+      expect(
+        superjson.addProfileDefaults(mockProfileName, mockProfileDeafultsEntry)
+      ).toEqual(true);
+      expect(superjson.document.profiles?.[mockProfileName]).toEqual({
+        defaults: {
+          [mockUseCaseName]: {
+            providerFailover: false,
+            input: { test: 'test' },
+          },
+        },
+        version: '0.0.0',
+      });
+
+      mockProfileDeafultsEntry = {
+        [mockUseCaseName]: {
+          providerFailover: true,
+          input: { test: 'new-test' },
+        },
+      };
+
+      expect(
+        superjson.addProfileDefaults(mockProfileName, mockProfileDeafultsEntry)
+      ).toEqual(true);
+      expect(superjson.document.profiles?.[mockProfileName]).toEqual({
+        defaults: {
+          [mockUseCaseName]: {
+            providerFailover: true,
+            input: { test: 'new-test' },
+          },
+        },
+        version: '0.0.0',
+      });
+    });
+
+    it('adds profile deafults to super.json with profile using uri path multiple times', () => {
+      const mockProfileName = 'profile';
+      const mockUseCaseName = 'usecase';
+
+      superjson = new SuperJson({
+        profiles: { [mockProfileName]: 'file://some/path' },
+      });
+
+      let mockProfileDeafultsEntry: UsecaseDefaults = {
+        [mockUseCaseName]: { providerFailover: false, input: { test: 'test' } },
+      };
+
+      expect(
+        superjson.addProfileDefaults(mockProfileName, mockProfileDeafultsEntry)
+      ).toEqual(true);
+      expect(superjson.document.profiles?.[mockProfileName]).toEqual({
+        defaults: {
+          [mockUseCaseName]: {
+            providerFailover: false,
+            input: { test: 'test' },
+          },
+        },
+        file: 'file://some/path',
+      });
+
+      mockProfileDeafultsEntry = {
+        [mockUseCaseName]: {
+          providerFailover: true,
+          input: { test: 'new-test' },
+        },
+      };
+
+      expect(
+        superjson.addProfileDefaults(mockProfileName, mockProfileDeafultsEntry)
+      ).toEqual(true);
+      expect(superjson.document.profiles?.[mockProfileName]).toEqual({
+        defaults: {
+          [mockUseCaseName]: {
+            providerFailover: true,
+            input: { test: 'new-test' },
+          },
+        },
+        file: 'file://some/path',
+      });
+    });
+
+    it('adds profile deafults to super.json with existing profile multiple times', () => {
+      const mockProfileName = 'profile';
+      const mockUseCaseName = 'usecase';
+
+      superjson = new SuperJson({
+        profiles: {
+          [mockProfileName]: {
+            version: '1.0.0',
+            priority: ['test'],
+            defaults: { [mockUseCaseName]: { providerFailover: false } },
+            providers: { test: {} },
+          },
+        },
+      });
+
+      let mockProfileDeafultsEntry: UsecaseDefaults = {
+        [mockUseCaseName]: { providerFailover: true, input: { test: 'test' } },
+      };
+
+      expect(
+        superjson.addProfileDefaults(mockProfileName, mockProfileDeafultsEntry)
+      ).toEqual(true);
+      expect(superjson.document.profiles?.[mockProfileName]).toEqual({
+        defaults: {
+          [mockUseCaseName]: {
+            providerFailover: true,
+            input: { test: 'test' },
+          },
+        },
+        version: '1.0.0',
+        priority: ['test'],
+        providers: { test: {} },
+      });
+
+      mockProfileDeafultsEntry = {
+        [mockUseCaseName]: {
+          providerFailover: false,
+          input: { test: 'new-test' },
+        },
+      };
+
+      expect(
+        superjson.addProfileDefaults(mockProfileName, mockProfileDeafultsEntry)
+      ).toEqual(true);
+      expect(superjson.document.profiles?.[mockProfileName]).toEqual({
+        defaults: {
+          [mockUseCaseName]: {
+            providerFailover: false,
+            input: { test: 'new-test' },
+          },
+        },
+        version: '1.0.0',
+        priority: ['test'],
+        providers: { test: {} },
       });
     });
   });
