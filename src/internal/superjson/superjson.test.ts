@@ -1193,7 +1193,7 @@ describe('SuperJson', () => {
       });
     });
   });
-  describe('when adding profile default', () => {
+  describe('when adding profile defaults', () => {
     it('adds profile deafults to empty super.json multiple times', () => {
       const mockProfileName = 'profile';
       const mockUseCaseName = 'usecase';
@@ -2162,7 +2162,7 @@ describe('SuperJson', () => {
       });
     });
 
-    it('returns false if super.json wasnt updated', () => {
+    it('adds profile provider to super.json with exisitng profile provider but without defaults', () => {
       const mockProfileName = 'profile';
       const mockProviderName = 'provider';
       const mockProfileProviderEntry: ProfileProviderEntry = {
@@ -2177,12 +2177,50 @@ describe('SuperJson', () => {
             providers: {
               [mockProviderName]: {
                 file: 'provider/path',
-                defaults: {
-                  input: {
-                    input: { test: 'test' },
-                    retryPolicy: { kind: OnFail.NONE },
-                  },
-                },
+              },
+            },
+          },
+        },
+      });
+
+      expect(
+        superjson.addProfileProvider(
+          mockProfileName,
+          mockProviderName,
+          mockProfileProviderEntry
+        )
+      ).toEqual(true);
+      expect(superjson.normalized.profiles[mockProfileName]).toEqual({
+        defaults: {},
+        file: 'some/path',
+        priority: [mockProviderName],
+        providers: {
+          [mockProviderName]: {
+            defaults: {
+              input: {
+                input: { test: 'test' },
+                retryPolicy: { kind: OnFail.NONE },
+              },
+            },
+            file: 'provider/path',
+          },
+        },
+      });
+    });
+
+    it('returns false if super.json wasnt updated', () => {
+      const mockProfileName = 'profile';
+      const mockProviderName = 'provider';
+      const mockProfileProviderEntry: ProfileProviderEntry = {};
+
+      superjson = new SuperJson({
+        profiles: {
+          [mockProfileName]: {
+            defaults: {},
+            file: 'some/path',
+            providers: {
+              [mockProviderName]: {
+                file: 'provider/path',
               },
             },
           },
@@ -2202,12 +2240,7 @@ describe('SuperJson', () => {
         priority: [mockProviderName],
         providers: {
           [mockProviderName]: {
-            defaults: {
-              input: {
-                input: { test: 'test' },
-                retryPolicy: { kind: OnFail.NONE },
-              },
-            },
+            defaults: {},
             file: 'provider/path',
           },
         },

@@ -194,7 +194,19 @@ export function addProfile(
 
   return true;
 }
+function resolvePriorityAddition(
+  existingPriority: string[] | undefined,
+  newProvider: string
+): string[] {
+  if (!existingPriority || existingPriority.length === 0) {
+    return [newProvider];
+  }
+  if (!existingPriority.includes(newProvider)) {
+    return [...existingPriority, newProvider];
+  }
 
+  return existingPriority;
+}
 export function addProfileProvider(
   document: SuperJsonDocument,
   profileName: string,
@@ -220,6 +232,10 @@ export function addProfileProvider(
     targetedProfile.providers = {
       [providerName]: payload,
     };
+    targetedProfile.priority = resolvePriorityAddition(
+      targetedProfile.priority,
+      providerName
+    );
 
     return true;
   }
@@ -233,10 +249,10 @@ export function addProfileProvider(
       [providerName]: payload,
     };
 
-    targetedProfile.priority = [
-      ...(targetedProfile.priority || []),
-      providerName,
-    ];
+    targetedProfile.priority = resolvePriorityAddition(
+      targetedProfile.priority,
+      providerName
+    );
 
     return true;
   }
@@ -249,6 +265,10 @@ export function addProfileProvider(
       isEmptyRecord(profileProvider.defaults ?? {})
     ) {
       targetedProfile.providers[providerName] = composeFileURI(payload);
+      targetedProfile.priority = resolvePriorityAddition(
+        targetedProfile.priority,
+        providerName
+      );
 
       return true;
     }
@@ -257,6 +277,10 @@ export function addProfileProvider(
       file: trimFileURI(payload),
       defaults: profileProvider.defaults,
     };
+    targetedProfile.priority = resolvePriorityAddition(
+      targetedProfile.priority,
+      providerName
+    );
 
     return true;
   }
@@ -264,17 +288,37 @@ export function addProfileProvider(
   // Priority #2: keep previous structure and merge
   let defaults: ProfileProviderDefaults | undefined;
   if (typeof profileProvider === 'string') {
+    //Change
     defaults = payload.defaults;
-  } else if (profileProvider.defaults) {
-    if (!payload.defaults) {
-      defaults = targetedProfile.defaults;
-    } else {
+  } else {
+    if (profileProvider.defaults && payload.defaults) {
+      //Chanage
       //Merge existing with new
       defaults = mergeVariables(
         castToNonPrimitive(profileProvider.defaults) || {},
         castToNonPrimitive(payload.defaults) || {}
       ) as ProfileProviderDefaults;
+    } else if (!profileProvider.defaults && payload.defaults) {
+      defaults = payload.defaults;
     }
+  }
+  // if there no other keys and we changed defaults
+  if (
+    !('file' in payload) &&
+    !('mapVariant' in payload) &&
+    !('mapRevision' in payload) &&
+    defaults
+  ) {
+    targetedProfile.providers[providerName] = {
+      ...(typeof profileProvider === 'string' ? {} : profileProvider),
+      defaults,
+    };
+    targetedProfile.priority = resolvePriorityAddition(
+      targetedProfile.priority,
+      providerName
+    );
+
+    return true;
   }
 
   // when specified profile provider has file & defaults
@@ -283,6 +327,10 @@ export function addProfileProvider(
       ...payload,
       defaults,
     };
+    targetedProfile.priority = resolvePriorityAddition(
+      targetedProfile.priority,
+      providerName
+    );
 
     return true;
   }
@@ -294,6 +342,10 @@ export function addProfileProvider(
         ...payload,
         defaults,
       };
+      targetedProfile.priority = resolvePriorityAddition(
+        targetedProfile.priority,
+        providerName
+      );
 
       return true;
     }
@@ -313,6 +365,10 @@ export function addProfileProvider(
       ...mapProperties,
       defaults,
     };
+    targetedProfile.priority = resolvePriorityAddition(
+      targetedProfile.priority,
+      providerName
+    );
 
     return true;
   }
