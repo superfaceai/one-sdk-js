@@ -232,10 +232,6 @@ export function addProfileProvider(
     targetedProfile.providers = {
       [providerName]: payload,
     };
-    targetedProfile.priority = resolvePriorityAddition(
-      targetedProfile.priority,
-      providerName
-    );
 
     return true;
   }
@@ -292,7 +288,7 @@ export function addProfileProvider(
     defaults = payload.defaults;
   } else {
     if (profileProvider.defaults && payload.defaults) {
-      //Chanage
+      //Change
       //Merge existing with new
       defaults = mergeVariables(
         castToNonPrimitive(profileProvider.defaults) || {},
@@ -310,7 +306,9 @@ export function addProfileProvider(
     defaults
   ) {
     targetedProfile.providers[providerName] = {
-      ...(typeof profileProvider === 'string' ? {} : profileProvider),
+      ...(typeof profileProvider === 'string'
+        ? { file: profileProvider }
+        : profileProvider),
       defaults,
     };
     targetedProfile.priority = resolvePriorityAddition(
