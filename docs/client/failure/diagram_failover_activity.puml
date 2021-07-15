@@ -1,0 +1,134 @@
+@startuml
+
+start
+
+floating note
+	Configured providers: A, B
+	Failover enabled, priority: A, B
+	Failure policies: circuit-breaker { 2 retries }
+end note
+
+partition "Provider A" {
+	#lightblue:""bindAndPerform(provider: implicit A)""]
+
+	:pre-bind-and-perform;
+	note left
+		**""beforeExecution""** -> ""continue""
+	end note
+
+	#lightgrey:other work/
+
+	#lightblue:""fetch(A/resource)""]
+	:pre-fetch;
+	note left
+		**""beforeExecution""** -> ""continue""
+	end note
+	#pink:timeout>
+	:post-fetch;
+	note right
+		**""afterFailure""** -> ""retry""
+	end note
+
+	#lightblue:""fetch(A/resource)""]
+	:pre-fetch;
+	note left
+		**""beforeExecution""** -> ""backoff""
+		-> ""continue""
+	end note
+	#pink:HTTP 503 Service Unavailable>
+	:post-fetch;
+	note right
+		-> ""continue""
+	end note
+	:pre-unhandled-http;
+	note left
+		**""afterFailure""** -> ""retry""
+		-> ""abort"" (result = ""retry"")
+	end note
+
+	#lightblue:""fetch(A/resource)""]
+	:pre-fetch;
+	note left
+		**""beforeExecution""** -> ""backoff""
+		-> ""continue""
+	end note
+	#pink:timeout>
+	:post-fetch;
+	note right
+		**""afterFailure""** -> ""switch-provider""
+		__queued action__ = ""switch-provider""
+		-> ""abort""
+	end note
+
+	#lightgrey:failure propagation/
+
+	:post-bind-and-perform;
+	note right
+		__queued action__ -> ""retry"" (provider = B)
+	end note
+}
+
+partition "Provider B" {
+	#lightblue:""bindAndPerform(provider: B)""]
+
+	:pre-bind-and-perform;
+	note left
+		**""beforeExecution""** -> ""continue""
+	end note
+
+	#lightgrey:other work/
+
+	#lightblue:""fetch(B/resource)""]
+	:pre-fetch;
+	note left
+		**""beforeExecution""** -> ""continue""
+	end note
+	#palegreen:HTTP 200 OK>
+	:post-fetch;
+	note right
+		-> ""continue""
+	end note
+
+	#lightgrey:other work/
+
+	:post-bind-and-perform;
+	note right
+		**""afterSuccess""** -> ""continue""
+	end note
+}
+
+#lightgrey:some time elapses, circuit-breaker A opens/
+
+partition "Provider A" {
+
+	#lightblue:""bindAndPerform(provider: implicit B)""]
+	:pre-bind-and-perform;
+	note left
+		**""beforeExecution""** -> ""switch-provider""
+		-> modify (provider = A)
+	end note
+
+	#lightgrey:other work/
+
+	#lightblue:""fetch(A/resource)""]
+	:pre-fetch;
+	note left
+		**""beforeExecution""** -> ""continue""
+	end note
+	#palegreen:HTTP 200 OK>
+	:post-fetch;
+	note right
+		-> ""continue""
+	end note
+
+	#lightgrey:other work/
+
+	:post-bind-and-perform;
+	note right
+		**""afterSuccess""** -> ""continue""
+	end note
+}
+
+stop
+
+@enduml
