@@ -8,7 +8,6 @@ import {
   UsecaseInfo,
 } from './policy';
 import {
-  AbortResolution,
   ExecutionResolution,
   FailureResolution,
   SuccessResolution,
@@ -32,33 +31,6 @@ export class FailurePolicyRouter {
     );
   }
 
-  private switchProviders(
-    info: ExecutionInfo
-  ): AbortResolution | SwitchProviderResolution {
-    if (!this.currentProvider) {
-      throw new UnexpectedError(
-        'Property currentProvider is not set in Router instance'
-      );
-    }
-
-    //Try to switch providers
-    const indexOfCurrentProvider = this.priority.indexOf(this.currentProvider);
-    const provider = this.priority
-      .filter((_p: string, i: number) => i > indexOfCurrentProvider)
-      .find(
-        (p: string) =>
-          this.providersOfUseCase[p].beforeExecution(info).kind === 'continue'
-      );
-
-    //Priority does not contain another (with lesser priority) provider
-    if (!provider) {
-      return { kind: 'abort', reason: 'no backup provider configured' };
-    }
-    this.setCurrentProvider(provider);
-
-    return { kind: 'switch-provider', provider: this.currentProvider };
-  }
-
   public getCurrentProvider(): string | undefined {
     return this.currentProvider;
   }
@@ -77,6 +49,82 @@ export class FailurePolicyRouter {
     this.currentProvider = provider;
   }
 
+  private attemptSwitch(
+    info: ExecutionInfo,
+    providers: string[]
+  ): undefined | SwitchProviderResolution {
+    // find the first previous provider that doesn't abort
+    const newProvider = providers.find(
+      provider => this.providersOfUseCase[provider].beforeExecution(info).kind === 'continue'
+    );
+
+    if (newProvider === undefined) {
+      return undefined;
+    }
+
+    this.setCurrentProvider(newProvider);
+    return { kind: 'switch-provider', provider: newProvider };
+  }
+
+  private attemptFailover(
+    info: ExecutionInfo
+  ): undefined | SwitchProviderResolution {
+    if (!this.currentProvider) {
+      throw new UnexpectedError('Property currentProvider is not set in Router instance');
+    }
+
+    if (!this.allowFailover) {
+      return undefined;
+    }
+
+    const previousProviders = this.priority.slice(this.priority.indexOf(this.currentProvider) + 1);
+
+    return this.attemptSwitch(info, previousProviders)
+  }
+
+  private attemptFailoverRestore(
+    info: ExecutionInfo
+  ): undefined | SwitchProviderResolution {
+    if (!this.currentProvider) {
+      throw new UnexpectedError(
+        'Property currentProvider is not set in Router instance'
+      );
+    }
+
+    if (!this.allowFailover) {
+      return undefined;
+    }
+
+    const previousProviders = this.priority.slice(0, this.priority.indexOf(this.currentProvider)).filter(
+      // TODO: Temporary hack to avoid infinite switch loops
+      // this needs to be solved globally
+      provider => !(this.providersOfUseCase[provider] instanceof AbortPolicy)
+    );
+
+    return this.attemptSwitch(info, previousProviders)
+  }
+
+  private handleFailover(info: ExecutionInfo, innerResolution: ExecutionResolution): ExecutionResolution;
+  private handleFailover(info: ExecutionInfo, innerResolution: FailureResolution): FailureResolution;
+  private handleFailover(
+    info: ExecutionInfo,
+    innerResolution: ExecutionResolution | FailureResolution
+  ): ExecutionResolution | FailureResolution {
+    if (innerResolution.kind === 'abort') {
+      const failover = this.attemptFailover(info);
+      if (failover === undefined) {
+        return {
+          kind: 'abort',
+          reason: `No backup provider available. Abort reason: ${innerResolution.reason}`
+        }
+      }
+
+      return failover;
+    }
+
+    return innerResolution;
+  }
+
   public beforeExecution(info: ExecutionInfo): ExecutionResolution {
     if (!this.currentProvider) {
       throw new UnexpectedError(
@@ -84,69 +132,26 @@ export class FailurePolicyRouter {
       );
     }
 
-    //Try to switch back to previous provider
-    if (
-      this.allowFailover &&
-      this.priority.length > 0 &&
-      this.currentProvider !== this.priority[0]
-    ) {
-      const indexOfCurrentProvider = this.priority.indexOf(
-        this.currentProvider
-      );
-
-      const provider = this.priority
-        .filter((_p: string, i: number) => i < indexOfCurrentProvider)
-        .find(
-          (p: string) =>
-            this.providersOfUseCase[p].beforeExecution(info).kind === 'continue'
-        );
-
-      //TODO: solve AbortPolicy infinite loop problem
-      //Switch back to previous but do not switch back to AbortPolicy
-      if (
-        provider &&
-        !(this.providersOfUseCase[provider] instanceof AbortPolicy)
-      ) {
-        return {
-          kind: 'switch-provider',
-          provider,
-        };
-      }
+    const failoverRestore = this.attemptFailoverRestore(info);
+    if (failoverRestore !== undefined) {
+      return failoverRestore;
     }
+
     const innerResolution =
       this.providersOfUseCase[this.currentProvider].beforeExecution(info);
 
-    if (
-      this.allowFailover &&
-      innerResolution.kind === 'abort' &&
-      this.priority.length > 0
-    ) {
-      return this.switchProviders(info);
-    }
-
-    return innerResolution;
+    return this.handleFailover(info, innerResolution);
   }
 
   public afterFailure(info: ExecutionFailure): FailureResolution {
     if (!this.currentProvider) {
-      throw new UnexpectedError(
-        'Property currentProvider is not set in Router instance'
-      );
+      throw new UnexpectedError('Property currentProvider is not set in Router instance');
     }
 
     const innerResolution =
       this.providersOfUseCase[this.currentProvider].afterFailure(info);
 
-    //TODO: some other checking logic?
-    if (
-      !this.allowFailover ||
-      innerResolution.kind !== 'abort' ||
-      this.priority.length === 0
-    ) {
-      return innerResolution;
-    }
-
-    return this.switchProviders(info);
+    return this.handleFailover(info, innerResolution);
   }
 
   public afterSuccess(info: ExecutionSuccess): SuccessResolution {

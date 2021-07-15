@@ -995,7 +995,7 @@ describe('failure policies', () => {
             time: 0,
             registryCacheAge: 0,
           })
-        ).toEqual({ kind: 'abort', reason: 'no backup provider configured' });
+        ).toMatchObject({ kind: 'abort' });
       });
 
       it('switches to another provider with lesser priority', () => {
