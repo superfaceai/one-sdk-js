@@ -7,7 +7,10 @@ const configDebug = createDebug('superface:config');
 const TOKEN_ENV_NAME = 'SUPERFACE_SDK_TOKEN';
 const API_URL_ENV_NAME = 'SUPERFACE_API_URL';
 const SUPERFACE_PATH_NAME = 'SUPERFACE_PATH';
-const METRIC_DEBOUNCE_TIME = 'SUPERFACE_METRIC_DEBOUNCE_TIME';
+const METRIC_DEBOUNCE_TIME = {
+  min: 'SUPERFACE_METRIC_DEBOUNCE_TIME_MIN',
+  max: 'SUPERFACE_METRIC_DEBOUNCE_TIME_MAX',
+};
 const DISABLE_REPORTING = 'SUPERFACE_DISABLE_METRIC_REPORTING';
 
 // Defaults
@@ -17,7 +20,10 @@ export const DEFAULT_SUPERFACE_PATH = joinPath(
   'superface',
   'super.json'
 );
-export const DEFAULT_METRIC_DEBOUNCE_TIME = 60000;
+export const DEFAULT_METRIC_DEBOUNCE_TIME = {
+  min: 1000,
+  max: 60000,
+};
 
 // Extraction functions
 function getSuperfaceApiUrl(): string {
@@ -46,20 +52,25 @@ function getSdkAuthToken(): string | undefined {
   return token;
 }
 
-function getMetricDebounceTime(): number {
-  const envValue = process.env[METRIC_DEBOUNCE_TIME];
+function getMetricDebounceTime(which: 'min' | 'max'): number {
+  const envValue = process.env[METRIC_DEBOUNCE_TIME[which]];
   if (envValue === undefined) {
-    return DEFAULT_METRIC_DEBOUNCE_TIME;
+    return DEFAULT_METRIC_DEBOUNCE_TIME[which];
   }
 
   try {
-    return parseInt(envValue);
+    const result = parseInt(envValue);
+    if (result <= 0) {
+      throw undefined;
+    }
+
+    return result;
   } catch (e) {
     configDebug(
-      `Invalid value: ${envValue} for ${METRIC_DEBOUNCE_TIME}, expected number`
+      `Invalid value: ${envValue} for ${METRIC_DEBOUNCE_TIME[which]}, expected positive number`
     );
 
-    return DEFAULT_METRIC_DEBOUNCE_TIME;
+    return DEFAULT_METRIC_DEBOUNCE_TIME[which];
   }
 }
 
@@ -67,7 +78,8 @@ export type Config = {
   superfaceApiUrl: string;
   sdkAuthToken?: string;
   superfacePath: string;
-  metricDebounceTime: number;
+  metricDebounceTimeMin: number;
+  metricDebounceTimeMax: number;
   disableReporting: boolean;
 };
 
@@ -78,7 +90,8 @@ export const Config = (): Config => {
       superfaceApiUrl: getSuperfaceApiUrl(),
       sdkAuthToken: getSdkAuthToken(),
       superfacePath: process.env[SUPERFACE_PATH_NAME] ?? DEFAULT_SUPERFACE_PATH,
-      metricDebounceTime: getMetricDebounceTime(),
+      metricDebounceTimeMin: getMetricDebounceTime('min'),
+      metricDebounceTimeMax: getMetricDebounceTime('max'),
       disableReporting:
         process.env.NODE_ENV === 'test'
           ? true

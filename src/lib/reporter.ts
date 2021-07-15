@@ -123,7 +123,7 @@ export type EventInput =
 
 export class MetricReporter {
   private timer: NodeJS.Timeout | undefined;
-  private startTime: Date | undefined;
+  private startTime: number | undefined;
   private fetchInstance: FetchInstance;
   private readonly sdkToken: string | undefined;
   private performMetrics: Omit<PerformMetricsInput, 'eventType'>[] = [];
@@ -167,23 +167,28 @@ export class MetricReporter {
     this.sendEvent(metrics);
   }
 
+  // Sets debounce timer, unless maximum debounce time elapsed
   private setTimer(): void {
-    const now = new Date();
+    const now = Date.now();
     const timeHasElapsed =
       this.startTime !== undefined &&
-      now.valueOf() - this.startTime.valueOf() >= Config().metricDebounceTime;
+      now - this.startTime >= Config().metricDebounceTimeMax;
+    // If this is the first request in a batch, set the batch start time for max debounce
     if (this.startTime === undefined) {
       this.startTime = now;
     }
+    // If the max debounce time elapsed, do nothing - let the timer execute
     if (timeHasElapsed) {
       return;
     }
+    // If the debounce time did not elapse, remove previous set timer
     if (this.timer !== undefined) {
       clearTimeout(this.timer);
     }
+    // Set the timer for min debounce time - it will execute unless another metric request comes
     this.timer = setTimeout(() => {
       this.flush();
-    }, 1000);
+    }, Config().metricDebounceTimeMin);
   }
 
   private reportSdkInitEvent(event: SDKInitInput): void {
