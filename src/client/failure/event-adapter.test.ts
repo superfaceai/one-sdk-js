@@ -1,12 +1,10 @@
 import { MapDocumentNode, ProfileDocumentNode } from '@superfaceai/ast';
 import { getLocal } from 'mockttp';
 
-import { BackoffKind, OnFail, SuperJson } from '../../internal';
+import { BackoffKind, OnFail, SuperJson, SuperJsonDocument } from '../../internal';
 import { ok, sleep } from '../../lib';
 import { invalidateSuperfaceClientCache, SuperfaceClient } from '../client';
-import { ProfileConfiguration } from '../profile';
 import { BoundProfileProvider } from '../profile-provider';
-import { ProviderConfiguration } from '../provider';
 
 const firstMockProfileDocument: ProfileDocumentNode = {
   kind: 'ProfileDocument',
@@ -390,6 +388,59 @@ const thirdMockMapDocument: MapDocumentNode = {
 
 const mockServer = getLocal();
 
+function mockSuperJson(document: SuperJsonDocument) {
+  const mockLoadSync = jest.fn();
+  mockLoadSync.mockReturnValue(
+    ok(new SuperJson(document))
+  );
+  SuperJson.loadSync = mockLoadSync;
+}
+
+function spyOnCacheBoundProfileProvider(client: SuperfaceClient) {
+  const firstMockBoundProfileProvider = new BoundProfileProvider(
+    firstMockProfileDocument,
+    firstMockMapDocument,
+    'provider',
+    { baseUrl: mockServer.url, security: [] },
+    client
+  );
+  const secondMockBoundProfileProvider = new BoundProfileProvider(
+    firstMockProfileDocument,
+    secondMockMapDocument,
+    'second',
+    { baseUrl: mockServer.url, security: [] },
+    client
+  );
+  const thirdMockBoundProfileProvider = new BoundProfileProvider(
+    secondMockProfiledDocument,
+    thirdMockMapDocument,
+    'third',
+    { baseUrl: mockServer.url, security: [] },
+    client
+  );
+  const cacheBoundProfileProviderSpy = jest
+    .spyOn(client, 'cacheBoundProfileProvider')
+    .mockImplementation(
+      (_, providerConfig) => {
+        switch (providerConfig.name) {
+          case 'provider':
+            return Promise.resolve(firstMockBoundProfileProvider);
+          
+          case 'second':
+            return Promise.resolve(secondMockBoundProfileProvider);
+          
+          case 'third':
+            return Promise.resolve(thirdMockBoundProfileProvider);
+
+          default:
+            throw 'unreachable';
+      }
+    }
+  )
+
+  return cacheBoundProfileProviderSpy
+}
+
 describe('event-adapter', () => {
   beforeEach(async () => {
     await mockServer.start();
@@ -402,44 +453,28 @@ describe('event-adapter', () => {
 
   //Without retry policy
   it('does not use retry policy - returns after HTTP 200', async () => {
-    const mockLoadSync = jest.fn();
-
     const endpoint = await mockServer.get('/first').thenJson(200, {});
-
-    const mockSuperJson = new SuperJson({
-      profiles: {
-        ['starwars/character-information']: {
-          version: '1.0.0',
-          providers: {
-            provider: {},
+    mockSuperJson(
+      {
+        profiles: {
+          ['starwars/character-information']: {
+            version: '1.0.0',
+            providers: {
+              provider: {},
+            },
           },
         },
-      },
-      providers: {
-        provider: {
-          security: [],
+        providers: {
+          provider: {
+            security: [],
+          },
         },
-      },
-    });
-
-    mockLoadSync.mockReturnValue(ok(mockSuperJson));
-    SuperJson.loadSync = mockLoadSync;
+      }
+    );
 
     //Not mocked client
     const client = new SuperfaceClient();
-
-    //Mocking bounded provider
-    const mockBoundProfileProvider = new BoundProfileProvider(
-      firstMockProfileDocument,
-      firstMockMapDocument,
-      'provider',
-      { baseUrl: mockServer.url, security: [] },
-      client
-    );
-    //Mocking only this one function in client
-    const cacheBoundProfileProviderSpy = jest
-      .spyOn(client, 'cacheBoundProfileProvider')
-      .mockResolvedValue(mockBoundProfileProvider);
+    const cacheBoundProfileProviderSpy = spyOnCacheBoundProfileProvider(client);
 
     //Run it as usual
     const profile = await client.getProfile('starwars/character-information');
@@ -453,11 +488,8 @@ describe('event-adapter', () => {
   }, 20000);
 
   it('does not use retry policy - aborts after HTTP 500', async () => {
-    const mockLoadSync = jest.fn();
-
     const endpoint = await mockServer.get('/first').thenJson(500, {});
-
-    const mockSuperJson = new SuperJson({
+    mockSuperJson({
       profiles: {
         ['starwars/character-information']: {
           version: '1.0.0',
@@ -473,22 +505,9 @@ describe('event-adapter', () => {
       },
     });
 
-    mockLoadSync.mockReturnValue(ok(mockSuperJson));
-    SuperJson.loadSync = mockLoadSync;
-
     const client = new SuperfaceClient();
 
-    //Mocking bounded provider
-    const mockBoundProfileProvider = new BoundProfileProvider(
-      firstMockProfileDocument,
-      firstMockMapDocument,
-      'provider',
-      { baseUrl: mockServer.url, security: [] },
-      client
-    );
-    const cacheBoundProfileProviderSpy = jest
-      .spyOn(client, 'cacheBoundProfileProvider')
-      .mockResolvedValue(mockBoundProfileProvider);
+    const cacheBoundProfileProviderSpy = spyOnCacheBoundProfileProvider(client);
 
     const profile = await client.getProfile('starwars/character-information');
     const useCase = profile.getUseCase('Test');
@@ -501,11 +520,8 @@ describe('event-adapter', () => {
   }, 20000);
 
   it('does not use retry policy - aborts after closed connection', async () => {
-    const mockLoadSync = jest.fn();
-
     await mockServer.get('/first').thenCloseConnection();
-
-    const mockSuperJson = new SuperJson({
+    mockSuperJson({
       profiles: {
         ['starwars/character-information']: {
           version: '1.0.0',
@@ -521,22 +537,9 @@ describe('event-adapter', () => {
       },
     });
 
-    mockLoadSync.mockReturnValue(ok(mockSuperJson));
-    SuperJson.loadSync = mockLoadSync;
-
     const client = new SuperfaceClient();
 
-    //Mocking bounded provider
-    const mockBoundProfileProvider = new BoundProfileProvider(
-      firstMockProfileDocument,
-      firstMockMapDocument,
-      'provider',
-      { baseUrl: mockServer.url, security: [] },
-      client
-    );
-    const cacheBoundProfileProviderSpy = jest
-      .spyOn(client, 'cacheBoundProfileProvider')
-      .mockResolvedValue(mockBoundProfileProvider);
+    const cacheBoundProfileProviderSpy = spyOnCacheBoundProfileProvider(client);
 
     const profile = await client.getProfile('starwars/character-information');
     const useCase = profile.getUseCase('Test');
@@ -548,11 +551,8 @@ describe('event-adapter', () => {
   }, 20000);
 
   it('does not use retry policy - aborts after timeout', async () => {
-    const mockLoadSync = jest.fn();
-
     await mockServer.get('/first').thenTimeout();
-
-    const mockSuperJson = new SuperJson({
+    mockSuperJson({
       profiles: {
         ['starwars/character-information']: {
           version: '1.0.0',
@@ -568,22 +568,9 @@ describe('event-adapter', () => {
       },
     });
 
-    mockLoadSync.mockReturnValue(ok(mockSuperJson));
-    SuperJson.loadSync = mockLoadSync;
-
     const client = new SuperfaceClient();
 
-    //Mocking bounded provider
-    const mockBoundProfileProvider = new BoundProfileProvider(
-      firstMockProfileDocument,
-      firstMockMapDocument,
-      'provider',
-      { baseUrl: mockServer.url, security: [] },
-      client
-    );
-    const cacheBoundProfileProviderSpy = jest
-      .spyOn(client, 'cacheBoundProfileProvider')
-      .mockResolvedValue(mockBoundProfileProvider);
+    const cacheBoundProfileProviderSpy = spyOnCacheBoundProfileProvider(client);
 
     const profile = await client.getProfile('starwars/character-information');
     const useCase = profile.getUseCase('Test');
@@ -596,11 +583,8 @@ describe('event-adapter', () => {
 
   //Circuit breaker
   it('use circuit-breaker policy - aborts after HTTP 500', async () => {
-    const mockLoadSync = jest.fn();
-
     const endpoint = await mockServer.get('/first').thenJson(500, {});
-
-    const mockSuperJson = new SuperJson({
+    mockSuperJson({
       profiles: {
         ['starwars/character-information']: {
           version: '1.0.1',
@@ -627,22 +611,9 @@ describe('event-adapter', () => {
       },
     });
 
-    mockLoadSync.mockReturnValue(ok(mockSuperJson));
-    SuperJson.loadSync = mockLoadSync;
-
     const client = new SuperfaceClient();
 
-    //Mocking bounded provider
-    const mockBoundProfileProvider = new BoundProfileProvider(
-      firstMockProfileDocument,
-      firstMockMapDocument,
-      'provider',
-      { baseUrl: mockServer.url, security: [] },
-      client
-    );
-    const cacheBoundProfileProviderSpy = jest
-      .spyOn(client, 'cacheBoundProfileProvider')
-      .mockResolvedValue(mockBoundProfileProvider);
+    const cacheBoundProfileProviderSpy = spyOnCacheBoundProfileProvider(client);
 
     const profile = await client.getProfile('starwars/character-information');
     const useCase = profile.getUseCase('Test');
@@ -658,7 +629,6 @@ describe('event-adapter', () => {
   }, 20000);
 
   it('use circuit-breaker policy with backoff - aborts after HTTP 500', async () => {
-    const mockLoadSync = jest.fn();
     const backoffTime = 5000;
     let firstRequestTime: number | undefined;
     let secondRequestTime: number | undefined;
@@ -682,7 +652,7 @@ describe('event-adapter', () => {
       };
     });
 
-    const mockSuperJson = new SuperJson({
+    mockSuperJson({
       profiles: {
         ['starwars/character-information']: {
           version: '1.0.1',
@@ -713,22 +683,9 @@ describe('event-adapter', () => {
       },
     });
 
-    mockLoadSync.mockReturnValue(ok(mockSuperJson));
-    SuperJson.loadSync = mockLoadSync;
-
     const client = new SuperfaceClient();
 
-    //Mocking bounded provider
-    const mockBoundProfileProvider = new BoundProfileProvider(
-      firstMockProfileDocument,
-      firstMockMapDocument,
-      'provider',
-      { baseUrl: mockServer.url, security: [] },
-      client
-    );
-    const cacheBoundProfileProviderSpy = jest
-      .spyOn(client, 'cacheBoundProfileProvider')
-      .mockResolvedValue(mockBoundProfileProvider);
+    const cacheBoundProfileProviderSpy = spyOnCacheBoundProfileProvider(client);
 
     const profile = await client.getProfile('starwars/character-information');
     const useCase = profile.getUseCase('Test');
@@ -750,12 +707,9 @@ describe('event-adapter', () => {
   }, 20000);
 
   it('use circuit-breaker policy - switch providers after HTTP 500, using default provider', async () => {
-    const mockLoadSync = jest.fn();
-
     const endpoint = await mockServer.get('/first').thenJson(500, {});
     const secondEndpoint = await mockServer.get('/second').thenJson(200, {});
-
-    const mockSuperJson = new SuperJson({
+    mockSuperJson({
       profiles: {
         ['starwars/character-information']: {
           version: '1.0.0',
@@ -792,45 +746,9 @@ describe('event-adapter', () => {
       },
     });
 
-    mockLoadSync.mockReturnValue(ok(mockSuperJson));
-    SuperJson.loadSync = mockLoadSync;
-
     const client = new SuperfaceClient();
 
-    //Mocking first bounded provider
-    const firstMockBoundProfileProvider = new BoundProfileProvider(
-      firstMockProfileDocument,
-      firstMockMapDocument,
-      'provider',
-      { baseUrl: mockServer.url, security: [] },
-      client
-    );
-    //Mocking first bounded provider
-    const secondMockBoundProfileProvider = new BoundProfileProvider(
-      firstMockProfileDocument,
-      secondMockMapDocument,
-      'second',
-      { baseUrl: mockServer.url, security: [] },
-      client
-    );
-    const cacheBoundProfileProviderSpy = jest
-      .spyOn(client, 'cacheBoundProfileProvider')
-      .mockImplementation(
-        (
-          _profileConfig: ProfileConfiguration,
-          providerConfig: ProviderConfiguration
-        ) => {
-          if (providerConfig.name === 'provider') {
-            return new Promise(resolve =>
-              resolve(firstMockBoundProfileProvider)
-            );
-          }
-
-          return new Promise(resolve =>
-            resolve(secondMockBoundProfileProvider)
-          );
-        }
-      );
+    const cacheBoundProfileProviderSpy = spyOnCacheBoundProfileProvider(client);
 
     const profile = await client.getProfile('starwars/character-information');
     const useCase = profile.getUseCase('Test');
@@ -846,12 +764,9 @@ describe('event-adapter', () => {
   }, 20000);
 
   it('use circuit-breaker policy - do not switch providers after HTTP 500 - using provider from user', async () => {
-    const mockLoadSync = jest.fn();
-
     const endpoint = await mockServer.get('/first').thenJson(500, {});
     const secondEndpoint = await mockServer.get('/second').thenJson(200, {});
-
-    const mockSuperJson = new SuperJson({
+    mockSuperJson({
       profiles: {
         ['starwars/character-information']: {
           version: '1.0.0',
@@ -888,45 +803,9 @@ describe('event-adapter', () => {
       },
     });
 
-    mockLoadSync.mockReturnValue(ok(mockSuperJson));
-    SuperJson.loadSync = mockLoadSync;
-
     const client = new SuperfaceClient();
 
-    //Mocking first bounded provider
-    const firstMockBoundProfileProvider = new BoundProfileProvider(
-      firstMockProfileDocument,
-      firstMockMapDocument,
-      'provider',
-      { baseUrl: mockServer.url, security: [] },
-      client
-    );
-    //Mocking first bounded provider
-    const secondMockBoundProfileProvider = new BoundProfileProvider(
-      firstMockProfileDocument,
-      secondMockMapDocument,
-      'second',
-      { baseUrl: mockServer.url, security: [] },
-      client
-    );
-    const cacheBoundProfileProviderSpy = jest
-      .spyOn(client, 'cacheBoundProfileProvider')
-      .mockImplementation(
-        (
-          _profileConfig: ProfileConfiguration,
-          providerConfig: ProviderConfiguration
-        ) => {
-          if (providerConfig.name === 'provider') {
-            return new Promise(resolve =>
-              resolve(firstMockBoundProfileProvider)
-            );
-          }
-
-          return new Promise(resolve =>
-            resolve(secondMockBoundProfileProvider)
-          );
-        }
-      );
+    const cacheBoundProfileProviderSpy = spyOnCacheBoundProfileProvider(client);
 
     const profile = await client.getProfile('starwars/character-information');
     const useCase = profile.getUseCase('Test');
@@ -941,12 +820,9 @@ describe('event-adapter', () => {
   }, 20000);
 
   it('use circuit-breaker policy - do not switch providers after HTTP 500, providerFailover is false', async () => {
-    const mockLoadSync = jest.fn();
-
     const endpoint = await mockServer.get('/first').thenJson(500, {});
     const secondEndpoint = await mockServer.get('/second').thenJson(200, {});
-
-    const mockSuperJson = new SuperJson({
+    mockSuperJson({
       profiles: {
         ['starwars/character-information']: {
           version: '1.0.0',
@@ -985,45 +861,9 @@ describe('event-adapter', () => {
       },
     });
 
-    mockLoadSync.mockReturnValue(ok(mockSuperJson));
-    SuperJson.loadSync = mockLoadSync;
-
     const client = new SuperfaceClient();
 
-    //Mocking first bounded provider
-    const firstMockBoundProfileProvider = new BoundProfileProvider(
-      firstMockProfileDocument,
-      firstMockMapDocument,
-      'provider',
-      { baseUrl: mockServer.url, security: [] },
-      client
-    );
-    //Mocking first bounded provider
-    const secondMockBoundProfileProvider = new BoundProfileProvider(
-      firstMockProfileDocument,
-      secondMockMapDocument,
-      'second',
-      { baseUrl: mockServer.url, security: [] },
-      client
-    );
-    const cacheBoundProfileProviderSpy = jest
-      .spyOn(client, 'cacheBoundProfileProvider')
-      .mockImplementation(
-        (
-          _profileConfig: ProfileConfiguration,
-          providerConfig: ProviderConfiguration
-        ) => {
-          if (providerConfig.name === 'provider') {
-            return new Promise(resolve =>
-              resolve(firstMockBoundProfileProvider)
-            );
-          }
-
-          return new Promise(resolve =>
-            resolve(secondMockBoundProfileProvider)
-          );
-        }
-      );
+    const cacheBoundProfileProviderSpy = spyOnCacheBoundProfileProvider(client);
 
     const profile = await client.getProfile('starwars/character-information');
     const useCase = profile.getUseCase('Test');
@@ -1040,12 +880,9 @@ describe('event-adapter', () => {
   }, 20000);
 
   it('use circuit-breaker policy - switch providers after HTTP 500, use implict priority array', async () => {
-    const mockLoadSync = jest.fn();
-
     const endpoint = await mockServer.get('/first').thenJson(500, {});
     const secondEndpoint = await mockServer.get('/second').thenJson(200, {});
-
-    const mockSuperJson = new SuperJson({
+    mockSuperJson({
       profiles: {
         ['starwars/character-information']: {
           version: '1.0.0',
@@ -1084,45 +921,9 @@ describe('event-adapter', () => {
       },
     });
 
-    mockLoadSync.mockReturnValue(ok(mockSuperJson));
-    SuperJson.loadSync = mockLoadSync;
-
     const client = new SuperfaceClient();
 
-    //Mocking first bounded provider
-    const firstMockBoundProfileProvider = new BoundProfileProvider(
-      firstMockProfileDocument,
-      firstMockMapDocument,
-      'provider',
-      { baseUrl: mockServer.url, security: [] },
-      client
-    );
-    //Mocking first bounded provider
-    const secondMockBoundProfileProvider = new BoundProfileProvider(
-      firstMockProfileDocument,
-      secondMockMapDocument,
-      'second',
-      { baseUrl: mockServer.url, security: [] },
-      client
-    );
-    const cacheBoundProfileProviderSpy = jest
-      .spyOn(client, 'cacheBoundProfileProvider')
-      .mockImplementation(
-        (
-          _profileConfig: ProfileConfiguration,
-          providerConfig: ProviderConfiguration
-        ) => {
-          if (providerConfig.name === 'provider') {
-            return new Promise(resolve =>
-              resolve(firstMockBoundProfileProvider)
-            );
-          }
-
-          return new Promise(resolve =>
-            resolve(secondMockBoundProfileProvider)
-          );
-        }
-      );
+    const cacheBoundProfileProviderSpy = spyOnCacheBoundProfileProvider(client);
 
     const profile = await client.getProfile('starwars/character-information');
     const useCase = profile.getUseCase('Test');
@@ -1139,12 +940,9 @@ describe('event-adapter', () => {
   }, 20000);
 
   it('use two circuit-breaker policies - switch providers after HTTP 500', async () => {
-    const mockLoadSync = jest.fn();
-
     const endpoint = await mockServer.get('/first').thenJson(500, {});
     const secondEndpoint = await mockServer.get('/second').thenJson(200, {});
-
-    const mockSuperJson = new SuperJson({
+    mockSuperJson({
       profiles: {
         ['starwars/character-information']: {
           version: '1.0.0',
@@ -1192,45 +990,9 @@ describe('event-adapter', () => {
       },
     });
 
-    mockLoadSync.mockReturnValue(ok(mockSuperJson));
-    SuperJson.loadSync = mockLoadSync;
-
     const client = new SuperfaceClient();
 
-    //Mocking first bounded provider
-    const firstMockBoundProfileProvider = new BoundProfileProvider(
-      firstMockProfileDocument,
-      firstMockMapDocument,
-      'provider',
-      { baseUrl: mockServer.url, security: [] },
-      client
-    );
-    //Mocking first bounded provider
-    const secondMockBoundProfileProvider = new BoundProfileProvider(
-      firstMockProfileDocument,
-      secondMockMapDocument,
-      'second',
-      { baseUrl: mockServer.url, security: [] },
-      client
-    );
-    const cacheBoundProfileProviderSpy = jest
-      .spyOn(client, 'cacheBoundProfileProvider')
-      .mockImplementation(
-        (
-          _profileConfig: ProfileConfiguration,
-          providerConfig: ProviderConfiguration
-        ) => {
-          if (providerConfig.name === 'provider') {
-            return new Promise(resolve =>
-              resolve(firstMockBoundProfileProvider)
-            );
-          }
-
-          return new Promise(resolve =>
-            resolve(secondMockBoundProfileProvider)
-          );
-        }
-      );
+    const cacheBoundProfileProviderSpy = spyOnCacheBoundProfileProvider(client);
 
     const profile = await client.getProfile('starwars/character-information');
     const useCase = profile.getUseCase('Test');
@@ -1251,27 +1013,21 @@ describe('event-adapter', () => {
   }, 20000);
 
   it('use circuit-breaker policy - switch providers after HTTP 500 and switch back - default provider', async () => {
-    const mockLoadSync = jest.fn();
-
-    let retry = 0;
-    const endpoint = await mockServer.get('/first').thenCallback(() => {
-      if (retry < 2) {
-        retry++;
-
-        return {
-          statusCode: 500,
-          json: {},
-        };
+    let endpointCalls = 0;
+    const endpoint = await mockServer.get('/first').thenCallback(
+      () => {
+        endpointCalls += 1;
+        
+        if (endpointCalls > 2) {
+          return { statusCode: 200, json: {} };
+        } else {
+          return { statusCode: 500, json: {} };
+        }
       }
-
-      return {
-        statusCode: 200,
-        json: {},
-      };
-    });
+    );
     const secondEndpoint = await mockServer.get('/second').thenJson(200, {});
 
-    const mockSuperJson = new SuperJson({
+    mockSuperJson({
       profiles: {
         ['starwars/character-information']: {
           version: '1.0.0',
@@ -1308,45 +1064,9 @@ describe('event-adapter', () => {
       },
     });
 
-    mockLoadSync.mockReturnValue(ok(mockSuperJson));
-    SuperJson.loadSync = mockLoadSync;
-
     const client = new SuperfaceClient();
 
-    //Mocking first bounded provider
-    const firstMockBoundProfileProvider = new BoundProfileProvider(
-      firstMockProfileDocument,
-      firstMockMapDocument,
-      'provider',
-      { baseUrl: mockServer.url, security: [] },
-      client
-    );
-    //Mocking first bounded provider
-    const secondMockBoundProfileProvider = new BoundProfileProvider(
-      firstMockProfileDocument,
-      secondMockMapDocument,
-      'second',
-      { baseUrl: mockServer.url, security: [] },
-      client
-    );
-    const cacheBoundProfileProviderSpy = jest
-      .spyOn(client, 'cacheBoundProfileProvider')
-      .mockImplementation(
-        (
-          _profileConfig: ProfileConfiguration,
-          providerConfig: ProviderConfiguration
-        ) => {
-          if (providerConfig.name === 'provider') {
-            return new Promise(resolve =>
-              resolve(firstMockBoundProfileProvider)
-            );
-          }
-
-          return new Promise(resolve =>
-            resolve(secondMockBoundProfileProvider)
-          );
-        }
-      );
+    const cacheBoundProfileProviderSpy = spyOnCacheBoundProfileProvider(client);
 
     const profile = await client.getProfile('starwars/character-information');
     const useCase = profile.getUseCase('Test');
@@ -1371,27 +1091,21 @@ describe('event-adapter', () => {
   }, 40000);
 
   it('use circuit-breaker policy - switch providers after HTTP 500 and perform another usecase', async () => {
-    const mockLoadSync = jest.fn();
-
-    let retry = 0;
-    const endpoint = await mockServer.get('/first').thenCallback(() => {
-      if (retry < 2) {
-        retry++;
-
-        return {
-          statusCode: 500,
-          json: {},
-        };
+    let endpointCalls = 0;
+    const endpoint = await mockServer.get('/first').thenCallback(
+      () => {
+        endpointCalls += 1;
+        
+        if (endpointCalls > 2) {
+          return { statusCode: 200, json: {} };
+        } else {
+          return { statusCode: 500, json: {} };
+        }
       }
-
-      return {
-        statusCode: 200,
-        json: {},
-      };
-    });
+    );
     const secondEndpoint = await mockServer.get('/second').thenJson(200, {});
 
-    const mockSuperJson = new SuperJson({
+    mockSuperJson({
       profiles: {
         ['starwars/character-information']: {
           version: '1.0.0',
@@ -1428,45 +1142,9 @@ describe('event-adapter', () => {
       },
     });
 
-    mockLoadSync.mockReturnValue(ok(mockSuperJson));
-    SuperJson.loadSync = mockLoadSync;
-
     const client = new SuperfaceClient();
 
-    //Mocking first bounded provider
-    const firstMockBoundProfileProvider = new BoundProfileProvider(
-      firstMockProfileDocument,
-      firstMockMapDocument,
-      'provider',
-      { baseUrl: mockServer.url, security: [] },
-      client
-    );
-    //Mocking first bounded provider
-    const secondMockBoundProfileProvider = new BoundProfileProvider(
-      firstMockProfileDocument,
-      secondMockMapDocument,
-      'second',
-      { baseUrl: mockServer.url, security: [] },
-      client
-    );
-    const cacheBoundProfileProviderSpy = jest
-      .spyOn(client, 'cacheBoundProfileProvider')
-      .mockImplementation(
-        (
-          _profileConfig: ProfileConfiguration,
-          providerConfig: ProviderConfiguration
-        ) => {
-          if (providerConfig.name === 'provider') {
-            return new Promise(resolve =>
-              resolve(firstMockBoundProfileProvider)
-            );
-          }
-
-          return new Promise(resolve =>
-            resolve(secondMockBoundProfileProvider)
-          );
-        }
-      );
+    const cacheBoundProfileProviderSpy = spyOnCacheBoundProfileProvider(client);
 
     const profile = await client.getProfile('starwars/character-information');
     let useCase = profile.getUseCase('Test');
@@ -1491,28 +1169,22 @@ describe('event-adapter', () => {
   }, 20000);
 
   it('use circuit-breaker policy - switch providers after HTTP 500, perform another usecase and switch profile', async () => {
-    const mockLoadSync = jest.fn();
-
-    let retry = 0;
-    const endpoint = await mockServer.get('/first').thenCallback(() => {
-      if (retry < 2) {
-        retry++;
-
-        return {
-          statusCode: 500,
-          json: {},
-        };
+    let endpointCalls = 0;
+    const endpoint = await mockServer.get('/first').thenCallback(
+      () => {
+        endpointCalls += 1;
+        
+        if (endpointCalls > 2) {
+          return { statusCode: 200, json: {} };
+        } else {
+          return { statusCode: 500, json: {} };
+        }
       }
-
-      return {
-        statusCode: 200,
-        json: {},
-      };
-    });
+    );
     const secondEndpoint = await mockServer.get('/second').thenJson(200, {});
     const thirdEndpoint = await mockServer.get('/third').thenJson(200, {});
 
-    const mockSuperJson = new SuperJson({
+    mockSuperJson({
       profiles: {
         ['starwars/character-information']: {
           version: '1.0.0',
@@ -1556,56 +1228,9 @@ describe('event-adapter', () => {
       },
     });
 
-    mockLoadSync.mockReturnValue(ok(mockSuperJson));
-    SuperJson.loadSync = mockLoadSync;
-
     const client = new SuperfaceClient();
 
-    //Mocking first bounded provider
-    const firstMockBoundProfileProvider = new BoundProfileProvider(
-      firstMockProfileDocument,
-      firstMockMapDocument,
-      'provider',
-      { baseUrl: mockServer.url, security: [] },
-      client
-    );
-    //Mocking first bounded provider
-    const secondMockBoundProfileProvider = new BoundProfileProvider(
-      firstMockProfileDocument,
-      secondMockMapDocument,
-      'second',
-      { baseUrl: mockServer.url, security: [] },
-      client
-    );
-    //Mocking third bounded provider
-    const thirdMockBoundProfileProvider = new BoundProfileProvider(
-      secondMockProfiledDocument,
-      thirdMockMapDocument,
-      'third',
-      { baseUrl: mockServer.url, security: [] },
-      client
-    );
-    const cacheBoundProfileProviderSpy = jest
-      .spyOn(client, 'cacheBoundProfileProvider')
-      .mockImplementation(
-        (
-          _profileConfig: ProfileConfiguration,
-          providerConfig: ProviderConfiguration
-        ) => {
-          if (providerConfig.name === 'provider') {
-            return new Promise(resolve =>
-              resolve(firstMockBoundProfileProvider)
-            );
-          }
-          if (providerConfig.name === 'second') {
-            return new Promise(resolve =>
-              resolve(secondMockBoundProfileProvider)
-            );
-          }
-
-          return new Promise(resolve => resolve(thirdMockBoundProfileProvider));
-        }
-      );
+    const cacheBoundProfileProviderSpy = spyOnCacheBoundProfileProvider(client);
 
     let profile = await client.getProfile('starwars/character-information');
     let useCase = profile.getUseCase('Test');
@@ -1639,12 +1264,10 @@ describe('event-adapter', () => {
   }, 60000);
 
   it('use circuit-breaker policy - switch providers after HTTP 500, using provider from user and abort policy', async () => {
-    const mockLoadSync = jest.fn();
-
     const endpoint = await mockServer.get('/first').thenJson(500, {});
     const secondEndpoint = await mockServer.get('/second').thenJson(200, {});
 
-    const mockSuperJson = new SuperJson({
+    mockSuperJson({
       profiles: {
         ['starwars/character-information']: {
           version: '1.0.0',
@@ -1688,45 +1311,9 @@ describe('event-adapter', () => {
       },
     });
 
-    mockLoadSync.mockReturnValue(ok(mockSuperJson));
-    SuperJson.loadSync = mockLoadSync;
-
     const client = new SuperfaceClient();
 
-    //Mocking first bounded provider
-    const firstMockBoundProfileProvider = new BoundProfileProvider(
-      firstMockProfileDocument,
-      firstMockMapDocument,
-      'provider',
-      { baseUrl: mockServer.url, security: [] },
-      client
-    );
-    //Mocking first bounded provider
-    const secondMockBoundProfileProvider = new BoundProfileProvider(
-      firstMockProfileDocument,
-      secondMockMapDocument,
-      'second',
-      { baseUrl: mockServer.url, security: [] },
-      client
-    );
-    const cacheBoundProfileProviderSpy = jest
-      .spyOn(client, 'cacheBoundProfileProvider')
-      .mockImplementation(
-        (
-          _profileConfig: ProfileConfiguration,
-          providerConfig: ProviderConfiguration
-        ) => {
-          if (providerConfig.name === 'provider') {
-            return new Promise(resolve =>
-              resolve(firstMockBoundProfileProvider)
-            );
-          }
-
-          return new Promise(resolve =>
-            resolve(secondMockBoundProfileProvider)
-          );
-        }
-      );
+    const cacheBoundProfileProviderSpy = spyOnCacheBoundProfileProvider(client);
 
     const profile = await client.getProfile('starwars/character-information');
     const useCase = profile.getUseCase('Test');
@@ -1740,24 +1327,11 @@ describe('event-adapter', () => {
     expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(2);
     expect((await secondEndpoint.getSeenRequests()).length).toEqual(1);
   }, 20000);
-});
-
-describe('hook context', () => {
-  beforeEach(async () => {
-    await mockServer.start();
-  });
-
-  afterEach(async () => {
-    await mockServer.stop();
-  });
 
   it('preserves hook context within one client', async () => {
-    const mockLoadSync = jest.fn();
-
     const endpoint = await mockServer.get('/first').thenJson(500, {});
     const secondEndpoint = await mockServer.get('/second').thenJson(200, {});
-
-    const mockSuperJson = new SuperJson({
+    mockSuperJson({
       profiles: {
         ['starwars/character-information']: {
           version: '1.0.0',
@@ -1805,40 +1379,8 @@ describe('hook context', () => {
       },
     });
 
-    mockLoadSync.mockReturnValue(ok(mockSuperJson));
-    SuperJson.loadSync = mockLoadSync;
-
     const client = new SuperfaceClient();
-    {
-      const firstMockBoundProfileProvider = new BoundProfileProvider(
-        firstMockProfileDocument,
-        firstMockMapDocument,
-        'provider',
-        { baseUrl: mockServer.url, security: [] },
-        client
-      );
-      const secondMockBoundProfileProvider = new BoundProfileProvider(
-        firstMockProfileDocument,
-        secondMockMapDocument,
-        'second',
-        { baseUrl: mockServer.url, security: [] },
-        client
-      );
-      jest
-        .spyOn(client, 'cacheBoundProfileProvider')
-        .mockImplementation(
-          (
-            _profileConfig: ProfileConfiguration,
-            providerConfig: ProviderConfiguration
-          ) => {
-            if (providerConfig.name === 'provider') {
-              return Promise.resolve(firstMockBoundProfileProvider);
-            }
-
-            return Promise.resolve(secondMockBoundProfileProvider);
-          }
-        );
-    }
+    spyOnCacheBoundProfileProvider(client);
 
     let result = await (await client.getProfile('starwars/character-information')).getUseCase('Test').perform(undefined);
     expect(result.isOk() && result.value).toEqual({
@@ -1858,12 +1400,9 @@ describe('hook context', () => {
   });
 
   it('does not preserve hook context across clients', async () => {
-    const mockLoadSync = jest.fn();
-
     const endpoint = await mockServer.get('/first').thenJson(500, {});
     const secondEndpoint = await mockServer.get('/second').thenJson(200, {});
-
-    const mockSuperJson = new SuperJson({
+    mockSuperJson({
       profiles: {
         ['starwars/character-information']: {
           version: '1.0.0',
@@ -1911,41 +1450,10 @@ describe('hook context', () => {
       },
     });
 
-    mockLoadSync.mockReturnValue(ok(mockSuperJson));
-    SuperJson.loadSync = mockLoadSync;
-
     {
       const client = new SuperfaceClient();
-      {
-        const firstMockBoundProfileProvider = new BoundProfileProvider(
-          firstMockProfileDocument,
-          firstMockMapDocument,
-          'provider',
-          { baseUrl: mockServer.url, security: [] },
-          client
-        );
-        const secondMockBoundProfileProvider = new BoundProfileProvider(
-          firstMockProfileDocument,
-          secondMockMapDocument,
-          'second',
-          { baseUrl: mockServer.url, security: [] },
-          client
-        );
-        jest
-          .spyOn(client, 'cacheBoundProfileProvider')
-          .mockImplementation(
-            (
-              _profileConfig: ProfileConfiguration,
-              providerConfig: ProviderConfiguration
-            ) => {
-              if (providerConfig.name === 'provider') {
-                return Promise.resolve(firstMockBoundProfileProvider);
-              }
+      spyOnCacheBoundProfileProvider(client);
 
-              return Promise.resolve(secondMockBoundProfileProvider);
-            }
-          );
-      }
       const result = await (await client.getProfile('starwars/character-information')).getUseCase('Test').perform(undefined);
       expect(result.isOk() && result.value).toEqual({
         message: 'hello from second provider',
@@ -1954,36 +1462,8 @@ describe('hook context', () => {
 
     {
       const client = new SuperfaceClient();
-      {
-        const firstMockBoundProfileProvider = new BoundProfileProvider(
-          firstMockProfileDocument,
-          firstMockMapDocument,
-          'provider',
-          { baseUrl: mockServer.url, security: [] },
-          client
-        );
-        const secondMockBoundProfileProvider = new BoundProfileProvider(
-          firstMockProfileDocument,
-          secondMockMapDocument,
-          'second',
-          { baseUrl: mockServer.url, security: [] },
-          client
-        );
-        jest
-          .spyOn(client, 'cacheBoundProfileProvider')
-          .mockImplementation(
-            (
-              _profileConfig: ProfileConfiguration,
-              providerConfig: ProviderConfiguration
-            ) => {
-              if (providerConfig.name === 'provider') {
-                return Promise.resolve(firstMockBoundProfileProvider);
-              }
+      spyOnCacheBoundProfileProvider(client);
 
-              return Promise.resolve(secondMockBoundProfileProvider);
-            }
-          );
-      }
       const result = await (await client.getProfile('starwars/character-information')).getUseCase('Test').perform(undefined);
       expect(result.isOk() && result.value).toEqual({
         message: 'hello from second provider',
