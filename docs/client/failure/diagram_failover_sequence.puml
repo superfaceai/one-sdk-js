@@ -1,0 +1,49 @@
+@startuml
+
+participant "Registry" as reg
+participant "OneSDK" as sdk
+participant "Provider A" as A
+participant "Provider B" as B
+
+sdk --> reg : SDKInit event
+
+hnote over sdk
+	bind
+end note
+
+sdk -> reg : bind
+sdk <- reg : map + provider A
+
+hnote over sdk
+	perform
+end note
+
+sdk -> A : map http call
+... failure (repeated) ...
+sdk x<-- A : failed or undelievered
+
+sdk --> reg : PerformMetrics success=false
+
+hnote over sdk
+	failover
+end note
+
+sdk --> reg : ProviderChange A to B
+
+hnote over sdk
+	bind
+end note
+
+sdk -> reg : bind
+sdk <- reg : map + provider B
+
+hnote over sdk
+	perform
+end note
+
+sdk -> B : map http call
+sdk <- B : success
+
+sdk --> reg : PerformMetrics success=true
+
+@enduml
