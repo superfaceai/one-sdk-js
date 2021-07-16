@@ -7,7 +7,8 @@ import {
   stringBody,
 } from '../internal/interpreter/http/interfaces';
 import { AnonymizedSuperJsonDocument, SuperJson } from '../internal/superjson';
-import { CrossFetch, CrossFetchError } from './fetch';
+import { CrossFetch } from './fetch';
+import { CrossFetchError } from './fetch.errors';
 
 const debug = createDebug('superface:metric-reporter');
 
@@ -47,13 +48,14 @@ export const enum FailoverReason {
   REQUEST_ERROR_TIMEOUT = 'REQUEST_ERROR_TIMEOUT',
   REQUEST_ERROR_ABORT = 'REQUEST_ERROR_ABORT',
   HTTP_ERROR_500 = 'HTTP_ERROR_500',
+  UNEXPECTED_ERROR = 'UNEXPECTED_ERROR',
 }
 
 // TODO: Make this better
 function crossFetchErrorToFailoverReason(
   error: CrossFetchError
 ): FailoverReason {
-  if (error.kind === 'network') {
+  if (error.normalized.kind === 'network') {
     switch (error.issue) {
       case 'dns':
         return FailoverReason.NETWORK_ERROR_DNS;
@@ -72,6 +74,8 @@ function crossFetchErrorToFailoverReason(
         return FailoverReason.REQUEST_ERROR_ABORT;
     }
   }
+
+  return FailoverReason.UNEXPECTED_ERROR;
 }
 
 type ProviderChangeEvent = EventBase & {

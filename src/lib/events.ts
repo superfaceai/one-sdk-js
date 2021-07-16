@@ -8,7 +8,7 @@ import createDebug from 'debug';
 import { UseCase } from '../client';
 import { MapInterpreterEventAdapter } from '../client/failure/map-interpreter-adapter';
 import { FetchInstance } from '../internal/interpreter/http/interfaces';
-import { CrossFetchError } from './fetch';
+import { CrossFetchError } from './fetch.errors';
 
 const debug = createDebug('superface:events');
 
