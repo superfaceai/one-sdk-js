@@ -1,6 +1,8 @@
 import { getLocal } from 'mockttp';
 import { mocked } from 'ts-jest/utils';
 
+import { NetworkFetchError, RequestFetchError } from './fetch.errors';
+
 const mockServer = getLocal();
 
 describe('fetch', () => {
@@ -23,7 +25,7 @@ describe('fetch', () => {
 
       await expect(
         fetch.fetch(`${mockServer.url}/test`, { method: 'GET', timeout: 2000 })
-      ).rejects.toEqual({ kind: 'network', issue: 'timeout' });
+      ).rejects.toEqual(new NetworkFetchError('timeout'));
     }, 10000);
 
     it('rejects on rejected connection', async () => {
@@ -34,7 +36,7 @@ describe('fetch', () => {
 
       await expect(
         fetch.fetch(`${mockServer.url}/test`, { method: 'GET', timeout: 2000 })
-      ).rejects.toEqual({ kind: 'network', issue: 'reject' });
+      ).rejects.toEqual(new NetworkFetchError('reject'));
     }, 10000);
 
     it('rethrows error if it is string', async () => {
@@ -88,7 +90,7 @@ describe('fetch', () => {
           method: 'GET',
           timeout: 2000,
         })
-      ).rejects.toEqual({ kind: 'request', issue: 'abort' });
+      ).rejects.toEqual(new RequestFetchError('abort'));
     }, 10000);
 
     it('throws on dns ENOTFOUND', async () => {
@@ -110,7 +112,7 @@ describe('fetch', () => {
           method: 'GET',
           timeout: 2000,
         })
-      ).rejects.toEqual({ kind: 'network', issue: 'dns' });
+      ).rejects.toEqual(new NetworkFetchError('dns'));
     }, 10000);
 
     it('throws on dns EAI_AGAIN', async () => {
@@ -132,7 +134,7 @@ describe('fetch', () => {
           method: 'GET',
           timeout: 2000,
         })
-      ).rejects.toEqual({ kind: 'network', issue: 'dns' });
+      ).rejects.toEqual(new NetworkFetchError('dns'));
     }, 10000);
   });
 });

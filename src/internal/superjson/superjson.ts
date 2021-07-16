@@ -15,6 +15,7 @@ import { isAccessible } from '../../lib/io';
 import {
   addPriority,
   addProfile,
+  addProfileDefaults,
   addProfileProvider,
   addProvider,
 } from './mutate';
@@ -27,6 +28,7 @@ import {
   ProviderEntry,
   SuperJsonDocument,
   superJsonSchema,
+  UsecaseDefaults,
 } from './schema';
 
 const debug = createDebug('superface:superjson');
@@ -166,6 +168,14 @@ export class SuperJson {
   }
 
   // mutation //
+  addProfileDefaults(profileName: string, payload: UsecaseDefaults): boolean {
+    const result = addProfileDefaults(this.document, profileName, payload);
+    if (result) {
+      this.normalizedCache = undefined;
+    }
+
+    return result;
+  }
 
   addProfile(profileName: string, payload: ProfileEntry): boolean {
     const result = addProfile(this.document, profileName, payload);

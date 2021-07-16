@@ -70,42 +70,53 @@ export enum BackoffKind {
 const retryPolicy = zod.union([
   zod.literal(OnFail.NONE),
   zod.literal(OnFail.CIRCUIT_BREAKER),
-  zod.object({
-    kind: zod.literal(OnFail.NONE),
-  }),
-  zod.object({
-    kind: zod.literal(OnFail.CIRCUIT_BREAKER),
-    maxContiguousRetries: zod.number().int().positive().optional(),
-    requestTimeout: zod.number().int().positive().optional(),
-    backoff: zod
-      .union([
-        zod.literal(BackoffKind.EXPONENTIAL),
-        zod.object({
-          kind: zod.literal(BackoffKind.EXPONENTIAL),
-          start: zod.number().int().positive().optional(),
-          factor: zod.number().int().positive().optional(),
-        }),
-      ])
-      .optional(),
-  }),
+  zod
+    .object({
+      kind: zod.literal(OnFail.NONE),
+    })
+    .strict(),
+  zod
+    .object({
+      kind: zod.literal(OnFail.CIRCUIT_BREAKER),
+      maxContiguousRetries: zod.number().int().positive().optional(),
+      requestTimeout: zod.number().int().positive().optional(),
+      backoff: zod
+        .union([
+          zod.literal(BackoffKind.EXPONENTIAL),
+          zod
+            .object({
+              kind: zod.literal(BackoffKind.EXPONENTIAL),
+              start: zod.number().int().positive().optional(),
+              factor: zod.number().int().positive().optional(),
+            })
+            .strict(),
+        ])
+        .optional(),
+    })
+    .strict(),
 ]);
 
 const normalizedRetryPolicy = zod.union([
-  zod.object({
-    kind: zod.literal(OnFail.NONE),
-  }),
-  zod.object({
-    kind: zod.literal(OnFail.CIRCUIT_BREAKER),
-    maxContiguousRetries: zod.number().int().positive().optional(),
-    requestTimeout: zod.number().int().positive().optional(),
-    backoff: zod
-      .object({
-        kind: zod.literal(BackoffKind.EXPONENTIAL),
-        start: zod.number().int().positive().optional(),
-        factor: zod.number().int().positive().optional(),
-      })
-      .optional(),
-  }),
+  zod
+    .object({
+      kind: zod.literal(OnFail.NONE),
+    })
+    .strict(),
+  zod
+    .object({
+      kind: zod.literal(OnFail.CIRCUIT_BREAKER),
+      maxContiguousRetries: zod.number().int().positive().optional(),
+      requestTimeout: zod.number().int().positive().optional(),
+      backoff: zod
+        .object({
+          kind: zod.literal(BackoffKind.EXPONENTIAL),
+          start: zod.number().int().positive().optional(),
+          factor: zod.number().int().positive().optional(),
+        })
+        .strict()
+        .optional(),
+    })
+    .strict(),
 ]);
 
 const providerFailover = zod.boolean().optional();
@@ -125,16 +136,20 @@ const normalizedProviderFailover = zod.boolean();
  * ```
  */
 const usecaseDefaults = zod.record(
-  zod.object({
-    input: zod.record(zod.unknown()).optional(),
-    providerFailover: providerFailover.optional(),
-  })
+  zod
+    .object({
+      input: zod.record(zod.unknown()).optional(),
+      providerFailover: providerFailover.optional(),
+    })
+    .strict()
 );
 const normalizedUsecaseDefault = zod.record(
-  zod.object({
-    input: zod.record(zod.unknown()),
-    providerFailover: normalizedProviderFailover,
-  })
+  zod
+    .object({
+      input: zod.record(zod.unknown()),
+      providerFailover: normalizedProviderFailover,
+    })
+    .strict()
 );
 
 /**
@@ -151,16 +166,20 @@ const normalizedUsecaseDefault = zod.record(
  * ```
  */
 const profileProviderDefaults = zod.record(
-  zod.object({
-    input: zod.record(zod.unknown()).optional(),
-    retryPolicy: retryPolicy.optional(),
-  })
+  zod
+    .object({
+      input: zod.record(zod.unknown()).optional(),
+      retryPolicy: retryPolicy.optional(),
+    })
+    .strict()
 );
 const normalizedProfileProviderDefaults = zod.record(
-  zod.object({
-    input: zod.record(zod.unknown()),
-    retryPolicy: normalizedRetryPolicy,
-  })
+  zod
+    .object({
+      input: zod.record(zod.unknown()),
+      retryPolicy: normalizedRetryPolicy,
+    })
+    .strict()
 );
 
 /**
@@ -176,33 +195,44 @@ const normalizedProfileProviderDefaults = zod.record(
  * }
  * ```
  */
-const profileProviderSettings = zod.union([
-  zod.object({
-    file: zod.string(),
-    defaults: profileProviderDefaults.optional(),
-  }),
-  zod.object({
-    mapVariant: zod.string().optional(),
-    mapRevision: zod.string().optional(),
-    defaults: profileProviderDefaults.optional(),
-  }),
+export const profileProviderSettings = zod.union([
+  zod
+    .object({
+      file: zod.string(),
+      defaults: profileProviderDefaults.optional(),
+    })
+    .strict(),
+  zod
+    .object({
+      mapVariant: zod.string().optional(),
+      mapRevision: zod.string().optional(),
+      defaults: profileProviderDefaults.optional(),
+    })
+    .strict(),
 ]);
 const normalizedProfileProviderSettings = zod.union([
-  zod.object({
-    file: zod.string(),
-    defaults: normalizedProfileProviderDefaults,
-  }),
-  zod.object({
-    mapVariant: zod.string().optional(),
-    mapRevision: zod.string().optional(),
-    defaults: normalizedProfileProviderDefaults,
-  }),
+  zod
+    .object({
+      file: zod.string(),
+      defaults: normalizedProfileProviderDefaults,
+    })
+    .strict(),
+  zod
+    .object({
+      mapVariant: zod.string().optional(),
+      mapRevision: zod.string().optional(),
+      defaults: normalizedProfileProviderDefaults,
+    })
+    .strict(),
 ]);
 
 /**
  * Profile provider entry containing either `profileProviderSettings` or shorthands.
  */
-const profileProviderEntry = zod.union([uriPath, profileProviderSettings]);
+export const profileProviderEntry = zod.union([
+  uriPath,
+  profileProviderSettings,
+]);
 
 /**
  * Expanded profile settings for one profile id.
@@ -220,33 +250,41 @@ const profileProviderEntry = zod.union([uriPath, profileProviderSettings]);
  * }
  * ```
  */
-const profileSettings = zod.union([
-  zod.object({
-    version: semanticVersion,
-    priority: zod.array(zod.string()).optional(),
-    defaults: usecaseDefaults.optional(),
-    providers: zod.record(profileProviderEntry).optional(),
-  }),
-  zod.object({
-    file: zod.string(),
-    priority: zod.array(zod.string()).optional(),
-    defaults: usecaseDefaults.optional(),
-    providers: zod.record(profileProviderEntry).optional(),
-  }),
+export const profileSettings = zod.union([
+  zod
+    .object({
+      version: semanticVersion,
+      priority: zod.array(zod.string()).optional(),
+      defaults: usecaseDefaults.optional(),
+      providers: zod.record(profileProviderEntry).optional(),
+    })
+    .strict(),
+  zod
+    .object({
+      file: zod.string(),
+      priority: zod.array(zod.string()).optional(),
+      defaults: usecaseDefaults.optional(),
+      providers: zod.record(profileProviderEntry).optional(),
+    })
+    .strict(),
 ]);
 const normalizedProfileSettings = zod.union([
-  zod.object({
-    version: semanticVersion,
-    priority: zod.array(zod.string()),
-    defaults: normalizedUsecaseDefault,
-    providers: zod.record(normalizedProfileProviderSettings),
-  }),
-  zod.object({
-    file: zod.string(),
-    priority: zod.array(zod.string()),
-    defaults: normalizedUsecaseDefault,
-    providers: zod.record(normalizedProfileProviderSettings),
-  }),
+  zod
+    .object({
+      version: semanticVersion,
+      priority: zod.array(zod.string()),
+      defaults: normalizedUsecaseDefault,
+      providers: zod.record(normalizedProfileProviderSettings),
+    })
+    .strict(),
+  zod
+    .object({
+      file: zod.string(),
+      priority: zod.array(zod.string()),
+      defaults: normalizedUsecaseDefault,
+      providers: zod.record(normalizedProfileProviderSettings),
+    })
+    .strict(),
 ]);
 
 /**
@@ -254,14 +292,18 @@ const normalizedProfileSettings = zod.union([
  */
 const profileEntry = zod.union([semanticVersion, uriPath, profileSettings]);
 
-const idBase = zod.object({
-  id: zod.string(),
-});
+const idBase = zod
+  .object({
+    id: zod.string(),
+  })
+  .strict();
 
 const apiKeySecurityValues = idBase.merge(
-  zod.object({
-    apikey: zod.string(),
-  })
+  zod
+    .object({
+      apikey: zod.string(),
+    })
+    .strict()
 );
 export function isApiKeySecurityValues(
   input: unknown
@@ -270,10 +312,12 @@ export function isApiKeySecurityValues(
 }
 
 const basicAuthSecurityValues = idBase.merge(
-  zod.object({
-    username: zod.string(),
-    password: zod.string(),
-  })
+  zod
+    .object({
+      username: zod.string(),
+      password: zod.string(),
+    })
+    .strict()
 );
 export function isBasicAuthSecurityValues(
   input: unknown
@@ -282,9 +326,11 @@ export function isBasicAuthSecurityValues(
 }
 
 const bearerTokenSecurityValues = idBase.merge(
-  zod.object({
-    token: zod.string(),
-  })
+  zod
+    .object({
+      token: zod.string(),
+    })
+    .strict()
 );
 export function isBearerTokenSecurityValues(
   input: unknown
@@ -293,9 +339,11 @@ export function isBearerTokenSecurityValues(
 }
 
 const digestSecurityValues = idBase.merge(
-  zod.object({
-    digest: zod.string(),
-  })
+  zod
+    .object({
+      digest: zod.string(),
+    })
+    .strict()
 );
 export function isDigestSecurityValues(
   input: unknown
@@ -338,27 +386,35 @@ const securityValues = zod.union([
  * }
  * ```
  */
-const providerSettings = zod.object({
-  file: zod.string().optional(),
-  security: zod.array(securityValues).optional(),
-});
-const normalizedProviderSettings = zod.object({
-  file: zod.string().optional(),
-  security: zod.array(securityValues),
-});
+const providerSettings = zod
+  .object({
+    file: zod.string().optional(),
+    security: zod.array(securityValues).optional(),
+  })
+  .strict();
+const normalizedProviderSettings = zod
+  .object({
+    file: zod.string().optional(),
+    security: zod.array(securityValues),
+  })
+  .strict();
 
 const providerEntry = zod.union([uriPath, providerSettings]);
 
-export const superJsonSchema = zod.object({
-  profiles: zod.record(profileEntry).optional(),
-  providers: zod.record(providerEntry).optional(),
-  // lock: zod.record(lock).optional(),
-});
+export const superJsonSchema = zod
+  .object({
+    profiles: zod.record(profileEntry).optional(),
+    providers: zod.record(providerEntry).optional(),
+    // lock: zod.record(lock).optional(),
+  })
+  .strict();
 
-export const normalizedSuperJsonSchema = zod.object({
-  profiles: zod.record(normalizedProfileSettings),
-  providers: zod.record(normalizedProviderSettings),
-});
+export const normalizedSuperJsonSchema = zod
+  .object({
+    profiles: zod.record(normalizedProfileSettings),
+    providers: zod.record(normalizedProviderSettings),
+  })
+  .strict();
 
 export type SuperJsonDocument = zod.infer<typeof superJsonSchema>;
 export type ProfileEntry = zod.infer<typeof profileEntry>;

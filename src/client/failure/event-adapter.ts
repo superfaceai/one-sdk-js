@@ -2,7 +2,7 @@ import createDebug from 'debug';
 
 import { clone, sleep } from '../../lib';
 import { Events } from '../../lib/events';
-import { CrossFetchError } from '../../lib/fetch';
+import { CrossFetchError } from '../../lib/fetch.errors';
 import { FailurePolicyRouter } from './policies';
 
 const debug = createDebug('superface:failover');
@@ -147,7 +147,7 @@ export function registerHooks(hookContext: HooksContext, events: Events): void {
     const resolution = performContext.router.afterFailure({
       time: context.time.getTime(),
       registryCacheAge: 0, // TODO,
-      ...error,
+      ...error.normalized,
     });
 
     switch (resolution.kind) {
