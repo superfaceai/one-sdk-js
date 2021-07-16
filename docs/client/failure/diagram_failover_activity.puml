@@ -13,7 +13,7 @@ partition "Provider A" {
 
 	:pre-bind-and-perform;
 	note left
-		**""beforeExecution""** -> ""continue""
+		**""beforeExecution""** (failover restore) -> ""continue""
 	end note
 
 	#lightgrey:other work/
@@ -73,7 +73,7 @@ partition "Provider B" {
 
 	:pre-bind-and-perform;
 	note left
-		**""beforeExecution""** -> ""continue""
+		**""beforeExecution""** (failover restore) -> ""continue""
 	end note
 
 	#lightgrey:other work/
@@ -99,13 +99,28 @@ partition "Provider B" {
 
 #lightgrey:some time elapses, circuit-breaker A opens/
 
-partition "Provider A" {
+partition "Provider B" {
 
 	#lightblue:""bindAndPerform(provider: implicit B)""]
 	:pre-bind-and-perform;
 	note left
-		**""beforeExecution""** -> ""switch-provider""
-		-> modify (provider = A)
+		**""beforeExecution""** (failover restore) -> ""switch-provider""
+		__queued action__ = ""switch-provider""
+		-> ""abort""
+	end note
+
+	:post-bind-and-perform;
+	note right
+		__queued action__ -> ""retry"" (provider = A)
+	end note
+}
+
+partition "Provider A" {
+	#lightblue:""bindAndPerform(provider: A)""]
+
+	:pre-bind-and-perform;
+	note left
+		**""beforeExecution""** (failover restore) -> ""continue""
 	end note
 
 	#lightgrey:other work/
