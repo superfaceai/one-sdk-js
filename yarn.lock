@@ -3425,10 +3425,10 @@ mkdirp@^0.5.5:
   dependencies:
     minimist "^1.2.5"
 
-mockttp@^2.0.1:
-  version "2.0.1"
-  resolved "https://registry.yarnpkg.com/mockttp/-/mockttp-2.0.1.tgz#b38e78dfeb9cbf0f87926f3ff4ae440aba8746a5"
-  integrity sha512-f23shHLYqGfHLCiWCE2luKiCgOaMcRkGkSqcXBZSNLGfiYUKBcYlq/YwjebeFk0PnXVfcm7UzdJ/FIuUneqR4g==
+mockttp@^2.1.1:
+  version "2.1.1"
+  resolved "https://registry.yarnpkg.com/mockttp/-/mockttp-2.1.1.tgz#70b6d2824e8213b1071d5e6381c28a14880d5a78"
+  integrity sha512-mTIn170ZTh1APu2Y62K4iUmfz6XzS064yLBquot0+cL6MV1lSTJvNPr4YsG4RLUTZAvWTjBND9/DD2SeUPUc/Q==
   dependencies:
     "@graphql-tools/schema" "^7.1.5"
     "@httptoolkit/httpolyglot" "^1.0.0"
