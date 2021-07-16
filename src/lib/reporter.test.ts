@@ -565,7 +565,7 @@ describe('MetricReporter', () => {
     systemTimeMock.mockRestore();
   });
 
-  it('should report failure and successful switch', async () => {
+  it.skip('should report failure and successful switch', async () => {
     const originalDebounceMin = Config().metricDebounceTimeMin;
     Config().metricDebounceTimeMin = 10000;
     let currentTime = new Date().valueOf();
