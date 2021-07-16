@@ -568,10 +568,10 @@ describe('MetricReporter', () => {
   it('should report failure and successful switch', async () => {
     const originalDebounceMin = Config().metricDebounceTimeMin;
     Config().metricDebounceTimeMin = 10000;
-    // let currentTime = new Date().valueOf();
-    // const systemTimeMock = jest
-    //   .spyOn(Date, 'now')
-    //   .mockImplementation(() => currentTime);
+    let currentTime = new Date().valueOf();
+    const systemTimeMock = jest
+      .spyOn(Date, 'now')
+      .mockImplementation(() => currentTime);
     SuperJson.loadSync = () => ok(mockSuperJsonFailover);
     const client = new SuperfaceClient();
     const mockBoundProfileProvider = new BoundProfileProvider(
@@ -603,8 +603,8 @@ describe('MetricReporter', () => {
     void profile.getUseCase('Test').perform({});
     let requests = await eventEndpoint.getSeenRequests();
     while (requests.length < 3) {
-      // currentTime += 1;
-      jest.advanceTimersByTime(1);
+      currentTime += 0.1;
+      jest.advanceTimersByTime(0.1);
       await new Promise(setImmediate);
       requests = await eventEndpoint.getSeenRequests();
     }
@@ -662,7 +662,7 @@ describe('MetricReporter', () => {
       },
     });
 
-    // systemTimeMock.mockRestore();
+    systemTimeMock.mockRestore();
     Config().metricDebounceTimeMin = originalDebounceMin;
   });
 });
