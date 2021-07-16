@@ -463,8 +463,8 @@ export type AnonymizedSuperJsonDocument = {
       version: string | 'file';
       providers: {
         provider: string;
-        priority: number;
-        version?: string | 'file';
+        priority?: number;
+        version: string | 'file';
       }[];
     }
   >;

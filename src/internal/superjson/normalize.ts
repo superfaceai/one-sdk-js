@@ -252,6 +252,11 @@ export function normalizeProfileSettings(
         normalizedSettings.defaults
       );
   }
+  if (normalizedSettings.priority.length === 0) {
+    const providerOrder = Object.keys(profileEntry.providers || {});
+    normalizedSettings.priority =
+      providerOrder.length > 0 ? providerOrder : topProviderOrder;
+  }
 
   if (normalizedSettings.priority.length === 0) {
     const providerOrder = Object.keys(profileEntry.providers || {});

@@ -1,8 +1,10 @@
+import { Config } from '../config';
 import { SuperJson } from '../internal';
 import { SDKExecutionError } from '../internal/errors';
 import { NonPrimitive } from '../internal/interpreter/variables';
-import { Events } from '../lib/events';
+import { Events, FailureContext, SuccessContext } from '../lib/events';
 import { exists } from '../lib/io';
+import { MetricReporter } from '../lib/reporter';
 import {
   HooksContext,
   registerHooks as registerFailoverHooks,
@@ -26,6 +28,7 @@ export function invalidateSuperfaceClientCache(): void {
 
 export abstract class SuperfaceClientBase extends Events {
   public readonly superJson: SuperJson;
+  private readonly metricReporter: MetricReporter | undefined;
   private boundCache: {
     [key: string]: BoundProfileProvider;
   } = {};
@@ -34,13 +37,21 @@ export abstract class SuperfaceClientBase extends Events {
 
   constructor() {
     super();
-    const superCacheKey = process.env.SUPERFACE_PATH ?? SuperJson.defaultPath();
+    const superCacheKey = Config().superfacePath;
 
     if (SUPER_CACHE[superCacheKey] === undefined) {
       SUPER_CACHE[superCacheKey] = SuperJson.loadSync(superCacheKey).unwrap();
     }
 
     this.superJson = SUPER_CACHE[superCacheKey];
+    if (!Config().disableReporting) {
+      this.hookMetrics();
+      this.metricReporter = new MetricReporter(this.superJson);
+      this.metricReporter.reportEvent({
+        eventType: 'SDKInit',
+        occurredAt: new Date(),
+      });
+    }
     registerFailoverHooks(this.hookContext, this);
   }
 
@@ -171,6 +182,42 @@ export abstract class SuperfaceClientBase extends Events {
     }
 
     return new ProfileConfiguration(profileId, version);
+  }
+
+  private hookMetrics(): void {
+    process.on('beforeExit', () => this.metricReporter?.flush());
+    this.on('success', { priority: 0 }, (context: SuccessContext) => {
+      this.metricReporter?.reportEvent({
+        eventType: 'PerformMetrics',
+        profile: context.profile,
+        success: true,
+        provider: context.provider,
+        occurredAt: context.time,
+      });
+
+      return { kind: 'continue' };
+    });
+    this.on('failure', { priority: 0 }, (context: FailureContext) => {
+      this.metricReporter?.reportEvent({
+        eventType: 'PerformMetrics',
+        profile: context.profile,
+        success: false,
+        provider: context.provider,
+        occurredAt: context.time,
+      });
+
+      return { kind: 'continue' };
+    });
+    this.on('provider-switch', { priority: 1000 }, context => {
+      this.metricReporter?.reportEvent({
+        eventType: 'ProviderChange',
+        profile: context.profile,
+        from: context.provider,
+        to: context.toProvider,
+        occurredAt: context.time,
+        reasons: [{ reason: context.reason, occurredAt: context.time }],
+      });
+    });
   }
 }
 

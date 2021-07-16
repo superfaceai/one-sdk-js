@@ -15,6 +15,8 @@ Superface is the core SDK of the Superface project. It is the library that commu
 - [Background](#background)
 - [Install](#install)
 - [Usage](#usage)
+- [Configuration](#configuration)
+- [Metric reporting](#metric-reporting)
 - [Security](#security)
 - [Support](#support)
 - [Maintainers](#maintainers)
@@ -156,6 +158,20 @@ try {
   console.log(e);
 }
 ```
+
+## Configuration
+
+The Superface OneSDK is configurable through various environment variables:
+ - `SUPERFACE_SDK_TOKEN` - your auth token to integrate your running instance with Superface services
+ - `SUPERFACE_API_URL` - URL of the Superface services, you probably don't need to change this; default is https://superface.ai
+ - `SUPERFACE_PATH` - path to your super.json file; default is `./superface/super.json`
+ - `SUPERFACE_METRIC_DEBOUNCE_TIME_MIN` and `SUPERFACE_METRIC_DEBOUNCE_TIME_MAX` - to rate limit metric reporting, OneSDK will send aggregated metrics after at least `MIN` milliseconds and at most `MAX` milliseconds; default is 1000 for min and 60000 for max
+ - `SUPERFACE_DISABLE_METRIC_REPORTING` - set this variable to disable metric reporting; enabled by default
+
+## Metric reporting
+
+The Superface OneSDK will send info about usage to Superface services. This info is anonymized, rate limited and allows you to see how the client is performing on your dashboard. To be able to see those metrics, you need to provide your auth token.
+There are three kinds of metrics reported at present - one is sent when the client instance is created, one after each perform (reporting success or failure) and one when a provider failover happens. The reports can be disabled or configured with [environment variables](#configuration).
 
 ## Security
 

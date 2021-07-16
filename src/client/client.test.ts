@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import { dirname, join as joinPath } from 'path';
 
-import { SuperJson } from '../internal/superjson';
+import { Config, DEFAULT_SUPERFACE_PATH } from '../config';
 import { SuperfaceClient } from './client';
 import { ProfileConfiguration } from './profile';
 import * as profileProvider from './profile-provider';
@@ -19,12 +19,10 @@ jest.mock('./failure/event-adapter');
 
 describe('superface client', () => {
   //Mock env path
-  const ENV_VARIABLE = 'SUPERFACE_PATH';
-  const originalEnvValue = process.env[ENV_VARIABLE];
   const CUSTOM_PATH = 'somepath';
 
   //Mock super json for default path
-  const MOCK_SUPERJSON_PATH = SuperJson.defaultPath();
+  const MOCK_SUPERJSON_PATH = DEFAULT_SUPERFACE_PATH;
   const MOCK_SUPERJSON = {
     profiles: {
       'testy/mctestface': '0.1.0',
@@ -98,34 +96,32 @@ describe('superface client', () => {
   it('caches super.json files correctly', () => {
     const client = new SuperfaceClient();
     expect(client.superJson.document).toEqual(MOCK_SUPERJSON);
-    expect(statSyncMock).toHaveBeenCalledTimes(1);
-    expect(readFileSyncMock).toHaveBeenCalledTimes(2);
+    const statCalls = statSyncMock.mock.calls.length;
+    const readFileCalls = readFileSyncMock.mock.calls.length;
 
     const clientCached = new SuperfaceClient();
     expect(clientCached.superJson.document).toEqual(MOCK_SUPERJSON);
     // no more calls than before
-    expect(statSyncMock).toHaveBeenCalledTimes(1);
-    expect(readFileSyncMock).toHaveBeenCalledTimes(2);
+    expect(statSyncMock).toHaveBeenCalledTimes(statCalls);
+    expect(readFileSyncMock).toHaveBeenCalledTimes(readFileCalls);
   });
 
   it('caches super.json on custom path files correctly', () => {
-    process.env[ENV_VARIABLE] = CUSTOM_PATH;
+    const orignalPath = Config().superfacePath;
+    Config().superfacePath = CUSTOM_PATH;
 
     const client = new SuperfaceClient();
     expect(client.superJson.document).toEqual(MOCK_SUPERJSON_CUSTOM_PATH);
-    expect(statSyncMock).toHaveBeenCalledTimes(1);
-    expect(readFileSyncMock).toHaveBeenCalledTimes(1);
+    const statCalls = statSyncMock.mock.calls.length;
+    const readFileCalls = readFileSyncMock.mock.calls.length;
 
     const clientCached = new SuperfaceClient();
     expect(clientCached.superJson.document).toEqual(MOCK_SUPERJSON_CUSTOM_PATH);
     // no more calls than before
-    expect(statSyncMock).toHaveBeenCalledTimes(1);
-    expect(readFileSyncMock).toHaveBeenCalledTimes(1);
-    if (!originalEnvValue) {
-      delete process.env[ENV_VARIABLE];
-    } else {
-      process.env[ENV_VARIABLE] = originalEnvValue;
-    }
+    expect(statSyncMock).toHaveBeenCalledTimes(statCalls);
+    expect(readFileSyncMock).toHaveBeenCalledTimes(readFileCalls);
+
+    Config().superfacePath = orignalPath;
   });
 
   describe('getProfile', () => {
@@ -151,7 +147,7 @@ but this path does not exist or is not accessible`
 
       accessMock.mockImplementationOnce(async (path: string) => {
         const expectedPath = joinPath(
-          dirname(SuperJson.defaultPath()),
+          dirname(DEFAULT_SUPERFACE_PATH),
           MOCK_SUPERJSON.profiles.foo.slice('file://'.length)
         );
         if (path === expectedPath) {

@@ -8,6 +8,7 @@ import {
   resolve as resolvePath,
 } from 'path';
 
+import { Config } from '../../config';
 import { err, ok, Result } from '../../lib';
 import { configHash } from '../../lib/config-hash';
 import { isAccessible } from '../../lib/io';
@@ -47,13 +48,6 @@ export class SuperJson {
   }
 
   // loading and parsing //
-
-  /**
-   * Returns the default super.json path based on current `process.cwd()`.
-   */
-  static defaultPath(): string {
-    return joinPath(process.cwd(), 'superface', 'super.json');
-  }
 
   /**
    * Detects the existence of a `super.json` file in specified number of levels
@@ -105,7 +99,7 @@ export class SuperJson {
   }
 
   static loadSync(path?: string): Result<SuperJson, string> {
-    const superfile = path ?? SuperJson.defaultPath();
+    const superfile = path ?? Config().superfacePath;
 
     try {
       const statInfo = statSync(superfile);
@@ -141,7 +135,7 @@ export class SuperJson {
    * Attempts to load super.json file from expected location `cwd/superface/super.json`
    */
   static async load(path?: string): Promise<Result<SuperJson, string>> {
-    const superfile = path ?? SuperJson.defaultPath();
+    const superfile = path ?? Config().superfacePath;
 
     try {
       const statInfo = await fsp.stat(superfile);
@@ -278,13 +272,20 @@ export class SuperJson {
       )) {
         const anonymizedProvider: typeof providers[number] = {
           provider,
-          priority: profileEntry.priority.findIndex(
-            providerName => provider === providerName
-          ),
+          version: 'unknown',
         };
+        const providerPriority = profileEntry.priority.findIndex(
+          providerName => provider === providerName
+        );
+        if (providerPriority > -1) {
+          anonymizedProvider.priority = providerPriority;
+        }
         if ('file' in providerEntry) {
           anonymizedProvider.version = 'file';
-        } else if ('mapRevision' in providerEntry) {
+        } else if (
+          'mapRevision' in providerEntry &&
+          providerEntry.mapRevision !== undefined
+        ) {
           anonymizedProvider.version = providerEntry.mapRevision;
           if (providerEntry.mapVariant !== undefined) {
             anonymizedProvider.version += `-${providerEntry.mapVariant}`;
@@ -305,7 +306,7 @@ export class SuperJson {
     };
   }
 
-  configHash(): string {
+  get configHash(): string {
     // <profile>:<version>,<provider>:<priority>:[<version | file>],<provider>:<path>
     const profileValues: string[] = [];
     for (const [profile, profileEntry] of Object.entries(
