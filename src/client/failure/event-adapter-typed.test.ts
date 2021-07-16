@@ -674,9 +674,10 @@ describe('event-adapter typed', () => {
     const provider = await client.getProvider('first');
     const result = await profile.useCases.Test.perform(undefined, { provider });
 
-    expect(result.isErr() && result.error).toEqual(
-      new Error('circuit breaker is open')
+    expect(result.isErr() && result.error.message).toContain(
+      'Circuit breaker is open'
     );
+
     //We send request twice
     expect((await endpoint.getSeenRequests()).length).toEqual(2);
     expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(1);
@@ -971,9 +972,10 @@ describe('event-adapter typed', () => {
       provider: 'first',
     });
 
-    expect(result.isErr() && result.error).toEqual(
-      new Error('circuit breaker is open')
+    expect(result.isErr() && result.error.message).toContain(
+      'Circuit breaker is open'
     );
+
     //We send request twice
     expect((await endpoint.getSeenRequests()).length).toEqual(2);
     expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(1);
@@ -1074,9 +1076,10 @@ describe('event-adapter typed', () => {
     const useCase = profile.getUseCase('Test');
     const result = await useCase.perform(undefined);
 
-    expect(result.isErr() && result.error).toEqual(
-      new Error('circuit breaker is open')
+    expect(result.isErr() && result.error.message).toContain(
+      'Circuit breaker is open'
     );
+
     //We send request twice - to the first provider url
     expect((await endpoint.getSeenRequests()).length).toEqual(2);
     //We did not switch to second provider

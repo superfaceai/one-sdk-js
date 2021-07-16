@@ -168,9 +168,9 @@ export class AbortPolicy extends FailurePolicy {
     return { kind: 'continue', timeout: 30_000 };
   }
 
-  override afterFailure(_info: ExecutionFailure): FailureResolution {
+  override afterFailure(info: ExecutionFailure): FailureResolution {
     //TODO: Eda said this maybe should be continue
-    return { kind: 'abort', reason: 'abort policy selected' };
+    return { kind: 'abort', reason: this.formatFailureReason(info) };
   }
 
   override afterSuccess(_info: ExecutionSuccess): SuccessResolution {
@@ -225,7 +225,14 @@ export class RetryPolicy extends FailurePolicy {
 
     if (-this.streak > this.maxContiguousRetries) {
       // abort when we fail too much
-      return { kind: 'abort', reason: 'max retries exceeded' };
+      return {
+        kind: 'abort',
+        reason: `Max (${
+          this.maxContiguousRetries
+        }) retries exceeded. Last error from provider: ${this.formatFailureReason(
+          info
+        )}`,
+      };
     }
 
     this.balance -= 1;
@@ -306,6 +313,7 @@ export class CircuitBreakerPolicy extends FailurePolicy {
 
         return { kind: 'continue', timeout: this.inner.requestTimeout };
       } else {
+        //TODO: more user friendly message
         return { kind: 'abort', reason: 'circuit breaker is open' };
       }
     }
@@ -315,6 +323,7 @@ export class CircuitBreakerPolicy extends FailurePolicy {
     if (innerResponse.kind === 'abort') {
       this.open(info.time);
 
+      //TODO: more user friendly message
       return { kind: 'abort', reason: 'circuit breaker is open' };
     }
 
@@ -325,7 +334,12 @@ export class CircuitBreakerPolicy extends FailurePolicy {
     if (this.state === 'half-open') {
       this.open(info.time);
 
-      return { kind: 'abort', reason: 'circuit breaker is open' };
+      return {
+        kind: 'abort',
+        reason: `Circuit breaker is open. Last error from provider: ${this.formatFailureReason(
+          info
+        )}`,
+      };
     }
 
     if (this.state === 'open') {
@@ -337,7 +351,12 @@ export class CircuitBreakerPolicy extends FailurePolicy {
     if (innerResponse.kind === 'abort') {
       this.open(info.time);
 
-      return { kind: 'abort', reason: 'circuit breaker is open' };
+      return {
+        kind: 'abort',
+        reason: `Circuit breaker is open. Last error from provider: ${this.formatFailureReason(
+          info
+        )}`,
+      };
     }
 
     return innerResponse;

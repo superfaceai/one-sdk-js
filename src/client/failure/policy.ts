@@ -1,3 +1,5 @@
+import { HttpResponse } from '../../internal/interpreter/http';
+import { CrossFetchError } from '../../lib/fetch';
 import {
   ExecutionResolution,
   FailureResolution,
@@ -45,6 +47,15 @@ export type HTTPFailure = {
 export type ExecutionFailure = NetworkFailure | RequestFailure | HTTPFailure;
 
 export type ExecutionSuccess = BaseEvent;
+
+export class FailurePolicyError extends Error {
+  constructor(
+    public readonly reason: string,
+    public readonly originalError?: CrossFetchError | HttpResponse
+  ) {
+    super(reason);
+  }
+}
 
 /**
  * Failure policy governs the behavior of SDK in face of execution (perform) failures.
@@ -96,4 +107,18 @@ export abstract class FailurePolicy {
    * Resets this policy as if it was just created.
    */
   abstract reset(): void;
+  /**
+   * Formats ExecutionFailure info to string.
+   */
+  protected formatFailureReason(info: ExecutionFailure): string {
+    if (info.kind === 'http') {
+      return `${new Date(info.time).toISOString()}: Request ended with ${
+        info.kind
+      } error status code: ${info.statusCode}`;
+    }
+
+    return `${new Date(info.time).toISOString()}: Request ended with ${
+      info.kind
+    } error there is an issue with: ${info.issue}`;
+  }
 }
