@@ -1,7 +1,12 @@
 import { MapDocumentNode, ProfileDocumentNode } from '@superfaceai/ast';
 import { getLocal } from 'mockttp';
 
-import { BackoffKind, OnFail, SuperJson, SuperJsonDocument } from '../../internal';
+import {
+  BackoffKind,
+  OnFail,
+  SuperJson,
+  SuperJsonDocument,
+} from '../../internal';
 import { ok, sleep } from '../../lib';
 import { invalidateSuperfaceClientCache, SuperfaceClient } from '../client';
 import { BoundProfileProvider } from '../profile-provider';
@@ -390,9 +395,7 @@ const mockServer = getLocal();
 
 function mockSuperJson(document: SuperJsonDocument) {
   const mockLoadSync = jest.fn();
-  mockLoadSync.mockReturnValue(
-    ok(new SuperJson(document))
-  );
+  mockLoadSync.mockReturnValue(ok(new SuperJson(document)));
   SuperJson.loadSync = mockLoadSync;
 }
 
@@ -420,25 +423,23 @@ function spyOnCacheBoundProfileProvider(client: SuperfaceClient) {
   );
   const cacheBoundProfileProviderSpy = jest
     .spyOn(client, 'cacheBoundProfileProvider')
-    .mockImplementation(
-      (_, providerConfig) => {
-        switch (providerConfig.name) {
-          case 'provider':
-            return Promise.resolve(firstMockBoundProfileProvider);
-          
-          case 'second':
-            return Promise.resolve(secondMockBoundProfileProvider);
-          
-          case 'third':
-            return Promise.resolve(thirdMockBoundProfileProvider);
+    .mockImplementation((_, providerConfig) => {
+      switch (providerConfig.name) {
+        case 'provider':
+          return Promise.resolve(firstMockBoundProfileProvider);
 
-          default:
-            throw 'unreachable';
+        case 'second':
+          return Promise.resolve(secondMockBoundProfileProvider);
+
+        case 'third':
+          return Promise.resolve(thirdMockBoundProfileProvider);
+
+        default:
+          throw 'unreachable';
       }
-    }
-  )
+    });
 
-  return cacheBoundProfileProviderSpy
+  return cacheBoundProfileProviderSpy;
 }
 
 describe('event-adapter', () => {
@@ -454,23 +455,21 @@ describe('event-adapter', () => {
   //Without retry policy
   it('does not use retry policy - returns after HTTP 200', async () => {
     const endpoint = await mockServer.get('/first').thenJson(200, {});
-    mockSuperJson(
-      {
-        profiles: {
-          ['starwars/character-information']: {
-            version: '1.0.0',
-            providers: {
-              provider: {},
-            },
+    mockSuperJson({
+      profiles: {
+        ['starwars/character-information']: {
+          version: '1.0.0',
+          providers: {
+            provider: {},
           },
         },
-        providers: {
-          provider: {
-            security: [],
-          },
+      },
+      providers: {
+        provider: {
+          security: [],
         },
-      }
-    );
+      },
+    });
 
     //Not mocked client
     const client = new SuperfaceClient();
@@ -1016,17 +1015,15 @@ describe('event-adapter', () => {
 
   it('use circuit-breaker policy - switch providers after HTTP 500 and switch back - default provider', async () => {
     let endpointCalls = 0;
-    const endpoint = await mockServer.get('/first').thenCallback(
-      () => {
-        endpointCalls += 1;
-        
-        if (endpointCalls > 2) {
-          return { statusCode: 200, json: {} };
-        } else {
-          return { statusCode: 500, json: {} };
-        }
+    const endpoint = await mockServer.get('/first').thenCallback(() => {
+      endpointCalls += 1;
+
+      if (endpointCalls > 2) {
+        return { statusCode: 200, json: {} };
+      } else {
+        return { statusCode: 500, json: {} };
       }
-    );
+    });
     const secondEndpoint = await mockServer.get('/second').thenJson(200, {});
 
     mockSuperJson({
@@ -1094,17 +1091,15 @@ describe('event-adapter', () => {
 
   it('use circuit-breaker policy - switch providers after HTTP 500 and perform another usecase', async () => {
     let endpointCalls = 0;
-    const endpoint = await mockServer.get('/first').thenCallback(
-      () => {
-        endpointCalls += 1;
-        
-        if (endpointCalls > 2) {
-          return { statusCode: 200, json: {} };
-        } else {
-          return { statusCode: 500, json: {} };
-        }
+    const endpoint = await mockServer.get('/first').thenCallback(() => {
+      endpointCalls += 1;
+
+      if (endpointCalls > 2) {
+        return { statusCode: 200, json: {} };
+      } else {
+        return { statusCode: 500, json: {} };
       }
-    );
+    });
     const secondEndpoint = await mockServer.get('/second').thenJson(200, {});
 
     mockSuperJson({
@@ -1172,17 +1167,15 @@ describe('event-adapter', () => {
 
   it('use circuit-breaker policy - switch providers after HTTP 500, perform another usecase and switch profile', async () => {
     let endpointCalls = 0;
-    const endpoint = await mockServer.get('/first').thenCallback(
-      () => {
-        endpointCalls += 1;
-        
-        if (endpointCalls > 2) {
-          return { statusCode: 200, json: {} };
-        } else {
-          return { statusCode: 500, json: {} };
-        }
+    const endpoint = await mockServer.get('/first').thenCallback(() => {
+      endpointCalls += 1;
+
+      if (endpointCalls > 2) {
+        return { statusCode: 200, json: {} };
+      } else {
+        return { statusCode: 500, json: {} };
       }
-    );
+    });
     const secondEndpoint = await mockServer.get('/second').thenJson(200, {});
     const thirdEndpoint = await mockServer.get('/third').thenJson(200, {});
 
@@ -1384,12 +1377,18 @@ describe('event-adapter', () => {
     const client = new SuperfaceClient();
     spyOnCacheBoundProfileProvider(client);
 
-    let result = await (await client.getProfile('starwars/character-information')).getUseCase('Test').perform(undefined);
+    let result = await (
+      await client.getProfile('starwars/character-information')
+    )
+      .getUseCase('Test')
+      .perform(undefined);
     expect(result.isOk() && result.value).toEqual({
       message: 'hello from second provider',
     });
 
-    result = await (await client.getProfile('starwars/character-information')).getUseCase('Test').perform(undefined);
+    result = await (await client.getProfile('starwars/character-information'))
+      .getUseCase('Test')
+      .perform(undefined);
     expect(result.isOk() && result.value).toEqual({
       message: 'hello from second provider',
     });
@@ -1456,7 +1455,11 @@ describe('event-adapter', () => {
       const client = new SuperfaceClient();
       spyOnCacheBoundProfileProvider(client);
 
-      const result = await (await client.getProfile('starwars/character-information')).getUseCase('Test').perform(undefined);
+      const result = await (
+        await client.getProfile('starwars/character-information')
+      )
+        .getUseCase('Test')
+        .perform(undefined);
       expect(result.isOk() && result.value).toEqual({
         message: 'hello from second provider',
       });
@@ -1466,7 +1469,11 @@ describe('event-adapter', () => {
       const client = new SuperfaceClient();
       spyOnCacheBoundProfileProvider(client);
 
-      const result = await (await client.getProfile('starwars/character-information')).getUseCase('Test').perform(undefined);
+      const result = await (
+        await client.getProfile('starwars/character-information')
+      )
+        .getUseCase('Test')
+        .perform(undefined);
       expect(result.isOk() && result.value).toEqual({
         message: 'hello from second provider',
       });

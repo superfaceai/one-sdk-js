@@ -1,5 +1,5 @@
 import { HttpResponse } from '../../internal/interpreter/http';
-import { CrossFetchError } from '../../lib/fetch';
+import { CrossFetchError } from '../../lib/fetch.errors';
 import {
   ExecutionResolution,
   FailureResolution,
