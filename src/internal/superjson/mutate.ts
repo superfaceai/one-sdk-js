@@ -1,4 +1,5 @@
 import { err, ok, Result } from '../../lib';
+import { UnexpectedError } from '../errors';
 import {
   castToNonPrimitive,
   isEmptyRecord,
@@ -84,6 +85,7 @@ export function addProfileDefaults(
 
   return false;
 }
+
 export function addProfile(
   document: SuperJsonDocument,
   profileName: string,
@@ -150,7 +152,7 @@ export function addProfile(
       return true;
     }
 
-    throw new Error('Invalid string payload format');
+    throw new UnexpectedError('Invalid string payload format');
   }
 
   // Priority #2: keep previous structure and merge
@@ -403,7 +405,7 @@ export function addProvider(
       return true;
     }
 
-    throw new Error('Invalid string payload format');
+    throw new UnexpectedError('Invalid string payload format');
   }
 
   if (typeof targetProvider === 'string') {

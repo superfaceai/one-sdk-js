@@ -4,6 +4,7 @@ import * as zod from 'zod';
 
 import { Config } from '../config';
 import { isProviderJson, ProviderJson } from '../internal';
+import { UnexpectedError } from '../internal/errors';
 import { HttpClient } from '../internal/interpreter/http';
 import { CrossFetch } from '../lib/fetch';
 
@@ -50,7 +51,7 @@ export function assertIsRegistryProviderInfo(
   ) {
     registryDebug('Invalid response from registry.');
     registryDebug(`Received: ${JSON.stringify(input, undefined, 2)}`);
-    throw new Error('Invalid response from registry!');
+    throw new UnexpectedError('Invalid response from registry');
   }
 }
 
@@ -126,7 +127,7 @@ export async function fetchBind(
     },
   });
   if (!bindResponseValidator.check(body)) {
-    throw new Error('registry responded with invalid body');
+    throw new UnexpectedError('registry responded with invalid body');
   }
 
   return {

@@ -3,7 +3,7 @@ import { relative as relativePath, resolve as resolvePath } from 'path';
 import { mocked } from 'ts-jest/utils';
 
 import { isAccessible } from '../../lib/io';
-import { err, ok } from '../../lib/result/result';
+import { ok } from '../../lib/result/result';
 import { mergeSecurity } from './mutate';
 import * as normalize from './normalize';
 import {
@@ -205,14 +205,20 @@ describe('SuperJson', () => {
       mocked(statSync).mockImplementation(() => {
         throw mockError;
       });
-      expect(SuperJson.loadSync('test')).toEqual(
-        err('unable to find test: Error: test')
+      const result = SuperJson.loadSync('test');
+      expect(result.isErr()).toBe(true);
+      expect(result.isErr() && result.error.message).toMatch(
+        'super.json not found in "test"\nError: test'
       );
     });
 
     it('returns err when super.json is not file', () => {
       mocked(statSync).mockReturnValue({ ...mockStats, isFile: () => false });
-      expect(SuperJson.loadSync('test')).toEqual(err(`'test' is not a file`));
+      const result = SuperJson.loadSync('test');
+      expect(result.isErr()).toBe(true);
+      expect(result.isErr() && result.error.message).toMatch(
+        '"test" is not a file'
+      );
     });
 
     it('returns err when unable to read super.json', () => {
@@ -220,8 +226,10 @@ describe('SuperJson', () => {
       mocked(readFileSync).mockImplementation(() => {
         throw mockError;
       });
-      expect(SuperJson.loadSync('test')).toEqual(
-        err('unable to read test: Error: test')
+      const result = SuperJson.loadSync('test');
+      expect(result.isErr()).toBe(true);
+      expect(result.isErr() && result.error.message).toMatch(
+        'Unable to read super.json\n\nError: test'
       );
     });
 
@@ -301,8 +309,10 @@ describe('SuperJson', () => {
 
     it('returns err when unable to find super.json', async () => {
       jest.spyOn(fsp, 'stat').mockRejectedValue(mockError);
-      await expect(SuperJson.load('test')).resolves.toEqual(
-        err('unable to find test: Error: test')
+      const result = await SuperJson.load('test');
+      expect(result.isErr()).toBe(true);
+      expect(result.isErr() && result.error.message).toMatch(
+        'super.json not found in "test"'
       );
     });
 
@@ -310,16 +320,20 @@ describe('SuperJson', () => {
       jest
         .spyOn(fsp, 'stat')
         .mockResolvedValue({ ...mockStats, isFile: () => false });
-      await expect(SuperJson.load('test')).resolves.toEqual(
-        err(`'test' is not a file`)
+      const result = await SuperJson.load('test');
+      expect(result.isErr()).toBe(true);
+      expect(result.isErr() && result.error.message).toMatch(
+        '"test" is not a file'
       );
     });
 
     it('returns err when unable to read super.json', async () => {
       jest.spyOn(fsp, 'stat').mockResolvedValue(mockStats);
       jest.spyOn(fsp, 'readFile').mockRejectedValue(mockError);
-      await expect(SuperJson.load('test')).resolves.toEqual(
-        err('unable to read test: Error: test')
+      const result = await SuperJson.load('test');
+      expect(result.isErr()).toBe(true);
+      expect(result.isErr() && result.error.message).toMatch(
+        'Unable to read super.json'
       );
     });
 

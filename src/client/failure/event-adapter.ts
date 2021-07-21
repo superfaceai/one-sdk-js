@@ -1,4 +1,5 @@
 import createDebug from 'debug';
+import { UnexpectedError } from '../../internal/errors';
 
 import { clone, sleep } from '../../lib';
 import { Events } from '../../lib/events';
@@ -304,7 +305,7 @@ export function registerHooks(hookContext: HooksContext, events: Events): void {
           }
 
           case 'recache':
-            throw 'Not Implemented'; // TODO: how to recache?
+            throw new UnexpectedError('Not Implemented'); // TODO: how to recache?
 
           case 'no-intercept':
             return { kind: 'continue' };

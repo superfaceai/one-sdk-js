@@ -1,3 +1,4 @@
+import { UnexpectedError } from '../../internal/errors';
 import { Backoff, ExponentialBackoff } from '../../lib/backoff';
 import {
   ExecutionFailure,
@@ -35,7 +36,9 @@ export class FailurePolicyRouter {
     info: ExecutionInfo
   ): AbortResolution | SwitchProviderResolution {
     if (!this.currentProvider) {
-      throw new Error('Property currentProvider is not set in Router instance');
+      throw new UnexpectedError(
+        'Property currentProvider is not set in Router instance'
+      );
     }
 
     //Try to switch providers
@@ -76,7 +79,9 @@ export class FailurePolicyRouter {
 
   public beforeExecution(info: ExecutionInfo): ExecutionResolution {
     if (!this.currentProvider) {
-      throw new Error('Property currentProvider is not set in Router instance');
+      throw new UnexpectedError(
+        'Property currentProvider is not set in Router instance'
+      );
     }
 
     //Try to switch back to previous provider
@@ -124,7 +129,9 @@ export class FailurePolicyRouter {
 
   public afterFailure(info: ExecutionFailure): FailureResolution {
     if (!this.currentProvider) {
-      throw new Error('Property currentProvider is not set in Router instance');
+      throw new UnexpectedError(
+        'Property currentProvider is not set in Router instance'
+      );
     }
 
     const innerResolution =
@@ -144,7 +151,9 @@ export class FailurePolicyRouter {
 
   public afterSuccess(info: ExecutionSuccess): SuccessResolution {
     if (!this.currentProvider) {
-      throw new Error('Property currentProvider is not set in Router instance');
+      throw new UnexpectedError(
+        'Property currentProvider is not set in Router instance'
+      );
     }
 
     return this.providersOfUseCase[this.currentProvider].afterSuccess(info);
@@ -343,7 +352,7 @@ export class CircuitBreakerPolicy extends FailurePolicy {
     }
 
     if (this.state === 'open') {
-      throw new Error('Unreachable circuit breaker state');
+      throw new UnexpectedError('Unreachable circuit breaker state');
     }
 
     const innerResponse = this.inner.afterFailure(info);
@@ -368,7 +377,7 @@ export class CircuitBreakerPolicy extends FailurePolicy {
     }
 
     if (this.state === 'open') {
-      throw new Error('Unreachable');
+      throw new UnexpectedError('Unreachable');
     }
 
     return this.inner.afterSuccess(info);

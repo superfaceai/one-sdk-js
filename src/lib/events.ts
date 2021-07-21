@@ -7,6 +7,7 @@ import createDebug from 'debug';
 
 import { UseCase } from '../client';
 import { MapInterpreterEventAdapter } from '../client/failure/map-interpreter-adapter';
+import { UnexpectedError } from '../internal/errors';
 import { FetchInstance } from '../internal/interpreter/http/interfaces';
 import { CrossFetchError } from './fetch.errors';
 
@@ -363,7 +364,7 @@ export function eventInterceptor<E extends keyof EventTypes>(
     );
 
     if (descriptor.value === undefined) {
-      throw new Error(
+      throw new UnexpectedError(
         'Something went horribly wrong, Godzilla might be involved!'
       );
     }

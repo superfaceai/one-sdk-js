@@ -1,6 +1,10 @@
 import { resolveEnvRecord } from '../../lib/env';
 import { clone } from '../../lib/object';
-import { SDKExecutionError } from '../errors';
+import { UnexpectedError } from '../errors';
+import {
+  invalidBackoffEntryError,
+  invalidProfileProviderError,
+} from '../errors.helpers';
 import { castToNonPrimitive, mergeVariables } from '../interpreter/variables';
 import {
   BackoffKind,
@@ -42,9 +46,7 @@ export function normalizeProfileProviderSettings(
       };
     }
 
-    throw new Error(
-      'invalid profile provider entry format: ' + profileProviderSettings
-    );
+    throw invalidProfileProviderError(profileProviderSettings);
   }
 
   let normalizedSettings: NormalizedProfileProviderSettings;
@@ -112,20 +114,7 @@ export function normalizeRetryPolicy(
         factor: retryPolicy.backoff?.factor ?? baseOnFail?.backoff?.factor,
       };
     }
-    throw new SDKExecutionError(
-      `Invalid backoff entry format: "${retryPolicy.backoff.kind}"`,
-      [
-        `Property "kind" in retryPolicy.backoff object has unexpected value "${retryPolicy.backoff.kind}"`,
-        `Property "kind" in super.json [profile].providers.[provider].defaults.[usecase].retryPolicy.backoff with value "${retryPolicy.backoff.kind}" is not valid`,
-      ],
-      [
-        `Check your super.json`,
-        `Check property "kind" in [profile].providers.[provider].defaults.[usecase].retryPolicy.backoff with value "${retryPolicy.backoff.kind}"`,
-        `Change value of property "kind" in retryPolicy.backoff to one of possible values: ${Object.values(
-          BackoffKind
-        ).join(', ')}`,
-      ]
-    );
+    throw invalidBackoffEntryError(retryPolicy.backoff.kind);
   };
 
   return {
@@ -222,7 +211,7 @@ export function normalizeProfileSettings(
       };
     }
 
-    throw new Error('invalid profile entry format: ' + profileEntry);
+    throw new UnexpectedError('Invalid profile entry format: ' + profileEntry);
   }
 
   let normalizedSettings: NormalizedProfileSettings;
@@ -278,7 +267,9 @@ export function normalizeProviderSettings(
       };
     }
 
-    throw new Error('invalid provider entry format: ' + providerEntry);
+    throw new UnexpectedError(
+      'Invalid provider entry format: ' + providerEntry
+    );
   }
 
   return {

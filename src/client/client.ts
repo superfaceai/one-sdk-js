@@ -1,6 +1,12 @@
 import { Config } from '../config';
 import { SuperJson } from '../internal';
-import { SDKExecutionError } from '../internal/errors';
+import {
+  noConfiguredProviderError,
+  profileFileNotFoundError,
+  profileNotInstalledError,
+  unconfiguredProviderError,
+  unconfiguredProviderInPriorityError,
+} from '../internal/errors.helpers';
 import { NonPrimitive } from '../internal/interpreter/variables';
 import { Events, FailureContext, SuccessContext } from '../lib/events';
 import { exists } from '../lib/io';
@@ -82,13 +88,7 @@ export abstract class SuperfaceClientBase extends Events {
     const providerSettings = this.superJson.normalized.providers[providerName];
 
     if (providerSettings === undefined) {
-      throw new SDKExecutionError(
-        `Provider not configured: ${providerName}`,
-        [`Provider "${providerName}" was not configured in super.json`],
-        [
-          `Providers can be configured using the superface cli tool: \`superface configure --help\` for more info`,
-        ]
-      );
+      throw unconfiguredProviderError(providerName);
     }
 
     return new Provider(
@@ -109,16 +109,7 @@ export abstract class SuperfaceClientBase extends Events {
       return this.getProvider(name);
     }
 
-    throw new SDKExecutionError(
-      `No configured provider found for profile: ${profileId}`,
-      [
-        `Profile "${profileId}" needs at least one configured provider for automatic provider selection`,
-      ],
-      [
-        `Check that a provider is configured for a profile in super.json -> profiles["${profileId}"].providers`,
-        `Providers can be configured using the superface cli tool: \`superface configure --help\` for more info`,
-      ]
-    );
+    throw noConfiguredProviderError(profileId);
   }
 
   protected async getProfileConfiguration(
@@ -126,31 +117,14 @@ export abstract class SuperfaceClientBase extends Events {
   ): Promise<ProfileConfiguration> {
     const profileSettings = this.superJson.normalized.profiles[profileId];
     if (profileSettings === undefined) {
-      throw new SDKExecutionError(
-        `Profile not installed: ${profileId}`,
-        [],
-        [
-          `Check that the profile is installed in super.json -> profiles["${profileId}"]`,
-          `Profile can be installed using the superface cli tool: \`superface install ${profileId}\``,
-        ]
-      );
+      throw profileNotInstalledError(profileId);
     }
 
     let version;
     if ('file' in profileSettings) {
       const filePath = this.superJson.resolvePath(profileSettings.file);
       if (!(await exists(filePath))) {
-        throw new SDKExecutionError(
-          `Profile file at path does not exist: ${profileSettings.file}`,
-          [
-            `Profile "${profileId}" specifies a file path "${profileSettings.file}" in super.json`,
-            'but this path does not exist or is not accessible',
-          ],
-          [
-            `Check that path in super.json -> profiles["${profileId}"].file exists and is accessible`,
-            'Paths in super.json are either absolute or relative to the location of super.json',
-          ]
-        );
+        throw profileFileNotFoundError(profileSettings.file, profileId);
       }
 
       // TODO: read version from the ast?
@@ -162,22 +136,10 @@ export abstract class SuperfaceClientBase extends Events {
     // TODO: load priority and add it to ProfileConfiguration?
     const priority = profileSettings.priority;
     if (!priority.every(p => this.superJson.normalized.providers[p])) {
-      throw new SDKExecutionError(
-        `Priority array of profile: ${profileId} contains unconfigured provider`,
-        [
-          `Profile "${profileId}" specifies a provider array [${priority.join(
-            ', '
-          )}] in super.json`,
-          `but there are only these providers configured [${Object.keys(
-            this.superJson.normalized.providers
-          ).join(', ')}]`,
-        ],
-        [
-          `Check that providers [${priority.join(
-            ', '
-          )}] are configured for profile "${profileId}"`,
-          'Paths in super.json are either absolute or relative to the location of super.json',
-        ]
+      throw unconfiguredProviderInPriorityError(
+        profileId,
+        priority,
+        Object.keys(this.superJson.normalized.providers)
       );
     }
 

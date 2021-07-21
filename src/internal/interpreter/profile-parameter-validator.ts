@@ -36,7 +36,7 @@ const debug = createDebug('superface:profile-parameter-validator');
 
 function assertUnreachable(node: never): never;
 function assertUnreachable(node: ProfileASTNode): never {
-  throw new Error(`Invalid Node kind: ${node.kind}`);
+  throw new UnexpectedError(`Invalid Node kind: ${node.kind}`);
 }
 
 function objectHasKey<K extends string>(
@@ -279,7 +279,7 @@ export class ProfileParameterValidator implements ProfileVisitor {
       return this.namedModelDefinitions[node.name];
     }
 
-    throw new Error(`Invalid model name: ${node.name}`);
+    throw new UnexpectedError(`Invalid model name: ${node.name}`);
   }
 
   visitNamedFieldDefinitionNode(
@@ -441,7 +441,7 @@ export class ProfileParameterValidator implements ProfileVisitor {
     );
 
     if (!usecaseNode) {
-      throw new Error(`Usecase ${usecase} not found!`);
+      throw new UnexpectedError(`Usecase ${usecase} not found!`);
     }
 
     if (!this.namedDefinitionsInitialized) {
@@ -484,7 +484,7 @@ export class ProfileParameterValidator implements ProfileVisitor {
     _kind: ProfileParameterKind,
     _usecase: string
   ): ValidationFunction {
-    throw new Error('Method not implemented.');
+    throw new UnexpectedError('Method not implemented.');
   }
 
   visitUnionDefinitionNode(
@@ -541,6 +541,6 @@ export class ProfileParameterValidator implements ProfileVisitor {
     _kind: ProfileParameterKind,
     _usecase: string
   ): never {
-    throw new Error('Method not implemented.');
+    throw new UnexpectedError('Method not implemented.');
   }
 }

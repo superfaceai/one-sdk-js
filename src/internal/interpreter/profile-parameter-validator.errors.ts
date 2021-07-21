@@ -1,4 +1,4 @@
-import { ErrorBase } from '../errors';
+import { ErrorBase, UnexpectedError } from '../errors';
 
 export type ErrorContext = { path?: string[] };
 export type ValidationError =
@@ -92,7 +92,7 @@ export function formatErrors(errors?: ValidationError[]): string {
           return `${prefix}Null in non-nullable field`;
 
         default:
-          throw new Error('Invalid error!');
+          throw new UnexpectedError('Invalid error!');
       }
     })
     .join('\n');
