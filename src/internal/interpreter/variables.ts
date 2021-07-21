@@ -1,4 +1,5 @@
 import { indexRecord } from '../../lib/object';
+import { UnexpectedError } from '../errors';
 
 // Arrays should be considered opaque value and therefore act as a primitive
 export type Primitive = string | boolean | number | unknown[];
@@ -15,7 +16,7 @@ export function assertIsVariables(
       typeof input
     )
   ) {
-    throw new Error(`Invalid result type: ${typeof input}`);
+    throw new UnexpectedError(`Invalid result type: ${typeof input}`);
   }
 }
 
@@ -32,7 +33,7 @@ export function castToNonPrimitive(input: unknown): NonPrimitive | undefined {
   }
 
   if (!isNonPrimitive(variables)) {
-    throw new Error('Input is not NonPrimitive');
+    throw new UnexpectedError('Input is not NonPrimitive');
   }
 
   return variables;

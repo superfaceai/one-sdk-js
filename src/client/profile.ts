@@ -1,3 +1,5 @@
+import { UnexpectedError } from '../internal/errors';
+import { usecaseNotFoundError } from '../internal/errors.helpers';
 import { NonPrimitive } from '../internal/interpreter/variables';
 import { SuperfaceClientBase } from './client';
 import { TypedUseCase, UseCase } from './usecase';
@@ -19,12 +21,6 @@ export type UsecaseType<
 > = {
   [name: string]: [TInput, TOutput];
 };
-
-// export type KnownUsecase<
-//   TName extends string,
-//   TInput extends NonPrimitive | undefined,
-//   TOutput
-// > = { [name in TName]: TypedUseCase<TInput, TOutput> };
 
 export type KnownUsecase<TUsecase extends UsecaseType> = {
   [name in keyof TUsecase]: TypedUseCase<TUsecase[name][0], TUsecase[name][1]>;
@@ -69,7 +65,7 @@ export class TypedProfile<
 
   get useCases(): KnownUsecase<TUsecaseTypes> {
     if (this.knownUsecases === undefined) {
-      throw new Error(
+      throw new UnexpectedError(
         'Thou shall not access the typed interface from untyped Profile'
       );
     } else {
@@ -82,7 +78,10 @@ export class TypedProfile<
   ): KnownUsecase<TUsecaseTypes>[TName] {
     const usecase = this.knownUsecases?.[name];
     if (!usecase) {
-      throw new Error(`Usecase: "${name.toString()}" not found`);
+      throw usecaseNotFoundError(
+        name.toString(),
+        Object.keys(this.knownUsecases)
+      );
     }
 
     return usecase;

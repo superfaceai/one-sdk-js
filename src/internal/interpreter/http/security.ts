@@ -1,3 +1,5 @@
+import { UnexpectedError } from '../../errors';
+import { apiKeyInBodyError } from '../../errors.helpers';
 import {
   ApiKeyPlacement,
   ApiKeySecurityScheme,
@@ -44,8 +46,10 @@ export function applyApiKeyAuth(
         typeof context.requestBody !== 'object' ||
         Array.isArray(context.requestBody)
       ) {
-        throw new Error(
-          'ApiKey in body can be used only when body is an object.'
+        throw apiKeyInBodyError(
+          Array.isArray(context.requestBody)
+            ? 'Array'
+            : typeof context.requestBody
         );
       }
       context.requestBody[configuration.name] = configuration.apikey;
@@ -110,5 +114,5 @@ export function applyDigest(
   }
 ): void {
   // TODO: groom implementation
-  throw new Error('Not implemented');
+  throw new UnexpectedError('Not implemented');
 }

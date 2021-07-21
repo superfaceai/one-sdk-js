@@ -12,6 +12,14 @@ import { Config } from '../../config';
 import { err, ok, Result } from '../../lib';
 import { configHash } from '../../lib/config-hash';
 import { isAccessible } from '../../lib/io';
+import { SDKExecutionError } from '../errors';
+import {
+  ensureErrorSubclass,
+  superJsonFormatError,
+  superJsonNotAFileError,
+  superJsonNotFoundError,
+  superJsonReadError,
+} from '../errors.helpers';
 import {
   addPriority,
   addProfile,
@@ -87,29 +95,27 @@ export class SuperJson {
     return await SuperJson.detectSuperJson(cwd, --level);
   }
 
-  static parse(input: unknown): Result<SuperJsonDocument, string> {
+  static parse(input: unknown): Result<SuperJsonDocument, SDKExecutionError> {
     try {
       const superdocument = superJsonSchema.parse(input);
 
       return ok(superdocument);
     } catch (e: unknown) {
-      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-      return err(`unable to parse super.json: ${e}`);
+      return err(superJsonFormatError(ensureErrorSubclass(e)));
     }
   }
 
-  static loadSync(path?: string): Result<SuperJson, string> {
+  static loadSync(path?: string): Result<SuperJson, SDKExecutionError> {
     const superfile = path ?? Config().superfacePath;
 
     try {
       const statInfo = statSync(superfile);
 
       if (!statInfo.isFile()) {
-        return err(`'${superfile}' is not a file`);
+        return err(superJsonNotAFileError(superfile));
       }
     } catch (e: unknown) {
-      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-      return err(`unable to find ${superfile}: ${e}`);
+      return err(superJsonNotFoundError(superfile, ensureErrorSubclass(e)));
     }
 
     let superjson: unknown;
@@ -117,8 +123,7 @@ export class SuperJson {
       const superraw = readFileSync(superfile, { encoding: 'utf-8' });
       superjson = JSON.parse(superraw);
     } catch (e: unknown) {
-      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-      return err(`unable to read ${superfile}: ${e}`);
+      return err(superJsonReadError(ensureErrorSubclass(e)));
     }
 
     const superdocument = SuperJson.parse(superjson);
@@ -134,18 +139,19 @@ export class SuperJson {
   /**
    * Attempts to load super.json file from expected location `cwd/superface/super.json`
    */
-  static async load(path?: string): Promise<Result<SuperJson, string>> {
+  static async load(
+    path?: string
+  ): Promise<Result<SuperJson, SDKExecutionError>> {
     const superfile = path ?? Config().superfacePath;
 
     try {
       const statInfo = await fsp.stat(superfile);
 
       if (!statInfo.isFile()) {
-        return err(`'${superfile}' is not a file`);
+        return err(superJsonNotAFileError(superfile));
       }
     } catch (e: unknown) {
-      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-      return err(`unable to find ${superfile}: ${e}`);
+      return err(superJsonNotFoundError(superfile, ensureErrorSubclass(e)));
     }
 
     let superjson: unknown;
@@ -153,8 +159,7 @@ export class SuperJson {
       const superraw = await fsp.readFile(superfile, { encoding: 'utf-8' });
       superjson = JSON.parse(superraw);
     } catch (e: unknown) {
-      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-      return err(`unable to read ${superfile}: ${e}`);
+      return err(superJsonReadError(ensureErrorSubclass(e)));
     }
 
     const superdocument = SuperJson.parse(superjson);

@@ -9,7 +9,13 @@ import {
   SecurityScheme,
   SecurityType,
 } from '../internal';
-import { SDKExecutionError } from '../internal/errors';
+import { UnexpectedError } from '../internal/errors';
+import {
+  invalidProfileError,
+  invalidSecurityValuesError,
+  securityNotFoundError,
+  serviceNotFoundError,
+} from '../internal/errors.helpers';
 import {
   MapInterpreter,
   MapInterpreterError,
@@ -208,14 +214,7 @@ export class ProfileProvider {
         profileId = profileAstId(this.profile);
       }
 
-      throw new SDKExecutionError(
-        `Invalid profile "${profileId}"`,
-        [],
-        [
-          `Check that the profile is installed in super.json -> profiles or that the url is valid`,
-          `Profiles can be installed using the superface cli tool: \`superface install --help\` for more info`,
-        ]
-      );
+      throw invalidProfileError(profileId);
     }
     const profileId = profileAstId(profileAst);
 
@@ -255,7 +254,9 @@ export class ProfileProvider {
     } else if (providerInfo === undefined) {
       // resolve only provider info if map is specified locally
       // TODO: call registry provider getter
-      throw 'NOT IMPLEMENTED: map provided locally but provider is not';
+      throw new UnexpectedError(
+        'NOT IMPLEMENTED: map provided locally but provider is not'
+      );
     }
 
     // prepare service info
@@ -265,18 +266,11 @@ export class ProfileProvider {
       s => s.id === serviceId
     )?.baseUrl;
     if (baseUrl === undefined) {
-      let hints: string[] = [];
-      if (serviceId == providerInfo.defaultService) {
-        hints = [
-          'This appears to be an error in the provider definition. Make sure that the defaultService in provider definition refers to an existing service id',
-        ];
-      }
       // TODO: The service url resolution will change soon, probably won't be externally configurable
-
-      throw new SDKExecutionError(
-        `Service not found: ${serviceId}`,
-        [`Service "${serviceId}" for provider "${providerName}" was not found`],
-        hints
+      throw serviceNotFoundError(
+        serviceId,
+        providerName,
+        serviceId === providerInfo.defaultService
       );
     }
 
@@ -494,21 +488,8 @@ export class ProfileProvider {
     for (const vals of values) {
       const scheme = schemes.find(scheme => scheme.id === vals.id);
       if (scheme === undefined) {
-        const definedSchemes = schemes.map(s => s.id).join(', ');
-        throw new SDKExecutionError(
-          `Could not find security scheme for security value with id "${vals.id}"`,
-          [
-            `The provider definition for "${providerName}" defines ` +
-              (definedSchemes.length > 0
-                ? `these security schemes: ${definedSchemes}`
-                : 'no security schemes'),
-            `but a secret value was provided for security scheme: ${vals.id}`,
-          ],
-          [
-            `Check that every entry id in super.json -> providers["${providerName}"].security refers to an existing security scheme`,
-            `Make sure any configuration overrides in code for provider "${providerName}" refer to an existing security scheme`,
-          ]
-        );
+        const definedSchemes = schemes.map(s => s.id);
+        throw securityNotFoundError(providerName, definedSchemes, vals);
       }
 
       const invalidSchemeValuesErrorBuilder = (
@@ -516,21 +497,14 @@ export class ProfileProvider {
         values: SecurityValues,
         requiredKeys: [string, ...string[]]
       ) => {
-        const valueKeys = Object.keys(values)
-          .filter(k => k !== 'id')
-          .join(', ');
-        const reqKeys = requiredKeys.join(', ');
+        const valueKeys = Object.keys(values).filter(k => k !== 'id');
 
-        return new SDKExecutionError(
-          `Invalid security values for given ${scheme.type} scheme: ${scheme.id}`,
-          [
-            `The provided security values with id "${scheme.id}" have keys: ${valueKeys}`,
-            `but ${scheme.type} scheme requires: ${reqKeys}`,
-          ],
-          [
-            `Check that the entry with id "${scheme.id}" in super.json -> providers["${providerName}"].security refers to the correct security scheme`,
-            `Make sure any configuration overrides in code for provider "${providerName}" refer to the correct security scheme`,
-          ]
+        return invalidSecurityValuesError(
+          providerName,
+          scheme.type,
+          scheme.id,
+          valueKeys,
+          requiredKeys
         );
       };
 

@@ -1,3 +1,5 @@
+import { UnexpectedError } from '../internal/errors';
+
 /**
  * Creates a deep clone of the value.
  */
@@ -63,12 +65,12 @@ export function indexRecord<T extends unknown | Record<string, T>>(
 
   const currentKey = key.shift();
   if (currentKey === undefined) {
-    throw new Error('unreachable');
+    throw new UnexpectedError('unreachable');
   }
 
   const next = input[currentKey];
   if (!isRecord(next)) {
-    throw new Error('Cannot index into non-object');
+    throw new UnexpectedError('Cannot index into non-object');
   }
 
   return indexRecord(next as Record<string, T>, key);

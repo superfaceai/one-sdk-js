@@ -92,7 +92,7 @@ describe('TypedProfile', () => {
       );
 
       expect(() => typedProfile.getUseCase('nope')).toThrow(
-        new Error('Usecase: "nope" not found')
+        new RegExp('Usecase not found: "nope"')
       );
     });
   });

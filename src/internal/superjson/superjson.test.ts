@@ -3,7 +3,7 @@ import { relative as relativePath, resolve as resolvePath } from 'path';
 import { mocked } from 'ts-jest/utils';
 
 import { isAccessible } from '../../lib/io';
-import { err, ok } from '../../lib/result/result';
+import { ok } from '../../lib/result/result';
 import { mergeSecurity } from './mutate';
 import * as normalize from './normalize';
 import {
@@ -205,14 +205,20 @@ describe('SuperJson', () => {
       mocked(statSync).mockImplementation(() => {
         throw mockError;
       });
-      expect(SuperJson.loadSync('test')).toEqual(
-        err('unable to find test: Error: test')
+      const result = SuperJson.loadSync('test');
+      expect(result.isErr()).toBe(true);
+      expect(result.isErr() && result.error.message).toMatch(
+        'super.json not found in "test"\nError: test'
       );
     });
 
     it('returns err when super.json is not file', () => {
       mocked(statSync).mockReturnValue({ ...mockStats, isFile: () => false });
-      expect(SuperJson.loadSync('test')).toEqual(err(`'test' is not a file`));
+      const result = SuperJson.loadSync('test');
+      expect(result.isErr()).toBe(true);
+      expect(result.isErr() && result.error.message).toMatch(
+        '"test" is not a file'
+      );
     });
 
     it('returns err when unable to read super.json', () => {
@@ -220,8 +226,10 @@ describe('SuperJson', () => {
       mocked(readFileSync).mockImplementation(() => {
         throw mockError;
       });
-      expect(SuperJson.loadSync('test')).toEqual(
-        err('unable to read test: Error: test')
+      const result = SuperJson.loadSync('test');
+      expect(result.isErr()).toBe(true);
+      expect(result.isErr() && result.error.message).toMatch(
+        'Unable to read super.json\n\nError: test'
       );
     });
 
@@ -301,8 +309,10 @@ describe('SuperJson', () => {
 
     it('returns err when unable to find super.json', async () => {
       jest.spyOn(fsp, 'stat').mockRejectedValue(mockError);
-      await expect(SuperJson.load('test')).resolves.toEqual(
-        err('unable to find test: Error: test')
+      const result = await SuperJson.load('test');
+      expect(result.isErr()).toBe(true);
+      expect(result.isErr() && result.error.message).toMatch(
+        'super.json not found in "test"'
       );
     });
 
@@ -310,16 +320,20 @@ describe('SuperJson', () => {
       jest
         .spyOn(fsp, 'stat')
         .mockResolvedValue({ ...mockStats, isFile: () => false });
-      await expect(SuperJson.load('test')).resolves.toEqual(
-        err(`'test' is not a file`)
+      const result = await SuperJson.load('test');
+      expect(result.isErr()).toBe(true);
+      expect(result.isErr() && result.error.message).toMatch(
+        '"test" is not a file'
       );
     });
 
     it('returns err when unable to read super.json', async () => {
       jest.spyOn(fsp, 'stat').mockResolvedValue(mockStats);
       jest.spyOn(fsp, 'readFile').mockRejectedValue(mockError);
-      await expect(SuperJson.load('test')).resolves.toEqual(
-        err('unable to read test: Error: test')
+      const result = await SuperJson.load('test');
+      expect(result.isErr()).toBe(true);
+      expect(result.isErr() && result.error.message).toMatch(
+        'Unable to read super.json'
       );
     });
 
@@ -403,8 +417,8 @@ describe('SuperJson', () => {
           mockDefaults
         )
       ).toThrowError(
-        new Error(
-          'invalid profile provider entry format: ' + mockProfileProviderEntry
+        new RegExp(
+          `Invalid profile provider entry format\n\nSettings: ${mockProfileProviderEntry}`
         )
       );
     });
@@ -476,7 +490,7 @@ describe('SuperJson', () => {
       expect(() =>
         normalize.normalizeProfileSettings(mockProfileEntry, [])
       ).toThrowError(
-        new Error('invalid profile entry format: ' + mockProfileEntry)
+        new Error('Invalid profile entry format: ' + mockProfileEntry)
       );
     });
 
@@ -509,7 +523,7 @@ describe('SuperJson', () => {
       expect(() =>
         normalize.normalizeProviderSettings(mockProviderEntry)
       ).toThrowError(
-        new Error('invalid provider entry format: ' + mockProviderEntry)
+        new RegExp('Invalid provider entry format: ' + mockProviderEntry)
       );
     });
 
@@ -2563,7 +2577,7 @@ describe('SuperJson', () => {
 
       expect(() =>
         superjson.addPriority(mockProfileName, mockPriorityArray)
-      ).toThrowError(new Error(`Profile "${mockProfileName}" does not exist`));
+      ).toThrowError(new RegExp(`Profile "${mockProfileName}" not found`));
     });
 
     it('adds priority to super.json - profile with shorthand notations', () => {
@@ -2578,9 +2592,7 @@ describe('SuperJson', () => {
       expect(() =>
         superjson.addPriority(mockProfileName, mockPriorityArray)
       ).toThrowError(
-        new Error(
-          `Unable to set priority on profile "${mockProfileName}" - some of priority providers not set in profile providers property`
-        )
+        new RegExp(`Unable to set priority for "${mockProfileName}"`)
       );
     });
 
@@ -2599,9 +2611,7 @@ describe('SuperJson', () => {
       expect(() =>
         superjson.addPriority(mockProfileName, mockPriorityArray)
       ).toThrowError(
-        new Error(
-          `Unable to set priority on profile "${mockProfileName}" - profile providers not set`
-        )
+        new RegExp(`Unable to set priority for "${mockProfileName}"`)
       );
     });
 
@@ -2624,9 +2634,7 @@ describe('SuperJson', () => {
       expect(() =>
         superjson.addPriority(mockProfileName, mockPriorityArray)
       ).toThrowError(
-        new Error(
-          `Unable to set priority on profile "${mockProfileName}" - some of priority providers not set in profile providers property`
-        )
+        new RegExp(`Unable to set priority for "${mockProfileName}"`)
       );
     });
 
@@ -2650,9 +2658,7 @@ describe('SuperJson', () => {
       expect(() =>
         superjson.addPriority(mockProfileName, mockPriorityArray)
       ).toThrowError(
-        new Error(
-          `Unable to set priority on profile "${mockProfileName}" - providers not set`
-        )
+        new RegExp(`Unable to set priority for "${mockProfileName}"`)
       );
     });
 
@@ -2680,9 +2686,7 @@ describe('SuperJson', () => {
       expect(() =>
         superjson.addPriority(mockProfileName, mockPriorityArray)
       ).toThrowError(
-        new Error(
-          `Unable to set priority on profile "${mockProfileName}" - some of priority providers not set in provider property`
-        )
+        new RegExp(`Unable to set priority for "${mockProfileName}"`)
       );
     });
 
@@ -2709,12 +2713,8 @@ describe('SuperJson', () => {
           third: {},
         },
       });
-      expect(() =>
-        superjson.addPriority(mockProfileName, mockPriorityArray)
-      ).toThrowError(
-        new Error(
-          `Unable to set priority on profile "${mockProfileName}" - existing priority is same as new priority`
-        )
+      expect(superjson.addPriority(mockProfileName, mockPriorityArray)).toEqual(
+        false
       );
     });
 
