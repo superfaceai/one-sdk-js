@@ -14,7 +14,7 @@ import { configHash } from '../../lib/config-hash';
 import { isAccessible } from '../../lib/io';
 import { SDKExecutionError } from '../errors';
 import {
-  assertError,
+  ensureErrorSubclass,
   superJsonFormatError,
   superJsonNotAFileError,
   superJsonNotFoundError,
@@ -101,7 +101,7 @@ export class SuperJson {
 
       return ok(superdocument);
     } catch (e: unknown) {
-      return err(superJsonFormatError(assertError(e)));
+      return err(superJsonFormatError(ensureErrorSubclass(e)));
     }
   }
 
@@ -115,7 +115,7 @@ export class SuperJson {
         return err(superJsonNotAFileError(superfile));
       }
     } catch (e: unknown) {
-      return err(superJsonNotFoundError(superfile, assertError(e)));
+      return err(superJsonNotFoundError(superfile, ensureErrorSubclass(e)));
     }
 
     let superjson: unknown;
@@ -123,7 +123,7 @@ export class SuperJson {
       const superraw = readFileSync(superfile, { encoding: 'utf-8' });
       superjson = JSON.parse(superraw);
     } catch (e: unknown) {
-      return err(superJsonReadError(assertError(e)));
+      return err(superJsonReadError(ensureErrorSubclass(e)));
     }
 
     const superdocument = SuperJson.parse(superjson);
@@ -151,7 +151,7 @@ export class SuperJson {
         return err(superJsonNotAFileError(superfile));
       }
     } catch (e: unknown) {
-      return err(superJsonNotFoundError(superfile, assertError(e)));
+      return err(superJsonNotFoundError(superfile, ensureErrorSubclass(e)));
     }
 
     let superjson: unknown;
@@ -159,7 +159,7 @@ export class SuperJson {
       const superraw = await fsp.readFile(superfile, { encoding: 'utf-8' });
       superjson = JSON.parse(superraw);
     } catch (e: unknown) {
-      return err(superJsonReadError(assertError(e)));
+      return err(superJsonReadError(ensureErrorSubclass(e)));
     }
 
     const superdocument = SuperJson.parse(superjson);

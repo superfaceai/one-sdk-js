@@ -3,7 +3,7 @@ import { ZodError } from 'zod';
 import { SDKExecutionError } from './errors';
 import { BackoffKind, SecurityValues } from './superjson';
 
-export function assertError(error: unknown): Error {
+export function ensureErrorSubclass(error: unknown): Error {
   if (typeof error === 'string') {
     return new Error(error);
   } else if (error instanceof Error) {
