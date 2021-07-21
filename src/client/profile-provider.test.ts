@@ -1,8 +1,8 @@
 import { MapDocumentNode, ProfileDocumentNode } from '@superfaceai/ast';
 import { promises as fsp } from 'fs';
 import { mocked } from 'ts-jest/utils';
-import { UnexpectedError } from '../internal/errors';
 
+import { UnexpectedError } from '../internal/errors';
 import { MapInterpreter } from '../internal/interpreter/map-interpreter';
 import { MapASTError } from '../internal/interpreter/map-interpreter.errors';
 import { ProfileParameterValidator } from '../internal/interpreter/profile-parameter-validator';
