@@ -127,7 +127,7 @@ export async function fetchBind(
     },
   });
   if (!bindResponseValidator.check(body)) {
-    throw new UnexpectedError('registry responded with invalid body');
+    throw new UnexpectedError('Registry responded with invalid body');
   }
 
   return {

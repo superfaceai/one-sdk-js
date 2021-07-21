@@ -5,6 +5,7 @@ import { inspect } from 'util';
 import { USER_AGENT } from '../../..';
 import { recursiveKeyList } from '../../../lib/object';
 import { SecurityType } from '../..';
+import { UnexpectedError } from '../../errors';
 import {
   missingPathReplacementError,
   missingSecurityValuesError,
@@ -31,7 +32,6 @@ import {
   applyHttpAuth,
   SecurityConfiguration,
 } from './security';
-import { UnexpectedError } from '../../errors';
 
 const debug = createDebug('superface:http');
 const debugSensitive = createDebug('superface:http:sensitive');

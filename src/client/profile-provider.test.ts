@@ -1,6 +1,7 @@
 import { MapDocumentNode, ProfileDocumentNode } from '@superfaceai/ast';
 import { promises as fsp } from 'fs';
 import { mocked } from 'ts-jest/utils';
+import { UnexpectedError } from '../internal/errors';
 
 import { MapInterpreter } from '../internal/interpreter/map-interpreter';
 import { MapASTError } from '../internal/interpreter/map-interpreter.errors';
@@ -661,7 +662,9 @@ describe('profile provider', () => {
           mockSuperfacClient
         );
         await expect(mockProfileProvider.bind()).rejects.toEqual(
-          'NOT IMPLEMENTED: map provided locally but provider is not'
+          new UnexpectedError(
+            'NOT IMPLEMENTED: map provided locally but provider is not'
+          )
         );
       });
 

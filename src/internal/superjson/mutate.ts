@@ -1,5 +1,10 @@
 import { err, ok, Result } from '../../lib';
-import { UnexpectedError } from '../errors';
+import { SDKExecutionError, UnexpectedError } from '../errors';
+import {
+  priorityIsTheSameError,
+  profileNotFoundError,
+  providersNotSetError,
+} from '../errors.helpers';
 import {
   castToNonPrimitive,
   isEmptyRecord,
@@ -453,12 +458,12 @@ export function addPriority(
   document: SuperJsonDocument,
   profileName: string,
   providersSortedByPriority: string[]
-): Result<boolean, Error> {
+): Result<boolean, SDKExecutionError> {
   if (document.profiles === undefined) {
     document.profiles = {};
   }
   if (document.profiles[profileName] === undefined) {
-    return err(new Error(`Profile "${profileName}" does not exist`));
+    return err(profileNotFoundError(profileName));
   }
 
   let targetedProfile = document.profiles[profileName];
@@ -475,37 +480,21 @@ export function addPriority(
   const profileProviders = targetedProfile.providers;
 
   if (!profileProviders) {
-    return err(
-      new Error(
-        `Unable to set priority on profile "${profileName}" - profile providers not set`
-      )
-    );
+    return err(providersNotSetError(profileName));
   }
 
   if (providersSortedByPriority.some(p => profileProviders[p] === undefined)) {
-    return err(
-      new Error(
-        `Unable to set priority on profile "${profileName}" - some of priority providers not set in profile providers property`
-      )
-    );
+    return err(providersNotSetError(profileName));
   }
   //check providers property
   const providers = document.providers;
 
   if (!providers) {
-    return err(
-      new Error(
-        `Unable to set priority on profile "${profileName}" - providers not set`
-      )
-    );
+    return err(providersNotSetError(profileName));
   }
 
   if (providersSortedByPriority.some(p => providers[p] === undefined)) {
-    return err(
-      new Error(
-        `Unable to set priority on profile "${profileName}" - some of priority providers not set in provider property`
-      )
-    );
+    return err(providersNotSetError(profileName));
   }
 
   //check existing priority array
@@ -517,11 +506,8 @@ export function addPriority(
       (value: string, index: number) => value === existingPriority[index]
     )
   ) {
-    return err(
-      new Error(
-        `Unable to set priority on profile "${profileName}" - existing priority is same as new priority`
-      )
-    );
+    // TODO: Shouldn't this return ok(false)?
+    return err(priorityIsTheSameError(profileName));
   }
 
   targetedProfile.priority = providersSortedByPriority;

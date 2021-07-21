@@ -1,6 +1,6 @@
 import createDebug from 'debug';
-import { UnexpectedError } from '../../internal/errors';
 
+import { UnexpectedError } from '../../internal/errors';
 import { clone, sleep } from '../../lib';
 import { Events } from '../../lib/events';
 import { CrossFetchError } from '../../lib/fetch.errors';

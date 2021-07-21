@@ -1,6 +1,7 @@
 import { MapDocumentNode } from '@superfaceai/ast';
 
 import { Config } from '../config';
+import { UnexpectedError } from '../internal/errors';
 import { ProviderJson } from '../internal/providerjson';
 import {
   assertIsRegistryProviderInfo,
@@ -83,7 +84,7 @@ describe('registry', () => {
     it('throws error on null record', () => {
       const record = null;
       expect(() => assertIsRegistryProviderInfo(record)).toThrowError(
-        new Error('Invalid response from registry!')
+        'Invalid response from registry'
       );
     });
 
@@ -96,7 +97,7 @@ describe('registry', () => {
         semanticProfile: 'test/profile',
       };
       expect(() => assertIsRegistryProviderInfo(record)).toThrowError(
-        new Error('Invalid response from registry!')
+        'Invalid response from registry'
       );
     });
   });
@@ -309,7 +310,9 @@ describe('registry', () => {
           mapVariant: 'test-map-variant',
           mapRevision: 'test-map-revision',
         })
-      ).rejects.toEqual(new Error('registry responded with invalid body'));
+      ).rejects.toEqual(
+        new UnexpectedError('Registry responded with invalid body')
+      );
 
       expect(request).toHaveBeenCalledTimes(1);
       expect(request).toHaveBeenCalledWith('/registry/bind', {

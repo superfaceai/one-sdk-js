@@ -417,8 +417,8 @@ describe('SuperJson', () => {
           mockDefaults
         )
       ).toThrowError(
-        new Error(
-          'invalid profile provider entry format: ' + mockProfileProviderEntry
+        new RegExp(
+          `Invalid profile provider entry format\n\nSettings: ${mockProfileProviderEntry}`
         )
       );
     });
@@ -490,7 +490,7 @@ describe('SuperJson', () => {
       expect(() =>
         normalize.normalizeProfileSettings(mockProfileEntry, [])
       ).toThrowError(
-        new Error('invalid profile entry format: ' + mockProfileEntry)
+        new Error('Invalid profile entry format: ' + mockProfileEntry)
       );
     });
 
@@ -523,7 +523,7 @@ describe('SuperJson', () => {
       expect(() =>
         normalize.normalizeProviderSettings(mockProviderEntry)
       ).toThrowError(
-        new Error('invalid provider entry format: ' + mockProviderEntry)
+        new RegExp('Invalid provider entry format: ' + mockProviderEntry)
       );
     });
 
@@ -2577,7 +2577,7 @@ describe('SuperJson', () => {
 
       expect(() =>
         superjson.addPriority(mockProfileName, mockPriorityArray)
-      ).toThrowError(new Error(`Profile "${mockProfileName}" does not exist`));
+      ).toThrowError(new RegExp(`Profile "${mockProfileName}" not found`));
     });
 
     it('adds priority to super.json - profile with shorthand notations', () => {
@@ -2592,9 +2592,7 @@ describe('SuperJson', () => {
       expect(() =>
         superjson.addPriority(mockProfileName, mockPriorityArray)
       ).toThrowError(
-        new Error(
-          `Unable to set priority on profile "${mockProfileName}" - some of priority providers not set in profile providers property`
-        )
+        new RegExp(`Unable to set priority for "${mockProfileName}"`)
       );
     });
 
@@ -2613,9 +2611,7 @@ describe('SuperJson', () => {
       expect(() =>
         superjson.addPriority(mockProfileName, mockPriorityArray)
       ).toThrowError(
-        new Error(
-          `Unable to set priority on profile "${mockProfileName}" - profile providers not set`
-        )
+        new RegExp(`Unable to set priority for "${mockProfileName}"`)
       );
     });
 
@@ -2638,9 +2634,7 @@ describe('SuperJson', () => {
       expect(() =>
         superjson.addPriority(mockProfileName, mockPriorityArray)
       ).toThrowError(
-        new Error(
-          `Unable to set priority on profile "${mockProfileName}" - some of priority providers not set in profile providers property`
-        )
+        new RegExp(`Unable to set priority for "${mockProfileName}"`)
       );
     });
 
@@ -2664,9 +2658,7 @@ describe('SuperJson', () => {
       expect(() =>
         superjson.addPriority(mockProfileName, mockPriorityArray)
       ).toThrowError(
-        new Error(
-          `Unable to set priority on profile "${mockProfileName}" - providers not set`
-        )
+        new RegExp(`Unable to set priority for "${mockProfileName}"`)
       );
     });
 
@@ -2694,9 +2686,7 @@ describe('SuperJson', () => {
       expect(() =>
         superjson.addPriority(mockProfileName, mockPriorityArray)
       ).toThrowError(
-        new Error(
-          `Unable to set priority on profile "${mockProfileName}" - some of priority providers not set in provider property`
-        )
+        new RegExp(`Unable to set priority for "${mockProfileName}"`)
       );
     });
 
@@ -2726,9 +2716,7 @@ describe('SuperJson', () => {
       expect(() =>
         superjson.addPriority(mockProfileName, mockPriorityArray)
       ).toThrowError(
-        new Error(
-          `Unable to set priority on profile "${mockProfileName}" - existing priority is same as new priority`
-        )
+        `Unable to set priority on profile "${mockProfileName}"\n\nExisting priority is same as new priority\n`
       );
     });
 

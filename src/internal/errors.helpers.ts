@@ -97,6 +97,30 @@ export function profileFileNotFoundError(
   );
 }
 
+export function profileNotFoundError(profileName: string): SDKExecutionError {
+  return new SDKExecutionError(
+    `Profile "${profileName}" not found in super.json`,
+    [],
+    []
+  );
+}
+
+export function providersNotSetError(profileName: string): SDKExecutionError {
+  return new SDKExecutionError(
+    `Unable to set priority for "${profileName}"`,
+    [`Providers not set for profile "${profileName}"`],
+    [`Make sure profile ${profileName} has configured providers.`]
+  );
+}
+
+export function priorityIsTheSameError(profileName: string): SDKExecutionError {
+  return new SDKExecutionError(
+    `Unable to set priority on profile "${profileName}"`,
+    ['Existing priority is same as new priority'],
+    []
+  );
+}
+
 export function unconfiguredProviderInPriorityError(
   profileId: string,
   priority: string[],
@@ -286,7 +310,7 @@ export function usecaseNotFoundError(
   usecases: string[]
 ): SDKExecutionError {
   return new SDKExecutionError(
-    `Usecase not found: ${name}`,
+    `Usecase not found: "${name}"`,
     [`Available usecases: ${usecases.join(', ')}`],
     []
   );
