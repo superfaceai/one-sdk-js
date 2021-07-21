@@ -2713,10 +2713,8 @@ describe('SuperJson', () => {
           third: {},
         },
       });
-      expect(() =>
-        superjson.addPriority(mockProfileName, mockPriorityArray)
-      ).toThrowError(
-        `Unable to set priority on profile "${mockProfileName}"\n\nExisting priority is same as new priority\n`
+      expect(superjson.addPriority(mockProfileName, mockPriorityArray)).toEqual(
+        false
       );
     });
 

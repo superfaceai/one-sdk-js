@@ -1,10 +1,6 @@
 import { err, ok, Result } from '../../lib';
 import { SDKExecutionError, UnexpectedError } from '../errors';
-import {
-  priorityIsTheSameError,
-  profileNotFoundError,
-  providersNotSetError,
-} from '../errors.helpers';
+import { profileNotFoundError, providersNotSetError } from '../errors.helpers';
 import {
   castToNonPrimitive,
   isEmptyRecord,
@@ -506,8 +502,7 @@ export function addPriority(
       (value: string, index: number) => value === existingPriority[index]
     )
   ) {
-    // TODO: Shouldn't this return ok(false)?
-    return err(priorityIsTheSameError(profileName));
+    return ok(false);
   }
 
   targetedProfile.priority = providersSortedByPriority;

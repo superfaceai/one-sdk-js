@@ -113,14 +113,6 @@ export function providersNotSetError(profileName: string): SDKExecutionError {
   );
 }
 
-export function priorityIsTheSameError(profileName: string): SDKExecutionError {
-  return new SDKExecutionError(
-    `Unable to set priority on profile "${profileName}"`,
-    ['Existing priority is same as new priority'],
-    []
-  );
-}
-
 export function unconfiguredProviderInPriorityError(
   profileId: string,
   priority: string[],
