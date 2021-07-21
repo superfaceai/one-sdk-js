@@ -307,7 +307,7 @@ describe('MetricReporter', () => {
 
     const profile = await client.getProfile('test-profile');
 
-    await profile.getUseCase('Test').perform({});
+    await expect(profile.getUseCase('Test').perform({})).rejects.toThrow();
     jest.advanceTimersByTime(2000);
     let requests = await eventEndpoint.getSeenRequests();
     while (requests.length < 3) {

@@ -7,9 +7,9 @@ import createDebug from 'debug';
 
 import { UseCase } from '../client';
 import { MapInterpreterEventAdapter } from '../client/failure/map-interpreter-adapter';
+import { FailurePolicyReason } from '../client/failure/policy';
 import { UnexpectedError } from '../internal/errors';
 import { FetchInstance } from '../internal/interpreter/http/interfaces';
-import { CrossFetchError } from './fetch.errors';
 
 const debug = createDebug('superface:events');
 
@@ -92,7 +92,7 @@ export type ProviderSwitchContext = EventContextBase & {
   provider: string;
   toProvider?: string;
   profile: string;
-  reason: CrossFetchError;
+  reason: FailurePolicyReason;
 };
 
 export type SuccessContext = EventContextBase & {
@@ -275,6 +275,8 @@ function replacementFunction<E extends keyof EventTypes>(
     let functionArgs = args;
     let retry = true;
     while (retry) {
+      let maybeResult: ReturnType<EventTypes[E][0]> | undefined;
+
       if (metadata.placement === 'before' || metadata.placement === 'around') {
         const hookResult = await events.emit(`pre-${metadata.eventName}`, [
           {
@@ -291,15 +293,21 @@ function replacementFunction<E extends keyof EventTypes>(
         } else if (hookResult.kind === 'modify') {
           functionArgs = hookResult.newArgs as Parameters<EventTypes[E][0]>;
         } else if (hookResult.kind === 'abort') {
-          return hookResult.newResult;
+          maybeResult = hookResult.newResult as ReturnType<EventTypes[E][0]>;
         }
+      }
+
+      if (maybeResult === undefined) {
+        maybeResult = originalFunction.apply(this, functionArgs) as ReturnType<
+          EventTypes[E][0]
+        >;
       }
 
       let result: Promise<ReturnType<EventTypes[E][0]>>;
       try {
-        result = Promise.resolve(
-          await originalFunction.apply(this, functionArgs)
-        );
+        result = Promise.resolve(await maybeResult) as Promise<
+          ReturnType<EventTypes[E][0]>
+        >;
       } catch (err) {
         result = Promise.reject(err);
       }
@@ -340,7 +348,7 @@ function replacementFunction<E extends keyof EventTypes>(
 
       return result;
     }
-  } as unknown as EventTypes[E][0];
+  } as AsyncFunction as EventTypes[E][0];
 }
 
 export function eventInterceptor<E extends keyof EventTypes>(

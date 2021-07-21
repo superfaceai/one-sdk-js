@@ -1,5 +1,5 @@
+import { SDKExecutionError } from '../../internal/errors';
 import { HttpResponse } from '../../internal/interpreter/http';
-import { CrossFetchError } from '../../lib/fetch.errors';
 import {
   ExecutionResolution,
   FailureResolution,
@@ -18,7 +18,14 @@ type BaseEvent = {
   registryCacheAge: number;
 };
 
-export type ExecutionInfo = BaseEvent;
+export type ExecutionInfo = BaseEvent & {
+  /**
+   * Flag indicating whether the policy should run failover-restore logic.
+   *
+   * This can be used to inhibit failover-restores in the middle of a perform.
+   */
+  checkFailoverRestore?: boolean;
+};
 
 /** Network failure happens when no connection could even be open to the service. */
 export type NetworkFailure = {
@@ -38,9 +45,7 @@ export type RequestFailure = {
 /** HTTP failure happens when a request was sent but the response contains an unexpected HTTP status code. */
 export type HTTPFailure = {
   kind: 'http';
-  /** HTTP status code */
-  statusCode: number;
-  // TODO: Maybe response headers? for example Retry-After
+  response: HttpResponse;
 } & BaseEvent;
 
 /** Information about execution failure */
@@ -48,12 +53,79 @@ export type ExecutionFailure = NetworkFailure | RequestFailure | HTTPFailure;
 
 export type ExecutionSuccess = BaseEvent;
 
-export class FailurePolicyError extends Error {
-  constructor(
-    public readonly reason: string,
-    public readonly originalError?: CrossFetchError | HttpResponse
-  ) {
-    super(reason);
+type FailurePolicyReasonData =
+  | {
+      kind: 'failure';
+      failure: ExecutionFailure;
+    }
+  | {
+      kind: 'policy';
+      reason: string;
+    };
+export class FailurePolicyReason {
+  private prefixMessages: string[] = [];
+
+  private constructor(public readonly data: FailurePolicyReasonData) {}
+
+  static fromExecutionFailure(failure: ExecutionFailure): FailurePolicyReason {
+    return new FailurePolicyReason({ kind: 'failure', failure });
+  }
+
+  static fromPolicyReason(reason: string): FailurePolicyReason {
+    return new FailurePolicyReason({ kind: 'policy', reason });
+  }
+
+  addPrefixMessage(message: string): this {
+    this.prefixMessages.unshift(message);
+
+    return this;
+  }
+
+  get message(): string {
+    return this.toString();
+  }
+
+  toString(): string {
+    const prefix = this.prefixMessages.join(': ');
+
+    if (this.data.kind === 'failure') {
+      return `[${new Date(
+        this.data.failure.time
+      ).toISOString()}] ${prefix}: ${FailurePolicyReason.failureToString(
+        this.data.failure
+      )}`;
+    } else {
+      return `${prefix}: ${this.data.reason}`;
+    }
+  }
+
+  toError(): Error {
+    switch (this.data.kind) {
+      case 'failure':
+        return new SDKExecutionError(
+          FailurePolicyReason.failureToString(this.data.failure),
+          [
+            `At ${new Date(this.data.failure.time).toISOString()}`,
+            this.prefixMessages.join(': '),
+          ],
+          []
+        );
+
+      case 'policy':
+        return new SDKExecutionError(
+          `Failure policy aborted with reason:' ${this.data.reason}`,
+          [this.prefixMessages.join(': ')],
+          ['Check that the failure policy is correctly configured']
+        );
+    }
+  }
+
+  private static failureToString(failure: ExecutionFailure): string {
+    if (failure.kind === 'http') {
+      return `Request ended with ${failure.kind} error, status code: ${failure.response.statusCode}`;
+    } else {
+      return `Request ended with ${failure.kind} error: ${failure.issue}`;
+    }
   }
 }
 
@@ -107,18 +179,4 @@ export abstract class FailurePolicy {
    * Resets this policy as if it was just created.
    */
   abstract reset(): void;
-  /**
-   * Formats ExecutionFailure info to string.
-   */
-  protected formatFailureReason(info: ExecutionFailure): string {
-    if (info.kind === 'http') {
-      return `${new Date(info.time).toISOString()}: Request ended with ${
-        info.kind
-      } error status code: ${info.statusCode}`;
-    }
-
-    return `${new Date(info.time).toISOString()}: Request ended with ${
-      info.kind
-    } error there is an issue with: ${info.issue}`;
-  }
 }

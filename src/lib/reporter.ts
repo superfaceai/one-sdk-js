@@ -1,5 +1,6 @@
 import createDebug from 'debug';
 
+import { FailurePolicyReason } from '../client/failure/policy';
 import { Config } from '../config';
 import {
   FetchInstance,
@@ -8,7 +9,6 @@ import {
 } from '../internal/interpreter/http/interfaces';
 import { AnonymizedSuperJsonDocument, SuperJson } from '../internal/superjson';
 import { CrossFetch } from './fetch';
-import { CrossFetchError } from './fetch.errors';
 
 const debug = createDebug('superface:metric-reporter');
 
@@ -52,26 +52,32 @@ export const enum FailoverReason {
 }
 
 // TODO: Make this better
-function crossFetchErrorToFailoverReason(
-  error: CrossFetchError
+function failurePolicyReasonToFailoverReason(
+  reason: FailurePolicyReason
 ): FailoverReason {
-  if (error.normalized.kind === 'network') {
-    switch (error.issue) {
-      case 'dns':
-        return FailoverReason.NETWORK_ERROR_DNS;
-      case 'timeout':
-        return FailoverReason.NETWORK_ERROR_TIMEOUT;
-      case 'unsigned-ssl':
-        return FailoverReason.NETWORK_ERROR_SSL;
-      case 'reject':
-        return FailoverReason.NETWORK_ERROR_CONNECTION;
-    }
-  } else {
-    switch (error.issue) {
-      case 'timeout':
-        return FailoverReason.REQUEST_ERROR_TIMEOUT;
-      case 'abort':
-        return FailoverReason.REQUEST_ERROR_ABORT;
+  if (reason.data.kind === 'failure') {
+    if (reason.data.failure.kind === 'network') {
+      switch (reason.data.failure.issue) {
+        case 'dns':
+          return FailoverReason.NETWORK_ERROR_DNS;
+        case 'timeout':
+          return FailoverReason.NETWORK_ERROR_TIMEOUT;
+        case 'unsigned-ssl':
+          return FailoverReason.NETWORK_ERROR_SSL;
+        case 'reject':
+          return FailoverReason.NETWORK_ERROR_CONNECTION;
+      }
+    } else if (reason.data.failure.kind === 'request') {
+      switch (reason.data.failure.issue) {
+        case 'timeout':
+          return FailoverReason.REQUEST_ERROR_TIMEOUT;
+        case 'abort':
+          return FailoverReason.REQUEST_ERROR_ABORT;
+      }
+    } else {
+      if (reason.data.failure.response.statusCode === 500) {
+        return FailoverReason.HTTP_ERROR_500;
+      }
     }
   }
 
@@ -115,7 +121,7 @@ export type ProviderChangeInput = EventInputBase & {
   to?: string;
   profile: string;
   reasons?: {
-    reason: CrossFetchError;
+    reason: FailurePolicyReason;
     occurredAt: Date;
   }[];
 };
@@ -234,7 +240,7 @@ export class MetricReporter {
         from_provider: input.from,
         to_provider: input.to,
         failover_reasons: input.reasons?.map(reason => ({
-          reason: crossFetchErrorToFailoverReason(reason.reason),
+          reason: failurePolicyReasonToFailoverReason(reason.reason),
           occurred_at: reason.occurredAt.toISOString(),
         })),
       },

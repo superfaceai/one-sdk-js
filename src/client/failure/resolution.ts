@@ -1,3 +1,5 @@
+import { FailurePolicyReason } from './policy';
+
 /** Additional common configuration for making requests. */
 export type RequestConfiguration = {
   /** Timeout for the request after which the request is aborted and a failure is reported. */
@@ -14,7 +16,7 @@ export type RequestConfiguration = {
 export type AbortResolution = {
   kind: 'abort';
   /** Reason why the execution was aborted. */
-  reason: string;
+  reason: FailurePolicyReason;
 };
 
 /**
@@ -49,6 +51,8 @@ export type RecacheResolution = {
   kind: 'recache';
   /** Optional url to a fallback registry to use for this recache request only */
   newRegistry?: string; // TODO: do we want this?
+  /** Reason that caused this recache. */
+  reason: FailurePolicyReason;
 };
 
 /**
@@ -60,6 +64,8 @@ export type RecacheResolution = {
 export type SwitchProviderResolution = {
   kind: 'switch-provider';
   provider: string;
+  /** Reason that caused this switch. */
+  reason: FailurePolicyReason;
 };
 
 /**
@@ -75,15 +81,16 @@ export type ContinueResolution = {
 };
 
 export type ExecutionResolution =
-  | (RequestConfiguration &
-      (ContinueResolution | BackoffResolution | RecacheResolution))
+  | (RequestConfiguration & (ContinueResolution | BackoffResolution))
   | AbortResolution
+  | RecacheResolution
   | SwitchProviderResolution;
 
 export type FailureResolution =
   | AbortResolution
   | RetryResolution
   | ContinueResolution
+  | RecacheResolution
   | SwitchProviderResolution;
 
 export type SuccessResolution = ContinueResolution;

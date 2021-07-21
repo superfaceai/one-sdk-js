@@ -26,15 +26,21 @@ describe('failure policies', () => {
     it('always aborts on failure', () => {
       expect(policy.afterFailure(failure)).toStrictEqual({
         kind: 'abort',
-        reason: expect.stringContaining('abort'),
+        reason: expect.objectContaining({
+          message: expect.stringContaining('abort'),
+        }),
       });
       expect(policy.afterFailure(failure)).toStrictEqual({
         kind: 'abort',
-        reason: expect.stringContaining('abort'),
+        reason: expect.objectContaining({
+          message: expect.stringContaining('abort'),
+        }),
       });
       expect(policy.afterFailure(failure)).toStrictEqual({
         kind: 'abort',
-        reason: expect.stringContaining('abort'),
+        reason: expect.objectContaining({
+          message: expect.stringContaining('abort'),
+        }),
       });
     });
 
@@ -88,7 +94,9 @@ describe('failure policies', () => {
 
       expect(policy.afterFailure(failure)).toStrictEqual({
         kind: 'abort',
-        reason: expect.stringContaining(`Max (3) retries exceeded`),
+        reason: expect.objectContaining({
+          message: expect.stringContaining('Max (3) retries exceeded'),
+        }),
       });
     });
 
@@ -255,7 +263,9 @@ describe('failure policies', () => {
 
       expect(policy.afterFailure(failure)).toStrictEqual({
         kind: 'abort',
-        reason: expect.stringContaining('Max (3) retries exceeded'),
+        reason: expect.objectContaining({
+          message: expect.stringContaining('Max (3) retries exceeded'),
+        }),
       });
 
       policy.reset();
@@ -288,7 +298,9 @@ describe('failure policies', () => {
 
       expect(policy.afterFailure(failure)).toStrictEqual({
         kind: 'abort',
-        reason: expect.stringContaining('Max (3) retries exceeded'),
+        reason: expect.objectContaining({
+          message: expect.stringContaining('Max (3) retries exceeded'),
+        }),
       });
 
       policy.reset();
@@ -321,7 +333,9 @@ describe('failure policies', () => {
 
       expect(policy.afterFailure(failure)).toStrictEqual({
         kind: 'abort',
-        reason: expect.stringContaining('Max (3) retries exceeded'),
+        reason: expect.objectContaining({
+          message: expect.stringContaining('Max (3) retries exceeded'),
+        }),
       });
     });
   });
@@ -442,11 +456,15 @@ describe('failure policies', () => {
 
       expect(policy.afterFailure(failure)).toStrictEqual({
         kind: 'abort',
-        reason: expect.stringContaining('Circuit breaker is open'),
+        reason: expect.objectContaining({
+          message: expect.stringContaining('Circuit breaker is open'),
+        }),
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'abort',
-        reason: expect.stringContaining('circuit breaker is open'),
+        reason: expect.objectContaining({
+          message: expect.stringContaining('Circuit breaker is open'),
+        }),
       });
     });
 
@@ -483,7 +501,9 @@ describe('failure policies', () => {
 
       expect(policy.afterFailure(failure)).toStrictEqual({
         kind: 'abort',
-        reason: expect.stringContaining('Circuit breaker is open'),
+        reason: expect.objectContaining({
+          message: expect.stringContaining('Circuit breaker is open'),
+        }),
       });
 
       expect(
@@ -524,7 +544,9 @@ describe('failure policies', () => {
 
       expect(policy.afterFailure(failure)).toStrictEqual({
         kind: 'abort',
-        reason: expect.stringContaining('Circuit breaker is open'),
+        reason: expect.objectContaining({
+          message: expect.stringContaining('Circuit breaker is open'),
+        }),
       });
 
       expect(
@@ -532,12 +554,16 @@ describe('failure policies', () => {
       ).toStrictEqual({ kind: 'continue', timeout: 40 });
       expect(policy.afterFailure(failure)).toStrictEqual({
         kind: 'abort',
-        reason: expect.stringContaining('Circuit breaker is open'),
+        reason: expect.objectContaining({
+          message: expect.stringContaining('Circuit breaker is open'),
+        }),
       });
 
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'abort',
-        reason: expect.stringContaining('circuit breaker is open'),
+        reason: expect.objectContaining({
+          message: expect.stringContaining('Circuit breaker is open'),
+        }),
       });
     });
 
@@ -574,7 +600,9 @@ describe('failure policies', () => {
 
       expect(policy.afterFailure(failure)).toStrictEqual({
         kind: 'abort',
-        reason: expect.stringContaining('Circuit breaker is open'),
+        reason: expect.objectContaining({
+          message: expect.stringContaining('Circuit breaker is open'),
+        }),
       });
 
       expect(
@@ -650,11 +678,15 @@ describe('failure policies', () => {
 
       expect(policy.afterFailure(failure)).toStrictEqual({
         kind: 'abort',
-        reason: expect.stringContaining('Circuit breaker is open'),
+        reason: expect.objectContaining({
+          message: expect.stringContaining('Circuit breaker is open'),
+        }),
       });
       expect(policy.beforeExecution(event)).toEqual({
         kind: 'abort',
-        reason: expect.stringContaining('circuit breaker is open'),
+        reason: expect.objectContaining({
+          message: expect.stringContaining('Circuit breaker is open'),
+        }),
       });
 
       policy.reset();
@@ -687,11 +719,15 @@ describe('failure policies', () => {
 
       expect(policy.afterFailure(failure)).toStrictEqual({
         kind: 'abort',
-        reason: expect.stringContaining('Circuit breaker is open'),
+        reason: expect.objectContaining({
+          message: expect.stringContaining('Circuit breaker is open'),
+        }),
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'abort',
-        reason: expect.stringContaining('circuit breaker is open'),
+        reason: expect.objectContaining({
+          message: expect.stringContaining('Circuit breaker is open'),
+        }),
       });
 
       policy.reset();
@@ -724,11 +760,15 @@ describe('failure policies', () => {
 
       expect(policy.afterFailure(failure)).toStrictEqual({
         kind: 'abort',
-        reason: expect.stringContaining('Circuit breaker is open'),
+        reason: expect.objectContaining({
+          message: expect.stringContaining('Circuit breaker is open'),
+        }),
       });
       expect(policy.beforeExecution(event)).toStrictEqual({
         kind: 'abort',
-        reason: expect.stringContaining('circuit breaker is open'),
+        reason: expect.objectContaining({
+          message: expect.stringContaining('Circuit breaker is open'),
+        }),
       });
     });
   });
@@ -759,9 +799,9 @@ describe('failure policies', () => {
           })
         ).toEqual({
           kind: 'abort',
-          reason: expect.stringContaining(
-            'Request ended with network error there is an issue with: timeout'
-          ),
+          reason: expect.objectContaining({
+            message: expect.stringContaining('timeout'),
+          }),
         });
       });
     });
@@ -867,8 +907,12 @@ describe('failure policies', () => {
         router.setCurrentProvider('third');
 
         expect(
-          router.beforeExecution({ time: 0, registryCacheAge: 0 })
-        ).toEqual({
+          router.beforeExecution({
+            time: 0,
+            registryCacheAge: 0,
+            checkFailoverRestore: true,
+          })
+        ).toMatchObject({
           kind: 'switch-provider',
           //Switch to second
           provider: 'second',
@@ -901,8 +945,12 @@ describe('failure policies', () => {
         router.setCurrentProvider('third');
 
         expect(
-          router.beforeExecution({ time: 0, registryCacheAge: 0 })
-        ).toEqual({
+          router.beforeExecution({
+            time: 0,
+            registryCacheAge: 0,
+            checkFailoverRestore: true,
+          })
+        ).toMatchObject({
           kind: 'switch-provider',
           //Switch to second
           provider: 'first',
@@ -943,7 +991,7 @@ describe('failure policies', () => {
 
         expect(
           router.beforeExecution({ time: 0, registryCacheAge: 0 })
-        ).toEqual({ kind: 'switch-provider', provider: 'second' });
+        ).toMatchObject({ kind: 'switch-provider', provider: 'second' });
       });
     });
     describe('afterFailure', () => {
@@ -1012,7 +1060,7 @@ describe('failure policies', () => {
             time: 0,
             registryCacheAge: 0,
           })
-        ).toEqual({ kind: 'switch-provider', provider: 'second' });
+        ).toMatchObject({ kind: 'switch-provider', provider: 'second' });
       });
 
       it('does not switch to another provider - failover not allowed', () => {
@@ -1031,9 +1079,9 @@ describe('failure policies', () => {
           })
         ).toEqual({
           kind: 'abort',
-          reason: expect.stringContaining(
-            'Request ended with network error there is an issue with: timeout'
-          ),
+          reason: expect.objectContaining({
+            message: expect.stringContaining('timeout'),
+          }),
         });
       });
 
@@ -1076,7 +1124,7 @@ describe('failure policies', () => {
             time: 0,
             registryCacheAge: 0,
           })
-        ).toEqual({ kind: 'switch-provider', provider: 'third' });
+        ).toMatchObject({ kind: 'switch-provider', provider: 'third' });
       });
     });
     describe('afterSuccess', () => {

@@ -5,7 +5,12 @@ import { clone, sleep } from '../../lib';
 import { Events } from '../../lib/events';
 import { CrossFetchError } from '../../lib/fetch.errors';
 import { FailurePolicyRouter } from './policies';
-import { FailurePolicyError } from './policy';
+import { FailurePolicyReason } from './policy';
+import {
+  AbortResolution,
+  RecacheResolution,
+  SwitchProviderResolution,
+} from './resolution';
 
 const debug = createDebug('superface:failover');
 const debugSensitive = createDebug('superface:failover:sensitive');
@@ -17,24 +22,239 @@ CONSIDER DISABLING SENSITIVE INFORMATION LOGGING BY APPENDING THE DEBUG ENVIRONM
 `
 );
 
+export type QueuedAction =
+  | undefined
+  // full abort, retry policy has been notified and now we are propagating the error
+  | { kind: 'full-abort'; reason: FailurePolicyReason }
+  // tells post-perform to do provider switch and retry
+  | { kind: 'switch-provider'; provider: string; reason: FailurePolicyReason }
+  // tells post-perform to do provider recache and retry
+  | { kind: 'recache'; newRegistry?: string; reason: FailurePolicyReason };
+
 export type HooksContext = Record<
   // profile/usecase
   string,
   {
     router: FailurePolicyRouter;
-    // action queued from nested hooks for post-perform
-    queuedAction:
-      | undefined
-      // this is used to signal post-perform to not intercept the return value (for example because error was already resolved by retry policy)
-      | { kind: 'no-intercept' }
-      // tells post-perform to do provider switch and retry
-      | { kind: 'switch-provider'; provider: string }
-      // tells post-perform to do provider recache and retry
-      | { kind: 'recache'; newRegistry?: string };
+    // action queued from nested hooks for the last hook
+    queuedAction: QueuedAction;
   }
 >;
 
+function handleCommonResolution(
+  performContext: HooksContext[string],
+  resolution: AbortResolution | RecacheResolution | SwitchProviderResolution
+): { newResult: Promise<never> } {
+  switch (resolution.kind) {
+    case 'abort':
+      performContext.queuedAction = {
+        kind: 'full-abort',
+        reason: resolution.reason,
+      };
+
+      return {
+        // this error will be overridden in post-bind-and-perform
+        newResult: Promise.reject('full abort in progress'),
+      };
+
+    case 'recache':
+      performContext.queuedAction = resolution;
+
+      return {
+        // this error will be overridden in post-bind-and-perform
+        newResult: Promise.reject('recache in progress'),
+      };
+
+    case 'switch-provider':
+      performContext.queuedAction = resolution;
+
+      return {
+        // this error will be overridden in post-bind-and-perform
+        newResult: Promise.reject('failover in progress'),
+      };
+  }
+}
+
 export function registerHooks(hookContext: HooksContext, events: Events): void {
+  registerNetworkHooks(hookContext, events);
+
+  events.on('pre-bind-and-perform', { priority: 1 }, async (context, args) => {
+    debug('Handling event pre-bind-and-perform with context:', context);
+    debugSensitive('\targs:', args);
+
+    if (context.profile === undefined || context.usecase === undefined) {
+      throw new UnexpectedError('invalid event context');
+    }
+
+    // only check failover restore when the provider is not manually set
+    if (args[1]?.provider !== undefined) {
+      return { kind: 'continue' };
+    }
+
+    const performContext = hookContext[`${context.profile}/${context.usecase}`];
+    // if there is no configured context: ignore the event
+    if (performContext === undefined) {
+      return { kind: 'continue' };
+    }
+
+    if (performContext.router.getCurrentProvider() === undefined) {
+      return { kind: 'continue' };
+    }
+
+    const resolution = performContext.router.beforeExecution({
+      time: context.time.getTime(),
+      registryCacheAge: 0, // TODO
+      checkFailoverRestore: true,
+    });
+
+    switch (resolution.kind) {
+      case 'continue':
+        return { kind: 'continue' };
+
+      case 'backoff':
+        return { kind: 'continue' };
+
+      default:
+        return {
+          kind: 'abort',
+          ...handleCommonResolution(performContext, resolution),
+        };
+    }
+  });
+
+  events.on(
+    'post-bind-and-perform',
+    { priority: 1 },
+    async (context, args, res) => {
+      debug('Handling event post-bind-and-perform with context:', context);
+      debugSensitive('\targs:', args);
+      debugSensitive('\tresult:', res);
+
+      if (
+        context.profile === undefined ||
+        context.usecase === undefined ||
+        context.provider === undefined
+      ) {
+        throw new UnexpectedError('invalid event context');
+      }
+
+      const performContext =
+        hookContext[`${context.profile}/${context.usecase}`];
+
+      // if there is no configured context: ignore the event
+      if (performContext === undefined) {
+        return { kind: 'continue' };
+      }
+
+      const queuedAction = performContext.queuedAction;
+
+      // if there is no queued action, check result, possibly emitting a new queued action
+      if (queuedAction === undefined) {
+        let error;
+        try {
+          const result = await res;
+          if (result.isErr()) {
+            error = result.error;
+          }
+        } catch (err: unknown) {
+          error = err;
+        }
+
+        // this is a success!
+        if (error === undefined) {
+          void events.emit('success', [
+            {
+              time: new Date(),
+              usecase: context.usecase,
+              profile: context.profile,
+              provider: context.provider,
+            },
+          ]);
+
+          const resolution = performContext.router.afterSuccess({
+            time: context.time.getTime(),
+            registryCacheAge: 0, // TODO
+          });
+
+          if (resolution.kind === 'continue') {
+            return { kind: 'continue' };
+          }
+        }
+
+        // error is defined, handle it
+        void events.emit('failure', [
+          {
+            time: new Date(),
+            usecase: context.usecase,
+            profile: context.profile,
+            provider: context.provider,
+          },
+        ]);
+
+        // TODO: Perform-level failure here (when another failure is defined in ExecutionFailure)
+        // This might emit another queued action, which he'd handle below
+        // const resolution = performContext.router.afterFailure({
+        //   time: context.time.getTime(),
+        //   registryCacheAge: 0, // TODO
+        // });
+      }
+
+      // perform queued action here
+      if (performContext.queuedAction !== undefined) {
+        const action = performContext.queuedAction;
+        performContext.queuedAction = undefined;
+
+        // ignore the placeholder error we produced in `handleCommonResolution`
+        await res.catch(_err => undefined);
+
+        switch (action.kind) {
+          case 'switch-provider': {
+            debug('switching to', action.provider);
+            void events.emit('provider-switch', [
+              {
+                time: new Date(),
+                toProvider: action.provider,
+                provider: context.provider,
+                usecase: context.usecase,
+                profile: context.profile,
+                reason: action.reason,
+              },
+            ]);
+
+            return {
+              kind: 'retry',
+              newArgs: [args[0], { ...args[1], provider: action.provider }],
+            };
+          }
+
+          case 'recache':
+            throw new UnexpectedError('Not Implemented'); // TODO: how to recache?
+
+          case 'full-abort':
+            // missing `toProvider` means that provider-switch **could not** happen
+            void events.emit('provider-switch', [
+              {
+                time: new Date(),
+                provider: context.provider,
+                usecase: context.usecase,
+                profile: context.profile,
+                reason: action.reason,
+              },
+            ]);
+
+            return {
+              kind: 'modify',
+              newResult: Promise.reject(action.reason.toError()),
+            };
+        }
+      }
+
+      return { kind: 'continue' };
+    }
+  );
+}
+
+function registerNetworkHooks(hookContext: HooksContext, events: Events): void {
   events.on('pre-fetch', { priority: 1 }, async (context, args) => {
     debug('Handling event pre-fetch with context:', context);
     debugSensitive('\targs:', args);
@@ -55,6 +275,7 @@ export function registerHooks(hookContext: HooksContext, events: Events): void {
     const resolution = performContext.router.beforeExecution({
       time: context.time.getTime(),
       registryCacheAge: 0, // TODO
+      checkFailoverRestore: false,
     });
 
     switch (resolution.kind) {
@@ -77,28 +298,10 @@ export function registerHooks(hookContext: HooksContext, events: Events): void {
         }
         break;
 
-      case 'abort':
-        performContext.queuedAction = { kind: 'no-intercept' };
-
+      default:
         return {
           kind: 'abort',
-          newResult: Promise.reject(new FailurePolicyError(resolution.reason)),
-        };
-
-      case 'recache':
-        performContext.queuedAction = resolution;
-
-        return {
-          kind: 'abort',
-          newResult: Promise.reject('recache in progress'),
-        };
-
-      case 'switch-provider':
-        performContext.queuedAction = resolution;
-
-        return {
-          kind: 'abort',
-          newResult: Promise.reject('failover in progress'),
+          ...handleCommonResolution(performContext, resolution),
         };
     }
 
@@ -136,15 +339,16 @@ export function registerHooks(hookContext: HooksContext, events: Events): void {
       return { kind: 'continue' };
     } catch (err: unknown) {
       error = err as CrossFetchError;
-      void events.emit('failure', [
-        {
-          time: new Date(),
-          usecase: context.usecase,
-          profile: context.profile,
-          provider: context.provider,
-        },
-      ]);
     }
+
+    void events.emit('failure', [
+      {
+        time: new Date(),
+        usecase: context.usecase,
+        profile: context.profile,
+        provider: context.provider,
+      },
+    ]);
 
     const resolution = performContext.router.afterFailure({
       time: context.time.getTime(),
@@ -159,44 +363,10 @@ export function registerHooks(hookContext: HooksContext, events: Events): void {
       case 'retry':
         return { kind: 'retry' };
 
-      case 'abort':
-        void events.emit('provider-switch', [
-          {
-            time: new Date(),
-            provider: context.provider,
-            usecase: context.usecase,
-            profile: context.profile,
-            reason: error,
-          },
-        ]);
-        performContext.queuedAction = { kind: 'no-intercept' };
-
+      default:
         return {
           kind: 'modify',
-          newResult: Promise.reject(
-            new FailurePolicyError(resolution.reason, error)
-          ),
-        };
-
-      case 'switch-provider':
-        void events.emit('provider-switch', [
-          {
-            time: new Date(),
-            toProvider: resolution.provider,
-            provider: context.provider,
-            usecase: context.usecase,
-            profile: context.profile,
-            reason: error,
-          },
-        ]);
-        performContext.queuedAction = {
-          kind: 'switch-provider',
-          provider: resolution.provider,
-        };
-
-        return {
-          kind: 'modify',
-          newResult: Promise.reject('failover in progress'),
+          ...handleCommonResolution(performContext, resolution),
         };
     }
   });
@@ -230,7 +400,7 @@ export function registerHooks(hookContext: HooksContext, events: Events): void {
       time: context.time.getTime(),
       registryCacheAge: 0, // TODO,
       kind: 'http',
-      statusCode: response.statusCode,
+      response,
     });
 
     switch (resolution.kind) {
@@ -243,117 +413,11 @@ export function registerHooks(hookContext: HooksContext, events: Events): void {
           newResult: Promise.resolve('retry'),
         };
 
-      case 'abort':
-        performContext.queuedAction = { kind: 'no-intercept' };
-
+      default:
         return {
           kind: 'abort',
-          newResult: Promise.reject(
-            new FailurePolicyError(resolution.reason, response)
-          ),
-        };
-
-      case 'switch-provider':
-        performContext.queuedAction = {
-          kind: 'switch-provider',
-          provider: resolution.provider,
-        };
-
-        return {
-          kind: 'abort',
-          newResult: Promise.reject('failover in progress'),
+          ...handleCommonResolution(performContext, resolution),
         };
     }
   });
-
-  events.on(
-    'post-bind-and-perform',
-    { priority: 1 },
-    async (context, args, res) => {
-      debug('Handling event post-bind with context:', context);
-      debugSensitive('\targs:', args);
-      debugSensitive('\tresult:', res);
-      // this shouldn't happen but if it does just continue for now
-      if (
-        context.profile === undefined ||
-        context.usecase === undefined ||
-        context.provider === undefined
-      ) {
-        return { kind: 'continue' };
-      }
-      const performContext =
-        hookContext[`${context.profile}/${context.usecase}`];
-
-      // if there is no configured context, ignore the event
-      if (performContext === undefined) {
-        return { kind: 'continue' };
-      }
-
-      // perform queued action here
-      if (performContext.queuedAction !== undefined) {
-        const action = performContext.queuedAction;
-        performContext.queuedAction = undefined;
-
-        switch (action.kind) {
-          case 'switch-provider': {
-            debug('switching to', action.provider);
-
-            return {
-              kind: 'retry',
-              newArgs: [args[0], { ...args[1], provider: action.provider }],
-            };
-          }
-
-          case 'recache':
-            throw new UnexpectedError('Not Implemented'); // TODO: how to recache?
-
-          case 'no-intercept':
-            return { kind: 'continue' };
-        }
-      }
-
-      let error;
-      try {
-        await res;
-      } catch (err: unknown) {
-        error = err;
-      }
-
-      if (error === undefined) {
-        void events.emit('success', [
-          {
-            time: new Date(),
-            usecase: context.usecase,
-            profile: context.profile,
-            provider: context.provider,
-          },
-        ]);
-        const resolution = performContext.router.afterSuccess({
-          time: context.time.getTime(),
-          registryCacheAge: 0, // TODO
-        });
-
-        if (resolution.kind === 'continue') {
-          return { kind: 'continue' };
-        }
-      }
-
-      void events.emit('failure', [
-        {
-          time: new Date(),
-          usecase: context.usecase,
-          profile: context.profile,
-          provider: context.provider,
-        },
-      ]);
-
-      // TODO: Peform-level failure here
-      // const resolution = performContext.router.afterFailure({
-      //   time: context.time.getTime(),
-      //   registryCacheAge: 0, // TODO
-      // });
-
-      return { kind: 'continue' };
-    }
-  );
 }
