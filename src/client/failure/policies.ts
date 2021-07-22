@@ -54,7 +54,7 @@ export class FailurePolicyRouter {
     info: ExecutionInfo,
     providers: string[],
     reason: FailurePolicyReason
-  ): undefined | SwitchProviderResolution {
+  ): SwitchProviderResolution | undefined {
     // find the first previous provider that doesn't abort
     const newProvider = providers.find(
       provider =>
@@ -74,7 +74,7 @@ export class FailurePolicyRouter {
   private attemptFailover(
     info: ExecutionInfo,
     reason: FailurePolicyReason
-  ): undefined | SwitchProviderResolution {
+  ): SwitchProviderResolution | undefined {
     if (!this.currentProvider) {
       throw new UnexpectedError(
         'Property currentProvider is not set in Router instance'
@@ -94,7 +94,7 @@ export class FailurePolicyRouter {
 
   private attemptFailoverRestore(
     info: ExecutionInfo
-  ): undefined | SwitchProviderResolution {
+  ): SwitchProviderResolution | undefined {
     if (!this.currentProvider) {
       throw new UnexpectedError(
         'Property currentProvider is not set in Router instance'

@@ -83,7 +83,7 @@ export function registerHooks(hookContext: HooksContext, events: Events): void {
     debugSensitive('\targs:', args);
 
     if (context.profile === undefined || context.usecase === undefined) {
-      throw new UnexpectedError('invalid event context');
+      throw new UnexpectedError('Invalid event context');
     }
 
     // only check failover restore when the provider is not manually set
@@ -135,7 +135,7 @@ export function registerHooks(hookContext: HooksContext, events: Events): void {
         context.usecase === undefined ||
         context.provider === undefined
       ) {
-        throw new UnexpectedError('invalid event context');
+        throw new UnexpectedError('Invalid event context');
       }
 
       const performContext =
@@ -209,7 +209,7 @@ export function registerHooks(hookContext: HooksContext, events: Events): void {
 
         switch (action.kind) {
           case 'switch-provider': {
-            debug('switching to', action.provider);
+            debug('Switching to provider', action.provider);
             void events.emit('provider-switch', [
               {
                 time: new Date(),
