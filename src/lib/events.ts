@@ -83,8 +83,14 @@ export type AfterHook<
   result: ReturnType<Target>
 ) => AfterHookResult<Target>;
 
+export type BindContext = EventContextBase & {
+  profile: string;
+  usecase: string;
+};
+
 export type PerformContext = EventContextBase & {
   profile: string;
+  usecase: string;
   provider: string;
 };
 
@@ -128,7 +134,7 @@ type EventTypes = {
   ];
   'bind-and-perform': [
     InstanceType<typeof UseCase>['bindAndPerform'],
-    EventContextBase
+    BindContext
   ];
 };
 

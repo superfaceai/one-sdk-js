@@ -1,6 +1,5 @@
 import { MapDocumentNode, ProfileDocumentNode } from '@superfaceai/ast';
 import { getLocal } from 'mockttp';
-import { string } from 'zod';
 
 import {
   BackoffKind,
@@ -455,11 +454,11 @@ describe.each([
     clientFactory: () => {
       const TypedClient = createTypedClient({
         ['starwars/character-information']: {
-          Test: [undefined, { message: string }],
-          SecondUseCase: [undefined, { message: string }],
+          Test: [undefined, { message: '' }],
+          SecondUseCase: [undefined, { message: '' }],
         },
         ['startrek/character-information']: {
-          Test: [undefined, { message: string }],
+          Test: [undefined, { message: '' }],
         },
       });
 

@@ -82,10 +82,6 @@ export function registerHooks(hookContext: HooksContext, events: Events): void {
     debug('Handling event pre-bind-and-perform with context:', context);
     debugSensitive('\targs:', args);
 
-    if (context.profile === undefined || context.usecase === undefined) {
-      throw new UnexpectedError('Invalid event context');
-    }
-
     // only check failover restore when the provider is not manually set
     if (args[1]?.provider !== undefined) {
       return { kind: 'continue' };
@@ -131,8 +127,6 @@ export function registerHooks(hookContext: HooksContext, events: Events): void {
       debugSensitive('\tresult:', res);
 
       if (
-        context.profile === undefined ||
-        context.usecase === undefined ||
         context.provider === undefined
       ) {
         throw new UnexpectedError('Invalid event context');
