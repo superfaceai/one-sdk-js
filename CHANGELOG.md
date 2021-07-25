@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+### Added
+- Failover event adapter failover restore in `pre-bind-and-perform` hook
+
+### Changed
+- Failover event adapter tests are now parametrized over untyped and typed client, removing repeated code
+- Failover event adapter structure, abstracted repeated code
+- `pre-` event `abort` resolution does not prevent `post-` event from being emitted
+- Streamlined how `reason` is propagated and handled in failure policies, implemented `FailurePolicyReason`
+
+
 ### Changed
 - every `throw` now uses an instance of an Error subclass
 

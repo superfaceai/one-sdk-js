@@ -8,7 +8,12 @@ import {
   SuperJsonDocument,
 } from '../../internal';
 import { ok, sleep } from '../../lib';
-import { invalidateSuperfaceClientCache, SuperfaceClient } from '../client';
+import {
+  createTypedClient,
+  invalidateSuperfaceClientCache,
+  SuperfaceClient,
+  SuperfaceClientBase,
+} from '../client';
 import { BoundProfileProvider } from '../profile-provider';
 
 const firstMockProfileDocument: ProfileDocumentNode = {
@@ -399,7 +404,7 @@ function mockSuperJson(document: SuperJsonDocument) {
   SuperJson.loadSync = mockLoadSync;
 }
 
-function spyOnCacheBoundProfileProvider(client: SuperfaceClient) {
+function spyOnCacheBoundProfileProvider(client: SuperfaceClientBase) {
   const firstMockBoundProfileProvider = new BoundProfileProvider(
     firstMockProfileDocument,
     firstMockMapDocument,
@@ -442,7 +447,25 @@ function spyOnCacheBoundProfileProvider(client: SuperfaceClient) {
   return cacheBoundProfileProviderSpy;
 }
 
-describe('event-adapter', () => {
+describe.each([
+  { name: 'untyped', clientFactory: () => new SuperfaceClient() },
+  {
+    name: 'typed',
+    clientFactory: () => {
+      const TypedClient = createTypedClient({
+        ['starwars/character-information']: {
+          Test: [undefined, { message: '' }],
+          SecondUseCase: [undefined, { message: '' }],
+        },
+        ['startrek/character-information']: {
+          Test: [undefined, { message: '' }],
+        },
+      });
+
+      return new TypedClient();
+    },
+  },
+])('event-adapter $name', ({ name: _name, clientFactory }) => {
   beforeEach(async () => {
     await mockServer.start();
   });
@@ -472,7 +495,7 @@ describe('event-adapter', () => {
     });
 
     //Not mocked client
-    const client = new SuperfaceClient();
+    const client = clientFactory();
     const cacheBoundProfileProviderSpy = spyOnCacheBoundProfileProvider(client);
 
     //Run it as usual
@@ -504,19 +527,20 @@ describe('event-adapter', () => {
       },
     });
 
-    const client = new SuperfaceClient();
+    const client = clientFactory();
 
     const cacheBoundProfileProviderSpy = spyOnCacheBoundProfileProvider(client);
 
     const profile = await client.getProfile('starwars/character-information');
     const useCase = profile.getUseCase('Test');
     const provider = await client.getProvider('provider');
-    const result = await useCase.perform(undefined, { provider });
+    const result = useCase.perform(undefined, { provider });
 
-    expect(result.isErr()).toEqual(true);
+    await expect(result).rejects.toThrow(/status code: 500/);
+
     expect((await endpoint.getSeenRequests()).length).toEqual(1);
     expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(1);
-  }, 20000);
+  });
 
   it('does not use retry policy - aborts after closed connection', async () => {
     await mockServer.get('/first').thenCloseConnection();
@@ -536,18 +560,18 @@ describe('event-adapter', () => {
       },
     });
 
-    const client = new SuperfaceClient();
+    const client = clientFactory();
 
     const cacheBoundProfileProviderSpy = spyOnCacheBoundProfileProvider(client);
 
     const profile = await client.getProfile('starwars/character-information');
     const useCase = profile.getUseCase('Test');
     const provider = await client.getProvider('provider');
-    const result = await useCase.perform(undefined, { provider });
+    const result = useCase.perform(undefined, { provider });
 
-    expect(result.isErr()).toEqual(true);
+    await expect(result).rejects.toThrow(/network error/);
     expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(1);
-  }, 20000);
+  });
 
   it('does not use retry policy - aborts after timeout', async () => {
     await mockServer.get('/first').thenTimeout();
@@ -567,18 +591,18 @@ describe('event-adapter', () => {
       },
     });
 
-    const client = new SuperfaceClient();
+    const client = clientFactory();
 
     const cacheBoundProfileProviderSpy = spyOnCacheBoundProfileProvider(client);
 
     const profile = await client.getProfile('starwars/character-information');
     const useCase = profile.getUseCase('Test');
     const provider = await client.getProvider('provider');
-    const result = await useCase.perform(undefined, { provider });
+    const result = useCase.perform(undefined, { provider });
 
-    expect(result.isErr()).toEqual(true);
+    await expect(result).rejects.toThrow(/timeout/);
     expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(1);
-  }, 40000);
+  }, 35000);
 
   //Circuit breaker
   it('use circuit-breaker policy - aborts after HTTP 500', async () => {
@@ -610,18 +634,16 @@ describe('event-adapter', () => {
       },
     });
 
-    const client = new SuperfaceClient();
+    const client = clientFactory();
 
     const cacheBoundProfileProviderSpy = spyOnCacheBoundProfileProvider(client);
 
     const profile = await client.getProfile('starwars/character-information');
     const useCase = profile.getUseCase('Test');
     const provider = await client.getProvider('provider');
-    const result = await useCase.perform(undefined, { provider });
+    const result = useCase.perform(undefined, { provider });
 
-    expect(result.isErr() && result.error.message).toContain(
-      'Circuit breaker is open'
-    );
+    await expect(result).rejects.toThrow(/status code: 500/);
 
     //We send request twice
     expect((await endpoint.getSeenRequests()).length).toEqual(2);
@@ -683,7 +705,7 @@ describe('event-adapter', () => {
       },
     });
 
-    const client = new SuperfaceClient();
+    const client = clientFactory();
 
     const cacheBoundProfileProviderSpy = spyOnCacheBoundProfileProvider(client);
 
@@ -746,7 +768,7 @@ describe('event-adapter', () => {
       },
     });
 
-    const client = new SuperfaceClient();
+    const client = clientFactory();
 
     const cacheBoundProfileProviderSpy = spyOnCacheBoundProfileProvider(client);
 
@@ -803,22 +825,20 @@ describe('event-adapter', () => {
       },
     });
 
-    const client = new SuperfaceClient();
+    const client = clientFactory();
 
     const cacheBoundProfileProviderSpy = spyOnCacheBoundProfileProvider(client);
 
     const profile = await client.getProfile('starwars/character-information');
     const useCase = profile.getUseCase('Test');
-    const result = await useCase.perform(undefined, { provider: 'provider' });
+    const result = useCase.perform(undefined, { provider: 'provider' });
 
-    expect(result.isErr() && result.error.message).toContain(
-      'Circuit breaker is open'
-    );
+    await expect(result).rejects.toThrow(/status code: 500/);
 
     expect((await endpoint.getSeenRequests()).length).toEqual(2);
     expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(1);
     expect((await secondEndpoint.getSeenRequests()).length).toEqual(0);
-  }, 20000);
+  });
 
   it('use circuit-breaker policy - do not switch providers after HTTP 500, providerFailover is false', async () => {
     const endpoint = await mockServer.get('/first').thenJson(500, {});
@@ -862,23 +882,22 @@ describe('event-adapter', () => {
       },
     });
 
-    const client = new SuperfaceClient();
+    const client = clientFactory();
 
     const cacheBoundProfileProviderSpy = spyOnCacheBoundProfileProvider(client);
 
     const profile = await client.getProfile('starwars/character-information');
     const useCase = profile.getUseCase('Test');
-    const result = await useCase.perform(undefined);
+    const result = useCase.perform(undefined);
 
-    expect(result.isErr() && result.error.message).toContain(
-      'Circuit breaker is open'
-    );
+    await expect(result).rejects.toThrow(/No backup provider available/);
+
     //We send request twice - to the first provider url
     expect((await endpoint.getSeenRequests()).length).toEqual(2);
     //We did not switch to second provider
     expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(1);
     expect((await secondEndpoint.getSeenRequests()).length).toEqual(0);
-  }, 20000);
+  });
 
   it('use circuit-breaker policy - switch providers after HTTP 500, use implict priority array', async () => {
     const endpoint = await mockServer.get('/first').thenJson(500, {});
@@ -922,7 +941,7 @@ describe('event-adapter', () => {
       },
     });
 
-    const client = new SuperfaceClient();
+    const client = clientFactory();
 
     const cacheBoundProfileProviderSpy = spyOnCacheBoundProfileProvider(client);
 
@@ -991,7 +1010,7 @@ describe('event-adapter', () => {
       },
     });
 
-    const client = new SuperfaceClient();
+    const client = clientFactory();
 
     const cacheBoundProfileProviderSpy = spyOnCacheBoundProfileProvider(client);
 
@@ -1063,7 +1082,7 @@ describe('event-adapter', () => {
       },
     });
 
-    const client = new SuperfaceClient();
+    const client = clientFactory();
 
     const cacheBoundProfileProviderSpy = spyOnCacheBoundProfileProvider(client);
 
@@ -1085,7 +1104,7 @@ describe('event-adapter', () => {
     expect(result.isOk() && result.value).toEqual({ message: 'hello' });
     //We send request twice
     expect((await endpoint.getSeenRequests()).length).toEqual(3);
-    expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(4);
+    expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(3);
     expect((await secondEndpoint.getSeenRequests()).length).toEqual(1);
   }, 40000);
 
@@ -1139,7 +1158,7 @@ describe('event-adapter', () => {
       },
     });
 
-    const client = new SuperfaceClient();
+    const client = clientFactory();
 
     const cacheBoundProfileProviderSpy = spyOnCacheBoundProfileProvider(client);
 
@@ -1223,11 +1242,11 @@ describe('event-adapter', () => {
       },
     });
 
-    const client = new SuperfaceClient();
+    const client = clientFactory();
 
     const cacheBoundProfileProviderSpy = spyOnCacheBoundProfileProvider(client);
 
-    let profile = await client.getProfile('starwars/character-information');
+    const profile = await client.getProfile('starwars/character-information');
     let useCase = profile.getUseCase('Test');
     //Try first provider two times then switch to second and return value
     let result = await useCase.perform(undefined);
@@ -1244,9 +1263,9 @@ describe('event-adapter', () => {
       message: 'hello from first provider and second usecase',
     });
 
-    profile = await client.getProfile('startrek/character-information');
-    useCase = profile.getUseCase('Test');
-    result = await useCase.perform(undefined);
+    const profile2 = await client.getProfile('startrek/character-information');
+    const useCase2 = profile2.getUseCase('Test');
+    result = await useCase2.perform(undefined);
 
     expect(result.isOk() && result.value).toEqual({
       message: 'hello from third provider',
@@ -1306,7 +1325,7 @@ describe('event-adapter', () => {
       },
     });
 
-    const client = new SuperfaceClient();
+    const client = clientFactory();
 
     const cacheBoundProfileProviderSpy = spyOnCacheBoundProfileProvider(client);
 
@@ -1374,7 +1393,7 @@ describe('event-adapter', () => {
       },
     });
 
-    const client = new SuperfaceClient();
+    const client = clientFactory();
     spyOnCacheBoundProfileProvider(client);
 
     let result = await (
@@ -1452,7 +1471,7 @@ describe('event-adapter', () => {
     });
 
     {
-      const client = new SuperfaceClient();
+      const client = clientFactory();
       spyOnCacheBoundProfileProvider(client);
 
       const result = await (
@@ -1466,7 +1485,7 @@ describe('event-adapter', () => {
     }
 
     {
-      const client = new SuperfaceClient();
+      const client = clientFactory();
       spyOnCacheBoundProfileProvider(client);
 
       const result = await (

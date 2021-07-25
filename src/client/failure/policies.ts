@@ -5,10 +5,10 @@ import {
   ExecutionInfo,
   ExecutionSuccess,
   FailurePolicy,
+  FailurePolicyReason,
   UsecaseInfo,
 } from './policy';
 import {
-  AbortResolution,
   ExecutionResolution,
   FailureResolution,
   SuccessResolution,
@@ -32,39 +32,8 @@ export class FailurePolicyRouter {
     );
   }
 
-  private switchProviders(
-    info: ExecutionInfo
-  ): AbortResolution | SwitchProviderResolution {
-    if (!this.currentProvider) {
-      throw new UnexpectedError(
-        'Property currentProvider is not set in Router instance'
-      );
-    }
-
-    //Try to switch providers
-    const indexOfCurrentProvider = this.priority.indexOf(this.currentProvider);
-    const provider = this.priority
-      .filter((_p: string, i: number) => i > indexOfCurrentProvider)
-      .find(
-        (p: string) =>
-          this.providersOfUseCase[p].beforeExecution(info).kind === 'continue'
-      );
-
-    //Priority does not contain another (with lesser priority) provider
-    if (!provider) {
-      return { kind: 'abort', reason: 'no backup provider configured' };
-    }
-    this.setCurrentProvider(provider);
-
-    return { kind: 'switch-provider', provider: this.currentProvider };
-  }
-
   public getCurrentProvider(): string | undefined {
     return this.currentProvider;
-  }
-
-  public setAllowFailover(allowFailover: boolean): void {
-    this.allowFailover = allowFailover;
   }
 
   public setCurrentProvider(provider: string): void {
@@ -77,6 +46,109 @@ export class FailurePolicyRouter {
     this.currentProvider = provider;
   }
 
+  public setAllowFailover(allowFailover: boolean): void {
+    this.allowFailover = allowFailover;
+  }
+
+  private attemptSwitch(
+    info: ExecutionInfo,
+    providers: string[],
+    reason: FailurePolicyReason
+  ): SwitchProviderResolution | undefined {
+    // find the first previous provider that doesn't abort
+    const newProvider = providers.find(
+      provider =>
+        this.providersOfUseCase[provider].beforeExecution(info).kind ===
+        'continue'
+    );
+
+    if (newProvider === undefined) {
+      return undefined;
+    }
+
+    this.setCurrentProvider(newProvider);
+
+    return { kind: 'switch-provider', provider: newProvider, reason };
+  }
+
+  private attemptFailover(
+    info: ExecutionInfo,
+    reason: FailurePolicyReason
+  ): SwitchProviderResolution | undefined {
+    if (!this.currentProvider) {
+      throw new UnexpectedError(
+        'Property currentProvider is not set in Router instance'
+      );
+    }
+
+    if (!this.allowFailover) {
+      return undefined;
+    }
+
+    const previousProviders = this.priority.slice(
+      this.priority.indexOf(this.currentProvider) + 1
+    );
+
+    return this.attemptSwitch(info, previousProviders, reason);
+  }
+
+  private attemptFailoverRestore(
+    info: ExecutionInfo
+  ): SwitchProviderResolution | undefined {
+    if (!this.currentProvider) {
+      throw new UnexpectedError(
+        'Property currentProvider is not set in Router instance'
+      );
+    }
+
+    if (!this.allowFailover || info.checkFailoverRestore !== true) {
+      return undefined;
+    }
+
+    const previousProviders = this.priority
+      .slice(0, this.priority.indexOf(this.currentProvider))
+      .filter(
+        // TODO: Temporary hack to avoid infinite switch loops
+        // this needs to be solved globally
+        provider => !(this.providersOfUseCase[provider] instanceof AbortPolicy)
+      );
+
+    return this.attemptSwitch(
+      info,
+      previousProviders,
+      FailurePolicyReason.fromPolicyReason('Provider failover restore')
+    );
+  }
+
+  private handleFailover(
+    info: ExecutionInfo,
+    innerResolution: ExecutionResolution
+  ): ExecutionResolution;
+  private handleFailover(
+    info: ExecutionInfo,
+    innerResolution: FailureResolution
+  ): FailureResolution;
+  private handleFailover(
+    info: ExecutionInfo,
+    innerResolution: ExecutionResolution | FailureResolution
+  ): ExecutionResolution | FailureResolution {
+    if (innerResolution.kind === 'abort') {
+      const failover = this.attemptFailover(info, innerResolution.reason);
+      if (failover === undefined) {
+        return {
+          kind: 'abort',
+          reason: innerResolution.reason.addPrefixMessage(
+            'No backup provider available'
+          ),
+        };
+      }
+
+      return failover;
+    }
+
+    return innerResolution;
+  }
+
   public beforeExecution(info: ExecutionInfo): ExecutionResolution {
     if (!this.currentProvider) {
       throw new UnexpectedError(
@@ -84,47 +156,15 @@ export class FailurePolicyRouter {
       );
     }
 
-    //Try to switch back to previous provider
-    if (
-      this.allowFailover &&
-      this.priority.length > 0 &&
-      this.currentProvider !== this.priority[0]
-    ) {
-      const indexOfCurrentProvider = this.priority.indexOf(
-        this.currentProvider
-      );
-
-      const provider = this.priority
-        .filter((_p: string, i: number) => i < indexOfCurrentProvider)
-        .find(
-          (p: string) =>
-            this.providersOfUseCase[p].beforeExecution(info).kind === 'continue'
-        );
-
-      //TODO: solve AbortPolicy infinite loop problem
-      //Switch back to previous but do not switch back to AbortPolicy
-      if (
-        provider &&
-        !(this.providersOfUseCase[provider] instanceof AbortPolicy)
-      ) {
-        return {
-          kind: 'switch-provider',
-          provider,
-        };
-      }
+    const failoverRestore = this.attemptFailoverRestore(info);
+    if (failoverRestore !== undefined) {
+      return failoverRestore;
     }
+
     const innerResolution =
       this.providersOfUseCase[this.currentProvider].beforeExecution(info);
 
-    if (
-      this.allowFailover &&
-      innerResolution.kind === 'abort' &&
-      this.priority.length > 0
-    ) {
-      return this.switchProviders(info);
-    }
-
-    return innerResolution;
+    return this.handleFailover(info, innerResolution);
   }
 
   public afterFailure(info: ExecutionFailure): FailureResolution {
@@ -137,16 +177,10 @@ export class FailurePolicyRouter {
     const innerResolution =
       this.providersOfUseCase[this.currentProvider].afterFailure(info);
 
-    //TODO: some other checking logic?
-    if (
-      !this.allowFailover ||
-      innerResolution.kind !== 'abort' ||
-      this.priority.length === 0
-    ) {
-      return innerResolution;
-    }
-
-    return this.switchProviders(info);
+    return this.handleFailover(
+      { ...info, checkFailoverRestore: false },
+      innerResolution
+    );
   }
 
   public afterSuccess(info: ExecutionSuccess): SuccessResolution {
@@ -178,8 +212,10 @@ export class AbortPolicy extends FailurePolicy {
   }
 
   override afterFailure(info: ExecutionFailure): FailureResolution {
-    //TODO: Eda said this maybe should be continue
-    return { kind: 'abort', reason: this.formatFailureReason(info) };
+    return {
+      kind: 'abort',
+      reason: FailurePolicyReason.fromExecutionFailure(info),
+    };
   }
 
   override afterSuccess(_info: ExecutionSuccess): SuccessResolution {
@@ -236,11 +272,9 @@ export class RetryPolicy extends FailurePolicy {
       // abort when we fail too much
       return {
         kind: 'abort',
-        reason: `Max (${
-          this.maxContiguousRetries
-        }) retries exceeded. Last error from provider: ${this.formatFailureReason(
-          info
-        )}`,
+        reason: FailurePolicyReason.fromExecutionFailure(info).addPrefixMessage(
+          `Max (${this.maxContiguousRetries}) retries exceeded.`
+        ),
       };
     }
 
@@ -323,7 +357,12 @@ export class CircuitBreakerPolicy extends FailurePolicy {
         return { kind: 'continue', timeout: this.inner.requestTimeout };
       } else {
         //TODO: more user friendly message
-        return { kind: 'abort', reason: 'circuit breaker is open' };
+        return {
+          kind: 'abort',
+          reason: FailurePolicyReason.fromPolicyReason(
+            'Circuit breaker is open'
+          ),
+        };
       }
     }
 
@@ -333,7 +372,10 @@ export class CircuitBreakerPolicy extends FailurePolicy {
       this.open(info.time);
 
       //TODO: more user friendly message
-      return { kind: 'abort', reason: 'circuit breaker is open' };
+      return {
+        kind: 'abort',
+        reason: FailurePolicyReason.fromPolicyReason('Circuit breaker is open'),
+      };
     }
 
     return innerResponse;
@@ -345,9 +387,9 @@ export class CircuitBreakerPolicy extends FailurePolicy {
 
       return {
         kind: 'abort',
-        reason: `Circuit breaker is open. Last error from provider: ${this.formatFailureReason(
-          info
-        )}`,
+        reason: FailurePolicyReason.fromExecutionFailure(info).addPrefixMessage(
+          'Circuit breaker is open'
+        ),
       };
     }
 
@@ -362,9 +404,9 @@ export class CircuitBreakerPolicy extends FailurePolicy {
 
       return {
         kind: 'abort',
-        reason: `Circuit breaker is open. Last error from provider: ${this.formatFailureReason(
-          info
-        )}`,
+        reason: FailurePolicyReason.fromExecutionFailure(info).addPrefixMessage(
+          'Circuit breaker is open'
+        ),
       };
     }
 
