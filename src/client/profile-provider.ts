@@ -1,4 +1,11 @@
-import { MapDocumentNode, ProfileDocumentNode } from '@superfaceai/ast';
+import {
+  assertMapDocumentNode,
+  assertProfileDocumentNode,
+  isMapFile,
+  isProfileFile,
+  MapDocumentNode,
+  ProfileDocumentNode,
+} from '@superfaceai/ast';
 import createDebug from 'debug';
 import { promises as fsp } from 'fs';
 import { join as joinPath } from 'path';
@@ -13,6 +20,7 @@ import { UnexpectedError } from '../internal/errors';
 import {
   invalidProfileError,
   invalidSecurityValuesError,
+  referencedFileNotFoundError,
   securityNotFoundError,
   serviceNotFoundError,
 } from '../internal/errors.helpers';
@@ -29,6 +37,7 @@ import {
   mergeVariables,
   NonPrimitive,
 } from '../internal/interpreter/variables';
+import { Parser } from '../internal/parser';
 import {
   FILE_URI_PROTOCOL,
   isApiKeySecurityValues,
@@ -60,6 +69,7 @@ function profileAstId(ast: ProfileDocumentNode): string {
 const boundProfileProviderDebug = createDebug(
   'superface:bound-profile-provider'
 );
+
 export class BoundProfileProvider {
   //TODO: Interceptable and set metadata
   private profileValidator: ProfileParameterValidator;
@@ -180,7 +190,12 @@ export type BindConfiguration = {
 };
 
 const profileProviderDebug = createDebug('superface:profile-provider');
+
 export class ProfileProvider {
+  private profileId: string;
+  private scope: string | undefined;
+  private profileName: string;
+
   constructor(
     /** Preloaded superJson instance */
     //TODO: Use superJson from events/Client?
@@ -192,7 +207,22 @@ export class ProfileProvider {
     private events: Events,
     /** url or ast node */
     private map?: string | MapDocumentNode
-  ) {}
+  ) {
+    if (this.profile instanceof ProfileConfiguration) {
+      this.profileId = this.profile.id;
+    } else if (typeof this.profile === 'string') {
+      this.profileId = this.profile;
+    } else {
+      this.profileId = profileAstId(this.profile);
+    }
+    const [scopeOrProfileName, profileName] = this.profileId.split('/');
+    if (profileName === undefined) {
+      this.profileName = scopeOrProfileName;
+    } else {
+      this.scope = scopeOrProfileName;
+      this.profileName = profileName;
+    }
+  }
 
   /**
    * Binds the provider.
@@ -205,16 +235,7 @@ export class ProfileProvider {
     // resolve profile locally
     const profileAst = await this.resolveProfileAst();
     if (profileAst === undefined) {
-      let profileId;
-      if (this.profile instanceof ProfileConfiguration) {
-        profileId = this.profile.id;
-      } else if (typeof this.profile === 'string') {
-        profileId = this.profile;
-      } else {
-        profileId = profileAstId(this.profile);
-      }
-
-      throw invalidProfileError(profileId);
+      throw invalidProfileError(this.profileId);
     }
     const profileId = profileAstId(profileAst);
 
@@ -304,7 +325,18 @@ export class ProfileProvider {
 
     const profileAst = await ProfileProvider.resolveValue(
       resolveInput,
-      fileContents => JSON.parse(fileContents) as ProfileDocumentNode, // TODO: validate
+      async (fileContents, fileName) => {
+        // If we have profile source, we parse
+        if (fileName !== undefined && isProfileFile(fileName)) {
+          return Parser.parseProfile(fileContents, fileName, {
+            profileName: this.profileName,
+            scope: this.scope,
+          });
+        }
+
+        // Otherwise we return parsed
+        return assertProfileDocumentNode(JSON.parse(fileContents));
+      },
       profileId => {
         const profileSettings = this.superJson.normalized.profiles[profileId];
         if (profileSettings === undefined) {
@@ -313,23 +345,19 @@ export class ProfileProvider {
         } else if ('file' in profileSettings) {
           // assumed right next to source file
           return (
-            FILE_URI_PROTOCOL +
-            this.superJson.resolvePath(profileSettings.file) +
-            '.ast.json'
+            FILE_URI_PROTOCOL + this.superJson.resolvePath(profileSettings.file)
           );
         } else {
           // assumed to be in grid folder
           return (
             FILE_URI_PROTOCOL +
             this.superJson.resolvePath(
-              joinPath(
-                'grid',
-                profileId + `@${profileSettings.version}.supr.ast.json`
-              )
+              joinPath('grid', `${profileId}@${profileSettings.version}.supr`)
             )
           );
         }
-      }
+      },
+      ['.ast.json', '']
     );
 
     return profileAst;
@@ -346,7 +374,7 @@ export class ProfileProvider {
 
     const providerInfo = await ProfileProvider.resolveValue<ProviderJson>(
       resolveInput,
-      fileContents => JSON.parse(fileContents) as ProviderJson, // TODO: validate
+      async fileContents => JSON.parse(fileContents) as ProviderJson, // TODO: validate
       providerName => {
         const providerSettings =
           this.superJson.normalized.providers[providerName];
@@ -382,9 +410,22 @@ export class ProfileProvider {
     mapRevision?: string;
   }> {
     const mapInfo: { mapVariant?: string; mapRevision?: string } = {};
+    const [, providerName] = mapId.split('.');
     const mapAst = await ProfileProvider.resolveValue<MapDocumentNode>(
       this.map ?? mapId,
-      fileContents => JSON.parse(fileContents) as MapDocumentNode, // TODO: validate
+      async (fileContents, fileName) => {
+        // If we have source, we parse
+        if (fileName !== undefined && isMapFile(fileName)) {
+          return Parser.parseMap(fileContents, fileName, {
+            profileName: this.profileName,
+            providerName,
+            scope: this.scope,
+          });
+        }
+
+        // Otherwise we return parsed
+        return assertMapDocumentNode(JSON.parse(fileContents));
+      },
       mapId => {
         const [profileId, providerName] = mapId.split('.');
         const profileProviderSettings =
@@ -395,8 +436,7 @@ export class ProfileProvider {
         } else if ('file' in profileProviderSettings) {
           return (
             FILE_URI_PROTOCOL +
-            this.superJson.resolvePath(profileProviderSettings.file) +
-            '.ast.json'
+            this.superJson.resolvePath(profileProviderSettings.file)
           );
         } else {
           mapInfo.mapVariant = profileProviderSettings.mapVariant;
@@ -404,7 +444,8 @@ export class ProfileProvider {
 
           return undefined;
         }
-      }
+      },
+      ['.ast.json', '']
     );
 
     return {
@@ -424,24 +465,36 @@ export class ProfileProvider {
    */
   private static async resolveValue<T>(
     input: T | string | undefined,
-    parseFile: (contents: string) => T,
-    unpackNested: (input: string) => T | string | undefined
+    parseFile: (contents: string, fileName?: string) => Promise<T>,
+    unpackNested: (input: string) => T | string | undefined,
+    extensions: string[] = ['']
   ): Promise<T | undefined> {
     if (typeof input === 'string') {
       if (isFileURIString(input)) {
-        profileProviderDebug('Resolving input as file:', input);
+        const fileName = input.slice(FILE_URI_PROTOCOL.length);
+        profileProviderDebug('Resolving input as file:', fileName);
 
         // read in files
-        return parseFile(
-          await fsp.readFile(input.slice(FILE_URI_PROTOCOL.length), {
-            encoding: 'utf-8',
-          })
-        );
-        // eslint-disable-next-line no-constant-condition
-      } else if (false) {
-        profileProviderDebug('Resolving input as url:', input);
-        // TODO: detect remote url and fetch it, or call a callback?
+        let contents, fileNameWithExtension;
+        for (const extension of extensions) {
+          fileNameWithExtension = fileName + extension;
+          try {
+            contents = await fsp.readFile(fileNameWithExtension, {
+              encoding: 'utf-8',
+            });
+            break;
+          } catch (e) {
+            void e;
+          }
+        }
+
+        if (contents === undefined) {
+          throw referencedFileNotFoundError(fileName, extensions);
+        }
+
+        return parseFile(contents, fileNameWithExtension);
       } else {
+        // TODO: detect remote url and fetch it, or call a callback?
         profileProviderDebug('Resolving input as nested value:', input);
         // unpack nested and recursively process them
         const nested = unpackNested(input);

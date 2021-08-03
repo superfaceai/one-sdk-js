@@ -317,3 +317,18 @@ export function invalidProfileProviderError(
     []
   );
 }
+
+export function referencedFileNotFoundError(
+  fileName: string,
+  extensions: string[]
+): SDKExecutionError {
+  return new SDKExecutionError(
+    `File referenced in super.json not found: ${fileName}`,
+    [
+      'Tried to open files:',
+      ...extensions.map(extension => `\t${fileName}${extension}`),
+      'but none of them were found.',
+    ],
+    []
+  );
+}

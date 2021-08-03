@@ -24,6 +24,11 @@ export const DEFAULT_METRIC_DEBOUNCE_TIME = {
   min: 1000,
   max: 60000,
 };
+export const DEFAULT_CACHE_PATH = joinPath(
+  process.cwd(),
+  '.cache',
+  'superface'
+);
 
 // Extraction functions
 function getSuperfaceApiUrl(): string {
@@ -81,6 +86,7 @@ export type Config = {
   metricDebounceTimeMin: number;
   metricDebounceTimeMax: number;
   disableReporting: boolean;
+  cachePath: string;
 };
 
 let configCache: Config | undefined;
@@ -96,6 +102,7 @@ export const Config = (): Config => {
         process.env.NODE_ENV === 'test'
           ? true
           : !!process.env[DISABLE_REPORTING],
+      cachePath: DEFAULT_CACHE_PATH,
     };
   }
 

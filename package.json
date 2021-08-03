@@ -46,6 +46,7 @@
   },
   "dependencies": {
     "@superfaceai/ast": "0.0.23",
+    "@superfaceai/parser": "^0.0.19",
     "@typescript-eslint/eslint-plugin": "^4.27.0",
     "@typescript-eslint/parser": "^4.27.0",
     "abort-controller": "^3.0.0",
