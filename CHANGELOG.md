@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Failover event adapter failover restore in `pre-bind-and-perform` hook
+- Superjson mutate swap variant methods for provider and profile provider
 
 ### Changed
 - Failover event adapter tests are now parametrized over untyped and typed client, removing repeated code
