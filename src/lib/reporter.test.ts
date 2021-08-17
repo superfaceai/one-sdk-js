@@ -217,8 +217,8 @@ describe('MetricReporter', () => {
     eventEndpoint = await mockServer
       .post('/insights/sdk_event')
       .thenJson(202, {});
-    Config().disableReporting = false;
-    Config().superfaceApiUrl = mockServer.url;
+    Config.instance().disableReporting = false;
+    Config.instance().superfaceApiUrl = mockServer.url;
   });
 
   afterEach(async () => {
@@ -566,8 +566,8 @@ describe('MetricReporter', () => {
   });
 
   it('should report failure and successful switch', async () => {
-    const originalDebounceMin = Config().metricDebounceTimeMin;
-    Config().metricDebounceTimeMin = 10000;
+    const originalDebounceMin = Config.instance().metricDebounceTimeMin;
+    Config.instance().metricDebounceTimeMin = 10000;
     let currentTime = new Date().valueOf();
     const systemTimeMock = jest
       .spyOn(Date, 'now')
@@ -663,6 +663,6 @@ describe('MetricReporter', () => {
     });
 
     systemTimeMock.mockRestore();
-    Config().metricDebounceTimeMin = originalDebounceMin;
+    Config.instance().metricDebounceTimeMin = originalDebounceMin;
   });
 });

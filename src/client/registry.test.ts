@@ -6,7 +6,6 @@ import { ProviderJson } from '../internal/providerjson';
 import {
   assertIsRegistryProviderInfo,
   fetchBind,
-  fetchMapAST,
   fetchProviders,
 } from './registry';
 
@@ -48,8 +47,8 @@ describe('registry', () => {
   };
 
   beforeAll(() => {
-    Config().sdkAuthToken = MOCK_TOKEN;
-    Config().superfaceApiUrl = 'https://superface.dev';
+    Config.instance().sdkAuthToken = MOCK_TOKEN;
+    Config.instance().superfaceApiUrl = 'https://superface.dev';
   });
 
   afterAll(() => {
@@ -99,33 +98,6 @@ describe('registry', () => {
       expect(() => assertIsRegistryProviderInfo(record)).toThrowError(
         'Invalid response from registry'
       );
-    });
-  });
-
-  describe('when fetching map AST', () => {
-    it('fetches map document', async () => {
-      const mockResponse = {
-        statusCode: 200,
-        body: mockMapDocument,
-        headers: { test: 'test' },
-        debug: {
-          request: {
-            headers: { test: 'test' },
-            url: 'test',
-            body: {},
-          },
-        },
-      };
-
-      request.mockResolvedValue(mockResponse);
-
-      await expect(fetchMapAST('test-url')).resolves.toEqual(mockMapDocument);
-
-      expect(request).toHaveBeenCalledTimes(1);
-      expect(request).toHaveBeenCalledWith('test-url', {
-        method: 'GET',
-        accept: 'application/json',
-      });
     });
   });
 
@@ -179,6 +151,20 @@ describe('registry', () => {
   });
 
   describe('when fetching bind', () => {
+    const TEST_REGISTRY_URL = 'https://example.com/test-registry';
+    const TEST_SDK_TOKEN =
+      'sfs_bb064dd57c302911602dd097bc29bedaea6a021c25a66992d475ed959aa526c7_37bce8b5';
+
+    beforeEach(() => {
+      const config = Config.instance();
+      config.superfaceApiUrl = TEST_REGISTRY_URL;
+      config.sdkAuthToken = TEST_SDK_TOKEN;
+    });
+
+    afterAll(() => {
+      Config.reloadFromEnv();
+    });
+
     it('fetches map document', async () => {
       const mockBody = {
         provider: mockProviderJson,
@@ -200,15 +186,12 @@ describe('registry', () => {
       request.mockResolvedValue(mockResponse);
 
       await expect(
-        fetchBind(
-          {
-            profileId: 'test-profile-id',
-            provider: 'test-provider',
-            mapVariant: 'test-map-variant',
-            mapRevision: 'test-map-revision',
-          },
-          { registryUrl: 'test-registiry-url' }
-        )
+        fetchBind({
+          profileId: 'test-profile-id',
+          provider: 'test-provider',
+          mapVariant: 'test-map-variant',
+          mapRevision: 'test-map-revision',
+        })
       ).resolves.toEqual({
         provider: mockProviderJson,
         mapAst: mockMapDocument,
@@ -217,10 +200,8 @@ describe('registry', () => {
       expect(request).toHaveBeenCalledTimes(1);
       expect(request).toHaveBeenCalledWith('/registry/bind', {
         method: 'POST',
-        headers: [
-          'Authorization: SUPERFACE-SDK-TOKEN sfs_bb064dd57c302911602dd097bc29bedaea6a021c25a66992d475ed959aa526c7_37bce8b5',
-        ],
-        baseUrl: 'test-registiry-url',
+        headers: [`Authorization: SUPERFACE-SDK-TOKEN ${TEST_SDK_TOKEN}`],
+        baseUrl: TEST_REGISTRY_URL,
         accept: 'application/json',
         contentType: 'application/json',
         body: {
@@ -253,15 +234,12 @@ describe('registry', () => {
       request.mockResolvedValue(mockResponse);
 
       await expect(
-        fetchBind(
-          {
-            profileId: 'test-profile-id',
-            provider: 'test-provider',
-            mapVariant: 'test-map-variant',
-            mapRevision: 'test-map-revision',
-          },
-          { registryUrl: 'test-registiry-url' }
-        )
+        fetchBind({
+          profileId: 'test-profile-id',
+          provider: 'test-provider',
+          mapVariant: 'test-map-variant',
+          mapRevision: 'test-map-revision',
+        })
       ).resolves.toEqual({
         provider: mockProviderJson,
         mapAst: mockMapDocument,
@@ -270,7 +248,7 @@ describe('registry', () => {
       expect(request).toHaveBeenCalledTimes(1);
       expect(request).toHaveBeenCalledWith('/registry/bind', {
         method: 'POST',
-        baseUrl: 'test-registiry-url',
+        baseUrl: TEST_REGISTRY_URL,
         accept: 'application/json',
         contentType: 'application/json',
         headers: [`Authorization: SUPERFACE-SDK-TOKEN ${MOCK_TOKEN}`],
@@ -317,7 +295,7 @@ describe('registry', () => {
       expect(request).toHaveBeenCalledTimes(1);
       expect(request).toHaveBeenCalledWith('/registry/bind', {
         method: 'POST',
-        baseUrl: expect.stringMatching('https://'),
+        baseUrl: TEST_REGISTRY_URL,
         accept: 'application/json',
         headers: [`Authorization: SUPERFACE-SDK-TOKEN ${MOCK_TOKEN}`],
         contentType: 'application/json',

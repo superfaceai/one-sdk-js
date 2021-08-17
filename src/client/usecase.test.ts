@@ -71,7 +71,7 @@ describe('UseCase', () => {
         mockProfileDocument,
         mockMapDocument,
         'test',
-        { security: [] }
+        { baseUrl: '', security: [] }
       );
       const mockClient = new SuperfaceClient();
 
@@ -113,7 +113,7 @@ describe('UseCase', () => {
         mockProfileDocument,
         mockMapDocument,
         'test',
-        { security: [] }
+        { baseUrl: '', security: [] }
       );
       const mockClient = new SuperfaceClient();
 

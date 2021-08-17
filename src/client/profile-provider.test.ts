@@ -2,7 +2,6 @@ import { MapDocumentNode, ProfileDocumentNode } from '@superfaceai/ast';
 import { promises as fsp } from 'fs';
 import { mocked } from 'ts-jest/utils';
 
-import { UnexpectedError } from '../internal/errors';
 import { MapInterpreter } from '../internal/interpreter/map-interpreter';
 import { MapASTError } from '../internal/interpreter/map-interpreter.errors';
 import { ProfileParameterValidator } from '../internal/interpreter/profile-parameter-validator';
@@ -23,7 +22,7 @@ import { SuperfaceClient } from './client';
 import { ProfileConfiguration } from './profile';
 import { BoundProfileProvider, ProfileProvider } from './profile-provider';
 import { ProviderConfiguration } from './provider';
-import { fetchBind } from './registry';
+import { fetchBind, fetchProviderInfo } from './registry';
 
 //Mock ProfileParameterValidator
 jest.mock('../internal/interpreter/profile-parameter-validator');
@@ -291,7 +290,6 @@ describe('profile provider', () => {
         provider: mockProviderJson,
         mapAst: mockMapDocument,
       };
-
       const mockSuperJson = new SuperJson({
         profiles: {
           ['test-profile']: {
@@ -302,6 +300,41 @@ describe('profile provider', () => {
         },
         providers: {},
       });
+      const expectedBoundProfileProvider = {
+        profileAst: mockProfileDocument,
+        mapAst: mockMapDocument,
+        providerName: mockProviderJson.name,
+        configuration: {
+          baseUrl: 'service/base/url',
+          security: [
+            {
+              id: 'basic',
+              type: SecurityType.HTTP,
+              scheme: HttpScheme.BASIC,
+              username: 'test-username',
+              password: 'test-password',
+            },
+            {
+              id: 'api',
+              type: SecurityType.APIKEY,
+              apikey: 'test-api-key',
+            },
+            {
+              id: 'bearer',
+              type: SecurityType.HTTP,
+              scheme: HttpScheme.BEARER,
+              token: 'test-token',
+            },
+            {
+              id: 'digest',
+              type: SecurityType.HTTP,
+              scheme: HttpScheme.DIGEST,
+              digest: 'test-digest-token',
+            },
+          ],
+        },
+      };
+
       it('returns new BoundProfileProvider', async () => {
         mocked(fetchBind).mockResolvedValue(mockFetchResponse);
         //normalized is getter on SuperJson - unable to mock or spy on
@@ -330,26 +363,7 @@ describe('profile provider', () => {
 
         const result = await mockProfileProvider.bind();
 
-        expect(result.toString()).toEqual(
-          new BoundProfileProvider(
-            mockProfileDocument,
-            mockMapDocument,
-            'test',
-            {
-              baseUrl: 'service/base/url',
-              profileProviderSettings: undefined,
-              security: [
-                {
-                  type: SecurityType.HTTP,
-                  id: 'test',
-                  scheme: HttpScheme.BASIC,
-                  username: 'test-username',
-                  password: 'test-password',
-                },
-              ],
-            }
-          ).toString()
-        );
+        expect(result).toMatchObject(expectedBoundProfileProvider);
       });
 
       it('returns new BoundProfileProvider use profile id', async () => {
@@ -387,26 +401,7 @@ describe('profile provider', () => {
 
         const result = await mockProfileProvider.bind();
 
-        expect(result.toString()).toEqual(
-          new BoundProfileProvider(
-            mockProfileDocument,
-            mockMapDocument,
-            'test',
-            {
-              baseUrl: 'service/base/url',
-              profileProviderSettings: undefined,
-              security: [
-                {
-                  type: SecurityType.HTTP,
-                  id: 'test',
-                  scheme: HttpScheme.BASIC,
-                  username: 'test-username',
-                  password: 'test-password',
-                },
-              ],
-            }
-          ).toString()
-        );
+        expect(result).toMatchObject(expectedBoundProfileProvider);
       });
 
       it('returns new BoundProfileProvider use profile configuration', async () => {
@@ -444,26 +439,7 @@ describe('profile provider', () => {
 
         const result = await mockProfileProvider.bind();
 
-        expect(result.toString()).toEqual(
-          new BoundProfileProvider(
-            mockProfileDocument,
-            mockMapDocument,
-            'test',
-            {
-              baseUrl: 'service/base/url',
-              profileProviderSettings: undefined,
-              security: [
-                {
-                  type: SecurityType.HTTP,
-                  id: 'test',
-                  scheme: HttpScheme.BASIC,
-                  username: 'test-username',
-                  password: 'test-password',
-                },
-              ],
-            }
-          ).toString()
-        );
+        expect(result).toMatchObject(expectedBoundProfileProvider);
       });
 
       it('returns new BoundProfileProvider load localy', async () => {
@@ -509,26 +485,7 @@ describe('profile provider', () => {
 
         const result = await mockProfileProvider.bind();
 
-        expect(result.toString()).toEqual(
-          new BoundProfileProvider(
-            mockProfileDocument,
-            mockMapDocument,
-            'test',
-            {
-              baseUrl: 'service/base/url',
-              profileProviderSettings: undefined,
-              security: [
-                {
-                  type: SecurityType.HTTP,
-                  id: 'test',
-                  scheme: HttpScheme.BASIC,
-                  username: 'test-username',
-                  password: 'test-password',
-                },
-              ],
-            }
-          ).toString()
-        );
+        expect(result).toMatchObject(expectedBoundProfileProvider);
       });
 
       it('returns new BoundProfileProvider load localy and use map variant', async () => {
@@ -571,26 +528,7 @@ describe('profile provider', () => {
 
         const result = await mockProfileProvider.bind();
 
-        expect(result.toString()).toEqual(
-          new BoundProfileProvider(
-            mockProfileDocument,
-            mockMapDocument,
-            'test',
-            {
-              baseUrl: 'service/base/url',
-              profileProviderSettings: undefined,
-              security: [
-                {
-                  type: SecurityType.HTTP,
-                  id: 'test',
-                  scheme: HttpScheme.BASIC,
-                  username: 'test-username',
-                  password: 'test-password',
-                },
-              ],
-            }
-          ).toString()
-        );
+        expect(result).toMatchObject(expectedBoundProfileProvider);
       });
 
       it('throws error without profile settings', async () => {
@@ -627,7 +565,7 @@ describe('profile provider', () => {
         );
       });
 
-      it('throws error when map is provided localy but provider is not', async () => {
+      it('returns new BoundProfileProvider when map is provided localy but provider is not', async () => {
         mocked(fetchBind).mockResolvedValue(mockFetchResponse);
         //normalized is getter on SuperJson - unable to mock or spy on
         Object.assign(mockSuperJson, {
@@ -652,8 +590,9 @@ describe('profile provider', () => {
         jest
           .spyOn(fsp, 'readFile')
           .mockResolvedValueOnce(JSON.stringify(mockProfileDocument))
-          .mockResolvedValueOnce(JSON.stringify(mockProviderJson))
           .mockResolvedValueOnce(JSON.stringify(mockMapDocument));
+
+        mocked(fetchProviderInfo).mockResolvedValue(mockProviderJson);
 
         const mockProfileProvider = new ProfileProvider(
           mockSuperJson,
@@ -661,11 +600,10 @@ describe('profile provider', () => {
           mockProviderConfiguration,
           mockSuperfacClient
         );
-        await expect(mockProfileProvider.bind()).rejects.toEqual(
-          new UnexpectedError(
-            'NOT IMPLEMENTED: map provided locally but provider is not'
-          )
-        );
+
+        const result = await mockProfileProvider.bind();
+
+        expect(result).toMatchObject(expectedBoundProfileProvider);
       });
 
       it('throws error without profile provider settings', async () => {
@@ -706,26 +644,7 @@ describe('profile provider', () => {
         );
         const result = await mockProfileProvider.bind();
 
-        expect(result.toString()).toEqual(
-          new BoundProfileProvider(
-            mockProfileDocument,
-            mockMapDocument,
-            'test',
-            {
-              baseUrl: 'service/base/url',
-              profileProviderSettings: undefined,
-              security: [
-                {
-                  type: SecurityType.HTTP,
-                  id: 'test',
-                  scheme: HttpScheme.BASIC,
-                  username: 'test-username',
-                  password: 'test-password',
-                },
-              ],
-            }
-          ).toString()
-        );
+        expect(result).toMatchObject(expectedBoundProfileProvider);
       });
 
       it('returns new BoundProfileProvider with merged security', async () => {
@@ -777,26 +696,7 @@ describe('profile provider', () => {
 
         const result = await mockProfileProvider.bind({ security: [] });
 
-        expect(result.toString()).toEqual(
-          new BoundProfileProvider(
-            mockProfileDocument,
-            mockMapDocument,
-            'test',
-            {
-              baseUrl: 'service/base/url',
-              profileProviderSettings: undefined,
-              security: [
-                {
-                  type: SecurityType.HTTP,
-                  id: 'test',
-                  scheme: HttpScheme.BASIC,
-                  username: 'test-username',
-                  password: 'test-password',
-                },
-              ],
-            }
-          ).toString()
-        );
+        expect(result).toMatchObject(expectedBoundProfileProvider);
         mergeSecuritySpy.mockRestore();
       });
 

@@ -16,7 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Failover event adapter structure, abstracted repeated code
 - `pre-` event `abort` resolution does not prevent `post-` event from being emitted
 - Streamlined how `reason` is propagated and handled in failure policies, implemented `FailurePolicyReason`
-
+- ProfileProvider can now fetch provider json when a map is local
+- Config now has friendlier API
 
 ### Changed
 - every `throw` now uses an instance of an Error subclass
