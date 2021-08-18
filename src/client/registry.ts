@@ -55,18 +55,6 @@ export function assertIsRegistryProviderInfo(
   }
 }
 
-// export async function fetchMapAST(url: string): Promise<MapDocumentNode> {
-//   const fetchInstance = new CrossFetch();
-//   const http = new HttpClient(fetchInstance);
-//   registryDebug('Fetching Map AST from registry');
-//   const { body } = await http.request(url, {
-//     method: 'GET',
-//     accept: 'application/json',
-//   });
-
-//   return body as MapDocumentNode;
-// }
-
 export async function fetchProviders(
   profileId: string,
   registryUrl: string
