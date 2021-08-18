@@ -108,7 +108,7 @@ export class SuperJson {
   }
 
   static loadSync(path?: string): Result<SuperJson, SDKExecutionError> {
-    const superfile = path ?? Config().superfacePath;
+    const superfile = path ?? Config.instance().superfacePath;
 
     try {
       const statInfo = statSync(superfile);
@@ -144,7 +144,7 @@ export class SuperJson {
   static async load(
     path?: string
   ): Promise<Result<SuperJson, SDKExecutionError>> {
-    const superfile = path ?? Config().superfacePath;
+    const superfile = path ?? Config.instance().superfacePath;
 
     try {
       const statInfo = await fsp.stat(superfile);

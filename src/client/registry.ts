@@ -55,18 +55,6 @@ export function assertIsRegistryProviderInfo(
   }
 }
 
-export async function fetchMapAST(url: string): Promise<MapDocumentNode> {
-  const fetchInstance = new CrossFetch();
-  const http = new HttpClient(fetchInstance);
-  registryDebug('Fetching Map AST from registry');
-  const { body } = await http.request(url, {
-    method: 'GET',
-    accept: 'application/json',
-  });
-
-  return body as MapDocumentNode;
-}
-
 export async function fetchProviders(
   profileId: string,
   registryUrl: string
@@ -87,36 +75,56 @@ export async function fetchProviders(
   return body.disco;
 }
 
+export async function fetchProviderInfo(
+  providerName: string
+): Promise<ProviderJson> {
+  const fetchInstance = new CrossFetch();
+  const http = new HttpClient(fetchInstance);
+  const sdkToken = Config.instance().sdkAuthToken;
+
+  registryDebug(`Fetching provider ${providerName} from registry`);
+  const { body } = await http.request(`/providers/${providerName}`, {
+    method: 'GET',
+    headers: sdkToken
+      ? [`Authorization: SUPERFACE-SDK-TOKEN ${sdkToken}`]
+      : undefined,
+    baseUrl: Config.instance().superfaceApiUrl,
+    accept: 'application/json',
+    contentType: 'application/json',
+  });
+
+  if (!isProviderJson(body)) {
+    throw new UnexpectedError('Registry responded with invalid body');
+  }
+
+  return body;
+}
+
 // TODO: refine validator
 const bindResponseValidator = zod.object({
   provider: zod.custom<ProviderJson>(data => isProviderJson(data)),
   map_ast: zod.string(),
 });
 
-export async function fetchBind(
-  request: {
-    profileId: string;
-    provider?: string;
-    mapVariant?: string;
-    mapRevision?: string;
-  },
-  options?: {
-    registryUrl?: string;
-  }
-): Promise<{
+export async function fetchBind(request: {
+  profileId: string;
+  provider?: string;
+  mapVariant?: string;
+  mapRevision?: string;
+}): Promise<{
   provider: ProviderJson;
   mapAst: MapDocumentNode;
 }> {
   const fetchInstance = new CrossFetch();
   const http = new HttpClient(fetchInstance);
-  const sdkToken = Config().sdkAuthToken;
+  const sdkToken = Config.instance().sdkAuthToken;
   registryDebug('Binding SDK to registry');
   const { body } = await http.request('/registry/bind', {
     method: 'POST',
     headers: sdkToken
       ? [`Authorization: SUPERFACE-SDK-TOKEN ${sdkToken}`]
       : undefined,
-    baseUrl: options?.registryUrl ?? Config().superfaceApiUrl,
+    baseUrl: Config.instance().superfaceApiUrl,
     accept: 'application/json',
     contentType: 'application/json',
     body: {

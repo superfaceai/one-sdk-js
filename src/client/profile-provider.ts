@@ -9,7 +9,6 @@ import {
   SecurityScheme,
   SecurityType,
 } from '../internal';
-import { UnexpectedError } from '../internal/errors';
 import {
   invalidProfileError,
   invalidSecurityValuesError,
@@ -47,7 +46,7 @@ import { CrossFetch } from '../lib/fetch';
 import { MapInterpreterEventAdapter } from './failure/map-interpreter-adapter';
 import { ProfileConfiguration } from './profile';
 import { ProviderConfiguration } from './provider';
-import { fetchBind } from './registry';
+import { fetchBind, fetchProviderInfo } from './registry';
 
 function forceCast<T>(_: unknown): asserts _ is T {}
 
@@ -70,7 +69,7 @@ export class BoundProfileProvider {
     private readonly mapAst: MapDocumentNode,
     private readonly providerName: string,
     private readonly configuration: {
-      baseUrl?: string;
+      baseUrl: string;
       profileProviderSettings?: NormalizedProfileProviderSettings;
       security: SecurityConfiguration[];
     },
@@ -174,9 +173,7 @@ export class BoundProfileProvider {
 }
 
 export type BindConfiguration = {
-  serviceId?: string;
   security?: SecurityValues[];
-  registryUrl?: string;
 };
 
 const profileProviderDebug = createDebug('superface:profile-provider');
@@ -219,54 +216,46 @@ export class ProfileProvider {
     const profileId = profileAstId(profileAst);
 
     // resolve provider from parameters or defer until later
-    // JESUS: Why can't I unpack this without fighting the linter
-    // eslint-disable-next-line prefer-const
-    let { providerInfo, providerName } = await this.resolveProviderInfo();
+    const resolvedProviderInfo = await this.resolveProviderInfo();
+    let providerInfo = resolvedProviderInfo.providerInfo;
+    const providerName = resolvedProviderInfo.providerName;
     const securityValues = this.resolveSecurityValues(
       providerName,
       configuration?.security
     );
 
     // resolve map from parameters or defer until later
-    // eslint-disable-next-line prefer-const
-    let { mapAst, mapVariant, mapRevision } = await this.resolveMapAst(
+    const resolvedMapAst = await this.resolveMapAst(
       `${profileId}.${providerName}`
     );
+    let mapAst = resolvedMapAst.mapAst;
+    const mapVariant = resolvedMapAst.mapVariant;
+    const mapRevision = resolvedMapAst.mapRevision;
 
     // resolve map ast using bind and fill in provider info if not specified
     if (mapAst === undefined) {
-      const fetchResponse = await fetchBind(
-        {
-          profileId:
-            profileId +
-            `@${profileAst.header.version.major}.${profileAst.header.version.minor}.${profileAst.header.version.patch}`,
-          provider: providerName,
-          mapVariant,
-          mapRevision,
-        },
-        {
-          registryUrl: configuration?.registryUrl,
-        }
-      );
+      const fetchResponse = await fetchBind({
+        profileId:
+          profileId +
+          `@${profileAst.header.version.major}.${profileAst.header.version.minor}.${profileAst.header.version.patch}`,
+        provider: providerName,
+        mapVariant,
+        mapRevision,
+      });
 
       providerInfo ??= fetchResponse.provider;
       mapAst = fetchResponse.mapAst;
     } else if (providerInfo === undefined) {
       // resolve only provider info if map is specified locally
-      // TODO: call registry provider getter
-      throw new UnexpectedError(
-        'NOT IMPLEMENTED: map provided locally but provider is not'
-      );
+      providerInfo = await fetchProviderInfo(providerName);
     }
 
     // prepare service info
-    // BUG: The serviceId coming from this.provider when it is ProviderConfiguration is not respected
-    const serviceId = configuration?.serviceId ?? providerInfo.defaultService;
+    const serviceId = providerInfo.defaultService;
     const baseUrl = providerInfo.services.find(
       s => s.id === serviceId
     )?.baseUrl;
     if (baseUrl === undefined) {
-      // TODO: The service url resolution will change soon, probably won't be externally configurable
       throw serviceNotFoundError(
         serviceId,
         providerName,

@@ -43,14 +43,14 @@ export abstract class SuperfaceClientBase extends Events {
 
   constructor() {
     super();
-    const superCacheKey = Config().superfacePath;
+    const superCacheKey = Config.instance().superfacePath;
 
     if (SUPER_CACHE[superCacheKey] === undefined) {
       SUPER_CACHE[superCacheKey] = SuperJson.loadSync(superCacheKey).unwrap();
     }
 
     this.superJson = SUPER_CACHE[superCacheKey];
-    if (!Config().disableReporting) {
+    if (!Config.instance().disableReporting) {
       this.hookMetrics();
       this.metricReporter = new MetricReporter(this.superJson);
       this.metricReporter.reportEvent({

@@ -126,9 +126,7 @@ export function registerHooks(hookContext: HooksContext, events: Events): void {
       debugSensitive('\targs:', args);
       debugSensitive('\tresult:', res);
 
-      if (
-        context.provider === undefined
-      ) {
+      if (context.provider === undefined) {
         throw new UnexpectedError('Invalid event context');
       }
 
