@@ -107,8 +107,8 @@ describe('superface client', () => {
   });
 
   it('caches super.json on custom path files correctly', () => {
-    const orignalPath = Config().superfacePath;
-    Config().superfacePath = CUSTOM_PATH;
+    const orignalPath = Config.instance().superfacePath;
+    Config.instance().superfacePath = CUSTOM_PATH;
 
     const client = new SuperfaceClient();
     expect(client.superJson.document).toEqual(MOCK_SUPERJSON_CUSTOM_PATH);
@@ -121,7 +121,7 @@ describe('superface client', () => {
     expect(statSyncMock).toHaveBeenCalledTimes(statCalls);
     expect(readFileSyncMock).toHaveBeenCalledTimes(readFileCalls);
 
-    Config().superfacePath = orignalPath;
+    Config.instance().superfacePath = orignalPath;
   });
 
   describe('getProfile', () => {

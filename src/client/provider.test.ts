@@ -64,23 +64,18 @@ describe('Provider', () => {
             id: 'second-id',
           },
         ],
-        serviceId: 'new',
       })
     ).resolves.toEqual(
       new Provider(
         mockClient,
-        new ProviderConfiguration(
-          'test',
-          [
-            { id: 'first-id', digest: 'first-digest' },
-            {
-              username: 'second',
-              password: 'seconds',
-              id: 'second-id',
-            },
-          ],
-          'new'
-        )
+        new ProviderConfiguration('test', [
+          { id: 'first-id', digest: 'first-digest' },
+          {
+            username: 'second',
+            password: 'seconds',
+            id: 'second-id',
+          },
+        ])
       )
     );
   });

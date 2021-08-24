@@ -24,7 +24,8 @@ import {
   UsecaseDefaults,
 } from './schema';
 
-export function addProfileDefaults(
+/** Merges profile defaults into the document or creates the profile if it doesn't exist. */
+export function mergeProfileDefaults(
   document: SuperJsonDocument,
   profileName: string,
   payload: UsecaseDefaults
@@ -87,7 +88,8 @@ export function addProfileDefaults(
   return false;
 }
 
-export function addProfile(
+/** Merges profile into the document or creates it if it doesn't exist. */
+export function mergeProfile(
   document: SuperJsonDocument,
   profileName: string,
   payload: ProfileEntry
@@ -183,7 +185,7 @@ export function addProfile(
     providers = payload.providers;
   } else if (targetedProfile.providers) {
     Object.entries(payload.providers ?? {}).forEach(([providerName, entry]) =>
-      addProfileProvider(document, profileName, providerName, entry)
+      mergeProfileProvider(document, profileName, providerName, entry)
     );
     providers = targetedProfile.providers;
   }
@@ -210,46 +212,78 @@ function resolvePriorityAddition(
 
   return existingPriority;
 }
-export function addProfileProvider(
+
+/**
+ * Ensure that profile exists (defaults to version '0.0.0') and that its providers key is defined (defaults to empty record).
+ */
+function ensureProfileWithProviders(
+  document: SuperJsonDocument,
+  profileName: string
+): [
+  boolean,
+  Exclude<ProfileEntry, string> & {
+    providers: Record<string, ProfileProviderEntry>;
+  }
+] {
+  let changed = false;
+
+  if (document.profiles === undefined) {
+    document.profiles = {};
+
+    changed = true;
+  }
+  if (document.profiles[profileName] === undefined) {
+    document.profiles[profileName] = {
+      version: '0.0.0',
+      providers: {},
+    };
+
+    changed = true;
+  }
+
+  const profile = document.profiles[profileName];
+  if (typeof profile === 'string') {
+    document.profiles[profileName] = normalizeProfileSettings(
+      document.profiles[profileName],
+      []
+    );
+
+    changed = true;
+  } else if (profile.providers === undefined) {
+    profile.providers = {};
+
+    changed = true;
+  }
+
+  const ensuredProfile = document.profiles[profileName] as Exclude<
+    ProfileEntry,
+    string
+  > & { providers: Record<string, ProfileProviderEntry> };
+
+  return [changed, ensuredProfile];
+}
+
+/** Merges profile provider into the document or creates the profile and providers object if it doesn't exist. */
+export function mergeProfileProvider(
   document: SuperJsonDocument,
   profileName: string,
   providerName: string,
   payload: ProfileProviderEntry
 ): boolean {
-  if (document.profiles === undefined) {
-    document.profiles = {};
-  }
-  if (document.profiles[profileName] === undefined) {
-    document.profiles[profileName] = '0.0.0';
-  }
+  const [_, targetProfile] = ensureProfileWithProviders(document, profileName);
+  void _;
 
-  let targetedProfile = document.profiles[profileName];
-
-  // if specified profile has shorthand notation
-  if (typeof targetedProfile === 'string') {
-    document.profiles[profileName] = targetedProfile = normalizeProfileSettings(
-      targetedProfile,
-      [providerName]
-    );
-
-    targetedProfile.providers = {
-      [providerName]: payload,
-    };
-
-    return true;
-  }
-
-  const profileProvider = targetedProfile.providers?.[providerName];
+  const profileProvider = targetProfile.providers?.[providerName];
 
   // if specified profile provider is not found
-  if (!profileProvider || !targetedProfile.providers?.[providerName]) {
-    targetedProfile.providers = {
-      ...targetedProfile.providers,
+  if (!profileProvider || !targetProfile.providers?.[providerName]) {
+    targetProfile.providers = {
+      ...targetProfile.providers,
       [providerName]: payload,
     };
 
-    targetedProfile.priority = resolvePriorityAddition(
-      targetedProfile.priority,
+    targetProfile.priority = resolvePriorityAddition(
+      targetProfile.priority,
       providerName
     );
 
@@ -263,21 +297,21 @@ export function addProfileProvider(
       typeof profileProvider === 'string' ||
       isEmptyRecord(profileProvider.defaults ?? {})
     ) {
-      targetedProfile.providers[providerName] = composeFileURI(payload);
-      targetedProfile.priority = resolvePriorityAddition(
-        targetedProfile.priority,
+      targetProfile.providers[providerName] = composeFileURI(payload);
+      targetProfile.priority = resolvePriorityAddition(
+        targetProfile.priority,
         providerName
       );
 
       return true;
     }
 
-    targetedProfile.providers[providerName] = {
+    targetProfile.providers[providerName] = {
       file: trimFileURI(payload),
       defaults: profileProvider.defaults,
     };
-    targetedProfile.priority = resolvePriorityAddition(
-      targetedProfile.priority,
+    targetProfile.priority = resolvePriorityAddition(
+      targetProfile.priority,
       providerName
     );
 
@@ -308,14 +342,14 @@ export function addProfileProvider(
     !('mapRevision' in payload) &&
     defaults
   ) {
-    targetedProfile.providers[providerName] = {
+    targetProfile.providers[providerName] = {
       ...(typeof profileProvider === 'string'
         ? { file: profileProvider }
         : profileProvider),
       defaults,
     };
-    targetedProfile.priority = resolvePriorityAddition(
-      targetedProfile.priority,
+    targetProfile.priority = resolvePriorityAddition(
+      targetProfile.priority,
       providerName
     );
 
@@ -324,12 +358,12 @@ export function addProfileProvider(
 
   // when specified profile provider has file & defaults
   if ('file' in payload) {
-    targetedProfile.providers[providerName] = {
+    targetProfile.providers[providerName] = {
       ...payload,
       defaults,
     };
-    targetedProfile.priority = resolvePriorityAddition(
-      targetedProfile.priority,
+    targetProfile.priority = resolvePriorityAddition(
+      targetProfile.priority,
       providerName
     );
 
@@ -339,12 +373,12 @@ export function addProfileProvider(
   // when specified profile provider has mapVariant, mapRevision & defaults
   if ('mapVariant' in payload || 'mapRevision' in payload) {
     if (typeof profileProvider === 'string') {
-      targetedProfile.providers[providerName] = {
+      targetProfile.providers[providerName] = {
         ...payload,
         defaults,
       };
-      targetedProfile.priority = resolvePriorityAddition(
-        targetedProfile.priority,
+      targetProfile.priority = resolvePriorityAddition(
+        targetProfile.priority,
         providerName
       );
 
@@ -362,12 +396,12 @@ export function addProfileProvider(
       mapProperties.mapRevision = payload.mapRevision;
     }
 
-    targetedProfile.providers[providerName] = {
+    targetProfile.providers[providerName] = {
       ...mapProperties,
       defaults,
     };
-    targetedProfile.priority = resolvePriorityAddition(
-      targetedProfile.priority,
+    targetProfile.priority = resolvePriorityAddition(
+      targetProfile.priority,
       providerName
     );
 
@@ -377,7 +411,87 @@ export function addProfileProvider(
   return false;
 }
 
-export function addProvider(
+export function swapProfileProviderVariant(
+  document: SuperJsonDocument,
+  profileName: string,
+  providerName: string,
+  variant:
+    | { kind: 'local'; file: string }
+    | { kind: 'remote'; mapVariant?: string; mapRevision?: string }
+): boolean {
+  const [_, targetProfile] = ensureProfileWithProviders(document, profileName);
+  void _;
+
+  let changed = false;
+  let targetProfileProvider = targetProfile.providers[providerName];
+
+  if (variant.kind === 'local') {
+    if (typeof targetProfileProvider === 'string') {
+      // "provider": "path/to/map"
+      changed = composeFileURI(variant.file) === targetProfileProvider;
+      targetProfileProvider = composeFileURI(variant.file);
+    } else if (
+      targetProfileProvider === undefined ||
+      targetProfileProvider.defaults === undefined ||
+      Object.keys(targetProfileProvider.defaults).length === 0
+    ) {
+      // "provider": { "file": "path/to/map" } | {}
+      changed =
+        targetProfileProvider === undefined ||
+        !(
+          'file' in targetProfileProvider &&
+          targetProfileProvider.file === variant.file
+        );
+      targetProfileProvider = composeFileURI(variant.file);
+    } else {
+      // "provider": { "file": "path/to/map", "defaults": <non-empty> } | { "defaults": <non-empty> }
+      changed = !(
+        'file' in targetProfileProvider &&
+        targetProfileProvider.file === variant.file
+      );
+      targetProfileProvider = {
+        file: variant.file,
+        defaults: targetProfileProvider.defaults,
+      };
+    }
+  } else if (variant.kind === 'remote') {
+    if (
+      targetProfileProvider === undefined ||
+      typeof targetProfileProvider === 'string'
+    ) {
+      changed = true;
+      targetProfileProvider = {
+        mapVariant: variant.mapVariant,
+        mapRevision: variant.mapRevision,
+      };
+    } else if ('file' in targetProfileProvider) {
+      changed = true;
+      targetProfileProvider = {
+        mapVariant: variant.mapVariant,
+        mapRevision: variant.mapRevision,
+        defaults: targetProfileProvider.defaults,
+      };
+    } else {
+      changed =
+        targetProfileProvider.mapVariant !== variant.mapVariant ||
+        targetProfileProvider.mapRevision !== variant.mapRevision;
+      targetProfileProvider = {
+        mapVariant: variant.mapVariant,
+        mapRevision: variant.mapRevision,
+        defaults: targetProfileProvider.defaults,
+      };
+    }
+  }
+
+  if (changed) {
+    targetProfile.providers[providerName] = targetProfileProvider;
+  }
+
+  return changed;
+}
+
+/** Merges provider into the document or creates it if it doesn't exist. */
+export function mergeProvider(
   document: SuperJsonDocument,
   providerName: string,
   payload: ProviderEntry
@@ -390,7 +504,8 @@ export function addProvider(
   if (typeof payload === 'string') {
     const isShorthandAvailable =
       typeof targetProvider === 'string' ||
-      targetProvider.security?.length === 0;
+      targetProvider.security === undefined ||
+      targetProvider.security.length === 0;
 
     if (isFileURIString(payload)) {
       if (isShorthandAvailable) {
@@ -427,6 +542,50 @@ export function addProvider(
   return true;
 }
 
+export function swapProviderVariant(
+  document: SuperJsonDocument,
+  providerName: string,
+  variant: { kind: 'local'; file: string } | { kind: 'remote' }
+): boolean {
+  if (document.providers === undefined) {
+    document.providers = {};
+  }
+
+  let changed = false;
+  let targetProvider = document.providers[providerName];
+
+  if (variant.kind === 'local') {
+    if (typeof targetProvider === 'string') {
+      changed = composeFileURI(variant.file) !== targetProvider;
+      targetProvider = composeFileURI(variant.file);
+    } else if (
+      targetProvider === undefined ||
+      targetProvider.security === undefined ||
+      targetProvider.security.length === 0
+    ) {
+      changed = true;
+      targetProvider = composeFileURI(variant.file);
+    } else {
+      changed = variant.file !== targetProvider.file;
+      targetProvider.file = variant.file;
+    }
+  } else if (variant.kind === 'remote') {
+    if (typeof targetProvider === 'string' || targetProvider === undefined) {
+      changed = true;
+      targetProvider = {};
+    } else if ('file' in targetProvider) {
+      changed = true;
+      delete targetProvider.file;
+    }
+  }
+
+  if (changed) {
+    document.providers[providerName] = targetProvider;
+  }
+
+  return changed;
+}
+
 export function mergeSecurity(
   left: SecurityValues[],
   right: SecurityValues[]
@@ -450,7 +609,8 @@ export function mergeSecurity(
   return result;
 }
 
-export function addPriority(
+/** Sets priority array to the new values. */
+export function setPriority(
   document: SuperJsonDocument,
   profileName: string,
   providersSortedByPriority: string[]

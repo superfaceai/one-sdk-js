@@ -5,8 +5,7 @@ import { SuperfaceClientBase } from './client';
 export class ProviderConfiguration {
   constructor(
     public readonly name: string,
-    public readonly security: SecurityValues[],
-    public readonly serviceId?: string
+    public readonly security: SecurityValues[]
   ) {}
 
   get cacheKey(): string {
@@ -23,12 +22,10 @@ export class Provider {
 
   async configure(configuration: {
     security?: SecurityValues[];
-    serviceId?: string;
   }): Promise<Provider> {
     const newConfiguration = new ProviderConfiguration(
       this.configuration.name,
-      mergeSecurity(this.configuration.security, configuration.security ?? []),
-      configuration.serviceId ?? this.configuration.serviceId
+      mergeSecurity(this.configuration.security, configuration.security ?? [])
     );
 
     return new Provider(this.client, newConfiguration);

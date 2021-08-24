@@ -10,13 +10,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Failover event adapter failover restore in `pre-bind-and-perform` hook
 - Maps and profiles are parsed on-the-fly
+- Superjson mutate swap variant methods for provider and profile provider
 
 ### Changed
 - Failover event adapter tests are now parametrized over untyped and typed client, removing repeated code
 - Failover event adapter structure, abstracted repeated code
 - `pre-` event `abort` resolution does not prevent `post-` event from being emitted
 - Streamlined how `reason` is propagated and handled in failure policies, implemented `FailurePolicyReason`
-
+- ProfileProvider can now fetch provider json when a map is local
+- Config now has friendlier API
 
 ### Changed
 - every `throw` now uses an instance of an Error subclass

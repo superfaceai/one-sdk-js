@@ -142,7 +142,7 @@ export class MetricReporter {
 
   constructor(superJson: SuperJson) {
     this.fetchInstance = new CrossFetch();
-    this.sdkToken = Config().sdkAuthToken;
+    this.sdkToken = Config.instance().sdkAuthToken;
     this.configHash = superJson.configHash;
     this.anonymizedSuperJson = superJson.anonymized;
   }
@@ -182,7 +182,7 @@ export class MetricReporter {
     const now = Date.now();
     const timeHasElapsed =
       this.startTime !== undefined &&
-      now - this.startTime >= Config().metricDebounceTimeMax;
+      now - this.startTime >= Config.instance().metricDebounceTimeMax;
     // If this is the first request in a batch, set the batch start time for max debounce
     if (this.startTime === undefined) {
       this.startTime = now;
@@ -198,7 +198,7 @@ export class MetricReporter {
     // Set the timer for min debounce time - it will execute unless another metric request comes
     this.timer = setTimeout(() => {
       this.flush();
-    }, Config().metricDebounceTimeMin);
+    }, Config.instance().metricDebounceTimeMin);
   }
 
   private reportSdkInitEvent(event: SDKInitInput): void {
@@ -296,7 +296,10 @@ export class MetricReporter {
 
   // TODO: move this to other http calls
   private sendEvent(payload: SDKEvent) {
-    const url = new URL('/insights/sdk_event', Config().superfaceApiUrl).href;
+    const url = new URL(
+      '/insights/sdk_event',
+      Config.instance().superfaceApiUrl
+    ).href;
     void this.fetchInstance
       .fetch(url, {
         method: 'POST',

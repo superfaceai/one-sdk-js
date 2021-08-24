@@ -21,11 +21,13 @@ import {
   superJsonReadError,
 } from '../errors.helpers';
 import {
-  addPriority,
-  addProfile,
-  addProfileDefaults,
-  addProfileProvider,
-  addProvider,
+  mergeProfile,
+  mergeProfileDefaults,
+  mergeProfileProvider,
+  mergeProvider,
+  setPriority,
+  swapProfileProviderVariant,
+  swapProviderVariant,
 } from './mutate';
 import { normalizeSuperJsonDocument } from './normalize';
 import {
@@ -106,7 +108,7 @@ export class SuperJson {
   }
 
   static loadSync(path?: string): Result<SuperJson, SDKExecutionError> {
-    const superfile = path ?? Config().superfacePath;
+    const superfile = path ?? Config.instance().superfacePath;
 
     try {
       const statInfo = statSync(superfile);
@@ -142,7 +144,7 @@ export class SuperJson {
   static async load(
     path?: string
   ): Promise<Result<SuperJson, SDKExecutionError>> {
-    const superfile = path ?? Config().superfacePath;
+    const superfile = path ?? Config.instance().superfacePath;
 
     try {
       const statInfo = await fsp.stat(superfile);
@@ -173,8 +175,13 @@ export class SuperJson {
   }
 
   // mutation //
-  addProfileDefaults(profileName: string, payload: UsecaseDefaults): boolean {
-    const result = addProfileDefaults(this.document, profileName, payload);
+  /**
+   * Merge profile defaults into the document.
+   *
+   * Creates the profile if it doesn't exist.
+   */
+  mergeProfileDefaults(profileName: string, payload: UsecaseDefaults): boolean {
+    const result = mergeProfileDefaults(this.document, profileName, payload);
     if (result) {
       this.normalizedCache = undefined;
     }
@@ -182,8 +189,13 @@ export class SuperJson {
     return result;
   }
 
-  addProfile(profileName: string, payload: ProfileEntry): boolean {
-    const result = addProfile(this.document, profileName, payload);
+  /**
+   * Merge a profile into the document.
+   *
+   * Creates the profile if it doesn't exist.
+   */
+  mergeProfile(profileName: string, payload: ProfileEntry): boolean {
+    const result = mergeProfile(this.document, profileName, payload);
     if (result) {
       this.normalizedCache = undefined;
     }
@@ -191,12 +203,17 @@ export class SuperJson {
     return result;
   }
 
-  addProfileProvider(
+  /**
+   * Merge profile provider into the document.
+   *
+   * Creates the profile and the profile provider if it doesn't exist.
+   */
+  mergeProfileProvider(
     profileName: string,
     providerName: string,
     payload: ProfileProviderEntry
   ): boolean {
-    const result = addProfileProvider(
+    const result = mergeProfileProvider(
       this.document,
       profileName,
       providerName,
@@ -209,8 +226,22 @@ export class SuperJson {
     return result;
   }
 
-  addProvider(providerName: string, payload: ProviderEntry): boolean {
-    const result = addProvider(this.document, providerName, payload);
+  /**
+   * Swaps profile provider variant.
+   */
+  swapProfileProviderVariant(
+    profileName: string,
+    providerName: string,
+    variant:
+      | { kind: 'local'; file: string }
+      | { kind: 'remote'; mapVariant?: string; mapRevision?: string }
+  ): boolean {
+    const result = swapProfileProviderVariant(
+      this.document,
+      profileName,
+      providerName,
+      variant
+    );
     if (result) {
       this.normalizedCache = undefined;
     }
@@ -218,11 +249,42 @@ export class SuperJson {
     return result;
   }
 
-  addPriority(
+  /**
+   * Merge a provider into the document.
+   *
+   * Creates the provider if it doesn't exist.
+   */
+  mergeProvider(providerName: string, payload: ProviderEntry): boolean {
+    const result = mergeProvider(this.document, providerName, payload);
+    if (result) {
+      this.normalizedCache = undefined;
+    }
+
+    return result;
+  }
+
+  swapProviderVariant(
+    providerName: string,
+    variant: { kind: 'local'; file: string } | { kind: 'remote' }
+  ): boolean {
+    const result = swapProviderVariant(this.document, providerName, variant);
+    if (result) {
+      this.normalizedCache = undefined;
+    }
+
+    return result;
+  }
+
+  /**
+   * Sets the priority array of the profile.
+   *
+   * Throws if the profile does not exist or of the providers don't exist.
+   */
+  setPriority(
     profileName: string,
     providersSortedByPriority: string[]
   ): boolean {
-    const result = addPriority(
+    const result = setPriority(
       this.document,
       profileName,
       providersSortedByPriority

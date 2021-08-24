@@ -28,7 +28,7 @@ export class Parser {
     const hash = Parser.hash(input);
     const hashedName = `${info.providerName}-${hash}${EXTENSIONS.map.build}`;
     const cachePath = joinPath(
-      Config().cachePath,
+      Config.instance().cachePath,
       ...[...(info.scope !== undefined ? [info.scope] : []), info.profileName]
     );
     const hashedPath = joinPath(cachePath, hashedName);
@@ -94,7 +94,7 @@ export class Parser {
     const hash = Parser.hash(input);
     const hashedName = `${info.profileName}-${hash}${EXTENSIONS.profile.build}`;
     const cachePath = joinPath(
-      Config().cachePath,
+      Config.instance().cachePath,
       ...[...(info.scope !== undefined ? [info.scope] : [])]
     );
     const hashedPath = joinPath(cachePath, hashedName);
