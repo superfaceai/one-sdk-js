@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Superjson mutate set methods for profile, profileProvider and provider
+
 ## [0.0.30] - 2021-08-24
 ### Added
 - Failover event adapter failover restore in `pre-bind-and-perform` hook

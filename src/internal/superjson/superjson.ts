@@ -26,6 +26,9 @@ import {
   mergeProfileProvider,
   mergeProvider,
   setPriority,
+  setProfile,
+  setProfileProvider,
+  setProvider,
   swapProfileProviderVariant,
   swapProviderVariant,
 } from './mutate';
@@ -181,12 +184,12 @@ export class SuperJson {
    * Creates the profile if it doesn't exist.
    */
   mergeProfileDefaults(profileName: string, payload: UsecaseDefaults): boolean {
-    const result = mergeProfileDefaults(this.document, profileName, payload);
-    if (result) {
+    const changed = mergeProfileDefaults(this.document, profileName, payload);
+    if (changed) {
       this.normalizedCache = undefined;
     }
 
-    return result;
+    return changed;
   }
 
   /**
@@ -195,12 +198,26 @@ export class SuperJson {
    * Creates the profile if it doesn't exist.
    */
   mergeProfile(profileName: string, payload: ProfileEntry): boolean {
-    const result = mergeProfile(this.document, profileName, payload);
-    if (result) {
+    const changed = mergeProfile(this.document, profileName, payload);
+    if (changed) {
       this.normalizedCache = undefined;
     }
 
-    return result;
+    return changed;
+  }
+
+  /**
+   * Sets (completely overwrites) a profile in the document.
+   *
+   * `payload === undefined` deletes the profile.
+   */
+  setProfile(profileName: string, payload: ProfileEntry | undefined): boolean {
+    const changed = setProfile(this.document, profileName, payload);
+    if (changed) {
+      this.normalizedCache = undefined;
+    }
+
+    return changed;
   }
 
   /**
@@ -213,17 +230,40 @@ export class SuperJson {
     providerName: string,
     payload: ProfileProviderEntry
   ): boolean {
-    const result = mergeProfileProvider(
+    const changed = mergeProfileProvider(
       this.document,
       profileName,
       providerName,
       payload
     );
-    if (result) {
+    if (changed) {
       this.normalizedCache = undefined;
     }
 
-    return result;
+    return changed;
+  }
+
+  /**
+   * Sets (completely overwrites) a profile provider in the document.
+   *
+   * `payload === undefined` deletes the entry.
+   */
+  setProfileProvider(
+    profileName: string,
+    providerName: string,
+    payload: ProfileProviderEntry | undefined
+  ): boolean {
+    const changed = setProfileProvider(
+      this.document,
+      profileName,
+      providerName,
+      payload
+    );
+    if (changed) {
+      this.normalizedCache = undefined;
+    }
+
+    return changed;
   }
 
   /**
@@ -236,17 +276,17 @@ export class SuperJson {
       | { kind: 'local'; file: string }
       | { kind: 'remote'; mapVariant?: string; mapRevision?: string }
   ): boolean {
-    const result = swapProfileProviderVariant(
+    const changed = swapProfileProviderVariant(
       this.document,
       profileName,
       providerName,
       variant
     );
-    if (result) {
+    if (changed) {
       this.normalizedCache = undefined;
     }
 
-    return result;
+    return changed;
   }
 
   /**
@@ -255,24 +295,41 @@ export class SuperJson {
    * Creates the provider if it doesn't exist.
    */
   mergeProvider(providerName: string, payload: ProviderEntry): boolean {
-    const result = mergeProvider(this.document, providerName, payload);
-    if (result) {
+    const changed = mergeProvider(this.document, providerName, payload);
+    if (changed) {
       this.normalizedCache = undefined;
     }
 
-    return result;
+    return changed;
+  }
+
+  /**
+   * Sets (completely overwrites) a provider in the document.
+   *
+   * `payload === undefined` deletes the provider.
+   */
+  setProvider(
+    providerName: string,
+    payload: ProviderEntry | undefined
+  ): boolean {
+    const changed = setProvider(this.document, providerName, payload);
+    if (changed) {
+      this.normalizedCache = undefined;
+    }
+
+    return changed;
   }
 
   swapProviderVariant(
     providerName: string,
     variant: { kind: 'local'; file: string } | { kind: 'remote' }
   ): boolean {
-    const result = swapProviderVariant(this.document, providerName, variant);
-    if (result) {
+    const changed = swapProviderVariant(this.document, providerName, variant);
+    if (changed) {
       this.normalizedCache = undefined;
     }
 
-    return result;
+    return changed;
   }
 
   /**
