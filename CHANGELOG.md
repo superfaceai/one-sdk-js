@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.30] - 2021-08-24
 ### Added
 - Failover event adapter failover restore in `pre-bind-and-perform` hook
 - Superjson mutate swap variant methods for provider and profile provider
@@ -18,8 +19,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Streamlined how `reason` is propagated and handled in failure policies, implemented `FailurePolicyReason`
 - ProfileProvider can now fetch provider json when a map is local
 - Config now has friendlier API
-
-### Changed
 - every `throw` now uses an instance of an Error subclass
 
 ## [0.0.29] - 2021-07-20
@@ -211,7 +210,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Profile parameter validator
 - CI/CD workflows
 
-[Unreleased]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.29...HEAD
+[Unreleased]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.30...HEAD
+[0.0.30]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.29...v0.0.30
 [0.0.29]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.29-beta.7...v0.0.29
 [0.0.29-beta.7]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.29-beta.6...v0.0.29-beta.7
 [0.0.29-beta.6]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.29-beta.5...v0.0.29-beta.6
