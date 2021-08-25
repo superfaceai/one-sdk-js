@@ -6,6 +6,7 @@ import {
   SuperJson,
   UsecaseDefaults,
 } from './index';
+import { ProfileSettings, SuperJsonDocument } from './schema';
 
 describe('superjson mutate', () => {
   let superjson: SuperJson;
@@ -671,6 +672,143 @@ describe('superjson mutate', () => {
     });
   });
 
+  describe('when setting profile', () => {
+    type TestData = {
+      from: {
+        name: string;
+        profile: ProfileEntry | undefined;
+      };
+      to: {
+        name: string;
+        profile: ProfileEntry | undefined;
+      };
+      expectedChanged: boolean;
+    };
+
+    const TEST_PROFILE_NAME = 'testprofile';
+    it.each<TestData>([
+      {
+        from: {
+          name: 'none',
+          profile: undefined,
+        },
+        to: {
+          name: 'version',
+          profile: {
+            version: '1.0.1',
+          },
+        },
+        expectedChanged: true,
+      },
+      {
+        from: {
+          name: 'version',
+          profile: {
+            version: '1.0.1',
+          },
+        },
+        to: {
+          name: 'none',
+          profile: undefined,
+        },
+        expectedChanged: true,
+      },
+      {
+        from: {
+          name: 'version',
+          profile: {
+            version: '1.0.1',
+          },
+        },
+        to: {
+          name: 'same version',
+          profile: {
+            version: '1.0.1',
+          },
+        },
+        expectedChanged: expect.any(Boolean),
+      },
+      {
+        from: {
+          name: 'version',
+          profile: {
+            version: '1.0.1',
+          },
+        },
+        to: {
+          name: 'different version',
+          profile: {
+            version: '1.1.3',
+          },
+        },
+        expectedChanged: true,
+      },
+      {
+        from: {
+          name: 'file',
+          profile: 'file/path',
+        },
+        to: {
+          name: 'version',
+          profile: {
+            version: '1.1.3',
+          },
+        },
+        expectedChanged: true,
+      },
+    ])(
+      'sets $from.name profile to $to.name profile',
+      ({ from, to, expectedChanged }) => {
+        const profiles: SuperJsonDocument['profiles'] = {};
+        if (from.profile !== undefined) {
+          profiles[TEST_PROFILE_NAME] = from.profile;
+        }
+        superjson = new SuperJson({ profiles });
+
+        expect(
+          superjson.setProfile(TEST_PROFILE_NAME, to.profile)
+        ).toStrictEqual(expectedChanged);
+
+        let expected: SuperJsonDocument = {};
+        if (to.profile !== undefined) {
+          expected = {
+            profiles: {
+              [TEST_PROFILE_NAME]: to.profile,
+            },
+          };
+        }
+
+        expect(superjson.document).toStrictEqual(expected);
+        expect(superjson.document.providers).toBeUndefined();
+      }
+    );
+
+    it('preserves existing profiles when deleting', () => {
+      superjson = new SuperJson({
+        profiles: {
+          [TEST_PROFILE_NAME]: {
+            version: '1.0.0',
+          },
+          otherProfile: {
+            version: '0.0.1',
+          },
+        },
+      });
+
+      expect(superjson.setProfile(TEST_PROFILE_NAME, undefined)).toStrictEqual(
+        true
+      );
+
+      expect(superjson.document).toStrictEqual({
+        profiles: {
+          otherProfile: {
+            version: '0.0.1',
+          },
+        },
+      });
+    });
+  });
+
   describe('when merging profile provider', () => {
     it('merges mutliple profile provider', () => {
       const mockProfileName = 'profile';
@@ -1092,6 +1230,206 @@ describe('superjson mutate', () => {
     });
   });
 
+  describe('when setting profile provider', () => {
+    type TestData = {
+      from: {
+        name: string;
+        profileProvider: ProfileProviderEntry | undefined;
+      };
+      to: {
+        name: string;
+        profileProvider: ProfileProviderEntry | undefined;
+      };
+      expectedChanged: boolean;
+    };
+
+    const TEST_PROFILE_NAME = 'testprofile';
+    const TEST_PROFILE_PROVIDER = 'testprovider';
+    it.each<TestData>([
+      {
+        from: {
+          name: 'none',
+          profileProvider: undefined,
+        },
+        to: {
+          name: 'file',
+          profileProvider: {
+            file: 'path',
+          },
+        },
+        expectedChanged: true,
+      },
+      {
+        from: {
+          name: 'none',
+          profileProvider: undefined,
+        },
+        to: {
+          name: 'empty',
+          profileProvider: {},
+        },
+        expectedChanged: true,
+      },
+      {
+        from: {
+          name: 'file',
+          profileProvider: {
+            file: 'path',
+          },
+        },
+        to: {
+          name: 'same file',
+          profileProvider: {
+            file: 'path',
+          },
+        },
+        expectedChanged: expect.any(Boolean),
+      },
+      {
+        from: {
+          name: 'file',
+          profileProvider: {
+            file: 'path',
+          },
+        },
+        to: {
+          name: 'mapVariant',
+          profileProvider: {
+            mapVariant: 'variant',
+          },
+        },
+        expectedChanged: true,
+      },
+      {
+        from: {
+          name: 'file',
+          profileProvider: {
+            file: 'path',
+          },
+        },
+        to: {
+          name: 'none',
+          profileProvider: undefined,
+        },
+        expectedChanged: true,
+      },
+    ])(
+      'sets $from.name profile provider to $to.name profile provider',
+      ({ from, to, expectedChanged }) => {
+        const profileEntry: ProfileSettings = {
+          version: '0.0.0',
+        };
+        if (from.profileProvider !== undefined) {
+          profileEntry.providers = {
+            [TEST_PROFILE_PROVIDER]: from.profileProvider,
+          };
+          profileEntry.priority = [TEST_PROFILE_PROVIDER];
+        }
+        superjson = new SuperJson({
+          profiles: {
+            [TEST_PROFILE_NAME]: profileEntry,
+          },
+        });
+
+        expect(
+          superjson.setProfileProvider(
+            TEST_PROFILE_NAME,
+            TEST_PROFILE_PROVIDER,
+            to.profileProvider
+          )
+        ).toStrictEqual(expectedChanged);
+
+        let expected = {};
+        if (to.profileProvider !== undefined) {
+          expected = {
+            priority: [TEST_PROFILE_PROVIDER],
+            providers: {
+              [TEST_PROFILE_PROVIDER]: to.profileProvider,
+            },
+          };
+        }
+
+        expect(superjson.document).toStrictEqual({
+          profiles: {
+            [TEST_PROFILE_NAME]: {
+              version: '0.0.0',
+              ...expected,
+            },
+          },
+        });
+      }
+    );
+
+    it('preserves existing profile providers when deleting', () => {
+      superjson = new SuperJson({
+        profiles: {
+          [TEST_PROFILE_NAME]: {
+            version: '0.0.0',
+            priority: [TEST_PROFILE_PROVIDER, 'otherProvider'],
+            providers: {
+              [TEST_PROFILE_PROVIDER]: {},
+              otherProvider: {},
+            },
+          },
+        },
+      });
+
+      expect(
+        superjson.setProfileProvider(
+          TEST_PROFILE_NAME,
+          TEST_PROFILE_PROVIDER,
+          undefined
+        )
+      ).toStrictEqual(true);
+
+      expect(superjson.document).toStrictEqual({
+        profiles: {
+          [TEST_PROFILE_NAME]: {
+            version: '0.0.0',
+            priority: ['otherProvider'],
+            providers: {
+              otherProvider: {},
+            },
+          },
+        },
+      });
+    });
+
+    it('preserves existing profile priority when overwriting', () => {
+      superjson = new SuperJson({
+        profiles: {
+          [TEST_PROFILE_NAME]: {
+            version: '0.0.0',
+            priority: [TEST_PROFILE_PROVIDER, 'otherProvider'],
+            providers: {
+              [TEST_PROFILE_PROVIDER]: {},
+              otherProvider: {},
+            },
+          },
+        },
+      });
+
+      expect(
+        superjson.setProfileProvider(TEST_PROFILE_NAME, TEST_PROFILE_PROVIDER, {
+          file: 'file',
+        })
+      ).toStrictEqual(true);
+
+      expect(superjson.document).toStrictEqual({
+        profiles: {
+          [TEST_PROFILE_NAME]: {
+            version: '0.0.0',
+            priority: [TEST_PROFILE_PROVIDER, 'otherProvider'],
+            providers: {
+              [TEST_PROFILE_PROVIDER]: { file: 'file' },
+              otherProvider: {},
+            },
+          },
+        },
+      });
+    });
+  });
+
   describe('when swapping profile provider variant', () => {
     const PROFILE = 'profile';
     beforeEach(() => {
@@ -1374,6 +1712,125 @@ describe('superjson mutate', () => {
       expect(() =>
         superjson.mergeProvider(mockProviderName, mockProviderEntry)
       ).toThrowError(new Error('Invalid string payload format'));
+    });
+  });
+
+  describe('when setting provider', () => {
+    type TestData = {
+      from: {
+        name: string;
+        provider: ProviderEntry | undefined;
+      };
+      to: {
+        name: string;
+        provider: ProviderEntry | undefined;
+      };
+      expectedChanged: boolean;
+    };
+
+    const TEST_PROVIDER_NAME = 'testprovider';
+    it.each<TestData>([
+      {
+        from: {
+          name: 'none',
+          provider: undefined,
+        },
+        to: {
+          name: 'file',
+          provider: {
+            file: 'path',
+          },
+        },
+        expectedChanged: true,
+      },
+      {
+        from: {
+          name: 'file',
+          provider: {
+            file: 'path',
+          },
+        },
+        to: {
+          name: 'none',
+          provider: undefined,
+        },
+        expectedChanged: true,
+      },
+      {
+        from: {
+          name: 'file',
+          provider: {
+            file: 'path',
+          },
+        },
+        to: {
+          name: 'empty',
+          provider: {},
+        },
+        expectedChanged: true,
+      },
+      {
+        from: {
+          name: 'file',
+          provider: {
+            file: 'path',
+          },
+        },
+        to: {
+          name: 'same file',
+          provider: {
+            file: 'path',
+          },
+        },
+        expectedChanged: expect.any(Boolean),
+      },
+    ])(
+      'sets $from.name provider to $to.name provider',
+      ({ from, to, expectedChanged }) => {
+        const providers: SuperJsonDocument['providers'] = {};
+        if (from.provider !== undefined) {
+          providers[TEST_PROVIDER_NAME] = from.provider;
+        }
+        superjson = new SuperJson({ providers });
+
+        expect(
+          superjson.setProvider(TEST_PROVIDER_NAME, to.provider)
+        ).toStrictEqual(expectedChanged);
+
+        let expected: SuperJsonDocument = {};
+        if (to.provider !== undefined) {
+          expected = {
+            providers: {
+              [TEST_PROVIDER_NAME]: to.provider,
+            },
+          };
+        }
+
+        expect(superjson.document).toStrictEqual(expected);
+      }
+    );
+
+    it('preserves existing providers when deleting', () => {
+      superjson = new SuperJson({
+        providers: {
+          [TEST_PROVIDER_NAME]: {},
+          otherProvider: {
+            file: 'path',
+          },
+        },
+      });
+
+      expect(
+        superjson.setProvider(TEST_PROVIDER_NAME, undefined)
+      ).toStrictEqual(true);
+
+      expect(superjson.document).toStrictEqual({
+        providers: {
+          otherProvider: {
+            file: 'path',
+          },
+        },
+      });
     });
   });
 

@@ -213,6 +213,33 @@ function resolvePriorityAddition(
   return existingPriority;
 }
 
+/** Sets profile of the document to payload or deletes it. */
+export function setProfile(
+  document: SuperJsonDocument,
+  profileName: string,
+  payload: ProfileEntry | undefined
+): boolean {
+  let changed = false;
+
+  // delete any existing profile
+  if (document.profiles !== undefined && profileName in document.profiles) {
+    changed = true;
+    delete document.profiles[profileName];
+
+    if (Object.keys(document.profiles).length === 0) {
+      delete document.profiles;
+    }
+  }
+
+  // if payload is undefined we already deleted it (or it wasn't present)
+  if (payload !== undefined) {
+    const mergeChanged = mergeProfile(document, profileName, payload);
+    changed = changed || mergeChanged;
+  }
+
+  return changed;
+}
+
 /**
  * Ensure that profile exists (defaults to version '0.0.0') and that its providers key is defined (defaults to empty record).
  */
@@ -411,6 +438,61 @@ export function mergeProfileProvider(
   return false;
 }
 
+/** Sets profile provider of the document to payload or deletes it. */
+export function setProfileProvider(
+  document: SuperJsonDocument,
+  profileName: string,
+  providerName: string,
+  payload: ProfileProviderEntry | undefined
+): boolean {
+  let changed = false;
+
+  // delete any existing profile provider
+  if (document.profiles !== undefined && profileName in document.profiles) {
+    const profile = document.profiles[profileName];
+    if (
+      typeof profile !== 'string' &&
+      profile.providers !== undefined &&
+      providerName in profile.providers
+    ) {
+      changed = true;
+      delete profile.providers[providerName];
+
+      // remove from priority, but only if we are actually deleting
+      // otherwise preserve the priority order
+      if (payload === undefined) {
+        if (profile.priority !== undefined) {
+          const index = profile.priority.indexOf(providerName);
+          if (index >= 0) {
+            profile.priority.splice(index, 1);
+          }
+
+          if (profile.priority.length === 0) {
+            delete profile.priority;
+          }
+        }
+      }
+
+      if (Object.keys(profile.providers).length === 0) {
+        delete profile.providers;
+      }
+    }
+  }
+
+  // if payload is undefined we already deleted it (or it wasn't present)
+  if (payload !== undefined) {
+    const mergeChanged = mergeProfileProvider(
+      document,
+      profileName,
+      providerName,
+      payload
+    );
+    changed = changed || mergeChanged;
+  }
+
+  return changed;
+}
+
 export function swapProfileProviderVariant(
   document: SuperJsonDocument,
   profileName: string,
@@ -530,16 +612,53 @@ export function mergeProvider(
       ...payload,
     };
   } else {
-    document.providers[providerName] = {
-      file: payload.file ?? targetProvider.file,
-      security: mergeSecurity(
+    const provider: ProviderSettings = {};
+
+    if (payload.file !== undefined || targetProvider.file !== undefined) {
+      provider.file = payload.file ?? targetProvider.file;
+    }
+
+    if (
+      targetProvider.security !== undefined ||
+      payload.security !== undefined
+    ) {
+      provider.security = mergeSecurity(
         targetProvider.security ?? [],
         payload.security ?? []
-      ),
-    };
+      );
+    }
+
+    document.providers[providerName] = provider;
   }
 
   return true;
+}
+
+/** Sets provider of the document to payload or deletes it. */
+export function setProvider(
+  document: SuperJsonDocument,
+  providerName: string,
+  payload: ProviderEntry | undefined
+): boolean {
+  let changed = false;
+
+  // delete any existing provider
+  if (document.providers !== undefined && providerName in document.providers) {
+    changed = true;
+    delete document.providers[providerName];
+
+    if (Object.keys(document.providers).length === 0) {
+      delete document.providers;
+    }
+  }
+
+  // if payload is undefined we already deleted it (or it wasn't present)
+  if (payload !== undefined) {
+    const mergeChanged = mergeProvider(document, providerName, payload);
+    changed = changed || mergeChanged;
+  }
+
+  return changed;
 }
 
 export function swapProviderVariant(
