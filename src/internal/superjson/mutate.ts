@@ -458,15 +458,18 @@ export function setProfileProvider(
       changed = true;
       delete profile.providers[providerName];
 
-      // remove from priority
-      if (profile.priority !== undefined) {
-        const index = profile.priority.indexOf(providerName);
-        if (index >= 0) {
-          profile.priority.splice(index, 1);
-        }
+      // remove from priority, but only if we are actually deleting
+      // otherwise preserve the priority order
+      if (payload === undefined) {
+        if (profile.priority !== undefined) {
+          const index = profile.priority.indexOf(providerName);
+          if (index >= 0) {
+            profile.priority.splice(index, 1);
+          }
 
-        if (profile.priority.length === 0) {
-          delete profile.priority;
+          if (profile.priority.length === 0) {
+            delete profile.priority;
+          }
         }
       }
 

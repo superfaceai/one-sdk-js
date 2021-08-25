@@ -1394,6 +1394,40 @@ describe('superjson mutate', () => {
         },
       });
     });
+
+    it('preserves existing profile priority when overwriting', () => {
+      superjson = new SuperJson({
+        profiles: {
+          [TEST_PROFILE_NAME]: {
+            version: '0.0.0',
+            priority: [TEST_PROFILE_PROVIDER, 'otherProvider'],
+            providers: {
+              [TEST_PROFILE_PROVIDER]: {},
+              otherProvider: {},
+            },
+          },
+        },
+      });
+
+      expect(
+        superjson.setProfileProvider(TEST_PROFILE_NAME, TEST_PROFILE_PROVIDER, {
+          file: 'file',
+        })
+      ).toStrictEqual(true);
+
+      expect(superjson.document).toStrictEqual({
+        profiles: {
+          [TEST_PROFILE_NAME]: {
+            version: '0.0.0',
+            priority: [TEST_PROFILE_PROVIDER, 'otherProvider'],
+            providers: {
+              [TEST_PROFILE_PROVIDER]: { file: 'file' },
+              otherProvider: {},
+            },
+          },
+        },
+      });
+    });
   });
 
   describe('when swapping profile provider variant', () => {
