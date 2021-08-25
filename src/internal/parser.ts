@@ -39,46 +39,31 @@ export class Parser {
     }
 
     // If we already have parsed map in cache file, load it
-    let fileExists = false;
-    try {
-      fileExists = (await fsp.stat(hashedPath)).isFile();
-    } catch (e) {
-      void e;
-    }
-    if (fileExists) {
-      const parsedMap = assertMapDocumentNode(
-        JSON.parse(await fsp.readFile(hashedPath, { encoding: 'utf8' }))
+    {
+      const parsedMap = await Parser.loadCached(
+        hashedPath,
+        assertMapDocumentNode,
+        this.mapCache
       );
-      this.mapCache[hashedPath] = parsedMap;
-
-      return parsedMap;
+      if (parsedMap !== undefined) {
+        return parsedMap;
+      }
     }
 
     // If not, delete old parsed maps
-    const cachedFileRegex = new RegExp(
-      `${info.providerName}-[0-9a-f]+${EXTENSIONS.map.build}`
+    await Parser.clearFileCache(
+      `${info.providerName}-[0-9a-f]+${EXTENSIONS.map.build}`,
+      cachePath
     );
-    try {
-      for (const file of (await fsp.readdir(cachePath)).filter(cachedFile =>
-        cachedFileRegex.test(cachedFile)
-      )) {
-        await fsp.unlink(file);
-      }
-    } catch (e) {
-      console.log(e);
-      void e;
-    }
 
     // And write parsed file to cache
     const parsedMap = parseMap(new Source(input, fileName));
-    this.mapCache[hashedPath] = parsedMap;
-    try {
-      await fsp.mkdir(cachePath, { recursive: true });
-      await fsp.writeFile(hashedPath, JSON.stringify(parsedMap));
-    } catch (e) {
-      // Fail silently as the cache is strictly speaking unnecessary
-      void e;
-    }
+    await Parser.writeFileCache(
+      parsedMap,
+      this.mapCache,
+      cachePath,
+      hashedPath
+    );
 
     return parsedMap;
   }
@@ -105,47 +90,92 @@ export class Parser {
     }
 
     // If we already have parsed map in cache file, load it
+    {
+      const parsedProfile = await Parser.loadCached(
+        hashedPath,
+        assertProfileDocumentNode,
+        this.profileCache
+      );
+      if (parsedProfile !== undefined) {
+        return parsedProfile;
+      }
+    }
+
+    // If not, delete old parsed profiles
+    await Parser.clearFileCache(
+      `${info.profileName}-[0-9a-f]+${EXTENSIONS.profile.build}`,
+      cachePath
+    );
+
+    // And write parsed file to cache
+    const parsedProfile = parseProfile(new Source(input, fileName));
+    await this.writeFileCache(
+      parsedProfile,
+      this.profileCache,
+      cachePath,
+      hashedPath
+    );
+
+    return parsedProfile;
+  }
+
+  private static async loadCached<
+    T extends MapDocumentNode | ProfileDocumentNode
+  >(
+    path: string,
+    assertion: (node: unknown) => T,
+    cache: Record<string, T>
+  ): Promise<T | undefined> {
     let fileExists = false;
     try {
-      fileExists = (await fsp.stat(hashedPath)).isFile();
+      fileExists = (await fsp.stat(path)).isFile();
     } catch (e) {
       void e;
     }
     if (fileExists) {
-      const parsedProfile = assertProfileDocumentNode(
-        JSON.parse(await fsp.readFile(hashedPath, { encoding: 'utf8' }))
+      const parsed = assertion(
+        JSON.parse(await fsp.readFile(path, { encoding: 'utf8' }))
       );
-      this.profileCache[hashedPath] = parsedProfile;
+      cache[path] = parsed;
 
-      return parsedProfile;
+      return parsed;
     }
 
-    // If not, delete old parsed profiles
-    const cachedFileRegex = new RegExp(
-      `${info.profileName}-[0-9a-f]+${EXTENSIONS.profile.build}`
-    );
+    return undefined;
+  }
+
+  private static async clearFileCache(
+    nameFormat: string,
+    path: string
+  ): Promise<void> {
+    const cachedFileRegex = new RegExp(nameFormat);
     try {
-      for (const file of (await fsp.readdir(cachePath)).filter(cachedFile =>
+      for (const file of (await fsp.readdir(path)).filter(cachedFile =>
         cachedFileRegex.test(cachedFile)
       )) {
-        await fsp.unlink(file);
+        await fsp.unlink(joinPath(path, file));
       }
     } catch (e) {
       void e;
     }
+  }
 
-    // And write parsed file to cache
-    const parsedProfile = parseProfile(new Source(input, fileName));
-    this.profileCache[hashedPath] = parsedProfile;
+  private static async writeFileCache<
+    T extends MapDocumentNode | ProfileDocumentNode
+  >(
+    node: T,
+    cache: Record<string, T>,
+    cachePath: string,
+    filePath: string
+  ): Promise<void> {
+    cache[filePath] = node;
     try {
       await fsp.mkdir(cachePath, { recursive: true });
-      await fsp.writeFile(hashedPath, JSON.stringify(parsedProfile));
+      await fsp.writeFile(filePath, JSON.stringify(node));
     } catch (e) {
       // Fail silently as the cache is strictly speaking unnecessary
       void e;
     }
-
-    return parsedProfile;
   }
 
   private static hash(input: string): string {

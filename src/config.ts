@@ -26,8 +26,8 @@ export const DEFAULT_METRIC_DEBOUNCE_TIME = {
 };
 export const DEFAULT_CACHE_PATH = joinPath(
   process.cwd(),
-  '.cache',
-  'superface'
+  'superface',
+  '.cache'
 );
 
 // Extraction functions
