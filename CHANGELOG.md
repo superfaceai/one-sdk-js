@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.31] - 2021-08-25
 ### Added
 - Superjson mutate set methods for profile, profileProvider and provider
 
@@ -213,7 +214,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Profile parameter validator
 - CI/CD workflows
 
-[Unreleased]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.30...HEAD
+[Unreleased]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.31...HEAD
+[0.0.31]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.30...v0.0.31
 [0.0.30]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.29...v0.0.30
 [0.0.29]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.29-beta.7...v0.0.29
 [0.0.29-beta.7]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.29-beta.6...v0.0.29-beta.7
