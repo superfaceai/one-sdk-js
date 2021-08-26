@@ -525,10 +525,13 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
       .find(definition => definition.usecaseName === this.parameters.usecase);
 
     if (!operation) {
-      throw new MapASTError(`Usecase not found!`, {
-        node,
-        ast: this.ast,
-      });
+      throw new MapASTError(
+        `Usecase not found: ${this.parameters.usecase ?? 'undefined'}!`,
+        {
+          node,
+          ast: this.ast,
+        }
+      );
     }
 
     return await this.visit(operation);

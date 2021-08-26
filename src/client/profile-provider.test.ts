@@ -565,7 +565,7 @@ describe('profile provider', () => {
         );
       });
 
-      it('returns new BoundProfileProvider when map is provided localy but provider is not', async () => {
+      it('returns new BoundProfileProvider when map is provided locally but provider is not', async () => {
         mocked(fetchBind).mockResolvedValue(mockFetchResponse);
         //normalized is getter on SuperJson - unable to mock or spy on
         Object.assign(mockSuperJson, {
@@ -600,7 +600,6 @@ describe('profile provider', () => {
           mockProviderConfiguration,
           mockSuperfacClient
         );
-
         const result = await mockProfileProvider.bind();
 
         expect(result).toMatchObject(expectedBoundProfileProvider);

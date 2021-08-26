@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.0.30] - 2021-08-24
 ### Added
 - Failover event adapter failover restore in `pre-bind-and-perform` hook
+- Maps and profiles are parsed on-the-fly
 - Superjson mutate swap variant methods for provider and profile provider
 
 ### Changed
