@@ -649,22 +649,27 @@
   dependencies:
     "@sinonjs/commons" "^1.7.0"
 
-"@superfaceai/ast@0.0.28", "@superfaceai/ast@^0.0.28":
+"@superfaceai/ast@0.0.23":
+  version "0.0.23"
+  resolved "https://registry.yarnpkg.com/@superfaceai/ast/-/ast-0.0.23.tgz#0e58a76b45c0a2dadc72499001d32d0c37cf4128"
+  integrity sha512-9SKqJmC/g8caDZ9T4RcWm43D4f/UFCX57nX8a1J9dM0/GRtMq1fsPt+qcEmCTyys2Gt9JGzH8MDCBym2F92MBg==
+
+"@superfaceai/ast@^0.0.28":
   version "0.0.28"
   resolved "https://registry.yarnpkg.com/@superfaceai/ast/-/ast-0.0.28.tgz#8953bda490515bdffdb18209360be44e8a9fa543"
   integrity sha512-gPnmjeL/j73gTFRnseqYdXjbyxrJAQVvmM+XrH1cVZbcsNnc3c9e/a3ra2HWOVK2f4e4FbZiXVfre5qrL4Abeg==
   dependencies:
     typescript-is "^0.18.3"
 
-"@superfaceai/parser@^0.0.21":
-  version "0.0.21"
-  resolved "https://registry.yarnpkg.com/@superfaceai/parser/-/parser-0.0.21.tgz#ff7c0b5f2d22d83ebc14eab1d15838467bd54f96"
-  integrity sha512-dFuzulFKyKXvj6iBolINrIECALCZOwmHlDMR88VU6Whn7+lYJ2ygutnOmZsicWsF/otLfK0Fcd9bpRpM7lOwBg==
+"@superfaceai/parser@^0.0.19":
+  version "0.0.19"
+  resolved "https://registry.yarnpkg.com/@superfaceai/parser/-/parser-0.0.19.tgz#d5c1be386a37d9fda4db2993a10936291abdc259"
+  integrity sha512-XkVe2V5FFfbItz7mZ0Dr/pymTNpcM7ZDuRa91gotIpWBUGBuXM7zWyDEkMPp7quUeKA2qZ3SA7UAmU7yF1XKEA==
   dependencies:
-    "@superfaceai/ast" "^0.0.28"
+    "@superfaceai/ast" "0.0.23"
     "@types/debug" "^4.1.5"
     debug "^4.3.1"
-    typescript "^4"
+    typescript "~4.1"
 
 "@tootallnate/once@1":
   version "1.1.2"
@@ -4526,10 +4531,15 @@ typescript-is@^0.18.3:
   optionalDependencies:
     reflect-metadata ">=0.1.12"
 
-typescript@4.3.5, typescript@^4:
+typescript@4.3.5:
   version "4.3.5"
   resolved "https://registry.yarnpkg.com/typescript/-/typescript-4.3.5.tgz#4d1c37cc16e893973c45a06886b7113234f119f4"
   integrity sha512-DqQgihaQ9cUrskJo9kIyW/+g0Vxsk8cDtZ52a3NGh0YNTfpUSArXSohyUGnvbPazEPLu398C0UxmKSOrPumUzA==
+
+typescript@~4.1:
+  version "4.1.6"
+  resolved "https://registry.yarnpkg.com/typescript/-/typescript-4.1.6.tgz#1becd85d77567c3c741172339e93ce2e69932138"
+  integrity sha512-pxnwLxeb/Z5SP80JDRzVjh58KsM6jZHRAOtTpS7sXLS4ogXNKC9ANxHHZqLLeVHZN35jCtI4JdmLLbLiC1kBow==
 
 ultron@~1.1.0:
   version "1.1.1"
