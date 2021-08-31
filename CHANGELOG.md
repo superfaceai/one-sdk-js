@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.33] - 2021-08-31
+
 ## [0.0.33-beta.0] - 2021-08-30
 
 ## [0.0.32-beta.0] - 2021-08-30
@@ -219,7 +221,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Profile parameter validator
 - CI/CD workflows
 
-[Unreleased]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.33-beta.0...HEAD
+[Unreleased]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.33...HEAD
+[0.0.33]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.33-beta.0...v0.0.33
 [0.0.33-beta.0]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.32-beta.0...v0.0.33-beta.0
 [0.0.32-beta.0]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.31...v0.0.32-beta.0
 [0.0.31]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.30...v0.0.31
