@@ -2,6 +2,7 @@ import { MapDocumentNode, ProfileDocumentNode } from '@superfaceai/ast';
 import { promises as fsp } from 'fs';
 import { mocked } from 'ts-jest/utils';
 
+import { localProviderAndRemoteMapError } from '../internal/errors.helpers';
 import { MapInterpreter } from '../internal/interpreter/map-interpreter';
 import { MapASTError } from '../internal/interpreter/map-interpreter.errors';
 import { ProfileParameterValidator } from '../internal/interpreter/profile-parameter-validator';
@@ -498,7 +499,9 @@ describe('profile provider', () => {
                 version: '1.0.0',
                 defaults: {},
                 providers: {
-                  test: {},
+                  test: {
+                    file: 'file://some/file',
+                  },
                 },
               },
             },
@@ -557,7 +560,7 @@ describe('profile provider', () => {
         const mockProfileProvider = new ProfileProvider(
           mockSuperJson,
           'test-profile',
-          mockProviderConfiguration,
+          'test',
           mockSuperfacClient
         );
         await expect(mockProfileProvider.bind()).rejects.toThrow(
@@ -605,6 +608,51 @@ describe('profile provider', () => {
         expect(result).toMatchObject(expectedBoundProfileProvider);
       });
 
+      it('throws error when provider is provided locally but map is not', async () => {
+        //normalized is getter on SuperJson - unable to mock or spy on
+        Object.assign(mockSuperJson, {
+          normalized: {
+            profiles: {
+              ['test-profile']: {
+                version: '1.0.0',
+                defaults: {},
+                providers: {
+                  test: {},
+                },
+              },
+            },
+            providers: {
+              test: {
+                file: 'file://some/file',
+              },
+            },
+          },
+        });
+
+        mocked(mockResolvePath).mockReturnValue('file://some/path/to');
+
+        jest
+          .spyOn(fsp, 'readFile')
+          .mockResolvedValueOnce(JSON.stringify(mockProfileDocument))
+          .mockResolvedValueOnce(JSON.stringify(mockProviderJson));
+
+        mocked(fetchProviderInfo).mockResolvedValue(mockProviderJson);
+
+        const mockProfileProvider = new ProfileProvider(
+          mockSuperJson,
+          'test-profile',
+          mockProviderConfiguration,
+          mockSuperfacClient
+        );
+
+        await expect(() => mockProfileProvider.bind()).rejects.toThrow(
+          localProviderAndRemoteMapError(
+            mockProviderJson.name,
+            mockProfileDocument.header.name
+          )
+        );
+      });
+
       it('throws error without profile provider settings', async () => {
         mocked(fetchBind).mockResolvedValue(mockFetchResponse);
         //normalized is getter on SuperJson - unable to mock or spy on
@@ -620,7 +668,6 @@ describe('profile provider', () => {
             },
             providers: {
               test: {
-                file: 'file://some/file',
                 security: [],
               },
             },
@@ -707,7 +754,9 @@ describe('profile provider', () => {
               ['test-profile']: {
                 version: '1.0.0',
                 defaults: {},
-                providers: {},
+                providers: {
+                  test: {},
+                },
               },
             },
             providers: {
@@ -729,7 +778,7 @@ describe('profile provider', () => {
         const mockProfileProvider = new ProfileProvider(
           mockSuperJson,
           mockProfileDocument,
-          mockProviderJson,
+          'test',
           mockSuperfacClient
         );
 
@@ -747,7 +796,9 @@ but a secret value was provided for security scheme: made-up-id`
               ['test-profile']: {
                 version: '1.0.0',
                 defaults: {},
-                providers: {},
+                providers: {
+                  test: {},
+                },
               },
             },
             providers: {
@@ -768,7 +819,7 @@ but a secret value was provided for security scheme: made-up-id`
         const mockProfileProvider = new ProfileProvider(
           mockSuperJson,
           mockProfileDocument,
-          mockProviderJson,
+          'test',
           mockSuperfacClient
         );
 
@@ -786,7 +837,9 @@ but apiKey scheme requires: apikey`
               ['test-profile']: {
                 version: '1.0.0',
                 defaults: {},
-                providers: {},
+                providers: {
+                  test: {},
+                },
               },
             },
             providers: {
@@ -807,7 +860,7 @@ but apiKey scheme requires: apikey`
         const mockProfileProvider = new ProfileProvider(
           mockSuperJson,
           mockProfileDocument,
-          mockProviderJson,
+          'test',
           mockSuperfacClient
         );
 
@@ -825,7 +878,9 @@ but http scheme requires: username, password`
               ['test-profile']: {
                 version: '1.0.0',
                 defaults: {},
-                providers: {},
+                providers: {
+                  test: {},
+                },
               },
             },
             providers: {
@@ -846,7 +901,7 @@ but http scheme requires: username, password`
         const mockProfileProvider = new ProfileProvider(
           mockSuperJson,
           mockProfileDocument,
-          mockProviderJson,
+          'test',
           mockSuperfacClient
         );
 
@@ -864,7 +919,9 @@ but http scheme requires: token`
               ['test-profile']: {
                 version: '1.0.0',
                 defaults: {},
-                providers: {},
+                providers: {
+                  test: {},
+                },
               },
             },
             providers: {
@@ -885,7 +942,7 @@ but http scheme requires: token`
         const mockProfileProvider = new ProfileProvider(
           mockSuperJson,
           mockProfileDocument,
-          mockProviderJson,
+          'test',
           mockSuperfacClient
         );
 
