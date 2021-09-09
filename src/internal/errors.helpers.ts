@@ -318,6 +318,24 @@ export function invalidProfileProviderError(
   );
 }
 
+export function localProviderAndRemoteMapError(
+  providerName: string,
+  profileId: string
+): SDKExecutionError {
+  return new SDKExecutionError(
+    `Unable to use local provider ${providerName} and remote profile provider (map)`,
+    [
+      `Super.json settings: ${profileId}.providers.${providerName}`,
+      `Super.json settings providers.${providerName}`,
+    ],
+    [
+      `Use local provider and profile provider (map)`,
+      `Use remote provider and profile provider (map)`,
+      `Use remote provider and local profile provider (map)`,
+    ]
+  );
+}
+
 export function referencedFileNotFoundError(
   fileName: string,
   extensions: string[]

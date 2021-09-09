@@ -19,6 +19,7 @@ import {
 import {
   invalidProfileError,
   invalidSecurityValuesError,
+  localProviderAndRemoteMapError,
   referencedFileNotFoundError,
   securityNotFoundError,
   serviceNotFoundError,
@@ -255,6 +256,11 @@ export class ProfileProvider {
 
     // resolve map ast using bind and fill in provider info if not specified
     if (mapAst === undefined) {
+      profileProviderDebug('Fetching map from store');
+      //throw error when we have remote map and local provider
+      if (providerInfo) {
+        throw localProviderAndRemoteMapError(providerName, this.profileId);
+      }
       const fetchResponse = await fetchBind({
         profileId:
           profileId +
