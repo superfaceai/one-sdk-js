@@ -68,6 +68,8 @@ export class CrossFetch implements FetchInstance, Interceptable {
       parameters.headers?.['accept']?.includes(JSON_CONTENT)
     ) {
       body = await response.json();
+    } else if (this.isBinaryContent(headers, parameters.headers)) {
+      body = await response.arrayBuffer();
     } else {
       body = await response.text();
     }
@@ -192,5 +194,34 @@ export class CrossFetch implements FetchInstance, Interceptable {
 
   private urlSearchParams(data?: Record<string, string>): URLSearchParams {
     return new URLSearchParams(data);
+  }
+
+  private isBinaryContent(
+    responseHeaders: Record<string, string>,
+    requestHeaders?: Record<string, string | string[]>
+  ): boolean {
+    const binaryContentTypesRx =
+      /application\/octet-stream|video\/.*|audio\/.*|image\/.*/;
+
+    if (
+      responseHeaders['content-type'] &&
+      binaryContentTypesRx.test(responseHeaders['content-type'])
+    ) {
+      return true;
+    }
+
+    if (requestHeaders && requestHeaders['accept']) {
+      if (typeof requestHeaders['accept'] === 'string') {
+        return binaryContentTypesRx.test(requestHeaders['accept']);
+      } else {
+        for (const value of requestHeaders['accept']) {
+          if (binaryContentTypesRx.test(value)) {
+            return true;
+          }
+        }
+      }
+    }
+
+    return false;
   }
 }
