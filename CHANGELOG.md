@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Export `ErrorBase`, `SDKExecutionError` and `UnexpectedError` classes
+
 ## [0.0.33] - 2021-08-31
 
 ## [0.0.33-beta.0] - 2021-08-30
