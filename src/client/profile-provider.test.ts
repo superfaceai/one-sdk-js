@@ -68,7 +68,7 @@ describe('profile provider', () => {
           patch: 0,
         },
       },
-      provider: 'test-profile',
+      provider: 'test',
     },
     definitions: [],
   };
@@ -950,36 +950,6 @@ but http scheme requires: token`
           `The provided security values with id "digest" have keys: password
 but http scheme requires: digest`
         );
-      });
-
-      it('throws when super.json and passed providers do not match', async () => {
-        mocked(fetchBind).mockResolvedValue(mockFetchResponse);
-        // normalized is getter on SuperJson - unable to mock or spy on
-        Object.assign(mockSuperJson, {
-          normalized: {
-            profiles: {
-              ['test-profile']: {
-                version: '1.0.0',
-                defaults: {},
-                providers: {},
-              },
-            },
-            providers: {
-              test: {
-                security: [],
-              },
-            },
-          },
-        });
-
-        const mockProfileProvider = new ProfileProvider(
-          mockSuperJson,
-          mockProfileDocument,
-          'test',
-          mockSuperfacClient
-        );
-
-        await expect(mockProfileProvider.bind()).rejects.toThrow('banana');
       });
 
       it('throws when super.json and provider.json provider names do not match', async () => {
