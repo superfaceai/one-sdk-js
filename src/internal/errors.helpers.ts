@@ -350,3 +350,18 @@ export function referencedFileNotFoundError(
     []
   );
 }
+
+export function providersDoNotMatchError(
+  mapOrJsonProvider: string,
+  configProvider: string,
+  source: 'map' | 'provider.json'
+): SDKExecutionError {
+  return new SDKExecutionError(
+    `Provider name in ${source} does not match provider name in configuration`,
+    [
+      `Map file specifies provider "${mapOrJsonProvider}".`,
+      `Configuration specifies provider "${configProvider}".`,
+    ],
+    []
+  );
+}
