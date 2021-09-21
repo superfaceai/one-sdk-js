@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.34-beta.0] - 2021-09-21
 ### Added
 - Export `ErrorBase`, `SDKExecutionError` and `UnexpectedError` classes
 
@@ -224,7 +225,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Profile parameter validator
 - CI/CD workflows
 
-[Unreleased]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.33...HEAD
+[Unreleased]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.34-beta.0...HEAD
+[0.0.34-beta.0]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.33...v0.0.34-beta.0
 [0.0.33]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.33-beta.0...v0.0.33
 [0.0.33-beta.0]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.32-beta.0...v0.0.33-beta.0
 [0.0.32-beta.0]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.31...v0.0.32-beta.0
