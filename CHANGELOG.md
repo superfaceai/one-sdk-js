@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Fixed
 - provider names are validated across super.json, provider.json and map file header
+- when fetch throws an unknown error, it gets passed down the failover machinery
 
 ## [0.0.34-beta.0] - 2021-09-21
 ### Added

@@ -48,8 +48,17 @@ export type HTTPFailure = {
   response: HttpResponse;
 } & BaseEvent;
 
+export type UnknownFailure = {
+  kind: 'unknown';
+  originalError: Error;
+} & BaseEvent;
+
 /** Information about execution failure */
-export type ExecutionFailure = NetworkFailure | RequestFailure | HTTPFailure;
+export type ExecutionFailure =
+  | NetworkFailure
+  | RequestFailure
+  | HTTPFailure
+  | UnknownFailure;
 
 export type ExecutionSuccess = BaseEvent;
 
@@ -123,8 +132,10 @@ export class FailurePolicyReason {
   private static failureToString(failure: ExecutionFailure): string {
     if (failure.kind === 'http') {
       return `Request ended with ${failure.kind} error, status code: ${failure.response.statusCode}`;
-    } else {
+    } else if (failure.kind === 'request' || failure.kind === 'network') {
       return `Request ended with ${failure.kind} error: ${failure.issue}`;
+    } else {
+      return `Request ended with error: ${failure.originalError.toString()}`;
     }
   }
 }
