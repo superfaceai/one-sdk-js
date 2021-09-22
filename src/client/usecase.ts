@@ -223,8 +223,10 @@ class UseCaseBase implements Interceptable {
         retryPolicyConfig.requestTimeout,
         backoff
       );
-    } else {
+    } else if (retryPolicyConfig.kind === OnFail.NONE) {
       policy = new AbortPolicy(usecaseInfo);
+    } else {
+      throw new UnexpectedError('Unreachable point reached.');
     }
 
     return policy;

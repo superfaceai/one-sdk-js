@@ -3,9 +3,9 @@ import createDebug from 'debug';
 import { UnexpectedError } from '../../internal/errors';
 import { clone, sleep } from '../../lib';
 import { Events } from '../../lib/events';
-import { CrossFetchError } from '../../lib/fetch.errors';
+import { isCrossFetchError } from '../../lib/fetch.errors';
 import { FailurePolicyRouter } from './policies';
-import { FailurePolicyReason } from './policy';
+import { ExecutionFailure, FailurePolicyReason } from './policy';
 import {
   AbortResolution,
   RecacheResolution,
@@ -324,13 +324,13 @@ function registerNetworkHooks(hookContext: HooksContext, events: Events): void {
       return { kind: 'continue' };
     }
 
-    let error: CrossFetchError;
+    let error: Error;
     try {
       await res;
 
       return { kind: 'continue' };
     } catch (err: unknown) {
-      error = err as CrossFetchError;
+      error = err as Error;
     }
 
     void events.emit('failure', [
@@ -342,11 +342,24 @@ function registerNetworkHooks(hookContext: HooksContext, events: Events): void {
       },
     ]);
 
-    const resolution = performContext.router.afterFailure({
-      time: context.time.getTime(),
-      registryCacheAge: 0, // TODO,
-      ...error.normalized,
-    });
+    let failure: ExecutionFailure;
+
+    if (isCrossFetchError(error)) {
+      failure = {
+        time: context.time.getTime(),
+        registryCacheAge: 0, // TODO,
+        ...error.normalized,
+      };
+    } else {
+      failure = {
+        kind: 'unknown',
+        time: context.time.getTime(),
+        registryCacheAge: 0,
+        originalError: error,
+      };
+    }
+
+    const resolution = performContext.router.afterFailure(failure);
 
     switch (resolution.kind) {
       case 'continue':

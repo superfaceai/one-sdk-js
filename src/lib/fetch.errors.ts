@@ -39,3 +39,10 @@ export class RequestFetchError extends FetchError {
 }
 
 export type CrossFetchError = NetworkFetchError | RequestFetchError;
+
+export function isCrossFetchError(input: unknown): input is CrossFetchError {
+  return (
+    typeof input === 'object' &&
+    (input instanceof NetworkFetchError || input instanceof RequestFetchError)
+  );
+}
