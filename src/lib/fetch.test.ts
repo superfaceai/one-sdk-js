@@ -5,6 +5,8 @@ import { NetworkFetchError, RequestFetchError } from './fetch.errors';
 
 const mockServer = getLocal();
 
+type ForEachCallbackFunction = (value?: string, type?: string) => void;
+
 describe('fetch', () => {
   beforeEach(async () => {
     await mockServer.start();
@@ -136,5 +138,212 @@ describe('fetch', () => {
         })
       ).rejects.toEqual(new NetworkFetchError('dns'));
     }, 10000);
+  });
+
+  describe('when application/json content type received', () => {
+    let responseJsonMock: jest.Mock;
+    let result: any;
+
+    beforeEach(async () => {
+      const { fetch } = await import('cross-fetch');
+
+      jest.mock('cross-fetch');
+
+      responseJsonMock = jest.fn().mockResolvedValue({
+        foo: 'bar',
+      });
+
+      mocked(fetch).mockResolvedValue({
+        headers: {
+          forEach: jest.fn((callbackfn: ForEachCallbackFunction) => {
+            callbackfn('application/json', 'content-type');
+          }),
+        },
+        json: responseJsonMock,
+      } as any);
+
+      const { CrossFetch } = await import('./fetch');
+
+      const fetchInstance = new CrossFetch();
+
+      result = await fetchInstance.fetch(`${mockServer.url}/test`, {
+        method: 'GET',
+      });
+    });
+
+    it('should call json', async () => {
+      expect(responseJsonMock).toBeCalled();
+    });
+
+    it('should return json object in body', async () => {
+      expect(result.body).toBeInstanceOf(Object);
+      expect(result.body).toStrictEqual({
+        foo: 'bar',
+      });
+    });
+  });
+
+  describe('when text/plain content type received', () => {
+    let responseTextMock: jest.Mock;
+    let result: any;
+
+    beforeEach(async () => {
+      const { fetch } = await import('cross-fetch');
+
+      jest.mock('cross-fetch');
+
+      responseTextMock = jest.fn().mockResolvedValue('foobar');
+
+      mocked(fetch).mockResolvedValue({
+        headers: {
+          forEach: jest.fn((callbackfn: ForEachCallbackFunction) => {
+            callbackfn('text/plain', 'content-type');
+          }),
+        },
+        text: responseTextMock,
+      } as any);
+
+      const { CrossFetch } = await import('./fetch');
+
+      const fetchInstance = new CrossFetch();
+
+      result = await fetchInstance.fetch(`${mockServer.url}/test`, {
+        method: 'GET',
+      });
+    });
+
+    it('should call text', async () => {
+      expect(responseTextMock).toBeCalled();
+    });
+
+    it('should return plain text in body', async () => {
+      expect(result.body).toBe('foobar');
+    });
+  });
+
+  describe('when binary content type received', () => {
+    const binaryContentTypes = [
+      'application/octet-stream',
+      'audio/mp3',
+      'audio/wav',
+      'audio/wav;rate=8000',
+      'video/mp4',
+      'image/jpeg',
+    ];
+
+    for (const contentType of binaryContentTypes) {
+      describe(`${contentType}`, () => {
+        let responseArrayBufferMock: jest.Mock;
+        let result: any;
+
+        beforeEach(async () => {
+          const { fetch } = await import('cross-fetch');
+
+          jest.mock('cross-fetch');
+
+          responseArrayBufferMock = jest
+            .fn()
+            .mockResolvedValue(Buffer.from('foobar'));
+
+          mocked(fetch).mockResolvedValue({
+            headers: {
+              forEach: jest.fn((callbackfn: ForEachCallbackFunction) => {
+                callbackfn(contentType, 'content-type');
+              }),
+            },
+            arrayBuffer: responseArrayBufferMock,
+          } as any);
+
+          const { CrossFetch } = await import('./fetch');
+
+          const fetchInstance = new CrossFetch();
+
+          result = await fetchInstance.fetch(`${mockServer.url}/test`, {
+            method: 'GET',
+          });
+        });
+
+        it('should call arrayBuffer', async () => {
+          expect(responseArrayBufferMock).toBeCalled();
+        });
+
+        it('should return instance of Buffer in body', async () => {
+          expect(result.body).toBeInstanceOf(Buffer);
+        });
+      });
+    }
+  });
+
+  describe('when application/octet-stream content type accepted', () => {
+    let responseArrayBufferMock: jest.Mock;
+
+    beforeEach(async () => {
+      const { fetch } = await import('cross-fetch');
+
+      jest.mock('cross-fetch');
+
+      responseArrayBufferMock = jest
+        .fn()
+        .mockResolvedValue(Buffer.from('foobar'));
+
+      mocked(fetch).mockResolvedValue({
+        headers: {
+          forEach: jest.fn((callbackfn: ForEachCallbackFunction) => {
+            callbackfn(undefined, undefined);
+          }),
+        },
+        arrayBuffer: responseArrayBufferMock,
+      } as any);
+    });
+
+    describe('when accept header contains string value', () => {
+      let result: any;
+
+      beforeEach(async () => {
+        const { CrossFetch } = await import('./fetch');
+
+        const fetchInstance = new CrossFetch();
+
+        result = await fetchInstance.fetch(`${mockServer.url}/test`, {
+          method: 'GET',
+          headers: {
+            accept: 'application/octet-stream',
+          },
+        });
+      });
+
+      it('should call arrayBuffer', async () => {
+        expect(responseArrayBufferMock).toBeCalled();
+      });
+
+      it('should return instance of Buffer in body', async () => {
+        expect(result.body).toBeInstanceOf(Buffer);
+      });
+    });
+
+    describe('when accept header contains array of string values', () => {
+      let result: any;
+
+      beforeEach(async () => {
+        const { CrossFetch } = await import('./fetch');
+
+        const fetchInstance = new CrossFetch();
+
+        result = await fetchInstance.fetch(`${mockServer.url}/test`, {
+          method: 'GET',
+          headers: {
+            accept: ['application/octet-stream'],
+          },
+        });
+      });
+
+      it('should call arrayBuffer', async () => {
+        expect(responseArrayBufferMock).toBeCalled();
+      });
+
+      it('should return instance of Buffer in body', async () => {
+        expect(result.body).toBeInstanceOf(Buffer);
+      });
+    });
   });
 });
