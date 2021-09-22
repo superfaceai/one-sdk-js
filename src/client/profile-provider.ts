@@ -20,6 +20,7 @@ import {
   invalidProfileError,
   invalidSecurityValuesError,
   localProviderAndRemoteMapError,
+  providersDoNotMatchError,
   referencedFileNotFoundError,
   securityNotFoundError,
   serviceNotFoundError,
@@ -246,6 +247,17 @@ export class ProfileProvider {
       configuration?.security
     );
 
+    const thisProviderName =
+      typeof this.provider === 'string' ? this.provider : this.provider.name;
+
+    if (providerName !== thisProviderName) {
+      throw providersDoNotMatchError(
+        providerName,
+        thisProviderName,
+        'provider.json'
+      );
+    }
+
     // resolve map from parameters or defer until later
     const resolvedMapAst = await this.resolveMapAst(
       `${profileId}.${providerName}`
@@ -275,6 +287,14 @@ export class ProfileProvider {
     } else if (providerInfo === undefined) {
       // resolve only provider info if map is specified locally
       providerInfo = await fetchProviderInfo(providerName);
+    }
+
+    if (providerName !== mapAst.header.provider) {
+      throw providersDoNotMatchError(
+        mapAst.header.provider,
+        providerName,
+        'map'
+      );
     }
 
     // prepare service info

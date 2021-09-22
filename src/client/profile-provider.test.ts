@@ -68,7 +68,7 @@ describe('profile provider', () => {
           patch: 0,
         },
       },
-      provider: 'test-profile',
+      provider: 'test',
     },
     definitions: [],
   };
@@ -949,6 +949,121 @@ but http scheme requires: token`
         await expect(mockProfileProvider.bind()).rejects.toThrow(
           `The provided security values with id "digest" have keys: password
 but http scheme requires: digest`
+        );
+      });
+
+      it('throws when super.json and provider.json provider names do not match', async () => {
+        mocked(fetchBind).mockResolvedValue(mockFetchResponse);
+        // normalized is getter on SuperJson - unable to mock or spy on
+        Object.assign(mockSuperJson, {
+          normalized: {
+            profiles: {
+              ['test-profile']: {
+                file: 'file://some/profile/file',
+                version: '1.0.0',
+                defaults: {},
+                providers: {
+                  test: {
+                    file: 'file://some/map/file',
+                  },
+                },
+              },
+            },
+            providers: {
+              'test-boop': {
+                file: 'file://some/provider/file',
+                security: [],
+              },
+            },
+          },
+        });
+
+        mocked(mockResolvePath).mockReturnValue('file://some/path/to');
+
+        jest
+          .spyOn(fsp, 'readFile')
+          .mockResolvedValueOnce(JSON.stringify(mockProfileDocument))
+          .mockResolvedValueOnce(JSON.stringify(mockProviderJson))
+          .mockResolvedValueOnce(JSON.stringify(mockMapDocument));
+
+        const providerConfiguration = new ProviderConfiguration(
+          'test-boop',
+          []
+        );
+
+        const mockProfileProvider = new ProfileProvider(
+          mockSuperJson,
+          'test-profile',
+          providerConfiguration,
+          mockSuperfacClient
+        );
+
+        await expect(mockProfileProvider.bind()).rejects.toThrow(
+          'Provider name in provider.json does not match provider name in configuration'
+        );
+      });
+
+      it('throws when super.json and map provider names do not match', async () => {
+        mocked(fetchBind).mockResolvedValue(mockFetchResponse);
+        // normalized is getter on SuperJson - unable to mock or spy on
+        Object.assign(mockSuperJson, {
+          normalized: {
+            profiles: {
+              ['test-profile']: {
+                file: 'file://some/profile/file',
+                version: '1.0.0',
+                defaults: {},
+                providers: {
+                  test: {
+                    file: 'file://some/map/file',
+                  },
+                },
+              },
+            },
+            providers: {
+              test: {
+                file: 'file://some/provider/file',
+                security: [],
+              },
+            },
+          },
+        });
+
+        const mockMapDocumentBoop: MapDocumentNode = {
+          kind: 'MapDocument',
+          header: {
+            kind: 'MapHeader',
+            profile: {
+              name: 'different-test-profile',
+              scope: 'some-map-scope',
+              version: {
+                major: 1,
+                minor: 0,
+                patch: 0,
+              },
+            },
+            provider: 'test-boop',
+          },
+          definitions: [],
+        };
+
+        mocked(mockResolvePath).mockReturnValue('file://some/path/to');
+
+        jest
+          .spyOn(fsp, 'readFile')
+          .mockResolvedValueOnce(JSON.stringify(mockProfileDocument))
+          .mockResolvedValueOnce(JSON.stringify(mockProviderJson))
+          .mockResolvedValueOnce(JSON.stringify(mockMapDocumentBoop));
+
+        const mockProfileProvider = new ProfileProvider(
+          mockSuperJson,
+          'test-profile',
+          mockProviderConfiguration,
+          mockSuperfacClient
+        );
+
+        await expect(mockProfileProvider.bind()).rejects.toThrow(
+          'Provider name in map does not match provider name in configuration'
         );
       });
     });
