@@ -75,8 +75,10 @@ function failurePolicyReasonToFailoverReason(
           return FailoverReason.REQUEST_ERROR_ABORT;
       }
     } else {
-      if (reason.data.failure.response.statusCode === 500) {
-        return FailoverReason.HTTP_ERROR_500;
+      if (reason.data.failure.kind === 'http') {
+        if (reason.data.failure.response.statusCode === 500) {
+          return FailoverReason.HTTP_ERROR_500;
+        }
       }
     }
   }

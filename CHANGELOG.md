@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Fixed
+- provider names are validated across super.json, provider.json and map file header
+- when fetch throws an unknown error, it gets passed down the failover machinery
+
+## [0.0.34-beta.0] - 2021-09-21
+### Added
+- Export `ErrorBase`, `SDKExecutionError` and `UnexpectedError` classes
 
 ## [0.0.33] - 2021-08-31
 
@@ -221,7 +228,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Profile parameter validator
 - CI/CD workflows
 
-[Unreleased]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.33...HEAD
+[Unreleased]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.34-beta.0...HEAD
+[0.0.34-beta.0]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.33...v0.0.34-beta.0
 [0.0.33]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.33-beta.0...v0.0.33
 [0.0.33-beta.0]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.32-beta.0...v0.0.33-beta.0
 [0.0.32-beta.0]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.31...v0.0.32-beta.0
