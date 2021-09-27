@@ -1648,7 +1648,7 @@ describe('MapInterpreter', () => {
     expect(result.isOk() && result.value).toEqual({ answer: 42 });
   });
 
-  it('should merge results', async () => {
+  it.skip('should merge results', async () => {
     const ast: MapDocumentNode = {
       kind: 'MapDocument',
       header,
