@@ -42,6 +42,12 @@ describe('superface client', () => {
       quz: {},
     },
   };
+  const MOCK_SUPERJSON_NO_PROVIDER_PATH = 'some other path';
+  const MOCK_SUPERJSON_NO_PROVIDER = {
+    profiles: {
+      foo: 'file://foo.supr',
+    },
+  };
   //Mock super json for custom path
   const MOCK_SUPERJSON_CUSTOM_PATH = {
     profiles: {
@@ -65,6 +71,10 @@ describe('superface client', () => {
         return {
           isFile: () => path === CUSTOM_PATH,
         };
+      } else if (path === MOCK_SUPERJSON_NO_PROVIDER_PATH) {
+        return {
+          isFile: () => path === MOCK_SUPERJSON_NO_PROVIDER_PATH,
+        };
       } else {
         throw { code: 'ENOENT' };
       }
@@ -74,6 +84,8 @@ describe('superface client', () => {
         return JSON.stringify(MOCK_SUPERJSON);
       } else if (path === CUSTOM_PATH) {
         return JSON.stringify(MOCK_SUPERJSON_CUSTOM_PATH);
+      } else if (path === MOCK_SUPERJSON_NO_PROVIDER_PATH) {
+        return JSON.stringify(MOCK_SUPERJSON_NO_PROVIDER);
       } else {
         throw { code: 'ENOENT' };
       }
@@ -203,11 +215,15 @@ but this path does not exist or is not accessible`
 
   describe('getProviderForProfile', () => {
     it('throws when providers are not configured', async () => {
+      const orignalPath = Config.instance().superfacePath;
+      Config.instance().superfacePath = CUSTOM_PATH;
+
       const client = new SuperfaceClient();
 
       await expect(client.getProviderForProfile('foo')).rejects.toThrow(
         'Profile "foo" needs at least one configured provider for automatic provider selection'
       );
+      Config.instance().superfacePath = orignalPath;
     });
 
     it('returns a configured provider when present', async () => {
