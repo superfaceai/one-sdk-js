@@ -1,4 +1,5 @@
 import { MapDocumentNode, MapHeaderNode } from '@superfaceai/ast';
+import { parseMap, Source } from '@superfaceai/parser';
 import { getLocal } from 'mockttp';
 
 import { CrossFetch } from '../../lib/fetch';
@@ -1649,82 +1650,22 @@ describe('MapInterpreter', () => {
   });
 
   it('should merge results', async () => {
-    const ast: MapDocumentNode = {
-      kind: 'MapDocument',
-      header,
-      definitions: [
-        {
-          kind: 'MapDefinition',
-          name: 'test',
-          usecaseName: 'test',
-          statements: [
-            {
-              kind: 'CallStatement',
-              operationName: 'foo',
-              arguments: [],
-              statements: [
-                {
-                  kind: 'OutcomeStatement',
-                  isError: false,
-                  terminateFlow: false,
-                  value: {
-                    kind: 'ObjectLiteral',
-                    fields: [
-                      {
-                        kind: 'Assignment',
-                        key: ['a'],
-                        value: {
-                          kind: 'PrimitiveLiteral',
-                          value: 41,
-                        },
-                      },
-                    ],
-                  },
-                },
-              ],
-            },
-            {
-              kind: 'CallStatement',
-              operationName: 'bar',
-              arguments: [],
-              statements: [
-                {
-                  kind: 'OutcomeStatement',
-                  isError: false,
-                  terminateFlow: false,
-                  value: {
-                    kind: 'ObjectLiteral',
-                    fields: [
-                      {
-                        kind: 'Assignment',
-                        key: ['b'],
-                        value: {
-                          kind: 'PrimitiveLiteral',
-                          value: 42,
-                        },
-                      },
-                    ],
-                  },
-                },
-              ],
-            },
-          ],
-        },
-        {
-          kind: 'OperationDefinition',
-          name: 'foo',
-          statements: [],
-        },
-        {
-          kind: 'OperationDefinition',
-          name: 'bar',
-          statements: [],
-        },
-      ],
-    };
+    const ast: MapDocumentNode = parseMap(
+      new Source(
+        `
+        profile = "test@1.0"
+        provider = "test"
+  
+        map Test {
+          map result { a = 41 }
+          map result { b = 42 }
+        }
+        `
+      )
+    );
     const interpreter = new MapInterpreter(
       {
-        usecase: 'test',
+        usecase: 'Test',
         security: [],
       },
       { fetchInstance }
@@ -2200,115 +2141,27 @@ describe('MapInterpreter', () => {
   });
 
   it('should break from iteration', async () => {
-    const ast: MapDocumentNode = {
-      kind: 'MapDocument',
-      header,
-      definitions: [
-        {
-          kind: 'MapDefinition',
-          name: 'Test',
-          usecaseName: 'Test',
-          statements: [
-            {
-              kind: 'SetStatement',
-              assignments: [
-                {
-                  kind: 'Assignment',
-                  key: ['letters'],
-                  value: {
-                    kind: 'JessieExpression',
-                    expression: "['x', 'y', 'z']",
-                  },
-                },
-              ],
-            },
-            {
-              kind: 'SetStatement',
-              assignments: [
-                {
-                  kind: 'Assignment',
-                  key: ['results'],
-                  value: {
-                    kind: 'JessieExpression',
-                    expression: '[]',
-                  },
-                },
-              ],
-            },
-            {
-              kind: 'CallStatement',
-              operationName: 'TestOp',
-              iteration: {
-                kind: 'IterationAtom',
-                iterationVariable: 'letter',
-                iterable: {
-                  kind: 'JessieExpression',
-                  expression: 'letters.reverse()',
-                },
-              },
-              arguments: [
-                {
-                  kind: 'Assignment',
-                  key: ['letter'],
-                  value: {
-                    kind: 'JessieExpression',
-                    expression: 'letter',
-                  },
-                },
-              ],
-              statements: [
-                {
-                  kind: 'SetStatement',
-                  assignments: [
-                    {
-                      kind: 'Assignment',
-                      key: ['results'],
-                      value: {
-                        kind: 'JessieExpression',
-                        expression: 'results.concat(outcome.data)',
-                      },
-                    },
-                  ],
-                },
-                {
-                  kind: 'OutcomeStatement',
-                  isError: false,
-                  terminateFlow: true,
-                  value: {
-                    kind: 'ObjectLiteral',
-                    fields: [
-                      {
-                        kind: 'Assignment',
-                        key: ['results'],
-                        value: {
-                          kind: 'JessieExpression',
-                          expression: 'results',
-                        },
-                      },
-                    ],
-                  }
-                }
-              ],
-            }
-          ],
-        },
-        {
-          kind: 'OperationDefinition',
-          name: 'TestOp',
-          statements: [
-            {
-              kind: 'OutcomeStatement',
-              isError: false,
-              terminateFlow: true,
-              value: {
-                kind: 'JessieExpression',
-                expression: 'args.letter.toUpperCase()',
-              },
-            },
-          ],
-        },
-      ],
-    };
+    const ast: MapDocumentNode = parseMap(
+      new Source(
+        `
+        profile = "test@1.0"
+        provider = "test"
+  
+        map Test {
+          letters = ['x', 'y', 'z']
+          results = []
+          call foreach(letter of letters.reverse()) TestOp(letter = letter) {
+            results = results.concat(outcome.data)
+
+            return map result { results = results }
+          }
+        }
+        operation TestOp {
+          return args.letter.toUpperCase()
+        }
+        `
+      )
+    );
     const interpreter = new MapInterpreter(
       {
         usecase: 'Test',
@@ -2879,71 +2732,5 @@ describe('MapInterpreter', () => {
     });
 
     expect(result.isOk() && result.value).toEqual('12');
-  });
-
-  it('should correctly return error from operation', async () => {
-    const ast: MapDocumentNode = {
-      kind: 'MapDocument',
-      header,
-      definitions: [
-        {
-          kind: 'MapDefinition',
-          name: 'Test',
-          usecaseName: 'Test',
-          statements: [
-            {
-              kind: 'CallStatement',
-              operationName: 'TestOp',
-              arguments: [
-                {
-                  kind: 'Assignment',
-                  key: ['letter'],
-                  value: {
-                    kind: 'PrimitiveLiteral',
-                    value: 'y'
-                  },
-                },
-              ],
-              statements: [
-                {
-                  kind: 'OutcomeStatement',
-                  isError: false,
-                  terminateFlow: true,
-                  value: {
-                    kind: 'JessieExpression',
-                    expression: 'outcome.error',
-                  },
-                }
-              ],
-            }
-          ],
-        },
-        {
-          kind: 'OperationDefinition',
-          name: 'TestOp',
-          statements: [
-            {
-              kind: 'OutcomeStatement',
-              isError: true,
-              terminateFlow: true,
-              value: {
-                kind: 'JessieExpression',
-                expression: 'args.letter.toUpperCase()',
-              },
-            },
-          ],
-        },
-      ],
-    };
-    const interpreter = new MapInterpreter(
-      {
-        usecase: 'Test',
-        security: [],
-      },
-      { fetchInstance }
-    );
-    const result = await interpreter.perform(ast);
-
-    expect(result.isOk() && result.value).toEqual('Y');
   });
 });

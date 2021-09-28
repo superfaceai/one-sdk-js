@@ -660,10 +660,12 @@
   dependencies:
     "@sinonjs/commons" "^1.7.0"
 
-"@superfaceai/ast@0.0.23":
-  version "0.0.23"
-  resolved "https://registry.yarnpkg.com/@superfaceai/ast/-/ast-0.0.23.tgz#0e58a76b45c0a2dadc72499001d32d0c37cf4128"
-  integrity sha512-9SKqJmC/g8caDZ9T4RcWm43D4f/UFCX57nX8a1J9dM0/GRtMq1fsPt+qcEmCTyys2Gt9JGzH8MDCBym2F92MBg==
+"@superfaceai/ast@^0.0.29":
+  version "0.0.29"
+  resolved "https://registry.yarnpkg.com/@superfaceai/ast/-/ast-0.0.29.tgz#944de20d615029cef666cfe3dfb8511946f471f4"
+  integrity sha512-buUBbk7gX6/E7sTvw9LBANbqAwKTEkH7ptbc4zgOB7caAf08TXpkNgknbTpbvsE7ySnh0nvI2n7RHAeXHO3CWQ==
+  dependencies:
+    typescript-is "^0.18.3"
 
 "@superfaceai/ast@^0.0.31":
   version "0.0.31"
@@ -672,15 +674,15 @@
   dependencies:
     typescript-is "^0.18.3"
 
-"@superfaceai/parser@^0.0.19":
-  version "0.0.19"
-  resolved "https://registry.yarnpkg.com/@superfaceai/parser/-/parser-0.0.19.tgz#d5c1be386a37d9fda4db2993a10936291abdc259"
-  integrity sha512-XkVe2V5FFfbItz7mZ0Dr/pymTNpcM7ZDuRa91gotIpWBUGBuXM7zWyDEkMPp7quUeKA2qZ3SA7UAmU7yF1XKEA==
+"@superfaceai/parser@0.0.22":
+  version "0.0.22"
+  resolved "https://registry.yarnpkg.com/@superfaceai/parser/-/parser-0.0.22.tgz#38bca4a3b6c9c7741c245ce1a5e02de8534f384e"
+  integrity sha512-mWKBi0b0bQjmSyLvI92AP7KFwcG2q9w8MYtXu+wDJE5dnwcPtg/qfVaawyUYzC1DWu5Oe4Bt8khDAayenD6o6g==
   dependencies:
-    "@superfaceai/ast" "0.0.23"
+    "@superfaceai/ast" "^0.0.29"
     "@types/debug" "^4.1.5"
     debug "^4.3.1"
-    typescript "~4.1"
+    typescript "^4"
 
 "@tootallnate/once@1":
   version "1.1.2"
@@ -4582,10 +4584,10 @@ typescript@4.3.5:
   resolved "https://registry.yarnpkg.com/typescript/-/typescript-4.3.5.tgz#4d1c37cc16e893973c45a06886b7113234f119f4"
   integrity sha512-DqQgihaQ9cUrskJo9kIyW/+g0Vxsk8cDtZ52a3NGh0YNTfpUSArXSohyUGnvbPazEPLu398C0UxmKSOrPumUzA==
 
-typescript@~4.1:
-  version "4.1.6"
-  resolved "https://registry.yarnpkg.com/typescript/-/typescript-4.1.6.tgz#1becd85d77567c3c741172339e93ce2e69932138"
-  integrity sha512-pxnwLxeb/Z5SP80JDRzVjh58KsM6jZHRAOtTpS7sXLS4ogXNKC9ANxHHZqLLeVHZN35jCtI4JdmLLbLiC1kBow==
+typescript@^4:
+  version "4.4.3"
+  resolved "https://registry.yarnpkg.com/typescript/-/typescript-4.4.3.tgz#bdc5407caa2b109efd4f82fe130656f977a29324"
+  integrity sha512-4xfscpisVgqqDfPaJo5vkd+Qd/ItkoagnHpufr+i2QCHBsNYp+G7UAoyFl8aPtx879u38wPV65rZ8qbGZijalA==
 
 ultron@~1.1.0:
   version "1.1.1"
