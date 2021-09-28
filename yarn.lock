@@ -665,10 +665,10 @@
   resolved "https://registry.yarnpkg.com/@superfaceai/ast/-/ast-0.0.23.tgz#0e58a76b45c0a2dadc72499001d32d0c37cf4128"
   integrity sha512-9SKqJmC/g8caDZ9T4RcWm43D4f/UFCX57nX8a1J9dM0/GRtMq1fsPt+qcEmCTyys2Gt9JGzH8MDCBym2F92MBg==
 
-"@superfaceai/ast@^0.0.28":
-  version "0.0.28"
-  resolved "https://registry.yarnpkg.com/@superfaceai/ast/-/ast-0.0.28.tgz#8953bda490515bdffdb18209360be44e8a9fa543"
-  integrity sha512-gPnmjeL/j73gTFRnseqYdXjbyxrJAQVvmM+XrH1cVZbcsNnc3c9e/a3ra2HWOVK2f4e4FbZiXVfre5qrL4Abeg==
+"@superfaceai/ast@^0.0.31-beta.0":
+  version "0.0.31-beta.0"
+  resolved "https://registry.yarnpkg.com/@superfaceai/ast/-/ast-0.0.31-beta.0.tgz#36db11153c2cdc6f970f6aed0af2ff5716220364"
+  integrity sha512-7M4hvKpn5lM2PM6/H4gnK2+CP928kAQ3ADabdXXsq1l64h6w+TgqVt30PiA+0kDred/M+yihBSVyssgb5VZg4A==
   dependencies:
     typescript-is "^0.18.3"
 

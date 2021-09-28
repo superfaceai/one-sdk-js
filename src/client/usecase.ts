@@ -1,11 +1,7 @@
+import { BackoffKind, OnFail } from '@superfaceai/ast';
 import createDebug from 'debug';
 
-import {
-  BackoffKind,
-  MapInterpreterError,
-  OnFail,
-  ProfileParameterError,
-} from '../internal';
+import { MapInterpreterError, ProfileParameterError } from '../internal';
 import { UnexpectedError } from '../internal/errors';
 import { NonPrimitive, Variables } from '../internal/interpreter/variables';
 import { Result } from '../lib';

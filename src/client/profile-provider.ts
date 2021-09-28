@@ -1,10 +1,18 @@
 import {
   assertMapDocumentNode,
   assertProfileDocumentNode,
+  FILE_URI_PROTOCOL,
+  isApiKeySecurityValues,
+  isBasicAuthSecurityValues,
+  isBearerTokenSecurityValues,
+  isDigestSecurityValues,
+  isFileURIString,
   isMapFile,
   isProfileFile,
   MapDocumentNode,
+  NormalizedProfileProviderSettings,
   ProfileDocumentNode,
+  SecurityValues,
 } from '@superfaceai/ast';
 import createDebug from 'debug';
 import { promises as fsp } from 'fs';
@@ -15,6 +23,7 @@ import {
   ProviderJson,
   SecurityScheme,
   SecurityType,
+  SuperJson,
 } from '../internal';
 import {
   invalidProfileError,
@@ -39,17 +48,6 @@ import {
   NonPrimitive,
 } from '../internal/interpreter/variables';
 import { Parser } from '../internal/parser';
-import {
-  FILE_URI_PROTOCOL,
-  isApiKeySecurityValues,
-  isBasicAuthSecurityValues,
-  isBearerTokenSecurityValues,
-  isDigestSecurityValues,
-  isFileURIString,
-  NormalizedProfileProviderSettings,
-  SecurityValues,
-  SuperJson,
-} from '../internal/superjson';
 import { mergeSecurity } from '../internal/superjson/mutate';
 import { err, ok, Result } from '../lib';
 import { Events, Interceptable } from '../lib/events';

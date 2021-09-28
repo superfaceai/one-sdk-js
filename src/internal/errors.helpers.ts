@@ -1,7 +1,7 @@
+import { BackoffKind, SecurityValues } from '@superfaceai/ast';
 import { ZodError } from 'zod';
 
 import { SDKExecutionError } from './errors';
-import { BackoffKind, SecurityValues } from './superjson';
 
 export function ensureErrorSubclass(error: unknown): Error {
   if (typeof error === 'string') {

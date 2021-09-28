@@ -1,12 +1,13 @@
-import { MapDocumentNode, ProfileDocumentNode } from '@superfaceai/ast';
-import { getLocal } from 'mockttp';
-
 import {
   BackoffKind,
+  MapDocumentNode,
   OnFail,
-  SuperJson,
+  ProfileDocumentNode,
   SuperJsonDocument,
-} from '../../internal';
+} from '@superfaceai/ast';
+import { getLocal } from 'mockttp';
+
+import { SuperJson } from '../../internal';
 import { ok, sleep } from '../../lib';
 import {
   createTypedClient,
