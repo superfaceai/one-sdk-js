@@ -99,10 +99,17 @@ export abstract class SuperfaceClientBase extends Events {
 
   /** Returns a provider configuration for when no provider is passed to untyped `.perform`. */
   async getProviderForProfile(profileId: string): Promise<Provider> {
+    const priorityProviders =
+      this.superJson.normalized.profiles[profileId]?.priority || [];
+    if (priorityProviders.length > 0) {
+      const name = priorityProviders[0];
+
+      return this.getProvider(name);
+    }
+
     const knownProfileProviders = Object.keys(
       this.superJson.normalized.profiles[profileId]?.providers ?? {}
     );
-
     if (knownProfileProviders.length > 0) {
       const name = knownProfileProviders[0];
 
