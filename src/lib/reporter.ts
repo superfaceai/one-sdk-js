@@ -1,3 +1,4 @@
+import { AnonymizedSuperJsonDocument } from '@superfaceai/ast';
 import createDebug from 'debug';
 
 import { FailurePolicyReason } from '../client/failure/policy';
@@ -7,7 +8,7 @@ import {
   JSON_CONTENT,
   stringBody,
 } from '../internal/interpreter/http/interfaces';
-import { AnonymizedSuperJsonDocument, SuperJson } from '../internal/superjson';
+import { SuperJson } from '../internal/superjson';
 import { CrossFetch } from './fetch';
 
 const debug = createDebug('superface:metric-reporter');

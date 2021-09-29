@@ -1,3 +1,13 @@
+import {
+  AnonymizedSuperJsonDocument,
+  assertSuperJsonDocument,
+  NormalizedSuperJsonDocument,
+  ProfileEntry,
+  ProfileProviderEntry,
+  ProviderEntry,
+  SuperJsonDocument,
+  UsecaseDefaults,
+} from '@superfaceai/ast';
 import createDebug from 'debug';
 import { promises as fsp, readFileSync, statSync } from 'fs';
 import {
@@ -33,16 +43,6 @@ import {
   swapProviderVariant,
 } from './mutate';
 import { normalizeSuperJsonDocument } from './normalize';
-import {
-  AnonymizedSuperJsonDocument,
-  NormalizedSuperJsonDocument,
-  ProfileEntry,
-  ProfileProviderEntry,
-  ProviderEntry,
-  SuperJsonDocument,
-  superJsonSchema,
-  UsecaseDefaults,
-} from './schema';
 
 const debug = createDebug('superface:superjson');
 
@@ -102,7 +102,7 @@ export class SuperJson {
 
   static parse(input: unknown): Result<SuperJsonDocument, SDKExecutionError> {
     try {
-      const superdocument = superJsonSchema.parse(input);
+      const superdocument = assertSuperJsonDocument(input);
 
       return ok(superdocument);
     } catch (e: unknown) {

@@ -1,14 +1,4 @@
-import { err, ok, Result } from '../../lib';
-import { SDKExecutionError, UnexpectedError } from '../errors';
-import { profileNotFoundError, providersNotSetError } from '../errors.helpers';
 import {
-  castToNonPrimitive,
-  isEmptyRecord,
-  mergeVariables,
-} from '../interpreter/variables';
-import { normalizeProfileSettings } from './normalize';
-import {
-  composeFileURI,
   isFileURIString,
   isVersionString,
   ProfileEntry,
@@ -20,9 +10,19 @@ import {
   ProviderSettings,
   SecurityValues,
   SuperJsonDocument,
-  trimFileURI,
   UsecaseDefaults,
-} from './schema';
+} from '@superfaceai/ast';
+
+import { err, ok, Result } from '../../lib';
+import { SDKExecutionError, UnexpectedError } from '../errors';
+import { profileNotFoundError, providersNotSetError } from '../errors.helpers';
+import {
+  castToNonPrimitive,
+  isEmptyRecord,
+  mergeVariables,
+} from '../interpreter/variables';
+import { normalizeProfileSettings } from './normalize';
+import { composeFileURI, trimFileURI } from './schema';
 
 /** Merges profile defaults into the document or creates the profile if it doesn't exist. */
 export function mergeProfileDefaults(

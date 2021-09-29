@@ -2,11 +2,13 @@ import {
   OnFail,
   ProfileEntry,
   ProfileProviderEntry,
+  ProfileSettings,
   ProviderEntry,
-  SuperJson,
+  SuperJsonDocument,
   UsecaseDefaults,
-} from './index';
-import { ProfileSettings, SuperJsonDocument } from './schema';
+} from '@superfaceai/ast';
+
+import { SuperJson } from '.';
 
 describe('superjson mutate', () => {
   let superjson: SuperJson;

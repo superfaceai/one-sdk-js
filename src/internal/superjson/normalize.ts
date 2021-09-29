@@ -1,11 +1,3 @@
-import { resolveEnvRecord } from '../../lib/env';
-import { clone } from '../../lib/object';
-import { UnexpectedError } from '../errors';
-import {
-  invalidBackoffEntryError,
-  invalidProfileProviderError,
-} from '../errors.helpers';
-import { castToNonPrimitive, mergeVariables } from '../interpreter/variables';
 import {
   BackoffKind,
   FILE_URI_PROTOCOL,
@@ -26,7 +18,16 @@ import {
   RetryPolicy,
   SuperJsonDocument,
   UsecaseDefaults,
-} from './schema';
+} from '@superfaceai/ast';
+
+import { resolveEnvRecord } from '../../lib/env';
+import { clone } from '../../lib/object';
+import { UnexpectedError } from '../errors';
+import {
+  invalidBackoffEntryError,
+  invalidProfileProviderError,
+} from '../errors.helpers';
+import { castToNonPrimitive, mergeVariables } from '../interpreter/variables';
 
 export function normalizeProfileProviderSettings(
   profileProviderSettings: ProfileProviderEntry | undefined,

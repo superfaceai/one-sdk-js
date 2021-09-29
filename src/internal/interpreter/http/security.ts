@@ -1,3 +1,10 @@
+import {
+  ApiKeySecurityValues,
+  BasicAuthSecurityValues,
+  BearerTokenSecurityValues,
+  DigestSecurityValues,
+} from '@superfaceai/ast';
+
 import { UnexpectedError } from '../../errors';
 import { apiKeyInBodyError } from '../../errors.helpers';
 import {
@@ -9,12 +16,6 @@ import {
   HttpScheme,
   SecurityType,
 } from '../../providerjson';
-import {
-  ApiKeySecurityValues,
-  BasicAuthSecurityValues,
-  BearerTokenSecurityValues,
-  DigestSecurityValues,
-} from '../../superjson';
 import { NonPrimitive, Variables } from '../variables';
 
 export type SecurityConfiguration =

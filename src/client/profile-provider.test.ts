@@ -1,4 +1,4 @@
-import { MapDocumentNode, ProfileDocumentNode } from '@superfaceai/ast';
+import { MapDocumentNode, OnFail, ProfileDocumentNode } from '@superfaceai/ast';
 import { promises as fsp } from 'fs';
 import { mocked } from 'ts-jest/utils';
 
@@ -16,7 +16,7 @@ import {
   ProviderJson,
   SecurityType,
 } from '../internal/providerjson';
-import { OnFail, SuperJson } from '../internal/superjson';
+import { SuperJson } from '../internal/superjson';
 import * as SuperJsonMutate from '../internal/superjson/mutate';
 import { err, ok } from '../lib';
 import { SuperfaceClient } from './client';

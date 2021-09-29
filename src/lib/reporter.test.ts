@@ -1,10 +1,15 @@
-import { MapDocumentNode, ProfileDocumentNode } from '@superfaceai/ast';
+import {
+  BackoffKind,
+  MapDocumentNode,
+  OnFail,
+  ProfileDocumentNode,
+} from '@superfaceai/ast';
 import { getLocal, MockedEndpoint } from 'mockttp';
 
 import { BoundProfileProvider, SuperfaceClient } from '../client';
 import { invalidateSuperfaceClientCache } from '../client/client';
 import { Config } from '../config';
-import { BackoffKind, OnFail, SuperJson } from '../internal/superjson';
+import { SuperJson } from '../internal/superjson';
 import { FailoverReason } from './reporter';
 import { ok } from './result/result';
 

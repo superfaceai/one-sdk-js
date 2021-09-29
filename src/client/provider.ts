@@ -1,4 +1,5 @@
-import { SecurityValues } from '../internal';
+import { SecurityValues } from '@superfaceai/ast';
+
 import { mergeSecurity } from '../internal/superjson/mutate';
 import { SuperfaceClientBase } from './client';
 
