@@ -102,7 +102,6 @@ export class SuperJson {
 
   static parse(input: unknown): Result<SuperJsonDocument, SDKExecutionError> {
     try {
-      // const superdocument = superJsonSchema.parse(input);
       const superdocument = assertSuperJsonDocument(input);
 
       return ok(superdocument);
