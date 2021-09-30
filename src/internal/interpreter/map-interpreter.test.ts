@@ -1649,31 +1649,6 @@ describe('MapInterpreter', () => {
     expect(result.isOk() && result.value).toEqual({ answer: 42 });
   });
 
-  it('should merge results', async () => {
-    const ast: MapDocumentNode = parseMap(
-      new Source(
-        `
-        profile = "test@1.0"
-        provider = "test"
-  
-        map Test {
-          map result { a = 41 }
-          map result { b = 42 }
-        }
-        `
-      )
-    );
-    const interpreter = new MapInterpreter(
-      {
-        usecase: 'Test',
-        security: [],
-      },
-      { fetchInstance }
-    );
-    const result = await interpreter.perform(ast);
-    expect(result.isOk() && result.value).toEqual({ a: 41, b: 42 });
-  });
-
   it('should perform operations with correct scoping', async () => {
     await mockServer.get('/test').thenJson(200, {});
     const url = mockServer.urlFor('/test');
