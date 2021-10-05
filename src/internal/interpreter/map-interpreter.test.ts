@@ -21,8 +21,11 @@ const header: MapHeaderNode = {
 };
 
 describe('MapInterpreter', () => {
+  let serviceBaseUrl: string;
+
   beforeEach(async () => {
     await mockServer.start();
+    serviceBaseUrl = mockServer.url;
   });
 
   afterEach(async () => {
@@ -366,7 +369,8 @@ describe('MapInterpreter', () => {
   });
 
   it('should call an API', async () => {
-    await mockServer.get('/twelve').thenJson(
+    const url = '/twelve';
+    await mockServer.get(url).thenJson(
       200,
       { data: 12 },
       {
@@ -374,11 +378,11 @@ describe('MapInterpreter', () => {
         'Content-Language': 'en-US, en-CA',
       }
     );
-    const url = mockServer.urlFor('/twelve');
     const interpreter = new MapInterpreter(
       {
         usecase: 'Test',
         security: [],
+        serviceBaseUrl,
       },
       { fetchInstance }
     );
@@ -518,13 +522,14 @@ describe('MapInterpreter', () => {
   });
 
   it('should call an API with path parameters', async () => {
-    await mockServer.get('/twelve/2').thenJson(200, { data: 144 });
-    const url = mockServer.urlFor('/twelve');
+    const url = '/twelve';
+    await mockServer.get(url + '/2').thenJson(200, { data: 144 });
     const interpreter = new MapInterpreter(
       {
         usecase: 'Test',
         input: { page: '2' },
         security: [],
+        serviceBaseUrl,
       },
       { fetchInstance }
     );
@@ -604,16 +609,17 @@ describe('MapInterpreter', () => {
   });
 
   it('should call an API with parameters', async () => {
+    const url = '/twelve';
     await mockServer
-      .get('/twelve')
+      .get(url)
       .withQuery({ page: 2 })
       .thenJson(200, { data: 144 });
-    const url = mockServer.urlFor('/twelve');
     const interpreter = new MapInterpreter(
       {
         usecase: 'Test',
         input: { page: 2 },
         security: [],
+        serviceBaseUrl,
       },
       { fetchInstance }
     );
@@ -693,16 +699,17 @@ describe('MapInterpreter', () => {
   });
 
   it('should call an API with parameters and POST request', async () => {
+    const url = '/checkBody';
     await mockServer
-      .post('/checkBody')
+      .post(url)
       .withJsonBody({ anArray: [1, 2, 3] })
       .withHeaders({ someheader: 'hello' })
       .thenJson(201, { bodyOk: true, headerOk: true });
-    const url = mockServer.urlFor('/checkBody');
     const interpreter = new MapInterpreter(
       {
         usecase: 'Test',
         security: [],
+        serviceBaseUrl,
       },
       { fetchInstance }
     );
@@ -783,16 +790,15 @@ describe('MapInterpreter', () => {
   });
 
   it('should run multi step operation', async () => {
-    await mockServer
-      .get('/first')
-      .thenJson(200, { firstStep: { someVar: 12 } });
-    await mockServer.get('/second').thenJson(200, { secondStep: 5 });
-    const url1 = mockServer.urlFor('/first');
-    const url2 = mockServer.urlFor('/second');
+    const url1 = '/first';
+    const url2 = '/second';
+    await mockServer.get(url1).thenJson(200, { firstStep: { someVar: 12 } });
+    await mockServer.get(url2).thenJson(200, { secondStep: 5 });
     const interpreter = new MapInterpreter(
       {
         usecase: 'Test',
         security: [],
+        serviceBaseUrl,
       },
       { fetchInstance }
     );
@@ -882,11 +888,11 @@ describe('MapInterpreter', () => {
   });
 
   it('should call an API with Basic auth', async () => {
+    const url = '/basic';
     await mockServer
-      .get('/basic')
+      .get(url)
       .withHeaders({ Authorization: 'Basic bmFtZTpwYXNzd29yZA==' })
       .thenJson(200, { data: 12 });
-    const url = mockServer.urlFor('/basic');
     const interpreter = new MapInterpreter(
       {
         usecase: 'testCase',
@@ -899,6 +905,7 @@ describe('MapInterpreter', () => {
             password: 'password',
           },
         ],
+        serviceBaseUrl,
       },
       { fetchInstance }
     );
@@ -946,11 +953,11 @@ describe('MapInterpreter', () => {
   });
 
   it('should call an API with Bearer auth', async () => {
+    const url = '/bearer';
     await mockServer
-      .get('/bearer')
+      .get(url)
       .withHeaders({ Authorization: 'Bearer SuperSecret' })
       .thenJson(200, { data: 12 });
-    const url = mockServer.urlFor('/bearer');
     const interpreter = new MapInterpreter(
       {
         usecase: 'testCase',
@@ -962,6 +969,7 @@ describe('MapInterpreter', () => {
             token: 'SuperSecret',
           },
         ],
+        serviceBaseUrl,
       },
       { fetchInstance }
     );
@@ -1009,11 +1017,11 @@ describe('MapInterpreter', () => {
   });
 
   it('should call an API with Apikey auth in header', async () => {
+    const url = '/apikey';
     await mockServer
-      .get('/apikey')
+      .get(url)
       .withHeaders({ Key: 'SuperSecret' })
       .thenJson(200, { data: 12 });
-    const url = mockServer.urlFor('/apikey');
     const interpreter = new MapInterpreter(
       {
         usecase: 'testCase',
@@ -1026,6 +1034,7 @@ describe('MapInterpreter', () => {
             apikey: 'SuperSecret',
           },
         ],
+        serviceBaseUrl,
       },
       { fetchInstance }
     );
@@ -1074,11 +1083,11 @@ describe('MapInterpreter', () => {
   });
 
   it('should call an API with Apikey auth in query', async () => {
+    const url = '/apikey';
     await mockServer
-      .get('/apikey')
+      .get(url)
       .withQuery({ key: 'SuperSecret' })
       .thenJson(200, { data: 12 });
-    const url = mockServer.urlFor('/apikey');
     const interpreter = new MapInterpreter(
       {
         usecase: 'testCase',
@@ -1091,6 +1100,7 @@ describe('MapInterpreter', () => {
             apikey: 'SuperSecret',
           },
         ],
+        serviceBaseUrl,
       },
       { fetchInstance }
     );
@@ -1138,13 +1148,15 @@ describe('MapInterpreter', () => {
   });
 
   it('should call an API with multipart/form-data body', async () => {
-    await mockServer.post('/formdata').thenCallback(request => {
+    const url = '/formdata';
+    await mockServer.post(url).thenCallback(async request => {
+      const text = await request.body.getText();
       if (
-        request.body.text &&
-        request.body.text.includes('formData') &&
-        request.body.text.includes('myFormData') &&
-        request.body.text.includes('is') &&
-        request.body.text.includes('present')
+        text &&
+        text.includes('formData') &&
+        text.includes('myFormData') &&
+        text.includes('is') &&
+        text.includes('present')
       ) {
         return {
           json: { data: 12 },
@@ -1154,11 +1166,11 @@ describe('MapInterpreter', () => {
 
       return { json: { failed: true }, statusCode: 400 };
     });
-    const url = mockServer.urlFor('/formdata');
     const interpreter = new MapInterpreter(
       {
         usecase: 'testCase',
         security: [],
+        serviceBaseUrl,
       },
       { fetchInstance }
     );
@@ -1229,15 +1241,16 @@ describe('MapInterpreter', () => {
   });
 
   it('should call an API with application/x-www-form-urlencoded', async () => {
+    const url = '/urlencoded';
     await mockServer
-      .post('/urlencoded')
+      .post(url)
       .withForm({ form: 'is', o: 'k' })
       .thenJson(201, { data: 12 });
-    const url = mockServer.urlFor('/urlencoded');
     const interpreter = new MapInterpreter(
       {
         usecase: 'testCase',
         security: [],
+        serviceBaseUrl,
       },
       { fetchInstance }
     );
@@ -1475,12 +1488,13 @@ describe('MapInterpreter', () => {
   });
 
   it('should correctly return from operation', async () => {
-    await mockServer.get('/test').thenJson(200, {});
-    const url = mockServer.urlFor('/test');
+    const url = '/test';
+    await mockServer.get(url).thenJson(200, {});
     const interpreter = new MapInterpreter(
       {
         usecase: 'Test',
         security: [],
+        serviceBaseUrl,
       },
       { fetchInstance }
     );
@@ -1734,8 +1748,8 @@ describe('MapInterpreter', () => {
   });
 
   it('should perform operations with correct scoping', async () => {
-    await mockServer.get('/test').thenJson(200, {});
-    const url = mockServer.urlFor('/test');
+    const url = '/test';
+    await mockServer.get(url).thenJson(200, {});
     const ast: MapDocumentNode = {
       kind: 'MapDocument',
       header,
@@ -1883,6 +1897,7 @@ describe('MapInterpreter', () => {
       {
         usecase: 'Test',
         security: [],
+        serviceBaseUrl,
       },
       { fetchInstance }
     );
@@ -2544,8 +2559,8 @@ describe('MapInterpreter', () => {
   });
 
   it('should be able to use input in path parameters', async () => {
-    await mockServer.get('/twelve').thenJson(200, { data: 12 });
-    const baseUrl = mockServer.urlFor('/twelve').replace('/twelve', '');
+    const url = '/twelve';
+    await mockServer.get(url).thenJson(200, { data: 12 });
     const ast: MapDocumentNode = {
       kind: 'MapDocument',
       header,
@@ -2558,7 +2573,7 @@ describe('MapInterpreter', () => {
             {
               kind: 'HttpCallStatement',
               method: 'GET',
-              url: `${baseUrl}/{input.test}`,
+              url: `/{input.test}`,
               responseHandlers: [
                 {
                   kind: 'HttpResponseHandler',
@@ -2596,6 +2611,7 @@ describe('MapInterpreter', () => {
         usecase: 'Test',
         input: { test: 'twelve' },
         security: [],
+        serviceBaseUrl,
       },
       { fetchInstance }
     );
@@ -2680,7 +2696,8 @@ describe('MapInterpreter', () => {
   });
 
   it('should make response headers accessible', async () => {
-    await mockServer.get('/twelve').thenJson(
+    const url = '/twelve';
+    await mockServer.get(url).thenJson(
       200,
       {},
       {
@@ -2689,11 +2706,11 @@ describe('MapInterpreter', () => {
         Data: '12',
       }
     );
-    const url = mockServer.urlFor('/twelve');
     const interpreter = new MapInterpreter(
       {
         usecase: 'Test',
         security: [],
+        serviceBaseUrl,
       },
       { fetchInstance }
     );

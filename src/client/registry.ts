@@ -55,26 +55,6 @@ export function assertIsRegistryProviderInfo(
   }
 }
 
-export async function fetchProviders(
-  profileId: string,
-  registryUrl: string
-): Promise<RegistryProviderInfo[]> {
-  const fetchInstance = new CrossFetch();
-  const http = new HttpClient(fetchInstance);
-  registryDebug('Fetching providers from registry');
-  const { body } = await http.request(registryUrl, {
-    method: 'GET',
-    queryParameters: {
-      semanticProfile: profileId,
-    },
-    accept: 'application/json',
-  });
-
-  assertIsRegistryProviderInfo(body);
-
-  return body.disco;
-}
-
 export async function fetchProviderInfo(
   providerName: string
 ): Promise<ProviderJson> {

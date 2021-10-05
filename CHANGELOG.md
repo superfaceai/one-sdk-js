@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Fixed
+- **BREAKING CHANGE**: absolute URLs are no longer allowed in maps
+- **BREAKING CHANGE**: interpolation no longer works in base URLs
 
 ## [0.0.36] - 2021-09-29
 ### Fixed

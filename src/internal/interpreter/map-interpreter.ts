@@ -269,6 +269,12 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
   }
 
   async visitHttpCallStatementNode(node: HttpCallStatementNode): Promise<void> {
+    if (this.parameters.serviceBaseUrl === undefined) {
+      throw new UnexpectedError(
+        'Base url for a service not provided for HTTP call.'
+      );
+    }
+
     const request = node.request && (await this.visit(node.request));
     const responseHandlers = node.responseHandlers.map(responseHandler =>
       this.visit(responseHandler)

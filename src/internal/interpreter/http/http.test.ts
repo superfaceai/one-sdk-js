@@ -8,8 +8,10 @@ const fetchInstance = new CrossFetch();
 const http = new HttpClient(fetchInstance);
 
 describe('HttpClient', () => {
+  let baseUrl: string;
   beforeEach(async () => {
     await mockServer.start();
+    baseUrl = mockServer.url;
   });
 
   afterEach(async () => {
@@ -18,10 +20,10 @@ describe('HttpClient', () => {
 
   it('gets basic response', async () => {
     await mockServer.get('/valid').thenJson(200, { response: 'valid' });
-    const url = mockServer.urlFor('/valid');
-    const response = await http.request(url, {
+    const response = await http.request('/valid', {
       method: 'get',
       accept: 'application/json',
+      baseUrl,
     });
     expect(response.statusCode).toEqual(200);
     expect(response.body).toEqual({ response: 'valid' });
@@ -31,10 +33,10 @@ describe('HttpClient', () => {
     await mockServer
       .get('/invalid')
       .thenJson(404, { error: { message: 'Not found' } });
-    const url = mockServer.urlFor('/invalid');
-    const response = await http.request(url, {
+    const response = await http.request('/invalid', {
       method: 'get',
       accept: 'application/json',
+      baseUrl,
     });
     expect(response.statusCode).toEqual(404);
     expect(response.body).toEqual({ error: { message: 'Not found' } });
@@ -53,11 +55,11 @@ describe('HttpClient', () => {
   });
 
   it('should correctly interpolate multiple parameters', () => {
-    const inputUrl =
-      'https://example.com/test/{parameter.value}/another/{parameter.another}';
+    const inputUrl = '/test/{parameter.value}/another/{parameter.another}';
 
     const url = createUrl(inputUrl, {
       pathParameters: { parameter: { value: 'hello', another: 'goodbye' } },
+      baseUrl: 'https://example.com',
     });
 
     expect(url).toEqual('https://example.com/test/hello/another/goodbye');
@@ -67,7 +69,7 @@ describe('HttpClient', () => {
     const baseUrl = 'http://example.com/';
     const inputUrl = '/test/';
 
-    expect(createUrl(baseUrl)).toEqual('http://example.com/');
+    expect(createUrl('', { baseUrl })).toEqual('http://example.com/');
     expect(createUrl(inputUrl, { baseUrl })).toEqual(
       'http://example.com/test/'
     );
