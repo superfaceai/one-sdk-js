@@ -13,6 +13,7 @@ jest.mock('fs', () => ({
   promises: {
     access: jest.fn(),
   },
+  realpathSync: jest.fn(),
 }));
 
 jest.mock('./failure/event-adapter');

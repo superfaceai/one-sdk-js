@@ -1,4 +1,5 @@
 import { MapDocumentNode, MapHeaderNode } from '@superfaceai/ast';
+import { parseMap, Source } from '@superfaceai/parser';
 import { getLocal } from 'mockttp';
 
 import { CrossFetch } from '../../lib/fetch';
@@ -1648,91 +1649,6 @@ describe('MapInterpreter', () => {
     expect(result.isOk() && result.value).toEqual({ answer: 42 });
   });
 
-  it('should merge results', async () => {
-    const ast: MapDocumentNode = {
-      kind: 'MapDocument',
-      header,
-      definitions: [
-        {
-          kind: 'MapDefinition',
-          name: 'test',
-          usecaseName: 'test',
-          statements: [
-            {
-              kind: 'CallStatement',
-              operationName: 'foo',
-              arguments: [],
-              statements: [
-                {
-                  kind: 'OutcomeStatement',
-                  isError: false,
-                  terminateFlow: false,
-                  value: {
-                    kind: 'ObjectLiteral',
-                    fields: [
-                      {
-                        kind: 'Assignment',
-                        key: ['a'],
-                        value: {
-                          kind: 'PrimitiveLiteral',
-                          value: 41,
-                        },
-                      },
-                    ],
-                  },
-                },
-              ],
-            },
-            {
-              kind: 'CallStatement',
-              operationName: 'bar',
-              arguments: [],
-              statements: [
-                {
-                  kind: 'OutcomeStatement',
-                  isError: false,
-                  terminateFlow: false,
-                  value: {
-                    kind: 'ObjectLiteral',
-                    fields: [
-                      {
-                        kind: 'Assignment',
-                        key: ['b'],
-                        value: {
-                          kind: 'PrimitiveLiteral',
-                          value: 42,
-                        },
-                      },
-                    ],
-                  },
-                },
-              ],
-            },
-          ],
-        },
-        {
-          kind: 'OperationDefinition',
-          name: 'foo',
-          statements: [],
-        },
-        {
-          kind: 'OperationDefinition',
-          name: 'bar',
-          statements: [],
-        },
-      ],
-    };
-    const interpreter = new MapInterpreter(
-      {
-        usecase: 'test',
-        security: [],
-      },
-      { fetchInstance }
-    );
-    const result = await interpreter.perform(ast);
-    expect(result.isOk() && result.value).toEqual({ a: 41, b: 42 });
-  });
-
   it('should perform operations with correct scoping', async () => {
     await mockServer.get('/test').thenJson(200, {});
     const url = mockServer.urlFor('/test');
@@ -2197,6 +2113,40 @@ describe('MapInterpreter', () => {
     const result = await interpreter.perform(ast);
 
     expect(result.isOk() && result.value).toEqual({ results: ['Z', 'Y', 'X'] });
+  });
+
+  it('should break from iteration', async () => {
+    const ast: MapDocumentNode = parseMap(
+      new Source(
+        `
+        profile = "test@1.0"
+        provider = "test"
+  
+        map Test {
+          letters = ['x', 'y', 'z']
+          results = []
+          call foreach(letter of letters.reverse()) TestOp(letter = letter) {
+            results = results.concat(outcome.data)
+
+            return map result { results = results }
+          }
+        }
+        operation TestOp {
+          return args.letter.toUpperCase()
+        }
+        `
+      )
+    );
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+      },
+      { fetchInstance }
+    );
+    const result = await interpreter.perform(ast);
+
+    expect(result.isOk() && result.value).toEqual({ results: ['Z'] });
   });
 
   it('should perform an inline iterating call', async () => {

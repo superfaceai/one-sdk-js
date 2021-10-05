@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Removed unnecessary result propagation in interpreter - using stackTop.result instead
+- Terminal outcome statements should now correctly exit from iteration
+
 ## [0.0.36] - 2021-09-29
 ### Fixed
 - Use super.json `priority` correctly
