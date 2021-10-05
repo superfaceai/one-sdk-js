@@ -72,7 +72,6 @@ export const createUrl = (
   }
   const isRelative = /^\/[^/]/.test(inputUrl);
   if (!isRelative) {
-    console.log(inputUrl);
     throw new UnexpectedError('Expected relative url, but received absolute!');
   }
 
