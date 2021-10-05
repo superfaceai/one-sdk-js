@@ -78,7 +78,7 @@ export class BoundProfileProvider {
     private readonly profileAst: ProfileDocumentNode,
     private readonly mapAst: MapDocumentNode,
     private readonly providerName: string,
-    private readonly configuration: {
+    readonly configuration: {
       baseUrl: string;
       profileProviderSettings?: NormalizedProfileProviderSettings;
       security: SecurityConfiguration[];
