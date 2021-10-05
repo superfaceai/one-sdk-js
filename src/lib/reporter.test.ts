@@ -175,7 +175,7 @@ const mockMapDocumentFailure: (provider?: string) => MapDocumentNode = (
         {
           kind: 'HttpCallStatement',
           method: 'GET',
-          url: 'https://unavail.able',
+          url: '/unavailable',
           request: {
             kind: 'HttpRequest',
             security: [],
@@ -303,7 +303,7 @@ describe('MetricReporter', () => {
       mockProfileDocument,
       mockMapDocumentFailure(),
       'testprovider',
-      { baseUrl: mockServer.url, security: [] },
+      { baseUrl: 'https://unavai.lable', security: [] },
       client
     );
     jest
@@ -583,14 +583,14 @@ describe('MetricReporter', () => {
       mockProfileDocument,
       mockMapDocumentSuccess,
       'testprovider',
-      { baseUrl: mockServer.url, security: [] },
+      { baseUrl: 'https://unavail.able', security: [] },
       client
     );
     const mockBoundProfileProvider2 = new BoundProfileProvider(
       mockProfileDocument,
       mockMapDocumentFailure('testprovider2'),
       'testprovider2',
-      { baseUrl: mockServer.url, security: [] },
+      { baseUrl: 'https://unavail.able', security: [] },
       client
     );
     jest

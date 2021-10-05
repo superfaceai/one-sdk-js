@@ -3,11 +3,7 @@ import { MapDocumentNode } from '@superfaceai/ast';
 import { Config } from '../config';
 import { UnexpectedError } from '../internal/errors';
 import { ProviderJson } from '../internal/providerjson';
-import {
-  assertIsRegistryProviderInfo,
-  fetchBind,
-  fetchProviders,
-} from './registry';
+import { assertIsRegistryProviderInfo, fetchBind } from './registry';
 
 const request = jest.fn();
 jest.mock('../internal/interpreter/http', () => {
@@ -98,55 +94,6 @@ describe('registry', () => {
       expect(() => assertIsRegistryProviderInfo(record)).toThrowError(
         'Invalid response from registry'
       );
-    });
-  });
-
-  describe('when fetching providers', () => {
-    const mockRecord = {
-      url: 'test/url',
-      registryId: 'some-registiry-id',
-      serviceUrl: 'test/service/url',
-      mappingUrl: 'test/mapping/url',
-      semanticProfile: 'test/profile',
-      disco: [
-        {
-          url: 'disco/test/url',
-          registryId: 'disco/some-registiry-id',
-          serviceUrl: 'disco/test/service/url',
-          mappingUrl: 'disco/test/mapping/url',
-          semanticProfile: 'disco/test/profile',
-        },
-      ],
-    };
-
-    it('fetches map documentt', async () => {
-      const mockResponse = {
-        statusCode: 200,
-        body: mockRecord,
-        headers: { test: 'test' },
-        debug: {
-          request: {
-            headers: { test: 'test' },
-            url: 'test',
-            body: {},
-          },
-        },
-      };
-
-      request.mockResolvedValue(mockResponse);
-
-      await expect(fetchProviders('test-id', 'test-url')).resolves.toEqual(
-        mockRecord.disco
-      );
-
-      expect(request).toHaveBeenCalledTimes(1);
-      expect(request).toHaveBeenCalledWith('test-url', {
-        method: 'GET',
-        queryParameters: {
-          semanticProfile: 'test-id',
-        },
-        accept: 'application/json',
-      });
     });
   });
 

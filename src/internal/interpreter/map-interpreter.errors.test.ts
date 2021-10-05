@@ -174,8 +174,10 @@ AST Path: definitions[0].statements[0].assignments[0].value`
   });
 
   describe('MapInterpreter', () => {
+    let serviceBaseUrl: string;
     beforeEach(async () => {
       await mockServer.start();
+      serviceBaseUrl = mockServer.url;
     });
 
     afterEach(async () => {
@@ -255,7 +257,8 @@ AST Path: definitions[0].statements[0].assignments[0].value`
     });
 
     it('should fail when calling an API with relative URL but not providing baseUrl', async () => {
-      await mockServer.get('/twelve').thenJson(200, { data: 12 });
+      const url = '/twelve';
+      await mockServer.get(url).thenJson(200, { data: 12 });
       const interpreter = new MapInterpreter(
         {
           usecase: 'Test',
@@ -275,7 +278,7 @@ AST Path: definitions[0].statements[0].assignments[0].value`
               {
                 kind: 'HttpCallStatement',
                 method: 'GET',
-                url: '/twelve',
+                url,
                 request: {
                   kind: 'HttpRequest',
                   headers: {
@@ -324,7 +327,7 @@ AST Path: definitions[0].statements[0].assignments[0].value`
       expect(result.isErr()).toEqual(true);
       expect(() => {
         result.unwrap();
-      }).toThrow('Relative URL specified, but base URL not provided!');
+      }).toThrow('Base url for a service not provided for HTTP call.');
     });
 
     it('should fail when calling an API with path parameters and some are missing', async () => {
@@ -332,6 +335,7 @@ AST Path: definitions[0].statements[0].assignments[0].value`
         {
           usecase: 'Test',
           security: [],
+          serviceBaseUrl,
         },
         { fetchInstance }
       );
@@ -361,7 +365,7 @@ AST Path: definitions[0].statements[0].assignments[0].value`
               {
                 kind: 'HttpCallStatement',
                 method: 'GET',
-                url: `some.url/{missing}/{alsoMissing}`,
+                url: `/{missing}/{alsoMissing}`,
                 request: {
                   kind: 'HttpRequest',
                   headers: {
@@ -420,6 +424,7 @@ AST Path: definitions[0].statements[0].assignments[0].value`
         {
           usecase: 'testCase',
           security: [],
+          serviceBaseUrl,
         },
         { fetchInstance }
       );
@@ -473,6 +478,7 @@ AST Path: definitions[0].statements[0].assignments[0].value`
         {
           usecase: 'testCase',
           security: [],
+          serviceBaseUrl,
         },
         { fetchInstance }
       );
@@ -526,6 +532,7 @@ AST Path: definitions[0].statements[0].assignments[0].value`
         {
           usecase: 'testCase',
           security: [],
+          serviceBaseUrl,
         },
         { fetchInstance }
       );
@@ -575,14 +582,15 @@ AST Path: definitions[0].statements[0].assignments[0].value`
     });
 
     it('should map an error from API', async () => {
+      const url = '/error';
       await mockServer
-        .get('/error')
+        .get(url)
         .thenJson(404, { 'Content-Type': 'application/json; charset=utf-8' });
-      const url = mockServer.urlFor('/error');
       const interpreter = new MapInterpreter(
         {
           usecase: 'Test',
           security: [],
+          serviceBaseUrl,
         },
         { fetchInstance }
       );
@@ -640,20 +648,21 @@ AST Path: definitions[0].statements[0].assignments[0].value`
 
     it('should clean up after mapping an error from API', async () => {
       let clean = false;
+      const url = '/error';
+      const url2 = '/cleanup';
       await mockServer
-        .get('/error')
+        .get(url)
         .thenJson(404, { 'Content-Type': 'application/json; charset=utf-8' });
-      await mockServer.post('/cleanup').thenCallback(() => {
+      await mockServer.post(url2).thenCallback(() => {
         clean = true;
 
         return { status: 204 };
       });
-      const url = mockServer.urlFor('/error');
-      const url2 = mockServer.urlFor('/cleanup');
       const interpreter = new MapInterpreter(
         {
           usecase: 'Test',
           security: [],
+          serviceBaseUrl,
         },
         { fetchInstance }
       );
