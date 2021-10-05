@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Make `configuration` of `BoundProfileProvider` public
+
 ## [0.0.36] - 2021-09-29
 ### Fixed
 - Use super.json `priority` correctly
