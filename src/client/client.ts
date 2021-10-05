@@ -154,16 +154,17 @@ export abstract class SuperfaceClientBase extends Events {
   }
 
   private hookMetrics(): void {
-    const unhandledHandler = (event: string) => (reason: unknown) => {
-      this.metricReporter?.flush();
-      // If the user has no defined handler, just print out the error similarly to default behaviour
-      if (process.rawListeners(event).length === 1) {
-        console.error('Unhandled Promise Rejection', reason);
-      }
-    };
     process.on('beforeExit', () => this.metricReporter?.flush());
-    process.on('unhandledRejection', unhandledHandler('unhandledRejection'));
-    process.on('uncaughtException', unhandledHandler('uncaughtException'));
+    process.on('uncaughtExceptionMonitor', () => {
+      if (
+        process.rawListeners('uncaughtException').length === 0 &&
+        process.rawListeners('unhandledRejection').length === 0
+      ) {
+        console.warn(
+          'Warning: you do not handle all expceptions. This can prevent failure report to be sent.'
+        );
+      }
+    });
     this.on('success', { priority: 0 }, (context: SuccessContext) => {
       this.metricReporter?.reportEvent({
         eventType: 'PerformMetrics',
