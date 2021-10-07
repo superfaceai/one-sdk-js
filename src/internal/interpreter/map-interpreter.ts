@@ -75,9 +75,7 @@ export interface MapParameters<
   security: SecurityConfiguration[];
 }
 
-type HttpResponseHandler = (
-  response: HttpResponse
-) => Promise<[true, Variables | undefined] | [false]>;
+type HttpResponseHandler = (response: HttpResponse) => Promise<boolean>;
 
 type HttpResponseHandlerDefinition = [
   handler: HttpResponseHandler,
@@ -264,11 +262,17 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
       const result = await this.visitCallCommon(node);
 
       this.addVariableToStack({ outcome: { data: result } });
-      this.stackTop.result = await this.processStatements(node.statements);
+      await this.processStatements(node.statements);
     }
   }
 
   async visitHttpCallStatementNode(node: HttpCallStatementNode): Promise<void> {
+    if (this.parameters.serviceBaseUrl === undefined) {
+      throw new UnexpectedError(
+        'Base url for a service not provided for HTTP call.'
+      );
+    }
+
     const request = node.request && (await this.visit(node.request));
     const responseHandlers = node.responseHandlers.map(responseHandler =>
       this.visit(responseHandler)
@@ -280,6 +284,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
     } else {
       const accepts = responseHandlers.map(([, accept]) => accept);
       accept = accepts
+        // deduplicate the array
         .filter((accept, index) => accepts.indexOf(accept) === index)
         .join(', ');
     }
@@ -301,13 +306,9 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
       });
 
       for (const [handler] of responseHandlers) {
-        const [match, result] = await handler(response);
+        const match = await handler(response);
 
         if (match) {
-          if (result) {
-            this.stackTop.result = result;
-          }
-
           return;
         }
       }
@@ -340,7 +341,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
   ): HttpResponseHandlerDefinition {
     const handler: HttpResponseHandler = async (response: HttpResponse) => {
       if (node.statusCode && node.statusCode !== response.statusCode) {
-        return [false];
+        return false;
       }
 
       if (
@@ -348,7 +349,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
         response.headers['content-type'] &&
         !response.headers['content-type'].includes(node.contentType)
       ) {
-        return [false];
+        return false;
       }
 
       if (
@@ -356,7 +357,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
         response.headers['content-language'] &&
         !response.headers['content-language'].includes(node.contentLanguage)
       ) {
-        return [false];
+        return false;
       }
 
       this.addVariableToStack({
@@ -379,9 +380,9 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
         debug(debugString);
       }
 
-      const result = await this.processStatements(node.statements);
+      await this.processStatements(node.statements);
 
-      return [true, result];
+      return true;
     };
 
     return [handler, node.contentType];
@@ -444,18 +445,15 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
     return node.value;
   }
 
-  private async processStatements(
-    statements: Substatement[]
-  ): Promise<Variables | undefined> {
-    let result: Variables | undefined;
+  private async processStatements(statements: Substatement[]): Promise<void> {
     for (const statement of statements) {
       switch (statement.kind) {
         case 'SetStatement':
         case 'HttpCallStatement':
         case 'CallStatement':
-          result = await this.visit(statement);
+          await this.visit(statement);
           if (this.stackTop.terminate) {
-            return this.stackTop.result;
+            return;
           }
           break;
 
@@ -471,45 +469,36 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
             );
             this.stackTop.error = error;
           }
-          result = outcome?.result ?? result;
+          this.stackTop.result = outcome?.result ?? this.stackTop.result;
+
           if (outcome?.terminateFlow) {
             this.stackTop.terminate = true;
 
-            return result;
-          } else {
-            this.addVariableToStack(
-              this.stackTop.type === 'map'
-                ? { result }
-                : { outcome: { data: result } }
-            );
+            return;
           }
+
           break;
         }
       }
     }
-
-    return result;
   }
 
   async visitMapDefinitionNode(
     node: MapDefinitionNode
   ): Promise<Variables | undefined> {
     this.newStack('map');
-    let result = await this.processStatements(node.statements);
+    await this.processStatements(node.statements);
 
     if (this.stackTop.error) {
       throw this.stackTop.error;
     }
 
-    result = {
+    return {
       result:
-        result ??
-        ((!isPrimitive(this.stackTop.variables) &&
+        (!isPrimitive(this.stackTop.variables) &&
           this.stackTop.variables['result']) ||
-          this.stackTop.result),
+        this.stackTop.result,
     };
-
-    return result;
   }
 
   async visitMapDocumentNode(
@@ -556,10 +545,8 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
 
   async visitOperationDefinitionNode(
     node: OperationDefinitionNode
-  ): Promise<Variables | undefined> {
-    const result = await this.processStatements(node.statements);
-
-    return result;
+  ): Promise<void> {
+    await this.processStatements(node.statements);
   }
 
   async visitOutcomeStatementNode(
@@ -691,7 +678,8 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
     }
     this.addVariableToStack({ args });
 
-    const result = await this.visit(operation);
+    await this.visit(operation);
+    const result = this.stackTop.result;
     this.popStack();
 
     return result;
@@ -713,7 +701,12 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
         }
       }
       const result = await this.visitCallCommon(node);
+
       await processResult(result);
+      // return early check
+      if (this.stackTop.terminate) {
+        break;
+      }
     }
   }
 }

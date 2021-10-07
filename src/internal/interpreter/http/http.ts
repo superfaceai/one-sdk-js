@@ -62,26 +62,20 @@ export enum NetworkErrors {
 
 export const createUrl = (
   inputUrl: string,
-  parameters?: {
-    baseUrl?: string;
+  parameters: {
+    baseUrl: string;
     pathParameters?: NonPrimitive;
   }
 ): string => {
-  const isRelative = /^\/[^/]/.test(inputUrl);
-
-  let url: string;
-
-  if (isRelative) {
-    if (parameters?.baseUrl === undefined) {
-      throw new UnexpectedError(
-        'Relative URL specified, but base URL not provided!'
-      );
-    } else {
-      url = parameters.baseUrl.replace(/\/+$/, '') + inputUrl;
-    }
-  } else {
-    url = inputUrl;
+  if (inputUrl === '') {
+    return parameters.baseUrl;
   }
+  const isRelative = /^\/[^/]/.test(inputUrl);
+  if (!isRelative) {
+    throw new UnexpectedError('Expected relative url, but received absolute!');
+  }
+
+  let url = inputUrl;
 
   if (parameters?.pathParameters !== undefined) {
     const replacements: string[] = [];
@@ -116,6 +110,8 @@ export const createUrl = (
     }
   }
 
+  url = parameters.baseUrl.replace(/\/+$/, '') + url;
+
   return `${url}`;
 };
 
@@ -133,7 +129,7 @@ export class HttpClient {
       accept?: string;
       securityRequirements?: HttpSecurityRequirement[];
       securityConfiguration?: SecurityConfiguration[];
-      baseUrl?: string;
+      baseUrl: string;
       pathParameters?: NonPrimitive;
     }
   ): Promise<HttpResponse> {

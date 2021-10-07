@@ -48,6 +48,7 @@ jest.mock('fs', () => ({
     writeFile: jest.fn(),
     unlink: jest.fn(),
   },
+  realpathSync: jest.fn(),
 }));
 
 describe('Parser', () => {

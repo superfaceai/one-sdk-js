@@ -783,7 +783,6 @@ describe('SuperJson', () => {
           }
         }
       }`;
-      console.log(SuperJson.parse(JSON.parse(superJson)));
       expect(SuperJson.parse(JSON.parse(superJson)).isErr()).toBe(true);
     });
 
