@@ -68,7 +68,7 @@ export class MapInterpreterErrorBase extends ErrorBase {
         ? `Original Map Location: Line ${this.metadata.node.location.line}, column ${this.metadata.node.location.column}`
         : undefined,
     ]
-      .filter(line => !!line)
+      .filter(line => line !== undefined && line !== '')
       .join('\n');
   }
 }
@@ -145,7 +145,7 @@ export class JessieError extends MapInterpreterErrorBase {
         ? `Original Map Location: Line ${this.metadata.node.location.line}, column ${this.metadata.node.location.column}`
         : undefined,
     ]
-      .filter(line => !!line)
+      .filter(line => line !== undefined && line !== '')
       .join('\n');
   }
 }
