@@ -42,7 +42,6 @@ import {
 import { evalScript } from './sandbox';
 import {
   castToVariables,
-  // isPrimitive,
   mergeVariables,
   NonPrimitive,
   Primitive,

@@ -122,7 +122,7 @@ export class MappedHTTPError<T> extends HTTPError {
         ? `Original Map Location: Line ${this.metadata.node.location.line}, column ${this.metadata.node.location.column}`
         : undefined,
     ]
-      .filter(line => !!line)
+      .filter(line => line !== undefined && line !== '')
       .join('\n');
   }
 }
