@@ -110,6 +110,21 @@ export class MappedHTTPError<T> extends HTTPError {
   ) {
     super(message, metadata, statusCode);
   }
+
+  override toString(): string {
+    return [
+      `${this.kind}: ${this.message}`,
+      this.properties
+        ? 'Properites: ' + JSON.stringify(this.properties, undefined, 2)
+        : undefined,
+      this.astPath ? `AST Path: ${this.astPath.join('.')}` : undefined,
+      this.metadata?.node?.location
+        ? `Original Map Location: Line ${this.metadata.node.location.line}, column ${this.metadata.node.location.column}`
+        : undefined,
+    ]
+      .filter(line => !!line)
+      .join('\n');
+  }
 }
 
 export class JessieError extends MapInterpreterErrorBase {
@@ -135,4 +150,34 @@ export class JessieError extends MapInterpreterErrorBase {
   }
 }
 
-export type MapInterpreterError = MapASTError | HTTPError | JessieError;
+export class MappedError<T> extends MapInterpreterErrorBase {
+  constructor(
+    public override message: string,
+    public override metadata?: { node?: MapASTNode; ast?: MapDocumentNode },
+    public properties?: T
+  ) {
+    super('MappedError', message, metadata);
+  }
+
+  override toString(): string {
+    return [
+      `${this.kind}: ${this.message}`,
+      this.properties
+        ? 'Properites: ' + JSON.stringify(this.properties, undefined, 2)
+        : undefined,
+      this.astPath ? `AST Path: ${this.astPath.join('.')}` : undefined,
+      this.metadata?.node?.location
+        ? `Original Map Location: Line ${this.metadata.node.location.line}, column ${this.metadata.node.location.column}`
+        : undefined,
+    ]
+      .filter(line => !!line)
+      .join('\n');
+  }
+}
+
+export type MapInterpreterError =
+  | MapASTError
+  | MappedHTTPError<unknown>
+  | MappedError<unknown>
+  | HTTPError
+  | JessieError;
