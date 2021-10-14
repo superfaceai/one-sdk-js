@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Removed unnecessary result propagation in interpreter - using stackTop.result instead
 - Terminal outcome statements should now correctly exit from iteration
+- **BREAKING CHANGE**: provider.json schemas moved to ast
 
 ## [0.0.37-beta.0] - 2021-10-05
 ### Added

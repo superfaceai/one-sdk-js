@@ -1,9 +1,12 @@
-import { MapDocumentNode } from '@superfaceai/ast';
+import {
+  isProviderJson,
+  MapDocumentNode,
+  ProviderJson,
+} from '@superfaceai/ast';
 import createDebug from 'debug';
 import * as zod from 'zod';
 
 import { Config } from '../config';
-import { isProviderJson, ProviderJson } from '../internal';
 import { UnexpectedError } from '../internal/errors';
 import { HttpClient } from '../internal/interpreter/http';
 import { CrossFetch } from '../lib/fetch';

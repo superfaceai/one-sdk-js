@@ -1,21 +1,19 @@
 import {
+  ApiKeyPlacement,
+  ApiKeySecurityScheme,
   ApiKeySecurityValues,
+  BasicAuthSecurityScheme,
   BasicAuthSecurityValues,
+  BearerTokenSecurityScheme,
   BearerTokenSecurityValues,
+  DigestSecurityScheme,
   DigestSecurityValues,
+  HttpScheme,
+  SecurityType,
 } from '@superfaceai/ast';
 
 import { UnexpectedError } from '../../errors';
 import { apiKeyInBodyError } from '../../errors.helpers';
-import {
-  ApiKeyPlacement,
-  ApiKeySecurityScheme,
-  BasicAuthSecurityScheme,
-  BearerTokenSecurityScheme,
-  DigestSecurityScheme,
-  HttpScheme,
-  SecurityType,
-} from '../../providerjson';
 import { NonPrimitive, Variables } from '../variables';
 
 export type SecurityConfiguration =

@@ -1,9 +1,14 @@
-import { MapDocumentNode, MapHeaderNode } from '@superfaceai/ast';
+import {
+  ApiKeyPlacement,
+  HttpScheme,
+  MapDocumentNode,
+  MapHeaderNode,
+  SecurityType,
+} from '@superfaceai/ast';
 import { parseMap, Source } from '@superfaceai/parser';
 import { getLocal } from 'mockttp';
 
 import { CrossFetch } from '../../lib/fetch';
-import { ApiKeyPlacement, HttpScheme, SecurityType } from '../providerjson';
 import { MapInterpreter } from './map-interpreter';
 
 const mockServer = getLocal();
