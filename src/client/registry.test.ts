@@ -1,8 +1,7 @@
-import { MapDocumentNode } from '@superfaceai/ast';
+import { MapDocumentNode, ProviderJson } from '@superfaceai/ast';
 
 import { Config } from '../config';
 import { UnexpectedError } from '../internal/errors';
-import { ProviderJson } from '../internal/providerjson';
 import { assertIsRegistryProviderInfo, fetchBind } from './registry';
 
 const request = jest.fn();
