@@ -1,4 +1,12 @@
-import { MapDocumentNode, OnFail, ProfileDocumentNode } from '@superfaceai/ast';
+import {
+  ApiKeyPlacement,
+  HttpScheme,
+  MapDocumentNode,
+  OnFail,
+  ProfileDocumentNode,
+  ProviderJson,
+  SecurityType,
+} from '@superfaceai/ast';
 import { promises as fsp } from 'fs';
 import { mocked } from 'ts-jest/utils';
 
@@ -10,12 +18,6 @@ import {
   InputValidationError,
   ResultValidationError,
 } from '../internal/interpreter/profile-parameter-validator.errors';
-import {
-  ApiKeyPlacement,
-  HttpScheme,
-  ProviderJson,
-  SecurityType,
-} from '../internal/providerjson';
 import { SuperJson } from '../internal/superjson';
 import * as SuperJsonMutate from '../internal/superjson/mutate';
 import { err, ok } from '../lib';

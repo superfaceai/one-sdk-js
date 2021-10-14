@@ -8,12 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Fixed
 - Log warning when user does not handle rejections properly
-- **BREAKING CHANGE**: absolute URLs are no longer allowed in maps
-- **BREAKING CHANGE**: interpolation no longer works in base URLs
 
+## [0.0.37] - 2021-10-14
 ### Changed
 - Removed unnecessary result propagation in interpreter - using stackTop.result instead
 - Terminal outcome statements should now correctly exit from iteration
+- **BREAKING CHANGE**: provider.json schemas moved to ast
+
+### Fixed
+- **BREAKING CHANGE**: absolute URLs are no longer allowed in maps
+- **BREAKING CHANGE**: interpolation no longer works in base URLs
 
 ## [0.0.37-beta.0] - 2021-10-05
 ### Added
@@ -253,7 +257,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Profile parameter validator
 - CI/CD workflows
 
-[Unreleased]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.37-beta.0...HEAD
+[Unreleased]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.37...HEAD
+[0.0.37]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.37-beta.0...v0.0.37
 [0.0.37-beta.0]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.36...v0.0.37-beta.0
 [0.0.36]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.36-beta.0...v0.0.36
 [0.0.36-beta.0]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.35-beta.0...v0.0.36-beta.0
