@@ -36,7 +36,7 @@ const firstMockProfileDocument: ProfileDocumentNode = {
       safety: 'safe',
       result: {
         kind: 'UseCaseSlotDefinition',
-        type: {
+        value: {
           kind: 'ObjectDefinition',
           fields: [
             {
@@ -61,7 +61,7 @@ const firstMockProfileDocument: ProfileDocumentNode = {
       safety: 'safe',
       result: {
         kind: 'UseCaseSlotDefinition',
-        type: {
+        value: {
           kind: 'ObjectDefinition',
           fields: [
             {
@@ -102,7 +102,7 @@ const secondMockProfiledDocument: ProfileDocumentNode = {
       safety: 'safe',
       result: {
         kind: 'UseCaseSlotDefinition',
-        type: {
+        value: {
           kind: 'ObjectDefinition',
           fields: [
             {

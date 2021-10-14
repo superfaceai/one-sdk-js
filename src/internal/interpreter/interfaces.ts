@@ -1,4 +1,7 @@
 import {
+  ComlinkListLiteralNode,
+  ComlinkObjectLiteralNode,
+  ComlinkPrimitiveLiteralNode,
   EnumDefinitionNode,
   EnumValueNode,
   FieldDefinitionNode,
@@ -14,10 +17,28 @@ import {
   ProfileHeaderNode,
   UnionDefinitionNode,
   UseCaseDefinitionNode,
+  UseCaseExampleNode,
+  UseCaseSlotDefinitionNode,
 } from '@superfaceai/ast';
 
 export interface ProfileVisitor {
   visit(node: ProfileASTNode, ...parameters: unknown[]): unknown;
+  visitComlinkListLiteralNode(
+    node: ComlinkListLiteralNode,
+    ...parameters: unknown[]
+  ): unknown;
+  visitComlinkObjectLiteralNode(
+    node: ComlinkObjectLiteralNode,
+    ...parameters: unknown[]
+  ): unknown;
+  visitComlinkPrimitiveLiteralNode(
+    node: ComlinkPrimitiveLiteralNode,
+    ...parameters: unknown[]
+  ): unknown;
+  visitComlinkPrimitiveLiteralNode(
+    node: ComlinkPrimitiveLiteralNode,
+    ...parameters: unknown[]
+  ): unknown;
   visitEnumDefinitionNode(
     node: EnumDefinitionNode,
     ...parameters: unknown[]
@@ -69,6 +90,14 @@ export interface ProfileVisitor {
   ): unknown;
   visitUseCaseDefinitionNode(
     node: UseCaseDefinitionNode,
+    ...parameters: unknown[]
+  ): unknown;
+  visitUseCaseExampleNode(
+    node: UseCaseExampleNode,
+    ...parameters: unknown[]
+  ): unknown;
+  visitUseCaseSlotDefinitionNode(
+    node: UseCaseSlotDefinitionNode<ProfileASTNode>,
     ...parameters: unknown[]
   ): unknown;
 }

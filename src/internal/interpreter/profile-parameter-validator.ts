@@ -1,4 +1,7 @@
 import {
+  ComlinkListLiteralNode,
+  ComlinkObjectLiteralNode,
+  ComlinkPrimitiveLiteralNode,
   EnumDefinitionNode,
   EnumValueNode,
   FieldDefinitionNode,
@@ -15,6 +18,7 @@ import {
   Type,
   UnionDefinitionNode,
   UseCaseDefinitionNode,
+  UseCaseExampleNode,
   UseCaseSlotDefinitionNode,
 } from '@superfaceai/ast';
 import createDebug from 'debug';
@@ -129,6 +133,12 @@ export class ProfileParameterValidator implements ProfileVisitor {
   ): ValidationFunction {
     debug('Visiting node:', node.kind);
     switch (node.kind) {
+      case 'ComlinkListLiteral':
+        return this.visitComlinkListLiteralNode(node, kind, usecase);
+      case 'ComlinkObjectLiteral':
+        return this.visitComlinkObjectLiteralNode(node, kind, usecase);
+      case 'ComlinkPrimitiveLiteral':
+        return this.visitComlinkPrimitiveLiteralNode(node, kind, usecase);
       case 'EnumDefinition':
         return this.visitEnumDefinitionNode(node, kind, usecase);
       case 'EnumValue':
@@ -158,11 +168,37 @@ export class ProfileParameterValidator implements ProfileVisitor {
       case 'UseCaseDefinition':
         return this.visitUseCaseDefinitionNode(node, kind, usecase);
       case 'UseCaseSlotDefinition':
-        throw this.visitUseCaseSlotDefinitionNode(node, kind, usecase);
+        return this.visitUseCaseSlotDefinitionNode(node, kind, usecase);
+      case 'UseCaseExample':
+        return this.visitUseCaseExampleNode(node, kind, usecase);
 
       default:
         assertUnreachable(node);
     }
+  }
+
+  visitComlinkListLiteralNode(
+    _node: ComlinkListLiteralNode,
+    _kind: ProfileParameterKind,
+    _usecase: string
+  ): never {
+    throw new UnexpectedError('Method not implemented.');
+  }
+
+  visitComlinkObjectLiteralNode(
+    _node: ComlinkObjectLiteralNode,
+    _kind: ProfileParameterKind,
+    _usecase: string
+  ): never {
+    throw new UnexpectedError('Method not implemented.');
+  }
+
+  visitComlinkPrimitiveLiteralNode(
+    _node: ComlinkPrimitiveLiteralNode,
+    _kind: ProfileParameterKind,
+    _usecase: string
+  ): never {
+    throw new UnexpectedError('Method not implemented.');
   }
 
   visitEnumDefinitionNode(
@@ -517,10 +553,10 @@ export class ProfileParameterValidator implements ProfileVisitor {
     kind: ProfileParameterKind,
     usecase: string
   ): ValidationFunction {
-    if (kind === 'input' && node.input && node.input.type) {
-      return addPath(this.visit(node.input.type, kind, usecase), 'input');
-    } else if (kind === 'result' && node.result && node.result.type) {
-      return addPath(this.visit(node.result.type, kind, usecase), 'result');
+    if (kind === 'input' && node.input) {
+      return addPath(this.visit(node.input.value, kind, usecase), 'input');
+    } else if (kind === 'result' && node.result) {
+      return addPath(this.visit(node.result.value, kind, usecase), 'result');
     }
 
     return (input: unknown): ValidationResult => {
@@ -534,6 +570,14 @@ export class ProfileParameterValidator implements ProfileVisitor {
 
       return [false, [{ kind: 'wrongInput' }]];
     };
+  }
+
+  visitUseCaseExampleNode(
+    _node: UseCaseExampleNode,
+    _kind: ProfileParameterKind,
+    _usecase: string
+  ): never {
+    throw new UnexpectedError('Method not implemented.');
   }
 
   visitUseCaseSlotDefinitionNode(
