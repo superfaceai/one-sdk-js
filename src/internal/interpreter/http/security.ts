@@ -16,6 +16,8 @@ import { UnexpectedError } from '../../errors';
 import { apiKeyInBodyError } from '../../errors.helpers';
 import { NonPrimitive, Variables } from '../variables';
 
+const DEFAULT_AUTHORIZATION_HEADER_NAME = 'Authorization';
+
 export type SecurityConfiguration =
   | (ApiKeySecurityScheme & ApiKeySecurityValues)
   | (BasicAuthSecurityScheme & BasicAuthSecurityValues)
@@ -35,9 +37,11 @@ export function applyApiKeyAuth(
   context: RequestContext,
   configuration: SecurityConfiguration & { type: SecurityType.APIKEY }
 ): void {
+  const name = configuration.name || DEFAULT_AUTHORIZATION_HEADER_NAME;
+
   switch (configuration.in) {
     case ApiKeyPlacement.HEADER:
-      context.headers[configuration.name] = configuration.apikey;
+      context.headers[name] = configuration.apikey;
       break;
 
     case ApiKeyPlacement.BODY:
@@ -51,15 +55,15 @@ export function applyApiKeyAuth(
             : typeof context.requestBody
         );
       }
-      context.requestBody[configuration.name] = configuration.apikey;
+      context.requestBody[name] = configuration.apikey;
       break;
 
     case ApiKeyPlacement.PATH:
-      context.pathParameters[configuration.name] = configuration.apikey;
+      context.pathParameters[name] = configuration.apikey;
       break;
 
     case ApiKeyPlacement.QUERY:
-      context.queryAuth[configuration.name] = configuration.apikey;
+      context.queryAuth[name] = configuration.apikey;
       break;
   }
 }
