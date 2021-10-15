@@ -1608,6 +1608,7 @@ describe('superjson mutate', () => {
       expect(superjson.normalized.providers[mockProviderName]).toEqual({
         file: 'some/path',
         security: [],
+        parameters: {},
       });
     });
 
@@ -1620,6 +1621,7 @@ describe('superjson mutate', () => {
         [mockProviderName]: {
           file: 'some/path',
           security: [],
+          parameters: {},
         },
       });
 
@@ -1630,10 +1632,12 @@ describe('superjson mutate', () => {
         provider: {
           file: 'some/path',
           security: [],
+          parameters: {},
         },
         ['second-provider']: {
           file: 'some/path',
           security: [],
+          parameters: {},
         },
       });
     });
@@ -1651,6 +1655,7 @@ describe('superjson mutate', () => {
       expect(superjson.normalized.providers[mockProviderName]).toEqual({
         file: 'some/path',
         security: [],
+        parameters: {},
       });
     });
 
@@ -1664,6 +1669,9 @@ describe('superjson mutate', () => {
             apikey: 'api-key',
           },
         ],
+        parameters: {
+          first: 'test',
+        },
       };
 
       superjson.mergeProvider(mockProviderName, mockProviderEntry);
@@ -1675,6 +1683,60 @@ describe('superjson mutate', () => {
             apikey: 'api-key',
           },
         ],
+        parameters: {
+          first: 'test',
+        },
+      });
+    });
+
+    it('merges provider over existing provider parameters', () => {
+      const mockProviderName = 'provider';
+      const mockProviderEntry: ProviderEntry = {
+        file: 'some/path',
+        security: [
+          {
+            id: 'api-id',
+            apikey: 'api-key',
+          },
+        ],
+        parameters: {
+          first: 'new',
+          second: 'second',
+        },
+      };
+      superjson = new SuperJson({
+        providers: {
+          [mockProviderName]: {
+            file: 'some/path',
+            security: [
+              {
+                id: 'api-id',
+                apikey: 'api-key',
+              },
+            ],
+            parameters: {
+              first: 'old',
+              second: 'second',
+              other: '',
+            },
+          },
+        },
+      });
+
+      superjson.mergeProvider(mockProviderName, mockProviderEntry);
+      expect(superjson.normalized.providers[mockProviderName]).toEqual({
+        file: 'some/path',
+        security: [
+          {
+            id: 'api-id',
+            apikey: 'api-key',
+          },
+        ],
+        parameters: {
+          first: 'new',
+          second: 'second',
+          other: '',
+        },
       });
     });
 
@@ -1704,6 +1766,7 @@ describe('superjson mutate', () => {
             apikey: 'api-key',
           },
         ],
+        parameters: {},
       });
     });
 

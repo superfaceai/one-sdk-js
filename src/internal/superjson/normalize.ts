@@ -265,6 +265,7 @@ export function normalizeProviderSettings(
       return {
         file: providerEntry.slice(FILE_URI_PROTOCOL.length),
         security: [],
+        parameters: {},
       };
     }
 
@@ -277,6 +278,7 @@ export function normalizeProviderSettings(
     file: providerEntry.file,
     security:
       providerEntry.security?.map(entry => resolveEnvRecord(entry)) ?? [],
+    parameters: providerEntry.parameters ?? {},
   };
 }
 
