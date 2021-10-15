@@ -172,6 +172,7 @@ The Superface OneSDK is configurable through various environment variables:
 
 The Superface OneSDK will send info about usage to Superface services. This info is anonymized, rate limited and allows you to see how the client is performing on your dashboard. To be able to see those metrics, you need to provide your auth token.
 There are three kinds of metrics reported at present - one is sent when the client instance is created, one after each perform (reporting success or failure) and one when a provider failover happens. The reports can be disabled or configured with [environment variables](#configuration).
+For metrics to be successfuly sent, the application needs to be properly exited, i.e. there should be no unhandled Promise rejections or exceptions.
 
 ## Security
 
