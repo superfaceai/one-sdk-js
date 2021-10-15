@@ -587,7 +587,9 @@ export function mergeProvider(
     const isShorthandAvailable =
       typeof targetProvider === 'string' ||
       targetProvider.security === undefined ||
-      targetProvider.security.length === 0;
+      targetProvider.security.length === 0 ||
+      targetProvider.parameters === undefined ||
+      Object.keys(targetProvider.parameters).length === 0;
 
     if (isFileURIString(payload)) {
       if (isShorthandAvailable) {
@@ -597,6 +599,7 @@ export function mergeProvider(
           file: trimFileURI(payload),
           // has to be an object because isShorthandAvailable is false
           security: (targetProvider as ProviderSettings).security,
+          parameters: (targetProvider as ProviderSettings).parameters,
         };
       }
 
@@ -625,6 +628,16 @@ export function mergeProvider(
       provider.security = mergeSecurity(
         targetProvider.security ?? [],
         payload.security ?? []
+      );
+    }
+
+    if (
+      targetProvider.parameters !== undefined ||
+      payload.parameters !== undefined
+    ) {
+      provider.parameters = Object.assign(
+        targetProvider.parameters || {},
+        payload.parameters || {}
       );
     }
 
