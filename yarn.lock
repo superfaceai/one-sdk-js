@@ -660,7 +660,7 @@
   dependencies:
     "@sinonjs/commons" "^1.7.0"
 
-"@superfaceai/ast@>=0.0.32":
+"@superfaceai/ast@0.0.32":
   version "0.0.32"
   resolved "https://registry.yarnpkg.com/@superfaceai/ast/-/ast-0.0.32.tgz#9230c970e6c3319e89eea312925b9d63d3c2c47b"
   integrity sha512-ZAsLWlr7b/orV3zRpXySeihhYLQE1t9J+ZHYnsnb4UKahXPqIPr7F3bnRCusS6scXOvCA2oCu1cOsotHqcg5cA==
