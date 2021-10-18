@@ -513,6 +513,7 @@ describe('SuperJson', () => {
       expect(normalize.normalizeProviderSettings(mockProviderEntry)).toEqual({
         file: 'some/path',
         security: [],
+        parameters: {},
       });
     });
 
@@ -529,11 +530,33 @@ describe('SuperJson', () => {
       const mockProviderEntry = {
         file: 'some/path',
         security: [],
+        parameters: {
+          first: 'test',
+          second: 'second',
+        },
       };
 
       expect(normalize.normalizeProviderSettings(mockProviderEntry)).toEqual({
         file: 'some/path',
         security: [],
+        parameters: {
+          first: 'test',
+          second: 'second',
+        },
+      });
+    });
+
+    it('returns correct object when entry is a object with empty security and parameters', async () => {
+      const mockProviderEntry = {
+        file: 'some/path',
+        security: [],
+        parameters: {},
+      };
+
+      expect(normalize.normalizeProviderSettings(mockProviderEntry)).toEqual({
+        file: 'some/path',
+        security: [],
+        parameters: {},
       });
     });
   });
@@ -557,6 +580,7 @@ describe('SuperJson', () => {
           test: {
             file: undefined,
             security: [],
+            parameters: {},
           },
         },
         profiles: {
@@ -588,6 +612,7 @@ describe('SuperJson', () => {
           test: {
             file: undefined,
             security: [],
+            parameters: {},
           },
         },
         profiles: {
@@ -609,6 +634,7 @@ describe('SuperJson', () => {
           test: {
             file: undefined,
             security: [],
+            parameters: {},
           },
         },
         profiles: {
@@ -974,7 +1000,11 @@ describe('SuperJson', () => {
                 "username": "hi",
                 "password": "heya"
               }
-            ]
+            ],
+            "parameters":{
+              "first": "awesome",
+              "second": ""
+            }
           }
         }
       }`;
@@ -1175,10 +1205,12 @@ describe('SuperJson', () => {
           foo: {
             file: '/foo.provider.json',
             security: [],
+            parameters: {},
           },
           bar: {
             file: './bar.provider.json',
             security: [],
+            parameters: {},
           },
           baz: {
             file: undefined,
@@ -1189,6 +1221,10 @@ describe('SuperJson', () => {
                 password: 'heya',
               },
             ],
+            parameters: {
+              first: 'awesome',
+              second: '',
+            },
           },
         },
       });

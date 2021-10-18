@@ -6,21 +6,38 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-
-## [0.0.38-beta.0] - 2021-10-11
 ### Changed
 - Removed unnecessary result propagation in interpreter - using stackTop.result instead
 - Terminal outcome statements should now correctly exit from iteration
 - MappedHTTPErrors and MappedErrors are handled a little better
 
 ### Fixed
-- **BREAKING CHANGE**: absolute URLs are no longer allowed in maps
-- **BREAKING CHANGE**: interpolation no longer works in base URLs
 - operation call no longer overwrites already mapped result
 - caller scope no longer leaks into operation callees
 - `result` variable no longer has special meaning
 - `outcome.data` is no longer overwritten by `result`
 - `fail` correctly sets `outcome.error` in caller
+
+## [0.0.40] - 2021-10-18
+### Changed
+- Updated AST with examples
+
+## [0.0.39] - 2021-10-18
+
+## [0.0.38] - 2021-10-16
+### Fixed
+- Log warning when user does not handle rejections properly
+- Locked AST version with matching schemas from parser
+
+## [0.0.37] - 2021-10-14
+### Changed
+- Removed unnecessary result propagation in interpreter - using stackTop.result instead
+- Terminal outcome statements should now correctly exit from iteration
+- **BREAKING CHANGE**: provider.json schemas moved to ast
+
+### Fixed
+- **BREAKING CHANGE**: absolute URLs are no longer allowed in maps
+- **BREAKING CHANGE**: interpolation no longer works in base URLs
 
 ## [0.0.37-beta.0] - 2021-10-05
 ### Added
@@ -260,8 +277,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Profile parameter validator
 - CI/CD workflows
 
+<<<<<<< HEAD
 [Unreleased]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.38-beta.0...HEAD
 [0.0.38-beta.0]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.37-beta.0...v0.0.38-beta.0
+=======
+[Unreleased]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.40...HEAD
+[0.0.40]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.39...v0.0.40
+[0.0.39]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.38...v0.0.39
+[0.0.38]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.37...v0.0.38
+[0.0.37]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.37-beta.0...v0.0.37
+>>>>>>> main
 [0.0.37-beta.0]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.36...v0.0.37-beta.0
 [0.0.36]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.36-beta.0...v0.0.36
 [0.0.36-beta.0]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.35-beta.0...v0.0.36-beta.0

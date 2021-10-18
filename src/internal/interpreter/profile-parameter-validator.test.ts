@@ -50,7 +50,7 @@ describe('ProfileParameterValidator', () => {
             useCaseName: 'Test',
             input: {
               kind: 'UseCaseSlotDefinition',
-              type: {
+              value: {
                 kind: 'ObjectDefinition',
                 fields: [],
               },
@@ -85,7 +85,7 @@ describe('ProfileParameterValidator', () => {
             useCaseName: 'Test',
             input: {
               kind: 'UseCaseSlotDefinition',
-              type: {
+              value: {
                 kind: 'ObjectDefinition',
                 fields: [
                   {
@@ -141,7 +141,7 @@ describe('ProfileParameterValidator', () => {
             useCaseName: 'Test',
             input: {
               kind: 'UseCaseSlotDefinition',
-              type: {
+              value: {
                 kind: 'ObjectDefinition',
                 fields: [
                   {
@@ -195,7 +195,7 @@ describe('ProfileParameterValidator', () => {
             useCaseName: 'Test',
             input: {
               kind: 'UseCaseSlotDefinition',
-              type: {
+              value: {
                 kind: 'ObjectDefinition',
                 fields: [
                   {
@@ -262,7 +262,7 @@ describe('ProfileParameterValidator', () => {
             useCaseName: 'Test',
             input: {
               kind: 'UseCaseSlotDefinition',
-              type: {
+              value: {
                 kind: 'ObjectDefinition',
                 fields: [
                   {
@@ -372,7 +372,7 @@ describe('ProfileParameterValidator', () => {
             useCaseName: 'Test',
             input: {
               kind: 'UseCaseSlotDefinition',
-              type: {
+              value: {
                 kind: 'ObjectDefinition',
                 fields: [
                   {
@@ -426,7 +426,7 @@ describe('ProfileParameterValidator', () => {
             useCaseName: 'Test',
             input: {
               kind: 'UseCaseSlotDefinition',
-              type: {
+              value: {
                 kind: 'ObjectDefinition',
                 fields: [
                   {
@@ -493,7 +493,7 @@ describe('ProfileParameterValidator', () => {
             useCaseName: 'Test',
             input: {
               kind: 'UseCaseSlotDefinition',
-              type: {
+              value: {
                 kind: 'ObjectDefinition',
                 fields: [
                   {
@@ -560,7 +560,7 @@ describe('ProfileParameterValidator', () => {
             useCaseName: 'Test',
             input: {
               kind: 'UseCaseSlotDefinition',
-              type: {
+              value: {
                 kind: 'ObjectDefinition',
                 fields: [
                   {
@@ -636,7 +636,7 @@ describe('ProfileParameterValidator', () => {
             useCaseName: 'Test',
             input: {
               kind: 'UseCaseSlotDefinition',
-              type: {
+              value: {
                 kind: 'ObjectDefinition',
                 fields: [
                   {
@@ -742,7 +742,7 @@ describe('ProfileParameterValidator', () => {
             useCaseName: 'Test',
             input: {
               kind: 'UseCaseSlotDefinition',
-              type: {
+              value: {
                 kind: 'ObjectDefinition',
                 fields: [
                   {
@@ -822,7 +822,7 @@ describe('ProfileParameterValidator', () => {
             useCaseName: 'Test',
             input: {
               kind: 'UseCaseSlotDefinition',
-              type: {
+              value: {
                 kind: 'ObjectDefinition',
                 fields: [
                   {
@@ -884,7 +884,7 @@ describe('ProfileParameterValidator', () => {
             useCaseName: 'Test',
             input: {
               kind: 'UseCaseSlotDefinition',
-              type: {
+              value: {
                 kind: 'ObjectDefinition',
                 fields: [
                   {
@@ -957,7 +957,7 @@ describe('ProfileParameterValidator', () => {
             useCaseName: 'Test',
             input: {
               kind: 'UseCaseSlotDefinition',
-              type: {
+              value: {
                 kind: 'ObjectDefinition',
                 fields: [
                   {
@@ -1027,7 +1027,7 @@ describe('ProfileParameterValidator', () => {
             useCaseName: 'Test',
             input: {
               kind: 'UseCaseSlotDefinition',
-              type: {
+              value: {
                 kind: 'ObjectDefinition',
                 fields: [
                   {
@@ -1102,7 +1102,7 @@ describe('ProfileParameterValidator', () => {
             useCaseName: 'Test',
             result: {
               kind: 'UseCaseSlotDefinition',
-              type: {
+              value: {
                 kind: 'ObjectDefinition',
                 fields: [
                   {
@@ -1203,7 +1203,7 @@ describe('ProfileParameterValidator', () => {
             useCaseName: 'Test',
             result: {
               kind: 'UseCaseSlotDefinition',
-              type: {
+              value: {
                 kind: 'ObjectDefinition',
                 fields: [
                   {

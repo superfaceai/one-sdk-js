@@ -155,6 +155,11 @@ export abstract class SuperfaceClientBase extends Events {
 
   private hookMetrics(): void {
     process.on('beforeExit', () => this.metricReporter?.flush());
+    process.on('uncaughtExceptionMonitor', () => {
+      console.warn(
+        'Warning: you do not handle all exceptions. This can prevent failure report to be sent.'
+      );
+    });
     this.on('success', { priority: 0 }, (context: SuccessContext) => {
       this.metricReporter?.reportEvent({
         eventType: 'PerformMetrics',

@@ -85,7 +85,7 @@ const mockProfileDocument: ProfileDocumentNode = {
       safety: 'safe',
       result: {
         kind: 'UseCaseSlotDefinition',
-        type: {
+        value: {
           kind: 'ObjectDefinition',
           fields: [
             {

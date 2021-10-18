@@ -1,10 +1,9 @@
-import { HttpSecurityRequirement } from '@superfaceai/ast';
+import { HttpSecurityRequirement, SecurityType } from '@superfaceai/ast';
 import createDebug from 'debug';
 import { inspect } from 'util';
 
-import { USER_AGENT } from '../../..';
+import { USER_AGENT } from '../../../index';
 import { recursiveKeyList } from '../../../lib/object';
-import { SecurityType } from '../..';
 import { UnexpectedError } from '../../errors';
 import {
   missingPathReplacementError,
