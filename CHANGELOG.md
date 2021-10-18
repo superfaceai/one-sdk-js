@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.0.40] - 2021-10-18
 ### Changed
 - Updated AST with examples
 
@@ -264,7 +266,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Profile parameter validator
 - CI/CD workflows
 
-[Unreleased]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.39...HEAD
+[Unreleased]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.40...HEAD
+[0.0.40]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.39...v0.0.40
 [0.0.39]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.38...v0.0.39
 [0.0.38]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.37...v0.0.38
 [0.0.37]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.37-beta.0...v0.0.37
