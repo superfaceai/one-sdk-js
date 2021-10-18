@@ -33,7 +33,7 @@ jobs:
       - name: Install dependencies
         run: yarn install
       - name: Test
-        run: yarn test
+        run: yarn test --bail
 
   lint:
     runs-on: ubuntu-latest
@@ -66,7 +66,7 @@ jobs:
         run: yarn install
       - name: Lint
         run: yarn lint
-      
+
   license-check:
     runs-on: ubuntu-latest
     steps:
@@ -95,7 +95,7 @@ jobs:
 
       # Install and run license checker
       - name: Install dependencies
-        run:  yarn install
+        run: yarn install
       - name: Install License checker
         run: |
           yarn global add license-checker
