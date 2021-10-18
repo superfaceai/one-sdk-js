@@ -605,7 +605,7 @@ describe('MetricReporter', () => {
 
     const profile = await client.getProfile('test-profile');
 
-    const result = profile.getUseCase('Test').perform({});
+    void profile.getUseCase('Test').perform({});
     let requests = await eventEndpoint.getSeenRequests();
     while (requests.length < 3) {
       currentTime += 0.1;
