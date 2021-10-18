@@ -481,5 +481,32 @@ AST Path: definitions[0].statements[0].assignments[0].value`
           result.error.statusCode
       ).toEqual(404);
     });
+
+    it('should return error when using parameters in baseUrl, but they are not supplied', async () => {
+      const url = '/twelve/something';
+      await mockServer.get(url).thenJson(200, { data: 12 });
+      const ast = parseMapFromSource(`
+        map Test {
+          http GET "/something" {
+            response 200 "application/json" {
+              map result {
+                result = body.data
+              }
+            }
+          }
+        }`);
+      const interpreter = new MapInterpreter(
+        {
+          usecase: 'Test',
+          security: [],
+          serviceBaseUrl: `${serviceBaseUrl}/{path}`,
+        },
+        { fetchInstance }
+      );
+      const result = await interpreter.perform(ast);
+      expect(result.isErr() && result.error.toString()).toMatch(
+        'Missing values for URL path replacement: path'
+      );
+    });
   });
 });

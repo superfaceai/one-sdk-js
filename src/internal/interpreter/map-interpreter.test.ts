@@ -1,9 +1,9 @@
-import { ApiKeyPlacement, HttpScheme, SecurityType } from "@superfaceai/ast";
-import { parseMap, Source } from "@superfaceai/parser";
-import { getLocal } from "mockttp";
+import { ApiKeyPlacement, HttpScheme, SecurityType } from '@superfaceai/ast';
+import { parseMap, Source } from '@superfaceai/parser';
+import { getLocal } from 'mockttp';
 
-import { CrossFetch } from "../../lib/fetch";
-import { MapInterpreter } from "./map-interpreter";
+import { CrossFetch } from '../../lib/fetch';
+import { MapInterpreter } from './map-interpreter';
 
 const mockServer = getLocal();
 const fetchInstance = new CrossFetch();
@@ -18,7 +18,7 @@ const parseMapFromSource = (source: string) =>
     )
   );
 
-describe("MapInterpreter", () => {
+describe('MapInterpreter', () => {
   let serviceBaseUrl: string;
 
   beforeEach(async () => {
@@ -30,10 +30,10 @@ describe("MapInterpreter", () => {
     await mockServer.stop();
   });
 
-  it("should execute minimal Eval definition", async () => {
+  it('should execute minimal Eval definition', async () => {
     const interpreter = new MapInterpreter(
       {
-        usecase: "testCase",
+        usecase: 'testCase',
         security: [],
       },
       { fetchInstance }
@@ -48,10 +48,10 @@ describe("MapInterpreter", () => {
     expect(result.isOk() && result.value).toEqual(3);
   });
 
-  it("should execute Eval definition with variables", async () => {
+  it('should execute Eval definition with variables', async () => {
     const interpreter = new MapInterpreter(
       {
-        usecase: "Test",
+        usecase: 'Test',
         security: [],
       },
       { fetchInstance }
@@ -67,10 +67,10 @@ describe("MapInterpreter", () => {
     expect(result.isOk() && result.value).toEqual(12);
   });
 
-  it("should execute eval definition with jessie array", async () => {
+  it('should execute eval definition with jessie array', async () => {
     const interpreter = new MapInterpreter(
       {
-        usecase: "Test",
+        usecase: 'Test',
         security: [],
       },
       { fetchInstance }
@@ -84,10 +84,10 @@ describe("MapInterpreter", () => {
     expect(result.isOk() && result.value).toEqual([1, 2, 3]);
   });
 
-  it("should inline call predefined operation", async () => {
+  it('should inline call predefined operation', async () => {
     const interpreter = new MapInterpreter(
       {
-        usecase: "Test",
+        usecase: 'Test',
         security: [],
       },
       { fetchInstance }
@@ -106,10 +106,10 @@ describe("MapInterpreter", () => {
     expect(result.isOk() && result.value).toEqual(12);
   });
 
-  it("should call predefined operation", async () => {
+  it('should call predefined operation', async () => {
     const interpreter = new MapInterpreter(
       {
-        usecase: "Test",
+        usecase: 'Test',
         security: [],
       },
       { fetchInstance }
@@ -129,10 +129,10 @@ describe("MapInterpreter", () => {
     expect(result.isOk() && result.value).toEqual(26);
   });
 
-  it("should correctly resolve scope", async () => {
+  it('should correctly resolve scope', async () => {
     const interpreter = new MapInterpreter(
       {
-        usecase: "Test",
+        usecase: 'Test',
         security: [],
       },
       { fetchInstance }
@@ -153,19 +153,19 @@ describe("MapInterpreter", () => {
     expect(result.isOk() && result.value).toEqual(12);
   });
 
-  it("should call an API", async () => {
-    const url = "/twelve";
+  it('should call an API', async () => {
+    const url = '/twelve';
     await mockServer.get(url).thenJson(
       200,
       { data: 12 },
       {
-        "Content-Type": "application/json; charset=utf-8",
-        "Content-Language": "en-US, en-CA",
+        'Content-Type': 'application/json; charset=utf-8',
+        'Content-Language': 'en-US, en-CA',
       }
     );
     const interpreter = new MapInterpreter(
       {
-        usecase: "Test",
+        usecase: 'Test',
         security: [],
         serviceBaseUrl,
       },
@@ -190,13 +190,13 @@ describe("MapInterpreter", () => {
     expect(result.isOk() && result.value).toEqual(12);
   });
 
-  it("should call an API with path parameters", async () => {
-    const url = "/twelve";
-    await mockServer.get(url + "/2").thenJson(200, { data: 144 });
+  it('should call an API with path parameters', async () => {
+    const url = '/twelve';
+    await mockServer.get(url + '/2').thenJson(200, { data: 144 });
     const interpreter = new MapInterpreter(
       {
-        usecase: "Test",
-        input: { page: "2" },
+        usecase: 'Test',
+        input: { page: '2' },
         security: [],
         serviceBaseUrl,
       },
@@ -222,15 +222,15 @@ describe("MapInterpreter", () => {
     expect(result.isOk() && result.value).toEqual(144);
   });
 
-  it("should call an API with parameters", async () => {
-    const url = "/twelve";
+  it('should call an API with parameters', async () => {
+    const url = '/twelve';
     await mockServer
       .get(url)
       .withQuery({ page: 2 })
       .thenJson(200, { data: 144 });
     const interpreter = new MapInterpreter(
       {
-        usecase: "Test",
+        usecase: 'Test',
         input: { page: 2 },
         security: [],
         serviceBaseUrl,
@@ -259,16 +259,16 @@ describe("MapInterpreter", () => {
     expect(result.isOk() && result.value).toEqual(144);
   });
 
-  it("should call an API with parameters and POST request", async () => {
-    const url = "/checkBody";
+  it('should call an API with parameters and POST request', async () => {
+    const url = '/checkBody';
     await mockServer
       .post(url)
       .withJsonBody({ anArray: [1, 2, 3] })
-      .withHeaders({ someheader: "hello" })
+      .withHeaders({ someheader: 'hello' })
       .thenJson(201, { bodyOk: true, headerOk: true });
     const interpreter = new MapInterpreter(
       {
-        usecase: "Test",
+        usecase: 'Test',
         security: [],
         serviceBaseUrl,
       },
@@ -299,14 +299,14 @@ describe("MapInterpreter", () => {
     });
   });
 
-  it("should run multi step operation", async () => {
-    const url1 = "/first";
-    const url2 = "/second";
+  it('should run multi step operation', async () => {
+    const url1 = '/first';
+    const url2 = '/second';
     await mockServer.get(url1).thenJson(200, { firstStep: { someVar: 12 } });
     await mockServer.get(url2).thenJson(200, { secondStep: 5 });
     const interpreter = new MapInterpreter(
       {
-        usecase: "Test",
+        usecase: 'Test',
         security: [],
         serviceBaseUrl,
       },
@@ -336,22 +336,22 @@ describe("MapInterpreter", () => {
     expect(result.isOk() && result.value).toEqual(12 * 5);
   });
 
-  it("should call an API with Basic auth", async () => {
-    const url = "/basic";
+  it('should call an API with Basic auth', async () => {
+    const url = '/basic';
     await mockServer
       .get(url)
-      .withHeaders({ Authorization: "Basic bmFtZTpwYXNzd29yZA==" })
+      .withHeaders({ Authorization: 'Basic bmFtZTpwYXNzd29yZA==' })
       .thenJson(200, { data: 12 });
     const interpreter = new MapInterpreter(
       {
-        usecase: "testCase",
+        usecase: 'testCase',
         security: [
           {
-            id: "my_basic",
+            id: 'my_basic',
             type: SecurityType.HTTP,
             scheme: HttpScheme.BASIC,
-            username: "name",
-            password: "password",
+            username: 'name',
+            password: 'password',
           },
         ],
         serviceBaseUrl,
@@ -373,21 +373,21 @@ describe("MapInterpreter", () => {
     expect(result.isOk() && result.value).toEqual(12);
   });
 
-  it("should call an API with Bearer auth", async () => {
-    const url = "/bearer";
+  it('should call an API with Bearer auth', async () => {
+    const url = '/bearer';
     await mockServer
       .get(url)
-      .withHeaders({ Authorization: "Bearer SuperSecret" })
+      .withHeaders({ Authorization: 'Bearer SuperSecret' })
       .thenJson(200, { data: 12 });
     const interpreter = new MapInterpreter(
       {
-        usecase: "testCase",
+        usecase: 'testCase',
         security: [
           {
-            id: "my_bearer",
+            id: 'my_bearer',
             type: SecurityType.HTTP,
             scheme: HttpScheme.BEARER,
-            token: "SuperSecret",
+            token: 'SuperSecret',
           },
         ],
         serviceBaseUrl,
@@ -409,22 +409,22 @@ describe("MapInterpreter", () => {
     expect(result.isOk() && result.value).toEqual(12);
   });
 
-  it("should call an API with Apikey auth in header", async () => {
-    const url = "/apikey";
+  it('should call an API with Apikey auth in header', async () => {
+    const url = '/apikey';
     await mockServer
       .get(url)
-      .withHeaders({ Key: "SuperSecret" })
+      .withHeaders({ Key: 'SuperSecret' })
       .thenJson(200, { data: 12 });
     const interpreter = new MapInterpreter(
       {
-        usecase: "testCase",
+        usecase: 'testCase',
         security: [
           {
-            id: "my_apikey",
+            id: 'my_apikey',
             type: SecurityType.APIKEY,
             in: ApiKeyPlacement.HEADER,
-            name: "Key",
-            apikey: "SuperSecret",
+            name: 'Key',
+            apikey: 'SuperSecret',
           },
         ],
         serviceBaseUrl,
@@ -447,22 +447,22 @@ describe("MapInterpreter", () => {
     expect(result.isOk() && result.value).toEqual(12);
   });
 
-  it("should call an API with Apikey auth in query", async () => {
-    const url = "/apikey";
+  it('should call an API with Apikey auth in query', async () => {
+    const url = '/apikey';
     await mockServer
       .get(url)
-      .withQuery({ key: "SuperSecret" })
+      .withQuery({ key: 'SuperSecret' })
       .thenJson(200, { data: 12 });
     const interpreter = new MapInterpreter(
       {
-        usecase: "testCase",
+        usecase: 'testCase',
         security: [
           {
-            id: "my_apikey",
+            id: 'my_apikey',
             type: SecurityType.APIKEY,
             in: ApiKeyPlacement.QUERY,
-            name: "key",
-            apikey: "SuperSecret",
+            name: 'key',
+            apikey: 'SuperSecret',
           },
         ],
         serviceBaseUrl,
@@ -484,16 +484,16 @@ describe("MapInterpreter", () => {
     expect(result.isOk() && result.value).toEqual(12);
   });
 
-  it("should call an API with multipart/form-data body", async () => {
-    const url = "/formdata";
-    await mockServer.post(url).thenCallback(async (request) => {
+  it('should call an API with multipart/form-data body', async () => {
+    const url = '/formdata';
+    await mockServer.post(url).thenCallback(async request => {
       const text = await request.body.getText();
       if (
         text &&
-        text.includes("formData") &&
-        text.includes("myFormData") &&
-        text.includes("is") &&
-        text.includes("present")
+        text.includes('formData') &&
+        text.includes('myFormData') &&
+        text.includes('is') &&
+        text.includes('present')
       ) {
         return {
           json: { data: 12 },
@@ -505,7 +505,7 @@ describe("MapInterpreter", () => {
     });
     const interpreter = new MapInterpreter(
       {
-        usecase: "testCase",
+        usecase: 'testCase',
         security: [],
         serviceBaseUrl,
       },
@@ -531,15 +531,15 @@ describe("MapInterpreter", () => {
     expect(result.isOk() && result.value).toEqual(12);
   });
 
-  it("should call an API with application/x-www-form-urlencoded", async () => {
-    const url = "/urlencoded";
+  it('should call an API with application/x-www-form-urlencoded', async () => {
+    const url = '/urlencoded';
     await mockServer
       .post(url)
-      .withForm({ form: "is", o: "k" })
+      .withForm({ form: 'is', o: 'k' })
       .thenJson(201, { data: 12 });
     const interpreter = new MapInterpreter(
       {
-        usecase: "testCase",
+        usecase: 'testCase',
         security: [],
         serviceBaseUrl,
       },
@@ -565,10 +565,10 @@ describe("MapInterpreter", () => {
     expect(result.isOk() && result.value).toEqual(12);
   });
 
-  it("should execute Eval definition with nested result", async () => {
+  it('should execute Eval definition with nested result', async () => {
     const interpreter = new MapInterpreter(
       {
-        usecase: "testCase",
+        usecase: 'testCase',
         security: [],
       },
       { fetchInstance }
@@ -589,7 +589,7 @@ describe("MapInterpreter", () => {
     });
   });
 
-  it("should execute based on condition", async () => {
+  it('should execute based on condition', async () => {
     const ast = parseMapFromSource(`
       map Test {
         map result if (input.condition) 7
@@ -597,7 +597,7 @@ describe("MapInterpreter", () => {
       }`);
     const interpreter1 = new MapInterpreter(
       {
-        usecase: "Test",
+        usecase: 'Test',
         input: { condition: true },
         security: [],
       },
@@ -605,7 +605,7 @@ describe("MapInterpreter", () => {
     );
     const interpreter2 = new MapInterpreter(
       {
-        usecase: "Test",
+        usecase: 'Test',
         input: { condition: false },
         security: [],
       },
@@ -617,10 +617,10 @@ describe("MapInterpreter", () => {
     expect(result2.isOk() && result2.value).toEqual(8);
   });
 
-  it("should correctly construct result object", async () => {
+  it('should correctly construct result object', async () => {
     const interpreter = new MapInterpreter(
       {
-        usecase: "Test",
+        usecase: 'Test',
         security: [],
       },
       { fetchInstance }
@@ -637,12 +637,12 @@ describe("MapInterpreter", () => {
     expect(result.isOk() && result.value).toEqual({ test: { x: 1, y: 2 } });
   });
 
-  it("should correctly return from operation", async () => {
-    const url = "/test";
+  it('should correctly return from operation', async () => {
+    const url = '/test';
     await mockServer.get(url).thenJson(200, {});
     const interpreter = new MapInterpreter(
       {
-        usecase: "Test",
+        usecase: 'Test',
         security: [],
         serviceBaseUrl,
       },
@@ -669,11 +669,11 @@ describe("MapInterpreter", () => {
     const result = await interpreter.perform(ast);
 
     expect(result.isOk() && result.value).toEqual({
-      outcome: { message: "worked!" },
+      outcome: { message: 'worked!' },
     });
   });
 
-  it("should correctly resolve scopes in call block", async () => {
+  it('should correctly resolve scopes in call block', async () => {
     const ast = parseMapFromSource(`
       map test {
         someVariable = null
@@ -689,7 +689,7 @@ describe("MapInterpreter", () => {
       }`);
     const interpreter = new MapInterpreter(
       {
-        usecase: "test",
+        usecase: 'test',
         security: [],
       },
       { fetchInstance }
@@ -698,8 +698,8 @@ describe("MapInterpreter", () => {
     expect(result.isOk() && result.value).toEqual({ answer: 42 });
   });
 
-  it("should perform operations with correct scoping", async () => {
-    const url = "/test";
+  it('should perform operations with correct scoping', async () => {
+    const url = '/test';
     await mockServer.get(url).thenJson(200, {});
     const ast = parseMapFromSource(`
       map Test {
@@ -732,7 +732,7 @@ describe("MapInterpreter", () => {
       }`);
     const interpreter = new MapInterpreter(
       {
-        usecase: "Test",
+        usecase: 'Test',
         security: [],
         serviceBaseUrl,
       },
@@ -745,7 +745,7 @@ describe("MapInterpreter", () => {
     });
   });
 
-  it("should correctly resolve args", async () => {
+  it('should correctly resolve args', async () => {
     const ast = parseMapFromSource(`
       map test {
         someVariable = 42
@@ -763,7 +763,7 @@ describe("MapInterpreter", () => {
       }`);
     const interpreter = new MapInterpreter(
       {
-        usecase: "test",
+        usecase: 'test',
         security: [],
       },
       { fetchInstance }
@@ -772,7 +772,7 @@ describe("MapInterpreter", () => {
     expect(result.isOk() && result.value).toEqual({ answer: { a: 42 } });
   });
 
-  it("should properly resolve nested calls", async () => {
+  it('should properly resolve nested calls', async () => {
     const ast = parseMapFromSource(`
       map Test {
         map result {
@@ -790,7 +790,7 @@ describe("MapInterpreter", () => {
       }`);
     const interpreter = new MapInterpreter(
       {
-        usecase: "Test",
+        usecase: 'Test',
         security: [],
       },
       { fetchInstance }
@@ -799,7 +799,7 @@ describe("MapInterpreter", () => {
     expect(result.isOk() && result.value).toEqual({ x: 42 });
   });
 
-  it("should perform an iteration", async () => {
+  it('should perform an iteration', async () => {
     const ast = parseMapFromSource(`
       map Test {
         letters = ['x', 'y', 'z']
@@ -817,17 +817,17 @@ describe("MapInterpreter", () => {
       }`);
     const interpreter = new MapInterpreter(
       {
-        usecase: "Test",
+        usecase: 'Test',
         security: [],
       },
       { fetchInstance }
     );
     const result = await interpreter.perform(ast);
 
-    expect(result.isOk() && result.value).toEqual({ results: ["Z", "Y", "X"] });
+    expect(result.isOk() && result.value).toEqual({ results: ['Z', 'Y', 'X'] });
   });
 
-  it("should break from iteration", async () => {
+  it('should break from iteration', async () => {
     const ast = parseMapFromSource(`
       map Test {
         letters = ['x', 'y', 'z']
@@ -843,17 +843,17 @@ describe("MapInterpreter", () => {
       }`);
     const interpreter = new MapInterpreter(
       {
-        usecase: "Test",
+        usecase: 'Test',
         security: [],
       },
       { fetchInstance }
     );
     const result = await interpreter.perform(ast);
 
-    expect(result.isOk() && result.value).toEqual({ results: ["Z"] });
+    expect(result.isOk() && result.value).toEqual({ results: ['Z'] });
   });
 
-  it("should perform an inline iterating call", async () => {
+  it('should perform an inline iterating call', async () => {
     const ast = parseMapFromSource(`
       map Test {
         letters = ['x', 'y', 'z']
@@ -870,17 +870,17 @@ describe("MapInterpreter", () => {
 
     const interpreter = new MapInterpreter(
       {
-        usecase: "Test",
+        usecase: 'Test',
         security: [],
       },
       { fetchInstance }
     );
     const result = await interpreter.perform(ast);
 
-    expect(result.isOk() && result.value).toEqual({ results: ["Z", "Y", "X"] });
+    expect(result.isOk() && result.value).toEqual({ results: ['Z', 'Y', 'X'] });
   });
 
-  it("should perform an iteration with condition", async () => {
+  it('should perform an iteration with condition', async () => {
     const ast = parseMapFromSource(`
       map Test {
         letters = ['x', 'y', 'z']
@@ -898,17 +898,17 @@ describe("MapInterpreter", () => {
       }`);
     const interpreter = new MapInterpreter(
       {
-        usecase: "Test",
+        usecase: 'Test',
         security: [],
       },
       { fetchInstance }
     );
     const result = await interpreter.perform(ast);
 
-    expect(result.isOk() && result.value).toEqual({ results: ["X"] });
+    expect(result.isOk() && result.value).toEqual({ results: ['X'] });
   });
 
-  it("should perform an inline iterating call with condition", async () => {
+  it('should perform an inline iterating call with condition', async () => {
     const ast = parseMapFromSource(`
       map Test {
         numbers = [1, 2, 3]
@@ -924,7 +924,7 @@ describe("MapInterpreter", () => {
 
     const interpreter = new MapInterpreter(
       {
-        usecase: "Test",
+        usecase: 'Test',
         security: [],
       },
       { fetchInstance }
@@ -934,8 +934,8 @@ describe("MapInterpreter", () => {
     expect(result.isOk() && result.value).toEqual({ results: [2, 6] });
   });
 
-  it("should be able to use input in path parameters", async () => {
-    const url = "/twelve";
+  it('should be able to use input in path parameters', async () => {
+    const url = '/twelve';
     await mockServer.get(url).thenJson(200, { data: 12 });
     const ast = parseMapFromSource(`
       map Test {
@@ -949,8 +949,8 @@ describe("MapInterpreter", () => {
       }`);
     const interpreter = new MapInterpreter(
       {
-        usecase: "Test",
-        input: { test: "twelve" },
+        usecase: 'Test',
+        input: { test: 'twelve' },
         security: [],
         serviceBaseUrl,
       },
@@ -961,10 +961,10 @@ describe("MapInterpreter", () => {
     expect(result.isOk() && result.value).toEqual({ result: 12 });
   });
 
-  it("should strip trailing slash from baseUrl", async () => {
-    await mockServer.get("/thirteen").thenJson(200, { data: 12 });
-    const baseUrl = mockServer.urlFor("/thirteen").replace("thirteen", "");
-    expect(baseUrl.split("")[baseUrl.length - 1]).toEqual("/");
+  it('should strip trailing slash from baseUrl', async () => {
+    await mockServer.get('/thirteen').thenJson(200, { data: 12 });
+    const baseUrl = mockServer.urlFor('/thirteen').replace('thirteen', '');
+    expect(baseUrl.split('')[baseUrl.length - 1]).toEqual('/');
     const ast = parseMapFromSource(`
       map Test {
         username = input.user
@@ -978,7 +978,7 @@ describe("MapInterpreter", () => {
       }`);
     const interpreter = new MapInterpreter(
       {
-        usecase: "Test",
+        usecase: 'Test',
         serviceBaseUrl: baseUrl,
         security: [],
       },
@@ -989,20 +989,20 @@ describe("MapInterpreter", () => {
     expect(result.isOk() && result.value).toEqual({ result: 13 });
   });
 
-  it("should make response headers accessible", async () => {
-    const url = "/twelve";
+  it('should make response headers accessible', async () => {
+    const url = '/twelve';
     await mockServer.get(url).thenJson(
       200,
       {},
       {
-        "Content-Type": "application/json; charset=utf-8",
-        "Content-Language": "en-US, en-CA",
-        Data: "12",
+        'Content-Type': 'application/json; charset=utf-8',
+        'Content-Language': 'en-US, en-CA',
+        Data: '12',
       }
     );
     const interpreter = new MapInterpreter(
       {
-        usecase: "Test",
+        usecase: 'Test',
         security: [],
         serviceBaseUrl,
       },
@@ -1024,10 +1024,85 @@ describe("MapInterpreter", () => {
       }`);
     const result = await interpreter.perform(ast);
 
-    expect(result.isOk() && result.value).toEqual("12");
+    expect(result.isOk() && result.value).toEqual('12');
   });
 
-  it("should correctly return error from operation", async () => {
+  it('should use integration parameters in jessie', async () => {
+    const ast = parseMapFromSource(`
+      map Test {
+        map result parameters.message
+      }
+    `);
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+        serviceBaseUrl,
+        parameters: {
+          message: 'nice!',
+        },
+      },
+      { fetchInstance }
+    );
+
+    const result = await interpreter.perform(ast);
+
+    expect(result.isOk() && result.value).toEqual('nice!');
+  });
+
+  it('should use integration parameters in URL', async () => {
+    const url = '/twelve';
+    await mockServer.get(url).thenJson(200, { data: 12 });
+    const ast = parseMapFromSource(`
+      map Test {
+        http GET "/{parameters.path}" {
+          response 200 "application/json" {
+            map result {
+              result = body.data
+            }
+          }
+        }
+      }`);
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        parameters: { path: 'twelve' },
+        security: [],
+        serviceBaseUrl,
+      },
+      { fetchInstance }
+    );
+    const result = await interpreter.perform(ast);
+    expect(result.isOk() && result.value).toEqual({ result: 12 });
+  });
+
+  it('should use integration parameters in baseUrl', async () => {
+    const url = '/twelve/something';
+    await mockServer.get(url).thenJson(200, { data: 12 });
+    const ast = parseMapFromSource(`
+      map Test {
+        http GET "/something" {
+          response 200 "application/json" {
+            map result {
+              result = body.data
+            }
+          }
+        }
+      }`);
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        parameters: { path: 'twelve' },
+        security: [],
+        serviceBaseUrl: `${serviceBaseUrl}/{path}`,
+      },
+      { fetchInstance }
+    );
+    const result = await interpreter.perform(ast);
+    expect(result.isOk() && result.value).toEqual({ result: 12 });
+  });
+
+  it('should correctly return error from operation', async () => {
     const ast = parseMapFromSource(`
       map Test {
         call TestOp(letter = "y") {
@@ -1040,17 +1115,17 @@ describe("MapInterpreter", () => {
       `);
     const interpreter = new MapInterpreter(
       {
-        usecase: "Test",
+        usecase: 'Test',
         security: [],
       },
       { fetchInstance }
     );
     const result = await interpreter.perform(ast);
 
-    expect(result.isOk() && result.value).toEqual("Y");
+    expect(result.isOk() && result.value).toEqual('Y');
   });
 
-  it("scope does not leak into callee", async () => {
+  it('scope does not leak into callee', async () => {
     const ast = parseMapFromSource(`
       map Test {
         notVisible = 15
@@ -1064,7 +1139,7 @@ describe("MapInterpreter", () => {
       }`);
     const interpreter = new MapInterpreter(
       {
-        usecase: "Test",
+        usecase: 'Test',
         security: [],
       },
       { fetchInstance }
@@ -1073,7 +1148,7 @@ describe("MapInterpreter", () => {
     expect(result.isErr()).toEqual(true);
   });
 
-  it("should not overwrite outcome.data from current scope", async () => {
+  it('should not overwrite outcome.data from current scope', async () => {
     const ast = parseMapFromSource(`
     map Test {
       result = 5
@@ -1091,7 +1166,7 @@ describe("MapInterpreter", () => {
     `);
     const interpreter = new MapInterpreter(
       {
-        usecase: "Test",
+        usecase: 'Test',
         security: [],
       },
       { fetchInstance }
@@ -1100,7 +1175,7 @@ describe("MapInterpreter", () => {
     expect(result.isOk() && result.value).toEqual(10);
   });
 
-  it("should not leak result from called operation", async () => {
+  it('should not leak result from called operation', async () => {
     const ast = parseMapFromSource(`
       map Test {
         a = 1
@@ -1121,7 +1196,7 @@ describe("MapInterpreter", () => {
       }`);
     const interpreter = new MapInterpreter(
       {
-        usecase: "Test",
+        usecase: 'Test',
         security: [],
       },
       { fetchInstance }
@@ -1130,7 +1205,7 @@ describe("MapInterpreter", () => {
     expect(result.isOk() && result.value).toEqual(undefined);
   });
 
-  it("should not overwrite result after operation call", async () => {
+  it('should not overwrite result after operation call', async () => {
     const ast = parseMapFromSource(`
       map Test {
         map result 15
@@ -1145,7 +1220,7 @@ describe("MapInterpreter", () => {
       }`);
     const interpreter = new MapInterpreter(
       {
-        usecase: "Test",
+        usecase: 'Test',
         security: [],
       },
       { fetchInstance }

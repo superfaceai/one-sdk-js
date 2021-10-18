@@ -72,6 +72,7 @@ export interface MapParameters<
 > {
   usecase?: string;
   input?: TInput;
+  parameters?: Record<string, string>;
   serviceBaseUrl?: string;
   security: SecurityConfiguration[];
 }
@@ -317,6 +318,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
         body: request?.body,
         securityRequirements: request?.security,
         securityConfiguration: this.parameters.security,
+        integrationParameters: this.parameters.parameters,
       });
 
       for (const [handler] of responseHandlers) {
@@ -661,6 +663,9 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
       ...variables,
       input: {
         ...(this.parameters.input ?? {}),
+      },
+      parameters: {
+        ...(this.parameters.parameters ?? {}),
       },
     };
 
