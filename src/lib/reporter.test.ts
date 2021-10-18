@@ -3,22 +3,22 @@ import {
   MapDocumentNode,
   OnFail,
   ProfileDocumentNode,
-} from '@superfaceai/ast';
-import { getLocal, MockedEndpoint } from 'mockttp';
+} from "@superfaceai/ast";
+import { getLocal, MockedEndpoint } from "mockttp";
 
-import { BoundProfileProvider, SuperfaceClient } from '../client';
-import { invalidateSuperfaceClientCache } from '../client/client';
-import { Config } from '../config';
-import { SuperJson } from '../internal/superjson';
-import { FailoverReason } from './reporter';
-import { ok } from './result/result';
+import { BoundProfileProvider, SuperfaceClient } from "../client";
+import { invalidateSuperfaceClientCache } from "../client/client";
+import { Config } from "../config";
+import { SuperJson } from "../internal/superjson";
+import { FailoverReason } from "./reporter";
+import { ok } from "./result/result";
 
-jest.useFakeTimers('legacy');
+jest.useFakeTimers("legacy");
 
 const mockSuperJsonSingle = new SuperJson({
   profiles: {
-    ['test-profile']: {
-      version: '1.0.0',
+    ["test-profile"]: {
+      version: "1.0.0",
       defaults: {},
       providers: {
         testprovider: {},
@@ -32,14 +32,14 @@ const mockSuperJsonSingle = new SuperJson({
 
 const mockSuperJsonFailover = new SuperJson({
   profiles: {
-    ['test-profile']: {
-      version: '1.0.0',
+    ["test-profile"]: {
+      version: "1.0.0",
       defaults: {
         Test: {
           providerFailover: true,
         },
       },
-      priority: ['testprovider2', 'testprovider'],
+      priority: ["testprovider2", "testprovider"],
       providers: {
         testprovider2: {
           defaults: {
@@ -68,10 +68,10 @@ const mockSuperJsonFailover = new SuperJson({
 });
 
 const mockProfileDocument: ProfileDocumentNode = {
-  kind: 'ProfileDocument',
+  kind: "ProfileDocument",
   header: {
-    kind: 'ProfileHeader',
-    name: 'test-profile',
+    kind: "ProfileHeader",
+    name: "test-profile",
     version: {
       major: 1,
       minor: 0,
@@ -80,23 +80,23 @@ const mockProfileDocument: ProfileDocumentNode = {
   },
   definitions: [
     {
-      kind: 'UseCaseDefinition',
-      useCaseName: 'Test',
-      safety: 'safe',
+      kind: "UseCaseDefinition",
+      useCaseName: "Test",
+      safety: "safe",
       result: {
-        kind: 'UseCaseSlotDefinition',
-        type: {
-          kind: 'ObjectDefinition',
+        kind: "UseCaseSlotDefinition",
+        value: {
+          kind: "ObjectDefinition",
           fields: [
             {
-              kind: 'FieldDefinition',
-              fieldName: 'message',
+              kind: "FieldDefinition",
+              fieldName: "message",
               required: true,
               type: {
-                kind: 'NonNullDefinition',
+                kind: "NonNullDefinition",
                 type: {
-                  kind: 'PrimitiveTypeName',
-                  name: 'string',
+                  kind: "PrimitiveTypeName",
+                  name: "string",
                 },
               },
             },
@@ -108,38 +108,38 @@ const mockProfileDocument: ProfileDocumentNode = {
 };
 
 const mockMapDocumentSuccess: MapDocumentNode = {
-  kind: 'MapDocument',
+  kind: "MapDocument",
   header: {
-    kind: 'MapHeader',
+    kind: "MapHeader",
     profile: {
-      name: 'test-profile',
+      name: "test-profile",
       version: {
         major: 1,
         minor: 2,
         patch: 3,
       },
     },
-    provider: 'testprovider',
+    provider: "testprovider",
   },
   definitions: [
     {
-      kind: 'MapDefinition',
-      name: 'Test',
-      usecaseName: 'Test',
+      kind: "MapDefinition",
+      name: "Test",
+      usecaseName: "Test",
       statements: [
         {
-          kind: 'OutcomeStatement',
+          kind: "OutcomeStatement",
           isError: false,
           terminateFlow: false,
           value: {
-            kind: 'ObjectLiteral',
+            kind: "ObjectLiteral",
             fields: [
               {
-                kind: 'Assignment',
-                key: ['message'],
+                kind: "Assignment",
+                key: ["message"],
                 value: {
-                  kind: 'PrimitiveLiteral',
-                  value: 'hello',
+                  kind: "PrimitiveLiteral",
+                  value: "hello",
                 },
               },
             ],
@@ -151,13 +151,13 @@ const mockMapDocumentSuccess: MapDocumentNode = {
 };
 
 const mockMapDocumentFailure: (provider?: string) => MapDocumentNode = (
-  provider = 'testprovider'
+  provider = "testprovider"
 ) => ({
-  kind: 'MapDocument',
+  kind: "MapDocument",
   header: {
-    kind: 'MapHeader',
+    kind: "MapHeader",
     profile: {
-      name: 'test-profile',
+      name: "test-profile",
       version: {
         major: 1,
         minor: 2,
@@ -168,35 +168,35 @@ const mockMapDocumentFailure: (provider?: string) => MapDocumentNode = (
   },
   definitions: [
     {
-      kind: 'MapDefinition',
-      name: 'Test',
-      usecaseName: 'Test',
+      kind: "MapDefinition",
+      name: "Test",
+      usecaseName: "Test",
       statements: [
         {
-          kind: 'HttpCallStatement',
-          method: 'GET',
-          url: '/unavailable',
+          kind: "HttpCallStatement",
+          method: "GET",
+          url: "/unavailable",
           request: {
-            kind: 'HttpRequest',
+            kind: "HttpRequest",
             security: [],
           },
           responseHandlers: [
             {
-              kind: 'HttpResponseHandler',
+              kind: "HttpResponseHandler",
               statusCode: 200,
               statements: [
                 {
-                  kind: 'OutcomeStatement',
+                  kind: "OutcomeStatement",
                   isError: false,
                   terminateFlow: false,
                   value: {
-                    kind: 'ObjectLiteral',
+                    kind: "ObjectLiteral",
                     fields: [
                       {
-                        kind: 'Assignment',
-                        key: ['message'],
+                        kind: "Assignment",
+                        key: ["message"],
                         value: {
-                          kind: 'PrimitiveLiteral',
+                          kind: "PrimitiveLiteral",
                           value: "if you see me, something's wrong",
                         },
                       },
@@ -214,13 +214,13 @@ const mockMapDocumentFailure: (provider?: string) => MapDocumentNode = (
 
 const mockServer = getLocal();
 
-describe('MetricReporter', () => {
+describe("MetricReporter", () => {
   let eventEndpoint: MockedEndpoint;
   beforeEach(async () => {
     SuperJson.loadSync = () => ok(mockSuperJsonSingle);
     await mockServer.start();
     eventEndpoint = await mockServer
-      .post('/insights/sdk_event')
+      .post("/insights/sdk_event")
       .thenJson(202, {});
     Config.instance().disableReporting = false;
     Config.instance().superfaceApiUrl = mockServer.url;
@@ -231,7 +231,7 @@ describe('MetricReporter', () => {
     await mockServer.stop();
   });
 
-  it('should report SDK Init', async () => {
+  it("should report SDK Init", async () => {
     const client = new SuperfaceClient();
     void client;
     while (await eventEndpoint.isPending()) {
@@ -241,37 +241,37 @@ describe('MetricReporter', () => {
     const requests = await eventEndpoint.getSeenRequests();
     expect(requests).toHaveLength(1);
     expect(await requests[0].body.getJson()).toMatchObject({
-      event_type: 'SDKInit',
+      event_type: "SDKInit",
       configuration_hash: expect.stringMatching(/\w+/),
       data: {
         configuration: {
           profiles: {
-            ['test-profile']: {
-              version: '1.0.0',
+            ["test-profile"]: {
+              version: "1.0.0",
             },
           },
-          providers: ['testprovider'],
+          providers: ["testprovider"],
         },
       },
     });
   });
 
-  it('should report success', async () => {
+  it("should report success", async () => {
     const client = new SuperfaceClient();
     const mockBoundProfileProvider = new BoundProfileProvider(
       mockProfileDocument,
       mockMapDocumentSuccess,
-      'provider',
+      "provider",
       { baseUrl: mockServer.url, security: [] },
       client
     );
     jest
-      .spyOn(client, 'cacheBoundProfileProvider')
+      .spyOn(client, "cacheBoundProfileProvider")
       .mockResolvedValue(mockBoundProfileProvider);
 
-    const profile = await client.getProfile('test-profile');
+    const profile = await client.getProfile("test-profile");
 
-    await profile.getUseCase('Test').perform({});
+    await profile.getUseCase("Test").perform({});
     jest.advanceTimersByTime(2000);
     while (await eventEndpoint.isPending()) {
       await new Promise(setImmediate);
@@ -280,15 +280,15 @@ describe('MetricReporter', () => {
 
     expect(requests).toHaveLength(2);
     expect(await requests[1].body.getJson()).toMatchObject({
-      event_type: 'Metrics',
+      event_type: "Metrics",
       data: {
-        from: expect.stringMatching(''),
-        to: expect.stringMatching(''),
+        from: expect.stringMatching(""),
+        to: expect.stringMatching(""),
         metrics: [
           {
-            type: 'PerformMetrics',
-            profile: 'test-profile',
-            provider: 'testprovider',
+            type: "PerformMetrics",
+            profile: "test-profile",
+            provider: "testprovider",
             successful_performs: 1,
             failed_performs: 0,
           },
@@ -297,22 +297,22 @@ describe('MetricReporter', () => {
     });
   });
 
-  it('should report failure and unsuccessful switch', async () => {
+  it("should report failure and unsuccessful switch", async () => {
     const client = new SuperfaceClient();
     const mockBoundProfileProvider = new BoundProfileProvider(
       mockProfileDocument,
       mockMapDocumentFailure(),
-      'testprovider',
-      { baseUrl: 'https://unavai.lable', security: [] },
+      "testprovider",
+      { baseUrl: "https://unavai.lable", security: [] },
       client
     );
     jest
-      .spyOn(client, 'cacheBoundProfileProvider')
+      .spyOn(client, "cacheBoundProfileProvider")
       .mockResolvedValue(mockBoundProfileProvider);
 
-    const profile = await client.getProfile('test-profile');
+    const profile = await client.getProfile("test-profile");
 
-    await expect(profile.getUseCase('Test').perform({})).rejects.toThrow();
+    await expect(profile.getUseCase("Test").perform({})).rejects.toThrow();
     jest.advanceTimersByTime(2000);
     let requests = await eventEndpoint.getSeenRequests();
     while (requests.length < 3) {
@@ -324,23 +324,23 @@ describe('MetricReporter', () => {
     let metricRequest, changeRequest;
     for (const request of requests) {
       const body = (await request.body.getJson()) as { event_type: string };
-      if (body.event_type === 'Metrics') {
+      if (body.event_type === "Metrics") {
         metricRequest = body;
       }
-      if (body.event_type === 'ProviderChange') {
+      if (body.event_type === "ProviderChange") {
         changeRequest = body;
       }
     }
     expect(metricRequest).toMatchObject({
-      event_type: 'Metrics',
+      event_type: "Metrics",
       data: {
-        from: expect.stringMatching(''),
-        to: expect.stringMatching(''),
+        from: expect.stringMatching(""),
+        to: expect.stringMatching(""),
         metrics: [
           {
-            type: 'PerformMetrics',
-            profile: 'test-profile',
-            provider: 'testprovider',
+            type: "PerformMetrics",
+            profile: "test-profile",
+            provider: "testprovider",
             successful_performs: 0,
             failed_performs: 1,
           },
@@ -348,38 +348,38 @@ describe('MetricReporter', () => {
       },
     });
     expect(changeRequest).toMatchObject({
-      event_type: 'ProviderChange',
-      occurred_at: expect.stringMatching(''),
-      configuration_hash: expect.stringMatching(''),
+      event_type: "ProviderChange",
+      occurred_at: expect.stringMatching(""),
+      configuration_hash: expect.stringMatching(""),
       data: {
-        profile: 'test-profile',
-        from_provider: 'testprovider',
+        profile: "test-profile",
+        from_provider: "testprovider",
         failover_reasons: [
           {
             reason: FailoverReason.NETWORK_ERROR_DNS,
-            occurred_at: expect.stringMatching(''),
+            occurred_at: expect.stringMatching(""),
           },
         ],
       },
     });
   });
 
-  it('should report success with a delay', async () => {
+  it("should report success with a delay", async () => {
     const client = new SuperfaceClient();
     const mockBoundProfileProvider = new BoundProfileProvider(
       mockProfileDocument,
       mockMapDocumentSuccess,
-      'provider',
+      "provider",
       { baseUrl: mockServer.url, security: [] },
       client
     );
     jest
-      .spyOn(client, 'cacheBoundProfileProvider')
+      .spyOn(client, "cacheBoundProfileProvider")
       .mockResolvedValue(mockBoundProfileProvider);
 
-    const profile = await client.getProfile('test-profile');
+    const profile = await client.getProfile("test-profile");
 
-    await profile.getUseCase('Test').perform({});
+    await profile.getUseCase("Test").perform({});
     jest.advanceTimersByTime(800);
     while (await eventEndpoint.isPending()) {
       await new Promise(setImmediate);
@@ -396,23 +396,23 @@ describe('MetricReporter', () => {
     expect(requests).toHaveLength(2);
   });
 
-  it('should report multiple successes', async () => {
+  it("should report multiple successes", async () => {
     const client = new SuperfaceClient();
     const mockBoundProfileProvider = new BoundProfileProvider(
       mockProfileDocument,
       mockMapDocumentSuccess,
-      'provider',
+      "provider",
       { baseUrl: mockServer.url, security: [] },
       client
     );
     jest
-      .spyOn(client, 'cacheBoundProfileProvider')
+      .spyOn(client, "cacheBoundProfileProvider")
       .mockResolvedValue(mockBoundProfileProvider);
 
-    const profile = await client.getProfile('test-profile');
+    const profile = await client.getProfile("test-profile");
 
-    await profile.getUseCase('Test').perform({});
-    await profile.getUseCase('Test').perform({});
+    await profile.getUseCase("Test").perform({});
+    await profile.getUseCase("Test").perform({});
     jest.advanceTimersByTime(2000);
     while (await eventEndpoint.isPending()) {
       await new Promise(setImmediate);
@@ -421,15 +421,15 @@ describe('MetricReporter', () => {
 
     expect(requests).toHaveLength(2);
     expect(await requests[1].body.getJson()).toMatchObject({
-      event_type: 'Metrics',
+      event_type: "Metrics",
       data: {
-        from: expect.stringMatching(''),
-        to: expect.stringMatching(''),
+        from: expect.stringMatching(""),
+        to: expect.stringMatching(""),
         metrics: [
           {
-            type: 'PerformMetrics',
-            profile: 'test-profile',
-            provider: 'testprovider',
+            type: "PerformMetrics",
+            profile: "test-profile",
+            provider: "testprovider",
             successful_performs: 2,
             failed_performs: 0,
           },
@@ -438,29 +438,29 @@ describe('MetricReporter', () => {
     });
   });
 
-  it('should report multiple successes with a delay', async () => {
+  it("should report multiple successes with a delay", async () => {
     const client = new SuperfaceClient();
     const mockBoundProfileProvider = new BoundProfileProvider(
       mockProfileDocument,
       mockMapDocumentSuccess,
-      'provider',
+      "provider",
       { baseUrl: mockServer.url, security: [] },
       client
     );
     jest
-      .spyOn(client, 'cacheBoundProfileProvider')
+      .spyOn(client, "cacheBoundProfileProvider")
       .mockResolvedValue(mockBoundProfileProvider);
 
-    const profile = await client.getProfile('test-profile');
+    const profile = await client.getProfile("test-profile");
 
-    await profile.getUseCase('Test').perform({});
+    await profile.getUseCase("Test").perform({});
     jest.advanceTimersByTime(2000);
     let requests = await eventEndpoint.getSeenRequests();
     while (requests.length < 2) {
       await new Promise(setImmediate);
       requests = await eventEndpoint.getSeenRequests();
     }
-    await profile.getUseCase('Test').perform({});
+    await profile.getUseCase("Test").perform({});
     jest.advanceTimersByTime(1000);
     while (requests.length < 3) {
       await new Promise(setImmediate);
@@ -469,15 +469,15 @@ describe('MetricReporter', () => {
 
     expect(requests).toHaveLength(3);
     expect(await requests[1].body.getJson()).toMatchObject({
-      event_type: 'Metrics',
+      event_type: "Metrics",
       data: {
-        from: expect.stringMatching(''),
-        to: expect.stringMatching(''),
+        from: expect.stringMatching(""),
+        to: expect.stringMatching(""),
         metrics: [
           {
-            type: 'PerformMetrics',
-            profile: 'test-profile',
-            provider: 'testprovider',
+            type: "PerformMetrics",
+            profile: "test-profile",
+            provider: "testprovider",
             successful_performs: 1,
             failed_performs: 0,
           },
@@ -485,15 +485,15 @@ describe('MetricReporter', () => {
       },
     });
     expect(await requests[2].body.getJson()).toMatchObject({
-      event_type: 'Metrics',
+      event_type: "Metrics",
       data: {
-        from: expect.stringMatching(''),
-        to: expect.stringMatching(''),
+        from: expect.stringMatching(""),
+        to: expect.stringMatching(""),
         metrics: [
           {
-            type: 'PerformMetrics',
-            profile: 'test-profile',
-            provider: 'testprovider',
+            type: "PerformMetrics",
+            profile: "test-profile",
+            provider: "testprovider",
             successful_performs: 1,
             failed_performs: 0,
           },
@@ -502,27 +502,27 @@ describe('MetricReporter', () => {
     });
   });
 
-  it('should report maximum successes within a timeout', async () => {
+  it("should report maximum successes within a timeout", async () => {
     let currentTime = new Date().valueOf();
     const systemTimeMock = jest
-      .spyOn(Date, 'now')
+      .spyOn(Date, "now")
       .mockImplementation(() => currentTime);
     const client = new SuperfaceClient();
     const mockBoundProfileProvider = new BoundProfileProvider(
       mockProfileDocument,
       mockMapDocumentSuccess,
-      'provider',
+      "provider",
       { baseUrl: mockServer.url, security: [] },
       client
     );
     jest
-      .spyOn(client, 'cacheBoundProfileProvider')
+      .spyOn(client, "cacheBoundProfileProvider")
       .mockResolvedValue(mockBoundProfileProvider);
 
-    const profile = await client.getProfile('test-profile');
+    const profile = await client.getProfile("test-profile");
 
     for (let i = 0; i < 100; i++) {
-      await profile.getUseCase('Test').perform({});
+      await profile.getUseCase("Test").perform({});
       jest.advanceTimersByTime(900);
       currentTime = currentTime.valueOf() + 900;
     }
@@ -536,15 +536,15 @@ describe('MetricReporter', () => {
 
     expect(requests).toHaveLength(3);
     expect(await requests[1].body.getJson()).toMatchObject({
-      event_type: 'Metrics',
+      event_type: "Metrics",
       data: {
-        from: expect.stringMatching(''),
-        to: expect.stringMatching(''),
+        from: expect.stringMatching(""),
+        to: expect.stringMatching(""),
         metrics: [
           {
-            type: 'PerformMetrics',
-            profile: 'test-profile',
-            provider: 'testprovider',
+            type: "PerformMetrics",
+            profile: "test-profile",
+            provider: "testprovider",
             successful_performs: 68,
             failed_performs: 0,
           },
@@ -552,15 +552,15 @@ describe('MetricReporter', () => {
       },
     });
     expect(await requests[2].body.getJson()).toMatchObject({
-      event_type: 'Metrics',
+      event_type: "Metrics",
       data: {
-        from: expect.stringMatching(''),
-        to: expect.stringMatching(''),
+        from: expect.stringMatching(""),
+        to: expect.stringMatching(""),
         metrics: [
           {
-            type: 'PerformMetrics',
-            profile: 'test-profile',
-            provider: 'testprovider',
+            type: "PerformMetrics",
+            profile: "test-profile",
+            provider: "testprovider",
             successful_performs: 32,
             failed_performs: 0,
           },
@@ -570,42 +570,43 @@ describe('MetricReporter', () => {
     systemTimeMock.mockRestore();
   });
 
-  it('should report failure and successful switch', async () => {
+  it("should report failure and successful switch", async () => {
     const originalDebounceMin = Config.instance().metricDebounceTimeMin;
     Config.instance().metricDebounceTimeMin = 10000;
     let currentTime = new Date().valueOf();
     const systemTimeMock = jest
-      .spyOn(Date, 'now')
+      .spyOn(Date, "now")
       .mockImplementation(() => currentTime);
     SuperJson.loadSync = () => ok(mockSuperJsonFailover);
     const client = new SuperfaceClient();
     const mockBoundProfileProvider = new BoundProfileProvider(
       mockProfileDocument,
       mockMapDocumentSuccess,
-      'testprovider',
-      { baseUrl: 'https://unavail.able', security: [] },
+      "testprovider",
+      { baseUrl: "https://unavail.able", security: [] },
       client
     );
     const mockBoundProfileProvider2 = new BoundProfileProvider(
       mockProfileDocument,
-      mockMapDocumentFailure('testprovider2'),
-      'testprovider2',
-      { baseUrl: 'https://unavail.able', security: [] },
+      mockMapDocumentFailure("testprovider2"),
+      "testprovider2",
+      { baseUrl: "https://unavail.able", security: [] },
       client
     );
     jest
-      .spyOn(client, 'cacheBoundProfileProvider')
+      .spyOn(client, "cacheBoundProfileProvider")
       .mockImplementation((_, providerConfig) => {
-        if (providerConfig.name === 'testprovider') {
+        if (providerConfig.name === "testprovider") {
           return Promise.resolve(mockBoundProfileProvider);
         } else {
           return Promise.resolve(mockBoundProfileProvider2);
         }
       });
 
-    const profile = await client.getProfile('test-profile');
+    const profile = await client.getProfile("test-profile");
 
-    void profile.getUseCase('Test').perform({});
+    const result = profile.getUseCase("Test").perform({});
+    console.log(result);
     let requests = await eventEndpoint.getSeenRequests();
     while (requests.length < 3) {
       currentTime += 0.1;
@@ -620,30 +621,30 @@ describe('MetricReporter', () => {
       const body = (await request.body.getJson()) as {
         event_type: string;
       };
-      if (body.event_type === 'Metrics') {
+      if (body.event_type === "Metrics") {
         metricRequest = body;
       }
-      if (body.event_type === 'ProviderChange') {
+      if (body.event_type === "ProviderChange") {
         changeRequest = body;
       }
     }
     expect(metricRequest).toMatchObject({
-      event_type: 'Metrics',
+      event_type: "Metrics",
       data: {
-        from: expect.stringMatching(''),
-        to: expect.stringMatching(''),
+        from: expect.stringMatching(""),
+        to: expect.stringMatching(""),
         metrics: [
           {
-            type: 'PerformMetrics',
-            profile: 'test-profile',
-            provider: 'testprovider2',
+            type: "PerformMetrics",
+            profile: "test-profile",
+            provider: "testprovider2",
             successful_performs: 0,
             failed_performs: 2,
           },
           {
-            type: 'PerformMetrics',
-            profile: 'test-profile',
-            provider: 'testprovider',
+            type: "PerformMetrics",
+            profile: "test-profile",
+            provider: "testprovider",
             successful_performs: 1,
             failed_performs: 0,
           },
@@ -651,17 +652,17 @@ describe('MetricReporter', () => {
       },
     });
     expect(changeRequest).toMatchObject({
-      event_type: 'ProviderChange',
-      occurred_at: expect.stringMatching(''),
-      configuration_hash: expect.stringMatching(''),
+      event_type: "ProviderChange",
+      occurred_at: expect.stringMatching(""),
+      configuration_hash: expect.stringMatching(""),
       data: {
-        profile: 'test-profile',
-        from_provider: 'testprovider2',
-        to_provider: 'testprovider',
+        profile: "test-profile",
+        from_provider: "testprovider2",
+        to_provider: "testprovider",
         failover_reasons: [
           {
             reason: FailoverReason.NETWORK_ERROR_DNS,
-            occurred_at: expect.stringMatching(''),
+            occurred_at: expect.stringMatching(""),
           },
         ],
       },
