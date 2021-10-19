@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- MapInterpreter now supports integration parameters
 
 ## [0.0.40] - 2021-10-18
 ### Changed
@@ -16,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.0.38] - 2021-10-16
 ### Fixed
 - Log warning when user does not handle rejections properly
-- Lcked AST version with matching schemas from parser
+- Locked AST version with matching schemas from parser
 
 ## [0.0.37] - 2021-10-14
 ### Changed
