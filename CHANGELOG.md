@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.41] - 2021-10-19
+
 ## [0.0.38] - 2021-10-16
 ### Fixed
 - Log warning when user does not handle rejections properly
@@ -260,7 +262,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Profile parameter validator
 - CI/CD workflows
 
-[Unreleased]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.38...HEAD
+[Unreleased]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.41...HEAD
+[0.0.41]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.38...v0.0.41
 [0.0.38]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.37...v0.0.38
 [0.0.37]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.37-beta.0...v0.0.37
 [0.0.37-beta.0]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.36...v0.0.37-beta.0
