@@ -1,4 +1,5 @@
 import {
+  assertMapDocumentNode,
   isProviderJson,
   MapDocumentNode,
   ProviderJson,
@@ -96,7 +97,7 @@ export async function fetchBind(request: {
   mapRevision?: string;
 }): Promise<{
   provider: ProviderJson;
-  mapAst: MapDocumentNode;
+  mapAst: MapDocumentNode | undefined;
 }> {
   const fetchInstance = new CrossFetch();
   const http = new HttpClient(fetchInstance);
@@ -117,13 +118,48 @@ export async function fetchBind(request: {
       map_revision: request.mapRevision,
     },
   });
+  //TODO: use assert
   if (!bindResponseValidator.check(body)) {
     throw new UnexpectedError('Registry responded with invalid body');
   }
 
+  let mapAst: MapDocumentNode | undefined = undefined;
+  try {
+    mapAst = assertMapDocumentNode(body.map_ast);
+  } catch (error) {
+    registryDebug('Binding SDK to registry ended up with map validation issue');
+    mapAst = undefined;
+  }
+
   return {
     provider: body.provider,
-    // TODO: Validate
-    mapAst: JSON.parse(body.map_ast) as MapDocumentNode,
+    mapAst,
   };
+}
+
+export async function fetchMapSource(request: {
+  profileId: string;
+  version: string;
+  provider: string;
+  mapVariant?: string;
+}): Promise<string> {
+  const fetchInstance = new CrossFetch();
+  const http = new HttpClient(fetchInstance);
+  const sdkToken = Config.instance().sdkAuthToken;
+  registryDebug(`Getting source of profile: "${request.profileId}"`);
+
+  const url = request.mapVariant
+    ? `/${request.profileId}.${request.provider}.${request.mapVariant}@${request.version}`
+    : `/${request.profileId}.${request.provider}@${request.version}`;
+
+  const { body } = await http.request(url, {
+    method: 'GET',
+    headers: sdkToken
+      ? [`Authorization: SUPERFACE-SDK-TOKEN ${sdkToken}`]
+      : undefined,
+    baseUrl: Config.instance().superfaceApiUrl,
+    accept: 'application/vnd.superface.map',
+  });
+
+  return body as string;
 }
