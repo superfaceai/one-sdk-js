@@ -102,27 +102,22 @@ export const createUrl = (
     integrationParameters?: Record<string, string>;
   }
 ): string => {
-  let replacedBaseUrl = parameters.baseUrl;
-  replacedBaseUrl = replaceParameters(
-    replacedBaseUrl,
+  const baseUrl = replaceParameters(
+    parameters.baseUrl,
     parameters.integrationParameters ?? {}
   );
 
   if (inputUrl === '') {
-    return replacedBaseUrl;
+    return baseUrl;
   }
   const isRelative = /^\/[^/]/.test(inputUrl);
   if (!isRelative) {
     throw new UnexpectedError('Expected relative url, but received absolute!');
   }
 
-  let url = inputUrl;
+  const url = replaceParameters(inputUrl, parameters.pathParameters ?? {});
 
-  url = replaceParameters(url, parameters.pathParameters ?? {});
-
-  url = replacedBaseUrl.replace(/\/+$/, '') + url;
-
-  return `${url}`;
+  return baseUrl.replace(/\/+$/, '') + url;
 };
 
 export class HttpClient {

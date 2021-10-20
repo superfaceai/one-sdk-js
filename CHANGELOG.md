@@ -18,6 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `outcome.data` is no longer overwritten by `result`
 - `fail` correctly sets `outcome.error` in caller
 
+### Added
+- MapInterpreter now supports integration parameters
+
 ## [0.0.40] - 2021-10-18
 ### Changed
 - Updated AST with examples
@@ -39,35 +42,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **BREAKING CHANGE**: absolute URLs are no longer allowed in maps
 - **BREAKING CHANGE**: interpolation no longer works in base URLs
 
-## [0.0.37-beta.0] - 2021-10-05
 ### Added
 - Make `configuration` of `BoundProfileProvider` public
 
 ## [0.0.36] - 2021-09-29
+
 ### Fixed
 - Use super.json `priority` correctly
-
-## [0.0.36-beta.0] - 2021-09-28
-
-## [0.0.35-beta.0] - 2021-09-27
-
-## [0.0.34-beta.1] - 2021-09-22
-### Added
-- Export `PerformError` class
-
-### Fixed
 - provider names are validated across super.json, provider.json and map file header
 - when fetch throws an unknown error, it gets passed down the failover machinery
 
-## [0.0.34-beta.0] - 2021-09-21
 ### Added
+- Export `PerformError` class
 - Export `ErrorBase`, `SDKExecutionError` and `UnexpectedError` classes
 
 ## [0.0.33] - 2021-08-31
-
-## [0.0.33-beta.0] - 2021-08-30
-
-## [0.0.32-beta.0] - 2021-08-30
 
 ## [0.0.31] - 2021-08-25
 ### Added
@@ -92,11 +81,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - `MetricReporter` class that hooks on various events and reports metrics to Superface backend services
 
-## [0.0.29-beta.7] - 2021-07-16
-
-## [0.0.29-beta.6] - 2021-07-16
-
-## [0.0.29-beta.5] - 2021-07-08
 ### Changed
 - `ErrorBase` now contains `toString()` method and getter for `Symbol.toStringTag`
 - `CrossFetchError` is now union of `NetworkFetchError` and `RequestFetchError` classes
@@ -104,15 +88,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `SuperfaceClient::getProviderForProfile` no longer takes an optional non-documented preference argument
 - `FailurePolicyRouter::constructor` now takes a function which is called to instantiate policy for specified provider
 
-## [0.0.29-beta.4] - 2021-07-02
-
-## [0.0.29-beta.3] - 2021-07-02
-
-## [0.0.29-beta.2] - 2021-07-01
-
-## [0.0.29-beta.1] - 2021-06-30
-
-## [0.0.29-beta.0] - 2021-06-30
 ### Added
 - Internal Event system
 - Interface and implementation of backoffs
