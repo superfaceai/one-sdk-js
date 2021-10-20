@@ -674,7 +674,7 @@
   dependencies:
     typescript-is "^0.18.3"
 
-"@superfaceai/parser@>=0.0.22":
+"@superfaceai/parser@0.0.22":
   version "0.0.22"
   resolved "https://registry.yarnpkg.com/@superfaceai/parser/-/parser-0.0.22.tgz#38bca4a3b6c9c7741c245ce1a5e02de8534f384e"
   integrity sha512-mWKBi0b0bQjmSyLvI92AP7KFwcG2q9w8MYtXu+wDJE5dnwcPtg/qfVaawyUYzC1DWu5Oe4Bt8khDAayenD6o6g==
