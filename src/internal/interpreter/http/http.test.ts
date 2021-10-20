@@ -74,4 +74,18 @@ describe('HttpClient', () => {
       'http://example.com/test/'
     );
   });
+
+  it('should correctly interpolate integration parameters in baseUrl', () => {
+    const baseUrl = 'https://example.com/{value}';
+    const inputUrl = '/hello';
+
+    const url = createUrl(inputUrl, {
+      baseUrl,
+      integrationParameters: {
+        value: 'test',
+      },
+    });
+
+    expect(url).toEqual('https://example.com/test/hello');
+  });
 });

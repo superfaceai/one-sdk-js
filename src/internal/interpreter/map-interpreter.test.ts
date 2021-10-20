@@ -26,6 +26,16 @@ const header: MapHeaderNode = {
   provider: 'example',
 };
 
+const parseMapFromSource = (source: string) =>
+  parseMap(
+    new Source(
+      `
+      profile = "example@0.0"
+      provider = "example"
+      ` + source
+    )
+  );
+
 describe('MapInterpreter', () => {
   let serviceBaseUrl: string;
 
@@ -2729,5 +2739,81 @@ describe('MapInterpreter', () => {
     });
 
     expect(result.isOk() && result.value).toEqual('12');
+  });
+
+  it('should use integration parameters in jessie', async () => {
+    const ast = parseMapFromSource(`
+      map Test {
+        map result parameters.message
+      }
+    `);
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+        serviceBaseUrl,
+        parameters: {
+          message: 'nice!',
+        },
+      },
+      { fetchInstance }
+    );
+
+    const result = await interpreter.perform(ast);
+
+    expect(result.isOk() && result.value).toEqual('nice!');
+  });
+
+  it('should use integration parameters in URL', async () => {
+    const url = '/twelve';
+    await mockServer.get(url).thenJson(200, { data: 12 });
+    const ast = parseMapFromSource(`
+      map Test {
+        http GET "/{parameters.path}" {
+          response 200 "application/json" {
+            map result {
+              result = body.data
+            }
+          }
+        }
+      }`);
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        parameters: { path: 'twelve' },
+        security: [],
+        serviceBaseUrl,
+      },
+      { fetchInstance }
+    );
+    const result = await interpreter.perform(ast);
+    expect(result.isOk() && result.value).toEqual({ result: 12 });
+  });
+
+  it('should use integration parameters in baseUrl', async () => {
+    const url = '/twelve/something';
+    await mockServer.get(url).thenJson(200, { data: 12 });
+    const ast = parseMapFromSource(`
+      map Test {
+        http GET "/something" {
+          response 200 "application/json" {
+            map result {
+              result = body.data
+            }
+          }
+        }
+      }`);
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        parameters: { path: 'twelve' },
+        security: [],
+        serviceBaseUrl: `${serviceBaseUrl}/{path}`,
+      },
+      { fetchInstance }
+    );
+    const result = await interpreter.perform(ast);
+    console.log(result);
+    expect(result.isOk() && result.value).toEqual({ result: 12 });
   });
 });
