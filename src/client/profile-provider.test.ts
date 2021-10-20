@@ -18,6 +18,7 @@ import {
   InputValidationError,
   ResultValidationError,
 } from '../internal/interpreter/profile-parameter-validator.errors';
+import { Parser } from '../internal/parser';
 import { SuperJson } from '../internal/superjson';
 import * as SuperJsonMutate from '../internal/superjson/mutate';
 import { err, ok } from '../lib';
@@ -25,7 +26,7 @@ import { SuperfaceClient } from './client';
 import { ProfileConfiguration } from './profile';
 import { BoundProfileProvider, ProfileProvider } from './profile-provider';
 import { ProviderConfiguration } from './provider';
-import { fetchBind, fetchProviderInfo } from './registry';
+import { fetchBind, fetchMapSource, fetchProviderInfo } from './registry';
 
 //Mock ProfileParameterValidator
 jest.mock('../internal/interpreter/profile-parameter-validator');
@@ -35,6 +36,9 @@ jest.mock('../internal/interpreter/map-interpreter');
 
 //Mock registry
 jest.mock('./registry');
+
+//Mock parser
+jest.mock('../internal/parser');
 
 //Mock fs
 jest.mock('fs', () => ({
@@ -426,6 +430,56 @@ describe('profile provider', () => {
             },
           },
         });
+
+        mocked(mockResolvePath).mockReturnValue('file://some/path/to');
+
+        jest
+          .spyOn(fsp, 'readFile')
+          .mockResolvedValue(JSON.stringify(mockProfileDocument));
+
+        const mockProfileProvider = new ProfileProvider(
+          mockSuperJson,
+          new ProfileConfiguration('test-profile', '1.0.0'),
+          mockProviderConfiguration,
+          mockSuperfacClient
+        );
+
+        const result = await mockProfileProvider.bind();
+
+        expect(result).toMatchObject(expectedBoundProfileProvider);
+      });
+
+      it('returns new BoundProfileProvider get map source affter failed validation', async () => {
+        const mockMapSource = 'test source';
+        mocked(fetchBind).mockResolvedValue({
+          provider: mockFetchResponse.provider,
+          mapAst: undefined,
+        });
+        //normalized is getter on SuperJson - unable to mock or spy on
+        Object.assign(mockSuperJson, {
+          normalized: {
+            profiles: {
+              ['test-profile']: {
+                version: '1.0.0',
+                defaults: {},
+                providers: {
+                  test: {},
+                },
+              },
+            },
+            providers: {
+              test: {
+                security: [],
+              },
+            },
+          },
+        });
+
+        mocked(fetchMapSource).mockResolvedValue(mockMapSource);
+
+        jest
+          .spyOn(Parser, 'parseMap')
+          .mockResolvedValue(mockFetchResponse.mapAst);
 
         mocked(mockResolvePath).mockReturnValue('file://some/path/to');
 

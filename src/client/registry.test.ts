@@ -2,7 +2,11 @@ import { MapDocumentNode, ProviderJson } from '@superfaceai/ast';
 
 import { Config } from '../config';
 import { UnexpectedError } from '../internal/errors';
-import { assertIsRegistryProviderInfo, fetchBind } from './registry';
+import {
+  assertIsRegistryProviderInfo,
+  fetchBind,
+  fetchMapSource,
+} from './registry';
 
 const request = jest.fn();
 jest.mock('../internal/interpreter/http', () => {
@@ -207,7 +211,7 @@ describe('registry', () => {
       });
     });
 
-    it('throws error on invalid document', async () => {
+    it('throws error on invalid provider document', async () => {
       const mockBody = {
         provider: { test: 'invalid' },
         map_ast: JSON.stringify(mockMapDocument),
@@ -251,6 +255,126 @@ describe('registry', () => {
           map_variant: 'test-map-variant',
           map_revision: 'test-map-revision',
         },
+      });
+    });
+
+    it('returns undefined on invalid map document', async () => {
+      const mockBody = {
+        provider: mockProviderJson,
+        map_ast: 'this is not fine',
+      };
+      const mockResponse = {
+        statusCode: 200,
+        body: mockBody,
+        headers: { test: 'test' },
+        debug: {
+          request: {
+            headers: { test: 'test' },
+            url: 'test',
+            body: {},
+          },
+        },
+      };
+
+      request.mockResolvedValue(mockResponse);
+
+      await expect(
+        fetchBind({
+          profileId: 'test-profile-id',
+          provider: 'test-provider',
+          mapVariant: 'test-map-variant',
+          mapRevision: 'test-map-revision',
+        })
+      ).resolves.toEqual({
+        provider: mockProviderJson,
+        mapAst: undefined,
+      });
+
+      expect(request).toHaveBeenCalledTimes(1);
+      expect(request).toHaveBeenCalledWith('/registry/bind', {
+        method: 'POST',
+        baseUrl: TEST_REGISTRY_URL,
+        accept: 'application/json',
+        headers: [`Authorization: SUPERFACE-SDK-TOKEN ${MOCK_TOKEN}`],
+        contentType: 'application/json',
+        body: {
+          profile_id: 'test-profile-id',
+          provider: 'test-provider',
+          map_variant: 'test-map-variant',
+          map_revision: 'test-map-revision',
+        },
+      });
+    });
+  });
+
+  describe('when fetching map source', () => {
+    const TEST_REGISTRY_URL = 'https://example.com/test-registry';
+    const TEST_SDK_TOKEN =
+      'sfs_bb064dd57c302911602dd097bc29bedaea6a021c25a66992d475ed959aa526c7_37bce8b5';
+
+    beforeEach(() => {
+      const config = Config.instance();
+      config.superfaceApiUrl = TEST_REGISTRY_URL;
+      config.sdkAuthToken = TEST_SDK_TOKEN;
+    });
+
+    afterAll(() => {
+      Config.reloadFromEnv();
+    });
+
+    it('fetches map source with map variant', async () => {
+      const mockMapSOurce = 'source';
+      const mockResponse = {
+        statusCode: 200,
+        body: mockMapSOurce,
+        headers: { test: 'test' },
+        debug: {
+          request: {
+            headers: { test: 'test' },
+            url: 'test',
+            body: {},
+          },
+        },
+      };
+      request.mockResolvedValue(mockResponse);
+
+      const mapId = 'test-profile-id.test-provider.test-map-variant@1.0.0';
+      await expect(fetchMapSource(mapId)).resolves.toEqual(mockMapSOurce);
+
+      expect(request).toHaveBeenCalledTimes(1);
+      expect(request).toHaveBeenCalledWith(`/${mapId}`, {
+        method: 'GET',
+        baseUrl: TEST_REGISTRY_URL,
+        accept: 'application/vnd.superface.map',
+        headers: [`Authorization: SUPERFACE-SDK-TOKEN ${TEST_SDK_TOKEN}`],
+      });
+    });
+
+    it('fetches map source without map variant', async () => {
+      const mockMapSOurce = 'source';
+      const mockResponse = {
+        statusCode: 200,
+        body: mockMapSOurce,
+        headers: { test: 'test' },
+        debug: {
+          request: {
+            headers: { test: 'test' },
+            url: 'test',
+            body: {},
+          },
+        },
+      };
+      request.mockResolvedValue(mockResponse);
+
+      const mapId = 'test-profile-id.test-provider@1.0.0';
+      await expect(fetchMapSource(mapId)).resolves.toEqual(mockMapSOurce);
+
+      expect(request).toHaveBeenCalledTimes(1);
+      expect(request).toHaveBeenCalledWith(`/${mapId}`, {
+        method: 'GET',
+        baseUrl: TEST_REGISTRY_URL,
+        accept: 'application/vnd.superface.map',
+        headers: [`Authorization: SUPERFACE-SDK-TOKEN ${TEST_SDK_TOKEN}`],
       });
     });
   });
