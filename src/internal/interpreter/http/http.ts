@@ -59,13 +59,53 @@ export enum NetworkErrors {
   TIMEOUT_ERROR = 'TIMEOUT_ERROR',
 }
 
+function replaceParameters(url: string, parameters: NonPrimitive) {
+  const replacements: string[] = [];
+
+  const regex = RegExp('{([^}]*)}', 'g');
+  let replacement: RegExpExecArray | null;
+  while ((replacement = regex.exec(url)) !== null) {
+    replacements.push(replacement[1]);
+  }
+
+  const entries = replacements.map<[string, Variables | undefined]>(key => [
+    key,
+    getValue(parameters, key.split('.')),
+  ]);
+  const values = Object.fromEntries(entries);
+  const missingKeys = replacements.filter(key => values[key] === undefined);
+
+  if (missingKeys.length > 0) {
+    const missing = missingKeys;
+    const all = replacements;
+    const available = recursiveKeyList(parameters ?? {});
+
+    throw missingPathReplacementError(missing, url, all, available);
+  }
+
+  const stringifiedValues = variablesToStrings(values);
+
+  for (const param of Object.keys(values)) {
+    const replacement = stringifiedValues[param];
+
+    url = url.replace(`{${param}}`, replacement);
+  }
+
+  return url;
+}
+
 export const createUrl = (
   inputUrl: string,
   parameters: {
     baseUrl: string;
     pathParameters?: NonPrimitive;
+    integrationParameters?: Record<string, string>;
   }
 ): string => {
+  const baseUrl = replaceParameters(
+    parameters.baseUrl,
+    parameters.integrationParameters ?? {}
+  );
   if (inputUrl === '') {
     return parameters.baseUrl;
   }
@@ -74,44 +114,9 @@ export const createUrl = (
     throw new UnexpectedError('Expected relative url, but received absolute!');
   }
 
-  let url = inputUrl;
+  const url = replaceParameters(inputUrl, parameters.pathParameters ?? {});
 
-  if (parameters?.pathParameters !== undefined) {
-    const replacements: string[] = [];
-
-    const regex = RegExp('{([^}]*)}', 'g');
-    let replacement: RegExpExecArray | null;
-    while ((replacement = regex.exec(url)) !== null) {
-      replacements.push(replacement[1]);
-    }
-
-    const entries = replacements.map<[string, Variables | undefined]>(key => [
-      key,
-      getValue(parameters.pathParameters, key.split('.')),
-    ]);
-    const values = Object.fromEntries(entries);
-    const missingKeys = replacements.filter(key => values[key] === undefined);
-
-    if (missingKeys.length > 0) {
-      const missing = missingKeys;
-      const all = replacements;
-      const available = recursiveKeyList(parameters.pathParameters ?? {});
-
-      throw missingPathReplacementError(missing, url, all, available);
-    }
-
-    const stringifiedValues = variablesToStrings(values);
-
-    for (const param of Object.keys(values)) {
-      const replacement = stringifiedValues[param];
-
-      url = url.replace(`{${param}}`, replacement);
-    }
-  }
-
-  url = parameters.baseUrl.replace(/\/+$/, '') + url;
-
-  return `${url}`;
+  return baseUrl.replace(/\/+$/, '') + url;
 };
 
 export class HttpClient {
@@ -130,6 +135,7 @@ export class HttpClient {
       securityConfiguration?: SecurityConfiguration[];
       baseUrl: string;
       pathParameters?: NonPrimitive;
+      integrationParameters?: Record<string, string>;
     }
   ): Promise<HttpResponse> {
     const headers = variablesToStrings(parameters?.headers);
@@ -195,6 +201,7 @@ export class HttpClient {
     const finalUrl = createUrl(url, {
       baseUrl: parameters.baseUrl,
       pathParameters,
+      integrationParameters: parameters.integrationParameters,
     });
 
     request.queryParameters = {

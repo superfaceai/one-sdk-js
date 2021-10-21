@@ -1,11 +1,11 @@
 import {
   assertMapDocumentNode,
+  assertProviderJson,
   isProviderJson,
   MapDocumentNode,
   ProviderJson,
 } from '@superfaceai/ast';
 import createDebug from 'debug';
-import * as zod from 'zod';
 
 import { Config } from '../config';
 import { UnexpectedError } from '../internal/errors';
@@ -84,11 +84,37 @@ export async function fetchProviderInfo(
   return body;
 }
 
-// TODO: refine validator
-const bindResponseValidator = zod.object({
-  provider: zod.custom<ProviderJson>(data => isProviderJson(data)),
-  map_ast: zod.string(),
-});
+function parseBindResponse(input: unknown): {
+  provider: ProviderJson;
+  mapAst: MapDocumentNode | undefined;
+} {
+  function assertProperties(
+    obj: unknown
+  ): asserts obj is { provider: unknown; map_ast: string } {
+    if (
+      typeof obj !== 'object' ||
+      obj === null ||
+      'provider' in obj === false ||
+      'map_ast' in obj === false
+    ) {
+      throw new UnexpectedError('Registry responded with invalid body');
+    }
+  }
+
+  assertProperties(input);
+
+  let mapAst: MapDocumentNode | undefined;
+  try {
+    mapAst = assertMapDocumentNode(JSON.parse(input.map_ast));
+  } catch (error) {
+    mapAst = undefined;
+  }
+
+  return {
+    provider: assertProviderJson(input.provider),
+    mapAst,
+  };
+}
 
 export async function fetchBind(request: {
   profileId: string;
@@ -119,23 +145,7 @@ export async function fetchBind(request: {
     },
   });
 
-  if (!bindResponseValidator.check(body)) {
-    throw new UnexpectedError('Registry responded with invalid body');
-  }
-
-  //Check map
-  let mapAst: MapDocumentNode | undefined = undefined;
-  try {
-    mapAst = assertMapDocumentNode(JSON.parse(body.map_ast));
-  } catch (error) {
-    registryDebug('Binding SDK to registry ended up with map validation issue');
-    mapAst = undefined;
-  }
-
-  return {
-    provider: body.provider,
-    mapAst,
-  };
+  return parseBindResponse(body);
 }
 
 export async function fetchMapSource(mapId: string): Promise<string> {

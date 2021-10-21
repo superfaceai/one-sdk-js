@@ -1,7 +1,6 @@
 import { MapDocumentNode, ProviderJson } from '@superfaceai/ast';
 
 import { Config } from '../config';
-import { UnexpectedError } from '../internal/errors';
 import {
   assertIsRegistryProviderInfo,
   fetchBind,
@@ -238,9 +237,7 @@ describe('registry', () => {
           mapVariant: 'test-map-variant',
           mapRevision: 'test-map-revision',
         })
-      ).rejects.toEqual(
-        new UnexpectedError('Registry responded with invalid body')
-      );
+      ).rejects.toThrow('validation failed');
 
       expect(request).toHaveBeenCalledTimes(1);
       expect(request).toHaveBeenCalledWith('/registry/bind', {
