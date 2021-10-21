@@ -86,7 +86,7 @@ export async function fetchProviderInfo(
 
 function parseBindResponse(input: unknown): {
   provider: ProviderJson;
-  mapAst: MapDocumentNode;
+  mapAst?: MapDocumentNode;
 } {
   function assertProperties(
     obj: unknown
@@ -103,9 +103,16 @@ function parseBindResponse(input: unknown): {
 
   assertProperties(input);
 
+  let mapAst: MapDocumentNode | undefined;
+  try {
+    mapAst = assertMapDocumentNode(JSON.parse(input.map_ast));
+  } catch (error) {
+    mapAst = undefined;
+  }
+
   return {
     provider: assertProviderJson(input.provider),
-    mapAst: assertMapDocumentNode(JSON.parse(input.map_ast)),
+    mapAst,
   };
 }
 
@@ -116,7 +123,7 @@ export async function fetchBind(request: {
   mapRevision?: string;
 }): Promise<{
   provider: ProviderJson;
-  mapAst: MapDocumentNode;
+  mapAst?: MapDocumentNode;
 }> {
   const fetchInstance = new CrossFetch();
   const http = new HttpClient(fetchInstance);
@@ -139,4 +146,22 @@ export async function fetchBind(request: {
   });
 
   return parseBindResponse(body);
+}
+
+export async function fetchMapSource(mapId: string): Promise<string> {
+  const fetchInstance = new CrossFetch();
+  const http = new HttpClient(fetchInstance);
+  const sdkToken = Config.instance().sdkAuthToken;
+  registryDebug(`Getting source of map: "${mapId}"`);
+
+  const { body } = await http.request(`/${mapId}`, {
+    method: 'GET',
+    headers: sdkToken
+      ? [`Authorization: SUPERFACE-SDK-TOKEN ${sdkToken}`]
+      : undefined,
+    baseUrl: Config.instance().superfaceApiUrl,
+    accept: 'application/vnd.superface.map',
+  });
+
+  return body as string;
 }

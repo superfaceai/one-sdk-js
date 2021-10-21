@@ -53,7 +53,7 @@ import { CrossFetch } from '../lib/fetch';
 import { MapInterpreterEventAdapter } from './failure/map-interpreter-adapter';
 import { ProfileConfiguration } from './profile';
 import { ProviderConfiguration } from './provider';
-import { fetchBind, fetchProviderInfo } from './registry';
+import { fetchBind, fetchMapSource, fetchProviderInfo } from './registry';
 
 function forceCast<T>(_: unknown): asserts _ is T {}
 
@@ -280,6 +280,20 @@ export class ProfileProvider {
 
       providerInfo ??= fetchResponse.provider;
       mapAst = fetchResponse.mapAst;
+      //If we don't have a map (probably due to validation issue) we try to get map source and parse it on our own
+      if (!mapAst) {
+        const version = `${profileAst.header.version.major}.${profileAst.header.version.minor}.${profileAst.header.version.patch}`;
+        const mapId = mapVariant
+          ? `${profileId}.${providerName}.${mapVariant}@${version}`
+          : `${profileId}.${providerName}@${version}`;
+        const mapSource = await fetchMapSource(mapId);
+
+        mapAst = await Parser.parseMap(mapSource, mapId, {
+          profileName: profileAst.header.name,
+          scope: profileAst.header.scope,
+          providerName,
+        });
+      }
     } else if (providerInfo === undefined) {
       // resolve only provider info if map is specified locally
       providerInfo = await fetchProviderInfo(providerName);
