@@ -278,7 +278,9 @@ export function normalizeProviderSettings(
     file: providerEntry.file,
     security:
       providerEntry.security?.map(entry => resolveEnvRecord(entry)) ?? [],
-    parameters: providerEntry.parameters ?? {},
+    parameters: providerEntry.parameters
+      ? resolveEnvRecord(providerEntry.parameters)
+      : {},
   };
 }
 
