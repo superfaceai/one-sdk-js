@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - MapInterpreter now supports integration parameters
 
+### Fixed
+- Integration parameters are passed from super.json to BoundProfileProvider
+
 ## [0.0.40] - 2021-10-18
 ### Changed
 - Updated AST with examples
