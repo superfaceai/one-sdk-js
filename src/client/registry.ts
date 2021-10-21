@@ -86,7 +86,7 @@ export async function fetchProviderInfo(
 
 function parseBindResponse(input: unknown): {
   provider: ProviderJson;
-  mapAst: MapDocumentNode | undefined;
+  mapAst?: MapDocumentNode;
 } {
   function assertProperties(
     obj: unknown
@@ -123,7 +123,7 @@ export async function fetchBind(request: {
   mapRevision?: string;
 }): Promise<{
   provider: ProviderJson;
-  mapAst: MapDocumentNode | undefined;
+  mapAst?: MapDocumentNode;
 }> {
   const fetchInstance = new CrossFetch();
   const http = new HttpClient(fetchInstance);
