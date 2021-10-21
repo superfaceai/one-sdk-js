@@ -527,12 +527,17 @@ describe('SuperJson', () => {
     });
 
     it('returns correct object when entry is a object', async () => {
+      const evnVariable = 'INTEGRATION_PARAMETER_TEST_VARIABLE';
+      const originalEnv = process.env[evnVariable];
+      process.env[evnVariable] = 'test-value';
+
       const mockProviderEntry = {
         file: 'some/path',
         security: [],
         parameters: {
           first: 'test',
           second: 'second',
+          third: `$${evnVariable}`,
         },
       };
 
@@ -542,8 +547,10 @@ describe('SuperJson', () => {
         parameters: {
           first: 'test',
           second: 'second',
+          third: 'test-value',
         },
       });
+      process.env[evnVariable] = originalEnv;
     });
 
     it('returns correct object when entry is a object with empty security and parameters', async () => {

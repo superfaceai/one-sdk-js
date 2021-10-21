@@ -1,5 +1,4 @@
 import { BackoffKind, SecurityValues } from '@superfaceai/ast';
-import { ZodError } from 'zod';
 
 import { SDKExecutionError } from './errors';
 
@@ -11,10 +10,6 @@ export function ensureErrorSubclass(error: unknown): Error {
   }
 
   return new Error(JSON.stringify(error));
-}
-
-export function isZodError(error: Error): error is ZodError {
-  return error instanceof ZodError;
 }
 
 export function superJsonNotFoundError(
@@ -39,9 +34,7 @@ export function superJsonNotAFileError(path: string): SDKExecutionError {
 export function superJsonFormatError(error: Error): SDKExecutionError {
   return new SDKExecutionError(
     'super.json format is invalid',
-    isZodError(error)
-      ? error.issues.map(issue => `${issue.path.join('.')}: ${issue.code}`)
-      : [error.toString()],
+    [error.toString()],
     []
   );
 }
