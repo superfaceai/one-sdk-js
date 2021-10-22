@@ -39,13 +39,17 @@ jobs:
 
       - name: Bump release version
         if: startsWith(github.event.inputs.release-level, 'pre') != true
-        run: echo "NEW_VERSION=$(npm --no-git-tag-version version $RELEASE_LEVEL)" >> $GITHUB_ENV
+        run: |
+          echo "NEW_VERSION=$(npm --no-git-tag-version version $RELEASE_LEVEL)" >> $GITHUB_ENV
+          echo "RELEASE_TAG=latest" >> $GITHUB_ENV
         env:
           RELEASE_LEVEL: ${{ github.event.inputs.release-level }}
 
       - name: Bump pre-release version
         if: startsWith(github.event.inputs.release-level, 'pre')
-        run: echo "NEW_VERSION=$(npm --no-git-tag-version --preid=beta version $RELEASE_LEVEL)" >> $GITHUB_ENV
+        run: |
+          echo "NEW_VERSION=$(npm --no-git-tag-version --preid=beta version $RELEASE_LEVEL)" >> $GITHUB_ENV
+          echo "RELEASE_TAG=beta" >> $GITHUB_ENV
         env:
           RELEASE_LEVEL: ${{ github.event.inputs.release-level }}
 
@@ -68,7 +72,7 @@ jobs:
 
       # Publish version to public repository
       - name: Publish
-        run: yarn publish --verbose --access public
+        run: yarn publish --verbose --access public --tag ${{ env.RELEASE_TAG }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPMJS_BOT_PAT }}
 
