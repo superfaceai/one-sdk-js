@@ -1,6 +1,7 @@
 import { parseMap, parseProfile, Source } from '@superfaceai/parser';
 
-import { BoundProfileProvider, SuperfaceClient } from '../client';
+import { ProfileProvider } from '..';
+import { SuperfaceClient } from '../client';
 import { invalidateSuperfaceClientCache } from '../client/client';
 import { Config } from '../config';
 import { SuperJson } from '../internal/superjson';
@@ -37,9 +38,25 @@ const mockSuperJsonSingle = new SuperJson({
     },
   },
   providers: {
-    example: {},
+    example: {
+      parameters: {
+        test: 'it works!',
+      },
+    },
   },
 });
+
+const mockProviderJson = {
+  name: 'example',
+  services: [
+    {
+      id: 'example',
+      baseUrl: 'https://example.dev/api',
+    },
+  ],
+  securitySchemes: [],
+  defaultService: 'example',
+};
 
 const mockProfileDocument = parseProfileFromSource(`
   usecase Test safe {
@@ -63,16 +80,21 @@ describe('SuperfaceClient integration test', () => {
 
   it('should pass parameters from super.json to the map', async () => {
     const client = new SuperfaceClient();
-    const mockBoundProfileProvider = new BoundProfileProvider(
-      mockProfileDocument,
-      mockMapDocumentSuccess,
-      'example',
-      { security: [], baseUrl: '👉👈', parameters: { test: 'it works!' } },
-      client
-    );
+
+    //Let .bind happen with mocked inputs
+    //Mocking private property of ProfileProvider
     jest
-      .spyOn(client, 'cacheBoundProfileProvider')
-      .mockResolvedValue(mockBoundProfileProvider);
+      .spyOn(ProfileProvider.prototype as any, 'resolveProfileAst')
+      .mockResolvedValue(mockProfileDocument);
+    jest
+      .spyOn(ProfileProvider.prototype as any, 'resolveProviderInfo')
+      .mockResolvedValue({
+        providerName: 'example',
+        providerInfo: mockProviderJson,
+      });
+    jest
+      .spyOn(ProfileProvider.prototype as any, 'resolveMapAst')
+      .mockResolvedValue({ mapAst: mockMapDocumentSuccess });
 
     const profile = await client.getProfile('example');
 
@@ -81,4 +103,3 @@ describe('SuperfaceClient integration test', () => {
     expect(result.isOk() && result.value).toEqual('it works!');
   });
 });
-
