@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Changed
+- Removed unnecessary result propagation in interpreter - using stackTop.result instead
+- Terminal outcome statements should now correctly exit from iteration
+- MappedHTTPErrors and MappedErrors are handled a little better
+
+### Fixed
+- operation call no longer overwrites already mapped result
+- caller scope no longer leaks into operation callees
+- `result` variable no longer has special meaning
+- `outcome.data` is no longer overwritten by `result`
+- `fail` correctly sets `outcome.error` in caller
+
 ### Added
 - MapInterpreter now supports integration parameters
 

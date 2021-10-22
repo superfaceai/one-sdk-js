@@ -32,15 +32,16 @@ import { MapInterpreterExternalHandler } from './external-handler';
 import { HttpClient, HttpResponse, SecurityConfiguration } from './http';
 import { FetchInstance } from './http/interfaces';
 import {
+  HTTPError,
   JessieError,
   MapASTError,
   MapInterpreterError,
+  MappedError,
   MappedHTTPError,
 } from './map-interpreter.errors';
 import { evalScript } from './sandbox';
 import {
   castToVariables,
-  isPrimitive,
   mergeVariables,
   NonPrimitive,
   Primitive,
@@ -98,13 +99,26 @@ interface HttpRequest {
   security: HttpSecurityRequirement[];
 }
 
-interface Stack {
-  type: 'map' | 'operation';
+type StackBase = {
+  type: 'operation' | 'map';
   variables: NonPrimitive;
   terminate: boolean;
   result?: Variables;
+};
+
+type OperationStack = StackBase & {
+  type: 'operation';
+  error?: Variables;
+};
+
+type MapContext = 'http' | 'none';
+type MapStack = StackBase & {
+  type: 'map';
   error?: MapInterpreterError;
-}
+  context: MapContext[];
+};
+
+type Stack = OperationStack | MapStack;
 
 type IterationDefinition = {
   iterationVariable: string;
@@ -190,7 +204,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
       'Visiting node:',
       node.kind,
       node.location
-        ? `Line: ${node.location.line}, Column: ${node.location.line}`
+        ? `Line: ${node.location.line}, Column: ${node.location.column}`
         : ''
     );
     switch (node.kind) {
@@ -260,9 +274,9 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
           return;
         }
       }
-      const result = await this.visitCallCommon(node);
+      const outcome = await this.visitCallCommon(node);
 
-      this.addVariableToStack({ outcome: { data: result } });
+      this.addVariableToStack({ outcome });
       await this.processStatements(node.statements);
     }
   }
@@ -315,14 +329,27 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
         }
       }
 
-      const action =
-        (await this.externalHandler.unhandledHttp?.(
-          this.ast,
-          node,
-          response
-        )) ?? 'continue';
-      if (action !== 'retry') {
+      if (this.externalHandler.unhandledHttp !== undefined) {
+        const action =
+          (await this.externalHandler.unhandledHttp?.(
+            this.ast,
+            node,
+            response
+          )) ?? 'continue';
+        if (action !== 'retry') {
+          retry = false;
+        }
+      } else {
         retry = false;
+        if (response.statusCode >= 400) {
+          throw new HTTPError(
+            'HTTP Error',
+            { node, ast: this.ast },
+            response.statusCode,
+            response.debug.request,
+            { body: response.body, headers: response.headers }
+          );
+        }
       }
     }
   }
@@ -362,6 +389,13 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
         return false;
       }
 
+      {
+        const stackTop = this.stackTop();
+        if (stackTop.type === 'map') {
+          stackTop.context.push('http');
+        }
+      }
+
       this.addVariableToStack({
         body: castToVariables(response.body),
         headers: castToVariables(response.headers),
@@ -383,6 +417,12 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
       }
 
       await this.processStatements(node.statements);
+      {
+        const stackTop = this.stackTop();
+        if (stackTop.type === 'map') {
+          stackTop.context.pop();
+        }
+      }
 
       return true;
     };
@@ -410,7 +450,9 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
       }
     }
 
-    return this.visitCallCommon(node);
+    const result = await this.visitCallCommon(node);
+
+    return result.data;
   }
 
   async visitIterationAtomNode(
@@ -454,7 +496,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
         case 'HttpCallStatement':
         case 'CallStatement':
           await this.visit(statement);
-          if (this.stackTop.terminate) {
+          if (this.stackTop().terminate) {
             return;
           }
           break;
@@ -462,19 +504,36 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
         case 'OutcomeStatement': {
           const outcome = await this.visit(statement);
           if (outcome?.error) {
-            const statusCode = this.stackTop.variables.statusCode;
-            const error = new MappedHTTPError(
-              'Expected HTTP error',
-              typeof statusCode === 'number' ? statusCode : undefined,
-              { node: statement, ast: this.ast },
-              outcome?.result
-            );
-            this.stackTop.error = error;
+            const stackTop = this.stackTop();
+            if (stackTop.type === 'map') {
+              let error: MapInterpreterError;
+              if (stackTop.context[stackTop.context.length - 1] === 'http') {
+                const statusCode = this.stackTop('map').variables.statusCode;
+                error = new MappedHTTPError(
+                  'Expected HTTP error',
+                  typeof statusCode === 'number' ? statusCode : undefined,
+                  { node: statement, ast: this.ast },
+                  outcome?.result
+                );
+              } else {
+                error = new MappedError(
+                  'Expected error',
+                  { node: statement, ast: this.ast },
+                  outcome?.result
+                );
+              }
+
+              this.stackTop('map').error = error;
+            } else {
+              this.stackTop('operation').error = outcome.result;
+            }
+          } else {
+            this.stackTop().result = outcome?.result ?? this.stackTop().result;
           }
-          this.stackTop.result = outcome?.result ?? this.stackTop.result;
+          debug('Setting result', this.stackTop());
 
           if (outcome?.terminateFlow) {
-            this.stackTop.terminate = true;
+            this.stackTop().terminate = true;
 
             return;
           }
@@ -491,15 +550,12 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
     this.newStack('map');
     await this.processStatements(node.statements);
 
-    if (this.stackTop.error) {
-      throw this.stackTop.error;
+    if (this.stackTop().error) {
+      throw this.stackTop().error;
     }
 
     return {
-      result:
-        (!isPrimitive(this.stackTop.variables) &&
-          this.stackTop.variables['result']) ||
-        this.stackTop.result,
+      result: this.stackTop().result,
     };
   }
 
@@ -588,20 +644,20 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
   }
 
   private get variables(): NonPrimitive {
-    let variables: NonPrimitive = {};
+    let variables: NonPrimitive = this.stackTop().variables;
 
-    for (const stacktop of this.stack) {
-      variables = mergeVariables(variables, stacktop.variables);
-    }
+    // for (const stacktop of this.stack) {
+    //   variables = mergeVariables(variables, stacktop.variables);
+    // }
 
-    if (this.stackTop.result) {
-      variables = {
-        ...variables,
-        outcome: {
-          data: this.stackTop.result,
-        },
-      };
-    }
+    // if (this.stackTop.result) {
+    //   variables = {
+    //     ...variables,
+    //     outcome: {
+    //       data: this.stackTop.result,
+    //     },
+    //   };
+    // }
 
     variables = {
       ...variables,
@@ -617,12 +673,12 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
   }
 
   private addVariableToStack(variables: NonPrimitive): void {
-    this.stackTop.variables = mergeVariables(
-      this.stackTop.variables,
+    this.stackTop().variables = mergeVariables(
+      this.stackTop().variables,
       variables
     );
 
-    debug('Updated stack:', this.stackTop);
+    debug('Updated stack:', this.stackTop());
   }
 
   private constructObject(keys: string[], value: Variables): NonPrimitive {
@@ -642,30 +698,52 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
   }
 
   private newStack(type: Stack['type']): void {
-    this.stack.push({ type, variables: {}, result: {}, terminate: false });
-    debug('New stack:', this.stackTop);
+    const stack =
+      type === 'map'
+        ? {
+            type,
+            variables: {},
+            result: undefined,
+            terminate: false,
+            context: [],
+          }
+        : {
+            type,
+            variables: {},
+            result: undefined,
+            terminate: false,
+          };
+    this.stack.push(stack);
+    debug('New stack:', this.stackTop());
   }
 
-  private popStack(result?: Variables): void {
+  private popStack(): void {
     const last = this.stack.pop();
-    if (this.stack.length > 0 && last) {
-      this.stackTop.result = result ?? last.variables['result'];
-    }
 
     debug('Popped stack:', last);
   }
 
-  private get stackTop(): Stack {
+  private stackTop(assertType: 'operation'): OperationStack;
+  private stackTop(assertType: 'map'): MapStack;
+  private stackTop(): Stack;
+  private stackTop(assertType?: 'map' | 'operation'): Stack {
     if (this.stack.length === 0) {
       throw new UnexpectedError('Trying to get variables out of scope!');
     }
+    const stack = this.stack[this.stack.length - 1];
 
-    return this.stack[this.stack.length - 1];
+    if (assertType !== undefined && stack.type !== assertType) {
+      throw new UnexpectedError(
+        `Trying to get '${assertType}', but got ${stack.type}!`
+      );
+    }
+
+    return stack;
   }
 
   private async visitCallCommon(
     node: InlineCallNode | CallStatementNode
-  ): Promise<Variables | undefined> {
+  ): Promise<{ data: Variables | undefined; error?: Variables | undefined }> {
     const operation = this.operations[node.operationName];
     if (!operation) {
       throw new MapASTError(`Operation not found: ${node.operationName}`, {
@@ -676,18 +754,19 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
 
     debug('Calling operation:', operation.name);
 
-    this.newStack('operation');
     let args: Variables = {};
     for (const assignment of node.arguments) {
       args = mergeVariables(args, await this.visit(assignment));
     }
+    this.newStack('operation');
     this.addVariableToStack({ args });
 
     await this.visit(operation);
-    const result = this.stackTop.result;
+    const { result: data, error } = this.stackTop('operation');
+
     this.popStack();
 
-    return result;
+    return { data, error };
   }
 
   private async iterate<T extends CallStatementNode | InlineCallNode>(
@@ -707,9 +786,9 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
       }
       const result = await this.visitCallCommon(node);
 
-      await processResult(result);
+      await processResult(result.data);
       // return early check
-      if (this.stackTop.terminate) {
+      if (this.stackTop().terminate) {
         break;
       }
     }

@@ -106,8 +106,9 @@ export const createUrl = (
     parameters.baseUrl,
     parameters.integrationParameters ?? {}
   );
+
   if (inputUrl === '') {
-    return parameters.baseUrl;
+    return baseUrl;
   }
   const isRelative = /^\/[^/]/.test(inputUrl);
   if (!isRelative) {

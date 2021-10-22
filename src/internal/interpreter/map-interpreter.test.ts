@@ -1,10 +1,4 @@
-import {
-  ApiKeyPlacement,
-  HttpScheme,
-  MapDocumentNode,
-  MapHeaderNode,
-  SecurityType,
-} from '@superfaceai/ast';
+import { ApiKeyPlacement, HttpScheme, SecurityType } from '@superfaceai/ast';
 import { parseMap, Source } from '@superfaceai/parser';
 import { getLocal } from 'mockttp';
 
@@ -13,18 +7,6 @@ import { MapInterpreter } from './map-interpreter';
 
 const mockServer = getLocal();
 const fetchInstance = new CrossFetch();
-const header: MapHeaderNode = {
-  kind: 'MapHeader',
-  profile: {
-    name: 'example',
-    version: {
-      major: 0,
-      minor: 0,
-      patch: 0,
-    },
-  },
-  provider: 'example',
-};
 
 const parseMapFromSource = (source: string) =>
   parseMap(
@@ -56,32 +38,11 @@ describe('MapInterpreter', () => {
       },
       { fetchInstance }
     );
-    const ast: MapDocumentNode = {
-      kind: 'MapDocument',
-      header,
-      definitions: [
-        {
-          kind: 'MapDefinition',
-          name: 'testMap',
-          usecaseName: 'testCase',
-          statements: [
-            {
-              kind: 'SetStatement',
-              assignments: [
-                {
-                  kind: 'Assignment',
-                  key: ['result'],
-                  value: {
-                    kind: 'JessieExpression',
-                    expression: '1 + 2',
-                  },
-                },
-              ],
-            },
-          ],
-        },
-      ],
-    };
+    const ast = parseMapFromSource(`
+      map testCase {
+        map result 1 + 2
+      }
+    `);
     const result = await interpreter.perform(ast);
 
     expect(result.isOk() && result.value).toEqual(3);
@@ -95,45 +56,13 @@ describe('MapInterpreter', () => {
       },
       { fetchInstance }
     );
-    const result = await interpreter.perform({
-      kind: 'MapDocument',
-      header,
-      definitions: [
-        {
-          kind: 'MapDefinition',
-          name: 'Test',
-          usecaseName: 'Test',
-          statements: [
-            {
-              kind: 'SetStatement',
-              assignments: [
-                {
-                  kind: 'Assignment',
-                  key: ['x'],
-                  value: {
-                    kind: 'PrimitiveLiteral',
-                    value: 5,
-                  },
-                },
-              ],
-            },
-            {
-              kind: 'SetStatement',
-              assignments: [
-                {
-                  kind: 'Assignment',
-                  key: ['result'],
-                  value: {
-                    kind: 'JessieExpression',
-                    expression: 'x + 7',
-                  },
-                },
-              ],
-            },
-          ],
-        },
-      ],
-    });
+    const ast = parseMapFromSource(`
+      map Test {
+        x = 5
+        map result x + 7
+      }
+    `);
+    const result = await interpreter.perform(ast);
 
     expect(result.isOk() && result.value).toEqual(12);
   });
@@ -146,32 +75,11 @@ describe('MapInterpreter', () => {
       },
       { fetchInstance }
     );
-    const result = await interpreter.perform({
-      kind: 'MapDocument',
-      header,
-      definitions: [
-        {
-          kind: 'MapDefinition',
-          name: 'Test',
-          usecaseName: 'Test',
-          statements: [
-            {
-              kind: 'SetStatement',
-              assignments: [
-                {
-                  kind: 'Assignment',
-                  key: ['result'],
-                  value: {
-                    kind: 'JessieExpression',
-                    expression: '[1, 2, 3]',
-                  },
-                },
-              ],
-            },
-          ],
-        },
-      ],
-    });
+    const ast = parseMapFromSource(`
+      map Test {
+        map result [1, 2, 3]
+      }`);
+    const result = await interpreter.perform(ast);
 
     expect(result.isOk() && result.value).toEqual([1, 2, 3]);
   });
@@ -184,57 +92,16 @@ describe('MapInterpreter', () => {
       },
       { fetchInstance }
     );
-    const result = await interpreter.perform({
-      kind: 'MapDocument',
-      header,
-      definitions: [
-        {
-          kind: 'OperationDefinition',
-          name: 'TestOp',
-          statements: [
-            {
-              kind: 'OutcomeStatement',
-              terminateFlow: true,
-              isError: false,
-              value: {
-                kind: 'JessieExpression',
-                expression: 'args.foo',
-              },
-            },
-          ],
-        },
-        {
-          kind: 'MapDefinition',
-          name: 'Test',
-          usecaseName: 'Test',
-          statements: [
-            {
-              kind: 'SetStatement',
-              assignments: [
-                {
-                  kind: 'Assignment',
-                  key: ['result'],
-                  value: {
-                    kind: 'InlineCall',
-                    arguments: [
-                      {
-                        kind: 'Assignment',
-                        key: ['foo'],
-                        value: {
-                          kind: 'PrimitiveLiteral',
-                          value: 12,
-                        },
-                      },
-                    ],
-                    operationName: 'TestOp',
-                  },
-                },
-              ],
-            },
-          ],
-        },
-      ],
-    });
+    const ast = parseMapFromSource(`
+      operation TestOp {
+        return args.foo
+      }
+
+      map Test {
+        result = call TestOp(foo = 12)
+        map result result
+      }`);
+    const result = await interpreter.perform(ast);
 
     expect(result.isOk() && result.value).toEqual(12);
   });
@@ -247,59 +114,17 @@ describe('MapInterpreter', () => {
       },
       { fetchInstance }
     );
-    const result = await interpreter.perform({
-      kind: 'MapDocument',
-      header,
-      definitions: [
-        {
-          kind: 'OperationDefinition',
-          name: 'TestOp',
-          statements: [
-            {
-              kind: 'OutcomeStatement',
-              isError: false,
-              terminateFlow: true,
-              value: {
-                kind: 'JessieExpression',
-                expression: 'args.hey.now.length',
-              },
-            },
-          ],
-        },
-        {
-          kind: 'MapDefinition',
-          name: 'Test',
-          usecaseName: 'Test',
-          statements: [
-            {
-              kind: 'CallStatement',
-              operationName: 'TestOp',
-              arguments: [
-                {
-                  kind: 'Assignment',
-                  key: ['hey', 'now'],
-                  value: {
-                    kind: 'PrimitiveLiteral',
-                    value: 'you are a rock star',
-                  },
-                },
-              ],
-              statements: [
-                {
-                  kind: 'OutcomeStatement',
-                  isError: false,
-                  terminateFlow: false,
-                  value: {
-                    kind: 'JessieExpression',
-                    expression: 'outcome.data + 7',
-                  },
-                },
-              ],
-            },
-          ],
-        },
-      ],
-    });
+    const ast = parseMapFromSource(`
+      operation TestOp {
+        return args.hey.now.length
+      }
+
+      map Test {
+        call TestOp(hey.now = "you are a rock star") {
+          map result outcome.data + 7
+        }
+      }`);
+    const result = await interpreter.perform(ast);
 
     expect(result.isOk() && result.value).toEqual(26);
   });
@@ -312,74 +137,18 @@ describe('MapInterpreter', () => {
       },
       { fetchInstance }
     );
-    const result = await interpreter.perform({
-      kind: 'MapDocument',
-      header,
-      definitions: [
-        {
-          kind: 'OperationDefinition',
-          name: 'TestOp',
-          statements: [
-            {
-              kind: 'SetStatement',
-              assignments: [
-                {
-                  kind: 'Assignment',
-                  key: ['x'],
-                  value: {
-                    kind: 'PrimitiveLiteral',
-                    value: 7,
-                  },
-                },
-              ],
-            },
-            {
-              kind: 'OutcomeStatement',
-              terminateFlow: true,
-              isError: false,
-              value: {
-                kind: 'JessieExpression',
-                expression: 'x + 5',
-              },
-            },
-          ],
-        },
-        {
-          kind: 'MapDefinition',
-          name: 'Test',
-          usecaseName: 'Test',
-          statements: [
-            {
-              kind: 'SetStatement',
-              assignments: [
-                {
-                  kind: 'Assignment',
-                  key: ['x'],
-                  value: {
-                    kind: 'PrimitiveLiteral',
-                    value: 8,
-                  },
-                },
-              ],
-            },
-            {
-              kind: 'SetStatement',
-              assignments: [
-                {
-                  kind: 'Assignment',
-                  key: ['result'],
-                  value: {
-                    kind: 'InlineCall',
-                    arguments: [],
-                    operationName: 'TestOp',
-                  },
-                },
-              ],
-            },
-          ],
-        },
-      ],
-    });
+    const ast = parseMapFromSource(`
+      operation TestOp {
+        x = 7
+        return x + 5
+      }
+
+      map Test {
+        x = 8
+        result = call TestOp()
+        map result result
+      }`);
+    const result = await interpreter.perform(ast);
 
     expect(result.isOk() && result.value).toEqual(12);
   });
@@ -402,137 +171,21 @@ describe('MapInterpreter', () => {
       },
       { fetchInstance }
     );
-    const result = await interpreter.perform({
-      kind: 'MapDocument',
-      header,
-      definitions: [
-        {
-          kind: 'MapDefinition',
-          name: 'Test',
-          usecaseName: 'Test',
-          statements: [
-            {
-              kind: 'HttpCallStatement',
-              method: 'GET',
-              url,
-              request: {
-                kind: 'HttpRequest',
-                headers: {
-                  kind: 'ObjectLiteral',
-                  fields: [
-                    {
-                      kind: 'Assignment',
-                      key: ['content-type'],
-                      value: {
-                        kind: 'PrimitiveLiteral',
-                        value: 'application/json',
-                      },
-                    },
-                  ],
-                },
-                security: [],
-              },
-              responseHandlers: [
-                {
-                  kind: 'HttpResponseHandler',
-                  statusCode: 200,
-                  contentType: 'application/json',
-                  contentLanguage: 'en-US',
-                  statements: [
-                    {
-                      kind: 'SetStatement',
-                      assignments: [
-                        {
-                          kind: 'Assignment',
-                          key: ['result'],
-                          value: {
-                            kind: 'JessieExpression',
-                            expression: 'body.data',
-                          },
-                        },
-                      ],
-                    },
-                  ],
-                },
-              ],
-            },
-          ],
-        },
-      ],
-    });
+    const ast = parseMapFromSource(`
+      map Test {
+        http GET "${url}" {
+          request {
+            headers {
+              "content-type" = "application/json"
+            }
+          }
 
-    expect(result.isOk() && result.value).toEqual(12);
-  });
-
-  it('should call an API with relative URL', async () => {
-    await mockServer.get('/twelve').thenJson(200, { data: 12 });
-    const baseUrl = mockServer.urlFor('/twelve').replace('/twelve', '');
-    const interpreter = new MapInterpreter(
-      {
-        usecase: 'Test',
-        serviceBaseUrl: baseUrl,
-        security: [],
-      },
-      { fetchInstance }
-    );
-    const result = await interpreter.perform({
-      kind: 'MapDocument',
-      header,
-      definitions: [
-        {
-          kind: 'MapDefinition',
-          name: 'Test',
-          usecaseName: 'Test',
-          statements: [
-            {
-              kind: 'HttpCallStatement',
-              method: 'GET',
-              url: '/twelve',
-              request: {
-                kind: 'HttpRequest',
-                headers: {
-                  kind: 'ObjectLiteral',
-                  fields: [
-                    {
-                      kind: 'Assignment',
-                      key: ['content-type'],
-                      value: {
-                        kind: 'PrimitiveLiteral',
-                        value: 'application/json',
-                      },
-                    },
-                  ],
-                },
-                security: [],
-              },
-              responseHandlers: [
-                {
-                  kind: 'HttpResponseHandler',
-                  statusCode: 200,
-                  contentType: 'application/json',
-                  contentLanguage: 'en-US',
-                  statements: [
-                    {
-                      kind: 'SetStatement',
-                      assignments: [
-                        {
-                          kind: 'Assignment',
-                          key: ['result'],
-                          value: {
-                            kind: 'JessieExpression',
-                            expression: 'body.data',
-                          },
-                        },
-                      ],
-                    },
-                  ],
-                },
-              ],
-            },
-          ],
-        },
-      ],
-    });
+          response 200 "application/json" "en-US" {
+            map result body.data
+          }
+        }
+      }`);
+    const result = await interpreter.perform(ast);
 
     expect(result.isOk() && result.value).toEqual(12);
   });
@@ -549,77 +202,22 @@ describe('MapInterpreter', () => {
       },
       { fetchInstance }
     );
-    const result = await interpreter.perform({
-      kind: 'MapDocument',
-      header,
-      definitions: [
-        {
-          kind: 'MapDefinition',
-          name: 'Test',
-          usecaseName: 'Test',
-          statements: [
-            {
-              kind: 'SetStatement',
-              assignments: [
-                {
-                  kind: 'Assignment',
-                  key: ['page'],
-                  value: {
-                    kind: 'JessieExpression',
-                    expression: 'input.page',
-                  },
-                },
-              ],
-            },
-            {
-              kind: 'HttpCallStatement',
-              method: 'GET',
-              url: `${url}/{page}`,
-              request: {
-                kind: 'HttpRequest',
-                headers: {
-                  kind: 'ObjectLiteral',
-                  fields: [
-                    {
-                      kind: 'Assignment',
-                      key: ['content-type'],
-                      value: {
-                        kind: 'PrimitiveLiteral',
-                        value: 'application/json',
-                      },
-                    },
-                  ],
-                },
-                security: [],
-              },
-              responseHandlers: [
-                {
-                  kind: 'HttpResponseHandler',
-                  statusCode: 200,
-                  contentType: 'application/json',
-                  contentLanguage: 'en-US',
-                  statements: [
-                    {
-                      kind: 'SetStatement',
-                      assignments: [
-                        {
-                          kind: 'Assignment',
-                          key: ['result'],
-                          value: {
-                            kind: 'JessieExpression',
-                            expression: 'body.data',
-                          },
-                        },
-                      ],
-                    },
-                  ],
-                },
-              ],
-            },
-          ],
-        },
-      ],
-    });
+    const ast = parseMapFromSource(`
+      map Test {
+        page = input.page
+        http GET "${url}/{page}" {
+          request {
+            headers {
+              "content-type" = "application/json"
+            }
+          }
+
+          response 200 "application/json" "en-US" {
+            map result body.data
+          }
+        }
+      }`);
+    const result = await interpreter.perform(ast);
 
     expect(result.isOk() && result.value).toEqual(144);
   });
@@ -639,77 +237,24 @@ describe('MapInterpreter', () => {
       },
       { fetchInstance }
     );
-    const result = await interpreter.perform({
-      kind: 'MapDocument',
-      header,
-      definitions: [
-        {
-          kind: 'MapDefinition',
-          name: 'Test',
-          usecaseName: 'Test',
-          statements: [
-            {
-              kind: 'HttpCallStatement',
-              method: 'GET',
-              url,
-              request: {
-                kind: 'HttpRequest',
-                query: {
-                  kind: 'ObjectLiteral',
-                  fields: [
-                    {
-                      kind: 'Assignment',
-                      key: ['page'],
-                      value: {
-                        kind: 'JessieExpression',
-                        expression: 'input.page',
-                      },
-                    },
-                  ],
-                },
-                headers: {
-                  kind: 'ObjectLiteral',
-                  fields: [
-                    {
-                      kind: 'Assignment',
-                      key: ['content-type'],
-                      value: {
-                        kind: 'PrimitiveLiteral',
-                        value: 'application/json',
-                      },
-                    },
-                  ],
-                },
-                security: [],
-              },
-              responseHandlers: [
-                {
-                  kind: 'HttpResponseHandler',
-                  statusCode: 200,
-                  contentType: 'application/json',
-                  contentLanguage: 'en-US',
-                  statements: [
-                    {
-                      kind: 'SetStatement',
-                      assignments: [
-                        {
-                          kind: 'Assignment',
-                          key: ['result'],
-                          value: {
-                            kind: 'JessieExpression',
-                            expression: 'body.data',
-                          },
-                        },
-                      ],
-                    },
-                  ],
-                },
-              ],
-            },
-          ],
-        },
-      ],
-    });
+    const ast = parseMapFromSource(`
+      map Test {
+        http GET "${url}" {
+          request {
+            query {
+              page = input.page
+            }
+            headers {
+              "content-type" = "application/json"
+            }
+          }
+
+          response 200 "application/json" "en-US" {
+            map result body.data
+          }
+        }
+      }`);
+    const result = await interpreter.perform(ast);
 
     expect(result.isOk() && result.value).toEqual(144);
   });
@@ -729,75 +274,24 @@ describe('MapInterpreter', () => {
       },
       { fetchInstance }
     );
-    const result = await interpreter.perform({
-      kind: 'MapDocument',
-      header,
-      definitions: [
-        {
-          kind: 'MapDefinition',
-          name: 'Test',
-          usecaseName: 'Test',
-          statements: [
-            {
-              kind: 'HttpCallStatement',
-              method: 'POST',
-              url,
-              request: {
-                kind: 'HttpRequest',
-                headers: {
-                  kind: 'ObjectLiteral',
-                  fields: [
-                    {
-                      kind: 'Assignment',
-                      key: ['someheader'],
-                      value: {
-                        kind: 'PrimitiveLiteral',
-                        value: 'hello',
-                      },
-                    },
-                  ],
-                },
-                body: {
-                  kind: 'ObjectLiteral',
-                  fields: [
-                    {
-                      kind: 'Assignment',
-                      key: ['anArray'],
-                      value: {
-                        kind: 'JessieExpression',
-                        expression: '[1, 2, 3]',
-                      },
-                    },
-                  ],
-                },
-                security: [],
-              },
-              responseHandlers: [
-                {
-                  kind: 'HttpResponseHandler',
-                  statusCode: 201,
-                  statements: [
-                    {
-                      kind: 'SetStatement',
-                      assignments: [
-                        {
-                          kind: 'Assignment',
-                          key: ['result'],
-                          value: {
-                            kind: 'JessieExpression',
-                            expression: 'body',
-                          },
-                        },
-                      ],
-                    },
-                  ],
-                },
-              ],
-            },
-          ],
-        },
-      ],
-    });
+    const ast = parseMapFromSource(`
+      map Test {
+        http POST "${url}" {
+          request {
+            headers {
+              someheader = "hello"
+            }
+            body {
+              anArray = [1, 2, 3]
+            }
+          }
+
+          response 201 {
+            map result body
+          }
+        }
+      }`);
+    const result = await interpreter.perform(ast);
 
     expect(result.isOk() && result.value).toEqual({
       headerOk: true,
@@ -818,87 +312,26 @@ describe('MapInterpreter', () => {
       },
       { fetchInstance }
     );
-    const result = await interpreter.perform({
-      kind: 'MapDocument',
-      header,
-      definitions: [
-        {
-          kind: 'MapDefinition',
-          name: 'Test',
-          usecaseName: 'Test',
-          statements: [
-            {
-              kind: 'HttpCallStatement',
-              url: url1,
-              method: 'GET',
-              request: {
-                kind: 'HttpRequest',
-                contentType: 'application/json',
-                security: [],
-              },
-              responseHandlers: [
-                {
-                  kind: 'HttpResponseHandler',
-                  contentType: 'application/json',
-                  statusCode: 200,
-                  statements: [
-                    {
-                      kind: 'SetStatement',
-                      assignments: [
-                        {
-                          kind: 'Assignment',
-                          key: ['someVariable'],
-                          value: {
-                            kind: 'JessieExpression',
-                            expression: 'body.firstStep.someVar',
-                          },
-                        },
-                      ],
-                    },
-                  ],
-                },
-              ],
-            },
-            {
-              kind: 'HttpCallStatement',
-              url: url2,
-              method: 'GET',
-              responseHandlers: [
-                {
-                  kind: 'HttpResponseHandler',
-                  statusCode: 200,
-                  contentType: 'application/json',
-                  statements: [
-                    {
-                      kind: 'SetStatement',
-                      assignments: [
-                        {
-                          kind: 'Assignment',
-                          key: ['someOtherVariable'],
-                          value: {
-                            kind: 'JessieExpression',
-                            expression: 'body.secondStep',
-                          },
-                        },
-                      ],
-                    },
-                  ],
-                },
-              ],
-            },
-            {
-              kind: 'OutcomeStatement',
-              terminateFlow: true,
-              isError: false,
-              value: {
-                kind: 'JessieExpression',
-                expression: 'someVariable * someOtherVariable',
-              },
-            },
-          ],
-        },
-      ],
-    });
+    const ast = parseMapFromSource(`
+      map Test {
+        http GET "${url1}" {
+          request "application/json" {
+          }
+
+          response 200 "application/json" {
+            someVariable = body.firstStep.someVar
+          }
+        }
+
+        http GET "${url2}" {
+          response 200 "application/json" {
+            someOtherVariable = body.secondStep
+          }
+        }
+
+        return map result someVariable * someOtherVariable
+      }`);
+    const result = await interpreter.perform(ast);
 
     expect(result.isOk() && result.value).toEqual(12 * 5);
   });
@@ -925,45 +358,17 @@ describe('MapInterpreter', () => {
       },
       { fetchInstance }
     );
-    const result = await interpreter.perform({
-      kind: 'MapDocument',
-      header,
-      definitions: [
-        {
-          kind: 'MapDefinition',
-          name: 'testMap',
-          usecaseName: 'testCase',
-          statements: [
-            {
-              kind: 'HttpCallStatement',
-              method: 'GET',
-              url,
-              request: {
-                kind: 'HttpRequest',
-                security: [{ id: 'my_basic' }],
-              },
-              responseHandlers: [
-                {
-                  kind: 'HttpResponseHandler',
-                  statusCode: 200,
-                  statements: [
-                    {
-                      kind: 'OutcomeStatement',
-                      terminateFlow: true,
-                      isError: false,
-                      value: {
-                        kind: 'JessieExpression',
-                        expression: 'body.data',
-                      },
-                    },
-                  ],
-                },
-              ],
-            },
-          ],
-        },
-      ],
-    });
+    const ast = parseMapFromSource(`
+      map testCase {
+        http GET "${url}" {
+          security "my_basic"
+
+          response 200 {
+            return map result body.data
+          }
+        }
+      }`);
+    const result = await interpreter.perform(ast);
 
     expect(result.isOk() && result.value).toEqual(12);
   });
@@ -989,45 +394,17 @@ describe('MapInterpreter', () => {
       },
       { fetchInstance }
     );
-    const result = await interpreter.perform({
-      kind: 'MapDocument',
-      header,
-      definitions: [
-        {
-          kind: 'MapDefinition',
-          name: 'testMap',
-          usecaseName: 'testCase',
-          statements: [
-            {
-              kind: 'HttpCallStatement',
-              method: 'GET',
-              url,
-              request: {
-                kind: 'HttpRequest',
-                security: [{ id: 'my_bearer' }],
-              },
-              responseHandlers: [
-                {
-                  kind: 'HttpResponseHandler',
-                  statusCode: 200,
-                  statements: [
-                    {
-                      kind: 'OutcomeStatement',
-                      terminateFlow: true,
-                      isError: false,
-                      value: {
-                        kind: 'JessieExpression',
-                        expression: 'body.data',
-                      },
-                    },
-                  ],
-                },
-              ],
-            },
-          ],
-        },
-      ],
-    });
+    const ast = parseMapFromSource(`
+      map testCase {
+        http GET "${url}" {
+          security "my_bearer"
+
+          response 200 {
+            return map result body.data
+          }
+        }
+      }`);
+    const result = await interpreter.perform(ast);
 
     expect(result.isOk() && result.value).toEqual(12);
   });
@@ -1054,45 +431,17 @@ describe('MapInterpreter', () => {
       },
       { fetchInstance }
     );
-    const result = await interpreter.perform({
-      kind: 'MapDocument',
-      header,
-      definitions: [
-        {
-          kind: 'MapDefinition',
-          name: 'testMap',
-          usecaseName: 'testCase',
-          statements: [
-            {
-              kind: 'HttpCallStatement',
-              method: 'GET',
-              url,
-              request: {
-                kind: 'HttpRequest',
-                security: [{ id: 'my_apikey' }],
-              },
-              responseHandlers: [
-                {
-                  kind: 'HttpResponseHandler',
-                  statusCode: 200,
-                  statements: [
-                    {
-                      kind: 'OutcomeStatement',
-                      terminateFlow: true,
-                      isError: false,
-                      value: {
-                        kind: 'JessieExpression',
-                        expression: 'body.data',
-                      },
-                    },
-                  ],
-                },
-              ],
-            },
-          ],
-        },
-      ],
-    });
+    const ast = parseMapFromSource(`
+      map testCase {
+        http GET "${url}" {
+          security "my_apikey"
+
+          response 200 {
+            return map result body.data
+          }
+        }
+      }`);
+    const result = await interpreter.perform(ast);
 
     result.unwrap();
     expect(result.isOk() && result.value).toEqual(12);
@@ -1120,45 +469,17 @@ describe('MapInterpreter', () => {
       },
       { fetchInstance }
     );
-    const result = await interpreter.perform({
-      kind: 'MapDocument',
-      header,
-      definitions: [
-        {
-          kind: 'MapDefinition',
-          name: 'testMap',
-          usecaseName: 'testCase',
-          statements: [
-            {
-              kind: 'HttpCallStatement',
-              method: 'GET',
-              url,
-              request: {
-                kind: 'HttpRequest',
-                security: [{ id: 'my_apikey' }],
-              },
-              responseHandlers: [
-                {
-                  kind: 'HttpResponseHandler',
-                  statusCode: 200,
-                  statements: [
-                    {
-                      kind: 'OutcomeStatement',
-                      terminateFlow: true,
-                      isError: false,
-                      value: {
-                        kind: 'JessieExpression',
-                        expression: 'body.data',
-                      },
-                    },
-                  ],
-                },
-              ],
-            },
-          ],
-        },
-      ],
-    });
+    const ast = parseMapFromSource(`
+      map testCase {
+        http GET "${url}" {
+          security "my_apikey"
+
+          response 200 {
+            return map result body.data
+          }
+        }
+      }`);
+    const result = await interpreter.perform(ast);
 
     expect(result.isOk() && result.value).toEqual(12);
   });
@@ -1190,68 +511,22 @@ describe('MapInterpreter', () => {
       },
       { fetchInstance }
     );
-    const result = await interpreter.perform({
-      kind: 'MapDocument',
-      header,
-      definitions: [
-        {
-          kind: 'MapDefinition',
-          name: 'testCase',
-          usecaseName: 'testCase',
-          statements: [
-            {
-              kind: 'HttpCallStatement',
-              url,
-              method: 'POST',
-              request: {
-                kind: 'HttpRequest',
-                contentType: 'multipart/form-data',
-                body: {
-                  kind: 'ObjectLiteral',
-                  fields: [
-                    {
-                      kind: 'Assignment',
-                      key: ['formData'],
-                      value: {
-                        kind: 'PrimitiveLiteral',
-                        value: 'myFormData',
-                      },
-                    },
-                    {
-                      kind: 'Assignment',
-                      key: ['is'],
-                      value: {
-                        kind: 'PrimitiveLiteral',
-                        value: 'present',
-                      },
-                    },
-                  ],
-                },
-                security: [],
-              },
-              responseHandlers: [
-                {
-                  kind: 'HttpResponseHandler',
-                  statusCode: 201,
-                  contentType: 'application/json',
-                  statements: [
-                    {
-                      kind: 'OutcomeStatement',
-                      terminateFlow: true,
-                      isError: false,
-                      value: {
-                        kind: 'JessieExpression',
-                        expression: 'body.data',
-                      },
-                    },
-                  ],
-                },
-              ],
-            },
-          ],
-        },
-      ],
-    });
+    const ast = parseMapFromSource(`
+      map testCase {
+        http POST "${url}" {
+          request "multipart/form-data" {
+            body {
+              formData = "myFormData"
+              is = "present"
+            }
+          }
+
+          response 201 "application/json" {
+            return map result body.data
+          }
+        }
+      }`);
+    const result = await interpreter.perform(ast);
 
     expect(result.isOk() && result.value).toEqual(12);
   });
@@ -1270,69 +545,22 @@ describe('MapInterpreter', () => {
       },
       { fetchInstance }
     );
-    const result = await interpreter.perform({
-      kind: 'MapDocument',
-      header,
-      definitions: [
-        {
-          kind: 'MapDefinition',
-          name: 'testCase',
-          usecaseName: 'testCase',
-          statements: [
-            {
-              kind: 'HttpCallStatement',
-              url,
-              method: 'POST',
-              request: {
-                kind: 'HttpRequest',
-                contentType: 'application/x-www-form-urlencoded',
-                body: {
-                  kind: 'ObjectLiteral',
-                  fields: [
-                    {
-                      kind: 'Assignment',
-                      key: ['form'],
-                      value: {
-                        kind: 'PrimitiveLiteral',
-                        value: 'is',
-                      },
-                    },
-                    {
-                      kind: 'Assignment',
-                      key: ['o'],
-                      value: {
-                        kind: 'PrimitiveLiteral',
-                        value: 'k',
-                      },
-                    },
-                  ],
-                },
-                security: [],
-              },
-              responseHandlers: [
-                {
-                  kind: 'HttpResponseHandler',
-                  statusCode: 201,
-                  contentType: 'application/json',
-                  contentLanguage: 'en-US',
-                  statements: [
-                    {
-                      kind: 'OutcomeStatement',
-                      isError: false,
-                      terminateFlow: true,
-                      value: {
-                        kind: 'JessieExpression',
-                        expression: 'body.data',
-                      },
-                    },
-                  ],
-                },
-              ],
-            },
-          ],
-        },
-      ],
-    });
+    const ast = parseMapFromSource(`
+      map testCase {
+        http POST "${url}" {
+          request "application/x-www-form-urlencoded" {
+            body {
+              form = "is"
+              o = "k"
+            }
+          }
+
+          response 201 "application/json" "en-US" {
+            return map result body.data
+          }
+        }
+      }`);
+    const result = await interpreter.perform(ast);
 
     expect(result.isOk() && result.value).toEqual(12);
   });
@@ -1345,40 +573,16 @@ describe('MapInterpreter', () => {
       },
       { fetchInstance }
     );
-    const result = await interpreter.perform({
-      kind: 'MapDocument',
-      header,
-      definitions: [
-        {
-          kind: 'MapDefinition',
-          name: 'testMap',
-          usecaseName: 'testCase',
-          statements: [
-            {
-              kind: 'SetStatement',
-              assignments: [
-                {
-                  kind: 'Assignment',
-                  key: ['result', 'which', 'is', 'nested'],
-                  value: {
-                    kind: 'PrimitiveLiteral',
-                    value: 12,
-                  },
-                },
-                {
-                  kind: 'Assignment',
-                  key: ['result', 'which', 'is', 'also', 'nested'],
-                  value: {
-                    kind: 'PrimitiveLiteral',
-                    value: 13,
-                  },
-                },
-              ],
-            },
-          ],
-        },
-      ],
-    });
+    const ast = parseMapFromSource(`
+      map testCase {
+        set {
+          result.which.is.nested = 12
+          result.which.is.also.nested = 13
+        }
+
+        map result result
+      }`);
+    const result = await interpreter.perform(ast);
 
     expect(result.isOk() && result.value).toEqual({
       which: { is: { nested: 12, also: { nested: 13 } } },
@@ -1386,51 +590,11 @@ describe('MapInterpreter', () => {
   });
 
   it('should execute based on condition', async () => {
-    const ast: MapDocumentNode = {
-      kind: 'MapDocument',
-      header,
-      definitions: [
-        {
-          kind: 'MapDefinition',
-          name: 'Test',
-          usecaseName: 'Test',
-          statements: [
-            {
-              kind: 'OutcomeStatement',
-              isError: false,
-              terminateFlow: false,
-              condition: {
-                kind: 'ConditionAtom',
-                expression: {
-                  kind: 'JessieExpression',
-                  expression: 'input.condition',
-                },
-              },
-              value: {
-                kind: 'PrimitiveLiteral',
-                value: 7,
-              },
-            },
-            {
-              kind: 'OutcomeStatement',
-              isError: false,
-              terminateFlow: false,
-              condition: {
-                kind: 'ConditionAtom',
-                expression: {
-                  kind: 'JessieExpression',
-                  expression: '!input.condition',
-                },
-              },
-              value: {
-                kind: 'PrimitiveLiteral',
-                value: 8,
-              },
-            },
-          ],
-        },
-      ],
-    };
+    const ast = parseMapFromSource(`
+      map Test {
+        map result if (input.condition) 7
+        map result if (!input.condition) 8
+      }`);
     const interpreter1 = new MapInterpreter(
       {
         usecase: 'Test',
@@ -1461,45 +625,15 @@ describe('MapInterpreter', () => {
       },
       { fetchInstance }
     );
-    const result = await interpreter.perform({
-      kind: 'MapDocument',
-      header,
-      definitions: [
-        {
-          kind: 'MapDefinition',
-          name: 'Test',
-          usecaseName: 'Test',
-          statements: [
-            {
-              kind: 'OutcomeStatement',
-              isError: false,
-              terminateFlow: true,
-              value: {
-                kind: 'ObjectLiteral',
-                fields: [
-                  {
-                    kind: 'Assignment',
-                    key: ['test', 'x'],
-                    value: {
-                      kind: 'PrimitiveLiteral',
-                      value: 1,
-                    },
-                  },
-                  {
-                    kind: 'Assignment',
-                    key: ['test', 'y'],
-                    value: {
-                      kind: 'PrimitiveLiteral',
-                      value: 2,
-                    },
-                  },
-                ],
-              },
-            },
-          ],
-        },
-      ],
-    });
+    const result = await interpreter.perform(
+      parseMapFromSource(`
+        map Test {
+          return map result {
+            test.x = 1
+            test.y = 2
+          }
+        }`)
+    );
     expect(result.isOk() && result.value).toEqual({ test: { x: 1, y: 2 } });
   });
 
@@ -1514,82 +648,24 @@ describe('MapInterpreter', () => {
       },
       { fetchInstance }
     );
-    const ast: MapDocumentNode = {
-      kind: 'MapDocument',
-      header,
-      definitions: [
-        {
-          kind: 'MapDefinition',
-          name: 'Test',
-          usecaseName: 'Test',
-          statements: [
-            {
-              kind: 'CallStatement',
-              operationName: 'TestOp',
-              arguments: [],
-              statements: [
-                {
-                  kind: 'OutcomeStatement',
-                  isError: false,
-                  terminateFlow: false,
-                  value: {
-                    kind: 'ObjectLiteral',
-                    fields: [
-                      {
-                        kind: 'Assignment',
-                        key: ['outcome'],
-                        value: {
-                          kind: 'JessieExpression',
-                          expression: 'outcome.data',
-                        },
-                      },
-                    ],
-                  },
-                },
-              ],
-            },
-          ],
-        },
-        {
-          kind: 'OperationDefinition',
-          name: 'TestOp',
-          statements: [
-            {
-              kind: 'HttpCallStatement',
-              method: 'GET',
-              url,
-              responseHandlers: [
-                {
-                  kind: 'HttpResponseHandler',
-                  statusCode: 200,
-                  contentType: 'application/json',
-                  statements: [
-                    {
-                      kind: 'OutcomeStatement',
-                      isError: false,
-                      terminateFlow: true,
-                      value: {
-                        kind: 'ObjectLiteral',
-                        fields: [
-                          {
-                            kind: 'Assignment',
-                            key: ['message'],
-                            value: {
-                              kind: 'PrimitiveLiteral',
-                              value: 'worked!',
-                            },
-                          },
-                        ],
-                      },
-                    },
-                  ],
-                },
-              ],
-            },
-          ],
-        },
-      ],
-    };
+    const ast = parseMapFromSource(`
+      map Test {
+        call TestOp() {
+          map result {
+            outcome = outcome.data
+          }
+        }
+      }
+
+      operation TestOp {
+        http GET "${url}" {
+          response 200 "application/json" {
+            return {
+              message = "worked!"
+            }
+          }
+        }
+      } `);
     const result = await interpreter.perform(ast);
 
     expect(result.isOk() && result.value).toEqual({
@@ -1598,75 +674,19 @@ describe('MapInterpreter', () => {
   });
 
   it('should correctly resolve scopes in call block', async () => {
-    const ast: MapDocumentNode = {
-      kind: 'MapDocument',
-      header,
-      definitions: [
-        {
-          kind: 'MapDefinition',
-          name: 'test',
-          usecaseName: 'test',
-          statements: [
-            {
-              kind: 'SetStatement',
-              assignments: [
-                {
-                  kind: 'Assignment',
-                  key: ['someVariable'],
-                  value: {
-                    kind: 'JessieExpression',
-                    expression: 'null',
-                  },
-                },
-              ],
-            },
-            {
-              kind: 'CallStatement',
-              operationName: 'foo',
-              arguments: [],
-              statements: [
-                {
-                  kind: 'SetStatement',
-                  assignments: [
-                    {
-                      kind: 'Assignment',
-                      key: ['someVariable'],
-                      value: {
-                        kind: 'PrimitiveLiteral',
-                        value: 42,
-                      },
-                    },
-                  ],
-                },
-              ],
-            },
-            {
-              kind: 'OutcomeStatement',
-              isError: false,
-              terminateFlow: false,
-              value: {
-                kind: 'ObjectLiteral',
-                fields: [
-                  {
-                    kind: 'Assignment',
-                    key: ['answer'],
-                    value: {
-                      kind: 'JessieExpression',
-                      expression: 'someVariable',
-                    },
-                  },
-                ],
-              },
-            },
-          ],
-        },
-        {
-          kind: 'OperationDefinition',
-          name: 'foo',
-          statements: [],
-        },
-      ],
-    };
+    const ast = parseMapFromSource(`
+      map test {
+        someVariable = null
+        call foo() {
+          someVariable = 42
+        }
+        map result {
+          answer = someVariable
+        }
+      }
+
+      operation foo {
+      }`);
     const interpreter = new MapInterpreter(
       {
         usecase: 'test',
@@ -1681,149 +701,35 @@ describe('MapInterpreter', () => {
   it('should perform operations with correct scoping', async () => {
     const url = '/test';
     await mockServer.get(url).thenJson(200, {});
-    const ast: MapDocumentNode = {
-      kind: 'MapDocument',
-      header,
-      definitions: [
-        {
-          kind: 'MapDefinition',
-          name: 'Test',
-          usecaseName: 'Test',
-          statements: [
-            {
-              kind: 'SetStatement',
-              assignments: [
-                {
-                  kind: 'Assignment',
-                  key: ['fooResult'],
-                  value: {
-                    kind: 'InlineCall',
-                    operationName: 'foo',
-                    arguments: [],
-                  },
-                },
-              ],
-            },
-            {
-              kind: 'SetStatement',
-              assignments: [
-                {
-                  kind: 'Assignment',
-                  key: ['barResult'],
-                  value: {
-                    kind: 'InlineCall',
-                    operationName: 'bar',
-                    arguments: [],
-                  },
-                },
-              ],
-            },
-            {
-              kind: 'OutcomeStatement',
-              isError: false,
-              terminateFlow: false,
-              value: {
-                kind: 'ObjectLiteral',
-                fields: [
-                  {
-                    kind: 'Assignment',
-                    key: ['f'],
-                    value: {
-                      kind: 'JessieExpression',
-                      expression: 'fooResult',
-                    },
-                  },
-                  {
-                    kind: 'Assignment',
-                    key: ['b'],
-                    value: {
-                      kind: 'JessieExpression',
-                      expression: 'barResult',
-                    },
-                  },
-                ],
-              },
-            },
-          ],
-        },
-        {
-          kind: 'OperationDefinition',
-          name: 'foo',
-          statements: [
-            {
-              kind: 'HttpCallStatement',
-              method: 'GET',
-              url,
-              responseHandlers: [
-                {
-                  kind: 'HttpResponseHandler',
-                  statusCode: 200,
-                  contentType: 'application/json',
-                  statements: [
-                    {
-                      kind: 'OutcomeStatement',
-                      isError: false,
-                      terminateFlow: true,
-                      value: {
-                        kind: 'ObjectLiteral',
-                        fields: [
-                          {
-                            kind: 'Assignment',
-                            key: ['a'],
-                            value: {
-                              kind: 'PrimitiveLiteral',
-                              value: 41,
-                            },
-                          },
-                        ],
-                      },
-                    },
-                  ],
-                },
-              ],
-            },
-          ],
-        },
-        {
-          kind: 'OperationDefinition',
-          name: 'bar',
-          statements: [
-            {
-              kind: 'HttpCallStatement',
-              method: 'GET',
-              url,
-              responseHandlers: [
-                {
-                  kind: 'HttpResponseHandler',
-                  statusCode: 200,
-                  contentType: 'application/json',
-                  statements: [
-                    {
-                      kind: 'OutcomeStatement',
-                      isError: false,
-                      terminateFlow: true,
-                      value: {
-                        kind: 'ObjectLiteral',
-                        fields: [
-                          {
-                            kind: 'Assignment',
-                            key: ['b'],
-                            value: {
-                              kind: 'PrimitiveLiteral',
-                              value: 42,
-                            },
-                          },
-                        ],
-                      },
-                    },
-                  ],
-                },
-              ],
-            },
-          ],
-        },
-      ],
-    };
+    const ast = parseMapFromSource(`
+      map Test {
+        fooResult = call foo()
+        barResult = call bar()
+        map result {
+          f = fooResult
+          b = barResult
+        }
+      }
+
+      operation foo {
+        http GET "${url}" {
+          response 200 "application/json" {
+            return {
+              a = 41
+            }
+          }
+        }
+      }
+
+      operation bar {
+        http GET "${url}" {
+          response 200 "application/json" {
+            return {
+              b = 42
+            }
+          }
+        }
+      }`);
     const interpreter = new MapInterpreter(
       {
         usecase: 'Test',
@@ -1840,90 +746,21 @@ describe('MapInterpreter', () => {
   });
 
   it('should correctly resolve args', async () => {
-    const ast: MapDocumentNode = {
-      kind: 'MapDocument',
-      header,
-      definitions: [
-        {
-          kind: 'MapDefinition',
-          name: 'test',
-          usecaseName: 'test',
-          statements: [
-            {
-              kind: 'SetStatement',
-              assignments: [
-                {
-                  kind: 'Assignment',
-                  key: ['someVariable'],
-                  value: {
-                    kind: 'PrimitiveLiteral',
-                    value: 42,
-                  },
-                },
-              ],
-            },
-            {
-              kind: 'CallStatement',
-              operationName: 'foo',
-              arguments: [
-                {
-                  kind: 'Assignment',
-                  key: ['a1'],
-                  value: {
-                    kind: 'JessieExpression',
-                    expression: 'someVariable',
-                  },
-                },
-              ],
-              statements: [
-                {
-                  kind: 'OutcomeStatement',
-                  isError: false,
-                  terminateFlow: false,
-                  value: {
-                    kind: 'ObjectLiteral',
-                    fields: [
-                      {
-                        kind: 'Assignment',
-                        key: ['answer'],
-                        value: {
-                          kind: 'JessieExpression',
-                          expression: 'outcome.data',
-                        },
-                      },
-                    ],
-                  },
-                },
-              ],
-            },
-          ],
-        },
-        {
-          kind: 'OperationDefinition',
-          name: 'foo',
-          statements: [
-            {
-              kind: 'OutcomeStatement',
-              isError: false,
-              terminateFlow: true,
-              value: {
-                kind: 'ObjectLiteral',
-                fields: [
-                  {
-                    kind: 'Assignment',
-                    key: ['a'],
-                    value: {
-                      kind: 'JessieExpression',
-                      expression: 'args.a1',
-                    },
-                  },
-                ],
-              },
-            },
-          ],
-        },
-      ],
-    };
+    const ast = parseMapFromSource(`
+      map test {
+        someVariable = 42
+        call foo(a1 = someVariable) {
+          map result {
+            answer = outcome.data
+          }
+        }
+      }
+
+      operation foo {
+        return {
+          a = args.a1
+        }
+      }`);
     const interpreter = new MapInterpreter(
       {
         usecase: 'test',
@@ -1936,82 +773,21 @@ describe('MapInterpreter', () => {
   });
 
   it('should properly resolve nested calls', async () => {
-    const ast: MapDocumentNode = {
-      kind: 'MapDocument',
-      header,
-      definitions: [
-        {
-          kind: 'MapDefinition',
-          name: 'Test',
-          usecaseName: 'Test',
-          statements: [
-            {
-              kind: 'OutcomeStatement',
-              isError: false,
-              terminateFlow: false,
-              value: {
-                kind: 'ObjectLiteral',
-                fields: [
-                  {
-                    kind: 'Assignment',
-                    key: ['x'],
-                    value: {
-                      kind: 'InlineCall',
-                      operationName: 'foo',
-                      arguments: [],
-                    },
-                  },
-                ],
-              },
-            },
-          ],
-        },
-        {
-          kind: 'OperationDefinition',
-          name: 'foo',
-          statements: [
-            {
-              kind: 'SetStatement',
-              assignments: [
-                {
-                  kind: 'Assignment',
-                  key: ['bar'],
-                  value: {
-                    kind: 'InlineCall',
-                    operationName: 'bar',
-                    arguments: [],
-                  },
-                },
-              ],
-            },
-            {
-              kind: 'OutcomeStatement',
-              isError: false,
-              terminateFlow: true,
-              value: {
-                kind: 'JessieExpression',
-                expression: 'bar + 1',
-              },
-            },
-          ],
-        },
-        {
-          kind: 'OperationDefinition',
-          name: 'bar',
-          statements: [
-            {
-              kind: 'OutcomeStatement',
-              isError: false,
-              terminateFlow: true,
-              value: {
-                kind: 'PrimitiveLiteral',
-                value: 41,
-              },
-            },
-          ],
-        },
-      ],
-    };
+    const ast = parseMapFromSource(`
+      map Test {
+        map result {
+          x = call foo()
+        }
+      }
+
+      operation foo {
+        bar = call bar()
+        return bar + 1
+      }
+
+      operation bar {
+        return 41
+      }`);
     const interpreter = new MapInterpreter(
       {
         usecase: 'Test',
@@ -2024,115 +800,21 @@ describe('MapInterpreter', () => {
   });
 
   it('should perform an iteration', async () => {
-    const ast: MapDocumentNode = {
-      kind: 'MapDocument',
-      header,
-      definitions: [
-        {
-          kind: 'MapDefinition',
-          name: 'Test',
-          usecaseName: 'Test',
-          statements: [
-            {
-              kind: 'SetStatement',
-              assignments: [
-                {
-                  kind: 'Assignment',
-                  key: ['letters'],
-                  value: {
-                    kind: 'JessieExpression',
-                    expression: "['x', 'y', 'z']",
-                  },
-                },
-              ],
-            },
-            {
-              kind: 'SetStatement',
-              assignments: [
-                {
-                  kind: 'Assignment',
-                  key: ['results'],
-                  value: {
-                    kind: 'JessieExpression',
-                    expression: '[]',
-                  },
-                },
-              ],
-            },
-            {
-              kind: 'CallStatement',
-              operationName: 'TestOp',
-              iteration: {
-                kind: 'IterationAtom',
-                iterationVariable: 'letter',
-                iterable: {
-                  kind: 'JessieExpression',
-                  expression: 'letters.reverse()',
-                },
-              },
-              arguments: [
-                {
-                  kind: 'Assignment',
-                  key: ['letter'],
-                  value: {
-                    kind: 'JessieExpression',
-                    expression: 'letter',
-                  },
-                },
-              ],
-              statements: [
-                {
-                  kind: 'SetStatement',
-                  assignments: [
-                    {
-                      kind: 'Assignment',
-                      key: ['results'],
-                      value: {
-                        kind: 'JessieExpression',
-                        expression: 'results.concat(outcome.data)',
-                      },
-                    },
-                  ],
-                },
-              ],
-            },
-            {
-              kind: 'OutcomeStatement',
-              isError: false,
-              terminateFlow: false,
-              value: {
-                kind: 'ObjectLiteral',
-                fields: [
-                  {
-                    kind: 'Assignment',
-                    key: ['results'],
-                    value: {
-                      kind: 'JessieExpression',
-                      expression: 'results',
-                    },
-                  },
-                ],
-              },
-            },
-          ],
-        },
-        {
-          kind: 'OperationDefinition',
-          name: 'TestOp',
-          statements: [
-            {
-              kind: 'OutcomeStatement',
-              isError: false,
-              terminateFlow: true,
-              value: {
-                kind: 'JessieExpression',
-                expression: 'args.letter.toUpperCase()',
-              },
-            },
-          ],
-        },
-      ],
-    };
+    const ast = parseMapFromSource(`
+      map Test {
+        letters = ['x', 'y', 'z']
+        results = []
+        call foreach (letter of letters.reverse()) TestOp(letter = letter) {
+          results = results.concat(outcome.data)
+        }
+        map result {
+          results = results
+        }
+      }
+
+      operation TestOp {
+        return args.letter.toUpperCase()
+      }`);
     const interpreter = new MapInterpreter(
       {
         usecase: 'Test',
@@ -2146,27 +828,19 @@ describe('MapInterpreter', () => {
   });
 
   it('should break from iteration', async () => {
-    const ast: MapDocumentNode = parseMap(
-      new Source(
-        `
-        profile = "test@1.0"
-        provider = "test"
-  
-        map Test {
-          letters = ['x', 'y', 'z']
-          results = []
-          call foreach(letter of letters.reverse()) TestOp(letter = letter) {
-            results = results.concat(outcome.data)
+    const ast = parseMapFromSource(`
+      map Test {
+        letters = ['x', 'y', 'z']
+        results = []
+        call foreach(letter of letters.reverse()) TestOp(letter = letter) {
+          results = results.concat(outcome.data)
 
-            return map result { results = results }
-          }
+          return map result { results = results }
         }
-        operation TestOp {
-          return args.letter.toUpperCase()
-        }
-        `
-      )
-    );
+      }
+      operation TestOp {
+        return args.letter.toUpperCase()
+      }`);
     const interpreter = new MapInterpreter(
       {
         usecase: 'Test',
@@ -2180,96 +854,19 @@ describe('MapInterpreter', () => {
   });
 
   it('should perform an inline iterating call', async () => {
-    const ast: MapDocumentNode = {
-      kind: 'MapDocument',
-      header,
-      definitions: [
-        {
-          kind: 'MapDefinition',
-          name: 'Test',
-          usecaseName: 'Test',
-          statements: [
-            {
-              kind: 'SetStatement',
-              assignments: [
-                {
-                  kind: 'Assignment',
-                  key: ['letters'],
-                  value: {
-                    kind: 'JessieExpression',
-                    expression: "['x', 'y', 'z']",
-                  },
-                },
-              ],
-            },
-            {
-              kind: 'SetStatement',
-              assignments: [
-                {
-                  kind: 'Assignment',
-                  key: ['results'],
-                  value: {
-                    kind: 'InlineCall',
-                    operationName: 'TestOp',
-                    iteration: {
-                      kind: 'IterationAtom',
-                      iterationVariable: 'letter',
-                      iterable: {
-                        kind: 'JessieExpression',
-                        expression: 'letters.reverse()',
-                      },
-                    },
-                    arguments: [
-                      {
-                        kind: 'Assignment',
-                        key: ['letter'],
-                        value: {
-                          kind: 'JessieExpression',
-                          expression: 'letter',
-                        },
-                      },
-                    ],
-                  },
-                },
-              ],
-            },
-            {
-              kind: 'OutcomeStatement',
-              isError: false,
-              terminateFlow: false,
-              value: {
-                kind: 'ObjectLiteral',
-                fields: [
-                  {
-                    kind: 'Assignment',
-                    key: ['results'],
-                    value: {
-                      kind: 'JessieExpression',
-                      expression: 'results',
-                    },
-                  },
-                ],
-              },
-            },
-          ],
-        },
-        {
-          kind: 'OperationDefinition',
-          name: 'TestOp',
-          statements: [
-            {
-              kind: 'OutcomeStatement',
-              isError: false,
-              terminateFlow: true,
-              value: {
-                kind: 'JessieExpression',
-                expression: 'args.letter.toUpperCase()',
-              },
-            },
-          ],
-        },
-      ],
-    };
+    const ast = parseMapFromSource(`
+      map Test {
+        letters = ['x', 'y', 'z']
+        results = call foreach (letter of letters.reverse()) TestOp(letter = letter)
+        map result {
+          results = results
+        }
+      }
+
+      operation TestOp {
+        return args.letter.toUpperCase()
+      }
+    `);
 
     const interpreter = new MapInterpreter(
       {
@@ -2284,122 +881,21 @@ describe('MapInterpreter', () => {
   });
 
   it('should perform an iteration with condition', async () => {
-    const ast: MapDocumentNode = {
-      kind: 'MapDocument',
-      header,
-      definitions: [
-        {
-          kind: 'MapDefinition',
-          name: 'Test',
-          usecaseName: 'Test',
-          statements: [
-            {
-              kind: 'SetStatement',
-              assignments: [
-                {
-                  kind: 'Assignment',
-                  key: ['letters'],
-                  value: {
-                    kind: 'JessieExpression',
-                    expression: "['x', 'y', 'z']",
-                  },
-                },
-              ],
-            },
-            {
-              kind: 'SetStatement',
-              assignments: [
-                {
-                  kind: 'Assignment',
-                  key: ['results'],
-                  value: {
-                    kind: 'JessieExpression',
-                    expression: '[]',
-                  },
-                },
-              ],
-            },
-            {
-              kind: 'CallStatement',
-              operationName: 'TestOp',
-              iteration: {
-                kind: 'IterationAtom',
-                iterationVariable: 'letter',
-                iterable: {
-                  kind: 'JessieExpression',
-                  expression: 'letters.reverse()',
-                },
-              },
-              condition: {
-                kind: 'ConditionAtom',
-                expression: {
-                  kind: 'JessieExpression',
-                  expression: "letter === 'x'",
-                },
-              },
-              arguments: [
-                {
-                  kind: 'Assignment',
-                  key: ['letter'],
-                  value: {
-                    kind: 'JessieExpression',
-                    expression: 'letter',
-                  },
-                },
-              ],
-              statements: [
-                {
-                  kind: 'SetStatement',
-                  assignments: [
-                    {
-                      kind: 'Assignment',
-                      key: ['results'],
-                      value: {
-                        kind: 'JessieExpression',
-                        expression: 'results.concat(outcome.data)',
-                      },
-                    },
-                  ],
-                },
-              ],
-            },
-            {
-              kind: 'OutcomeStatement',
-              isError: false,
-              terminateFlow: false,
-              value: {
-                kind: 'ObjectLiteral',
-                fields: [
-                  {
-                    kind: 'Assignment',
-                    key: ['results'],
-                    value: {
-                      kind: 'JessieExpression',
-                      expression: 'results',
-                    },
-                  },
-                ],
-              },
-            },
-          ],
-        },
-        {
-          kind: 'OperationDefinition',
-          name: 'TestOp',
-          statements: [
-            {
-              kind: 'OutcomeStatement',
-              isError: false,
-              terminateFlow: true,
-              value: {
-                kind: 'JessieExpression',
-                expression: 'args.letter.toUpperCase()',
-              },
-            },
-          ],
-        },
-      ],
-    };
+    const ast = parseMapFromSource(`
+      map Test {
+        letters = ['x', 'y', 'z']
+        results = []
+        call foreach (letter of letters.reverse()) TestOp(letter = letter) if (letter === 'x') {
+          results = results.concat(outcome.data)
+        }
+        map result {
+          results = results
+        }
+      }
+
+      operation TestOp {
+        return args.letter.toUpperCase()
+      }`);
     const interpreter = new MapInterpreter(
       {
         usecase: 'Test',
@@ -2413,103 +909,18 @@ describe('MapInterpreter', () => {
   });
 
   it('should perform an inline iterating call with condition', async () => {
-    const ast: MapDocumentNode = {
-      kind: 'MapDocument',
-      header,
-      definitions: [
-        {
-          kind: 'MapDefinition',
-          name: 'Test',
-          usecaseName: 'Test',
-          statements: [
-            {
-              kind: 'SetStatement',
-              assignments: [
-                {
-                  kind: 'Assignment',
-                  key: ['numbers'],
-                  value: {
-                    kind: 'JessieExpression',
-                    expression: '[1, 2, 3]',
-                  },
-                },
-              ],
-            },
-            {
-              kind: 'SetStatement',
-              assignments: [
-                {
-                  kind: 'Assignment',
-                  key: ['results'],
-                  value: {
-                    kind: 'InlineCall',
-                    operationName: 'TestOp',
-                    iteration: {
-                      kind: 'IterationAtom',
-                      iterationVariable: 'number',
-                      iterable: {
-                        kind: 'JessieExpression',
-                        expression: 'numbers',
-                      },
-                    },
-                    condition: {
-                      kind: 'ConditionAtom',
-                      expression: {
-                        kind: 'JessieExpression',
-                        expression: 'number % 2 !== 0',
-                      },
-                    },
-                    arguments: [
-                      {
-                        kind: 'Assignment',
-                        key: ['number'],
-                        value: {
-                          kind: 'JessieExpression',
-                          expression: 'number',
-                        },
-                      },
-                    ],
-                  },
-                },
-              ],
-            },
-            {
-              kind: 'OutcomeStatement',
-              isError: false,
-              terminateFlow: false,
-              value: {
-                kind: 'ObjectLiteral',
-                fields: [
-                  {
-                    kind: 'Assignment',
-                    key: ['results'],
-                    value: {
-                      kind: 'JessieExpression',
-                      expression: 'results',
-                    },
-                  },
-                ],
-              },
-            },
-          ],
-        },
-        {
-          kind: 'OperationDefinition',
-          name: 'TestOp',
-          statements: [
-            {
-              kind: 'OutcomeStatement',
-              isError: false,
-              terminateFlow: true,
-              value: {
-                kind: 'JessieExpression',
-                expression: 'args.number * 2',
-              },
-            },
-          ],
-        },
-      ],
-    };
+    const ast = parseMapFromSource(`
+      map Test {
+        numbers = [1, 2, 3]
+        results = call foreach (number of numbers) TestOp(number = number) if (number % 2 !== 0)
+        map result {
+          results = results
+        }
+      }
+
+      operation TestOp {
+        return args.number * 2
+      }`);
 
     const interpreter = new MapInterpreter(
       {
@@ -2526,51 +937,16 @@ describe('MapInterpreter', () => {
   it('should be able to use input in path parameters', async () => {
     const url = '/twelve';
     await mockServer.get(url).thenJson(200, { data: 12 });
-    const ast: MapDocumentNode = {
-      kind: 'MapDocument',
-      header,
-      definitions: [
-        {
-          kind: 'MapDefinition',
-          name: 'Test',
-          usecaseName: 'Test',
-          statements: [
-            {
-              kind: 'HttpCallStatement',
-              method: 'GET',
-              url: `/{input.test}`,
-              responseHandlers: [
-                {
-                  kind: 'HttpResponseHandler',
-                  statusCode: 200,
-                  contentType: 'application/json',
-                  statements: [
-                    {
-                      kind: 'OutcomeStatement',
-                      isError: false,
-                      terminateFlow: false,
-                      value: {
-                        kind: 'ObjectLiteral',
-                        fields: [
-                          {
-                            kind: 'Assignment',
-                            key: ['result'],
-                            value: {
-                              kind: 'JessieExpression',
-                              expression: 'body.data',
-                            },
-                          },
-                        ],
-                      },
-                    },
-                  ],
-                },
-              ],
-            },
-          ],
-        },
-      ],
-    };
+    const ast = parseMapFromSource(`
+      map Test {
+        http GET "/{input.test}" {
+          response 200 "application/json" {
+            map result {
+              result = body.data
+            }
+          }
+        }
+      }`);
     const interpreter = new MapInterpreter(
       {
         usecase: 'Test',
@@ -2589,64 +965,17 @@ describe('MapInterpreter', () => {
     await mockServer.get('/thirteen').thenJson(200, { data: 12 });
     const baseUrl = mockServer.urlFor('/thirteen').replace('thirteen', '');
     expect(baseUrl.split('')[baseUrl.length - 1]).toEqual('/');
-    const ast: MapDocumentNode = {
-      kind: 'MapDocument',
-      header,
-      definitions: [
-        {
-          kind: 'MapDefinition',
-          name: 'Test',
-          usecaseName: 'Test',
-          statements: [
-            {
-              kind: 'SetStatement',
-              assignments: [
-                {
-                  kind: 'Assignment',
-                  key: ['username'],
-                  value: {
-                    kind: 'JessieExpression',
-                    expression: 'input.user',
-                  },
-                },
-              ],
-            },
-            {
-              kind: 'HttpCallStatement',
-              method: 'GET',
-              url: '/thirteen',
-              responseHandlers: [
-                {
-                  kind: 'HttpResponseHandler',
-                  statusCode: 200,
-                  contentType: 'application/json',
-                  statements: [
-                    {
-                      kind: 'OutcomeStatement',
-                      isError: false,
-                      terminateFlow: false,
-                      value: {
-                        kind: 'ObjectLiteral',
-                        fields: [
-                          {
-                            kind: 'Assignment',
-                            key: ['result'],
-                            value: {
-                              kind: 'PrimitiveLiteral',
-                              value: 13,
-                            },
-                          },
-                        ],
-                      },
-                    },
-                  ],
-                },
-              ],
-            },
-          ],
-        },
-      ],
-    };
+    const ast = parseMapFromSource(`
+      map Test {
+        username = input.user
+        http GET "/thirteen" {
+          response 200 "application/json" {
+            map result {
+              result = 13
+            }
+          }
+        }
+      }`);
     const interpreter = new MapInterpreter(
       {
         usecase: 'Test',
@@ -2679,64 +1008,21 @@ describe('MapInterpreter', () => {
       },
       { fetchInstance }
     );
-    const result = await interpreter.perform({
-      kind: 'MapDocument',
-      header,
-      definitions: [
-        {
-          kind: 'MapDefinition',
-          name: 'Test',
-          usecaseName: 'Test',
-          statements: [
-            {
-              kind: 'HttpCallStatement',
-              method: 'GET',
-              url,
-              request: {
-                kind: 'HttpRequest',
-                headers: {
-                  kind: 'ObjectLiteral',
-                  fields: [
-                    {
-                      kind: 'Assignment',
-                      key: ['content-type'],
-                      value: {
-                        kind: 'PrimitiveLiteral',
-                        value: 'application/json',
-                      },
-                    },
-                  ],
-                },
-                security: [],
-              },
-              responseHandlers: [
-                {
-                  kind: 'HttpResponseHandler',
-                  statusCode: 200,
-                  contentType: 'application/json',
-                  contentLanguage: 'en-US',
-                  statements: [
-                    {
-                      kind: 'SetStatement',
-                      assignments: [
-                        {
-                          kind: 'Assignment',
-                          key: ['result'],
-                          value: {
-                            kind: 'JessieExpression',
-                            expression: 'headers.data',
-                          },
-                        },
-                      ],
-                    },
-                  ],
-                },
-              ],
-            },
-          ],
-        },
-      ],
-    });
+    const ast = parseMapFromSource(`
+      map Test {
+        http GET "${url}" {
+          request {
+            headers {
+              "content-type" = "application/json"
+            }
+          }
+
+          response 200 "application/json" "en-US" {
+            map result headers.data
+          }
+        }
+      }`);
+    const result = await interpreter.perform(ast);
 
     expect(result.isOk() && result.value).toEqual('12');
   });
@@ -2813,7 +1099,133 @@ describe('MapInterpreter', () => {
       { fetchInstance }
     );
     const result = await interpreter.perform(ast);
-    console.log(result);
     expect(result.isOk() && result.value).toEqual({ result: 12 });
+  });
+
+  it('should correctly return error from operation', async () => {
+    const ast = parseMapFromSource(`
+      map Test {
+        call TestOp(letter = "y") {
+          return map result outcome.error
+        }
+      }
+      operation TestOp {
+        fail args.letter.toUpperCase()
+      }
+      `);
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+      },
+      { fetchInstance }
+    );
+    const result = await interpreter.perform(ast);
+
+    expect(result.isOk() && result.value).toEqual('Y');
+  });
+
+  it('scope does not leak into callee', async () => {
+    const ast = parseMapFromSource(`
+      map Test {
+        notVisible = 15
+        call Foo() {
+          map result outcome.data
+        }
+      }
+
+      operation Foo {
+        return notVisible
+      }`);
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+      },
+      { fetchInstance }
+    );
+    const result = await interpreter.perform(ast);
+    expect(result.isErr()).toEqual(true);
+  });
+
+  it('should not overwrite outcome.data from current scope', async () => {
+    const ast = parseMapFromSource(`
+    map Test {
+      result = 5
+      res = 1
+
+      call Foo() {
+        res = outcome.data
+      }
+
+      map result res
+    }
+    operation Foo {
+      return 10
+    }
+    `);
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+      },
+      { fetchInstance }
+    );
+    const result = await interpreter.perform(ast);
+    expect(result.isOk() && result.value).toEqual(10);
+  });
+
+  it('should not leak result from called operation', async () => {
+    const ast = parseMapFromSource(`
+      map Test {
+        a = 1
+        call Foo() {
+          b = 2
+        }
+        c = outcome.data
+
+        // intentionally no map result
+        // a should equal 1
+        // b should equal 2
+        // c should equal 3
+        // result should be the default value
+      }
+      operation Foo {
+        result = "hello"
+        return 3
+      }`);
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+      },
+      { fetchInstance }
+    );
+    const result = await interpreter.perform(ast);
+    expect(result.isOk() && result.value).toEqual(undefined);
+  });
+
+  it('should not overwrite result after operation call', async () => {
+    const ast = parseMapFromSource(`
+      map Test {
+        map result 15
+        foo = call Foo()
+
+        map result 15
+        call Foo() {}
+      }
+
+      operation Foo {
+        return 3
+      }`);
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+      },
+      { fetchInstance }
+    );
+    const result = await interpreter.perform(ast);
+    expect(result.isOk() && result.value).toEqual(15);
   });
 });

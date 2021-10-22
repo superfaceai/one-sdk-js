@@ -9,6 +9,7 @@ import {
   HTTPError,
   JessieError,
   MapASTError,
+  MappedError,
   MappedHTTPError,
 } from './map-interpreter.errors';
 
@@ -234,37 +235,16 @@ AST Path: definitions[0].statements[0].assignments[0].value`
         },
         { fetchInstance }
       );
-      const result = await interpreter.perform({
-        kind: 'MapDocument',
-        header,
-        definitions: [
-          {
-            kind: 'MapDefinition',
-            name: 'Test',
-            usecaseName: 'Test',
-            statements: [
-              {
-                kind: 'SetStatement',
-                assignments: [
-                  {
-                    kind: 'Assignment',
-                    key: ['result'],
-                    value: {
-                      kind: 'InlineCall',
-                      arguments: [],
-                      operationName: 'my beloved operation',
-                    },
-                  },
-                ],
-              },
-            ],
-          },
-        ],
-      });
+      const result = await interpreter.perform(
+        parseMapFromSource(`
+        map Test {
+          result = call myBelovedOperation()
+        }`)
+      );
       expect(result.isErr()).toEqual(true);
       expect(() => {
         result.unwrap();
-      }).toThrow('Operation not found: my beloved operation');
+      }).toThrow('Operation not found: myBelovedOperation');
     });
 
     it('should fail when calling an API with relative URL but not providing baseUrl', async () => {
@@ -277,64 +257,21 @@ AST Path: definitions[0].statements[0].assignments[0].value`
         },
         { fetchInstance }
       );
-      const result = await interpreter.perform({
-        kind: 'MapDocument',
-        header,
-        definitions: [
-          {
-            kind: 'MapDefinition',
-            name: 'Test',
-            usecaseName: 'Test',
-            statements: [
-              {
-                kind: 'HttpCallStatement',
-                method: 'GET',
-                url,
-                request: {
-                  kind: 'HttpRequest',
-                  headers: {
-                    kind: 'ObjectLiteral',
-                    fields: [
-                      {
-                        kind: 'Assignment',
-                        key: ['content-type'],
-                        value: {
-                          kind: 'PrimitiveLiteral',
-                          value: 'application/json',
-                        },
-                      },
-                    ],
-                  },
-                  security: [],
-                },
-                responseHandlers: [
-                  {
-                    kind: 'HttpResponseHandler',
-                    statusCode: 200,
-                    contentType: 'application/json',
-                    contentLanguage: 'en-US',
-                    statements: [
-                      {
-                        kind: 'SetStatement',
-                        assignments: [
-                          {
-                            kind: 'Assignment',
-                            key: ['result'],
-                            value: {
-                              kind: 'JessieExpression',
-                              expression: 'body.data',
-                            },
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-        ],
-      });
+      const ast = parseMapFromSource(`
+        map Test {
+          http GET "${url}" {
+            request {
+              headers {
+                "content-type" = "application/json"
+              }
+            }
+
+            response 200 "application/json" "en-US" {
+              result = body.data
+            }
+          }
+        }`);
+      const result = await interpreter.perform(ast);
       expect(result.isErr()).toEqual(true);
       expect(() => {
         result.unwrap();
@@ -351,77 +288,22 @@ AST Path: definitions[0].statements[0].assignments[0].value`
         { fetchInstance }
       );
 
-      const result = await interpreter.perform({
-        kind: 'MapDocument',
-        header,
-        definitions: [
-          {
-            kind: 'MapDefinition',
-            name: 'Test',
-            usecaseName: 'Test',
-            statements: [
-              {
-                kind: 'SetStatement',
-                assignments: [
-                  {
-                    kind: 'Assignment',
-                    key: ['page'],
-                    value: {
-                      kind: 'JessieExpression',
-                      expression: 'input.page',
-                    },
-                  },
-                ],
-              },
-              {
-                kind: 'HttpCallStatement',
-                method: 'GET',
-                url: `/{missing}/{alsoMissing}`,
-                request: {
-                  kind: 'HttpRequest',
-                  headers: {
-                    kind: 'ObjectLiteral',
-                    fields: [
-                      {
-                        kind: 'Assignment',
-                        key: ['content-type'],
-                        value: {
-                          kind: 'PrimitiveLiteral',
-                          value: 'application/json',
-                        },
-                      },
-                    ],
-                  },
-                  security: [],
-                },
-                responseHandlers: [
-                  {
-                    kind: 'HttpResponseHandler',
-                    statusCode: 200,
-                    contentType: 'application/json',
-                    contentLanguage: 'en-US',
-                    statements: [
-                      {
-                        kind: 'SetStatement',
-                        assignments: [
-                          {
-                            kind: 'Assignment',
-                            key: ['result'],
-                            value: {
-                              kind: 'JessieExpression',
-                              expression: 'body.data',
-                            },
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-        ],
-      });
+      const ast = parseMapFromSource(`
+        map Test {
+          page = input.page
+          http GET "/{missing}/{alsoMissing}" {
+            request {
+              headers {
+                "content-type" = "application/json"
+              }
+            }
+
+            response 200 "application/json" "en-US" {
+              result = body.data
+            }
+          }
+        }`);
+      const result = await interpreter.perform(ast);
       expect(result.isErr()).toEqual(true);
       expect(() => {
         result.unwrap();
@@ -439,153 +321,17 @@ AST Path: definitions[0].statements[0].assignments[0].value`
         },
         { fetchInstance }
       );
-      const result = await interpreter.perform({
-        kind: 'MapDocument',
-        header,
-        definitions: [
-          {
-            kind: 'MapDefinition',
-            name: 'testMap',
-            usecaseName: 'testCase',
-            statements: [
-              {
-                kind: 'HttpCallStatement',
-                method: 'GET',
-                url: 'not really relevant',
-                request: {
-                  kind: 'HttpRequest',
-                  security: [{ id: 'nonexistent' }],
-                },
-                responseHandlers: [
-                  {
-                    kind: 'HttpResponseHandler',
-                    statusCode: 200,
-                    statements: [
-                      {
-                        kind: 'OutcomeStatement',
-                        terminateFlow: true,
-                        isError: false,
-                        value: {
-                          kind: 'JessieExpression',
-                          expression: 'body.data',
-                        },
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-        ],
-      });
-      expect(result.isErr()).toEqual(true);
-      expect(() => {
-        result.unwrap();
-      }).toThrow('Security values for security scheme not found: nonexistent');
-    });
+      const ast = parseMapFromSource(`
+          map testCase {
+          http GET "/not/really/relevant" {
+            security "nonexistent"
 
-    it('should fail when calling an API with Bearer auth, but with no credentials', async () => {
-      const interpreter = new MapInterpreter(
-        {
-          usecase: 'testCase',
-          security: [],
-          serviceBaseUrl,
-        },
-        { fetchInstance }
-      );
-      const result = await interpreter.perform({
-        kind: 'MapDocument',
-        header,
-        definitions: [
-          {
-            kind: 'MapDefinition',
-            name: 'testMap',
-            usecaseName: 'testCase',
-            statements: [
-              {
-                kind: 'HttpCallStatement',
-                method: 'GET',
-                url: 'not really relevant',
-                request: {
-                  kind: 'HttpRequest',
-                  security: [{ id: 'nonexistent' }],
-                },
-                responseHandlers: [
-                  {
-                    kind: 'HttpResponseHandler',
-                    statusCode: 200,
-                    statements: [
-                      {
-                        kind: 'OutcomeStatement',
-                        terminateFlow: true,
-                        isError: false,
-                        value: {
-                          kind: 'JessieExpression',
-                          expression: 'body.data',
-                        },
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-        ],
-      });
-      expect(result.isErr()).toEqual(true);
-      expect(() => {
-        result.unwrap();
-      }).toThrow('Security values for security scheme not found: nonexistent');
-    });
-
-    it('should fail when calling an API with Apikey auth, but with no credentials', async () => {
-      const interpreter = new MapInterpreter(
-        {
-          usecase: 'testCase',
-          security: [],
-          serviceBaseUrl,
-        },
-        { fetchInstance }
-      );
-      const result = await interpreter.perform({
-        kind: 'MapDocument',
-        header,
-        definitions: [
-          {
-            kind: 'MapDefinition',
-            name: 'testMap',
-            usecaseName: 'testCase',
-            statements: [
-              {
-                kind: 'HttpCallStatement',
-                method: 'GET',
-                url: 'not really relevant',
-                request: {
-                  kind: 'HttpRequest',
-                  security: [{ id: 'nonexistent' }],
-                },
-                responseHandlers: [
-                  {
-                    kind: 'HttpResponseHandler',
-                    statusCode: 200,
-                    statements: [
-                      {
-                        kind: 'OutcomeStatement',
-                        terminateFlow: true,
-                        isError: false,
-                        value: {
-                          kind: 'JessieExpression',
-                          expression: 'body.data',
-                        },
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-        ],
-      });
+            response 200 {
+              return map result body.data
+            }
+          }
+        }`);
+      const result = await interpreter.perform(ast);
       expect(result.isErr()).toEqual(true);
       expect(() => {
         result.unwrap();
@@ -605,50 +351,17 @@ AST Path: definitions[0].statements[0].assignments[0].value`
         },
         { fetchInstance }
       );
-      const result = await interpreter.perform({
-        kind: 'MapDocument',
-        header,
-        definitions: [
-          {
-            kind: 'MapDefinition',
-            name: 'Test',
-            usecaseName: 'Test',
-            statements: [
-              {
-                kind: 'HttpCallStatement',
-                method: 'GET',
-                url,
-                responseHandlers: [
-                  {
-                    kind: 'HttpResponseHandler',
-                    statusCode: 404,
-                    statements: [
-                      {
-                        kind: 'OutcomeStatement',
-                        isError: true,
-                        terminateFlow: false,
-                        value: {
-                          kind: 'ObjectLiteral',
-                          fields: [
-                            {
-                              kind: 'Assignment',
-                              key: ['message'],
-                              value: {
-                                kind: 'PrimitiveLiteral',
-                                value: 'Nothing was found',
-                              },
-                            },
-                          ],
-                        },
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-        ],
-      });
+      const ast = parseMapFromSource(`
+        map Test {
+          http GET "${url}" {
+            response 404 {
+              map error {
+                message = "Nothing was found"
+              }
+            }
+          }
+        }`);
+      const result = await interpreter.perform(ast);
 
       expect(
         result.isErr() &&
@@ -677,56 +390,19 @@ AST Path: definitions[0].statements[0].assignments[0].value`
         },
         { fetchInstance }
       );
-      const result = await interpreter.perform({
-        kind: 'MapDocument',
-        header,
-        definitions: [
-          {
-            kind: 'MapDefinition',
-            name: 'Test',
-            usecaseName: 'Test',
-            statements: [
-              {
-                kind: 'HttpCallStatement',
-                method: 'GET',
-                url,
-                responseHandlers: [
-                  {
-                    kind: 'HttpResponseHandler',
-                    statusCode: 404,
-                    statements: [
-                      {
-                        kind: 'OutcomeStatement',
-                        isError: true,
-                        terminateFlow: false,
-                        value: {
-                          kind: 'ObjectLiteral',
-                          fields: [
-                            {
-                              kind: 'Assignment',
-                              key: ['message'],
-                              value: {
-                                kind: 'PrimitiveLiteral',
-                                value: 'Nothing was found',
-                              },
-                            },
-                          ],
-                        },
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                kind: 'HttpCallStatement',
-                method: 'POST',
-                url: url2,
-                responseHandlers: [],
-              },
-            ],
-          },
-        ],
-      });
+      const ast = parseMapFromSource(`
+        map Test {
+          http GET "${url}" {
+            response 404 {
+              map error {
+                message = "Nothing was found"
+              }
+            }
+          }
+          http POST "${url2}" {
+          }
+        }`);
+      const result = await interpreter.perform(ast);
 
       expect(
         result.isErr() &&
@@ -744,38 +420,66 @@ AST Path: definitions[0].statements[0].assignments[0].value`
         },
         { fetchInstance }
       );
-      const ast: MapDocumentNode = {
-        kind: 'MapDocument',
-        header,
-        definitions: [
-          {
-            kind: 'MapDefinition',
-            name: 'Test',
-            usecaseName: 'Test',
-            statements: [
-              {
-                kind: 'SetStatement',
-                assignments: [
-                  {
-                    kind: 'Assignment',
-                    key: ['result'],
-                    value: {
-                      kind: 'JessieExpression',
-                      expression: 'undefinedVariable',
-                      source: 'undefinedVariable',
-                      sourceMap: 'AAAA,IAAI,CAAC,GAAG,iBAAiB,CAAC',
-                    },
-                  },
-                ],
-              },
-            ],
-          },
-        ],
-      };
+      const ast = parseMapFromSource(`
+        map Test {
+          result = undefinedVariable
+        }`);
       const result = await interpreter.perform(ast);
       expect(result.isErr() && result.error instanceof JessieError).toEqual(
         true
       );
+    });
+
+    it('should map non-HTTP error from API', async () => {
+      const interpreter = new MapInterpreter(
+        {
+          usecase: 'Test',
+          security: [],
+          serviceBaseUrl,
+        },
+        { fetchInstance }
+      );
+      const ast = parseMapFromSource(`
+        map Test {
+          map error {
+            message = "Nothing was found"
+          }
+        }`);
+      const result = await interpreter.perform(ast);
+
+      expect(result.isErr() && result.error instanceof MappedError).toBe(true);
+    });
+
+    it('should return an unmapped error from API', async () => {
+      const url = '/error';
+      await mockServer
+        .get(url)
+        .thenJson(404, { 'Content-Type': 'application/json; charset=utf-8' });
+      const interpreter = new MapInterpreter(
+        {
+          usecase: 'Test',
+          security: [],
+          serviceBaseUrl,
+        },
+        { fetchInstance }
+      );
+      const ast = parseMapFromSource(`
+        map Test {
+          http GET "${url}" {
+            response 200 {
+              map result {
+                message = "Should not see this"
+              }
+            }
+          }
+        }`);
+      const result = await interpreter.perform(ast);
+
+      expect(
+        result.isErr() &&
+          result.error instanceof HTTPError &&
+          result.error.statusCode
+      ).toEqual(404);
     });
 
     it('should return error when using parameters in baseUrl, but they are not supplied', async () => {
