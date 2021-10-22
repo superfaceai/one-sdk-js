@@ -8,6 +8,7 @@ import {
   FetchInstance,
   FetchParameters,
   FetchResponse,
+  isBinaryBody,
   isFormDataBody,
   isStringBody,
   isUrlSearchParamsBody,
@@ -162,9 +163,9 @@ export class CrossFetch implements FetchInstance, Interceptable {
     return '';
   }
 
-  private body(body?: FetchBody): string | FormData | undefined {
+  private body(body?: FetchBody): string | FormData | Buffer | undefined {
     if (body) {
-      if (isStringBody(body)) {
+      if (isStringBody(body) || isBinaryBody(body)) {
         return body.data;
       }
 
