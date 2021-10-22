@@ -80,6 +80,7 @@ export class BoundProfileProvider {
       baseUrl: string;
       profileProviderSettings?: NormalizedProfileProviderSettings;
       security: SecurityConfiguration[];
+      parameters?: Record<string, string>;
     },
     events?: Events
   ) {
@@ -149,6 +150,7 @@ export class BoundProfileProvider {
         usecase,
         serviceBaseUrl: this.configuration.baseUrl,
         security: this.configuration.security,
+        parameters: this.configuration.parameters,
       },
       {
         fetchInstance: this.fetchInstance,
@@ -337,6 +339,8 @@ export class ProfileProvider {
             providerInfo.name
           ],
         security: securityConfiguration,
+        parameters:
+          this.superJson.normalized.providers[providerInfo.name]?.parameters,
       },
       this.events
     );
