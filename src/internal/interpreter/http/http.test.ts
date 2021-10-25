@@ -1,7 +1,7 @@
 import { getLocal } from 'mockttp';
-import { Primitive } from '../variables';
 
 import { CrossFetch } from '../../../lib/fetch';
+import { Primitive } from '../variables';
 import { createUrl, HttpClient } from './http';
 
 const mockServer = getLocal();

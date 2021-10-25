@@ -17,6 +17,9 @@ import {
   variablesToStrings,
 } from '../variables';
 import {
+  BINARY_CONTENT_REGEXP,
+  BINARY_CONTENT_TYPES,
+  binaryBody,
   FetchInstance,
   FetchParameters,
   FORMDATA_CONTENT,
@@ -25,9 +28,6 @@ import {
   stringBody,
   URLENCODED_CONTENT,
   urlSearchParamsBody,
-  BINARY_CONTENT_REGEXP,
-  BINARY_CONTENT_TYPES,
-  binaryBody,
 } from './interfaces';
 import {
   applyApiKeyAuth,
