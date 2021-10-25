@@ -93,31 +93,12 @@ export interface SuperfaceClientOptions {
   };
 }
 
-const defaultSuperJson = new SuperJson({
-  profiles: {
-    profile: {
-      file: 'path/to/profile.supr',
-      providers: {
-        provider: {
-          file: 'path/to/map.suma',
-        },
-      },
-    },
-  },
-  providers: {
-    provider: {
-      file: 'path/to/provider.json',
-      security: [],
-    },
-  },
-});
-
 export const SuperfaceClientMock = jest.fn<
   SuperfaceClient,
   Parameters<(options?: SuperfaceClientOptions) => SuperfaceClient>
 >((options?: SuperfaceClientOptions) => ({
   ...Object.create(SuperfaceClient.prototype),
-  superJson: options?.superJson ?? defaultSuperJson,
+  superJson: options?.superJson,
   getProfile: getProfileMock,
   getProvider: getProviderMock,
   cacheBoundProfileProvider: jest.fn().mockReturnValue({
