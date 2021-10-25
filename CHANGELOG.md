@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `result` variable no longer has special meaning
 - `outcome.data` is no longer overwritten by `result`
 - `fail` correctly sets `outcome.error` in caller
+- errors are passed correctly through multiple levels of operation calls
+- inline calls throw error when they fail
 
 ### Added
 - MapInterpreter now supports integration parameters
