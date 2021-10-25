@@ -39,13 +39,11 @@ const astMetadata: AstMetadata = {
     major: 1,
     minor: 0,
     patch: 0,
-    label: undefined,
   },
   parserVersion: {
     major: 1,
     minor: 0,
     patch: 0,
-    label: undefined,
   },
 };
 
