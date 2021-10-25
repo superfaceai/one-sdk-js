@@ -40,6 +40,7 @@ usecase Test safe {
 `;
 
 jest.mock('fs', () => ({
+  ...jest.requireActual('fs'),
   promises: {
     mkdir: jest.fn(),
     stat: jest.fn(),
@@ -123,9 +124,7 @@ describe('Parser', () => {
       jest
         .spyOn(fsp, 'readdir')
         .mockResolvedValueOnce([])
-        .mockResolvedValueOnce([
-          'test-provider-abcdef0123456789.suma.ast.json',
-        ] as any);
+        .mockResolvedValueOnce(['test-provider.suma.ast.json'] as any);
       await Parser.parseMap(mapFixture, 'profile.supr', {
         profileName: 'profile',
         providerName: 'test-provider',
@@ -219,9 +218,7 @@ describe('Parser', () => {
       jest
         .spyOn(fsp, 'readdir')
         .mockResolvedValueOnce([])
-        .mockResolvedValueOnce([
-          'profile-abcdef0123456789.supr.ast.json',
-        ] as any);
+        .mockResolvedValueOnce(['profile.supr.ast.json'] as any);
       await Parser.parseProfile(profileFixture, 'profile.supr', {
         profileName: 'profile',
         scope: 'test',

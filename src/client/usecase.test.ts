@@ -1,5 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { MapDocumentNode, ProfileDocumentNode } from '@superfaceai/ast';
+import {
+  AstMetadata,
+  MapDocumentNode,
+  ProfileDocumentNode,
+} from '@superfaceai/ast';
 
 import { SuperJson } from '../internal';
 import { ok } from '../lib/result/result';
@@ -15,6 +19,22 @@ const mockLoadSync = jest.fn();
 //Mock profile provider
 jest.mock('./profile-provider');
 
+const astMetadata: AstMetadata = {
+  sourceChecksum: 'checksum',
+  astVersion: {
+    major: 1,
+    minor: 0,
+    patch: 0,
+    label: undefined,
+  },
+  parserVersion: {
+    major: 1,
+    minor: 0,
+    patch: 0,
+    label: undefined,
+  },
+};
+
 describe('UseCase', () => {
   const mockSuperJson = new SuperJson({
     profiles: {
@@ -25,6 +45,7 @@ describe('UseCase', () => {
     providers: {},
   });
   const mockMapDocument: MapDocumentNode = {
+    astMetadata,
     kind: 'MapDocument',
     header: {
       kind: 'MapHeader',
@@ -43,6 +64,7 @@ describe('UseCase', () => {
   };
 
   const mockProfileDocument: ProfileDocumentNode = {
+    astMetadata,
     kind: 'ProfileDocument',
     header: {
       kind: 'ProfileHeader',

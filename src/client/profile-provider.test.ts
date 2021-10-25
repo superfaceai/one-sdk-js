@@ -1,5 +1,6 @@
 import {
   ApiKeyPlacement,
+  AstMetadata,
   HttpScheme,
   MapDocumentNode,
   OnFail,
@@ -61,7 +62,22 @@ jest.mock('../internal/superjson', () => ({
 }));
 
 describe('profile provider', () => {
+  const astMetadata: AstMetadata = {
+    sourceChecksum: 'checksum',
+    astVersion: {
+      major: 1,
+      minor: 0,
+      patch: 0,
+    },
+    parserVersion: {
+      major: 1,
+      minor: 0,
+      patch: 0,
+    },
+  };
+
   const mockMapDocument: MapDocumentNode = {
+    astMetadata,
     kind: 'MapDocument',
     header: {
       kind: 'MapHeader',
@@ -80,6 +96,7 @@ describe('profile provider', () => {
   };
 
   const mockProfileDocument: ProfileDocumentNode = {
+    astMetadata,
     kind: 'ProfileDocument',
     header: {
       kind: 'ProfileHeader',
@@ -1086,6 +1103,7 @@ but http scheme requires: digest`
         });
 
         const mockMapDocumentBoop: MapDocumentNode = {
+          astMetadata,
           kind: 'MapDocument',
           header: {
             kind: 'MapHeader',

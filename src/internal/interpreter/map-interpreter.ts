@@ -204,7 +204,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
       'Visiting node:',
       node.kind,
       node.location
-        ? `Line: ${node.location.line}, Column: ${node.location.column}`
+        ? `Line: ${node.location.start.line}, Column: ${node.location.start.column}`
         : ''
     );
     switch (node.kind) {

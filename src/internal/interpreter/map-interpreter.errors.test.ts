@@ -1,4 +1,9 @@
-import { MapASTNode, MapDocumentNode, MapHeaderNode } from '@superfaceai/ast';
+import {
+  AstMetadata,
+  MapASTNode,
+  MapDocumentNode,
+  MapHeaderNode,
+} from '@superfaceai/ast';
 import { parseMap, Source } from '@superfaceai/parser';
 import { getLocal } from 'mockttp';
 
@@ -28,6 +33,22 @@ const header: MapHeaderNode = {
   provider: 'example',
 };
 
+const astMetadata: AstMetadata = {
+  sourceChecksum: 'checksum',
+  astVersion: {
+    major: 1,
+    minor: 0,
+    patch: 0,
+    label: undefined,
+  },
+  parserVersion: {
+    major: 1,
+    minor: 0,
+    patch: 0,
+    label: undefined,
+  },
+};
+
 const parseMapFromSource = (source: string) =>
   parseMap(
     new Source(
@@ -46,6 +67,7 @@ describe('MapInterpreter errors', () => {
         expression: '1 + 2',
       };
       const ast: MapDocumentNode = {
+        astMetadata,
         kind: 'MapDocument',
         header,
         definitions: [
@@ -91,6 +113,7 @@ AST Path: definitions[0].statements[0].assignments[0].value`
         expression: '1 + 2',
       };
       const ast: MapDocumentNode = {
+        astMetadata,
         kind: 'MapDocument',
         header,
         definitions: [
@@ -142,6 +165,7 @@ AST Path: definitions[0].statements[0].assignments[0].value`
         expression: '1 + 2',
       };
       const ast: MapDocumentNode = {
+        astMetadata,
         kind: 'MapDocument',
         header,
         definitions: [
@@ -220,6 +244,7 @@ AST Path: definitions[0].statements[0].assignments[0].value`
         { fetchInstance }
       );
       const result = await interpreter.perform({
+        astMetadata,
         kind: 'MapDocument',
         header,
         definitions: [],
