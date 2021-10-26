@@ -1,6 +1,7 @@
 import { getLocal } from 'mockttp';
 
 import { CrossFetch } from '../../../lib/fetch';
+import { Primitive } from '../variables';
 import { createUrl, HttpClient } from './http';
 
 const mockServer = getLocal();
@@ -87,5 +88,54 @@ describe('HttpClient', () => {
     });
 
     expect(url).toEqual('https://example.com/test/hello');
+  });
+
+  describe('when request contains binary content type', () => {
+    const binaryContentTypes = [
+      'application/octet-stream',
+      'audio/mp3',
+      'audio/wav',
+      'audio/wav;rate=8000',
+      'video/mp4',
+      'image/jpeg',
+    ];
+    let httpClient: HttpClient;
+    let fetchMock: jest.Mock;
+
+    for (const contentType of binaryContentTypes) {
+      describe(`${contentType}`, () => {
+        beforeEach(async () => {
+          fetchMock = jest.fn().mockResolvedValue({
+            status: 200,
+            headers: [],
+          });
+
+          httpClient = new HttpClient({
+            fetch: fetchMock,
+          });
+
+          await httpClient.request('/data', {
+            method: 'post',
+            accept: 'application/json',
+            baseUrl: 'http://localhost',
+            contentType: contentType,
+            body: Buffer.from('data') as unknown as Primitive,
+          });
+        });
+
+        it('should fetch request with binary body', async () => {
+          const requestBody = fetchMock.mock.calls[0][1].body;
+          expect(requestBody).toBeDefined();
+          expect(requestBody._type).toBe('binary');
+          expect(requestBody.data).toEqual(Buffer.from('data'));
+        });
+
+        it('should fetch request with correct Content-Type header', async () => {
+          const requestHeaders = fetchMock.mock.calls[0][1].headers;
+          expect(requestHeaders).toBeDefined();
+          expect(requestHeaders['Content-Type']).toBe(contentType);
+        });
+      });
+    }
   });
 });
