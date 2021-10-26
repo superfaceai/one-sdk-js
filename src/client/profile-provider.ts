@@ -341,7 +341,7 @@ export class ProfileProvider {
             providerInfo.name
           ],
         security: securityConfiguration,
-        parameters: this.resolveIntegrationParametersButNotReally(
+        parameters: this.resolveIntegrationParameters(
           this.superJson.normalized.providers[providerInfo.name]?.parameters,
           providerInfo.parameters || []
         ),
@@ -350,7 +350,7 @@ export class ProfileProvider {
     );
   }
 
-  private resolveIntegrationParametersButNotReally(
+  private resolveIntegrationParameters(
     superJsonParameters: { [key: string]: string } | undefined,
     providerJsonParameters: IntegrationParameter[]
   ): Record<string, string> | undefined {
