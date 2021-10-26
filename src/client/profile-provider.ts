@@ -22,8 +22,8 @@ import {
 import createDebug from 'debug';
 import { promises as fsp } from 'fs';
 import { join as joinPath } from 'path';
-import { UnexpectedError } from '..';
 
+import { UnexpectedError } from '..';
 import {
   invalidProfileError,
   invalidSecurityValuesError,
