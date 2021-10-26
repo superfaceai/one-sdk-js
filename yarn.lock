@@ -667,6 +667,13 @@
   dependencies:
     typescript-is "^0.18.3"
 
+"@superfaceai/ast@0.0.35-beta.2":
+  version "0.0.35-beta.2"
+  resolved "https://registry.yarnpkg.com/@superfaceai/ast/-/ast-0.0.35-beta.2.tgz#7a574c1fff1a54b5df329a6f0644da58fb439781"
+  integrity sha512-5q+WVhw1LqKygBMrYs6UWNqqWNwSBCNk0Y7Ej+bBfWhK+NP592p6qkPdrlUG016G1pc/FqKTbgMIyYVSfiZ1oQ==
+  dependencies:
+    typescript-is "^0.18.3"
+
 "@superfaceai/parser@0.0.24-beta.2":
   version "0.0.24-beta.2"
   resolved "https://registry.yarnpkg.com/@superfaceai/parser/-/parser-0.0.24-beta.2.tgz#cc574e1ea34bf150fe1d407cc3a1c20c6a7026c5"

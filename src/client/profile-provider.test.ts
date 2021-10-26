@@ -359,6 +359,94 @@ describe('profile provider', () => {
         },
       };
 
+      it('returns new BoundProfileProvider with integration parameters', async () => {
+        const mockProviderJsonWithParameters: ProviderJson = {
+          name: 'test',
+          services: [{ id: 'test-service', baseUrl: 'service/base/url' }],
+          securitySchemes: [
+            {
+              type: SecurityType.HTTP,
+              id: 'basic',
+              scheme: HttpScheme.BASIC,
+            },
+            {
+              id: 'api',
+              type: SecurityType.APIKEY,
+              in: ApiKeyPlacement.HEADER,
+              name: 'Authorization',
+            },
+            {
+              id: 'bearer',
+              type: SecurityType.HTTP,
+              scheme: HttpScheme.BEARER,
+              bearerFormat: 'some',
+            },
+            {
+              id: 'digest',
+              type: SecurityType.HTTP,
+              scheme: HttpScheme.DIGEST,
+            },
+          ],
+          defaultService: 'test-service',
+          parameters: [
+            {
+              name: 'first',
+              description: 'first test value',
+            },
+            {
+              name: 'second',
+            },
+            {
+              name: 'third',
+              default: 'default',
+            },
+          ],
+        };
+        mocked(fetchBind).mockResolvedValue({
+          provider: mockProviderJsonWithParameters,
+          mapAst: mockMapDocument,
+        });
+        //normalized is getter on SuperJson - unable to mock or spy on
+        Object.assign(mockSuperJson, {
+          normalized: {
+            profiles: {
+              ['test-profile']: {
+                version: '1.0.0',
+                defaults: {},
+                providers: {},
+              },
+            },
+            providers: {
+              test: {
+                security: [],
+                parameters: {
+                  first: 'plain value',
+                  second: '$TEST_SECOND',
+                  third: 'value to be overriden by default',
+                },
+              },
+            },
+          },
+        });
+        process.env['TEST_SECOND'] = 'env test value';
+        const mockProfileProvider = new ProfileProvider(
+          mockSuperJson,
+          mockProfileDocument,
+          mockProviderConfiguration,
+          mockSuperfacClient
+        );
+
+        const result = await mockProfileProvider.bind();
+
+        expect(result.configuration.parameters).toEqual({
+          first: 'plain value',
+          second: 'env test value',
+          third: 'default',
+        });
+
+        expect(result).toMatchObject(expectedBoundProfileProvider);
+      });
+
       it('returns new BoundProfileProvider', async () => {
         mocked(fetchBind).mockResolvedValue(mockFetchResponse);
         //normalized is getter on SuperJson - unable to mock or spy on

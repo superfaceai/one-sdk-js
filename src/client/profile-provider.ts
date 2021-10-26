@@ -3,6 +3,7 @@ import {
   assertProfileDocumentNode,
   FILE_URI_PROTOCOL,
   HttpScheme,
+  IntegrationParameter,
   isApiKeySecurityValues,
   isBasicAuthSecurityValues,
   isBearerTokenSecurityValues,
@@ -21,6 +22,7 @@ import {
 import createDebug from 'debug';
 import { promises as fsp } from 'fs';
 import { join as joinPath } from 'path';
+import { UnexpectedError } from '..';
 
 import {
   invalidProfileError,
@@ -339,11 +341,59 @@ export class ProfileProvider {
             providerInfo.name
           ],
         security: securityConfiguration,
-        parameters:
+        parameters: this.resolveIntegrationParametersButNotReally(
           this.superJson.normalized.providers[providerInfo.name]?.parameters,
+          providerInfo.parameters || []
+        ),
       },
       this.events
     );
+  }
+
+  private resolveIntegrationParametersButNotReally(
+    superJsonParameters: { [key: string]: string } | undefined,
+    providerJsonParameters: IntegrationParameter[]
+  ): Record<string, string> | undefined {
+    if (superJsonParameters === undefined) {
+      return undefined;
+    }
+
+    //TODO: super. json defines parameters but provider.json does not - error?
+    if (
+      Object.keys(superJsonParameters).length !== 0 &&
+      providerJsonParameters.length === 0
+    ) {
+      throw new UnexpectedError(
+        `Super.json defines integration parameters but provider.json does not`
+      );
+    }
+    const result: Record<string, string> = {};
+
+    for (const [key, value] of Object.entries(superJsonParameters)) {
+      // If there is value in env use it
+      let envValue: string | undefined = undefined;
+      if (value.startsWith('$')) {
+        envValue = process.env[value.substr(1)];
+      } else {
+        envValue = process.env[value];
+      }
+      if (envValue !== undefined) {
+        result[key] = envValue;
+      } else {
+        // If we have defualt in provider.json use it
+        const providerJsonDefault = providerJsonParameters.find(
+          parameter => parameter.name === key && parameter.default
+        )?.default;
+        if (providerJsonDefault) {
+          result[key] = providerJsonDefault;
+          // Use value as is
+        } else {
+          result[key] = value;
+        }
+      }
+    }
+
+    return result;
   }
 
   private async resolveProfileAst(): Promise<ProfileDocumentNode | undefined> {

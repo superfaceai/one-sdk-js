@@ -1,3 +1,4 @@
+import { ProviderJson } from '@superfaceai/ast';
 import { parseMap, parseProfile, Source } from '@superfaceai/parser';
 
 import { ProfileProvider } from '..';
@@ -46,7 +47,7 @@ const mockSuperJsonSingle = new SuperJson({
   },
 });
 
-const mockProviderJson = {
+const mockProviderJson: ProviderJson = {
   name: 'example',
   services: [
     {
@@ -56,6 +57,11 @@ const mockProviderJson = {
   ],
   securitySchemes: [],
   defaultService: 'example',
+  parameters: [
+    {
+      name: 'test',
+    },
+  ],
 };
 
 const mockProfileDocument = parseProfileFromSource(`
