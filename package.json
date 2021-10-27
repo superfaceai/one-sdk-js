@@ -48,7 +48,7 @@
   },
   "dependencies": {
     "@superfaceai/ast": "0.0.35-beta.2",
-    "@superfaceai/parser": "0.0.24-beta.2",
+    "@superfaceai/parser": "0.0.24-beta.3",
     "abort-controller": "^3.0.0",
     "cross-fetch": "^3.0.5",
     "debug": "^4.3.2",
