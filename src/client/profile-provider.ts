@@ -363,7 +363,7 @@ export class ProfileProvider {
       providerJsonParameters.length === 0
     ) {
       console.warn(
-        `Super.json defines integration parameters but provider.json does not`
+        `Warning: Super.json defines integration parameters but provider.json does not`
       );
     }
     const result: Record<string, string> = {};
