@@ -63,6 +63,7 @@ export abstract class SuperfaceClientBase extends Events {
 
   /**
    * @deprecated
+   * This is not a part of the public API, DON'T USE THIS METHOD
    * Returns a BoundProfileProvider that is cached according to `profileConfig` and `providerConfig` cache keys.
    */
   async cacheBoundProfileProvider(
