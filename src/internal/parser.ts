@@ -142,9 +142,8 @@ export class Parser {
     if (!fileExists) {
       return undefined;
     }
-    const loaded = JSON.parse(
-      await fsp.readFile(path, { encoding: 'utf8' })
-    ) as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const loaded = JSON.parse(await fsp.readFile(path, { encoding: 'utf8' }));
     //Check if valid type
     if (!guard(loaded)) {
       return undefined;

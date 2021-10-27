@@ -23,7 +23,6 @@ import createDebug from 'debug';
 import { promises as fsp } from 'fs';
 import { join as joinPath } from 'path';
 
-import { UnexpectedError } from '..';
 import {
   invalidProfileError,
   invalidSecurityValuesError,
@@ -363,7 +362,7 @@ export class ProfileProvider {
       Object.keys(superJsonParameters).length !== 0 &&
       providerJsonParameters.length === 0
     ) {
-      throw new UnexpectedError(
+      console.log(
         `Super.json defines integration parameters but provider.json does not`
       );
     }
@@ -374,8 +373,6 @@ export class ProfileProvider {
       let envValue: string | undefined = undefined;
       if (value.startsWith('$')) {
         envValue = process.env[value.substr(1)];
-      } else {
-        envValue = process.env[value];
       }
       if (envValue !== undefined) {
         result[key] = envValue;
