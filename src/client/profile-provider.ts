@@ -362,7 +362,7 @@ export class ProfileProvider {
       Object.keys(superJsonParameters).length !== 0 &&
       providerJsonParameters.length === 0
     ) {
-      console.log(
+      console.warn(
         `Super.json defines integration parameters but provider.json does not`
       );
     }
