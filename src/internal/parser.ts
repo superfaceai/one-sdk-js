@@ -7,10 +7,10 @@ import {
   VERSION as AstVersion,
 } from '@superfaceai/ast';
 import {
+  PARSED_AST_VERSION,
   parseMap,
   parseProfile,
   Source,
-  PARSED_AST_VERSION,
 } from '@superfaceai/parser';
 import { promises as fsp } from 'fs';
 import { join as joinPath } from 'path';
