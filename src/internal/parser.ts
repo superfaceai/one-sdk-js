@@ -4,13 +4,19 @@ import {
   isProfileDocumentNode,
   MapDocumentNode,
   ProfileDocumentNode,
+  VERSION as AstVersion,
 } from '@superfaceai/ast';
-import { parseMap, parseProfile, Source } from '@superfaceai/parser';
+import {
+  parseMap,
+  parseProfile,
+  Source,
+  PARSED_AST_VERSION,
+} from '@superfaceai/parser';
 import { promises as fsp } from 'fs';
 import { join as joinPath } from 'path';
 
 import { Config } from '../config';
-import { UnexpectedError } from '.';
+import { UnexpectedError } from './errors';
 
 export class Parser {
   private static mapCache: Record<string, MapDocumentNode> = {};
@@ -35,9 +41,10 @@ export class Parser {
       `${info.providerName}${EXTENSIONS.map.build}`
     );
 
-    // If we have it in memory cache, just return it
+    // If we have valid map in memory cache, just return it
     if (
       this.mapCache[path] !== undefined &&
+      isMapDocumentNode(this.mapCache[path]) &&
       this.mapCache[path].astMetadata.sourceChecksum === sourceChecksum
     ) {
       return this.mapCache[path];
@@ -60,8 +67,14 @@ export class Parser {
     // And write parsed file to cache
     parsedMap = parseMap(new Source(input, fileName));
     if (!isMapDocumentNode(parsedMap)) {
-      //TODO: more helpful error - can this be product of not matching AST package versions?
-      throw new UnexpectedError('This should not happened');
+      const parserAstVersion = `${PARSED_AST_VERSION.major}.${
+        PARSED_AST_VERSION.minor
+      }.${PARSED_AST_VERSION.patch}${
+        PARSED_AST_VERSION.label ? '-' + PARSED_AST_VERSION.label : ''
+      }`;
+      throw new UnexpectedError(
+        `Parsed map is not valid. This can be caused by not matching versions of package @superfaceai/ast.\nVersion of AST in Parser used to parse map: ${parserAstVersion}.\nVersion of AST used to validation: ${AstVersion}`
+      );
     }
     await Parser.writeFileCache(parsedMap, this.mapCache, cachePath, path);
 
@@ -89,6 +102,7 @@ export class Parser {
     // If we have it in memory cache, just return it
     if (
       this.profileCache[path] !== undefined &&
+      isProfileDocumentNode(this.profileCache[path]) &&
       this.profileCache[path].astMetadata.sourceChecksum === sourceChecksum
     ) {
       return this.profileCache[path];
@@ -112,8 +126,14 @@ export class Parser {
     // And write parsed file to cache
     parsedProfile = parseProfile(new Source(input, fileName));
     if (!isProfileDocumentNode(parsedProfile)) {
-      //TODO: more helpful error - can this be product of not matching AST package versions?
-      throw new UnexpectedError('This should not happened');
+      const parserAstVersion = `${PARSED_AST_VERSION.major}.${
+        PARSED_AST_VERSION.minor
+      }.${PARSED_AST_VERSION.patch}${
+        PARSED_AST_VERSION.label ? '-' + PARSED_AST_VERSION.label : ''
+      }`;
+      throw new UnexpectedError(
+        `Parsed profile is not valid. This can be caused by not matching versions of package @superfaceai/ast.\nVersion of AST in Parser used to parse profile: ${parserAstVersion}.\nVersion of AST used to validation: ${AstVersion}`
+      );
     }
     await this.writeFileCache(
       parsedProfile,
@@ -123,6 +143,13 @@ export class Parser {
     );
 
     return parsedProfile;
+  }
+
+  static async clearCache(): Promise<void> {
+    this.mapCache = {};
+    this.profileCache = {};
+
+    await fsp.rm(Config.instance().cachePath, { recursive: true });
   }
 
   private static async loadCached<
@@ -151,8 +178,6 @@ export class Parser {
     }
     //Check if checksum match
     if (loaded.astMetadata.sourceChecksum !== sourceHash) {
-      console.log('CHECK');
-
       return undefined;
     }
     cache[path] = loaded;
