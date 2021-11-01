@@ -61,7 +61,11 @@ export abstract class SuperfaceClientBase extends Events {
     registerFailoverHooks(this.hookContext, this);
   }
 
-  /** Returns a BoundProfileProvider that is cached according to `profileConfig` and `providerConfig` cache keys. */
+  /**
+   * @deprecated
+   * This is not a part of the public API, DON'T USE THIS METHOD
+   * Returns a BoundProfileProvider that is cached according to `profileConfig` and `providerConfig` cache keys.
+   */
   async cacheBoundProfileProvider(
     profileConfig: ProfileConfiguration,
     providerConfig: ProviderConfiguration

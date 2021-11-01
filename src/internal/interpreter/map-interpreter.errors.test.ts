@@ -532,4 +532,110 @@ AST Path: definitions[0].statements[0].assignments[0].value`
       );
     });
   });
+
+  it('should not allow inline calls to fail', async () => {
+    const ast = parseMapFromSource(`
+      map Test {
+        call FirstOperation() {
+            return map error if (outcome.error) outcome.error
+            return map result { message = 'this is not to be seen' }
+          }
+      }
+
+      operation FirstOperation {
+        result = call foreach(_ of Array(1)) SecondOperation()
+
+        return result
+      }
+
+      operation SecondOperation {
+        fail 'this should not be allowed to fail'
+      }
+  `);
+
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+      },
+      { fetchInstance }
+    );
+
+    const result = await interpreter.perform(ast);
+
+    expect(result.isErr() && result.error.toString()).toMatch(
+      'Unexpected inline call failure'
+    );
+  });
+
+  it('should properly pass error from nested operation calls', async () => {
+    const ast = parseMapFromSource(`
+      map Test {
+        call FirstOperation() {
+            return map error if (outcome.error) outcome.error
+            return map result { message = 'this is not to be seen' }
+          }
+      }
+
+      operation FirstOperation {
+        call SecondOperation() {
+          fail if (outcome.error) outcome.error
+        }
+      }
+
+      operation SecondOperation {
+        fail 'the best error in the world'
+      }
+  `);
+
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+      },
+      { fetchInstance }
+    );
+
+    const result = await interpreter.perform(ast);
+
+    expect(result.isErr() && result.error.toString()).toMatch(
+      'the best error in the world'
+    );
+  });
+
+  it('should properly pass error from nested operation calls in loops', async () => {
+    const ast = parseMapFromSource(`
+      map Test {
+        call FirstOperation() {
+            return map error if (outcome.error) outcome.error
+            return map result { message = 'this is not to be seen' }
+          }
+      }
+
+      operation FirstOperation {
+        call foreach(_ of Array(1)) SecondOperation() {
+          fail if (outcome.error) outcome.error
+        }
+      }
+
+      operation SecondOperation {
+        fail 'the best error in the world'
+      }
+  `);
+
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+      },
+      { fetchInstance }
+    );
+
+    const result = await interpreter.perform(ast);
+    console.log(result);
+
+    expect(result.isErr() && result.error.toString()).toMatch(
+      'the best error in the world'
+    );
+  });
 });

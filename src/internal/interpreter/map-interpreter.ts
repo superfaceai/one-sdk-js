@@ -262,8 +262,13 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
 
   async visitCallStatementNode(node: CallStatementNode): Promise<void> {
     if (hasIteration(node)) {
-      const processResults = async (result?: Variables) => {
-        this.addVariableToStack({ outcome: { data: result } });
+      const processResults = async (result?: Variables, error?: Variables) => {
+        if (error !== undefined) {
+          this.addVariableToStack({ outcome: { error } });
+          this.stackTop().terminate = true;
+        } else {
+          this.addVariableToStack({ outcome: { data: result } });
+        }
         await this.processStatements(node.statements);
       };
       await this.iterate(node, processResults);
@@ -435,7 +440,14 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
   ): Promise<Variables | undefined> {
     if (hasIteration(node)) {
       const results: (Variables | undefined)[] = [];
-      const processResult = (result?: Variables) => {
+      const processResult = (result?: Variables, error?: Variables) => {
+        if (error !== undefined) {
+          throw new MapASTError('Unexpected inline call failure.', {
+            ast: this.ast,
+            node,
+          });
+        }
+
         results.push(result);
       };
       await this.iterate(node, processResult);
@@ -771,7 +783,10 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
 
   private async iterate<T extends CallStatementNode | InlineCallNode>(
     node: T & { iteration: IterationAtomNode },
-    processResult: (result?: Variables) => unknown | Promise<unknown>
+    processResult: (
+      result?: Variables,
+      error?: Variables
+    ) => unknown | Promise<unknown>
   ): Promise<void> {
     const iterationParams = await this.visit(node.iteration);
     for (const variable of iterationParams.iterable) {
@@ -786,7 +801,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
       }
       const result = await this.visitCallCommon(node);
 
-      await processResult(result.data);
+      await processResult(result.data, result.error);
       // return early check
       if (this.stackTop().terminate) {
         break;
