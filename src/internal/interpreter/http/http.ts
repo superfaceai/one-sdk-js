@@ -17,6 +17,9 @@ import {
   variablesToStrings,
 } from '../variables';
 import {
+  BINARY_CONTENT_REGEXP,
+  BINARY_CONTENT_TYPES,
+  binaryBody,
   FetchInstance,
   FetchParameters,
   FORMDATA_CONTENT,
@@ -186,12 +189,26 @@ export class HttpClient {
       } else if (parameters.contentType === FORMDATA_CONTENT) {
         headers['Content-Type'] ??= FORMDATA_CONTENT;
         request.body = formDataBody(variablesToStrings(requestBody));
+      } else if (
+        parameters.contentType &&
+        BINARY_CONTENT_REGEXP.test(parameters.contentType)
+      ) {
+        headers['Content-Type'] ??= parameters.contentType;
+        let buffer: Buffer;
+        if (Buffer.isBuffer(requestBody)) {
+          buffer = requestBody;
+        } else {
+          //coerce to string then buffer
+          buffer = Buffer.from(String(requestBody));
+        }
+        request.body = binaryBody(buffer);
       } else {
         const contentType = parameters.contentType ?? '';
         const supportedTypes = [
           JSON_CONTENT,
           URLENCODED_CONTENT,
           FORMDATA_CONTENT,
+          ...BINARY_CONTENT_TYPES,
         ];
 
         throw unsupportedContentType(contentType, supportedTypes);
