@@ -346,4 +346,31 @@ describe('fetch', () => {
       });
     });
   });
+
+  describe('when request body contains binary data', () => {
+    it('should call cross-fetch with Buffer in body', async () => {
+      const { fetch } = await import('cross-fetch');
+      jest.mock('cross-fetch');
+
+      const { CrossFetch } = await import('./fetch');
+
+      mocked(fetch).mockResolvedValue({
+        headers: {
+          forEach: jest.fn((callbackfn: ForEachCallbackFunction) => {
+            callbackfn(undefined, undefined);
+          }),
+        },
+        text: jest.fn(),
+      } as any);
+
+      const fetchInstance = new CrossFetch();
+
+      await fetchInstance.fetch(`${mockServer.url}/test`, {
+        method: 'POST',
+        body: { _type: 'binary', data: Buffer.from('data') },
+      });
+
+      expect((fetch as jest.Mock).mock.calls[0][1].body).toBeInstanceOf(Buffer);
+    });
+  });
 });
