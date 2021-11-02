@@ -368,6 +368,7 @@ export class ProfileProvider {
     }
     const result: Record<string, string> = {};
 
+    //Resolve parameters defined in super.json
     for (const [key, value] of Object.entries(superJsonParameters)) {
       const providerJsonParameter = providerJsonParameters.find(
         parameter => parameter.name === key
@@ -387,6 +388,13 @@ export class ProfileProvider {
       //Use original value
       if (!result[key]) {
         result[key] = value;
+      }
+    }
+
+    //Resolve parameters which are missing in super.json and have default value
+    for (const parameter of providerJsonParameters) {
+      if (result[parameter.name] === undefined && parameter.default) {
+        result[parameter.name] = parameter.default;
       }
     }
 

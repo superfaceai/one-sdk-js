@@ -398,7 +398,11 @@ describe('profile provider', () => {
             },
             {
               name: 'third',
-              default: 'default',
+              default: 'third-default',
+            },
+            {
+              name: 'fourth',
+              default: 'fourth-default',
             },
           ],
         };
@@ -423,6 +427,7 @@ describe('profile provider', () => {
                   first: 'plain value',
                   second: '$TEST_SECOND', //unset env value without default
                   third: '$TEST_THIRD', //unset env value with default
+                  //fourth is missing - should be resolved to its default
                 },
               },
             },
@@ -440,7 +445,8 @@ describe('profile provider', () => {
         expect(result.configuration.parameters).toEqual({
           first: 'plain value',
           second: '$TEST_SECOND',
-          third: 'default',
+          third: 'third-default',
+          fourth: 'fourth-default',
         });
 
         expect(result).toMatchObject(expectedBoundProfileProvider);
