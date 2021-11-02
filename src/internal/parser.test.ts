@@ -1,8 +1,10 @@
 import { parseMap, parseProfile, Source } from '@superfaceai/parser';
 import { promises as fsp } from 'fs';
 import { join as joinPath } from 'path';
+import { mocked } from 'ts-jest/utils';
 
 import { Config } from '../config';
+import { isAccessible } from '../lib/io';
 import { Parser } from './parser';
 
 const mapFixture = `
@@ -55,15 +57,21 @@ jest.mock('fs', () => ({
   realpathSync: jest.fn(),
 }));
 
+jest.mock('../lib/io', () => ({
+  isAccessible: jest.fn(),
+}));
+
 describe('Parser', () => {
   afterEach(() => {
     jest.clearAllMocks();
   });
 
   describe('clearCache', () => {
-    it('should clear cache', async () => {
+    it('should clear in memory and file cache', async () => {
       (Parser as any).profileCache = { profilePath: profileASTFixture };
       (Parser as any).mapCache = { mapPath: mapASTFixture };
+
+      mocked(isAccessible).mockResolvedValue(true);
 
       await Parser.clearCache();
 
@@ -74,6 +82,20 @@ describe('Parser', () => {
       expect(fsp.rm).toHaveBeenCalledWith(expect.any(String), {
         recursive: true,
       });
+    });
+
+    it('should clear in memory cache', async () => {
+      (Parser as any).profileCache = { profilePath: profileASTFixture };
+      (Parser as any).mapCache = { mapPath: mapASTFixture };
+
+      mocked(isAccessible).mockResolvedValue(false);
+
+      await Parser.clearCache();
+
+      expect(Object.keys((Parser as any).profileCache).length).toEqual(0);
+      expect(Object.keys((Parser as any).mapCache).length).toEqual(0);
+
+      expect(fsp.rm).not.toHaveBeenCalled();
     });
   });
 

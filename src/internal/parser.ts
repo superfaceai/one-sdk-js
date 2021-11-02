@@ -16,6 +16,7 @@ import { promises as fsp } from 'fs';
 import { join as joinPath } from 'path';
 
 import { Config } from '../config';
+import { isAccessible } from '../lib/io';
 import { UnexpectedError } from './errors';
 
 export class Parser {
@@ -149,7 +150,9 @@ export class Parser {
     this.mapCache = {};
     this.profileCache = {};
 
-    await fsp.rm(Config.instance().cachePath, { recursive: true });
+    if (await isAccessible(Config.instance().cachePath)) {
+      await fsp.rm(Config.instance().cachePath, { recursive: true });
+    }
   }
 
   private static async loadCached<
