@@ -368,23 +368,25 @@ export class ProfileProvider {
     }
     const result: Record<string, string> = {};
 
+    const preparedParameters = prepareProviderParameters(
+      providerJson.name,
+      providerJsonParameters
+    );
     //Resolve parameters defined in super.json
     for (const [key, value] of Object.entries(superJsonParameters)) {
       const providerJsonParameter = providerJsonParameters.find(
         parameter => parameter.name === key
       );
-      if (providerJsonParameter) {
-        //If value name and prepared value equals we are dealing with unset env
-        if (
-          prepareProviderParameters(providerJson.name, [providerJsonParameter])[
-            providerJsonParameter.name
-          ] === value
-        ) {
-          if (providerJsonParameter.default) {
-            result[key] = providerJsonParameter.default;
-          }
+      //If value name and prepared value equals we are dealing with unset env
+      if (
+        providerJsonParameter &&
+        preparedParameters[providerJsonParameter.name] === value
+      ) {
+        if (providerJsonParameter.default) {
+          result[key] = providerJsonParameter.default;
         }
       }
+
       //Use original value
       if (!result[key]) {
         result[key] = value;
