@@ -3,7 +3,6 @@ import {
   assertProfileDocumentNode,
   FILE_URI_PROTOCOL,
   HttpScheme,
-  IntegrationParameter,
   isApiKeySecurityValues,
   isBasicAuthSecurityValues,
   isBearerTokenSecurityValues,
@@ -13,6 +12,7 @@ import {
   isProfileFile,
   MapDocumentNode,
   NormalizedProfileProviderSettings,
+  prepareProviderParameters,
   ProfileDocumentNode,
   ProviderJson,
   SecurityScheme,
@@ -342,7 +342,7 @@ export class ProfileProvider {
         security: securityConfiguration,
         parameters: this.resolveIntegrationParameters(
           this.superJson.normalized.providers[providerInfo.name]?.parameters,
-          providerInfo.parameters || []
+          providerInfo
         ),
       },
       this.events
@@ -351,13 +351,13 @@ export class ProfileProvider {
 
   private resolveIntegrationParameters(
     superJsonParameters: { [key: string]: string } | undefined,
-    providerJsonParameters: IntegrationParameter[]
+    providerJson: ProviderJson
   ): Record<string, string> | undefined {
     if (superJsonParameters === undefined) {
       return undefined;
     }
 
-    //TODO: super. json defines parameters but provider.json does not - error?
+    const providerJsonParameters = providerJson.parameters || [];
     if (
       Object.keys(superJsonParameters).length !== 0 &&
       providerJsonParameters.length === 0
@@ -368,25 +368,35 @@ export class ProfileProvider {
     }
     const result: Record<string, string> = {};
 
+    const preparedParameters = prepareProviderParameters(
+      providerJson.name,
+      providerJsonParameters
+    );
+    //Resolve parameters defined in super.json
     for (const [key, value] of Object.entries(superJsonParameters)) {
-      // If there is value in env use it
-      let envValue: string | undefined = undefined;
-      if (value.startsWith('$')) {
-        envValue = process.env[value.substr(1)];
-      }
-      if (envValue !== undefined) {
-        result[key] = envValue;
-      } else {
-        // If we have defualt in provider.json use it
-        const providerJsonDefault = providerJsonParameters.find(
-          parameter => parameter.name === key && parameter.default
-        )?.default;
-        if (providerJsonDefault) {
-          result[key] = providerJsonDefault;
-          // Use value as is
-        } else {
-          result[key] = value;
+      const providerJsonParameter = providerJsonParameters.find(
+        parameter => parameter.name === key
+      );
+      //If value name and prepared value equals we are dealing with unset env
+      if (
+        providerJsonParameter &&
+        preparedParameters[providerJsonParameter.name] === value
+      ) {
+        if (providerJsonParameter.default) {
+          result[key] = providerJsonParameter.default;
         }
+      }
+
+      //Use original value
+      if (!result[key]) {
+        result[key] = value;
+      }
+    }
+
+    //Resolve parameters which are missing in super.json and have default value
+    for (const parameter of providerJsonParameters) {
+      if (result[parameter.name] === undefined && parameter.default) {
+        result[parameter.name] = parameter.default;
       }
     }
 

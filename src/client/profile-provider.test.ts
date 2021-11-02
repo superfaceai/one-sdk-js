@@ -398,7 +398,11 @@ describe('profile provider', () => {
             },
             {
               name: 'third',
-              default: 'default',
+              default: 'third-default',
+            },
+            {
+              name: 'fourth',
+              default: 'fourth-default',
             },
           ],
         };
@@ -421,14 +425,14 @@ describe('profile provider', () => {
                 security: [],
                 parameters: {
                   first: 'plain value',
-                  second: '$TEST_SECOND',
-                  third: 'value to be overriden by default',
+                  second: '$TEST_SECOND', //unset env value without default
+                  third: '$TEST_THIRD', //unset env value with default
+                  //fourth is missing - should be resolved to its default
                 },
               },
             },
           },
         });
-        process.env['TEST_SECOND'] = 'env test value';
         const mockProfileProvider = new ProfileProvider(
           mockSuperJson,
           mockProfileDocument,
@@ -440,8 +444,9 @@ describe('profile provider', () => {
 
         expect(result.configuration.parameters).toEqual({
           first: 'plain value',
-          second: 'env test value',
-          third: 'default',
+          second: '$TEST_SECOND',
+          third: 'third-default',
+          fourth: 'fourth-default',
         });
 
         expect(result).toMatchObject(expectedBoundProfileProvider);
