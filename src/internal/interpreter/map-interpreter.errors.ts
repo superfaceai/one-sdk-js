@@ -115,7 +115,7 @@ export class MappedHTTPError<T> extends HTTPError {
     return [
       `${this.kind}: ${this.message}`,
       this.properties
-        ? 'Properites: ' + JSON.stringify(this.properties, undefined, 2)
+        ? 'Properties: ' + JSON.stringify(this.properties, undefined, 2)
         : undefined,
       this.astPath ? `AST Path: ${this.astPath.join('.')}` : undefined,
       this.metadata?.node?.location
@@ -163,7 +163,7 @@ export class MappedError<T> extends MapInterpreterErrorBase {
     return [
       `${this.kind}: ${this.message}`,
       this.properties
-        ? 'Properites: ' + JSON.stringify(this.properties, undefined, 2)
+        ? 'Properties: ' + JSON.stringify(this.properties, undefined, 2)
         : undefined,
       this.astPath ? `AST Path: ${this.astPath.join('.')}` : undefined,
       this.metadata?.node?.location
