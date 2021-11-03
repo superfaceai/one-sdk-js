@@ -667,10 +667,10 @@
   dependencies:
     typescript-is "^0.18.3"
 
-"@superfaceai/parser@0.0.24-beta.4":
-  version "0.0.24-beta.4"
-  resolved "https://registry.yarnpkg.com/@superfaceai/parser/-/parser-0.0.24-beta.4.tgz#4e3cca51c643224a6dc27c90cfd7baabde048935"
-  integrity sha512-SW/tgCsxZjsp8E/cwKCTr+uvz8nz2ZXNut7HXFbO2tv+kM0oQnKhhYwfvikLNefqA9OkBfQqjgsVrT9KW2WAdQ==
+"@superfaceai/parser@0.0.24-beta.5":
+  version "0.0.24-beta.5"
+  resolved "https://registry.yarnpkg.com/@superfaceai/parser/-/parser-0.0.24-beta.5.tgz#7f33969f4c02170353335e205c864953439e89da"
+  integrity sha512-qgZazstUxXM3AfAbKW77rYNvKXjkm9zODyAAYplQXS6P6EWNd2KDC4j5HLMEAOi+rDjDIBCjGBaiqTyje2Uz2A==
   dependencies:
     "@superfaceai/ast" "0.0.35-beta.2"
     "@types/debug" "^4.1.5"
