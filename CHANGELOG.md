@@ -6,8 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [1.0.0] - 2021-11-04
 ### Added
 - Module for mocking of Superface components
+- MapInterpreter now supports integration parameters
 
 ### Changed
 - Removed unnecessary result propagation in interpreter - using stackTop.result instead
@@ -15,6 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - MappedHTTPErrors and MappedErrors are handled a little better
 - Parser uses AST metadata to check if source was changed
 - Profile provider resolves integration parameters and fallback to default during `bind`
+
+### Removed
+- replaced zod with ast validations
+- deprecated cacheBoundProfileProvider function on SuperfaceClient
 
 ### Fixed
 - operation call no longer overwrites already mapped result
@@ -24,16 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `fail` correctly sets `outcome.error` in caller
 - errors are passed correctly through multiple levels of operation calls
 - inline calls throw error when they fail
-
-### Added
-- MapInterpreter now supports integration parameters
-
-### Fixed
 - Integration parameters are passed from super.json to BoundProfileProvider
-
-### Removed
-- replaced zod with ast validations
-- deprecated cacheBoundProfileProvider function on SuperfaceClient
 
 ## [0.0.40] - 2021-10-18
 ### Changed
@@ -47,6 +45,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Locked AST version with matching schemas from parser
 
 ## [0.0.37] - 2021-10-14
+### Added
+- Make `configuration` of `BoundProfileProvider` public
+
 ### Changed
 - Removed unnecessary result propagation in interpreter - using stackTop.result instead
 - Terminal outcome statements should now correctly exit from iteration
@@ -56,19 +57,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **BREAKING CHANGE**: absolute URLs are no longer allowed in maps
 - **BREAKING CHANGE**: interpolation no longer works in base URLs
 
-### Added
-- Make `configuration` of `BoundProfileProvider` public
-
 ## [0.0.36] - 2021-09-29
+### Added
+- Export `PerformError` class
+- Export `ErrorBase`, `SDKExecutionError` and `UnexpectedError` classes
 
 ### Fixed
 - Use super.json `priority` correctly
 - provider names are validated across super.json, provider.json and map file header
 - when fetch throws an unknown error, it gets passed down the failover machinery
-
-### Added
-- Export `PerformError` class
-- Export `ErrorBase`, `SDKExecutionError` and `UnexpectedError` classes
 
 ## [0.0.33] - 2021-08-31
 
@@ -94,6 +91,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.0.29] - 2021-07-20
 ### Added
 - `MetricReporter` class that hooks on various events and reports metrics to Superface backend services
+- Internal Event system
+- Interface and implementation of backoffs
+- Interface for failure policies
+- Implementation of common failure policies
 
 ### Changed
 - `ErrorBase` now contains `toString()` method and getter for `Symbol.toStringTag`
@@ -101,12 +102,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `SuperfaceClient::getProvider` throws if the provider is not found
 - `SuperfaceClient::getProviderForProfile` no longer takes an optional non-documented preference argument
 - `FailurePolicyRouter::constructor` now takes a function which is called to instantiate policy for specified provider
-
-### Added
-- Internal Event system
-- Interface and implementation of backoffs
-- Interface for failure policies
-- Implementation of common failure policies
 
 ## [0.0.28] - 2021-06-15
 ### Added
@@ -266,31 +261,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Profile parameter validator
 - CI/CD workflows
 
-[Unreleased]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.40...HEAD
+[Unreleased]: https://github.com/superfaceai/one-sdk-js/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.40...v1.0.0
 [0.0.40]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.39...v0.0.40
 [0.0.39]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.38...v0.0.39
 [0.0.38]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.37...v0.0.38
-[0.0.37]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.37-beta.0...v0.0.37
-[0.0.37-beta.0]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.36...v0.0.37-beta.0
-[0.0.36]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.36-beta.0...v0.0.36
-[0.0.36-beta.0]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.35-beta.0...v0.0.36-beta.0
-[0.0.35-beta.0]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.34-beta.1...v0.0.35-beta.0
-[0.0.34-beta.1]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.34-beta.0...v0.0.34-beta.1
-[0.0.34-beta.0]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.33...v0.0.34-beta.0
-[0.0.33]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.33-beta.0...v0.0.33
-[0.0.33-beta.0]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.32-beta.0...v0.0.33-beta.0
-[0.0.32-beta.0]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.31...v0.0.32-beta.0
+[0.0.37]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.36...v0.0.37
+[0.0.36]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.33...v0.0.36
+[0.0.33]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.31...v0.0.33
 [0.0.31]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.30...v0.0.31
 [0.0.30]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.29...v0.0.30
-[0.0.29]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.29-beta.7...v0.0.29
-[0.0.29-beta.7]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.29-beta.6...v0.0.29-beta.7
-[0.0.29-beta.6]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.29-beta.5...v0.0.29-beta.6
-[0.0.29-beta.5]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.29-beta.4...v0.0.29-beta.5
-[0.0.29-beta.4]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.29-beta.3...v0.0.29-beta.4
-[0.0.29-beta.3]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.29-beta.2...v0.0.29-beta.3
-[0.0.29-beta.2]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.29-beta.1...v0.0.29-beta.2
-[0.0.29-beta.1]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.29-beta.0...v0.0.29-beta.1
-[0.0.29-beta.0]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.28...v0.0.29-beta.0
+[0.0.29]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.28...v0.0.29
 [0.0.28]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.27...v0.0.28
 [0.0.27]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.26...v0.0.27
 [0.0.26]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.25...v0.0.26
