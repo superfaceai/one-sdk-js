@@ -77,11 +77,25 @@ export async function fetchProviderInfo(
     contentType: 'application/json',
   });
 
-  if (!isProviderJson(body)) {
+  function assertProperties(
+    obj: unknown
+  ): asserts obj is { definition: unknown } {
+    if (
+      typeof obj !== 'object' ||
+      obj === null ||
+      'definition' in obj === false
+    ) {
+      throw new UnexpectedError('Registry responded with invalid body');
+    }
+  }
+
+  assertProperties(body);
+
+  if (!isProviderJson(body.definition)) {
     throw new UnexpectedError('Registry responded with invalid body');
   }
 
-  return body;
+  return body.definition;
 }
 
 function parseBindResponse(input: unknown): {
