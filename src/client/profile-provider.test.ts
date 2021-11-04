@@ -1,5 +1,6 @@
 import {
   ApiKeyPlacement,
+  AstMetadata,
   HttpScheme,
   MapDocumentNode,
   OnFail,
@@ -61,7 +62,22 @@ jest.mock('../internal/superjson', () => ({
 }));
 
 describe('profile provider', () => {
+  const astMetadata: AstMetadata = {
+    sourceChecksum: 'checksum',
+    astVersion: {
+      major: 1,
+      minor: 0,
+      patch: 0,
+    },
+    parserVersion: {
+      major: 1,
+      minor: 0,
+      patch: 0,
+    },
+  };
+
   const mockMapDocument: MapDocumentNode = {
+    astMetadata,
     kind: 'MapDocument',
     header: {
       kind: 'MapHeader',
@@ -80,6 +96,7 @@ describe('profile provider', () => {
   };
 
   const mockProfileDocument: ProfileDocumentNode = {
+    astMetadata,
     kind: 'ProfileDocument',
     header: {
       kind: 'ProfileHeader',
@@ -341,6 +358,99 @@ describe('profile provider', () => {
           ],
         },
       };
+
+      it('returns new BoundProfileProvider with integration parameters', async () => {
+        const mockProviderJsonWithParameters: ProviderJson = {
+          name: 'test',
+          services: [{ id: 'test-service', baseUrl: 'service/base/url' }],
+          securitySchemes: [
+            {
+              type: SecurityType.HTTP,
+              id: 'basic',
+              scheme: HttpScheme.BASIC,
+            },
+            {
+              id: 'api',
+              type: SecurityType.APIKEY,
+              in: ApiKeyPlacement.HEADER,
+              name: 'Authorization',
+            },
+            {
+              id: 'bearer',
+              type: SecurityType.HTTP,
+              scheme: HttpScheme.BEARER,
+              bearerFormat: 'some',
+            },
+            {
+              id: 'digest',
+              type: SecurityType.HTTP,
+              scheme: HttpScheme.DIGEST,
+            },
+          ],
+          defaultService: 'test-service',
+          parameters: [
+            {
+              name: 'first',
+              description: 'first test value',
+            },
+            {
+              name: 'second',
+            },
+            {
+              name: 'third',
+              default: 'third-default',
+            },
+            {
+              name: 'fourth',
+              default: 'fourth-default',
+            },
+          ],
+        };
+        mocked(fetchBind).mockResolvedValue({
+          provider: mockProviderJsonWithParameters,
+          mapAst: mockMapDocument,
+        });
+        //normalized is getter on SuperJson - unable to mock or spy on
+        Object.assign(mockSuperJson, {
+          normalized: {
+            profiles: {
+              ['test-profile']: {
+                version: '1.0.0',
+                defaults: {},
+                providers: {},
+              },
+            },
+            providers: {
+              test: {
+                security: [],
+                parameters: {
+                  first: 'plain value',
+                  second: '$TEST_SECOND', //unset env value without default
+                  third: '$TEST_THIRD', //unset env value with default
+                  //fourth is missing - should be resolved to its default
+                },
+              },
+            },
+          },
+        });
+        const mockProfileProvider = new ProfileProvider(
+          mockSuperJson,
+          mockProfileDocument,
+          mockProviderConfiguration,
+          mockSuperfacClient
+        );
+
+        const result = await mockProfileProvider.bind();
+
+        expect(result.configuration.parameters).toEqual({
+          first: 'plain value',
+          second: '$TEST_SECOND',
+          third: 'third-default',
+          fourth: 'fourth-default',
+        });
+
+        expect(result).toMatchObject(expectedBoundProfileProvider);
+      });
 
       it('returns new BoundProfileProvider', async () => {
         mocked(fetchBind).mockResolvedValue(mockFetchResponse);
@@ -1086,6 +1196,7 @@ but http scheme requires: digest`
         });
 
         const mockMapDocumentBoop: MapDocumentNode = {
+          astMetadata,
           kind: 'MapDocument',
           header: {
             kind: 'MapHeader',

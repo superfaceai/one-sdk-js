@@ -1,12 +1,31 @@
-import { MapDocumentNode, ProfileDocumentNode } from '@superfaceai/ast';
+import {
+  AstMetadata,
+  MapDocumentNode,
+  ProfileDocumentNode,
+} from '@superfaceai/ast';
 import { getLocal } from 'mockttp';
 
 import { BoundProfileProvider } from '../client';
 import { Events } from './events';
 import { err } from './result/result';
 
+const astMetadata: AstMetadata = {
+  sourceChecksum: 'checksum',
+  astVersion: {
+    major: 1,
+    minor: 0,
+    patch: 0,
+  },
+  parserVersion: {
+    major: 1,
+    minor: 0,
+    patch: 0,
+  },
+};
+
 const mockProfileDocument: ProfileDocumentNode = {
   kind: 'ProfileDocument',
+  astMetadata,
   header: {
     kind: 'ProfileHeader',
     scope: 'test',
@@ -47,6 +66,7 @@ const mockProfileDocument: ProfileDocumentNode = {
 };
 
 const mockMapDocument: MapDocumentNode = {
+  astMetadata,
   kind: 'MapDocument',
   header: {
     kind: 'MapHeader',

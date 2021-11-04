@@ -1,6 +1,10 @@
 import { parseMap, parseProfile, Source } from '@superfaceai/parser';
 import { promises as fsp } from 'fs';
+import { join as joinPath } from 'path';
+import { mocked } from 'ts-jest/utils';
 
+import { Config } from '../config';
+import { isAccessible } from '../lib/io';
 import { Parser } from './parser';
 
 const mapFixture = `
@@ -40,9 +44,11 @@ usecase Test safe {
 `;
 
 jest.mock('fs', () => ({
+  ...jest.requireActual('fs'),
   promises: {
     mkdir: jest.fn(),
     stat: jest.fn(),
+    rm: jest.fn(),
     readdir: jest.fn(),
     readFile: jest.fn(),
     writeFile: jest.fn(),
@@ -51,9 +57,46 @@ jest.mock('fs', () => ({
   realpathSync: jest.fn(),
 }));
 
+jest.mock('../lib/io', () => ({
+  isAccessible: jest.fn(),
+}));
+
 describe('Parser', () => {
   afterEach(() => {
     jest.clearAllMocks();
+  });
+
+  describe('clearCache', () => {
+    it('should clear in memory and file cache', async () => {
+      (Parser as any).profileCache = { profilePath: profileASTFixture };
+      (Parser as any).mapCache = { mapPath: mapASTFixture };
+
+      mocked(isAccessible).mockResolvedValue(true);
+
+      await Parser.clearCache();
+
+      expect(Object.keys((Parser as any).profileCache).length).toEqual(0);
+      expect(Object.keys((Parser as any).mapCache).length).toEqual(0);
+
+      expect(fsp.rm).toHaveBeenCalledTimes(1);
+      expect(fsp.rm).toHaveBeenCalledWith(expect.any(String), {
+        recursive: true,
+      });
+    });
+
+    it('should clear in memory cache', async () => {
+      (Parser as any).profileCache = { profilePath: profileASTFixture };
+      (Parser as any).mapCache = { mapPath: mapASTFixture };
+
+      mocked(isAccessible).mockResolvedValue(false);
+
+      await Parser.clearCache();
+
+      expect(Object.keys((Parser as any).profileCache).length).toEqual(0);
+      expect(Object.keys((Parser as any).mapCache).length).toEqual(0);
+
+      expect(fsp.rm).not.toHaveBeenCalled();
+    });
   });
 
   describe('map', () => {
@@ -63,7 +106,7 @@ describe('Parser', () => {
 
     it("should parse and save to cache when it doesn't exist already", async () => {
       jest.spyOn(fsp, 'stat').mockRejectedValue('File not found');
-      const result = await Parser.parseMap(mapFixture, 'profile.supr', {
+      const result = await Parser.parseMap(mapFixture, 'map.suma', {
         profileName: 'profile',
         providerName: 'test-provider',
         scope: 'test',
@@ -71,9 +114,38 @@ describe('Parser', () => {
 
       expect(fsp.mkdir).toHaveBeenCalled();
       expect(fsp.writeFile).toHaveBeenCalledWith(
-        expect.stringMatching('profile'),
+        expect.stringMatching('test-provider'),
         JSON.stringify(result)
       );
+    });
+
+    it('should not load from in-memory cache when already present - missing ast metadata', async () => {
+      jest
+        .spyOn(fsp, 'stat')
+        .mockResolvedValueOnce({ isFile: () => true } as any);
+      jest.spyOn(fsp, 'readFile').mockResolvedValueOnce(mapASTFixture);
+
+      const path = joinPath(
+        Config.instance().cachePath,
+        'test',
+        'profile',
+        'test-provider.suma.ast.json'
+      );
+
+      (Parser as any).mapCache[path] = {
+        ...parseMap(new Source(mapFixture)),
+        astMetadata: undefined,
+      };
+
+      await Parser.parseMap(mapFixture, 'profile.supr', {
+        profileName: 'profile',
+        providerName: 'test-provider',
+        scope: 'test',
+      });
+
+      expect(fsp.stat).toHaveBeenCalledTimes(1);
+      expect(fsp.readFile).toHaveBeenCalledTimes(1);
+      expect(fsp.writeFile).not.toHaveBeenCalled();
     });
 
     it('should load from in-memory cache when already present', async () => {
@@ -103,12 +175,64 @@ describe('Parser', () => {
       expect(result1).toEqual(result2);
     });
 
+    it('should not load from cache file when file is not valid', async () => {
+      jest
+        .spyOn(fsp, 'stat')
+        .mockResolvedValueOnce({ isFile: () => true } as any);
+      jest
+        .spyOn(fsp, 'readdir')
+        .mockResolvedValueOnce(['test-provider.suma.ast.json'] as any);
+      jest.spyOn(fsp, 'readFile').mockResolvedValueOnce(
+        JSON.stringify({
+          ...parseMap(new Source(mapFixture)),
+          astMetadata: undefined,
+        })
+      );
+      await Parser.parseMap(mapFixture, 'map.suma', {
+        profileName: 'profile',
+        providerName: 'test-provider',
+        scope: 'test',
+      });
+
+      expect(fsp.readFile).toHaveBeenCalled();
+      expect(fsp.mkdir).toHaveBeenCalledTimes(1);
+      expect(fsp.writeFile).toHaveBeenCalledTimes(1);
+      expect(fsp.unlink).toHaveBeenCalled();
+    });
+
+    it('should not load from cache file when source checksum does not match', async () => {
+      jest
+        .spyOn(fsp, 'stat')
+        .mockResolvedValueOnce({ isFile: () => true } as any);
+      jest
+        .spyOn(fsp, 'readdir')
+        .mockResolvedValueOnce(['test-provider.suma.ast.json'] as any);
+
+      const ast = parseMap(new Source(mapFixture));
+      jest.spyOn(fsp, 'readFile').mockResolvedValueOnce(
+        JSON.stringify({
+          ...ast,
+          astMetadata: { ...ast.astMetadata, sourceChecksum: '' },
+        })
+      );
+      await Parser.parseMap(mapFixture, 'map.suma', {
+        profileName: 'profile',
+        providerName: 'test-provider',
+        scope: 'test',
+      });
+
+      expect(fsp.readFile).toHaveBeenCalled();
+      expect(fsp.mkdir).toHaveBeenCalledTimes(1);
+      expect(fsp.writeFile).toHaveBeenCalledTimes(1);
+      expect(fsp.unlink).toHaveBeenCalled();
+    });
+
     it('should load from cache file when already present', async () => {
       jest
         .spyOn(fsp, 'stat')
         .mockResolvedValueOnce({ isFile: () => true } as any);
       jest.spyOn(fsp, 'readFile').mockResolvedValueOnce(mapASTFixture);
-      await Parser.parseMap(mapFixture, 'profile.supr', {
+      await Parser.parseMap(mapFixture, 'map.suma', {
         profileName: 'profile',
         providerName: 'test-provider',
         scope: 'test',
@@ -123,9 +247,7 @@ describe('Parser', () => {
       jest
         .spyOn(fsp, 'readdir')
         .mockResolvedValueOnce([])
-        .mockResolvedValueOnce([
-          'test-provider-abcdef0123456789.suma.ast.json',
-        ] as any);
+        .mockResolvedValueOnce(['test-provider.suma.ast.json'] as any);
       await Parser.parseMap(mapFixture, 'profile.supr', {
         profileName: 'profile',
         providerName: 'test-provider',
@@ -167,6 +289,33 @@ describe('Parser', () => {
       );
     });
 
+    it('should not load from in-memory cache when already present - missing ast metadata', async () => {
+      jest
+        .spyOn(fsp, 'stat')
+        .mockResolvedValueOnce({ isFile: () => true } as any);
+      jest.spyOn(fsp, 'readFile').mockResolvedValueOnce(profileASTFixture);
+
+      const path = joinPath(
+        Config.instance().cachePath,
+        'test',
+        'profile.supr.ast.json'
+      );
+
+      (Parser as any).profileCache[path] = {
+        ...parseProfile(new Source(profileFixture)),
+        astMetadata: undefined,
+      };
+
+      await Parser.parseProfile(profileFixture, 'profile.supr', {
+        profileName: 'profile',
+        scope: 'test',
+      });
+
+      expect(fsp.stat).toHaveBeenCalledTimes(1);
+      expect(fsp.readFile).toHaveBeenCalledTimes(1);
+      expect(fsp.writeFile).not.toHaveBeenCalled();
+    });
+
     it('should load from in-memory cache when already present', async () => {
       jest
         .spyOn(fsp, 'stat')
@@ -200,6 +349,56 @@ describe('Parser', () => {
       expect(result1).toEqual(result2);
     });
 
+    it('should not load from cache file when file is not valid', async () => {
+      jest
+        .spyOn(fsp, 'stat')
+        .mockResolvedValueOnce({ isFile: () => true } as any);
+      jest
+        .spyOn(fsp, 'readdir')
+        .mockResolvedValueOnce(['profile.supr.ast.json'] as any);
+      jest.spyOn(fsp, 'readFile').mockResolvedValueOnce(
+        JSON.stringify({
+          ...parseProfile(new Source(profileFixture)),
+          astMetadata: undefined,
+        })
+      );
+      await Parser.parseProfile(profileFixture, 'profile.supr', {
+        profileName: 'profile',
+        scope: 'test',
+      });
+
+      expect(fsp.readFile).toHaveBeenCalled();
+      expect(fsp.mkdir).toHaveBeenCalledTimes(1);
+      expect(fsp.writeFile).toHaveBeenCalledTimes(1);
+      expect(fsp.unlink).toHaveBeenCalled();
+    });
+
+    it('should not load from cache file when source checksum does not match', async () => {
+      jest
+        .spyOn(fsp, 'stat')
+        .mockResolvedValueOnce({ isFile: () => true } as any);
+      jest
+        .spyOn(fsp, 'readdir')
+        .mockResolvedValueOnce(['profile.supr.ast.json'] as any);
+
+      const ast = parseProfile(new Source(profileFixture));
+      jest.spyOn(fsp, 'readFile').mockResolvedValueOnce(
+        JSON.stringify({
+          ...ast,
+          astMetadata: { ...ast.astMetadata, sourceChecksum: '' },
+        })
+      );
+      await Parser.parseProfile(profileFixture, 'profile.supr', {
+        profileName: 'profile',
+        scope: 'test',
+      });
+
+      expect(fsp.readFile).toHaveBeenCalled();
+      expect(fsp.mkdir).toHaveBeenCalledTimes(1);
+      expect(fsp.writeFile).toHaveBeenCalledTimes(1);
+      expect(fsp.unlink).toHaveBeenCalled();
+    });
+
     it('should load from cache file when already present', async () => {
       jest
         .spyOn(fsp, 'stat')
@@ -219,9 +418,7 @@ describe('Parser', () => {
       jest
         .spyOn(fsp, 'readdir')
         .mockResolvedValueOnce([])
-        .mockResolvedValueOnce([
-          'profile-abcdef0123456789.supr.ast.json',
-        ] as any);
+        .mockResolvedValueOnce(['profile.supr.ast.json'] as any);
       await Parser.parseProfile(profileFixture, 'profile.supr', {
         profileName: 'profile',
         scope: 'test',

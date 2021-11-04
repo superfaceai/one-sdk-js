@@ -12,6 +12,7 @@ import {
   isProfileFile,
   MapDocumentNode,
   NormalizedProfileProviderSettings,
+  prepareProviderParameters,
   ProfileDocumentNode,
   ProviderJson,
   SecurityScheme,
@@ -339,11 +340,67 @@ export class ProfileProvider {
             providerInfo.name
           ],
         security: securityConfiguration,
-        parameters:
+        parameters: this.resolveIntegrationParameters(
           this.superJson.normalized.providers[providerInfo.name]?.parameters,
+          providerInfo
+        ),
       },
       this.events
     );
+  }
+
+  private resolveIntegrationParameters(
+    superJsonParameters: { [key: string]: string } | undefined,
+    providerJson: ProviderJson
+  ): Record<string, string> | undefined {
+    if (superJsonParameters === undefined) {
+      return undefined;
+    }
+
+    const providerJsonParameters = providerJson.parameters || [];
+    if (
+      Object.keys(superJsonParameters).length !== 0 &&
+      providerJsonParameters.length === 0
+    ) {
+      console.warn(
+        `Warning: Super.json defines integration parameters but provider.json does not`
+      );
+    }
+    const result: Record<string, string> = {};
+
+    const preparedParameters = prepareProviderParameters(
+      providerJson.name,
+      providerJsonParameters
+    );
+    //Resolve parameters defined in super.json
+    for (const [key, value] of Object.entries(superJsonParameters)) {
+      const providerJsonParameter = providerJsonParameters.find(
+        parameter => parameter.name === key
+      );
+      //If value name and prepared value equals we are dealing with unset env
+      if (
+        providerJsonParameter &&
+        preparedParameters[providerJsonParameter.name] === value
+      ) {
+        if (providerJsonParameter.default) {
+          result[key] = providerJsonParameter.default;
+        }
+      }
+
+      //Use original value
+      if (!result[key]) {
+        result[key] = value;
+      }
+    }
+
+    //Resolve parameters which are missing in super.json and have default value
+    for (const parameter of providerJsonParameters) {
+      if (result[parameter.name] === undefined && parameter.default) {
+        result[parameter.name] = parameter.default;
+      }
+    }
+
+    return result;
   }
 
   private async resolveProfileAst(): Promise<ProfileDocumentNode | undefined> {

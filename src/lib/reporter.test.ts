@@ -1,4 +1,5 @@
 import {
+  AstMetadata,
   BackoffKind,
   MapDocumentNode,
   OnFail,
@@ -67,8 +68,23 @@ const mockSuperJsonFailover = new SuperJson({
   },
 });
 
+const astMetadata: AstMetadata = {
+  sourceChecksum: 'checksum',
+  astVersion: {
+    major: 1,
+    minor: 0,
+    patch: 0,
+  },
+  parserVersion: {
+    major: 1,
+    minor: 0,
+    patch: 0,
+  },
+};
+
 const mockProfileDocument: ProfileDocumentNode = {
   kind: 'ProfileDocument',
+  astMetadata,
   header: {
     kind: 'ProfileHeader',
     name: 'test-profile',
@@ -109,6 +125,7 @@ const mockProfileDocument: ProfileDocumentNode = {
 
 const mockMapDocumentSuccess: MapDocumentNode = {
   kind: 'MapDocument',
+  astMetadata,
   header: {
     kind: 'MapHeader',
     profile: {
@@ -154,6 +171,7 @@ const mockMapDocumentFailure: (provider?: string) => MapDocumentNode = (
   provider = 'testprovider'
 ) => ({
   kind: 'MapDocument',
+  astMetadata,
   header: {
     kind: 'MapHeader',
     profile: {

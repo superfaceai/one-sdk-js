@@ -1,4 +1,4 @@
-import { MapDocumentNode, ProviderJson } from '@superfaceai/ast';
+import { AstMetadata, MapDocumentNode, ProviderJson } from '@superfaceai/ast';
 
 import { Config } from '../config';
 import {
@@ -20,7 +20,22 @@ const MOCK_TOKEN =
   'sfs_bb064dd57c302911602dd097bc29bedaea6a021c25a66992d475ed959aa526c7_37bce8b5';
 
 describe('registry', () => {
+  const astMetadata: AstMetadata = {
+    sourceChecksum: 'checksum',
+    astVersion: {
+      major: 1,
+      minor: 0,
+      patch: 0,
+    },
+    parserVersion: {
+      major: 1,
+      minor: 0,
+      patch: 0,
+    },
+  };
+
   const mockMapDocument: MapDocumentNode = {
+    astMetadata,
     kind: 'MapDocument',
     header: {
       kind: 'MapHeader',

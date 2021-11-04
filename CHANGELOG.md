@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed unnecessary result propagation in interpreter - using stackTop.result instead
 - Terminal outcome statements should now correctly exit from iteration
 - MappedHTTPErrors and MappedErrors are handled a little better
+- Parser uses AST metadata to check if source was changed
+- Profile provider resolves integration parameters and fallback to default during `bind`
 
 ### Fixed
 - operation call no longer overwrites already mapped result

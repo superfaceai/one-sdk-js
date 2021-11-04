@@ -1,4 +1,8 @@
-import { ProfileDocumentNode, ProfileHeaderNode } from '@superfaceai/ast';
+import {
+  AstMetadata,
+  ProfileDocumentNode,
+  ProfileHeaderNode,
+} from '@superfaceai/ast';
 
 import { Result } from '../../lib';
 import { ProfileParameterValidator } from './profile-parameter-validator';
@@ -12,6 +16,19 @@ const header: ProfileHeaderNode = {
   name: 'example',
   version: {
     major: 0,
+    minor: 0,
+    patch: 0,
+  },
+};
+const astMetadata: AstMetadata = {
+  sourceChecksum: 'checksum',
+  astVersion: {
+    major: 1,
+    minor: 0,
+    patch: 0,
+  },
+  parserVersion: {
+    major: 1,
     minor: 0,
     patch: 0,
   },
@@ -42,6 +59,7 @@ describe('ProfileParameterValidator', () => {
   describe('Input', () => {
     describe('AST with no input', () => {
       const ast: ProfileDocumentNode = {
+        astMetadata,
         kind: 'ProfileDocument',
         header,
         definitions: [
@@ -77,6 +95,7 @@ describe('ProfileParameterValidator', () => {
 
     describe('AST with one optional input prop', () => {
       const ast: ProfileDocumentNode = {
+        astMetadata,
         kind: 'ProfileDocument',
         header,
         definitions: [
@@ -133,6 +152,7 @@ describe('ProfileParameterValidator', () => {
 
     describe('AST with one optional primitive typed input prop', () => {
       const ast: ProfileDocumentNode = {
+        astMetadata,
         kind: 'ProfileDocument',
         header,
         definitions: [
@@ -187,6 +207,7 @@ describe('ProfileParameterValidator', () => {
 
     describe('AST with one nonnullable primitive typed input prop', () => {
       const ast: ProfileDocumentNode = {
+        astMetadata,
         kind: 'ProfileDocument',
         header,
         definitions: [
@@ -254,6 +275,7 @@ describe('ProfileParameterValidator', () => {
 
     describe('AST with multiple input props', () => {
       const ast: ProfileDocumentNode = {
+        astMetadata,
         kind: 'ProfileDocument',
         header,
         definitions: [
@@ -364,6 +386,7 @@ describe('ProfileParameterValidator', () => {
 
     describe('AST with predefined field', () => {
       const ast: ProfileDocumentNode = {
+        astMetadata,
         kind: 'ProfileDocument',
         header,
         definitions: [
@@ -418,6 +441,7 @@ describe('ProfileParameterValidator', () => {
 
     describe('AST with an enum', () => {
       const ast: ProfileDocumentNode = {
+        astMetadata,
         kind: 'ProfileDocument',
         header,
         definitions: [
@@ -486,6 +510,8 @@ describe('ProfileParameterValidator', () => {
     describe('AST with predefined enum', () => {
       const ast: ProfileDocumentNode = {
         kind: 'ProfileDocument',
+        astMetadata,
+
         header,
         definitions: [
           {
@@ -553,6 +579,8 @@ describe('ProfileParameterValidator', () => {
     describe('AST with object', () => {
       const ast: ProfileDocumentNode = {
         kind: 'ProfileDocument',
+        astMetadata,
+
         header,
         definitions: [
           {
@@ -629,6 +657,8 @@ describe('ProfileParameterValidator', () => {
     describe('AST with nested object', () => {
       const ast: ProfileDocumentNode = {
         kind: 'ProfileDocument',
+        astMetadata,
+
         header,
         definitions: [
           {
@@ -734,6 +764,8 @@ describe('ProfileParameterValidator', () => {
 
     describe('AST with predefined object', () => {
       const ast: ProfileDocumentNode = {
+        astMetadata,
+
         kind: 'ProfileDocument',
         header,
         definitions: [
@@ -815,6 +847,8 @@ describe('ProfileParameterValidator', () => {
     describe('AST with union', () => {
       const ast: ProfileDocumentNode = {
         kind: 'ProfileDocument',
+        astMetadata,
+
         header,
         definitions: [
           {
@@ -877,6 +911,8 @@ describe('ProfileParameterValidator', () => {
     describe('AST with predefined non-nullable union', () => {
       const ast: ProfileDocumentNode = {
         kind: 'ProfileDocument',
+        astMetadata,
+
         header,
         definitions: [
           {
@@ -950,6 +986,8 @@ describe('ProfileParameterValidator', () => {
     describe('AST with string array', () => {
       const ast: ProfileDocumentNode = {
         kind: 'ProfileDocument',
+        astMetadata,
+
         header,
         definitions: [
           {
@@ -1020,6 +1058,8 @@ describe('ProfileParameterValidator', () => {
     describe('AST with non-nullable array of nullable items', () => {
       const ast: ProfileDocumentNode = {
         kind: 'ProfileDocument',
+        astMetadata,
+
         header,
         definitions: [
           {
@@ -1094,6 +1134,8 @@ describe('ProfileParameterValidator', () => {
   describe('Result', () => {
     describe('AST with nested object', () => {
       const ast: ProfileDocumentNode = {
+        astMetadata,
+
         kind: 'ProfileDocument',
         header,
         definitions: [
@@ -1195,6 +1237,8 @@ describe('ProfileParameterValidator', () => {
 
     describe('AST with multi-typed Enum', () => {
       const ast: ProfileDocumentNode = {
+        astMetadata,
+
         kind: 'ProfileDocument',
         header,
         definitions: [

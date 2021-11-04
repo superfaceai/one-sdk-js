@@ -65,7 +65,7 @@ export class MapInterpreterErrorBase extends ErrorBase {
       `${this.kind}: ${this.message}`,
       this.astPath ? `AST Path: ${this.astPath.join('.')}` : undefined,
       this.metadata?.node?.location
-        ? `Original Map Location: Line ${this.metadata.node.location.line}, column ${this.metadata.node.location.column}`
+        ? `Original Map Location: Line ${this.metadata.node.location.start.line}, column ${this.metadata.node.location.start.column}`
         : undefined,
     ]
       .filter(line => line !== undefined && line !== '')
@@ -115,11 +115,11 @@ export class MappedHTTPError<T> extends HTTPError {
     return [
       `${this.kind}: ${this.message}`,
       this.properties
-        ? 'Properites: ' + JSON.stringify(this.properties, undefined, 2)
+        ? 'Properties: ' + JSON.stringify(this.properties, undefined, 2)
         : undefined,
       this.astPath ? `AST Path: ${this.astPath.join('.')}` : undefined,
       this.metadata?.node?.location
-        ? `Original Map Location: Line ${this.metadata.node.location.line}, column ${this.metadata.node.location.column}`
+        ? `Original Map Location: Line ${this.metadata.node.location.start.line}, column ${this.metadata.node.location.start.column}`
         : undefined,
     ]
       .filter(line => line !== undefined && line !== '')
@@ -142,7 +142,7 @@ export class JessieError extends MapInterpreterErrorBase {
       this.originalError.toString(),
       this.astPath ? `AST Path: ${this.astPath.join('.')}` : undefined,
       this.metadata?.node?.location
-        ? `Original Map Location: Line ${this.metadata.node.location.line}, column ${this.metadata.node.location.column}`
+        ? `Original Map Location: Line ${this.metadata.node.location.start.line}, column ${this.metadata.node.location.start.column}`
         : undefined,
     ]
       .filter(line => line !== undefined && line !== '')
@@ -163,11 +163,11 @@ export class MappedError<T> extends MapInterpreterErrorBase {
     return [
       `${this.kind}: ${this.message}`,
       this.properties
-        ? 'Properites: ' + JSON.stringify(this.properties, undefined, 2)
+        ? 'Properties: ' + JSON.stringify(this.properties, undefined, 2)
         : undefined,
       this.astPath ? `AST Path: ${this.astPath.join('.')}` : undefined,
       this.metadata?.node?.location
-        ? `Original Map Location: Line ${this.metadata.node.location.line}, column ${this.metadata.node.location.column}`
+        ? `Original Map Location: Line ${this.metadata.node.location.start.line}, column ${this.metadata.node.location.start.column}`
         : undefined,
     ]
       .filter(line => !!line)

@@ -1,4 +1,5 @@
 import {
+  AstMetadata,
   BackoffKind,
   MapDocumentNode,
   OnFail,
@@ -17,7 +18,24 @@ import {
 } from '../client';
 import { BoundProfileProvider } from '../profile-provider';
 
+const astMetadata: AstMetadata = {
+  sourceChecksum: 'checksum',
+  astVersion: {
+    major: 1,
+    minor: 0,
+    patch: 0,
+    label: undefined,
+  },
+  parserVersion: {
+    major: 1,
+    minor: 0,
+    patch: 0,
+    label: undefined,
+  },
+};
+
 const firstMockProfileDocument: ProfileDocumentNode = {
+  astMetadata,
   kind: 'ProfileDocument',
   header: {
     kind: 'ProfileHeader',
@@ -84,6 +102,8 @@ const firstMockProfileDocument: ProfileDocumentNode = {
 };
 
 const secondMockProfiledDocument: ProfileDocumentNode = {
+  astMetadata,
+
   kind: 'ProfileDocument',
   header: {
     kind: 'ProfileHeader',
@@ -125,6 +145,8 @@ const secondMockProfiledDocument: ProfileDocumentNode = {
 };
 
 const firstMockMapDocument: MapDocumentNode = {
+  astMetadata,
+
   kind: 'MapDocument',
   header: {
     kind: 'MapHeader',
@@ -230,6 +252,8 @@ const firstMockMapDocument: MapDocumentNode = {
 };
 
 const secondMockMapDocument: MapDocumentNode = {
+  astMetadata,
+
   kind: 'MapDocument',
   header: {
     kind: 'MapHeader',
@@ -336,6 +360,7 @@ const secondMockMapDocument: MapDocumentNode = {
 };
 
 const thirdMockMapDocument: MapDocumentNode = {
+  astMetadata,
   kind: 'MapDocument',
   header: {
     kind: 'MapHeader',
