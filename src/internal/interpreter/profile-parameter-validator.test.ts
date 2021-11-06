@@ -1,8 +1,4 @@
-import {
-  AstMetadata,
-  ProfileDocumentNode,
-  ProfileHeaderNode,
-} from '@superfaceai/ast';
+import { parseProfile, Source } from '@superfaceai/parser';
 
 import { Result } from '../../lib';
 import { ProfileParameterValidator } from './profile-parameter-validator';
@@ -11,28 +7,15 @@ import {
   isResultValidationError,
 } from './profile-parameter-validator.errors';
 
-const header: ProfileHeaderNode = {
-  kind: 'ProfileHeader',
-  name: 'example',
-  version: {
-    major: 0,
-    minor: 0,
-    patch: 0,
-  },
-};
-const astMetadata: AstMetadata = {
-  sourceChecksum: 'checksum',
-  astVersion: {
-    major: 1,
-    minor: 0,
-    patch: 0,
-  },
-  parserVersion: {
-    major: 1,
-    minor: 0,
-    patch: 0,
-  },
-};
+const parseProfileFromSource = (source: string) =>
+  parseProfile(
+    new Source(
+      `
+  name = 'example'
+  version = '1.0.0'
+` + source
+    )
+  );
 
 const checkErrorKind = (result: Result<unknown, unknown>) =>
   result.isErr() &&
@@ -58,24 +41,10 @@ const checkErrorContext = (result: Result<unknown, unknown>) =>
 describe('ProfileParameterValidator', () => {
   describe('Input', () => {
     describe('AST with no input', () => {
-      const ast: ProfileDocumentNode = {
-        astMetadata,
-        kind: 'ProfileDocument',
-        header,
-        definitions: [
-          {
-            kind: 'UseCaseDefinition',
-            useCaseName: 'Test',
-            input: {
-              kind: 'UseCaseSlotDefinition',
-              value: {
-                kind: 'ObjectDefinition',
-                fields: [],
-              },
-            },
-          },
-        ],
-      };
+      const ast = parseProfileFromSource(`
+        usecase Test safe {
+          input {}
+        }`);
       const parameterValidator = new ProfileParameterValidator(ast);
 
       it('should pass with empty input', () => {
@@ -94,30 +63,13 @@ describe('ProfileParameterValidator', () => {
     });
 
     describe('AST with one optional input prop', () => {
-      const ast: ProfileDocumentNode = {
-        astMetadata,
-        kind: 'ProfileDocument',
-        header,
-        definitions: [
-          {
-            kind: 'UseCaseDefinition',
-            useCaseName: 'Test',
-            input: {
-              kind: 'UseCaseSlotDefinition',
-              value: {
-                kind: 'ObjectDefinition',
-                fields: [
-                  {
-                    kind: 'FieldDefinition',
-                    required: false,
-                    fieldName: 'test',
-                  },
-                ],
-              },
-            },
-          },
-        ],
-      };
+      const ast = parseProfileFromSource(`
+        usecase Test safe {
+          input {
+            test
+          }
+        }
+      `);
       const parameterValidator = new ProfileParameterValidator(ast);
 
       it('should pass with or without optional prop', () => {
@@ -151,34 +103,13 @@ describe('ProfileParameterValidator', () => {
     });
 
     describe('AST with one optional primitive typed input prop', () => {
-      const ast: ProfileDocumentNode = {
-        astMetadata,
-        kind: 'ProfileDocument',
-        header,
-        definitions: [
-          {
-            kind: 'UseCaseDefinition',
-            useCaseName: 'Test',
-            input: {
-              kind: 'UseCaseSlotDefinition',
-              value: {
-                kind: 'ObjectDefinition',
-                fields: [
-                  {
-                    kind: 'FieldDefinition',
-                    fieldName: 'test',
-                    required: false,
-                    type: {
-                      kind: 'PrimitiveTypeName',
-                      name: 'string',
-                    },
-                  },
-                ],
-              },
-            },
-          },
-        ],
-      };
+      const ast = parseProfileFromSource(`
+        usecase Test safe {
+          input {
+            test string
+          }
+        }
+      `);
       const parameterValidator = new ProfileParameterValidator(ast);
 
       it('should pass with missing optional input', () => {
@@ -206,37 +137,13 @@ describe('ProfileParameterValidator', () => {
     });
 
     describe('AST with one nonnullable primitive typed input prop', () => {
-      const ast: ProfileDocumentNode = {
-        astMetadata,
-        kind: 'ProfileDocument',
-        header,
-        definitions: [
-          {
-            kind: 'UseCaseDefinition',
-            useCaseName: 'Test',
-            input: {
-              kind: 'UseCaseSlotDefinition',
-              value: {
-                kind: 'ObjectDefinition',
-                fields: [
-                  {
-                    kind: 'FieldDefinition',
-                    fieldName: 'test',
-                    required: true,
-                    type: {
-                      kind: 'NonNullDefinition',
-                      type: {
-                        kind: 'PrimitiveTypeName',
-                        name: 'string',
-                      },
-                    },
-                  },
-                ],
-              },
-            },
-          },
-        ],
-      };
+      const ast = parseProfileFromSource(`
+        usecase Test safe {
+          input {
+            test! string!
+          }
+        }
+      `);
       const parameterValidator = new ProfileParameterValidator(ast);
 
       it('should pass with correct type', () => {
@@ -274,51 +181,15 @@ describe('ProfileParameterValidator', () => {
     });
 
     describe('AST with multiple input props', () => {
-      const ast: ProfileDocumentNode = {
-        astMetadata,
-        kind: 'ProfileDocument',
-        header,
-        definitions: [
-          {
-            kind: 'UseCaseDefinition',
-            useCaseName: 'Test',
-            input: {
-              kind: 'UseCaseSlotDefinition',
-              value: {
-                kind: 'ObjectDefinition',
-                fields: [
-                  {
-                    kind: 'FieldDefinition',
-                    fieldName: 'test',
-                    required: true,
-                    type: {
-                      kind: 'NonNullDefinition',
-                      type: {
-                        kind: 'PrimitiveTypeName',
-                        name: 'string',
-                      },
-                    },
-                  },
-                  {
-                    kind: 'FieldDefinition',
-                    required: false,
-                    fieldName: 'untyped',
-                  },
-                  {
-                    kind: 'FieldDefinition',
-                    required: false,
-                    fieldName: 'another',
-                    type: {
-                      kind: 'PrimitiveTypeName',
-                      name: 'number',
-                    },
-                  },
-                ],
-              },
-            },
-          },
-        ],
-      };
+      const ast = parseProfileFromSource(`
+        usecase Test safe {
+          input {
+            test! string!
+            untyped
+            another number
+          }
+        }
+      `);
       const parameterValidator = new ProfileParameterValidator(ast);
 
       it('should pass with valid input', () => {
@@ -385,38 +256,15 @@ describe('ProfileParameterValidator', () => {
     });
 
     describe('AST with predefined field', () => {
-      const ast: ProfileDocumentNode = {
-        astMetadata,
-        kind: 'ProfileDocument',
-        header,
-        definitions: [
-          {
-            kind: 'UseCaseDefinition',
-            useCaseName: 'Test',
-            input: {
-              kind: 'UseCaseSlotDefinition',
-              value: {
-                kind: 'ObjectDefinition',
-                fields: [
-                  {
-                    kind: 'FieldDefinition',
-                    required: false,
-                    fieldName: 'test',
-                  },
-                ],
-              },
-            },
-          },
-          {
-            kind: 'NamedFieldDefinition',
-            fieldName: 'test',
-            type: {
-              kind: 'PrimitiveTypeName',
-              name: 'string',
-            },
-          },
-        ],
-      };
+      const ast = parseProfileFromSource(`
+        usecase Test safe {
+          input {
+            test
+          }
+        }
+
+        field test string
+      `);
       const parameterValidator = new ProfileParameterValidator(ast);
 
       it('should pass with valid input', () => {
@@ -440,43 +288,13 @@ describe('ProfileParameterValidator', () => {
     });
 
     describe('AST with an enum', () => {
-      const ast: ProfileDocumentNode = {
-        astMetadata,
-        kind: 'ProfileDocument',
-        header,
-        definitions: [
-          {
-            kind: 'UseCaseDefinition',
-            useCaseName: 'Test',
-            input: {
-              kind: 'UseCaseSlotDefinition',
-              value: {
-                kind: 'ObjectDefinition',
-                fields: [
-                  {
-                    kind: 'FieldDefinition',
-                    required: false,
-                    fieldName: 'test',
-                    type: {
-                      kind: 'EnumDefinition',
-                      values: [
-                        {
-                          kind: 'EnumValue',
-                          value: 'hello',
-                        },
-                        {
-                          kind: 'EnumValue',
-                          value: 'goodbye',
-                        },
-                      ],
-                    },
-                  },
-                ],
-              },
-            },
-          },
-        ],
-      };
+      const ast = parseProfileFromSource(`
+        usecase Test safe {
+          input {
+            test enum { hello, goodbye }
+          }
+        }
+      `);
       const parameterValidator = new ProfileParameterValidator(ast);
 
       it('should pass with valid input', () => {
@@ -508,48 +326,15 @@ describe('ProfileParameterValidator', () => {
     });
 
     describe('AST with predefined enum', () => {
-      const ast: ProfileDocumentNode = {
-        kind: 'ProfileDocument',
-        astMetadata,
+      const ast = parseProfileFromSource(`
+        usecase Test safe {
+          input {
+            test
+          }
+        }
 
-        header,
-        definitions: [
-          {
-            kind: 'UseCaseDefinition',
-            useCaseName: 'Test',
-            input: {
-              kind: 'UseCaseSlotDefinition',
-              value: {
-                kind: 'ObjectDefinition',
-                fields: [
-                  {
-                    kind: 'FieldDefinition',
-                    required: false,
-                    fieldName: 'test',
-                  },
-                ],
-              },
-            },
-          },
-          {
-            kind: 'NamedFieldDefinition',
-            fieldName: 'test',
-            type: {
-              kind: 'EnumDefinition',
-              values: [
-                {
-                  kind: 'EnumValue',
-                  value: 'hello',
-                },
-                {
-                  kind: 'EnumValue',
-                  value: 'goodbye',
-                },
-              ],
-            },
-          },
-        ],
-      };
+        field test enum { hello, goodbye }
+      `);
       const parameterValidator = new ProfileParameterValidator(ast);
 
       it('should pass with valid input', () => {
@@ -576,49 +361,49 @@ describe('ProfileParameterValidator', () => {
       });
     });
 
-    describe('AST with object', () => {
-      const ast: ProfileDocumentNode = {
-        kind: 'ProfileDocument',
-        astMetadata,
+    describe('AST with field-referenced named enum', () => {
+      const ast = parseProfileFromSource(`
+        usecase Test safe {
+          input {
+            test
+          }
+        }
 
-        header,
-        definitions: [
-          {
-            kind: 'UseCaseDefinition',
-            useCaseName: 'Test',
-            input: {
-              kind: 'UseCaseSlotDefinition',
-              value: {
-                kind: 'ObjectDefinition',
-                fields: [
-                  {
-                    kind: 'FieldDefinition',
-                    required: false,
-                    fieldName: 'test',
-                    type: {
-                      kind: 'ObjectDefinition',
-                      fields: [
-                        {
-                          kind: 'FieldDefinition',
-                          required: true,
-                          fieldName: 'hello',
-                          type: {
-                            kind: 'NonNullDefinition',
-                            type: {
-                              kind: 'PrimitiveTypeName',
-                              name: 'string',
-                            },
-                          },
-                        },
-                      ],
-                    },
-                  },
-                ],
-              },
-            },
-          },
-        ],
-      };
+        model TestEnum enum { A, B, C = 'CC', D }
+        field test TestEnum
+      `);
+      const parameterValidator = new ProfileParameterValidator(ast);
+
+      it.each(['A', 'B', 'CC', 'D'])(
+        'should pass with valid input: %s',
+        value => {
+          expect(
+            parameterValidator.validate({ test: value }, 'input', 'Test').isOk()
+          ).toEqual(true);
+        }
+      );
+
+      it.each(['a', 7, true])('should fail with invalid value: %p', value => {
+        const result = parameterValidator.validate(
+          { test: value },
+          'input',
+          'Test'
+        );
+        expect(checkErrorKind(result)).toEqual(['enumValue']);
+        expect(checkErrorPath(result)).toEqual([['input', 'test']]);
+      });
+    });
+
+    describe('AST with object', () => {
+      const ast = parseProfileFromSource(`
+        usecase Test safe {
+          input {
+            test {
+              hello! string!
+            }
+          }
+        }
+      `);
       const parameterValidator = new ProfileParameterValidator(ast);
 
       it('should pass with valid input', () => {
@@ -655,55 +440,17 @@ describe('ProfileParameterValidator', () => {
     });
 
     describe('AST with nested object', () => {
-      const ast: ProfileDocumentNode = {
-        kind: 'ProfileDocument',
-        astMetadata,
-
-        header,
-        definitions: [
-          {
-            kind: 'UseCaseDefinition',
-            useCaseName: 'Test',
-            input: {
-              kind: 'UseCaseSlotDefinition',
-              value: {
-                kind: 'ObjectDefinition',
-                fields: [
-                  {
-                    kind: 'FieldDefinition',
-                    required: false,
-                    fieldName: 'test',
-                    type: {
-                      kind: 'ObjectDefinition',
-                      fields: [
-                        {
-                          kind: 'FieldDefinition',
-                          required: false,
-                          fieldName: 'hello',
-                          type: {
-                            kind: 'ObjectDefinition',
-                            fields: [
-                              {
-                                kind: 'FieldDefinition',
-                                required: false,
-                                fieldName: 'goodbye',
-                                type: {
-                                  kind: 'PrimitiveTypeName',
-                                  name: 'boolean',
-                                },
-                              },
-                            ],
-                          },
-                        },
-                      ],
-                    },
-                  },
-                ],
-              },
-            },
-          },
-        ],
-      };
+      const ast = parseProfileFromSource(`
+        usecase Test safe {
+          input {
+            test {
+              hello {
+                goodbye boolean
+              }
+            }
+          }
+        }
+      `);
       const parameterValidator = new ProfileParameterValidator(ast);
 
       it('should pass with valid input', () => {
@@ -763,52 +510,17 @@ describe('ProfileParameterValidator', () => {
     });
 
     describe('AST with predefined object', () => {
-      const ast: ProfileDocumentNode = {
-        astMetadata,
+      const ast = parseProfileFromSource(`
+        usecase Test safe {
+          input {
+            test 
+          }
+        }
 
-        kind: 'ProfileDocument',
-        header,
-        definitions: [
-          {
-            kind: 'UseCaseDefinition',
-            useCaseName: 'Test',
-            input: {
-              kind: 'UseCaseSlotDefinition',
-              value: {
-                kind: 'ObjectDefinition',
-                fields: [
-                  {
-                    kind: 'FieldDefinition',
-                    required: false,
-                    fieldName: 'test',
-                  },
-                ],
-              },
-            },
-          },
-          {
-            kind: 'NamedFieldDefinition',
-            fieldName: 'test',
-            type: {
-              kind: 'ObjectDefinition',
-              fields: [
-                {
-                  kind: 'FieldDefinition',
-                  required: true,
-                  fieldName: 'hello',
-                  type: {
-                    kind: 'NonNullDefinition',
-                    type: {
-                      kind: 'PrimitiveTypeName',
-                      name: 'string',
-                    },
-                  },
-                },
-              ],
-            },
-          },
-        ],
-      };
+        field test {
+          hello! string!
+        }
+      `);
       const parameterValidator = new ProfileParameterValidator(ast);
 
       it('should pass with valid input', () => {
@@ -845,44 +557,13 @@ describe('ProfileParameterValidator', () => {
     });
 
     describe('AST with union', () => {
-      const ast: ProfileDocumentNode = {
-        kind: 'ProfileDocument',
-        astMetadata,
-
-        header,
-        definitions: [
-          {
-            kind: 'UseCaseDefinition',
-            useCaseName: 'Test',
-            input: {
-              kind: 'UseCaseSlotDefinition',
-              value: {
-                kind: 'ObjectDefinition',
-                fields: [
-                  {
-                    kind: 'FieldDefinition',
-                    required: false,
-                    fieldName: 'test',
-                    type: {
-                      kind: 'UnionDefinition',
-                      types: [
-                        {
-                          kind: 'PrimitiveTypeName',
-                          name: 'string',
-                        },
-                        {
-                          kind: 'PrimitiveTypeName',
-                          name: 'number',
-                        },
-                      ],
-                    },
-                  },
-                ],
-              },
-            },
-          },
-        ],
-      };
+      const ast = parseProfileFromSource(`
+        usecase Test safe {
+          input {
+            test string | number
+          }
+        }
+      `);
       const parameterValidator = new ProfileParameterValidator(ast);
 
       it('should pass with valid input', () => {
@@ -909,55 +590,15 @@ describe('ProfileParameterValidator', () => {
     });
 
     describe('AST with predefined non-nullable union', () => {
-      const ast: ProfileDocumentNode = {
-        kind: 'ProfileDocument',
-        astMetadata,
+      const ast = parseProfileFromSource(`
+        usecase Test safe {
+          input {
+            test! TestUnion!
+          }
+        }
 
-        header,
-        definitions: [
-          {
-            kind: 'UseCaseDefinition',
-            useCaseName: 'Test',
-            input: {
-              kind: 'UseCaseSlotDefinition',
-              value: {
-                kind: 'ObjectDefinition',
-                fields: [
-                  {
-                    kind: 'FieldDefinition',
-                    required: true,
-                    fieldName: 'test',
-                    type: {
-                      kind: 'NonNullDefinition',
-                      type: {
-                        kind: 'ModelTypeName',
-                        name: 'TestUnion',
-                      },
-                    },
-                  },
-                ],
-              },
-            },
-          },
-          {
-            kind: 'NamedModelDefinition',
-            modelName: 'TestUnion',
-            type: {
-              kind: 'UnionDefinition',
-              types: [
-                {
-                  kind: 'PrimitiveTypeName',
-                  name: 'string',
-                },
-                {
-                  kind: 'PrimitiveTypeName',
-                  name: 'number',
-                },
-              ],
-            },
-          },
-        ],
-      };
+        model TestUnion string | number
+      `);
       const parameterValidator = new ProfileParameterValidator(ast);
 
       it('should pass with valid input', () => {
@@ -984,38 +625,13 @@ describe('ProfileParameterValidator', () => {
     });
 
     describe('AST with string array', () => {
-      const ast: ProfileDocumentNode = {
-        kind: 'ProfileDocument',
-        astMetadata,
-
-        header,
-        definitions: [
-          {
-            kind: 'UseCaseDefinition',
-            useCaseName: 'Test',
-            input: {
-              kind: 'UseCaseSlotDefinition',
-              value: {
-                kind: 'ObjectDefinition',
-                fields: [
-                  {
-                    kind: 'FieldDefinition',
-                    required: false,
-                    fieldName: 'test',
-                    type: {
-                      kind: 'ListDefinition',
-                      elementType: {
-                        kind: 'PrimitiveTypeName',
-                        name: 'string',
-                      },
-                    },
-                  },
-                ],
-              },
-            },
-          },
-        ],
-      };
+      const ast = parseProfileFromSource(`
+        usecase Test safe {
+          input {
+            test [string]
+          }
+        }
+      `);
       const parameterValidator = new ProfileParameterValidator(ast);
 
       it('should pass with valid input', () => {
@@ -1056,41 +672,13 @@ describe('ProfileParameterValidator', () => {
     });
 
     describe('AST with non-nullable array of nullable items', () => {
-      const ast: ProfileDocumentNode = {
-        kind: 'ProfileDocument',
-        astMetadata,
-
-        header,
-        definitions: [
-          {
-            kind: 'UseCaseDefinition',
-            useCaseName: 'Test',
-            input: {
-              kind: 'UseCaseSlotDefinition',
-              value: {
-                kind: 'ObjectDefinition',
-                fields: [
-                  {
-                    kind: 'FieldDefinition',
-                    required: true,
-                    fieldName: 'test',
-                    type: {
-                      kind: 'NonNullDefinition',
-                      type: {
-                        kind: 'ListDefinition',
-                        elementType: {
-                          kind: 'PrimitiveTypeName',
-                          name: 'string',
-                        },
-                      },
-                    },
-                  },
-                ],
-              },
-            },
-          },
-        ],
-      };
+      const ast = parseProfileFromSource(`
+        usecase Test safe {
+          input {
+            test! [string]!
+          }
+        }
+      `);
       const parameterValidator = new ProfileParameterValidator(ast);
 
       it('should pass with valid input', () => {
@@ -1133,55 +721,17 @@ describe('ProfileParameterValidator', () => {
 
   describe('Result', () => {
     describe('AST with nested object', () => {
-      const ast: ProfileDocumentNode = {
-        astMetadata,
-
-        kind: 'ProfileDocument',
-        header,
-        definitions: [
-          {
-            kind: 'UseCaseDefinition',
-            useCaseName: 'Test',
-            result: {
-              kind: 'UseCaseSlotDefinition',
-              value: {
-                kind: 'ObjectDefinition',
-                fields: [
-                  {
-                    kind: 'FieldDefinition',
-                    required: false,
-                    fieldName: 'test',
-                    type: {
-                      kind: 'ObjectDefinition',
-                      fields: [
-                        {
-                          kind: 'FieldDefinition',
-                          required: false,
-                          fieldName: 'hello',
-                          type: {
-                            kind: 'ObjectDefinition',
-                            fields: [
-                              {
-                                kind: 'FieldDefinition',
-                                required: false,
-                                fieldName: 'goodbye',
-                                type: {
-                                  kind: 'PrimitiveTypeName',
-                                  name: 'boolean',
-                                },
-                              },
-                            ],
-                          },
-                        },
-                      ],
-                    },
-                  },
-                ],
-              },
-            },
-          },
-        ],
-      };
+      const ast = parseProfileFromSource(`
+        usecase Test safe {
+          result {
+            test {
+              hello {
+                goodbye boolean
+              }
+            }
+          }
+        }
+      `);
       const parameterValidator = new ProfileParameterValidator(ast);
 
       it('should pass with valid input', () => {
@@ -1236,56 +786,19 @@ describe('ProfileParameterValidator', () => {
     });
 
     describe('AST with multi-typed Enum', () => {
-      const ast: ProfileDocumentNode = {
-        astMetadata,
+      const ast = parseProfileFromSource(`
+        usecase Test safe {
+          result {
+            test TestEnum
+          }
+        }
 
-        kind: 'ProfileDocument',
-        header,
-        definitions: [
-          {
-            kind: 'UseCaseDefinition',
-            useCaseName: 'Test',
-            result: {
-              kind: 'UseCaseSlotDefinition',
-              value: {
-                kind: 'ObjectDefinition',
-                fields: [
-                  {
-                    kind: 'FieldDefinition',
-                    required: false,
-                    fieldName: 'test',
-                    type: {
-                      kind: 'ModelTypeName',
-                      name: 'TestEnum',
-                    },
-                  },
-                ],
-              },
-            },
-          },
-          {
-            kind: 'NamedModelDefinition',
-            modelName: 'TestEnum',
-            type: {
-              kind: 'EnumDefinition',
-              values: [
-                {
-                  kind: 'EnumValue',
-                  value: 7,
-                },
-                {
-                  kind: 'EnumValue',
-                  value: true,
-                },
-                {
-                  kind: 'EnumValue',
-                  value: 'c',
-                },
-              ],
-            },
-          },
-        ],
-      };
+        model TestEnum enum {
+          a = 7
+          b = true
+          c
+        }
+      `);
       const parameterValidator = new ProfileParameterValidator(ast);
 
       it('should pass with valid input', () => {

@@ -483,12 +483,12 @@ export class ProfileParameterValidator implements ProfileVisitor {
     if (!this.namedDefinitionsInitialized) {
       node.definitions
         .filter(
-          (definition): definition is NamedFieldDefinitionNode =>
-            definition.kind === 'NamedFieldDefinition'
+          (definition): definition is NamedModelDefinitionNode =>
+            definition.kind === 'NamedModelDefinition'
         )
         .forEach(
           definition =>
-            (this.namedFieldDefinitions[definition.fieldName] = this.visit(
+            (this.namedModelDefinitions[definition.modelName] = this.visit(
               definition,
               kind,
               usecase
@@ -497,12 +497,12 @@ export class ProfileParameterValidator implements ProfileVisitor {
 
       node.definitions
         .filter(
-          (definition): definition is NamedModelDefinitionNode =>
-            definition.kind === 'NamedModelDefinition'
+          (definition): definition is NamedFieldDefinitionNode =>
+            definition.kind === 'NamedFieldDefinition'
         )
         .forEach(
           definition =>
-            (this.namedModelDefinitions[definition.modelName] = this.visit(
+            (this.namedFieldDefinitions[definition.fieldName] = this.visit(
               definition,
               kind,
               usecase
