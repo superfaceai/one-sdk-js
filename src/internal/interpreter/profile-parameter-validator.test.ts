@@ -840,5 +840,48 @@ describe('ProfileParameterValidator', () => {
         expect(checkErrorPath(result3)).toEqual([['result', 'test']]);
       });
     });
+
+    describe('AST with multiple levels of field references', () => {
+      const ast = parseProfileFromSource(`
+        usecase Test safe {
+          input {
+            test
+          }
+        }
+
+        model TestModel {
+          another
+        }
+
+        model AnotherModel {
+          value boolean
+        }
+
+        field test TestModel
+        field another AnotherModel
+      `);
+      const parameterValidator = new ProfileParameterValidator(ast);
+
+      it.each([true, false])('should pass with valid input: %s', value => {
+        const result = parameterValidator.validate(
+          { test: { another: { value } } },
+          'input',
+          'Test'
+        );
+        expect(result.isOk()).toEqual(true);
+      });
+
+      it.each(['banana'])('should fail with invalid value: %p', value => {
+        const result = parameterValidator.validate(
+          { test: { another: { value } } },
+          'input',
+          'Test'
+        );
+        expect(checkErrorKind(result)).toEqual(['wrongType']);
+        expect(checkErrorPath(result)).toEqual([
+          ['input', 'test', 'another', 'value'],
+        ]);
+      });
+    });
   });
 });
