@@ -45,7 +45,11 @@ describe('ProfileParameterValidator', () => {
         usecase Test safe {
           input {}
         }`);
-      const parameterValidator = new ProfileParameterValidator(ast);
+      let parameterValidator: ProfileParameterValidator;
+
+      beforeEach(() => {
+        parameterValidator = new ProfileParameterValidator(ast);
+      });
 
       it('should pass with empty input', () => {
         expect(parameterValidator.validate({}, 'input', 'Test').isOk()).toEqual(
@@ -70,7 +74,11 @@ describe('ProfileParameterValidator', () => {
           }
         }
       `);
-      const parameterValidator = new ProfileParameterValidator(ast);
+      let parameterValidator: ProfileParameterValidator;
+
+      beforeEach(() => {
+        parameterValidator = new ProfileParameterValidator(ast);
+      });
 
       it('should pass with or without optional prop', () => {
         expect(
@@ -110,7 +118,11 @@ describe('ProfileParameterValidator', () => {
           }
         }
       `);
-      const parameterValidator = new ProfileParameterValidator(ast);
+      let parameterValidator: ProfileParameterValidator;
+
+      beforeEach(() => {
+        parameterValidator = new ProfileParameterValidator(ast);
+      });
 
       it('should pass with missing optional input', () => {
         expect(parameterValidator.validate({}, 'input', 'Test').isOk()).toEqual(
@@ -144,7 +156,11 @@ describe('ProfileParameterValidator', () => {
           }
         }
       `);
-      const parameterValidator = new ProfileParameterValidator(ast);
+      let parameterValidator: ProfileParameterValidator;
+
+      beforeEach(() => {
+        parameterValidator = new ProfileParameterValidator(ast);
+      });
 
       it('should pass with correct type', () => {
         expect(
@@ -190,7 +206,11 @@ describe('ProfileParameterValidator', () => {
           }
         }
       `);
-      const parameterValidator = new ProfileParameterValidator(ast);
+      let parameterValidator: ProfileParameterValidator;
+
+      beforeEach(() => {
+        parameterValidator = new ProfileParameterValidator(ast);
+      });
 
       it('should pass with valid input', () => {
         expect(
@@ -265,7 +285,11 @@ describe('ProfileParameterValidator', () => {
 
         field test string
       `);
-      const parameterValidator = new ProfileParameterValidator(ast);
+      let parameterValidator: ProfileParameterValidator;
+
+      beforeEach(() => {
+        parameterValidator = new ProfileParameterValidator(ast);
+      });
 
       it('should pass with valid input', () => {
         expect(parameterValidator.validate({}, 'input', 'Test').isOk()).toEqual(
@@ -295,7 +319,11 @@ describe('ProfileParameterValidator', () => {
           }
         }
       `);
-      const parameterValidator = new ProfileParameterValidator(ast);
+      let parameterValidator: ProfileParameterValidator;
+
+      beforeEach(() => {
+        parameterValidator = new ProfileParameterValidator(ast);
+      });
 
       it('should pass with valid input', () => {
         expect(
@@ -335,7 +363,11 @@ describe('ProfileParameterValidator', () => {
 
         field test enum { hello, goodbye }
       `);
-      const parameterValidator = new ProfileParameterValidator(ast);
+      let parameterValidator: ProfileParameterValidator;
+
+      beforeEach(() => {
+        parameterValidator = new ProfileParameterValidator(ast);
+      });
 
       it('should pass with valid input', () => {
         expect(
@@ -372,7 +404,11 @@ describe('ProfileParameterValidator', () => {
         model TestEnum enum { A, B, C = 'CC', D }
         field test TestEnum
       `);
-      const parameterValidator = new ProfileParameterValidator(ast);
+      let parameterValidator: ProfileParameterValidator;
+
+      beforeEach(() => {
+        parameterValidator = new ProfileParameterValidator(ast);
+      });
 
       it.each(['A', 'B', 'CC', 'D'])(
         'should pass with valid input: %s',
@@ -404,7 +440,11 @@ describe('ProfileParameterValidator', () => {
           }
         }
       `);
-      const parameterValidator = new ProfileParameterValidator(ast);
+      let parameterValidator: ProfileParameterValidator;
+
+      beforeEach(() => {
+        parameterValidator = new ProfileParameterValidator(ast);
+      });
 
       it('should pass with valid input', () => {
         expect(
@@ -451,7 +491,11 @@ describe('ProfileParameterValidator', () => {
           }
         }
       `);
-      const parameterValidator = new ProfileParameterValidator(ast);
+      let parameterValidator: ProfileParameterValidator;
+
+      beforeEach(() => {
+        parameterValidator = new ProfileParameterValidator(ast);
+      });
 
       it('should pass with valid input', () => {
         expect(parameterValidator.validate({}, 'input', 'Test').isOk()).toEqual(
@@ -521,7 +565,11 @@ describe('ProfileParameterValidator', () => {
           hello! string!
         }
       `);
-      const parameterValidator = new ProfileParameterValidator(ast);
+      let parameterValidator: ProfileParameterValidator;
+
+      beforeEach(() => {
+        parameterValidator = new ProfileParameterValidator(ast);
+      });
 
       it('should pass with valid input', () => {
         expect(
@@ -564,7 +612,11 @@ describe('ProfileParameterValidator', () => {
           }
         }
       `);
-      const parameterValidator = new ProfileParameterValidator(ast);
+      let parameterValidator: ProfileParameterValidator;
+
+      beforeEach(() => {
+        parameterValidator = new ProfileParameterValidator(ast);
+      });
 
       it('should pass with valid input', () => {
         expect(parameterValidator.validate({}, 'input', 'Test').isOk()).toEqual(
@@ -599,7 +651,11 @@ describe('ProfileParameterValidator', () => {
 
         model TestUnion string | number
       `);
-      const parameterValidator = new ProfileParameterValidator(ast);
+      let parameterValidator: ProfileParameterValidator;
+
+      beforeEach(() => {
+        parameterValidator = new ProfileParameterValidator(ast);
+      });
 
       it('should pass with valid input', () => {
         expect(
@@ -632,7 +688,11 @@ describe('ProfileParameterValidator', () => {
           }
         }
       `);
-      const parameterValidator = new ProfileParameterValidator(ast);
+      let parameterValidator: ProfileParameterValidator;
+
+      beforeEach(() => {
+        parameterValidator = new ProfileParameterValidator(ast);
+      });
 
       it('should pass with valid input', () => {
         expect(parameterValidator.validate({}, 'input', 'Test').isOk()).toEqual(
@@ -679,7 +739,11 @@ describe('ProfileParameterValidator', () => {
           }
         }
       `);
-      const parameterValidator = new ProfileParameterValidator(ast);
+      let parameterValidator: ProfileParameterValidator;
+
+      beforeEach(() => {
+        parameterValidator = new ProfileParameterValidator(ast);
+      });
 
       it('should pass with valid input', () => {
         expect(
@@ -717,6 +781,54 @@ describe('ProfileParameterValidator', () => {
         expect(checkErrorPath(result3)).toEqual([['input', 'test']]);
       });
     });
+
+    describe('AST with multiple levels of field references', () => {
+      const ast = parseProfileFromSource(`
+        usecase Test safe {
+          input {
+            test
+          }
+        }
+
+        model TestModel {
+          another
+        }
+
+        model AnotherModel {
+          value
+        }
+
+        field test TestModel
+        field another AnotherModel
+        field value boolean
+      `);
+      let parameterValidator: ProfileParameterValidator;
+
+      beforeEach(() => {
+        parameterValidator = new ProfileParameterValidator(ast);
+      });
+
+      it.each([true, false])('should pass with valid input: %s', value => {
+        const result = parameterValidator.validate(
+          { test: { another: { value } } },
+          'input',
+          'Test'
+        );
+        expect(result.isOk()).toEqual(true);
+      });
+
+      it.each(['banana'])('should fail with invalid value: %p', value => {
+        const result = parameterValidator.validate(
+          { test: { another: { value } } },
+          'input',
+          'Test'
+        );
+        expect(checkErrorKind(result)).toEqual(['wrongType']);
+        expect(checkErrorPath(result)).toEqual([
+          ['input', 'test', 'another', 'value'],
+        ]);
+      });
+    });
   });
 
   describe('Result', () => {
@@ -732,7 +844,11 @@ describe('ProfileParameterValidator', () => {
           }
         }
       `);
-      const parameterValidator = new ProfileParameterValidator(ast);
+      let parameterValidator: ProfileParameterValidator;
+
+      beforeEach(() => {
+        parameterValidator = new ProfileParameterValidator(ast);
+      });
 
       it('should pass with valid input', () => {
         expect(
@@ -799,7 +915,11 @@ describe('ProfileParameterValidator', () => {
           c
         }
       `);
-      const parameterValidator = new ProfileParameterValidator(ast);
+      let parameterValidator: ProfileParameterValidator;
+
+      beforeEach(() => {
+        parameterValidator = new ProfileParameterValidator(ast);
+      });
 
       it('should pass with valid input', () => {
         expect(
@@ -838,49 +958,6 @@ describe('ProfileParameterValidator', () => {
         );
         expect(checkErrorKind(result3)).toEqual(['enumValue']);
         expect(checkErrorPath(result3)).toEqual([['result', 'test']]);
-      });
-    });
-
-    describe('AST with multiple levels of field references', () => {
-      const ast = parseProfileFromSource(`
-        usecase Test safe {
-          input {
-            test
-          }
-        }
-
-        model TestModel {
-          another
-        }
-
-        model AnotherModel {
-          value boolean
-        }
-
-        field test TestModel
-        field another AnotherModel
-      `);
-      const parameterValidator = new ProfileParameterValidator(ast);
-
-      it.each([true, false])('should pass with valid input: %s', value => {
-        const result = parameterValidator.validate(
-          { test: { another: { value } } },
-          'input',
-          'Test'
-        );
-        expect(result.isOk()).toEqual(true);
-      });
-
-      it.each(['banana'])('should fail with invalid value: %p', value => {
-        const result = parameterValidator.validate(
-          { test: { another: { value } } },
-          'input',
-          'Test'
-        );
-        expect(checkErrorKind(result)).toEqual(['wrongType']);
-        expect(checkErrorPath(result)).toEqual([
-          ['input', 'test', 'another', 'value'],
-        ]);
       });
     });
   });
