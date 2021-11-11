@@ -9,6 +9,7 @@ import {
 import { getLocal } from 'mockttp';
 
 import { SuperJson } from '../../internal';
+import { bindResponseError } from '../../internal/errors.helpers';
 import { ok, sleep } from '../../lib';
 import {
   createTypedClient,
@@ -464,6 +465,11 @@ function spyOnCacheBoundProfileProvider(client: SuperfaceClientBase) {
 
         case 'third':
           return Promise.resolve(thirdMockBoundProfileProvider);
+
+        case 'invalid':
+          return Promise.reject(
+            bindResponseError('Registry responded with invalid body')
+          );
 
         default:
           throw 'unreachable';
@@ -1368,6 +1374,62 @@ describe.each([
     expect((await secondEndpoint.getSeenRequests()).length).toEqual(1);
   }, 20000);
 
+  it('use default policy - switch providers after error in bind', async () => {
+    const endpoint = await mockServer.get('/first').thenJson(200, {});
+
+    mockSuperJson({
+      profiles: {
+        ['starwars/character-information']: {
+          version: '1.0.0',
+          defaults: {
+            Test: {
+              providerFailover: true,
+            },
+          },
+          priority: ['invalid', 'provider'],
+          providers: {
+            provider: {
+              defaults: {
+                Test: {
+                  input: {},
+                },
+              },
+            },
+            invalid: {
+              defaults: {
+                Test: {
+                  input: {},
+                },
+              },
+            },
+          },
+        },
+      },
+      providers: {
+        provider: {
+          security: [],
+        },
+        invalid: {
+          security: [],
+        },
+      },
+    });
+
+    const client = clientFactory();
+
+    const cacheBoundProfileProviderSpy = spyOnCacheBoundProfileProvider(client);
+
+    const profile = await client.getProfile('starwars/character-information');
+    const useCase = profile.getUseCase('Test');
+    const result = await useCase.perform(undefined);
+
+    expect(result.isOk() && result.value).toEqual({
+      message: 'hello',
+    });
+    //We send request twice
+    expect((await endpoint.getSeenRequests()).length).toEqual(1);
+    expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(2);
+  }, 20000);
   it('preserves hook context within one client', async () => {
     const endpoint = await mockServer.get('/first').thenJson(500, {});
     const secondEndpoint = await mockServer.get('/second').thenJson(200, {});
