@@ -12,7 +12,7 @@ export function clone<T>(value: T): T {
     return new Date(value.getTime()) as unknown as T;
   }
 
-  if (value instanceof Array) {
+  if (Array.isArray(value)) {
     const arrayCopy = [] as unknown[];
     value.forEach(item => {
       arrayCopy.push(item);
