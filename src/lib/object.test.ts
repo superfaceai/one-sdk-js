@@ -66,6 +66,12 @@ describe('clone', () => {
     expect(cloned).toStrictEqual(null);
   });
 
+  it('should clone empty object', () => {
+    const object = {};
+    const cloned = clone(object);
+    expect(cloned).toStrictEqual({});
+  });
+
   describe('when cloning buffer', () => {
     let object: { buffer: Buffer };
 

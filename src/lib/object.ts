@@ -27,7 +27,7 @@ export function clone<T>(value: T): T {
     return Buffer.from(value) as unknown as T;
   }
 
-  if (typeof value === 'object' && value !== {}) {
+  if (typeof value === 'object') {
     const objectCopy = {
       ...(value as unknown as { [key: string]: unknown }),
     } as {
