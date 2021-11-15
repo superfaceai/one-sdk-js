@@ -14,11 +14,11 @@ export function clone<T>(value: T): T {
 
   if (Array.isArray(value)) {
     const arrayCopy = [] as unknown[];
-   for (const item of value) {
-     arrayCopy.push(clone<unknown>(item))
-   }
+    for (const item of value) {
+      arrayCopy.push(clone<unknown>(item));
+    }
 
-   return arrayCopy as unknown as T;
+    return arrayCopy as unknown as T;
   }
 
   if (Buffer.isBuffer(value)) {
