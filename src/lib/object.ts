@@ -26,16 +26,12 @@ export function clone<T>(value: T): T {
   }
 
   if (typeof value === 'object') {
-    const objectCopy = {
-      ...(value as unknown as { [key: string]: unknown }),
-    } as {
-      [key: string]: unknown;
-    };
-    Object.keys(objectCopy).forEach(key => {
-      objectCopy[key] = clone<unknown>(objectCopy[key]);
-    });
+    const objectCopy = Object.entries(value).map(([key, value]) => [
+      key,
+      clone(value) as unknown,
+    ]);
 
-    return objectCopy as unknown as T;
+    return Object.fromEntries(objectCopy) as unknown as T;
   }
 
   return value;
