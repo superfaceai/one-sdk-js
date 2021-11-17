@@ -12,9 +12,11 @@ import {
   SecurityType,
 } from '@superfaceai/ast';
 
-import { UnexpectedError } from '../../errors';
+import { UnexpectedError } from '../..';
 import { apiKeyInBodyError } from '../../errors.helpers';
 import { NonPrimitive, Variables } from '../variables';
+import { DigestHelper } from './digest';
+import { FetchInstance } from './interfaces';
 
 const DEFAULT_AUTHORIZATION_HEADER_NAME = 'Authorization';
 
@@ -79,9 +81,6 @@ export function applyHttpAuth(
     case HttpScheme.BEARER:
       applyBearerToken(context, configuration);
       break;
-    case HttpScheme.DIGEST:
-      applyDigest(context, configuration);
-      break;
   }
 }
 
@@ -109,13 +108,27 @@ export function applyBearerToken(
   context.headers[AUTH_HEADER_NAME] = `Bearer ${configuration.token}`;
 }
 
-export function applyDigest(
-  _context: RequestContext,
+export async function applyDigest(
+  context: RequestContext,
   _configuration: SecurityConfiguration & {
     type: SecurityType.HTTP;
     scheme: HttpScheme.DIGEST;
+  },
+  method: string,
+  url: string,
+  fetchInstance: FetchInstance
+): Promise<void> {
+  //FIX: Should be passed in configuration
+  const user = process.env.CLOCKPLUS_USERNAME;
+  if (!user) {
+    throw new UnexpectedError('Missing user');
   }
-): void {
-  // TODO: groom implementation
-  throw new UnexpectedError('Not implemented');
+  const password = process.env.CLOCKPLUS_PASSWORD;
+  if (!password) {
+    throw new UnexpectedError('Missing password');
+  }
+
+  const digest = new DigestHelper(user, password, fetchInstance);
+
+  context.headers[AUTH_HEADER_NAME] = await digest.auth(url, method);
 }

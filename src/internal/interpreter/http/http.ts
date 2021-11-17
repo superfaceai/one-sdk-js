@@ -1,4 +1,8 @@
-import { HttpSecurityRequirement, SecurityType } from '@superfaceai/ast';
+import {
+  HttpScheme,
+  HttpSecurityRequirement,
+  SecurityType,
+} from '@superfaceai/ast';
 import createDebug from 'debug';
 import { inspect } from 'util';
 
@@ -31,6 +35,7 @@ import {
 } from './interfaces';
 import {
   applyApiKeyAuth,
+  applyDigest,
   applyHttpAuth,
   SecurityConfiguration,
 } from './security';
@@ -171,6 +176,19 @@ export class HttpClient {
 
       if (configuration.type === SecurityType.APIKEY) {
         applyApiKeyAuth(contextForSecurity, configuration);
+      } else if (configuration.scheme === HttpScheme.DIGEST) {
+        const preparedUrl = createUrl(url, {
+          baseUrl: parameters.baseUrl,
+          pathParameters,
+          integrationParameters: parameters.integrationParameters,
+        });
+        await applyDigest(
+          contextForSecurity,
+          configuration,
+          parameters.method,
+          preparedUrl,
+          this.fetchInstance
+        );
       } else {
         applyHttpAuth(contextForSecurity, configuration);
       }
