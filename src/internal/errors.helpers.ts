@@ -268,10 +268,13 @@ export function missingSecurityValuesError(id: string): SDKExecutionError {
   );
 }
 
-export function apiKeyInBodyError(bodyType: string): SDKExecutionError {
+export function apiKeyInBodyError(
+  valueLocation: string,
+  bodyType: string
+): SDKExecutionError {
   return new SDKExecutionError(
-    'ApiKey in body can be used only when body is an object.',
-    [`Actual body type is ${bodyType}`],
+    'ApiKey in body can be used only on object.',
+    [`Actual ${valueLocation} is ${bodyType}`],
     []
   );
 }
