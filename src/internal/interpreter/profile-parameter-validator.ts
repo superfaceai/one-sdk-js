@@ -5,6 +5,8 @@ import {
   EnumDefinitionNode,
   EnumValueNode,
   FieldDefinitionNode,
+  isNamedFieldDefinitionNode,
+  isNamedModelDefinitionNode,
   ListDefinitionNode,
   ModelTypeNameNode,
   NamedFieldDefinitionNode,
@@ -482,32 +484,24 @@ export class ProfileParameterValidator implements ProfileVisitor {
 
     if (!this.namedDefinitionsInitialized) {
       node.definitions
-        .filter(
-          (definition): definition is NamedFieldDefinitionNode =>
-            definition.kind === 'NamedFieldDefinition'
-        )
-        .forEach(
-          definition =>
-            (this.namedFieldDefinitions[definition.fieldName] = this.visit(
-              definition,
-              kind,
-              usecase
-            ))
-        );
+        .filter(isNamedModelDefinitionNode)
+        .forEach(definition => {
+          this.namedModelDefinitions[definition.modelName] = this.visit(
+            definition,
+            kind,
+            usecase
+          );
+        });
 
       node.definitions
-        .filter(
-          (definition): definition is NamedModelDefinitionNode =>
-            definition.kind === 'NamedModelDefinition'
-        )
-        .forEach(
-          definition =>
-            (this.namedModelDefinitions[definition.modelName] = this.visit(
-              definition,
-              kind,
-              usecase
-            ))
-        );
+        .filter(isNamedFieldDefinitionNode)
+        .forEach(definition => {
+          this.namedFieldDefinitions[definition.fieldName] = this.visit(
+            definition,
+            kind,
+            usecase
+          );
+        });
 
       this.namedDefinitionsInitialized = true;
     }

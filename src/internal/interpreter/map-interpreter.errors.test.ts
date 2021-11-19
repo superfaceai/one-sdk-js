@@ -632,8 +632,6 @@ AST Path: definitions[0].statements[0].assignments[0].value`
     );
 
     const result = await interpreter.perform(ast);
-    console.log(result);
-
     expect(result.isErr() && result.error.toString()).toMatch(
       'the best error in the world'
     );
