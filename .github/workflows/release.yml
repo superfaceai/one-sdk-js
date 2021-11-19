@@ -54,7 +54,7 @@ jobs:
           RELEASE_LEVEL: ${{ github.event.inputs.release-level }}
 
       - name: Bump rc pre-release version
-        if: startsWith(github.event.inputs.release-level, 'pre') && github.ref_name == "dev"
+        if: startsWith(github.event.inputs.release-level, 'pre') && github.ref_name == 'dev'
         run: |
           echo "NEW_VERSION=$(npm --no-git-tag-version --preid=rc version $RELEASE_LEVEL)" >> $GITHUB_ENV
           echo "RELEASE_TAG=next" >> $GITHUB_ENV
