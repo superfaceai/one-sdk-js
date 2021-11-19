@@ -89,7 +89,7 @@ describe('clone', () => {
 
     it('should create new instance of buffer', () => {
       const cloned = clone(object);
-      expect(cloned.buffer !== object.buffer).toBe(true);
+      expect(cloned.buffer).not.toBe(object.buffer);
     });
   });
 
@@ -110,7 +110,7 @@ describe('clone', () => {
 
     it('should create new instance of array', () => {
       const cloned = clone(object);
-      expect(cloned.array !== object.array).toBe(true);
+      expect(cloned.array).not.toBe(object.array);
     });
   });
 
@@ -131,7 +131,7 @@ describe('clone', () => {
 
     it('should create new instance of date', () => {
       const cloned = clone(object);
-      expect(cloned.date !== object.date).toBe(true);
+      expect(cloned.date).not.toBe(object.date);
     });
   });
 });
