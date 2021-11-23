@@ -51,7 +51,7 @@ yarn add @superfaceai/one-sdk
 
 ### Using the OneSDK
 
-To interact with Superface, initialize a new Superface OneSDK instance, references the profile and use case you're wanting to use, then perform it to get the result. You can use either the typed or untyped interface for the `SuperfaceClient`.
+To interact with Superface, initialize a new Superface OneSDK instance, references the profile and use case you're wanting to use, then perform it to get the result.
 
 #### Initializing the OneSDK client
 
