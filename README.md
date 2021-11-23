@@ -91,30 +91,6 @@ const result = await profile.getUsecase('<usecaseName>').perform(
 );
 ```
 
-### Using the Typed OneSDK
-
-You can also use generated typed client, which is very similar:
-
-Make sure a profile is installed with types by running `superface install --types <profileName>[@<profileVersion>]` in the project directory.
-
-```typescript
- // This should point to superface directory in project root
- // instead of @superfaceai/one-sdk
-import { SuperfaceClient } from 'superface/sdk';
-
-const client = new SuperfaceClient();
-// This client should now autocomplete your installed profileVersion
-const profile = await client.getProfile('myProfile'); 
-const result = await profile.useCases.myUseCase.perform(
-  {
-    inputField: 1,
-    anotherInputField: 'hello',
-  },
-  // optional, if provider is missing selects first configured provider from super.json
-  { provider }
-);
-```
-
 ### Handling the results from `perform`
 
 The `perform` method will take your inputs and additional information and perform the use case asynchronously. This method always returns a Result type that is either `Ok` or `Err`. This follows the [neverthrow](https://github.com/supermacro/neverthrow) approach. The SDK provides multiple ways to work with result. 
