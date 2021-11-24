@@ -46,10 +46,18 @@ jobs:
           RELEASE_LEVEL: ${{ github.event.inputs.release-level }}
 
       - name: Bump pre-release version
-        if: startsWith(github.event.inputs.release-level, 'pre')
+        if: startsWith(github.event.inputs.release-level, 'pre') && github.ref_name != 'dev'
         run: |
           echo "NEW_VERSION=$(npm --no-git-tag-version --preid=beta version $RELEASE_LEVEL)" >> $GITHUB_ENV
           echo "RELEASE_TAG=beta" >> $GITHUB_ENV
+        env:
+          RELEASE_LEVEL: ${{ github.event.inputs.release-level }}
+
+      - name: Bump rc pre-release version
+        if: startsWith(github.event.inputs.release-level, 'pre') && github.ref_name == 'dev'
+        run: |
+          echo "NEW_VERSION=$(npm --no-git-tag-version --preid=rc version $RELEASE_LEVEL)" >> $GITHUB_ENV
+          echo "RELEASE_TAG=next" >> $GITHUB_ENV
         env:
           RELEASE_LEVEL: ${{ github.event.inputs.release-level }}
 

@@ -105,6 +105,9 @@ export const getValue = (
   return result;
 };
 
+/**
+ * Stringifies a Record of variables. `undefined` values are removed.
+ */
 export const variablesToStrings = (
   variables?: Variables
 ): Record<string, string> => {
@@ -112,7 +115,9 @@ export const variablesToStrings = (
 
   if (variables) {
     for (const [key, value] of Object.entries(variables)) {
-      result[key] = typeof value === 'string' ? value : JSON.stringify(value);
+      if (value !== undefined) {
+        result[key] = typeof value === 'string' ? value : JSON.stringify(value);
+      }
     }
   }
 
