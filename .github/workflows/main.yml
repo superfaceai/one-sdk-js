@@ -5,14 +5,17 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [16, 17]
     steps:
       # Setup environment and checkout the project master
       - name: Setup Node.js environment
         uses: actions/setup-node@v2
         with:
           registry-url: https://registry.npmjs.org/
-          scope: "@superfaceai"
-          node-version: "14"
+          scope: '@superfaceai'
+          node-version: ${{ matrix.node }}
 
       - name: Checkout
         uses: actions/checkout@v2.3.4
@@ -43,8 +46,8 @@ jobs:
         uses: actions/setup-node@v2
         with:
           registry-url: https://registry.npmjs.org/
-          scope: "@superfaceai"
-          node-version: "14"
+          scope: '@superfaceai'
+          node-version: '14'
 
       - name: Checkout
         uses: actions/checkout@v2.3.4
@@ -75,8 +78,8 @@ jobs:
         uses: actions/setup-node@v2
         with:
           registry-url: https://registry.npmjs.org/
-          scope: "@superfaceai"
-          node-version: "14"
+          scope: '@superfaceai'
+          node-version: '14'
 
       - name: Checkout
         uses: actions/checkout@v2.3.4
