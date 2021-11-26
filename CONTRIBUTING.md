@@ -1,6 +1,6 @@
-# Contributing to Superface
+# Contributing to Superface OneSDK
 
-We welcome contributions to our [open source project on GitHub](https://github.com/superfaceai/one-sdk-js).
+We welcome contributions to [OneSDK on GitHub](https://github.com/superfaceai/one-sdk-js).
 
 **Please open an issue first if you want to make larger changes**
 
@@ -16,36 +16,39 @@ We are glad that you are interested in Superface in the way of contributing. We 
 
 ## Need help?
 
-If you have any question about this project (for example, how to use it) or if you just need some clarification about anything, please open an Issue at [Issues](https://github.com/superfaceai/one-sdk-js/issues).
+If you have any question about this project (for example, how to use it) or if you just need some clarification about anything, please [open an issue](https://github.com/superfaceai/one-sdk-js/issues/new/choose) or ask on the [Discord server](https://sfc.is/discord). Alternatively check the [Support page](https://superface.ai/support) for other ways how to reach us.
 
 ## Contributing
+
+
+### Contribute code
 
 Follow these steps:
 
 1. **Fork & Clone** the repository
-2. **Setup** the Superface SDK
+2. **Setup** the OneSDK
    - Install packages with `yarn install` or `npm install`
    - Build with `yarn build` or `npm run build`
    - Run tests with `yarn test` or `npm test`
    - Lint code with `yarn lint:fix` or `npm run lint:fix`
-3. **Update** [CHANGELOG](CHANGELOG.md). See https://keepachangelog.com/en/1.0.0/
-4. **Commit** changes to your own branch by convention. See https://www.conventionalcommits.org/en/v1.0.0/
-5. **Push** your work back up to your fork
-6. Submit a **Pull Request** so that we can review your changes
+3. **Update** [CHANGELOG](CHANGELOG.md). See [Keep a Changelog](https://keepachangelog.com/).
+4. **Commit** changes to your own branch by convention. See [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/).
+5. **Push** your work back up to your fork.
+6. Submit a **Pull Request** so that we can review your changes.
 
-**NOTE: Be sure to merge the latest from "upstream" before making a pull request.**
+**NOTE:** Be sure to merge the latest commits from "upstream" before making a pull request.
 
-**NOTE: Please open an issue first if you want to make larger changes**
+**NOTE:** Please open an issue first if you want to make larger changes.
 
 ### Contribute by reporting bugs
 
-If you are experiencing bug or undocumented behavior please open an Issue with bug template at [Issues](https://github.com/superfaceai/one-sdk-js/issues).
+If you are experiencing bug or undocumented behavior please [open an issue](https://github.com/superfaceai/one-sdk-js/issues/new/choose) with Bug report template.
 
 ### Contribute to documentation
 
-Help us improve Superface documentation, you can report typos, improve examples.
+Help us improve Superface documentation, you can fix typos, improve examples and more.
 
-**NOTE: If editing the README, please conform to the [standard-readme](https://github.com/RichardLitt/standard-readme) specification.**
+The documentation inside the OneSDK repository should be kept to minimum. The [Superface documentation](https://superface.ai/docs) is hosted in the [docs repository](https://github.com/superfaceai/docs).
 
 ## Allowed Licenses
 
@@ -61,3 +64,5 @@ Licenses of `node_modules` are checked during push CI/CD for every commit. Only 
 - CC-BY-3.0;BSD
 - CC0-1.0
 - Unlicense
+
+If a new dependency requires another license, just mention it in the respective issue or pull request, we will allow new licenses on the case-by-case basis.
