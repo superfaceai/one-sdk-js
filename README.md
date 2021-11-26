@@ -115,7 +115,7 @@ We welcome all kinds of contributions! Please see the [Contribution Guide](CONTR
 
 ## License
 
-The Superface SDK is licensed under the [MIT License](LICENSE).
+OneSDK is licensed under the [MIT License](LICENSE).
 
 © 2021 Superface s.r.o.
 
