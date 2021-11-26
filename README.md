@@ -81,8 +81,6 @@ Check the [Superface Catalog](https://superface.ai/catalog) for existing use-cas
 
 <!-- TODO: point to docs for working with the result object -->
 
-<!-- ## Documentation -->
-
 ## Support
 
 If you have any questions, want to report a bug, request a feature or you just want to talk, feel free to [open an issue](https://github.com/superfaceai/one-sdk-js/issues/new/choose) or hop on our [Discord server](https://sfc.is/discord).
