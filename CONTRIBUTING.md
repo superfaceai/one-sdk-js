@@ -10,9 +10,9 @@ We are glad that you are interested in Superface in the way of contributing. We 
 
 ## Help the community
 
-1) Report an Error or a Bug
-2) Contribute to the Documentation
-3) Provide Support on Issues
+1. Report an Error or a Bug
+2. Contribute to the Documentation
+3. Provide Support on Issues
 
 ## Need help?
 
@@ -22,7 +22,7 @@ If you have any question about this project (for example, how to use it) or if y
 
 Follow these steps:
 
-1. **Fork & Clone** the repository  
+1. **Fork & Clone** the repository
 2. **Setup** the Superface SDK
    - Install packages with `yarn install` or `npm install`
    - Build with `yarn build` or `npm run build`
@@ -30,7 +30,7 @@ Follow these steps:
    - Lint code with `yarn lint:fix` or `npm run lint:fix`
 3. **Update** [CHANGELOG](CHANGELOG.md). See https://keepachangelog.com/en/1.0.0/
 4. **Commit** changes to your own branch by convention. See https://www.conventionalcommits.org/en/v1.0.0/
-5. **Push** your work back up to your fork  
+5. **Push** your work back up to your fork
 6. Submit a **Pull Request** so that we can review your changes
 
 **NOTE: Be sure to merge the latest from "upstream" before making a pull request.**
@@ -47,6 +47,17 @@ Help us improve Superface documentation, you can report typos, improve examples.
 
 **NOTE: If editing the README, please conform to the [standard-readme](https://github.com/RichardLitt/standard-readme) specification.**
 
-## Copyright and Licensing
+## Allowed Licenses
 
-The Superface SDK  open source project is licensed under the [MIT License](LICENSE).
+Licenses of `node_modules` are checked during push CI/CD for every commit. Only the following licenses are allowed:
+
+- 0BDS
+- MIT
+- Apache-2.0
+- ISC
+- BSD-3-Clause
+- BSD-2-Clause
+- CC-BY-4.0
+- CC-BY-3.0;BSD
+- CC0-1.0
+- Unlicense
