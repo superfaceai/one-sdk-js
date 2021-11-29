@@ -68,7 +68,7 @@ const sdk = new SuperfaceClient();
 async function run() {
   const profile = await sdk.getProfile('<profileName>');
 
-  const result = await profile.getUseCase('<usecaseName').perform({
+  const result = await profile.getUseCase('<usecaseName>').perform({
     // Input parameters
   });
 
@@ -86,7 +86,7 @@ This code will use the first provider by priority as defined in `super.json` fil
 
 +  const provider = await sdk.getProvider('<providerName>');
 
-   const result = await profile.getUseCase('<usecaseName').perform(
+   const result = await profile.getUseCase('<usecaseName>').perform(
      {
        // Input parameters
      },
