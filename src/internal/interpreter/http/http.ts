@@ -182,6 +182,7 @@ export class HttpClient {
           pathParameters,
           integrationParameters: parameters.integrationParameters,
         });
+        //TODO: we need Superface client to remember auth state to be able to reuse authentication: https://datatracker.ietf.org/doc/html/rfc2617#section-3.3
         await applyDigest(
           contextForSecurity,
           configuration,

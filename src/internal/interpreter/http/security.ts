@@ -141,7 +141,7 @@ export async function applyDigest(
   url: string,
   fetchInstance: FetchInstance
 ): Promise<void> {
-  //FIX: Should be passed in configuration
+  //FIX: Should be passed in super.json configuration
   const user = process.env.CLOCKPLUS_USERNAME;
   if (!user) {
     throw new UnexpectedError('Missing user');
@@ -151,7 +151,8 @@ export async function applyDigest(
     throw new UnexpectedError('Missing password');
   }
 
+  //FIX: Provider.json configuration should also contain optional: statusCode, header containing challange, header used for athorization
   const digest = new DigestHelper(user, password, fetchInstance);
-
-  context.headers[AUTH_HEADER_NAME] = await digest.auth(url, method);
+  //"Proxy-Authorization" can be also used when communicating thru proxy https://datatracker.ietf.org/doc/html/rfc2617#section-1.2
+  context.headers[AUTH_HEADER_NAME] = await digest.prepareAuth(url, method);
 }
