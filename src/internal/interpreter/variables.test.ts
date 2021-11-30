@@ -5,6 +5,7 @@ import {
   isPrimitive,
   mergeVariables,
   NonPrimitive,
+  variablesToStrings,
 } from './variables';
 
 describe('Variables', () => {
@@ -147,6 +148,21 @@ describe('Variables', () => {
         getValue(variables, ['some', 'nonexistant', 'stuff'])
       ).toBeUndefined();
       expect(getValue(undefined, ['some', 'stuff'])).toBeUndefined();
+    });
+  });
+  describe('valuesToStrings', () => {
+    it('should correctly stringify values', () => {
+      const variables: NonPrimitive = {
+        some: 'value',
+        and: 17,
+        not: undefined,
+        array: ['some', 'array'],
+      };
+      expect(variablesToStrings(variables)).toEqual({
+        some: 'value',
+        and: '17',
+        array: '["some","array"]',
+      });
     });
   });
 });

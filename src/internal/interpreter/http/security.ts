@@ -35,6 +35,35 @@ export type RequestContext = {
   requestBody: Variables | undefined;
 };
 
+export function applyApiKeyAuthInBody(
+  requestBody: Variables,
+  referenceTokens: string[],
+  apikey: string,
+  visitedReferenceTokens: string[] = []
+): Variables {
+  if (typeof requestBody !== 'object' || Array.isArray(requestBody)) {
+    const valueLocation = visitedReferenceTokens.length
+      ? `value at /${visitedReferenceTokens.join('/')}`
+      : 'body';
+    const bodyType = Array.isArray(requestBody) ? 'Array' : typeof requestBody;
+
+    throw apiKeyInBodyError(valueLocation, bodyType);
+  }
+
+  const token = referenceTokens.shift();
+  if (token === undefined) {
+    return apikey;
+  }
+
+  const segVal = requestBody[token] ?? {};
+  requestBody[token] = applyApiKeyAuthInBody(segVal, referenceTokens, apikey, [
+    ...visitedReferenceTokens,
+    token,
+  ]);
+
+  return requestBody;
+}
+
 export function applyApiKeyAuth(
   context: RequestContext,
   configuration: SecurityConfiguration & { type: SecurityType.APIKEY }
@@ -47,17 +76,11 @@ export function applyApiKeyAuth(
       break;
 
     case ApiKeyPlacement.BODY:
-      if (
-        typeof context.requestBody !== 'object' ||
-        Array.isArray(context.requestBody)
-      ) {
-        throw apiKeyInBodyError(
-          Array.isArray(context.requestBody)
-            ? 'Array'
-            : typeof context.requestBody
-        );
-      }
-      context.requestBody[name] = configuration.apikey;
+      context.requestBody = applyApiKeyAuthInBody(
+        context.requestBody ?? {},
+        name.startsWith('/') ? name.slice(1).split('/') : [name],
+        configuration.apikey
+      );
       break;
 
     case ApiKeyPlacement.PATH:

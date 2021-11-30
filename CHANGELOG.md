@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2021-11-24
+### Added
+- Use [JSON Pointer](https://datatracker.ietf.org/doc/html/rfc6901) (arrays not supported) to specify api token location in body
+
+### Fixed
+- ProfileParameterValidator now resolves named models before field references
+- Buffer serialization in request body
+- `undefined` values are removed when stringifying records
+
 ## [1.0.0] - 2021-11-04
 ### Added
 - Module for mocking of Superface components
@@ -261,7 +270,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Profile parameter validator
 - CI/CD workflows
 
-[Unreleased]: https://github.com/superfaceai/one-sdk-js/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/superfaceai/one-sdk-js/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/superfaceai/one-sdk-js/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.40...v1.0.0
 [0.0.40]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.39...v0.0.40
 [0.0.39]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.38...v0.0.39
