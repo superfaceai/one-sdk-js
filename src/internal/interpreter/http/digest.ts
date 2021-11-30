@@ -4,7 +4,7 @@ import { UnexpectedError } from '../..';
 import { FetchInstance } from './interfaces';
 
 /**
- * Represents values extracted from fir digest call
+ * Represents values extracted from initial digest call
  */
 type DigestAuthValues = {
   algorithm: 'MD5' | 'MD5-sess';
@@ -25,7 +25,6 @@ export class DigestHelper {
     private readonly user: string,
     private readonly password: string,
     private readonly fetchInstance: FetchInstance,
-    private readonly precomputedHash?: boolean,
     private readonly cnonceSize?: number,
     private readonly statusCode?: number,
     private nc: number = 0
@@ -61,41 +60,46 @@ export class DigestHelper {
   private buildDigestAuth(
     url: string,
     method: string,
-    digest: DigestAutValues
+    digest: DigestAuthValues
   ): string {
-    const _url = url.replace('//', '');
-    const uri = _url.indexOf('/') == -1 ? '/' : _url.slice(_url.indexOf('/'));
+    const uri = new URL(url).pathname
 
-    let ha1 = this.precomputedHash
-      ? this.password
-      : DigestHelper.computeHash(this.user, digest.realm, this.password);
-    if (digest.algorithm === 'MD5-sess' && !this.precomputedHash) {
-      ha1 = createHash('MD5')
-        .update(`${ha1}:${digest.nonce}:${digest.cnonce}`)
-        .digest('hex');
+    //Default H1 for MD5 algorithm
+    let ha1 = DigestHelper.computeMD5Hash(`${this.user}:${digest.realm}:${this.password}`);
+
+    //MD5-sess H1 contains nonce and cnonce
+    if (digest.algorithm === 'MD5-sess') {
+      ha1 = DigestHelper.computeMD5Hash(`${ha1}:${digest.nonce}:${digest.cnonce}`)
     }
 
-    const ha2 = createHash('MD5').update(`${method}:${uri}${''}`).digest('hex');
+    //H2 is same for MD5 and M5-sess
+    const ha2 = DigestHelper.computeMD5Hash(`${method}:${uri}`)
 
     const ncString = `00000000${this.nc}`.slice(-8);
 
-    let _response = `${ha1}:${digest.nonce}:${ha2}`;
+    let response: string
+    //Use QOP if we have it
     if (digest.qop) {
-      _response = `${ha1}:${digest.nonce}:${ncString}:${digest.cnonce}:${digest.qop}:${ha2}`;
+      response = `${ha1}:${digest.nonce}:${ncString}:${digest.cnonce}:${digest.qop}:${ha2}`;
+    } else {
+      response = `${ha1}:${digest.nonce}:${ha2}`;
     }
 
-    const response = createHash('MD5').update(_response).digest('hex');
+    //Hash response
+    const hashedResponse = DigestHelper.computeMD5Hash(response)
 
+    //Build final auth header
     const opaqueString = digest.opaque ? `opaque="${digest.opaque}",` : '';
     const qopString = digest.qop ? `qop="${digest.qop}",` : '';
 
     return `${digest.scheme} username="${this.user}",realm="${digest.realm}",\
     nonce="${digest.nonce}",uri="${uri}",${opaqueString}${qopString}\
-    algorithm="${digest.algorithm}",response="${response}",nc=${ncString},cnonce="${digest.cnonce}"`;
+    algorithm="${digest.algorithm}",response="${hashedResponse}",nc=${ncString},cnonce="${digest.cnonce}"`;
   }
 
-  private extractDigestValues(header: string): DigestAutValues | undefined {
-    if (!header || header.length < 5) {
+  private extractDigestValues(header: string): DigestAuthValues | undefined {
+    //TODO: why 5
+    if (header.length < 5) {
       return;
     }
 
@@ -103,7 +107,7 @@ export class DigestHelper {
 
     return {
       scheme: header.split(/\s/)[0],
-      algorithm: this.parseAlgorithm(header),
+      algorithm: this.extractAlgorithm(header),
       realm: (this.parse(header, 'realm', false) || '').replace(/["]/g, ''),
       opaque: this.parse(header, 'opaque'),
       qop: this.parseQop(header),
@@ -112,10 +116,15 @@ export class DigestHelper {
     };
   }
 
-  parseAlgorithm(rawAuth: string): 'MD5' | 'MD5-sess' {
-    const _algorithm = this.parse(rawAuth, 'algorithm');
+  /**
+   * Extracts "MD5" or "MD5-sess" algorithm from passed header. "MD5" is default value.
+   * @param header string containing algorithm type
+   * @returns "MD5" or "MD5-sess"
+   */
+  private extractAlgorithm(header: string): 'MD5' | 'MD5-sess' {
+    const parsedHeader = this.parse(header, 'algorithm');
 
-    if (_algorithm !== undefined && _algorithm.includes('MD5-sess')) {
+    if (parsedHeader !== undefined && parsedHeader.includes('MD5-sess')) {
       return 'MD5-sess';
     }
 
@@ -123,7 +132,7 @@ export class DigestHelper {
     return 'MD5';
   }
 
-  parseQop(rawAuth: string): 'auth' | 'auth-int' | undefined {
+  private parseQop(rawAuth: string): 'auth' | 'auth-int' | undefined {
     // Following https://en.wikipedia.org/wiki/Digest_access_authentication
     // to parse valid qop
     // Samples
@@ -159,13 +168,11 @@ export class DigestHelper {
     return undefined;
   }
 
-  private static computeHash(
-    user: string,
-    realm: string,
-    password: string
+  private static computeMD5Hash(
+    data: string,
   ): string {
     return createHash('MD5')
-      .update(`${user}:${realm}:${password}`)
+      .update(data)
       .digest('hex');
   }
 }
