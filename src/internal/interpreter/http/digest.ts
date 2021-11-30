@@ -6,7 +6,7 @@ import { FetchInstance } from './interfaces';
 /**
  * Represents values extracted from fir digest call
  */
-type DigestAutValues = {
+type DigestAuthValues = {
   algorithm: 'MD5' | 'MD5-sess';
   scheme: string;
   realm: string;
