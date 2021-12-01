@@ -60,6 +60,7 @@ export class DigestHelper {
    * Logic is havily inspired by: https://github.com/devfans/digest-fetch/blob/master/digest-fetch-src.js and https://en.wikipedia.org/wiki/Digest_access_authentication
    */
   async prepareAuth(url: string, method: string): Promise<string> {
+    debugSensitive(`Preparing digest auth for: ${url} and method: ${method}`);
     const resp = await this.fetchInstance.fetch(url, { method });
     debugSensitive(`Initial request response\n${inspect(resp, true, 5)}`);
     if (resp.status !== this.statusCode) {
@@ -80,12 +81,6 @@ export class DigestHelper {
     debugSensitive(
       `Extracted digest values\n${inspect(digestValues, true, 2)}`
     );
-    if (!digestValues) {
-      throw new UnexpectedError(
-        `Digest auth failed, unable to extract digest values from response. Header "${this.header}" not found`,
-        resp
-      );
-    }
 
     return this.buildDigestAuth(url, method, digestValues);
   }
@@ -113,7 +108,7 @@ export class DigestHelper {
 
     //H2 is same for default and sess
     const ha2 = DigestHelper.computeHash(digest.algorithm, `${method}:${uri}`);
-
+    this.nc++;
     const ncString = `00000000${this.nc}`.slice(-8);
 
     let response: string;
@@ -132,26 +127,32 @@ export class DigestHelper {
     const opaqueString = digest.opaque ? `opaque="${digest.opaque}",` : '';
     const qopString = digest.qop ? `qop="${digest.qop}",` : '';
 
-    return `${digest.scheme} username="${this.user}",realm="${digest.realm}",\
-    nonce="${digest.nonce}",uri="${uri}",${opaqueString}${qopString}\
-    algorithm="${digest.algorithm}",response="${hashedResponse}",nc=${ncString},cnonce="${digest.cnonce}"`;
+    return `${digest.scheme} username="${this.user}",realm="${digest.realm}",nonce="${digest.nonce}",uri="${uri}",${opaqueString}${qopString}algorithm="${digest.algorithm}",response="${hashedResponse}",nc=${ncString},cnonce="${digest.cnonce}"`;
   }
 
-  private extractDigestValues(header: string): DigestAuthValues | undefined {
-    //TODO: why 5
-    if (header.length < 5) {
-      return;
+  private extractDigestValues(header: string): DigestAuthValues {
+    const scheme = header.split(/\s/)[0];
+    if (!scheme) {
+      throw new UnexpectedError(
+        `Digest auth failed, unable to extract digest values from response. Header "${this.header}" does not contain scheme value eq. Digest`,
+        header
+      );
+    }
+    const nonce = this.extract(header, 'nonce');
+    if (!nonce) {
+      throw new UnexpectedError(
+        `Digest auth failed, unable to extract digest values from response. Header "${this.header}" does not contain "nonce"`,
+        header
+      );
     }
 
-    this.nc++;
-
     return {
-      scheme: header.split(/\s/)[0],
+      scheme,
       algorithm: this.extractAlgorithm(header),
       realm: (this.extract(header, 'realm', false) || '').replace(/["]/g, ''),
       opaque: this.extract(header, 'opaque'),
       qop: this.extractQop(header),
-      nonce: this.extract(header, 'nonce') || '',
+      nonce,
       cnonce: this.makeNonce(),
     };
   }
@@ -165,13 +166,13 @@ export class DigestHelper {
     const extractedValue = this.extract(rawHeader, 'algorithm');
 
     if (extractedValue !== undefined) {
-      if (extractedValue.includes('MD5')) {
+      if (extractedValue === 'MD5') {
         return 'MD5';
-      } else if (extractedValue.includes('MD5-sess')) {
+      } else if (extractedValue === 'MD5-sess') {
         return 'MD5-sess';
-      } else if (extractedValue.includes('SHA-256')) {
+      } else if (extractedValue === 'SHA-256') {
         return 'SHA-256';
-      } else if (extractedValue.includes('SHA-256-sess')) {
+      } else if (extractedValue === 'SHA-256-sess') {
         return 'SHA-256-sess';
       } else {
         //Throw when we get unexpected value
@@ -217,7 +218,7 @@ export class DigestHelper {
     return undefined;
   }
 
-  private makeNonce() {
+  private makeNonce(): string {
     let uid = '';
     for (let i = 0; i < this.cnonceSize; ++i) {
       uid += this.nonceRaw[Math.floor(Math.random() * this.nonceRaw.length)];
@@ -245,13 +246,8 @@ export class DigestHelper {
     let usedAlgorithm;
     if (algorithm.startsWith('MD5')) {
       usedAlgorithm = 'MD5';
-    } else if (algorithm.startsWith('SHA-256')) {
-      usedAlgorithm = 'sha256';
     } else {
-      throw new UnexpectedError(
-        `Digest auth failed, parameter "algorithm" has unexpected value`,
-        algorithm
-      );
+      usedAlgorithm = 'sha256';
     }
 
     return createHash(usedAlgorithm).update(data).digest('hex');
