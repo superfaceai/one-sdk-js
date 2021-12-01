@@ -1,7 +1,19 @@
 import { createHash } from 'crypto';
+import createDebug from 'debug';
+import { inspect } from 'util';
 
 import { UnexpectedError } from '../..';
 import { FetchInstance } from './interfaces';
+
+const debug = createDebug('superface:http:digest');
+const debugSensitive = createDebug('superface:http:digest:sensitive');
+debugSensitive(
+  `
+WARNING: YOU HAVE ALLOWED LOGGING SENSITIVE INFORMATION.
+THIS LOGGING LEVEL DOES NOT PREVENT LEAKING SECRETS AND SHOULD NOT BE USED IF THE LOGS ARE GOING TO BE SHARED.
+CONSIDER DISABLING SENSITIVE INFORMATION LOGGING BY APPENDING THE DEBUG ENVIRONMENT VARIABLE WITH ",-*:sensitive".
+`
+);
 
 /**
  * Represents algorithm used in Digest auth.
@@ -35,7 +47,12 @@ export class DigestHelper {
     //"Proxy-Authenticate" can be also used when communicating thru proxy https://datatracker.ietf.org/doc/html/rfc2617#section-1.2
     private readonly header: string = 'www-authenticate',
     private nc: number = 0
-  ) {}
+  ) {
+    debug('Initialized DigestHelper');
+    debugSensitive(
+      `Initialized with: userame="${this.user}", password="${this.password}", cnonce size=${this.cnonceSize}, status code=${this.statusCode}, challenge header="${this.header}"`
+    );
+  }
 
   /**
    * Sends request to specified url, expectes response with 401 (or custom) status code,
@@ -44,13 +61,25 @@ export class DigestHelper {
    */
   async prepareAuth(url: string, method: string): Promise<string> {
     const resp = await this.fetchInstance.fetch(url, { method });
+    debugSensitive(`Initial request response\n${inspect(resp, true, 5)}`);
     if (resp.status !== this.statusCode) {
       throw new UnexpectedError(
         `Digest auth failed, server returned unexpected code ${resp.status}`,
         resp
       );
     }
-    const digestValues = this.extractDigestValues(resp.headers[this.header]);
+    const challangeHeader = resp.headers[this.header];
+    if (!challangeHeader) {
+      throw new UnexpectedError(
+        `Digest auth failed, unable to extract digest values from response. Header "${this.header}" not found in response headers`,
+        resp.headers
+      );
+    }
+    debugSensitive(`Extracting digest values from: ${challangeHeader}`);
+    const digestValues = this.extractDigestValues(challangeHeader);
+    debugSensitive(
+      `Extracted digest values\n${inspect(digestValues, true, 2)}`
+    );
     if (!digestValues) {
       throw new UnexpectedError(
         `Digest auth failed, unable to extract digest values from response. Header "${this.header}" not found`,
@@ -157,6 +186,11 @@ export class DigestHelper {
     return 'MD5';
   }
 
+  /**
+   * Extracts QOP from raw header. Throws on values other than "auth" or "auth-int"
+   * @param rawHeader string containing qop
+   * @returns "auth", "auth-int" or undefined
+   */
   private extractQop(rawHeader: string): 'auth' | 'auth-int' | undefined {
     // Following https://en.wikipedia.org/wiki/Digest_access_authentication
     // to parse valid qop
@@ -219,7 +253,7 @@ export class DigestHelper {
         algorithm
       );
     }
-    
-return createHash(usedAlgorithm).update(data).digest('hex');
+
+    return createHash(usedAlgorithm).update(data).digest('hex');
   }
 }
