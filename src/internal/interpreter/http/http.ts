@@ -6,6 +6,7 @@ import {
 import createDebug from 'debug';
 import { inspect } from 'util';
 
+import { AuthCache } from '../../../client';
 import { USER_AGENT } from '../../../index';
 import { recursiveKeyList } from '../../../lib/object';
 import { UnexpectedError } from '../../errors';
@@ -129,7 +130,7 @@ export const createUrl = (
 };
 
 export class HttpClient {
-  constructor(private fetchInstance: FetchInstance) {}
+  constructor(private fetchInstance: FetchInstance & AuthCache) {}
 
   public async request(
     url: string,

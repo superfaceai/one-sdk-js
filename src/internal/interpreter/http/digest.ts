@@ -2,6 +2,7 @@ import { createHash } from 'crypto';
 import createDebug from 'debug';
 import { inspect } from 'util';
 
+import { AuthCache } from '../../..';
 import { UnexpectedError } from '../..';
 import { FetchInstance } from './interfaces';
 
@@ -22,7 +23,7 @@ type DigestAlgorithm = 'MD5' | 'MD5-sess' | 'SHA-256' | 'SHA-256-sess';
 /**
  * Represents values extracted from initial digest call
  */
-type DigestAuthValues = {
+export type DigestAuthValues = {
   algorithm: DigestAlgorithm;
   scheme: string;
   realm: string;
@@ -40,7 +41,7 @@ export class DigestHelper {
   constructor(
     private readonly user: string,
     private readonly password: string,
-    private readonly fetchInstance: FetchInstance,
+    private readonly fetchInstance: FetchInstance & AuthCache,
     private readonly cnonceSize: number = 32,
     //407 can be also used when communicating thru proxy https://datatracker.ietf.org/doc/html/rfc2617#section-1.2
     private readonly statusCode: number = 401,
@@ -61,6 +62,10 @@ export class DigestHelper {
    */
   async prepareAuth(url: string, method: string): Promise<string> {
     debugSensitive(`Preparing digest auth for: ${url} and method: ${method}`);
+
+    if (this.fetchInstance.cache) {
+      return this.buildDigestAuth(url, method, this.fetchInstance.cache);
+    }
     const resp = await this.fetchInstance.fetch(url, { method });
     debugSensitive(`Initial request response\n${inspect(resp, true, 5)}`);
     if (resp.status !== this.statusCode) {
@@ -82,7 +87,9 @@ export class DigestHelper {
       `Extracted digest values\n${inspect(digestValues, true, 2)}`
     );
 
-    return this.buildDigestAuth(url, method, digestValues);
+    this.fetchInstance.cache = digestValues;
+    
+return this.buildDigestAuth(url, method, digestValues);
   }
 
   private buildDigestAuth(

@@ -12,6 +12,7 @@ import {
   SecurityType,
 } from '@superfaceai/ast';
 
+import { AuthCache } from '../../..';
 import { UnexpectedError } from '../..';
 import { apiKeyInBodyError } from '../../errors.helpers';
 import { NonPrimitive, Variables } from '../variables';
@@ -139,7 +140,7 @@ export async function applyDigest(
   },
   method: string,
   url: string,
-  fetchInstance: FetchInstance
+  fetchInstance: FetchInstance & AuthCache
 ): Promise<void> {
   //FIX: Should be passed in super.json configuration
   const user = process.env.CLOCKPLUS_USERNAME;

@@ -38,6 +38,7 @@ import {
   ProfileParameterError,
   ProfileParameterValidator,
 } from '../internal/interpreter';
+import { DigestAuthValues } from '../internal/interpreter/http/digest';
 import { FetchInstance } from '../internal/interpreter/http/interfaces';
 import { SecurityConfiguration } from '../internal/interpreter/http/security';
 import {
@@ -67,11 +68,12 @@ function profileAstId(ast: ProfileDocumentNode): string {
 const boundProfileProviderDebug = createDebug(
   'superface:bound-profile-provider'
 );
+export type AuthCache = { cache?: DigestAuthValues };
 
 export class BoundProfileProvider {
   //TODO: Interceptable and set metadata
   private profileValidator: ProfileParameterValidator;
-  private fetchInstance: FetchInstance & Interceptable;
+  private fetchInstance: FetchInstance & Interceptable & AuthCache;
 
   constructor(
     private readonly profileAst: ProfileDocumentNode,
