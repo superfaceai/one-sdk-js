@@ -12,7 +12,7 @@
 ![TypeScript](https://img.shields.io/static/v1?message=TypeScript&&logoColor=ffffff&color=007acc&labelColor=5c5c5c&label=built%20with)
 [![Discord](https://img.shields.io/discord/819563244418105354?logo=discord&logoColor=fff)](https://sfc.is/discord)
 
-OneSDK is a universal API client which provides an unparalleled developer experience for every HTTP and Graph API. It enhances resiliency to API changes and comes with built-in integration monitoring, testing and fail-overs.
+OneSDK is a universal API client which provides an unparalleled developer experience for every HTTP API. It enhances resiliency to API changes and comes with built-in integration monitoring and fail-overs.
 
 For more details about Superface visit [how it works](https://superface.ai/how-it-works) and [get started](https://superface.ai/docs/getting-started).
 
