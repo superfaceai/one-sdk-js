@@ -151,6 +151,15 @@
         "ideas",
         "talk"
       ]
+    },
+    {
+      "login": "kravchenkoa",
+      "name": "Artem Kravchenko",
+      "avatar_url": "https://avatars.githubusercontent.com/u/41429555?v=4",
+      "profile": "https://github.com/kravchenkoa",
+      "contributions": [
+        "bug"
+      ]
     }
   ],
   "commitConvention": "none"
