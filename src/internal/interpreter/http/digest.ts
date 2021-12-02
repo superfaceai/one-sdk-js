@@ -88,8 +88,8 @@ export class DigestHelper {
     );
 
     this.fetchInstance.cache = digestValues;
-    
-return this.buildDigestAuth(url, method, digestValues);
+
+    return this.buildDigestAuth(url, method, digestValues);
   }
 
   private buildDigestAuth(

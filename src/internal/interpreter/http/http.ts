@@ -130,7 +130,7 @@ export const createUrl = (
 };
 
 export class HttpClient {
-  constructor(private fetchInstance: FetchInstance & AuthCache) {}
+  constructor(private fetchInstance: FetchInstance & AuthCache) { }
 
   public async request(
     url: string,
@@ -148,6 +148,7 @@ export class HttpClient {
       integrationParameters?: Record<string, string>;
     }
   ): Promise<HttpResponse> {
+    // let authCacheHit = false;
     const headers = variablesToStrings(parameters?.headers);
     headers['accept'] = parameters.accept || '*/*';
 
@@ -178,6 +179,9 @@ export class HttpClient {
       if (configuration.type === SecurityType.APIKEY) {
         applyApiKeyAuth(contextForSecurity, configuration);
       } else if (configuration.scheme === HttpScheme.DIGEST) {
+        // if (this.fetchInstance.cache) {
+        //   authCacheHit = true;
+        // }
         const preparedUrl = createUrl(url, {
           baseUrl: parameters.baseUrl,
           pathParameters,
@@ -266,6 +270,18 @@ export class HttpClient {
       debugSensitive(`\t${headerName}: ${value}`)
     );
     debugSensitive('\n\t%j', response.body);
+
+    //TODO: we should be able to retry request when we "resused" authCache (we are using old auth header value) and response has statusCode matching status code in provider.json.
+    //It means auth failed and server sends new challenge
+    //Something like:
+    // if (authCacheHit && isDigestAuth && response.status === statusCodeFromProviderJson) {
+    //   const extracted = DigestHelper.extractDigestValues(response.headers[headerFromProviderJson])
+    //   const auth = DigestHelper.buildDigestAuth(url, method, extracted)
+    //   context.headers[authheaderFromProviderJson || AUTH_HEADER_NAME]
+
+    //   retry request
+    // }
+    // It looks like requests itself should be wraped be some security helper which will prepare auth and can react on response - and retry it.
 
     return {
       statusCode: response.status,
