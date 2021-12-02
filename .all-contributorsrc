@@ -1,0 +1,157 @@
+{
+  "projectName": "one-sdk-js",
+  "projectOwner": "superfaceai",
+  "repoType": "github",
+  "contributors": [
+    {
+      "login": "TheEdward162",
+      "name": "Edward",
+      "avatar_url": "https://avatars.githubusercontent.com/u/10064857?v=4",
+      "profile": "https://github.com/TheEdward162",
+      "contributions": [
+        "code",
+        "ideas",
+        "infra",
+        "maintenance",
+        "research",
+        "review"
+      ]
+    },
+    {
+      "login": "lukas-valenta",
+      "name": "Lukáš Valenta",
+      "avatar_url": "https://avatars.githubusercontent.com/u/13323507?v=4",
+      "profile": "https://github.com/lukas-valenta",
+      "contributions": [
+        "code",
+        "doc",
+        "ideas",
+        "infra",
+        "maintenance",
+        "review"
+      ]
+    },
+    {
+      "login": "Jakub-Vacek",
+      "name": "Jakub Vacek",
+      "avatar_url": "https://avatars.githubusercontent.com/u/21127441?v=4",
+      "profile": "https://github.com/Jakub-Vacek",
+      "contributions": [
+        "code",
+        "ideas",
+        "infra",
+        "maintenance",
+        "tool"
+      ]
+    },
+    {
+      "login": "martinalbert",
+      "name": "Martin Albert",
+      "avatar_url": "https://avatars.githubusercontent.com/u/17796870?v=4",
+      "profile": "https://github.com/martinalbert",
+      "contributions": [
+        "code",
+        "doc",
+        "ideas",
+        "maintenance",
+        "test",
+        "tool"
+      ]
+    },
+    {
+      "login": "janhalama",
+      "name": "Jan Halama",
+      "avatar_url": "https://avatars.githubusercontent.com/u/5206165?v=4",
+      "profile": "https://github.com/janhalama",
+      "contributions": [
+        "code",
+        "ideas",
+        "infra",
+        "maintenance"
+      ]
+    },
+    {
+      "login": "smizell",
+      "name": "Stephen Mizell",
+      "avatar_url": "https://avatars.githubusercontent.com/u/130959?v=4",
+      "profile": "http://smizell.com/",
+      "contributions": [
+        "blog",
+        "code",
+        "doc",
+        "ideas",
+        "research"
+      ]
+    },
+    {
+      "login": "freaz",
+      "name": "Ondrej Musil",
+      "avatar_url": "https://avatars.githubusercontent.com/u/959390?v=4",
+      "profile": "https://www.ondrejmusil.cz/",
+      "contributions": [
+        "code",
+        "doc",
+        "ideas",
+        "infra",
+        "maintenance",
+        "research",
+        "review",
+        "test",
+        "tutorial"
+      ]
+    },
+    {
+      "login": "zdne",
+      "name": "Z",
+      "avatar_url": "https://avatars.githubusercontent.com/u/613617?v=4",
+      "profile": "https://github.com/zdne",
+      "contributions": [
+        "blog",
+        "business",
+        "code",
+        "doc",
+        "fundingFinding",
+        "ideas",
+        "projectManagement",
+        "research",
+        "review",
+        "talk"
+      ]
+    },
+    {
+      "login": "Vratislav",
+      "name": "Vratislav Kalenda",
+      "avatar_url": "https://avatars.githubusercontent.com/u/346066?v=4",
+      "profile": "http://www.applifting.cz/",
+      "contributions": [
+        "business",
+        "code",
+        "financial",
+        "ideas",
+        "research"
+      ]
+    },
+    {
+      "login": "kysely",
+      "name": "Radek Kyselý",
+      "avatar_url": "https://avatars.githubusercontent.com/u/23558634?v=4",
+      "profile": "https://github.com/kysely",
+      "contributions": [
+        "doc"
+      ]
+    },
+    {
+      "login": "jnv",
+      "name": "Jan Vlnas",
+      "avatar_url": "https://avatars.githubusercontent.com/u/616767?v=4",
+      "profile": "https://jan.vlnas.cz/",
+      "contributions": [
+        "bug",
+        "code",
+        "ideas",
+        "talk"
+      ]
+    }
+  ],
+  "commitConvention": "none"
+}
