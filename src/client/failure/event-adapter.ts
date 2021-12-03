@@ -190,7 +190,8 @@ export function registerHooks(hookContext: HooksContext, events: Events): void {
             kind: 'unknown',
             originalError: error,
           });
-          //TODO: handle all the casses - how
+          //React only on switch-provider - it will fail in other cases
+          //Set queuedAction when we can switch provider
           if (resolution.kind === 'switch-provider') {
             performContext.queuedAction = resolution;
           }

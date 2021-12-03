@@ -1,6 +1,7 @@
 import { AstMetadata, MapDocumentNode, ProviderJson } from '@superfaceai/ast';
 
 import { Config } from '../config';
+import { invalidProviderResponseError } from '../internal/errors.helpers';
 import {
   assertIsRegistryProviderInfo,
   fetchBind,
@@ -252,7 +253,7 @@ describe('registry', () => {
           mapVariant: 'test-map-variant',
           mapRevision: 'test-map-revision',
         })
-      ).rejects.toThrow('validation failed');
+      ).rejects.toThrow(invalidProviderResponseError({ path: ['input'] }));
 
       expect(request).toHaveBeenCalledTimes(1);
       expect(request).toHaveBeenCalledWith('/registry/bind', {

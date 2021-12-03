@@ -467,9 +467,7 @@ function spyOnCacheBoundProfileProvider(client: SuperfaceClientBase) {
           return Promise.resolve(thirdMockBoundProfileProvider);
 
         case 'invalid':
-          return Promise.reject(
-            bindResponseError('Registry responded with invalid body')
-          );
+          return Promise.reject(bindResponseError({ test: 'test' }));
 
         default:
           throw 'unreachable';
@@ -1374,6 +1372,68 @@ describe.each([
     expect((await secondEndpoint.getSeenRequests()).length).toEqual(1);
   }, 20000);
 
+  /**
+   * Bind
+   */
+  it('use abort policy - switch providers after error in bind', async () => {
+    const endpoint = await mockServer.get('/first').thenJson(200, {});
+
+    mockSuperJson({
+      profiles: {
+        ['starwars/character-information']: {
+          version: '1.0.0',
+          defaults: {
+            Test: {
+              providerFailover: true,
+            },
+          },
+          priority: ['invalid', 'provider'],
+          providers: {
+            provider: {
+              defaults: {
+                Test: {
+                  input: {},
+                  retryPolicy: OnFail.NONE,
+                },
+              },
+            },
+            invalid: {
+              defaults: {
+                Test: {
+                  input: {},
+                  retryPolicy: OnFail.NONE,
+                },
+              },
+            },
+          },
+        },
+      },
+      providers: {
+        provider: {
+          security: [],
+        },
+        invalid: {
+          security: [],
+        },
+      },
+    });
+
+    const client = clientFactory();
+
+    const cacheBoundProfileProviderSpy = spyOnCacheBoundProfileProvider(client);
+
+    const profile = await client.getProfile('starwars/character-information');
+    const useCase = profile.getUseCase('Test');
+    const result = await useCase.perform(undefined);
+
+    expect(result.isOk() && result.value).toEqual({
+      message: 'hello',
+    });
+    //We send request twice
+    expect((await endpoint.getSeenRequests()).length).toEqual(1);
+    expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(2);
+  }, 20000);
+
   it('use default policy - switch providers after error in bind', async () => {
     const endpoint = await mockServer.get('/first').thenJson(200, {});
 
@@ -1430,6 +1490,130 @@ describe.each([
     expect((await endpoint.getSeenRequests()).length).toEqual(1);
     expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(2);
   }, 20000);
+
+  it('use default policy - fail after error in bind', async () => {
+    const endpoint = await mockServer.get('/first').thenJson(200, {});
+
+    mockSuperJson({
+      profiles: {
+        ['starwars/character-information']: {
+          version: '1.0.0',
+          defaults: {
+            Test: {
+              //False
+              providerFailover: false,
+            },
+          },
+          priority: ['invalid', 'provider'],
+          providers: {
+            provider: {
+              defaults: {
+                Test: {
+                  input: {},
+                },
+              },
+            },
+            invalid: {
+              defaults: {
+                Test: {
+                  input: {},
+                },
+              },
+            },
+          },
+        },
+      },
+      providers: {
+        provider: {
+          security: [],
+        },
+        invalid: {
+          security: [],
+        },
+      },
+    });
+
+    const client = clientFactory();
+
+    const cacheBoundProfileProviderSpy = spyOnCacheBoundProfileProvider(client);
+
+    const profile = await client.getProfile('starwars/character-information');
+    const useCase = profile.getUseCase('Test');
+    const result = useCase.perform(undefined);
+
+    await expect(result).rejects.toThrow(bindResponseError({ test: 'test' }));
+
+    //We send request twice
+    expect((await endpoint.getSeenRequests()).length).toEqual(0);
+    expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(1);
+  }, 20000);
+
+  it('use circuit breaker policy - fail after error in bind', async () => {
+    const endpoint = await mockServer.get('/first').thenJson(200, {});
+
+    mockSuperJson({
+      profiles: {
+        ['starwars/character-information']: {
+          version: '1.0.0',
+          defaults: {
+            Test: {
+              providerFailover: true,
+            },
+          },
+          priority: ['invalid', 'provider'],
+          providers: {
+            provider: {
+              defaults: {
+                Test: {
+                  input: {},
+                  retryPolicy: {
+                    kind: OnFail.CIRCUIT_BREAKER,
+                    maxContiguousRetries: 2,
+                    requestTimeout: 1000,
+                  },
+                },
+              },
+            },
+            invalid: {
+              defaults: {
+                Test: {
+                  input: {},
+                  retryPolicy: {
+                    kind: OnFail.CIRCUIT_BREAKER,
+                    maxContiguousRetries: 2,
+                    requestTimeout: 1000,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      providers: {
+        provider: {
+          security: [],
+        },
+        invalid: {
+          security: [],
+        },
+      },
+    });
+
+    const client = clientFactory();
+
+    const cacheBoundProfileProviderSpy = spyOnCacheBoundProfileProvider(client);
+
+    const profile = await client.getProfile('starwars/character-information');
+    const useCase = profile.getUseCase('Test');
+    const result = useCase.perform(undefined);
+
+    await expect(result).rejects.toThrow(bindResponseError({ test: 'test' }));
+
+    //We send request twice
+    expect((await endpoint.getSeenRequests()).length).toEqual(0);
+    expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(1);
+  }, 20000);
+
   it('preserves hook context within one client', async () => {
     const endpoint = await mockServer.get('/first').thenJson(500, {});
     const secondEndpoint = await mockServer.get('/second').thenJson(200, {});
