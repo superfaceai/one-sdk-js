@@ -184,17 +184,20 @@ export function registerHooks(hookContext: HooksContext, events: Events): void {
 
         //Handle bind-level failure here
         if (error instanceof SDKBindError) {
-          const resolution = performContext.router.afterFailure({
-            time: context.time.getTime(),
-            registryCacheAge: 0, // TODO
-            kind: 'unknown',
-            originalError: error,
-          });
-          //React only on switch-provider - it will fail in other cases
-          //Set queuedAction when we can switch provider
-          if (resolution.kind === 'switch-provider') {
-            performContext.queuedAction = resolution;
-          }
+          //Try to switch providers
+          performContext.queuedAction = performContext.router.attemptFailover(
+            {
+              time: context.time.getTime(),
+              registryCacheAge: 0, // TODO
+              checkFailoverRestore: true,
+            },
+            FailurePolicyReason.fromExecutionFailure({
+              time: context.time.getTime(),
+              registryCacheAge: 0, // TODO
+              kind: 'unknown',
+              originalError: error,
+            })
+          );
         }
 
         // TODO: Perform-level failure here (when another failure is defined in ExecutionFailure)

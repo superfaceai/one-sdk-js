@@ -71,7 +71,7 @@ export class FailurePolicyRouter {
     return { kind: 'switch-provider', provider: newProvider, reason };
   }
 
-  private attemptFailover(
+  public attemptFailover(
     info: ExecutionInfo,
     reason: FailurePolicyReason
   ): SwitchProviderResolution | undefined {

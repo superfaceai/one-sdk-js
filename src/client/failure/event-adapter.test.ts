@@ -1548,7 +1548,7 @@ describe.each([
     expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(1);
   }, 20000);
 
-  it('use circuit breaker policy - fail after error in bind', async () => {
+  it('use circuit breaker policy - switch providers after error in bind', async () => {
     const endpoint = await mockServer.get('/first').thenJson(200, {});
 
     mockSuperJson({
@@ -1605,13 +1605,15 @@ describe.each([
 
     const profile = await client.getProfile('starwars/character-information');
     const useCase = profile.getUseCase('Test');
-    const result = useCase.perform(undefined);
+    const result = await useCase.perform(undefined);
 
-    await expect(result).rejects.toThrow(bindResponseError({ test: 'test' }));
+    expect(result.isOk() && result.value).toEqual({
+      message: 'hello',
+    });
 
     //We send request twice
-    expect((await endpoint.getSeenRequests()).length).toEqual(0);
-    expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(1);
+    expect((await endpoint.getSeenRequests()).length).toEqual(1);
+    expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(2);
   }, 20000);
 
   it('preserves hook context within one client', async () => {
