@@ -11,6 +11,7 @@ import { NonPrimitive } from '../internal/interpreter/variables';
 import { Events, FailureContext, SuccessContext } from '../lib/events';
 import { exists } from '../lib/io';
 import { MetricReporter } from '../lib/reporter';
+import { SuperCache } from './cache';
 import {
   HooksContext,
   registerHooks as registerFailoverHooks,
@@ -24,67 +25,118 @@ import {
 import { BoundProfileProvider, ProfileProvider } from './profile-provider';
 import { Provider, ProviderConfiguration } from './provider';
 
-/**
- * Cache for loaded super.json files so that they aren't reparsed each time a new superface client is created.
- */
-let SUPER_CACHE: { [path: string]: SuperJson } = {};
-export function invalidateSuperfaceClientCache(): void {
-  SUPER_CACHE = {};
+async function bindProfileProvider(
+  profileConfig: ProfileConfiguration,
+  providerConfig: ProviderConfiguration,
+  superJson: SuperJson,
+  events: Events
+): Promise<BoundProfileProvider> {
+  const profileProvider = new ProfileProvider(
+    superJson,
+    profileConfig,
+    providerConfig,
+    events
+  );
+  const boundProfileProvider = await profileProvider.bind();
+
+  return boundProfileProvider;
 }
 
-export abstract class SuperfaceClientBase extends Events {
-  public readonly superJson: SuperJson;
-  private readonly metricReporter: MetricReporter | undefined;
-  private boundCache: {
-    [key: string]: BoundProfileProvider;
-  } = {};
-
-  public hookContext: HooksContext = {};
-
-  constructor() {
-    super();
-    const superCacheKey = Config.instance().superfacePath;
-
-    if (SUPER_CACHE[superCacheKey] === undefined) {
-      SUPER_CACHE[superCacheKey] = SuperJson.loadSync(superCacheKey).unwrap();
-    }
-
-    this.superJson = SUPER_CACHE[superCacheKey];
-    if (!Config.instance().disableReporting) {
-      this.hookMetrics();
-      this.metricReporter = new MetricReporter(this.superJson);
-      this.metricReporter.reportEvent({
-        eventType: 'SDKInit',
-        occurredAt: new Date(),
-      });
-    }
-    registerFailoverHooks(this.hookContext, this);
-  }
+export class InternalClient {
+  constructor(
+    private readonly events: Events,
+    private readonly superJson: SuperJson,
+    private readonly boundProfileProviderCache: SuperCache<BoundProfileProvider>,
+    private readonly metricReporter?: MetricReporter
+  ) {}
 
   /**
    * @deprecated
    * This is not a part of the public API, DON'T USE THIS METHOD
    * Returns a BoundProfileProvider that is cached according to `profileConfig` and `providerConfig` cache keys.
    */
-  async cacheBoundProfileProvider(
+  private async cacheBoundProfileProvider(
     profileConfig: ProfileConfiguration,
     providerConfig: ProviderConfiguration
   ): Promise<BoundProfileProvider> {
     const cacheKey = profileConfig.cacheKey + providerConfig.cacheKey;
 
-    const bound = this.boundCache[cacheKey];
-    if (bound === undefined) {
-      const profileProvider = new ProfileProvider(
-        this.superJson,
+    const bound = this.boundProfileProviderCache.getCached(cacheKey, () =>
+      bindProfileProvider(
         profileConfig,
         providerConfig,
-        this
-      );
-      const boundProfileProvider = await profileProvider.bind();
-      this.boundCache[cacheKey] = boundProfileProvider;
+        this.superJson,
+        this.events
+      )
+    );
+
+    // const bound = this.boundCache[cacheKey];
+    // if (bound === undefined) {
+    //   const profileProvider = new ProfileProvider(
+    //     this.superJson,
+    //     profileConfig,
+    //     providerConfig,
+    //     this
+    //   );
+    //   const boundProfileProvider = await profileProvider.bind();
+    //   this.boundCache[cacheKey] = boundProfileProvider;
+    // }
+
+    // return this.boundCache[cacheKey];
+
+    return bound;
+  }
+
+  async getProvider(providerName: string): Promise<Provider> {
+    const providerSettings = this.superJson.normalized.providers[providerName];
+
+    if (providerSettings === undefined) {
+      throw unconfiguredProviderError(providerName);
     }
 
-    return this.boundCache[cacheKey];
+    return new Provider(
+      this,
+      new ProviderConfiguration(providerName, providerSettings.security)
+    );
+  }
+}
+
+export abstract class SuperfaceClientBase {
+  public readonly superJson: SuperJson;
+  private boundCache: {
+    [key: string]: BoundProfileProvider;
+  } = {};
+  private readonly internal: InternalClient;
+
+  constructor() {
+    const events = new Events();
+    const superCacheKey = Config.instance().superfacePath;
+
+    const boundProfileProviderCache = new SuperCache<BoundProfileProvider>();
+    const superJsonCache = new SuperCache<SuperJson>();
+    this.superJson = superJsonCache.getCached(
+      superCacheKey,
+      SuperJson.loadSync(superCacheKey).unwrap
+    );
+
+    let metricReporter: MetricReporter | undefined;
+    if (!Config.instance().disableReporting) {
+      this.hookMetrics();
+      metricReporter = new MetricReporter(this.superJson);
+      metricReporter.reportEvent({
+        eventType: 'SDKInit',
+        occurredAt: new Date(),
+      });
+    }
+
+    registerFailoverHooks(events.hookContext, events);
+
+    this.internal = new InternalClient(
+      events,
+      this.superJson,
+      boundProfileProviderCache,
+      metricReporter
+    );
   }
 
   /** Gets a provider from super.json based on `providerName`. */

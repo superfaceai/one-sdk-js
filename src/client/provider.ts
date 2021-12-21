@@ -1,7 +1,6 @@
 import { SecurityValues } from '@superfaceai/ast';
 
 import { mergeSecurity } from '../internal/superjson/mutate';
-import { SuperfaceClientBase } from './client';
 
 export class ProviderConfiguration {
   constructor(
@@ -16,10 +15,7 @@ export class ProviderConfiguration {
 }
 
 export class Provider {
-  constructor(
-    public readonly client: SuperfaceClientBase,
-    public readonly configuration: ProviderConfiguration
-  ) {}
+  constructor(public readonly configuration: ProviderConfiguration) {}
 
   async configure(configuration: {
     security?: SecurityValues[];
@@ -29,6 +25,6 @@ export class Provider {
       mergeSecurity(this.configuration.security, configuration.security ?? [])
     );
 
-    return new Provider(this.client, newConfiguration);
+    return new Provider(newConfiguration);
   }
 }

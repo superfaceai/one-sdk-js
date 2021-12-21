@@ -6,6 +6,7 @@
 import createDebug from 'debug';
 
 import { UseCase } from '../client';
+import { HooksContext } from '../client/failure/event-adapter';
 import { MapInterpreterEventAdapter } from '../client/failure/map-interpreter-adapter';
 import { FailurePolicyReason } from '../client/failure/policy';
 import { UnexpectedError } from '../internal/errors';
@@ -24,6 +25,7 @@ export type InterceptableMetadata = {
   profile?: string;
   usecase?: string;
 };
+
 export type Interceptable = {
   metadata?: InterceptableMetadata;
   events?: Events;
@@ -166,6 +168,8 @@ function priorityCallbackTuple<T extends keyof EventParams>(
 }
 
 export class Events {
+  public hookContext: HooksContext = {};
+
   private listeners: EventListeners = {};
 
   public on<E extends keyof EventParams>(

@@ -1,7 +1,6 @@
 import { UnexpectedError } from '../internal/errors';
 import { usecaseNotFoundError } from '../internal/errors.helpers';
 import { NonPrimitive } from '../internal/interpreter/variables';
-import { SuperfaceClientBase } from './client';
 import { TypedUseCase, UseCase } from './usecase';
 
 export class ProfileConfiguration {
@@ -27,10 +26,7 @@ export type KnownUsecase<TUsecase extends UsecaseType> = {
 };
 
 export class ProfileBase {
-  constructor(
-    public readonly client: SuperfaceClientBase,
-    public readonly configuration: ProfileConfiguration
-  ) {}
+  constructor(public readonly configuration: ProfileConfiguration) {}
 }
 
 export class Profile extends ProfileBase {
@@ -46,11 +42,10 @@ export class TypedProfile<
   private readonly knownUsecases: KnownUsecase<TUsecaseTypes>;
 
   constructor(
-    public override readonly client: SuperfaceClientBase,
     public override readonly configuration: ProfileConfiguration,
     usecases: (keyof TUsecaseTypes)[]
   ) {
-    super(client, configuration);
+    super(configuration);
     this.knownUsecases = usecases.reduce(
       (acc, usecase) => ({
         ...acc,

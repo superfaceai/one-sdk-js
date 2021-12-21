@@ -33,19 +33,18 @@ export type PerformError = ProfileParameterError | MapInterpreterError;
 
 class UseCaseBase implements Interceptable {
   public metadata: InterceptableMetadata;
-  public events: Events;
 
   private boundProfileProvider: BoundProfileProvider | undefined;
 
   constructor(
     public readonly profile: ProfileBase,
-    public readonly name: string
+    public readonly name: string,
+    public readonly events: Events
   ) {
     this.metadata = {
       usecase: name,
       profile: this.profile.configuration.id,
     };
-    this.events = this.profile.client;
 
     this.configureHookContext();
   }
