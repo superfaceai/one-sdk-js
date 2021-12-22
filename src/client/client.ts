@@ -80,7 +80,9 @@ export abstract class SuperfaceClientBase extends Events {
         providerConfig,
         this
       );
-      const boundProfileProvider = await profileProvider.bind();
+      const boundProfileProvider = await profileProvider.bind({
+        security: providerConfig.security,
+      });
       this.boundCache[cacheKey] = boundProfileProvider;
     }
 
