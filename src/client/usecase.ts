@@ -26,6 +26,7 @@ const debug = createDebug('superface:usecase');
 
 export type PerformOptions = {
   provider?: Provider | string;
+  parameters?: Record<string, string>;
 };
 
 // TODO
@@ -89,7 +90,10 @@ class UseCaseBase implements Interceptable {
       Variables | undefined
     >,
     TOutput = unknown
-  >(input?: TInput): Promise<Result<TOutput, PerformError>> {
+  >(
+    input?: TInput,
+    parameters?: Record<string, string>
+  ): Promise<Result<TOutput, PerformError>> {
     if (this.boundProfileProvider === undefined) {
       throw new UnexpectedError(
         'Unreachable code reached: BoundProfileProvider is undefined.'
@@ -97,7 +101,11 @@ class UseCaseBase implements Interceptable {
     }
 
     // TODO: rewrap the errors for public consumption?
-    return this.boundProfileProvider.perform<TInput, TOutput>(this.name, input);
+    return this.boundProfileProvider.perform<TInput, TOutput>(
+      this.name,
+      input,
+      parameters
+    );
   }
 
   @eventInterceptor({ eventName: 'bind-and-perform', placement: 'around' })
@@ -115,7 +123,7 @@ class UseCaseBase implements Interceptable {
 
     debug('bound provider', this.boundProfileProvider);
 
-    return this.performBoundUsecase(input);
+    return this.performBoundUsecase(input, options?.parameters);
   }
 
   private checkWarnFailoverMisconfiguration() {

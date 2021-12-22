@@ -176,7 +176,11 @@ describe('UseCase', () => {
       );
 
       expect(performSpy).toHaveBeenCalledTimes(1);
-      expect(performSpy).toHaveBeenCalledWith('test-usecase', undefined);
+      expect(performSpy).toHaveBeenCalledWith(
+        'test-usecase',
+        undefined,
+        undefined
+      );
     });
   });
 });
