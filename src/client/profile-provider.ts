@@ -189,9 +189,9 @@ export class BoundProfileProvider {
   private mergeParameters(
     parameters?: Record<string, string>,
     providerParameters?: Record<string, string>
-  ): Record<string, string> {
+  ): Record<string, string> | undefined {
     if (parameters === undefined) {
-      return providerParameters ?? {};
+      return providerParameters;
     }
 
     if (providerParameters === undefined) {
