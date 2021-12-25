@@ -667,10 +667,10 @@
   dependencies:
     typescript-is "^0.18.3"
 
-"@superfaceai/ast@^1.0.1-beta.0":
-  version "1.0.1-beta.0"
-  resolved "https://registry.yarnpkg.com/@superfaceai/ast/-/ast-1.0.1-beta.0.tgz#2113e139a567a08c2f51cac19b8b69077ed4e0ad"
-  integrity sha512-7sK1Y1hr5gaGj/TwxhbqNRh2Y+bLRj0qI3qMlcGsWqDpROyutRcBorcslYW7l1RvUMmP5fwRxImIO+m8qW92WA==
+"@superfaceai/ast@^1.0.2-beta.1":
+  version "1.0.2-beta.1"
+  resolved "https://registry.yarnpkg.com/@superfaceai/ast/-/ast-1.0.2-beta.1.tgz#7a5000be985c9126fc6c92567ecad6b8560b7dbe"
+  integrity sha512-Ecovml/QyXcpr89tY4XBxrF4bM3HGnvuDjY/d8/diSb3eeVjHXgU7ud3T9g+YCN6gg6zRMXIhHmzNcSRA7bd5A==
   dependencies:
     ajv "^8.8.2"
     ajv-formats "^2.1.1"

@@ -1,4 +1,5 @@
 import {
+  ComlinkAssignmentNode,
   ComlinkListLiteralNode,
   ComlinkObjectLiteralNode,
   ComlinkPrimitiveLiteralNode,
@@ -135,6 +136,8 @@ export class ProfileParameterValidator implements ProfileVisitor {
   ): ValidationFunction {
     debug('Visiting node:', node.kind);
     switch (node.kind) {
+      case 'ComlinkAssignment':
+        return this.visitComlinkAssignmentNode(node, kind, usecase);
       case 'ComlinkListLiteral':
         return this.visitComlinkListLiteralNode(node, kind, usecase);
       case 'ComlinkObjectLiteral':
@@ -177,6 +180,14 @@ export class ProfileParameterValidator implements ProfileVisitor {
       default:
         assertUnreachable(node);
     }
+  }
+
+  visitComlinkAssignmentNode(
+    _node: ComlinkAssignmentNode,
+    _kind: ProfileParameterKind,
+    _usecase: string
+  ): never {
+    throw new UnexpectedError('Method not implemented.');
   }
 
   visitComlinkListLiteralNode(
