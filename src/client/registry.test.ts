@@ -252,7 +252,7 @@ describe('registry', () => {
           mapVariant: 'test-map-variant',
           mapRevision: 'test-map-revision',
         })
-      ).rejects.toThrow('validation failed');
+      ).rejects.toThrow("'defaultService'");
 
       expect(request).toHaveBeenCalledTimes(1);
       expect(request).toHaveBeenCalledWith('/registry/bind', {

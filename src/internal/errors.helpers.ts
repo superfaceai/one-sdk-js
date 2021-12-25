@@ -361,3 +361,11 @@ export function providersDoNotMatchError(
     []
   );
 }
+
+export function parserNotFoundError(): SDKExecutionError {
+  return new SDKExecutionError(
+    'Parser not found',
+    ['Make sure that the @superfaceai/parser package is installed.'],
+    []
+  );
+}

@@ -29,6 +29,7 @@
     "prepush": "yarn build && yarn test:clean && yarn lint && yarn format"
   },
   "devDependencies": {
+    "@superfaceai/parser": "^1.0.0",
     "@types/debug": "^4.1.7",
     "@types/jest": "^27.0.1",
     "@typescript-eslint/eslint-plugin": "^4.29.3",
@@ -47,12 +48,19 @@
     "typescript": "4.3.5"
   },
   "dependencies": {
-    "@superfaceai/ast": "1.0.0",
-    "@superfaceai/parser": "1.0.0",
+    "@superfaceai/ast": "^1.0.1-beta.0",
     "abort-controller": "^3.0.0",
     "cross-fetch": "^3.0.5",
     "debug": "^4.3.2",
     "isomorphic-form-data": "^2.0.0",
     "vm2": "^3.9.2"
+  },
+  "peerDependencies": {
+    "@superfaceai/parser": "^1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@superfaceai/parser": {
+      "optional": true
+    }
   }
 }

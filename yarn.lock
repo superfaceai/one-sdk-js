@@ -667,7 +667,15 @@
   dependencies:
     typescript-is "^0.18.3"
 
-"@superfaceai/parser@1.0.0":
+"@superfaceai/ast@^1.0.1-beta.0":
+  version "1.0.1-beta.0"
+  resolved "https://registry.yarnpkg.com/@superfaceai/ast/-/ast-1.0.1-beta.0.tgz#2113e139a567a08c2f51cac19b8b69077ed4e0ad"
+  integrity sha512-7sK1Y1hr5gaGj/TwxhbqNRh2Y+bLRj0qI3qMlcGsWqDpROyutRcBorcslYW7l1RvUMmP5fwRxImIO+m8qW92WA==
+  dependencies:
+    ajv "^8.8.2"
+    ajv-formats "^2.1.1"
+
+"@superfaceai/parser@^1.0.0":
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/@superfaceai/parser/-/parser-1.0.0.tgz#48e55b40670a9af6e603107709cc89ae538f71d8"
   integrity sha512-verBpn8bN13fAo1pDCNMGxKLwXC26dlR7iDIM2ekioN/K+kOtXjq6A/bWILvJ+jAP2gWRHGZU017SKGPRrPOHg==
@@ -989,6 +997,13 @@ agent-base@6, agent-base@^6.0.0:
   dependencies:
     debug "4"
 
+ajv-formats@^2.1.1:
+  version "2.1.1"
+  resolved "https://registry.yarnpkg.com/ajv-formats/-/ajv-formats-2.1.1.tgz#6e669400659eb74973bbf2e33327180a0996b520"
+  integrity sha512-Wx0Kx52hxE7C18hkMEggYlEifqWZtYaRgouJor+WMdPnQyEK13vgEWyVNup7SoeeoLMsr4kf5h6dOW11I15MUA==
+  dependencies:
+    ajv "^8.0.0"
+
 ajv@^6.10.0, ajv@^6.12.4:
   version "6.12.6"
   resolved "https://registry.yarnpkg.com/ajv/-/ajv-6.12.6.tgz#baf5a62e802b07d977034586f8c3baf5adf26df4"
@@ -997,6 +1012,16 @@ ajv@^6.10.0, ajv@^6.12.4:
     fast-deep-equal "^3.1.1"
     fast-json-stable-stringify "^2.0.0"
     json-schema-traverse "^0.4.1"
+    uri-js "^4.2.2"
+
+ajv@^8.0.0, ajv@^8.8.2:
+  version "8.8.2"
+  resolved "https://registry.yarnpkg.com/ajv/-/ajv-8.8.2.tgz#01b4fef2007a28bf75f0b7fc009f62679de4abbb"
+  integrity sha512-x9VuX+R/jcFj1DHo/fCp99esgGDWiHENrKxaCENuCxpoMCmAt/COCGVDwA7kleEpEzJjDnvh3yGoOuLu0Dtllw==
+  dependencies:
+    fast-deep-equal "^3.1.1"
+    json-schema-traverse "^1.0.0"
+    require-from-string "^2.0.2"
     uri-js "^4.2.2"
 
 ajv@^8.0.1:

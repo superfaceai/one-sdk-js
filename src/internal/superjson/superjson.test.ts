@@ -154,7 +154,8 @@ describe('SuperJson', () => {
     it('checks digest values input correctly', () => {
       const mockInput = {
         id: 'id',
-        digest: 'digest',
+        username: 'username',
+        password: 'password',
       };
       expect(isDigestSecurityValues(mockInput)).toEqual(true);
     });
@@ -257,9 +258,7 @@ describe('SuperJson', () => {
       expect(SuperJson.loadSync('test').isErr()).toEqual(true);
     });
 
-    // TODO: Skipped for now, broken because of typescript-is bug
-    // https://github.com/woutervh-/typescript-is/issues/111
-    it.skip('returns err when there is an error during parsing super.json - usecase not nested under defaults', () => {
+    it('returns err when there is an error during parsing super.json - usecase not nested under defaults', () => {
       mocked(statSync).mockReturnValue(mockStats);
       mocked(readFileSync).mockReturnValue(`{
         "profiles": {
@@ -780,7 +779,8 @@ describe('SuperJson', () => {
               },
               {
                 "id": "myCustomScheme",
-                "digest": "SECRET"
+                "username": "NOTSECRET",
+                "password": "SECRET"
               }
             ]
           },

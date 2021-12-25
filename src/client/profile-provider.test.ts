@@ -157,7 +157,8 @@ describe('profile provider', () => {
       },
       {
         id: 'digest',
-        digest: 'test-digest-token',
+        username: 'test-username',
+        password: 'test-password',
       },
     ]);
 
@@ -353,7 +354,8 @@ describe('profile provider', () => {
               id: 'digest',
               type: SecurityType.HTTP,
               scheme: HttpScheme.DIGEST,
-              digest: 'test-digest-token',
+              username: 'test-username',
+              password: 'test-password',
             },
           ],
         },
@@ -877,7 +879,8 @@ describe('profile provider', () => {
           },
           {
             id: 'digest',
-            digest: 'test-digest-token',
+            username: 'test-username',
+            password: 'test-password',
           },
         ]);
         mocked(fetchBind).mockResolvedValue(mockFetchResponse);
@@ -1095,7 +1098,7 @@ but http scheme requires: token`
                 security: [
                   {
                     id: 'digest',
-                    password: 'test-password',
+                    digest: 'test-password',
                   },
                 ],
               },
@@ -1113,8 +1116,8 @@ but http scheme requires: token`
         );
 
         await expect(mockProfileProvider.bind()).rejects.toThrow(
-          `The provided security values with id "digest" have keys: password
-but http scheme requires: digest`
+          `The provided security values with id "digest" have keys: digest
+but http scheme requires: username, password`
         );
       });
 

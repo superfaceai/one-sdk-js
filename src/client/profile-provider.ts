@@ -27,6 +27,7 @@ import {
   invalidProfileError,
   invalidSecurityValuesError,
   localProviderAndRemoteMapError,
+  parserNotFoundError,
   providersDoNotMatchError,
   referencedFileNotFoundError,
   securityNotFoundError,
@@ -318,6 +319,10 @@ export class ProfileProvider {
           scope: profileAst.header.scope,
           providerName,
         });
+
+        if (!mapAst) {
+          throw parserNotFoundError();
+        }
       }
     } else if (providerInfo === undefined) {
       // resolve only provider info if map is specified locally
@@ -525,11 +530,15 @@ export class ProfileProvider {
       async (fileContents, fileName) => {
         // If we have source, we parse
         if (fileName !== undefined && isMapFile(fileName)) {
-          return Parser.parseMap(fileContents, fileName, {
+          const mapAst = Parser.parseMap(fileContents, fileName, {
             profileName: this.profileName,
             providerName,
             scope: this.scope,
           });
+
+          if (mapAst === undefined) {
+            throw parserNotFoundError();
+          }
         }
 
         // Otherwise we return parsed
@@ -708,7 +717,10 @@ export class ProfileProvider {
 
           case HttpScheme.DIGEST:
             if (!isDigestSecurityValues(vals)) {
-              throw invalidSchemeValuesErrorBuilder(scheme, vals, ['digest']);
+              throw invalidSchemeValuesErrorBuilder(scheme, vals, [
+                'username',
+                'password',
+              ]);
             }
 
             result.push({

@@ -6,12 +6,8 @@ import {
   ProfileDocumentNode,
   VERSION as AstVersion,
 } from '@superfaceai/ast';
-import {
-  PARSED_AST_VERSION,
-  parseMap,
-  parseProfile,
-  Source,
-} from '@superfaceai/parser';
+import type { Source as SourceType } from '@superfaceai/parser';
+import createDebug from 'debug';
 import { promises as fsp } from 'fs';
 import { join as joinPath } from 'path';
 
@@ -19,9 +15,22 @@ import { Config } from '../config';
 import { isAccessible } from '../lib/io';
 import { UnexpectedError } from './errors';
 
+const debug = createDebug('superface:sdk-parser');
+
+let PARSED_AST_VERSION: {
+  major: number;
+  minor: number;
+  patch: number;
+  label?: string;
+};
+let parseMap: (source: SourceType) => MapDocumentNode;
+let parseProfile: (source: SourceType) => ProfileDocumentNode;
+let Source: typeof SourceType;
+
 export class Parser {
   private static mapCache: Record<string, MapDocumentNode> = {};
   private static profileCache: Record<string, ProfileDocumentNode> = {};
+  private static parserAvailable: boolean | undefined;
 
   static async parseMap(
     input: string,
@@ -31,7 +40,15 @@ export class Parser {
       providerName: string;
       scope?: string;
     }
-  ): Promise<MapDocumentNode> {
+  ): Promise<MapDocumentNode | undefined> {
+    if (this.parserAvailable === undefined) {
+      await this.loadParser();
+    }
+
+    if (!this.parserAvailable) {
+      return undefined;
+    }
+
     const sourceChecksum = new Source(input, fileName).checksum();
     const cachePath = joinPath(
       Config.instance().cachePath,
@@ -89,7 +106,15 @@ export class Parser {
       profileName: string;
       scope?: string;
     }
-  ): Promise<ProfileDocumentNode> {
+  ): Promise<ProfileDocumentNode | undefined> {
+    if (this.parserAvailable === undefined) {
+      await this.loadParser();
+    }
+
+    if (!this.parserAvailable) {
+      return undefined;
+    }
+
     const sourceChecksum = new Source(input, fileName).checksum();
     const cachePath = joinPath(
       Config.instance().cachePath,
@@ -152,6 +177,18 @@ export class Parser {
 
     if (await isAccessible(Config.instance().cachePath)) {
       await fsp.rm(Config.instance().cachePath, { recursive: true });
+    }
+  }
+
+  private static async loadParser() {
+    try {
+      ({ PARSED_AST_VERSION, Source, parseMap, parseProfile } = await import(
+        '@superfaceai/parser'
+      ));
+      this.parserAvailable = true;
+    } catch (e) {
+      debug('Failed to load parser: %O', e);
+      this.parserAvailable = false;
     }
   }
 
