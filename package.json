@@ -1,6 +1,6 @@
 {
   "name": "@superfaceai/one-sdk",
-  "version": "1.1.0-beta.3",
+  "version": "1.1.0-beta.4",
   "description": "Level 5 autonomous, self-driving API client, https://superface.ai",
   "main": "dist/index.js",
   "source": "src/index.ts",
