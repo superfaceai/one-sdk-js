@@ -596,7 +596,7 @@ export class ProfileProvider {
     if (typeof input === 'string') {
       if (isFileURIString(input)) {
         const fileName = input.slice(FILE_URI_PROTOCOL.length);
-        profileProviderDebug('Resolving input as file:', fileName);
+        profileProviderDebug('Resolving input as file:', fileName, extensions);
         // read in files
         let contents, fileNameWithExtension;
         for (const extension of extensions) {
