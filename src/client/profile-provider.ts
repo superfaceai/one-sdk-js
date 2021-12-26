@@ -9,6 +9,7 @@ import {
   isDigestSecurityValues,
   isFileURIString,
   isMapFile,
+  isProfileASTFile,
   isProfileFile,
   MapDocumentNode,
   NormalizedProfileProviderSettings,
@@ -440,6 +441,11 @@ export class ProfileProvider {
     const profileAst = await ProfileProvider.resolveValue(
       resolveInput,
       async (fileContents, fileName) => {
+        // If we have profile AST, we return it
+        if (fileName !== undefined && isProfileASTFile(fileName)) {
+          return assertProfileDocumentNode(JSON.parse(fileContents));
+        }
+
         // If we have profile source, we parse
         if (fileName !== undefined && isProfileFile(fileName)) {
           return Parser.parseProfile(fileContents, fileName, {
