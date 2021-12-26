@@ -605,6 +605,7 @@ export class ProfileProvider {
             contents = await fsp.readFile(fileNameWithExtension, {
               encoding: 'utf-8',
             });
+            profileProviderDebug('Read file: ', fileNameWithExtension);
             break;
           } catch (e) {
             void e;
