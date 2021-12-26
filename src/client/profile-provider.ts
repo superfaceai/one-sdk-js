@@ -597,7 +597,6 @@ export class ProfileProvider {
       if (isFileURIString(input)) {
         const fileName = input.slice(FILE_URI_PROTOCOL.length);
         profileProviderDebug('Resolving input as file:', fileName);
-
         // read in files
         let contents, fileNameWithExtension;
         for (const extension of extensions) {
@@ -623,7 +622,12 @@ export class ProfileProvider {
         // unpack nested and recursively process them
         const nested = unpackNested(input);
 
-        return ProfileProvider.resolveValue(nested, parseFile, unpackNested);
+        return ProfileProvider.resolveValue(
+          nested,
+          parseFile,
+          unpackNested,
+          extensions
+        );
       }
     } else {
       // return undefined and T
