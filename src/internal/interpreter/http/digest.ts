@@ -92,7 +92,7 @@ export class DigestHelper {
     return this.buildDigestAuth(url, method, digestValues);
   }
 
-  private buildDigestAuth(
+  buildDigestAuth(
     url: string,
     method: string,
     digest: DigestAuthValues
@@ -137,7 +137,8 @@ export class DigestHelper {
     return `${digest.scheme} username="${this.user}",realm="${digest.realm}",nonce="${digest.nonce}",uri="${uri}",${opaqueString}${qopString}algorithm="${digest.algorithm}",response="${hashedResponse}",nc=${ncString},cnonce="${digest.cnonce}"`;
   }
 
-  private extractDigestValues(header: string): DigestAuthValues {
+  extractDigestValues(header: string): DigestAuthValues {
+    console.log('Header to extract', header)
     const scheme = header.split(/\s/)[0];
     if (!scheme) {
       throw new UnexpectedError(

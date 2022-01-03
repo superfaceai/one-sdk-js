@@ -21,6 +21,7 @@ import {
   Variables,
   variablesToStrings,
 } from '../variables';
+import { DigestHelper } from './digest';
 import {
   BINARY_CONTENT_REGEXP,
   BINARY_CONTENT_TYPES,
@@ -36,7 +37,6 @@ import {
 } from './interfaces';
 import {
   applyApiKeyAuth,
-  applyDigest,
   applyHttpAuth,
   SecurityConfiguration,
 } from './security';
@@ -132,6 +132,40 @@ export const createUrl = (
 export class HttpClient {
   constructor(private fetchInstance: FetchInstance & AuthCache) { }
 
+  private async makeRequest(url: string, headers: Record<string, string>, requestBody: Variables | undefined, request: FetchParameters): Promise<HttpResponse> {
+    debug('Executing HTTP Call');
+    // secrets might appear in headers, url path, query parameters or body
+    debugSensitive(
+      `\t${request.method || 'UNKNOWN METHOD'} ${url} HTTP/1.1`
+    );
+    Object.entries(headers).forEach(([headerName, value]) =>
+      debugSensitive(`\t${headerName}: ${value}`)
+    );
+    if (requestBody !== undefined) {
+      debugSensitive(`\n${inspect(requestBody, true, 5)}`);
+    }
+    const response = await this.fetchInstance.fetch(url, request);
+
+    debug('Received response');
+    debugSensitive(`\tHTTP/1.1 ${response.status} ${response.statusText}`);
+    Object.entries(response.headers).forEach(([headerName, value]) =>
+      debugSensitive(`\t${headerName}: ${value}`)
+    );
+    debugSensitive('\n\t%j', response.body);
+
+    return {
+      statusCode: response.status,
+      body: response.body,
+      headers: response.headers,
+      debug: {
+        request: {
+          url: url,
+          headers,
+          body: requestBody,
+        },
+      },
+    };
+  }
   public async request(
     url: string,
     parameters: {
@@ -168,37 +202,6 @@ export class HttpClient {
       pathParameters,
       requestBody,
     };
-    for (const requirement of parameters.securityRequirements ?? []) {
-      const configuration = securityConfiguration.find(
-        configuration => configuration.id === requirement.id
-      );
-      if (configuration === undefined) {
-        throw missingSecurityValuesError(requirement.id);
-      }
-
-      if (configuration.type === SecurityType.APIKEY) {
-        applyApiKeyAuth(contextForSecurity, configuration);
-      } else if (configuration.scheme === HttpScheme.DIGEST) {
-        // if (this.fetchInstance.cache) {
-        //   authCacheHit = true;
-        // }
-        const preparedUrl = createUrl(url, {
-          baseUrl: parameters.baseUrl,
-          pathParameters,
-          integrationParameters: parameters.integrationParameters,
-        });
-        //TODO: we need Superface client to remember auth state to be able to reuse authentication: https://datatracker.ietf.org/doc/html/rfc2617#section-3.3
-        await applyDigest(
-          contextForSecurity,
-          configuration,
-          parameters.method,
-          preparedUrl,
-          this.fetchInstance
-        );
-      } else {
-        applyHttpAuth(contextForSecurity, configuration);
-      }
-    }
 
     if (
       parameters.body &&
@@ -251,25 +254,78 @@ export class HttpClient {
       ...queryAuth,
     };
 
-    debug('Executing HTTP Call');
-    // secrets might appear in headers, url path, query parameters or body
-    debugSensitive(
-      `\t${request.method || 'UNKNOWN METHOD'} ${finalUrl} HTTP/1.1`
-    );
-    Object.entries(headers).forEach(([headerName, value]) =>
-      debugSensitive(`\t${headerName}: ${value}`)
-    );
-    if (requestBody !== undefined) {
-      debugSensitive(`\n${inspect(requestBody, true, 5)}`);
-    }
-    const response = await this.fetchInstance.fetch(finalUrl, request);
+    for (const requirement of parameters.securityRequirements ?? []) {
+      const configuration = securityConfiguration.find(
+        configuration => configuration.id === requirement.id
+      );
+      if (configuration === undefined) {
+        throw missingSecurityValuesError(requirement.id);
+      }
 
-    debug('Received response');
-    debugSensitive(`\tHTTP/1.1 ${response.status} ${response.statusText}`);
-    Object.entries(response.headers).forEach(([headerName, value]) =>
-      debugSensitive(`\t${headerName}: ${value}`)
-    );
-    debugSensitive('\n\t%j', response.body);
+      if (configuration.type === SecurityType.APIKEY) {
+        applyApiKeyAuth(contextForSecurity, configuration);
+        //TODO: move this to separate file
+      } else if (configuration.scheme === HttpScheme.DIGEST) {
+        //FIX: Should be passed in super.json configuration
+        const user = process.env.CLOCKPLUS_USERNAME;
+        if (!user) {
+          throw new UnexpectedError('Missing user');
+        }
+        const password = process.env.CLOCKPLUS_PASSWORD;
+        if (!password) {
+          throw new UnexpectedError('Missing password');
+        }
+
+
+        //FIX: Provider.json configuration should also contain optional: statusCode, header containing challange, header used for athorization
+        const digest = new DigestHelper(user, password, this.fetchInstance);
+
+        const AUTH_HEADER_NAME = 'Authorization';
+
+        let res: HttpResponse
+
+        //Try to reuse old header
+        //Make call with old header or without it (to get challange header)
+        if (this.fetchInstance.cache) {
+          headers[AUTH_HEADER_NAME] = digest.buildDigestAuth(finalUrl, request.method, this.fetchInstance.cache)
+          // console.log(`REUSE__________________________________________`)
+          res = await this.makeRequest(finalUrl, headers, requestBody, request)
+        } else {
+          // const tempRequest = { ...request, headers: {} }
+          res = await this.makeRequest(finalUrl, headers, requestBody, request)
+        }
+
+        //Properties from helper instance
+        const statusCode = 401;
+        const header = 'www-authenticate'
+
+        if (res.statusCode === statusCode) {
+          if (res.headers[header]) {
+            const digestValues = digest.extractDigestValues(res.headers[header])
+            headers[AUTH_HEADER_NAME] = digest.buildDigestAuth(finalUrl, request.method, digestValues)
+            res = await this.makeRequest(finalUrl, headers, requestBody, request)
+          }
+        }
+
+        return res
+
+        //"Proxy-Authorization" can be also used when communicating thru proxy https://datatracker.ietf.org/doc/html/rfc2617#section-1.2
+        // headers[AUTH_HEADER_NAME] = await digest.prepareAuth(
+        //   finalUrl, request.method);
+        // //TODO: we need Superface client to remember auth state to be able to reuse authentication: https://datatracker.ietf.org/doc/html/rfc2617#section-3.3
+        // await applyDigest(
+        //   contextForSecurity,
+        //   configuration,
+        //   parameters.method,
+        //   finalUrl,
+        //   this.fetchInstance
+        // );
+      } else {
+        applyHttpAuth(contextForSecurity, configuration);
+      }
+    }
+
+    return this.makeRequest(finalUrl, headers, requestBody, request)
 
     //TODO: we should be able to retry request when we "resused" authCache (we are using old auth header value) and response has statusCode matching status code in provider.json.
     //It means auth failed and server sends new challenge
@@ -283,17 +339,5 @@ export class HttpClient {
     // }
     // It looks like requests itself should be wraped be some security helper which will prepare auth and can react on response - and retry it.
 
-    return {
-      statusCode: response.status,
-      body: response.body,
-      headers: response.headers,
-      debug: {
-        request: {
-          url: finalUrl,
-          headers,
-          body: requestBody,
-        },
-      },
-    };
   }
 }
