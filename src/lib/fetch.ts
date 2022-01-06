@@ -70,7 +70,6 @@ export class CrossFetch implements FetchInstance, Interceptable {
       //This should be used when we don't have a response content-type
       // parameters.headers?.['accept']?.includes(JSON_CONTENT)
     ) {
-      console.log('IS JSON', response)
       body = await response.json();
     } else if (this.isBinaryContent(headers, parameters.headers)) {
       body = await response.arrayBuffer();

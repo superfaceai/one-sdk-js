@@ -282,44 +282,30 @@ export class HttpClient {
 
         const AUTH_HEADER_NAME = 'Authorization';
 
-        let res: HttpResponse
+        let response: HttpResponse
 
         //Try to reuse old header
         //Make call with old header or without it (to get challange header)
         if (this.fetchInstance.cache) {
           headers[AUTH_HEADER_NAME] = digest.buildDigestAuth(finalUrl, request.method, this.fetchInstance.cache)
-          // console.log(`REUSE__________________________________________`)
-          res = await this.makeRequest(finalUrl, headers, requestBody, request)
-        } else {
-          // const tempRequest = { ...request, headers: {} }
-          res = await this.makeRequest(finalUrl, headers, requestBody, request)
         }
+        response = await this.makeRequest(finalUrl, headers, requestBody, request)
 
         //Properties from helper instance
         const statusCode = 401;
         const header = 'www-authenticate'
 
-        if (res.statusCode === statusCode) {
-          if (res.headers[header]) {
-            const digestValues = digest.extractDigestValues(res.headers[header])
+        if (response.statusCode === statusCode) {
+          if (response.headers[header]) {
+            const digestValues = digest.extractDigestValues(response.headers[header])
             headers[AUTH_HEADER_NAME] = digest.buildDigestAuth(finalUrl, request.method, digestValues)
-            res = await this.makeRequest(finalUrl, headers, requestBody, request)
+            response = await this.makeRequest(finalUrl, headers, requestBody, request)
+            //Some how check response to avoid caching invalid values??
+            this.fetchInstance.cache = digestValues;
           }
         }
 
-        return res
-
-        //"Proxy-Authorization" can be also used when communicating thru proxy https://datatracker.ietf.org/doc/html/rfc2617#section-1.2
-        // headers[AUTH_HEADER_NAME] = await digest.prepareAuth(
-        //   finalUrl, request.method);
-        // //TODO: we need Superface client to remember auth state to be able to reuse authentication: https://datatracker.ietf.org/doc/html/rfc2617#section-3.3
-        // await applyDigest(
-        //   contextForSecurity,
-        //   configuration,
-        //   parameters.method,
-        //   finalUrl,
-        //   this.fetchInstance
-        // );
+        return response
       } else {
         applyHttpAuth(contextForSecurity, configuration);
       }
