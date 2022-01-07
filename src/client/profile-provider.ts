@@ -30,7 +30,6 @@ import {
   providersDoNotMatchError,
   referencedFileNotFoundError,
   securityNotFoundError,
-  serviceNotFoundError,
 } from '../internal/errors.helpers';
 import {
   MapInterpreter,
@@ -78,7 +77,8 @@ export class BoundProfileProvider {
     private readonly mapAst: MapDocumentNode,
     private readonly providerName: string,
     readonly configuration: {
-      baseUrl: string;
+      serviceUrls: Record<string, string>;
+      defaultService: string;
       profileProviderSettings?: NormalizedProfileProviderSettings;
       security: SecurityConfiguration[];
       parameters?: Record<string, string>;
@@ -150,7 +150,8 @@ export class BoundProfileProvider {
       {
         input: composedInput,
         usecase,
-        serviceBaseUrl: this.configuration.baseUrl,
+        serviceUrls: this.configuration.serviceUrls,
+        defaultService: this.configuration.defaultService,
         security: this.configuration.security,
         parameters: this.mergeParameters(
           parameters,
@@ -332,19 +333,6 @@ export class ProfileProvider {
       );
     }
 
-    // prepare service info
-    const serviceId = providerInfo.defaultService;
-    const baseUrl = providerInfo.services.find(
-      s => s.id === serviceId
-    )?.baseUrl;
-    if (baseUrl === undefined) {
-      throw serviceNotFoundError(
-        serviceId,
-        providerName,
-        serviceId === providerInfo.defaultService
-      );
-    }
-
     const securityConfiguration = this.resolveSecurityConfiguration(
       providerInfo.securitySchemes ?? [],
       securityValues,
@@ -356,7 +344,10 @@ export class ProfileProvider {
       mapAst,
       providerInfo.name,
       {
-        baseUrl,
+        serviceUrls: Object.fromEntries(
+          providerInfo.services.map(service => [service.id, service.baseUrl])
+        ),
+        defaultService: providerInfo.defaultService,
         profileProviderSettings:
           this.superJson.normalized.profiles[profileId]?.providers[
             providerInfo.name

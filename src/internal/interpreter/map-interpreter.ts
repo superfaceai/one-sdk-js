@@ -73,7 +73,8 @@ export interface MapParameters<
   usecase?: string;
   input?: TInput;
   parameters?: Record<string, string>;
-  serviceBaseUrl?: string;
+  serviceUrls: Record<string, string>;
+  defaultService: string;
   security: SecurityConfiguration[];
 }
 
@@ -287,7 +288,14 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
   }
 
   async visitHttpCallStatementNode(node: HttpCallStatementNode): Promise<void> {
-    if (this.parameters.serviceBaseUrl === undefined) {
+    let serviceUrl: string;
+    if (node.serviceId) {
+      serviceUrl = this.parameters.serviceUrls[node.serviceId];
+    } else {
+      serviceUrl = this.parameters.serviceUrls[this.parameters.defaultService];
+    }
+    
+    if (serviceUrl === undefined) {
       throw new UnexpectedError(
         'Base url for a service not provided for HTTP call.'
       );
@@ -317,7 +325,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
         headers: request?.headers,
         contentType: request?.contentType ?? 'application/json',
         accept,
-        baseUrl: this.parameters.serviceBaseUrl,
+        baseUrl: serviceUrl,
         queryParameters: request?.queryParameters,
         pathParameters: this.variables,
         body: request?.body,
