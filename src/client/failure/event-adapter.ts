@@ -75,8 +75,8 @@ function handleCommonResolution(
   }
 }
 
-export function registerHooks(hookContext: HooksContext, events: Events): void {
-  registerNetworkHooks(hookContext, events);
+export function registerHooks(events: Events): void {
+  registerNetworkHooks(events);
 
   events.on('pre-bind-and-perform', { priority: 1 }, async (context, args) => {
     debug('Handling event pre-bind-and-perform with context:', context);
@@ -87,7 +87,8 @@ export function registerHooks(hookContext: HooksContext, events: Events): void {
       return { kind: 'continue' };
     }
 
-    const performContext = hookContext[`${context.profile}/${context.usecase}`];
+    const performContext =
+      events.hookContext[`${context.profile}/${context.usecase}`];
     // if there is no configured context: ignore the event
     if (performContext === undefined) {
       return { kind: 'continue' };
@@ -131,7 +132,7 @@ export function registerHooks(hookContext: HooksContext, events: Events): void {
       }
 
       const performContext =
-        hookContext[`${context.profile}/${context.usecase}`];
+        events.hookContext[`${context.profile}/${context.usecase}`];
 
       // if there is no configured context: ignore the event
       if (performContext === undefined) {
@@ -246,7 +247,7 @@ export function registerHooks(hookContext: HooksContext, events: Events): void {
   );
 }
 
-function registerNetworkHooks(hookContext: HooksContext, events: Events): void {
+function registerNetworkHooks(events: Events): void {
   events.on('pre-fetch', { priority: 1 }, async (context, args) => {
     debug('Handling event pre-fetch with context:', context);
     debugSensitive('\targs:', args);
@@ -259,7 +260,8 @@ function registerNetworkHooks(hookContext: HooksContext, events: Events): void {
       return { kind: 'continue' };
     }
 
-    const performContext = hookContext[`${context.profile}/${context.usecase}`];
+    const performContext =
+      events.hookContext[`${context.profile}/${context.usecase}`];
     // if there is no configured context, ignore the event as well
     if (performContext === undefined) {
       return { kind: 'continue' };
@@ -313,7 +315,8 @@ function registerNetworkHooks(hookContext: HooksContext, events: Events): void {
       return { kind: 'continue' };
     }
 
-    const performContext = hookContext[`${context.profile}/${context.usecase}`];
+    const performContext =
+      events.hookContext[`${context.profile}/${context.usecase}`];
     // if there is no configured context, ignore the event as well
     if (performContext === undefined) {
       return { kind: 'continue' };
@@ -387,7 +390,8 @@ function registerNetworkHooks(hookContext: HooksContext, events: Events): void {
     ) {
       return { kind: 'continue' };
     }
-    const performContext = hookContext[`${context.profile}/${context.usecase}`];
+    const performContext =
+      events.hookContext[`${context.profile}/${context.usecase}`];
     if (performContext === undefined) {
       return { kind: 'continue' };
     }

@@ -11,6 +11,7 @@ import {
 import { promises as fsp } from 'fs';
 import { mocked } from 'ts-jest/utils';
 
+import { Config } from '../config';
 import { localProviderAndRemoteMapError } from '../internal/errors.helpers';
 import { MapInterpreter } from '../internal/interpreter/map-interpreter';
 import { MapASTError } from '../internal/interpreter/map-interpreter.errors';
@@ -23,25 +24,25 @@ import { Parser } from '../internal/parser';
 import { SuperJson } from '../internal/superjson';
 import * as SuperJsonMutate from '../internal/superjson/mutate';
 import { err, ok } from '../lib';
-import { SuperfaceClient } from './client';
+import { Events } from '../lib/events';
 import { ProfileConfiguration } from './profile';
 import { BoundProfileProvider, ProfileProvider } from './profile-provider';
 import { ProviderConfiguration } from './provider';
 import { fetchBind, fetchMapSource, fetchProviderInfo } from './registry';
 
-//Mock ProfileParameterValidator
+// Mock ProfileParameterValidator
 jest.mock('../internal/interpreter/profile-parameter-validator');
 
-//Mock interpreter
+// Mock interpreter
 jest.mock('../internal/interpreter/map-interpreter');
 
-//Mock registry
+// Mock registry
 jest.mock('./registry');
 
-//Mock parser
+// Mock parser
 jest.mock('../internal/parser');
 
-//Mock fs
+// Mock fs
 jest.mock('fs', () => ({
   ...jest.requireActual<Record<string, unknown>>('fs'),
   promises: {
@@ -49,10 +50,12 @@ jest.mock('fs', () => ({
   },
 }));
 
-//MockClient
+// MockClient
 jest.mock('./client');
 
-//Mock super json
+const mockConfig = Config.loadFromEnv();
+
+// Mock super json
 const mockResolvePath = jest.fn();
 jest.mock('../internal/superjson', () => ({
   ...jest.requireActual<Record<string, unknown>>('../internal/superjson'),
@@ -309,7 +312,6 @@ describe('profile provider', () => {
 
   describe('ProfileProvider', () => {
     describe('when binding', () => {
-      const mockSuperfacClient = new SuperfaceClient();
       const mockFetchResponse = {
         provider: mockProviderJson,
         mapAst: mockMapDocument,
@@ -410,7 +412,7 @@ describe('profile provider', () => {
           provider: mockProviderJsonWithParameters,
           mapAst: mockMapDocument,
         });
-        //normalized is getter on SuperJson - unable to mock or spy on
+        // normalized is getter on SuperJson - unable to mock or spy on
         Object.assign(mockSuperJson, {
           normalized: {
             profiles: {
@@ -425,9 +427,9 @@ describe('profile provider', () => {
                 security: [],
                 parameters: {
                   first: 'plain value',
-                  second: '$TEST_SECOND', //unset env value without default
-                  third: '$TEST_THIRD', //unset env value with default
-                  //fourth is missing - should be resolved to its default
+                  second: '$TEST_SECOND', // unset env value without default
+                  third: '$TEST_THIRD', // unset env value with default
+                  // fourth is missing - should be resolved to its default
                 },
               },
             },
@@ -437,7 +439,8 @@ describe('profile provider', () => {
           mockSuperJson,
           mockProfileDocument,
           mockProviderConfiguration,
-          mockSuperfacClient
+          mockConfig,
+          new Events()
         );
 
         const result = await mockProfileProvider.bind();
@@ -454,7 +457,7 @@ describe('profile provider', () => {
 
       it('returns new BoundProfileProvider', async () => {
         mocked(fetchBind).mockResolvedValue(mockFetchResponse);
-        //normalized is getter on SuperJson - unable to mock or spy on
+        // normalized is getter on SuperJson - unable to mock or spy on
         Object.assign(mockSuperJson, {
           normalized: {
             profiles: {
@@ -475,7 +478,8 @@ describe('profile provider', () => {
           mockSuperJson,
           mockProfileDocument,
           mockProviderConfiguration,
-          mockSuperfacClient
+          mockConfig,
+          new Events()
         );
 
         const result = await mockProfileProvider.bind();
@@ -485,7 +489,7 @@ describe('profile provider', () => {
 
       it('returns new BoundProfileProvider use profile id', async () => {
         mocked(fetchBind).mockResolvedValue(mockFetchResponse);
-        //normalized is getter on SuperJson - unable to mock or spy on
+        // normalized is getter on SuperJson - unable to mock or spy on
         Object.assign(mockSuperJson, {
           normalized: {
             profiles: {
@@ -513,7 +517,8 @@ describe('profile provider', () => {
           mockSuperJson,
           'test-profile',
           mockProviderConfiguration,
-          mockSuperfacClient
+          mockConfig,
+          new Events()
         );
 
         const result = await mockProfileProvider.bind();
@@ -523,7 +528,7 @@ describe('profile provider', () => {
 
       it('returns new BoundProfileProvider use profile configuration', async () => {
         mocked(fetchBind).mockResolvedValue(mockFetchResponse);
-        //normalized is getter on SuperJson - unable to mock or spy on
+        // normalized is getter on SuperJson - unable to mock or spy on
         Object.assign(mockSuperJson, {
           normalized: {
             profiles: {
@@ -551,7 +556,8 @@ describe('profile provider', () => {
           mockSuperJson,
           new ProfileConfiguration('test-profile', '1.0.0'),
           mockProviderConfiguration,
-          mockSuperfacClient
+          mockConfig,
+          new Events()
         );
 
         const result = await mockProfileProvider.bind();
@@ -565,7 +571,7 @@ describe('profile provider', () => {
           provider: mockFetchResponse.provider,
           mapAst: undefined,
         });
-        //normalized is getter on SuperJson - unable to mock or spy on
+        // normalized is getter on SuperJson - unable to mock or spy on
         Object.assign(mockSuperJson, {
           normalized: {
             profiles: {
@@ -601,7 +607,8 @@ describe('profile provider', () => {
           mockSuperJson,
           new ProfileConfiguration('test-profile', '1.0.0'),
           mockProviderConfiguration,
-          mockSuperfacClient
+          mockConfig,
+          new Events()
         );
 
         const result = await mockProfileProvider.bind();
@@ -611,7 +618,7 @@ describe('profile provider', () => {
 
       it('returns new BoundProfileProvider load localy', async () => {
         mocked(fetchBind).mockResolvedValue(mockFetchResponse);
-        //normalized is getter on SuperJson - unable to mock or spy on
+        // normalized is getter on SuperJson - unable to mock or spy on
         Object.assign(mockSuperJson, {
           normalized: {
             profiles: {
@@ -647,7 +654,8 @@ describe('profile provider', () => {
           mockSuperJson,
           'test-profile',
           mockProviderConfiguration,
-          mockSuperfacClient
+          mockConfig,
+          new Events()
         );
 
         const result = await mockProfileProvider.bind();
@@ -657,7 +665,7 @@ describe('profile provider', () => {
 
       it('returns new BoundProfileProvider load localy and use map variant', async () => {
         mocked(fetchBind).mockResolvedValue(mockFetchResponse);
-        //normalized is getter on SuperJson - unable to mock or spy on
+        // normalized is getter on SuperJson - unable to mock or spy on
         Object.assign(mockSuperJson, {
           normalized: {
             profiles: {
@@ -692,7 +700,8 @@ describe('profile provider', () => {
           mockSuperJson,
           'test-profile',
           mockProviderConfiguration,
-          mockSuperfacClient
+          mockConfig,
+          new Events()
         );
 
         const result = await mockProfileProvider.bind();
@@ -702,7 +711,7 @@ describe('profile provider', () => {
 
       it('throws error without profile settings', async () => {
         mocked(fetchBind).mockResolvedValue(mockFetchResponse);
-        //normalized is getter on SuperJson - unable to mock or spy on
+        // normalized is getter on SuperJson - unable to mock or spy on
         Object.assign(mockSuperJson, {
           normalized: {
             profiles: {},
@@ -727,7 +736,8 @@ describe('profile provider', () => {
           mockSuperJson,
           'test-profile',
           'test',
-          mockSuperfacClient
+          mockConfig,
+          new Events()
         );
         await expect(mockProfileProvider.bind()).rejects.toThrow(
           'Hint: Profiles can be installed using the superface cli tool: `superface install --help` for more info'
@@ -736,7 +746,7 @@ describe('profile provider', () => {
 
       it('returns new BoundProfileProvider when map is provided locally but provider is not', async () => {
         mocked(fetchBind).mockResolvedValue(mockFetchResponse);
-        //normalized is getter on SuperJson - unable to mock or spy on
+        // normalized is getter on SuperJson - unable to mock or spy on
         Object.assign(mockSuperJson, {
           normalized: {
             profiles: {
@@ -767,7 +777,8 @@ describe('profile provider', () => {
           mockSuperJson,
           'test-profile',
           mockProviderConfiguration,
-          mockSuperfacClient
+          mockConfig,
+          new Events()
         );
         const result = await mockProfileProvider.bind();
 
@@ -775,7 +786,7 @@ describe('profile provider', () => {
       });
 
       it('throws error when provider is provided locally but map is not', async () => {
-        //normalized is getter on SuperJson - unable to mock or spy on
+        // normalized is getter on SuperJson - unable to mock or spy on
         Object.assign(mockSuperJson, {
           normalized: {
             profiles: {
@@ -808,7 +819,8 @@ describe('profile provider', () => {
           mockSuperJson,
           'test-profile',
           mockProviderConfiguration,
-          mockSuperfacClient
+          mockConfig,
+          new Events()
         );
 
         await expect(() => mockProfileProvider.bind()).rejects.toThrow(
@@ -821,7 +833,7 @@ describe('profile provider', () => {
 
       it('throws error without profile provider settings', async () => {
         mocked(fetchBind).mockResolvedValue(mockFetchResponse);
-        //normalized is getter on SuperJson - unable to mock or spy on
+        // normalized is getter on SuperJson - unable to mock or spy on
         Object.assign(mockSuperJson, {
           normalized: {
             profiles: {
@@ -852,7 +864,8 @@ describe('profile provider', () => {
           mockSuperJson,
           'test-profile',
           mockProviderConfiguration,
-          mockSuperfacClient
+          mockConfig,
+          new Events()
         );
         const result = await mockProfileProvider.bind();
 
@@ -882,7 +895,7 @@ describe('profile provider', () => {
         ]);
         mocked(fetchBind).mockResolvedValue(mockFetchResponse);
 
-        //normalized is getter on SuperJson - unable to mock or spy on
+        // normalized is getter on SuperJson - unable to mock or spy on
         Object.assign(mockSuperJson, {
           normalized: {
             profiles: {
@@ -903,7 +916,8 @@ describe('profile provider', () => {
           mockSuperJson,
           mockProfileDocument,
           mockProviderConfiguration,
-          mockSuperfacClient
+          mockConfig,
+          new Events()
         );
 
         const result = await mockProfileProvider.bind({ security: [] });
@@ -913,7 +927,7 @@ describe('profile provider', () => {
       });
 
       it('throws error when could not find scheme', async () => {
-        //normalized is getter on SuperJson - unable to mock or spy on
+        // normalized is getter on SuperJson - unable to mock or spy on
         Object.assign(mockSuperJson, {
           normalized: {
             profiles: {
@@ -945,7 +959,8 @@ describe('profile provider', () => {
           mockSuperJson,
           mockProfileDocument,
           'test',
-          mockSuperfacClient
+          mockConfig,
+          new Events()
         );
 
         await expect(mockProfileProvider.bind()).rejects.toThrow(
@@ -955,7 +970,7 @@ but a secret value was provided for security scheme: made-up-id`
       });
 
       it('throws error on invalid api key scheme', async () => {
-        //normalized is getter on SuperJson - unable to mock or spy on
+        // normalized is getter on SuperJson - unable to mock or spy on
         Object.assign(mockSuperJson, {
           normalized: {
             profiles: {
@@ -986,7 +1001,8 @@ but a secret value was provided for security scheme: made-up-id`
           mockSuperJson,
           mockProfileDocument,
           'test',
-          mockSuperfacClient
+          mockConfig,
+          new Events()
         );
 
         await expect(mockProfileProvider.bind()).rejects.toThrow(
@@ -996,7 +1012,7 @@ but apiKey scheme requires: apikey`
       });
 
       it('throws error on invalid basic auth scheme', async () => {
-        //normalized is getter on SuperJson - unable to mock or spy on
+        // normalized is getter on SuperJson - unable to mock or spy on
         Object.assign(mockSuperJson, {
           normalized: {
             profiles: {
@@ -1027,7 +1043,8 @@ but apiKey scheme requires: apikey`
           mockSuperJson,
           mockProfileDocument,
           'test',
-          mockSuperfacClient
+          mockConfig,
+          new Events()
         );
 
         await expect(mockProfileProvider.bind()).rejects.toThrow(
@@ -1037,7 +1054,7 @@ but http scheme requires: username, password`
       });
 
       it('throws error on invalid bearer auth scheme', async () => {
-        //normalized is getter on SuperJson - unable to mock or spy on
+        // normalized is getter on SuperJson - unable to mock or spy on
         Object.assign(mockSuperJson, {
           normalized: {
             profiles: {
@@ -1068,7 +1085,8 @@ but http scheme requires: username, password`
           mockSuperJson,
           mockProfileDocument,
           'test',
-          mockSuperfacClient
+          mockConfig,
+          new Events()
         );
 
         await expect(mockProfileProvider.bind()).rejects.toThrow(
@@ -1078,7 +1096,7 @@ but http scheme requires: token`
       });
 
       it('throws error on invalid digest auth scheme', async () => {
-        //normalized is getter on SuperJson - unable to mock or spy on
+        // normalized is getter on SuperJson - unable to mock or spy on
         Object.assign(mockSuperJson, {
           normalized: {
             profiles: {
@@ -1109,7 +1127,8 @@ but http scheme requires: token`
           mockSuperJson,
           mockProfileDocument,
           'test',
-          mockSuperfacClient
+          mockConfig,
+          new Events()
         );
 
         await expect(mockProfileProvider.bind()).rejects.toThrow(
@@ -1161,7 +1180,8 @@ but http scheme requires: digest`
           mockSuperJson,
           'test-profile',
           providerConfiguration,
-          mockSuperfacClient
+          mockConfig,
+          new Events()
         );
 
         await expect(mockProfileProvider.bind()).rejects.toThrow(
@@ -1226,7 +1246,8 @@ but http scheme requires: digest`
           mockSuperJson,
           'test-profile',
           mockProviderConfiguration,
-          mockSuperfacClient
+          mockConfig,
+          new Events()
         );
 
         await expect(mockProfileProvider.bind()).rejects.toThrow(

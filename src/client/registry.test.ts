@@ -59,11 +59,6 @@ describe('registry', () => {
     defaultService: 'test-service',
   };
 
-  beforeAll(() => {
-    Config.instance().sdkAuthToken = MOCK_TOKEN;
-    Config.instance().superfaceApiUrl = 'https://superface.dev';
-  });
-
   afterAll(() => {
     jest.resetModules();
   });
@@ -118,15 +113,9 @@ describe('registry', () => {
     const TEST_REGISTRY_URL = 'https://example.com/test-registry';
     const TEST_SDK_TOKEN =
       'sfs_bb064dd57c302911602dd097bc29bedaea6a021c25a66992d475ed959aa526c7_37bce8b5';
-
-    beforeEach(() => {
-      const config = Config.instance();
-      config.superfaceApiUrl = TEST_REGISTRY_URL;
-      config.sdkAuthToken = TEST_SDK_TOKEN;
-    });
-
-    afterAll(() => {
-      Config.reloadFromEnv();
+    const config = new Config({
+      superfaceApiUrl: TEST_REGISTRY_URL,
+      sdkAuthToken: TEST_SDK_TOKEN,
     });
 
     it('fetches map document', async () => {
@@ -150,12 +139,15 @@ describe('registry', () => {
       request.mockResolvedValue(mockResponse);
 
       await expect(
-        fetchBind({
-          profileId: 'test-profile-id',
-          provider: 'test-provider',
-          mapVariant: 'test-map-variant',
-          mapRevision: 'test-map-revision',
-        })
+        fetchBind(
+          {
+            profileId: 'test-profile-id',
+            provider: 'test-provider',
+            mapVariant: 'test-map-variant',
+            mapRevision: 'test-map-revision',
+          },
+          config
+        )
       ).resolves.toEqual({
         provider: mockProviderJson,
         mapAst: mockMapDocument,
@@ -198,12 +190,15 @@ describe('registry', () => {
       request.mockResolvedValue(mockResponse);
 
       await expect(
-        fetchBind({
-          profileId: 'test-profile-id',
-          provider: 'test-provider',
-          mapVariant: 'test-map-variant',
-          mapRevision: 'test-map-revision',
-        })
+        fetchBind(
+          {
+            profileId: 'test-profile-id',
+            provider: 'test-provider',
+            mapVariant: 'test-map-variant',
+            mapRevision: 'test-map-revision',
+          },
+          config
+        )
       ).resolves.toEqual({
         provider: mockProviderJson,
         mapAst: mockMapDocument,
@@ -246,12 +241,15 @@ describe('registry', () => {
       request.mockResolvedValue(mockResponse);
 
       await expect(
-        fetchBind({
-          profileId: 'test-profile-id',
-          provider: 'test-provider',
-          mapVariant: 'test-map-variant',
-          mapRevision: 'test-map-revision',
-        })
+        fetchBind(
+          {
+            profileId: 'test-profile-id',
+            provider: 'test-provider',
+            mapVariant: 'test-map-variant',
+            mapRevision: 'test-map-revision',
+          },
+          config
+        )
       ).rejects.toThrow('validation failed');
 
       expect(request).toHaveBeenCalledTimes(1);
@@ -291,12 +289,15 @@ describe('registry', () => {
       request.mockResolvedValue(mockResponse);
 
       await expect(
-        fetchBind({
-          profileId: 'test-profile-id',
-          provider: 'test-provider',
-          mapVariant: 'test-map-variant',
-          mapRevision: 'test-map-revision',
-        })
+        fetchBind(
+          {
+            profileId: 'test-profile-id',
+            provider: 'test-provider',
+            mapVariant: 'test-map-variant',
+            mapRevision: 'test-map-revision',
+          },
+          config
+        )
       ).resolves.toEqual({
         provider: mockProviderJson,
         mapAst: undefined,
@@ -323,15 +324,9 @@ describe('registry', () => {
     const TEST_REGISTRY_URL = 'https://example.com/test-registry';
     const TEST_SDK_TOKEN =
       'sfs_bb064dd57c302911602dd097bc29bedaea6a021c25a66992d475ed959aa526c7_37bce8b5';
-
-    beforeEach(() => {
-      const config = Config.instance();
-      config.superfaceApiUrl = TEST_REGISTRY_URL;
-      config.sdkAuthToken = TEST_SDK_TOKEN;
-    });
-
-    afterAll(() => {
-      Config.reloadFromEnv();
+    const config = new Config({
+      superfaceApiUrl: TEST_REGISTRY_URL,
+      sdkAuthToken: TEST_SDK_TOKEN,
     });
 
     it('fetches map source with map variant', async () => {
@@ -351,7 +346,9 @@ describe('registry', () => {
       request.mockResolvedValue(mockResponse);
 
       const mapId = 'test-profile-id.test-provider.test-map-variant@1.0.0';
-      await expect(fetchMapSource(mapId)).resolves.toEqual(mockMapSOurce);
+      await expect(fetchMapSource(mapId, config)).resolves.toEqual(
+        mockMapSOurce
+      );
 
       expect(request).toHaveBeenCalledTimes(1);
       expect(request).toHaveBeenCalledWith(`/${mapId}`, {
@@ -379,7 +376,9 @@ describe('registry', () => {
       request.mockResolvedValue(mockResponse);
 
       const mapId = 'test-profile-id.test-provider@1.0.0';
-      await expect(fetchMapSource(mapId)).resolves.toEqual(mockMapSOurce);
+      await expect(fetchMapSource(mapId, config)).resolves.toEqual(
+        mockMapSOurce
+      );
 
       expect(request).toHaveBeenCalledTimes(1);
       expect(request).toHaveBeenCalledWith(`/${mapId}`, {

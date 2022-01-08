@@ -15,7 +15,6 @@ import {
 import { promises as fsp } from 'fs';
 import { join as joinPath } from 'path';
 
-import { Config } from '../config';
 import { isAccessible } from '../lib/io';
 import { UnexpectedError } from './errors';
 
@@ -30,15 +29,16 @@ export class Parser {
       profileName: string;
       providerName: string;
       scope?: string;
-    }
+    },
+    cachePath: string
   ): Promise<MapDocumentNode> {
     const sourceChecksum = new Source(input, fileName).checksum();
-    const cachePath = joinPath(
-      Config.instance().cachePath,
+    const profileCachePath = joinPath(
+      cachePath,
       ...[...(info.scope !== undefined ? [info.scope] : []), info.profileName]
     );
     const path = joinPath(
-      cachePath,
+      profileCachePath,
       `${info.providerName}${EXTENSIONS.map.build}`
     );
 
@@ -77,7 +77,12 @@ export class Parser {
         `Parsed map is not valid. This can be caused by not matching versions of package @superfaceai/ast.\nVersion of AST in Parser used to parse map: ${parserAstVersion}.\nVersion of AST used to validation: ${AstVersion}`
       );
     }
-    await Parser.writeFileCache(parsedMap, this.mapCache, cachePath, path);
+    await Parser.writeFileCache(
+      parsedMap,
+      this.mapCache,
+      profileCachePath,
+      path
+    );
 
     return parsedMap;
   }
@@ -88,15 +93,16 @@ export class Parser {
     info: {
       profileName: string;
       scope?: string;
-    }
+    },
+    cachePath: string
   ): Promise<ProfileDocumentNode> {
     const sourceChecksum = new Source(input, fileName).checksum();
-    const cachePath = joinPath(
-      Config.instance().cachePath,
+    const scopeCachePath = joinPath(
+      cachePath,
       ...[...(info.scope !== undefined ? [info.scope] : [])]
     );
     const path = joinPath(
-      cachePath,
+      scopeCachePath,
       `${info.profileName}${EXTENSIONS.profile.build}`
     );
 
@@ -139,19 +145,19 @@ export class Parser {
     await this.writeFileCache(
       parsedProfile,
       this.profileCache,
-      cachePath,
+      scopeCachePath,
       path
     );
 
     return parsedProfile;
   }
 
-  static async clearCache(): Promise<void> {
+  static async clearCache(cachePath: string): Promise<void> {
     this.mapCache = {};
     this.profileCache = {};
 
-    if (await isAccessible(Config.instance().cachePath)) {
-      await fsp.rm(Config.instance().cachePath, { recursive: true });
+    if (await isAccessible(cachePath)) {
+      await fsp.rm(cachePath, { recursive: true });
     }
   }
 
@@ -175,11 +181,11 @@ export class Parser {
     const loaded = JSON.parse(
       await fsp.readFile(path, { encoding: 'utf8' })
     ) as unknown;
-    //Check if valid type
+    // Check if valid type
     if (!guard(loaded)) {
       return undefined;
     }
-    //Check if checksum match
+    // Check if checksum match
     if (loaded.astMetadata.sourceChecksum !== sourceHash) {
       return undefined;
     }

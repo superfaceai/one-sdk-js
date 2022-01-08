@@ -2,7 +2,7 @@ import { AnonymizedSuperJsonDocument } from '@superfaceai/ast';
 import createDebug from 'debug';
 
 import { FailurePolicyReason } from '../client/failure/policy';
-import { Config } from '../config';
+import { IConfig } from '../config';
 import {
   FetchInstance,
   JSON_CONTENT,
@@ -143,9 +143,9 @@ export class MetricReporter {
   private configHash: string;
   private anonymizedSuperJson: AnonymizedSuperJsonDocument;
 
-  constructor(superJson: SuperJson) {
+  constructor(superJson: SuperJson, private readonly config: IConfig) {
     this.fetchInstance = new CrossFetch();
-    this.sdkToken = Config.instance().sdkAuthToken;
+    this.sdkToken = config.sdkAuthToken;
     this.configHash = superJson.configHash;
     this.anonymizedSuperJson = superJson.anonymized;
   }
@@ -185,7 +185,7 @@ export class MetricReporter {
     const now = Date.now();
     const timeHasElapsed =
       this.startTime !== undefined &&
-      now - this.startTime >= Config.instance().metricDebounceTimeMax;
+      now - this.startTime >= this.config.metricDebounceTimeMax;
     // If this is the first request in a batch, set the batch start time for max debounce
     if (this.startTime === undefined) {
       this.startTime = now;
@@ -201,7 +201,7 @@ export class MetricReporter {
     // Set the timer for min debounce time - it will execute unless another metric request comes
     this.timer = setTimeout(() => {
       this.flush();
-    }, Config.instance().metricDebounceTimeMin);
+    }, this.config.metricDebounceTimeMin);
   }
 
   private reportSdkInitEvent(event: SDKInitInput): void {
@@ -299,10 +299,8 @@ export class MetricReporter {
 
   // TODO: move this to other http calls
   private sendEvent(payload: SDKEvent) {
-    const url = new URL(
-      '/insights/sdk_event',
-      Config.instance().superfaceApiUrl
-    ).href;
+    const url = new URL('/insights/sdk_event', this.config.superfaceApiUrl)
+      .href;
     void this.fetchInstance
       .fetch(url, {
         method: 'POST',

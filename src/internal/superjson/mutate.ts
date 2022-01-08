@@ -64,7 +64,7 @@ export function mergeProfileDefaults(
     }
   } else {
     if (targetedProfile.defaults) {
-      //Merge existing with new
+      // Merge existing with new
       defaults = mergeVariables(
         castToNonPrimitive(targetedProfile.defaults) || {},
         castToNonPrimitive(payload) || {}
@@ -168,7 +168,7 @@ export function mergeProfile(
       if (!payload.defaults) {
         defaults = targetedProfile.defaults;
       } else {
-        //Merge existing with new
+        // Merge existing with new
         defaults = mergeVariables(
           castToNonPrimitive(targetedProfile.defaults) || {},
           castToNonPrimitive(payload.defaults) || {}
@@ -348,12 +348,12 @@ export function mergeProfileProvider(
   // Priority #2: keep previous structure and merge
   let defaults: ProfileProviderDefaults | undefined;
   if (typeof profileProvider === 'string') {
-    //Change
+    // Change
     defaults = payload.defaults;
   } else {
     if (profileProvider.defaults && payload.defaults) {
-      //Change
-      //Merge existing with new
+      // Change
+      // Merge existing with new
       defaults = mergeVariables(
         castToNonPrimitive(profileProvider.defaults) || {},
         castToNonPrimitive(payload.defaults) || {}
@@ -756,7 +756,7 @@ export function setPriority(
 
   let targetedProfile = document.profiles[profileName];
 
-  //if specified profile has shorthand notation
+  // if specified profile has shorthand notation
   if (typeof targetedProfile === 'string') {
     document.profiles[profileName] = targetedProfile = normalizeProfileSettings(
       targetedProfile,
@@ -764,7 +764,7 @@ export function setPriority(
     );
   }
 
-  //check profile providers property
+  // check profile providers property
   const profileProviders = targetedProfile.providers;
 
   if (!profileProviders) {
@@ -774,7 +774,7 @@ export function setPriority(
   if (providersSortedByPriority.some(p => profileProviders[p] === undefined)) {
     return err(providersNotSetError(profileName));
   }
-  //check providers property
+  // check providers property
   const providers = document.providers;
 
   if (!providers) {
@@ -785,9 +785,9 @@ export function setPriority(
     return err(providersNotSetError(profileName));
   }
 
-  //check existing priority array
+  // check existing priority array
   const existingPriority = targetedProfile.priority ?? [];
-  //Arrays are same
+  // Arrays are same
   if (
     providersSortedByPriority.length === existingPriority.length &&
     providersSortedByPriority.every(

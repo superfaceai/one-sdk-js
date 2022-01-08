@@ -3,6 +3,16 @@ import { join as joinPath } from 'path';
 
 const configDebug = createDebug('superface:config');
 
+export interface IConfig {
+  cachePath: string;
+  disableReporting: boolean;
+  metricDebounceTimeMax: number;
+  metricDebounceTimeMin: number;
+  sdkAuthToken?: string;
+  superfaceApiUrl: string;
+  superfacePath: string;
+}
+
 // Environment variable names
 const TOKEN_ENV_NAME = 'SUPERFACE_SDK_TOKEN';
 const API_URL_ENV_NAME = 'SUPERFACE_API_URL';
@@ -14,7 +24,7 @@ const METRIC_DEBOUNCE_TIME = {
 const DISABLE_REPORTING = 'SUPERFACE_DISABLE_METRIC_REPORTING';
 
 // Defaults
-export const DEFAULT_API_URL = 'https://superface.ai';
+export const DEFAULT_API_URL = new URL('https://superface.ai').href;
 export const DEFAULT_SUPERFACE_PATH = joinPath(
   process.cwd(),
   'superface',
@@ -29,12 +39,23 @@ export const DEFAULT_CACHE_PATH = joinPath(
   'superface',
   '.cache'
 );
+export const DEFAULT_DISABLE_REPORTING = false;
+
+const defaults: IConfig = {
+  cachePath: DEFAULT_CACHE_PATH,
+  disableReporting: DEFAULT_DISABLE_REPORTING,
+  metricDebounceTimeMax: DEFAULT_METRIC_DEBOUNCE_TIME.max,
+  metricDebounceTimeMin: DEFAULT_METRIC_DEBOUNCE_TIME.min,
+  sdkAuthToken: undefined,
+  superfaceApiUrl: DEFAULT_API_URL,
+  superfacePath: DEFAULT_SUPERFACE_PATH,
+};
 
 // Extraction functions
-function getSuperfaceApiUrl(): string {
+function getSuperfaceApiUrl(): string | undefined {
   const envUrl = process.env[API_URL_ENV_NAME];
 
-  return envUrl ? new URL(envUrl).href : new URL(DEFAULT_API_URL).href;
+  return envUrl ? new URL(envUrl).href : undefined;
 }
 
 function getSdkAuthToken(): string | undefined {
@@ -57,10 +78,10 @@ function getSdkAuthToken(): string | undefined {
   return token;
 }
 
-function getMetricDebounceTime(which: 'min' | 'max'): number {
+function getMetricDebounceTime(which: 'min' | 'max'): number | undefined {
   const envValue = process.env[METRIC_DEBOUNCE_TIME[which]];
   if (envValue === undefined) {
-    return DEFAULT_METRIC_DEBOUNCE_TIME[which];
+    return undefined;
   }
 
   try {
@@ -75,58 +96,55 @@ function getMetricDebounceTime(which: 'min' | 'max'): number {
       `Invalid value: ${envValue} for ${METRIC_DEBOUNCE_TIME[which]}, expected positive number`
     );
 
-    return DEFAULT_METRIC_DEBOUNCE_TIME[which];
+    return undefined;
   }
 }
 
-export class Config {
-  private static _instance?: Config;
-
-  static instance(): Config {
-    if (Config._instance === undefined) {
-      Config._instance = new Config();
-    }
-
-    return Config._instance;
-  }
-
-  static reloadFromEnv(): Config {
-    Config._instance = undefined;
-
-    return Config.instance();
-  }
-
-  public superfaceApiUrl: string;
-  public sdkAuthToken?: string;
-  public superfacePath: string;
-  public metricDebounceTimeMin: number;
-  public metricDebounceTimeMax: number;
-  public disableReporting: boolean;
+export class Config implements IConfig {
   public cachePath: string;
+  public disableReporting: boolean;
+  public metricDebounceTimeMax: number;
+  public metricDebounceTimeMin: number;
+  public sdkAuthToken?: string;
+  public superfaceApiUrl: string;
+  public superfacePath: string;
 
-  private static loadEnv() {
+  public constructor(config?: Partial<IConfig>) {
+    this.cachePath = config?.cachePath ?? defaults.cachePath;
+    this.disableReporting =
+      config?.disableReporting ?? defaults.disableReporting;
+    this.metricDebounceTimeMax =
+      config?.metricDebounceTimeMax ?? defaults.metricDebounceTimeMax;
+    this.metricDebounceTimeMin =
+      config?.metricDebounceTimeMin ?? defaults.metricDebounceTimeMin;
+    this.sdkAuthToken = config?.sdkAuthToken ?? defaults.sdkAuthToken;
+    this.superfaceApiUrl = config?.superfaceApiUrl ?? defaults.superfaceApiUrl;
+    this.superfacePath = config?.superfacePath ?? defaults.superfacePath;
+  }
+
+  static loadFromEnv(): Config {
+    const env = new Config().loadEnv();
+
+    configDebug(
+      `Loaded config from environment variables: ${JSON.stringify(env)}`
+    );
+
+    return new Config(env);
+  }
+
+  private loadEnv() {
     return {
       superfaceApiUrl: getSuperfaceApiUrl(),
       sdkAuthToken: getSdkAuthToken(),
-      superfacePath: process.env[SUPERFACE_PATH_NAME] ?? DEFAULT_SUPERFACE_PATH,
+      superfacePath: process.env[SUPERFACE_PATH_NAME],
       metricDebounceTimeMin: getMetricDebounceTime('min'),
       metricDebounceTimeMax: getMetricDebounceTime('max'),
       disableReporting:
-        process.env.NODE_ENV === 'test'
+        process.env.NODE_ENV === 'test' ||
+        process.env[DISABLE_REPORTING] === 'true'
           ? true
-          : !!process.env[DISABLE_REPORTING],
-      cachePath: DEFAULT_CACHE_PATH,
+          : undefined,
+      cachePath: undefined,
     };
-  }
-
-  private constructor() {
-    const env = Config.loadEnv();
-    this.superfaceApiUrl = env.superfaceApiUrl;
-    this.sdkAuthToken = env.sdkAuthToken;
-    this.superfacePath = env.superfacePath;
-    this.metricDebounceTimeMin = env.metricDebounceTimeMin;
-    this.metricDebounceTimeMax = env.metricDebounceTimeMax;
-    this.disableReporting = env.disableReporting;
-    this.cachePath = env.cachePath;
   }
 }

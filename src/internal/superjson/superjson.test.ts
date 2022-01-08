@@ -22,7 +22,7 @@ import * as normalize from './normalize';
 import { composeFileURI, trimFileURI } from './schema';
 import { SuperJson } from './superjson';
 
-//Mock fs
+// Mock fs
 jest.mock('fs', () => ({
   ...jest.requireActual<Record<string, unknown>>('fs'),
   statSync: jest.fn(),
@@ -32,7 +32,7 @@ jest.mock('fs', () => ({
     stat: jest.fn(),
   },
 }));
-//Mock path
+// Mock path
 jest.mock('path', () => ({
   ...jest.requireActual<Record<string, unknown>>('path'),
   resolve: jest.fn(),
@@ -40,7 +40,7 @@ jest.mock('path', () => ({
   join: jest.fn(),
 }));
 
-//Mock io
+// Mock io
 jest.mock('../../lib/io', () => ({
   ...jest.requireActual<Record<string, unknown>>('../../lib/io'),
   isAccessible: jest.fn(),

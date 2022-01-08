@@ -1,8 +1,8 @@
 import { HttpCallStatementNode, MapDocumentNode } from '@superfaceai/ast';
 
-import { HTTPError } from '../..';
 import { MapInterpreterExternalHandler } from '../../internal/interpreter/external-handler';
 import { HttpResponse } from '../../internal/interpreter/http';
+import { HTTPError } from '../../internal/interpreter/map-interpreter.errors';
 import {
   eventInterceptor,
   Events,

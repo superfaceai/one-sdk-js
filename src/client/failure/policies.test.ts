@@ -854,7 +854,7 @@ describe('failure policies', () => {
           ['first', 'second', 'third']
         );
 
-        //first provider broken
+        // first provider broken
         retryPolicy.afterFailure({
           kind: 'network',
           issue: 'timeout',
@@ -862,10 +862,10 @@ describe('failure policies', () => {
           registryCacheAge: 0,
         });
 
-        //set current
+        // set current
         router.setCurrentProvider('third');
 
-        //Disable failover
+        // Disable failover
         router.setAllowFailover(false);
 
         expect(
@@ -895,7 +895,7 @@ describe('failure policies', () => {
           ['first', 'second', 'third']
         );
 
-        //first provider broken
+        // first provider broken
         retryPolicy.afterFailure({
           kind: 'network',
           issue: 'timeout',
@@ -903,7 +903,7 @@ describe('failure policies', () => {
           registryCacheAge: 0,
         });
 
-        //set current
+        // set current
         router.setCurrentProvider('third');
 
         expect(
@@ -914,7 +914,7 @@ describe('failure policies', () => {
           })
         ).toMatchObject({
           kind: 'switch-provider',
-          //Switch to second
+          // Switch to second
           provider: 'second',
         });
       });
@@ -941,7 +941,7 @@ describe('failure policies', () => {
           ['first', 'second', 'third']
         );
 
-        //set current
+        // set current
         router.setCurrentProvider('third');
 
         expect(
@@ -952,7 +952,7 @@ describe('failure policies', () => {
           })
         ).toMatchObject({
           kind: 'switch-provider',
-          //Switch to second
+          // Switch to second
           provider: 'first',
         });
       });
@@ -979,7 +979,7 @@ describe('failure policies', () => {
           },
           ['first', 'second', 'third']
         );
-        //first provider broken
+        // first provider broken
         retryPolicy.afterFailure({
           kind: 'network',
           issue: 'timeout',

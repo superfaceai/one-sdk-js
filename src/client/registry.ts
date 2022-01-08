@@ -60,11 +60,12 @@ export function assertIsRegistryProviderInfo(
 }
 
 export async function fetchProviderInfo(
-  providerName: string
+  providerName: string,
+  config: Config
 ): Promise<ProviderJson> {
   const fetchInstance = new CrossFetch();
   const http = new HttpClient(fetchInstance);
-  const sdkToken = Config.instance().sdkAuthToken;
+  const sdkToken = config.sdkAuthToken;
 
   registryDebug(`Fetching provider ${providerName} from registry`);
   const { body } = await http.request(`/providers/${providerName}`, {
@@ -72,7 +73,7 @@ export async function fetchProviderInfo(
     headers: sdkToken
       ? [`Authorization: SUPERFACE-SDK-TOKEN ${sdkToken}`]
       : undefined,
-    baseUrl: Config.instance().superfaceApiUrl,
+    baseUrl: config.superfaceApiUrl,
     accept: 'application/json',
     contentType: 'application/json',
   });
@@ -130,25 +131,28 @@ function parseBindResponse(input: unknown): {
   };
 }
 
-export async function fetchBind(request: {
-  profileId: string;
-  provider?: string;
-  mapVariant?: string;
-  mapRevision?: string;
-}): Promise<{
+export async function fetchBind(
+  request: {
+    profileId: string;
+    provider?: string;
+    mapVariant?: string;
+    mapRevision?: string;
+  },
+  config: Config
+): Promise<{
   provider: ProviderJson;
   mapAst?: MapDocumentNode;
 }> {
   const fetchInstance = new CrossFetch();
   const http = new HttpClient(fetchInstance);
-  const sdkToken = Config.instance().sdkAuthToken;
+  const sdkToken = config.sdkAuthToken;
   registryDebug('Binding SDK to registry');
   const { body } = await http.request('/registry/bind', {
     method: 'POST',
     headers: sdkToken
       ? [`Authorization: SUPERFACE-SDK-TOKEN ${sdkToken}`]
       : undefined,
-    baseUrl: Config.instance().superfaceApiUrl,
+    baseUrl: config.superfaceApiUrl,
     accept: 'application/json',
     contentType: 'application/json',
     body: {
@@ -162,10 +166,13 @@ export async function fetchBind(request: {
   return parseBindResponse(body);
 }
 
-export async function fetchMapSource(mapId: string): Promise<string> {
+export async function fetchMapSource(
+  mapId: string,
+  config: Config
+): Promise<string> {
   const fetchInstance = new CrossFetch();
   const http = new HttpClient(fetchInstance);
-  const sdkToken = Config.instance().sdkAuthToken;
+  const sdkToken = config.sdkAuthToken;
   registryDebug(`Getting source of map: "${mapId}"`);
 
   const { body } = await http.request(`/${mapId}`, {
@@ -173,7 +180,7 @@ export async function fetchMapSource(mapId: string): Promise<string> {
     headers: sdkToken
       ? [`Authorization: SUPERFACE-SDK-TOKEN ${sdkToken}`]
       : undefined,
-    baseUrl: Config.instance().superfaceApiUrl,
+    baseUrl: config.superfaceApiUrl,
     accept: 'application/vnd.superface.map',
   });
 

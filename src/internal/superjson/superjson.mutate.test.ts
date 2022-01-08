@@ -601,7 +601,7 @@ describe('superjson mutate', () => {
                 input: {},
                 retryPolicy: {
                   kind: OnFail.CIRCUIT_BREAKER,
-                  //Different numbers
+                  // Different numbers
                   maxContiguousRetries: 10,
                   requestTimeout: 60_000,
                 },

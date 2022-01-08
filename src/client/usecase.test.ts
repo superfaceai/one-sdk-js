@@ -1,182 +1,83 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import {
-  AstMetadata,
-  MapDocumentNode,
-  ProfileDocumentNode,
-} from '@superfaceai/ast';
-
+import { Config } from '../config';
 import { SuperJson } from '../internal';
-import { ok } from '../lib/result/result';
-import { SuperfaceClient } from './client';
-import { Profile, ProfileConfiguration } from './profile';
-import { BoundProfileProvider } from './profile-provider';
-import { Provider, ProviderConfiguration } from './provider';
+import { Events } from '../lib/events';
+import { SuperCache } from './cache';
+import { registerHooks } from './failure/event-adapter';
+import { ProfileConfiguration } from './profile';
+import { IBoundProfileProvider } from './profile-provider';
+import { ProviderConfiguration } from './provider';
 import { UseCase } from './usecase';
 
-//Mock SuperJson static side
-const mockLoadSync = jest.fn();
-
-//Mock profile provider
-jest.mock('./profile-provider');
-
-const astMetadata: AstMetadata = {
-  sourceChecksum: 'checksum',
-  astVersion: {
-    major: 1,
-    minor: 0,
-    patch: 0,
-    label: undefined,
+const mockSuperJson = new SuperJson({
+  profiles: {
+    test: {
+      version: '1.0.0',
+    },
   },
-  parserVersion: {
-    major: 1,
-    minor: 0,
-    patch: 0,
-    label: undefined,
+  providers: {
+    'test-provider': {},
+    'test-provider2': {},
   },
-};
+});
 
 describe('UseCase', () => {
-  const mockSuperJson = new SuperJson({
-    profiles: {
-      test: {
-        version: '1.0.0',
-      },
-    },
-    providers: {},
-  });
-  const mockMapDocument: MapDocumentNode = {
-    astMetadata,
-    kind: 'MapDocument',
-    header: {
-      kind: 'MapHeader',
-      profile: {
-        name: 'different-test-profile',
-        scope: 'some-map-scope',
-        version: {
-          major: 1,
-          minor: 0,
-          patch: 0,
-        },
-      },
-      provider: 'test-profile',
-    },
-    definitions: [],
-  };
+  function createUseCase() {
+    const events = new Events();
+    registerHooks(events);
 
-  const mockProfileDocument: ProfileDocumentNode = {
-    astMetadata,
-    kind: 'ProfileDocument',
-    header: {
-      kind: 'ProfileHeader',
-      name: 'test-profile',
-      version: {
-        major: 1,
-        minor: 0,
-        patch: 0,
-      },
-    },
-    definitions: [],
-  };
+    const mockProfileConfiguration = new ProfileConfiguration('test', '1.0.0');
 
-  beforeEach(() => {
-    mockLoadSync.mockReturnValue(ok(mockSuperJson));
-    SuperJson.loadSync = mockLoadSync;
-  });
+    const mockBoundProfileProvider = {
+      perform: jest.fn(),
+    };
+    const mockBoundProfileProvider2 = {
+      perform: jest.fn(),
+    };
 
-  afterEach(() => {
-    jest.resetAllMocks();
-  });
+    const cache = new SuperCache<IBoundProfileProvider>();
+    cache.getCached(
+      mockProfileConfiguration.cacheKey +
+        new ProviderConfiguration('test-provider', []).cacheKey,
+      () => mockBoundProfileProvider
+    );
+    cache.getCached(
+      mockProfileConfiguration.cacheKey +
+        new ProviderConfiguration('test-provider2', []).cacheKey,
+      () => mockBoundProfileProvider2
+    );
+
+    const config = new Config();
+
+    const usecase = new UseCase(
+      mockProfileConfiguration,
+      'test-usecase',
+      events,
+      config,
+      mockSuperJson,
+      cache
+    );
+
+    return {
+      performSpy: mockBoundProfileProvider.perform,
+      performSpy2: mockBoundProfileProvider2.perform,
+      usecase,
+    };
+  }
 
   describe('when calling perform', () => {
-    it('calls getProviderForProfile when there is no provider config', async () => {
-      const mockBoundProfileProvider = new BoundProfileProvider(
-        mockProfileDocument,
-        mockMapDocument,
-        'test',
-        { baseUrl: '', security: [] }
-      );
-      const mockClient = new SuperfaceClient();
-
-      const mockProfileConfiguration = new ProfileConfiguration(
-        'test',
-        '1.0.0'
-      );
-      const mockProfile = new Profile(mockClient, mockProfileConfiguration);
-
-      const mockProviderConfiguration = new ProviderConfiguration(
-        'test-provider',
-        []
-      );
-      const mockProvider = new Provider(mockClient, mockProviderConfiguration);
-
-      const getProviderForProfileSpy = jest
-        .spyOn(mockClient, 'getProviderForProfile')
-        .mockResolvedValue(mockProvider);
-      const cacheBoundProfileProviderSpy = jest
-        .spyOn(mockClient, 'cacheBoundProfileProvider')
-        .mockResolvedValue(mockBoundProfileProvider);
-
-      const usecase = new UseCase(mockProfile, 'test-usecase');
+    it('calls perform on correct BoundProfileProvider', async () => {
+      const { usecase, performSpy } = createUseCase();
       await expect(usecase.perform({ x: 7 })).resolves.toBeUndefined();
-
-      expect(getProviderForProfileSpy).toHaveBeenCalledTimes(1);
-      expect(getProviderForProfileSpy).toHaveBeenCalledWith('test');
-
-      expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(1);
-      expect(cacheBoundProfileProviderSpy).toHaveBeenCalledWith(
-        mockProfileConfiguration,
-        mockProviderConfiguration
-      );
+      expect(performSpy).toHaveBeenCalledWith('test-usecase', { x: 7 });
     });
 
-    it('does not call getProviderForProfile when there is provider config', async () => {
-      const mockResult = { test: 'test' };
-      const mockBoundProfileProvider = new BoundProfileProvider(
-        mockProfileDocument,
-        mockMapDocument,
-        'test',
-        { baseUrl: '', security: [] }
-      );
-      const mockClient = new SuperfaceClient();
-
-      const mockProfileConfiguration = new ProfileConfiguration(
-        'test',
-        '1.0.0'
-      );
-      const mockProfile = new Profile(mockClient, mockProfileConfiguration);
-
-      const mockProviderConfiguration = new ProviderConfiguration(
-        'test-provider',
-        []
-      );
-      const mockProvider = new Provider(mockClient, mockProviderConfiguration);
-
-      const getProviderForProfileSpy = jest.spyOn(
-        mockClient,
-        'getProviderForProfile'
-      );
-      const cacheBoundProfileProviderSpy = jest
-        .spyOn(mockClient, 'cacheBoundProfileProvider')
-        .mockResolvedValue(mockBoundProfileProvider);
-      const performSpy = jest
-        .spyOn(mockBoundProfileProvider, 'perform')
-        .mockResolvedValue(ok(mockResult));
-
-      const usecase = new UseCase(mockProfile, 'test-usecase');
+    it('calls perform on overridden BoundProfileProvider', async () => {
+      const { usecase, performSpy, performSpy2 } = createUseCase();
       await expect(
-        usecase.perform(undefined, { provider: mockProvider })
-      ).resolves.toEqual(ok(mockResult));
-
-      expect(getProviderForProfileSpy).not.toHaveBeenCalled();
-
-      expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(1);
-      expect(cacheBoundProfileProviderSpy).toHaveBeenCalledWith(
-        mockProfileConfiguration,
-        mockProviderConfiguration
-      );
-
-      expect(performSpy).toHaveBeenCalledTimes(1);
-      expect(performSpy).toHaveBeenCalledWith('test-usecase', undefined);
+        usecase.perform({ x: 7 }, { provider: 'test-provider2' })
+      ).resolves.toBeUndefined();
+      expect(performSpy).not.toHaveBeenCalled();
+      expect(performSpy2).toHaveBeenCalledWith('test-usecase', { x: 7 });
     });
   });
 });

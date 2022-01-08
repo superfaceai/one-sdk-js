@@ -18,7 +18,6 @@ import {
   resolve as resolvePath,
 } from 'path';
 
-import { Config } from '../../config';
 import { err, ok, Result } from '../../lib';
 import { configHash } from '../../lib/config-hash';
 import { isAccessible } from '../../lib/io';
@@ -110,22 +109,20 @@ export class SuperJson {
     }
   }
 
-  static loadSync(path?: string): Result<SuperJson, SDKExecutionError> {
-    const superfile = path ?? Config.instance().superfacePath;
-
+  static loadSync(path: string): Result<SuperJson, SDKExecutionError> {
     try {
-      const statInfo = statSync(superfile);
+      const statInfo = statSync(path);
 
       if (!statInfo.isFile()) {
-        return err(superJsonNotAFileError(superfile));
+        return err(superJsonNotAFileError(path));
       }
     } catch (e: unknown) {
-      return err(superJsonNotFoundError(superfile, ensureErrorSubclass(e)));
+      return err(superJsonNotFoundError(path, ensureErrorSubclass(e)));
     }
 
     let superjson: unknown;
     try {
-      const superraw = readFileSync(superfile, { encoding: 'utf-8' });
+      const superraw = readFileSync(path, { encoding: 'utf-8' });
       superjson = JSON.parse(superraw);
     } catch (e: unknown) {
       return err(superJsonReadError(ensureErrorSubclass(e)));
@@ -136,32 +133,30 @@ export class SuperJson {
       return err(superdocument.error);
     }
 
-    debug(`loaded super.json from ${superfile}`);
+    debug(`loaded super.json from ${path}`);
 
-    return ok(new SuperJson(superdocument.value, superfile));
+    return ok(new SuperJson(superdocument.value, path));
   }
 
   /**
    * Attempts to load super.json file from expected location `cwd/superface/super.json`
    */
   static async load(
-    path?: string
+    path: string
   ): Promise<Result<SuperJson, SDKExecutionError>> {
-    const superfile = path ?? Config.instance().superfacePath;
-
     try {
-      const statInfo = await fsp.stat(superfile);
+      const statInfo = await fsp.stat(path);
 
       if (!statInfo.isFile()) {
-        return err(superJsonNotAFileError(superfile));
+        return err(superJsonNotAFileError(path));
       }
     } catch (e: unknown) {
-      return err(superJsonNotFoundError(superfile, ensureErrorSubclass(e)));
+      return err(superJsonNotFoundError(path, ensureErrorSubclass(e)));
     }
 
     let superjson: unknown;
     try {
-      const superraw = await fsp.readFile(superfile, { encoding: 'utf-8' });
+      const superraw = await fsp.readFile(path, { encoding: 'utf-8' });
       superjson = JSON.parse(superraw);
     } catch (e: unknown) {
       return err(superJsonReadError(ensureErrorSubclass(e)));
@@ -172,9 +167,9 @@ export class SuperJson {
       return err(superdocument.error);
     }
 
-    debug(`loaded super.json from ${superfile}`);
+    debug(`loaded super.json from ${path}`);
 
-    return ok(new SuperJson(superdocument.value, superfile));
+    return ok(new SuperJson(superdocument.value, path));
   }
 
   // mutation //

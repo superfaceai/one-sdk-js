@@ -198,7 +198,7 @@ export class HttpClient {
         if (Buffer.isBuffer(requestBody)) {
           buffer = requestBody;
         } else {
-          //coerce to string then buffer
+          // coerce to string then buffer
           buffer = Buffer.from(String(requestBody));
         }
         request.body = binaryBody(buffer);

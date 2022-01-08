@@ -7,12 +7,9 @@ import {
 } from '@superfaceai/ast';
 import { getLocal, MockedEndpoint } from 'mockttp';
 
-import { BoundProfileProvider, SuperfaceClient } from '../client';
-import { invalidateSuperfaceClientCache } from '../client/client';
-import { Config } from '../config';
 import { SuperJson } from '../internal/superjson';
+import { MockClient } from '../test/client';
 import { FailoverReason } from './reporter';
-import { ok } from './result/result';
 
 jest.useFakeTimers('legacy');
 
@@ -28,6 +25,21 @@ const mockSuperJsonSingle = new SuperJson({
   },
   providers: {
     testprovider: {},
+  },
+});
+
+const mockSuperJsonSingleFailure = new SuperJson({
+  profiles: {
+    ['test-profile']: {
+      version: '1.0.0',
+      defaults: {},
+      providers: {
+        testprovider2: {},
+      },
+    },
+  },
+  providers: {
+    testprovider2: {},
   },
 });
 
@@ -167,9 +179,7 @@ const mockMapDocumentSuccess: MapDocumentNode = {
   ],
 };
 
-const mockMapDocumentFailure: (provider?: string) => MapDocumentNode = (
-  provider = 'testprovider'
-) => ({
+const mockMapDocumentFailure: MapDocumentNode = {
   kind: 'MapDocument',
   astMetadata,
   header: {
@@ -182,7 +192,7 @@ const mockMapDocumentFailure: (provider?: string) => MapDocumentNode = (
         patch: 3,
       },
     },
-    provider,
+    provider: 'testprovider2',
   },
   definitions: [
     {
@@ -228,30 +238,34 @@ const mockMapDocumentFailure: (provider?: string) => MapDocumentNode = (
       ],
     },
   ],
-});
+};
 
 const mockServer = getLocal();
 
 describe('MetricReporter', () => {
   let eventEndpoint: MockedEndpoint;
   beforeEach(async () => {
-    SuperJson.loadSync = () => ok(mockSuperJsonSingle);
     await mockServer.start();
     eventEndpoint = await mockServer
       .post('/insights/sdk_event')
       .thenJson(202, {});
-    Config.instance().disableReporting = false;
-    Config.instance().superfaceApiUrl = mockServer.url;
   });
 
   afterEach(async () => {
-    invalidateSuperfaceClientCache();
     await mockServer.stop();
   });
 
   it('should report SDK Init', async () => {
-    const client = new SuperfaceClient();
-    void client;
+    const client = new MockClient(mockSuperJsonSingle, {
+      configOverride: {
+        disableReporting: false,
+        superfaceApiUrl: mockServer.url,
+      },
+    });
+    client.metricReporter?.reportEvent({
+      eventType: 'SDKInit',
+      occurredAt: new Date(),
+    });
     while (await eventEndpoint.isPending()) {
       await new Promise(setImmediate);
     }
@@ -275,17 +289,18 @@ describe('MetricReporter', () => {
   });
 
   it('should report success', async () => {
-    const client = new SuperfaceClient();
-    const mockBoundProfileProvider = new BoundProfileProvider(
+    const client = new MockClient(mockSuperJsonSingle, {
+      configOverride: {
+        disableReporting: false,
+        superfaceApiUrl: mockServer.url,
+      },
+    });
+    client.addBoundProfileProvider(
       mockProfileDocument,
       mockMapDocumentSuccess,
-      'provider',
-      { baseUrl: mockServer.url, security: [] },
-      client
+      'testprovider',
+      mockServer.url
     );
-    jest
-      .spyOn(client, 'cacheBoundProfileProvider')
-      .mockResolvedValue(mockBoundProfileProvider);
 
     const profile = await client.getProfile('test-profile');
 
@@ -296,8 +311,8 @@ describe('MetricReporter', () => {
     }
     const requests = await eventEndpoint.getSeenRequests();
 
-    expect(requests).toHaveLength(2);
-    expect(await requests[1].body.getJson()).toMatchObject({
+    expect(requests).toHaveLength(1);
+    expect(await requests[0].body.getJson()).toMatchObject({
       event_type: 'Metrics',
       data: {
         from: expect.stringMatching(''),
@@ -316,29 +331,30 @@ describe('MetricReporter', () => {
   });
 
   it('should report failure and unsuccessful switch', async () => {
-    const client = new SuperfaceClient();
-    const mockBoundProfileProvider = new BoundProfileProvider(
+    const client = new MockClient(mockSuperJsonSingleFailure, {
+      configOverride: {
+        disableReporting: false,
+        superfaceApiUrl: mockServer.url,
+      },
+    });
+    client.addBoundProfileProvider(
       mockProfileDocument,
-      mockMapDocumentFailure(),
-      'testprovider',
-      { baseUrl: 'https://unavai.lable', security: [] },
-      client
+      mockMapDocumentFailure,
+      'testprovider2',
+      'https://uvavai.lable'
     );
-    jest
-      .spyOn(client, 'cacheBoundProfileProvider')
-      .mockResolvedValue(mockBoundProfileProvider);
 
     const profile = await client.getProfile('test-profile');
 
     await expect(profile.getUseCase('Test').perform({})).rejects.toThrow();
     jest.advanceTimersByTime(2000);
     let requests = await eventEndpoint.getSeenRequests();
-    while (requests.length < 3) {
+    while (requests.length < 2) {
       await new Promise(setImmediate);
       requests = await eventEndpoint.getSeenRequests();
     }
 
-    expect(requests).toHaveLength(3);
+    expect(requests).toHaveLength(2);
     let metricRequest, changeRequest;
     for (const request of requests) {
       const body = (await request.body.getJson()) as { event_type: string };
@@ -358,7 +374,7 @@ describe('MetricReporter', () => {
           {
             type: 'PerformMetrics',
             profile: 'test-profile',
-            provider: 'testprovider',
+            provider: 'testprovider2',
             successful_performs: 0,
             failed_performs: 1,
           },
@@ -371,7 +387,7 @@ describe('MetricReporter', () => {
       configuration_hash: expect.stringMatching(''),
       data: {
         profile: 'test-profile',
-        from_provider: 'testprovider',
+        from_provider: 'testprovider2',
         failover_reasons: [
           {
             reason: FailoverReason.NETWORK_ERROR_DNS,
@@ -383,17 +399,24 @@ describe('MetricReporter', () => {
   });
 
   it('should report success with a delay', async () => {
-    const client = new SuperfaceClient();
-    const mockBoundProfileProvider = new BoundProfileProvider(
+    const client = new MockClient(mockSuperJsonSingle, {
+      configOverride: {
+        disableReporting: false,
+        superfaceApiUrl: mockServer.url,
+      },
+    });
+    client.addBoundProfileProvider(
       mockProfileDocument,
       mockMapDocumentSuccess,
-      'provider',
-      { baseUrl: mockServer.url, security: [] },
-      client
+      'testprovider',
+      mockServer.url
     );
-    jest
-      .spyOn(client, 'cacheBoundProfileProvider')
-      .mockResolvedValue(mockBoundProfileProvider);
+
+    // Send init event to have a baseline number of requests
+    client.metricReporter?.reportEvent({
+      eventType: 'SDKInit',
+      occurredAt: new Date(),
+    });
 
     const profile = await client.getProfile('test-profile');
 
@@ -415,18 +438,18 @@ describe('MetricReporter', () => {
   });
 
   it('should report multiple successes', async () => {
-    const client = new SuperfaceClient();
-    const mockBoundProfileProvider = new BoundProfileProvider(
+    const client = new MockClient(mockSuperJsonSingle, {
+      configOverride: {
+        disableReporting: false,
+        superfaceApiUrl: mockServer.url,
+      },
+    });
+    client.addBoundProfileProvider(
       mockProfileDocument,
       mockMapDocumentSuccess,
-      'provider',
-      { baseUrl: mockServer.url, security: [] },
-      client
+      'testprovider',
+      mockServer.url
     );
-    jest
-      .spyOn(client, 'cacheBoundProfileProvider')
-      .mockResolvedValue(mockBoundProfileProvider);
-
     const profile = await client.getProfile('test-profile');
 
     await profile.getUseCase('Test').perform({});
@@ -437,8 +460,8 @@ describe('MetricReporter', () => {
     }
     const requests = await eventEndpoint.getSeenRequests();
 
-    expect(requests).toHaveLength(2);
-    expect(await requests[1].body.getJson()).toMatchObject({
+    expect(requests).toHaveLength(1);
+    expect(await requests[0].body.getJson()).toMatchObject({
       event_type: 'Metrics',
       data: {
         from: expect.stringMatching(''),
@@ -457,36 +480,36 @@ describe('MetricReporter', () => {
   });
 
   it('should report multiple successes with a delay', async () => {
-    const client = new SuperfaceClient();
-    const mockBoundProfileProvider = new BoundProfileProvider(
+    const client = new MockClient(mockSuperJsonSingle, {
+      configOverride: {
+        disableReporting: false,
+        superfaceApiUrl: mockServer.url,
+      },
+    });
+    client.addBoundProfileProvider(
       mockProfileDocument,
       mockMapDocumentSuccess,
-      'provider',
-      { baseUrl: mockServer.url, security: [] },
-      client
+      'testprovider',
+      mockServer.url
     );
-    jest
-      .spyOn(client, 'cacheBoundProfileProvider')
-      .mockResolvedValue(mockBoundProfileProvider);
-
     const profile = await client.getProfile('test-profile');
 
     await profile.getUseCase('Test').perform({});
     jest.advanceTimersByTime(2000);
     let requests = await eventEndpoint.getSeenRequests();
-    while (requests.length < 2) {
+    while (requests.length < 1) {
       await new Promise(setImmediate);
       requests = await eventEndpoint.getSeenRequests();
     }
     await profile.getUseCase('Test').perform({});
     jest.advanceTimersByTime(1000);
-    while (requests.length < 3) {
+    while (requests.length < 2) {
       await new Promise(setImmediate);
       requests = await eventEndpoint.getSeenRequests();
     }
 
-    expect(requests).toHaveLength(3);
-    expect(await requests[1].body.getJson()).toMatchObject({
+    expect(requests).toHaveLength(2);
+    expect(await requests[0].body.getJson()).toMatchObject({
       event_type: 'Metrics',
       data: {
         from: expect.stringMatching(''),
@@ -502,7 +525,7 @@ describe('MetricReporter', () => {
         ],
       },
     });
-    expect(await requests[2].body.getJson()).toMatchObject({
+    expect(await requests[1].body.getJson()).toMatchObject({
       event_type: 'Metrics',
       data: {
         from: expect.stringMatching(''),
@@ -525,17 +548,18 @@ describe('MetricReporter', () => {
     const systemTimeMock = jest
       .spyOn(Date, 'now')
       .mockImplementation(() => currentTime);
-    const client = new SuperfaceClient();
-    const mockBoundProfileProvider = new BoundProfileProvider(
+    const client = new MockClient(mockSuperJsonSingle, {
+      configOverride: {
+        disableReporting: false,
+        superfaceApiUrl: mockServer.url,
+      },
+    });
+    client.addBoundProfileProvider(
       mockProfileDocument,
       mockMapDocumentSuccess,
-      'provider',
-      { baseUrl: mockServer.url, security: [] },
-      client
+      'testprovider',
+      mockServer.url
     );
-    jest
-      .spyOn(client, 'cacheBoundProfileProvider')
-      .mockResolvedValue(mockBoundProfileProvider);
 
     const profile = await client.getProfile('test-profile');
 
@@ -547,13 +571,13 @@ describe('MetricReporter', () => {
     jest.advanceTimersByTime(1000);
     currentTime += 1000;
     let requests = await eventEndpoint.getSeenRequests();
-    while (requests.length < 3) {
+    while (requests.length < 2) {
       await new Promise(setImmediate);
       requests = await eventEndpoint.getSeenRequests();
     }
 
-    expect(requests).toHaveLength(3);
-    expect(await requests[1].body.getJson()).toMatchObject({
+    expect(requests).toHaveLength(2);
+    expect(await requests[0].body.getJson()).toMatchObject({
       event_type: 'Metrics',
       data: {
         from: expect.stringMatching(''),
@@ -569,7 +593,7 @@ describe('MetricReporter', () => {
         ],
       },
     });
-    expect(await requests[2].body.getJson()).toMatchObject({
+    expect(await requests[1].body.getJson()).toMatchObject({
       event_type: 'Metrics',
       data: {
         from: expect.stringMatching(''),
@@ -589,50 +613,41 @@ describe('MetricReporter', () => {
   });
 
   it('should report failure and successful switch', async () => {
-    const originalDebounceMin = Config.instance().metricDebounceTimeMin;
-    Config.instance().metricDebounceTimeMin = 10000;
     let currentTime = new Date().valueOf();
     const systemTimeMock = jest
       .spyOn(Date, 'now')
       .mockImplementation(() => currentTime);
-    SuperJson.loadSync = () => ok(mockSuperJsonFailover);
-    const client = new SuperfaceClient();
-    const mockBoundProfileProvider = new BoundProfileProvider(
+    const client = new MockClient(mockSuperJsonFailover, {
+      configOverride: {
+        disableReporting: false,
+        superfaceApiUrl: mockServer.url,
+        metricDebounceTimeMin: 10000,
+      },
+    });
+    client.addBoundProfileProvider(
       mockProfileDocument,
       mockMapDocumentSuccess,
       'testprovider',
-      { baseUrl: 'https://unavail.able', security: [] },
-      client
+      mockServer.url
     );
-    const mockBoundProfileProvider2 = new BoundProfileProvider(
+    client.addBoundProfileProvider(
       mockProfileDocument,
-      mockMapDocumentFailure('testprovider2'),
+      mockMapDocumentFailure,
       'testprovider2',
-      { baseUrl: 'https://unavail.able', security: [] },
-      client
+      'https://uvavai.lable'
     );
-    jest
-      .spyOn(client, 'cacheBoundProfileProvider')
-      .mockImplementation((_, providerConfig) => {
-        if (providerConfig.name === 'testprovider') {
-          return Promise.resolve(mockBoundProfileProvider);
-        } else {
-          return Promise.resolve(mockBoundProfileProvider2);
-        }
-      });
-
     const profile = await client.getProfile('test-profile');
 
     void profile.getUseCase('Test').perform({});
     let requests = await eventEndpoint.getSeenRequests();
-    while (requests.length < 3) {
+    while (requests.length < 2) {
       currentTime += 0.1;
       jest.advanceTimersByTime(0.1);
       await new Promise(setImmediate);
       requests = await eventEndpoint.getSeenRequests();
     }
 
-    expect(requests).toHaveLength(3);
+    expect(requests).toHaveLength(2);
     let metricRequest, changeRequest;
     for (const request of requests) {
       const body = (await request.body.getJson()) as {
@@ -686,6 +701,5 @@ describe('MetricReporter', () => {
     });
 
     systemTimeMock.mockRestore();
-    Config.instance().metricDebounceTimeMin = originalDebounceMin;
   });
 });

@@ -356,7 +356,7 @@ export class CircuitBreakerPolicy extends FailurePolicy {
 
         return { kind: 'continue', timeout: this.inner.requestTimeout };
       } else {
-        //TODO: more user friendly message
+        // TODO: more user friendly message
         return {
           kind: 'abort',
           reason: FailurePolicyReason.fromPolicyReason(
@@ -371,7 +371,7 @@ export class CircuitBreakerPolicy extends FailurePolicy {
     if (innerResponse.kind === 'abort') {
       this.open(info.time);
 
-      //TODO: more user friendly message
+      // TODO: more user friendly message
       return {
         kind: 'abort',
         reason: FailurePolicyReason.fromPolicyReason('Circuit breaker is open'),

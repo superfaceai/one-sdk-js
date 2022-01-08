@@ -3,7 +3,6 @@ import { promises as fsp } from 'fs';
 import { join as joinPath } from 'path';
 import { mocked } from 'ts-jest/utils';
 
-import { Config } from '../config';
 import { isAccessible } from '../lib/io';
 import { Parser } from './parser';
 
@@ -61,6 +60,8 @@ jest.mock('../lib/io', () => ({
   isAccessible: jest.fn(),
 }));
 
+const cachePath = 'test';
+
 describe('Parser', () => {
   afterEach(() => {
     jest.clearAllMocks();
@@ -73,7 +74,7 @@ describe('Parser', () => {
 
       mocked(isAccessible).mockResolvedValue(true);
 
-      await Parser.clearCache();
+      await Parser.clearCache(cachePath);
 
       expect(Object.keys((Parser as any).profileCache).length).toEqual(0);
       expect(Object.keys((Parser as any).mapCache).length).toEqual(0);
@@ -90,7 +91,7 @@ describe('Parser', () => {
 
       mocked(isAccessible).mockResolvedValue(false);
 
-      await Parser.clearCache();
+      await Parser.clearCache(cachePath);
 
       expect(Object.keys((Parser as any).profileCache).length).toEqual(0);
       expect(Object.keys((Parser as any).mapCache).length).toEqual(0);
@@ -106,11 +107,16 @@ describe('Parser', () => {
 
     it("should parse and save to cache when it doesn't exist already", async () => {
       jest.spyOn(fsp, 'stat').mockRejectedValue('File not found');
-      const result = await Parser.parseMap(mapFixture, 'map.suma', {
-        profileName: 'profile',
-        providerName: 'test-provider',
-        scope: 'test',
-      });
+      const result = await Parser.parseMap(
+        mapFixture,
+        'map.suma',
+        {
+          profileName: 'profile',
+          providerName: 'test-provider',
+          scope: 'test',
+        },
+        cachePath
+      );
 
       expect(fsp.mkdir).toHaveBeenCalled();
       expect(fsp.writeFile).toHaveBeenCalledWith(
@@ -126,7 +132,7 @@ describe('Parser', () => {
       jest.spyOn(fsp, 'readFile').mockResolvedValueOnce(mapASTFixture);
 
       const path = joinPath(
-        Config.instance().cachePath,
+        cachePath,
         'test',
         'profile',
         'test-provider.suma.ast.json'
@@ -137,11 +143,16 @@ describe('Parser', () => {
         astMetadata: undefined,
       };
 
-      await Parser.parseMap(mapFixture, 'profile.supr', {
-        profileName: 'profile',
-        providerName: 'test-provider',
-        scope: 'test',
-      });
+      await Parser.parseMap(
+        mapFixture,
+        'profile.supr',
+        {
+          profileName: 'profile',
+          providerName: 'test-provider',
+          scope: 'test',
+        },
+        cachePath
+      );
 
       expect(fsp.stat).toHaveBeenCalledTimes(1);
       expect(fsp.readFile).toHaveBeenCalledTimes(1);
@@ -153,21 +164,31 @@ describe('Parser', () => {
         .spyOn(fsp, 'stat')
         .mockResolvedValueOnce({ isFile: () => true } as any);
       jest.spyOn(fsp, 'readFile').mockResolvedValueOnce(mapASTFixture);
-      const result1 = await Parser.parseMap(mapFixture, 'profile.supr', {
-        profileName: 'profile',
-        providerName: 'test-provider',
-        scope: 'test',
-      });
+      const result1 = await Parser.parseMap(
+        mapFixture,
+        'profile.supr',
+        {
+          profileName: 'profile',
+          providerName: 'test-provider',
+          scope: 'test',
+        },
+        cachePath
+      );
 
       expect(fsp.stat).toHaveBeenCalledTimes(1);
       expect(fsp.readFile).toHaveBeenCalledTimes(1);
       expect(fsp.writeFile).not.toHaveBeenCalled();
 
-      const result2 = await Parser.parseMap(mapFixture, 'profile.supr', {
-        profileName: 'profile',
-        providerName: 'test-provider',
-        scope: 'test',
-      });
+      const result2 = await Parser.parseMap(
+        mapFixture,
+        'profile.supr',
+        {
+          profileName: 'profile',
+          providerName: 'test-provider',
+          scope: 'test',
+        },
+        cachePath
+      );
 
       expect(fsp.stat).toHaveBeenCalledTimes(1);
       expect(fsp.readFile).toHaveBeenCalledTimes(1);
@@ -188,11 +209,16 @@ describe('Parser', () => {
           astMetadata: undefined,
         })
       );
-      await Parser.parseMap(mapFixture, 'map.suma', {
-        profileName: 'profile',
-        providerName: 'test-provider',
-        scope: 'test',
-      });
+      await Parser.parseMap(
+        mapFixture,
+        'map.suma',
+        {
+          profileName: 'profile',
+          providerName: 'test-provider',
+          scope: 'test',
+        },
+        cachePath
+      );
 
       expect(fsp.readFile).toHaveBeenCalled();
       expect(fsp.mkdir).toHaveBeenCalledTimes(1);
@@ -215,11 +241,16 @@ describe('Parser', () => {
           astMetadata: { ...ast.astMetadata, sourceChecksum: '' },
         })
       );
-      await Parser.parseMap(mapFixture, 'map.suma', {
-        profileName: 'profile',
-        providerName: 'test-provider',
-        scope: 'test',
-      });
+      await Parser.parseMap(
+        mapFixture,
+        'map.suma',
+        {
+          profileName: 'profile',
+          providerName: 'test-provider',
+          scope: 'test',
+        },
+        cachePath
+      );
 
       expect(fsp.readFile).toHaveBeenCalled();
       expect(fsp.mkdir).toHaveBeenCalledTimes(1);
@@ -232,11 +263,16 @@ describe('Parser', () => {
         .spyOn(fsp, 'stat')
         .mockResolvedValueOnce({ isFile: () => true } as any);
       jest.spyOn(fsp, 'readFile').mockResolvedValueOnce(mapASTFixture);
-      await Parser.parseMap(mapFixture, 'map.suma', {
-        profileName: 'profile',
-        providerName: 'test-provider',
-        scope: 'test',
-      });
+      await Parser.parseMap(
+        mapFixture,
+        'map.suma',
+        {
+          profileName: 'profile',
+          providerName: 'test-provider',
+          scope: 'test',
+        },
+        cachePath
+      );
 
       expect(fsp.readFile).toHaveBeenCalled();
       expect(fsp.writeFile).not.toHaveBeenCalled();
@@ -248,21 +284,31 @@ describe('Parser', () => {
         .spyOn(fsp, 'readdir')
         .mockResolvedValueOnce([])
         .mockResolvedValueOnce(['test-provider.suma.ast.json'] as any);
-      await Parser.parseMap(mapFixture, 'profile.supr', {
-        profileName: 'profile',
-        providerName: 'test-provider',
-        scope: 'test',
-      });
+      await Parser.parseMap(
+        mapFixture,
+        'profile.supr',
+        {
+          profileName: 'profile',
+          providerName: 'test-provider',
+          scope: 'test',
+        },
+        cachePath
+      );
 
       expect(fsp.mkdir).toHaveBeenCalledTimes(1);
       expect(fsp.writeFile).toHaveBeenCalledTimes(1);
       expect(fsp.unlink).not.toHaveBeenCalled();
 
-      await Parser.parseMap(mapFixtureChanged, 'profile.supr', {
-        profileName: 'profile',
-        providerName: 'test-provider',
-        scope: 'test',
-      });
+      await Parser.parseMap(
+        mapFixtureChanged,
+        'profile.supr',
+        {
+          profileName: 'profile',
+          providerName: 'test-provider',
+          scope: 'test',
+        },
+        cachePath
+      );
 
       expect(fsp.mkdir).toHaveBeenCalledTimes(2);
       expect(fsp.writeFile).toHaveBeenCalledTimes(2);
@@ -277,10 +323,15 @@ describe('Parser', () => {
 
     it("should parse and save to cache when it doesn't exist already", async () => {
       jest.spyOn(fsp, 'stat').mockRejectedValue('File not found');
-      const result = await Parser.parseProfile(profileFixture, 'profile.supr', {
-        profileName: 'profile',
-        scope: 'test',
-      });
+      const result = await Parser.parseProfile(
+        profileFixture,
+        'profile.supr',
+        {
+          profileName: 'profile',
+          scope: 'test',
+        },
+        cachePath
+      );
 
       expect(fsp.mkdir).toHaveBeenCalled();
       expect(fsp.writeFile).toHaveBeenCalledWith(
@@ -295,21 +346,22 @@ describe('Parser', () => {
         .mockResolvedValueOnce({ isFile: () => true } as any);
       jest.spyOn(fsp, 'readFile').mockResolvedValueOnce(profileASTFixture);
 
-      const path = joinPath(
-        Config.instance().cachePath,
-        'test',
-        'profile.supr.ast.json'
-      );
+      const path = joinPath(cachePath, 'test', 'profile.supr.ast.json');
 
       (Parser as any).profileCache[path] = {
         ...parseProfile(new Source(profileFixture)),
         astMetadata: undefined,
       };
 
-      await Parser.parseProfile(profileFixture, 'profile.supr', {
-        profileName: 'profile',
-        scope: 'test',
-      });
+      await Parser.parseProfile(
+        profileFixture,
+        'profile.supr',
+        {
+          profileName: 'profile',
+          scope: 'test',
+        },
+        cachePath
+      );
 
       expect(fsp.stat).toHaveBeenCalledTimes(1);
       expect(fsp.readFile).toHaveBeenCalledTimes(1);
@@ -327,7 +379,8 @@ describe('Parser', () => {
         {
           profileName: 'profile',
           scope: 'test',
-        }
+        },
+        cachePath
       );
 
       expect(fsp.stat).toHaveBeenCalledTimes(1);
@@ -340,7 +393,8 @@ describe('Parser', () => {
         {
           profileName: 'profile',
           scope: 'test',
-        }
+        },
+        cachePath
       );
 
       expect(fsp.stat).toHaveBeenCalledTimes(1);
@@ -362,10 +416,15 @@ describe('Parser', () => {
           astMetadata: undefined,
         })
       );
-      await Parser.parseProfile(profileFixture, 'profile.supr', {
-        profileName: 'profile',
-        scope: 'test',
-      });
+      await Parser.parseProfile(
+        profileFixture,
+        'profile.supr',
+        {
+          profileName: 'profile',
+          scope: 'test',
+        },
+        cachePath
+      );
 
       expect(fsp.readFile).toHaveBeenCalled();
       expect(fsp.mkdir).toHaveBeenCalledTimes(1);
@@ -388,10 +447,15 @@ describe('Parser', () => {
           astMetadata: { ...ast.astMetadata, sourceChecksum: '' },
         })
       );
-      await Parser.parseProfile(profileFixture, 'profile.supr', {
-        profileName: 'profile',
-        scope: 'test',
-      });
+      await Parser.parseProfile(
+        profileFixture,
+        'profile.supr',
+        {
+          profileName: 'profile',
+          scope: 'test',
+        },
+        cachePath
+      );
 
       expect(fsp.readFile).toHaveBeenCalled();
       expect(fsp.mkdir).toHaveBeenCalledTimes(1);
@@ -404,10 +468,15 @@ describe('Parser', () => {
         .spyOn(fsp, 'stat')
         .mockResolvedValueOnce({ isFile: () => true } as any);
       jest.spyOn(fsp, 'readFile').mockResolvedValueOnce(profileASTFixture);
-      await Parser.parseProfile(profileFixture, 'profile.supr', {
-        profileName: 'profile',
-        scope: 'test',
-      });
+      await Parser.parseProfile(
+        profileFixture,
+        'profile.supr',
+        {
+          profileName: 'profile',
+          scope: 'test',
+        },
+        cachePath
+      );
 
       expect(fsp.readFile).toHaveBeenCalled();
       expect(fsp.writeFile).not.toHaveBeenCalled();
@@ -419,19 +488,29 @@ describe('Parser', () => {
         .spyOn(fsp, 'readdir')
         .mockResolvedValueOnce([])
         .mockResolvedValueOnce(['profile.supr.ast.json'] as any);
-      await Parser.parseProfile(profileFixture, 'profile.supr', {
-        profileName: 'profile',
-        scope: 'test',
-      });
+      await Parser.parseProfile(
+        profileFixture,
+        'profile.supr',
+        {
+          profileName: 'profile',
+          scope: 'test',
+        },
+        cachePath
+      );
 
       expect(fsp.mkdir).toHaveBeenCalledTimes(1);
       expect(fsp.writeFile).toHaveBeenCalledTimes(1);
       expect(fsp.unlink).not.toHaveBeenCalled();
 
-      await Parser.parseProfile(profileFixtureChanged, 'profile.supr', {
-        profileName: 'profile',
-        scope: 'test',
-      });
+      await Parser.parseProfile(
+        profileFixtureChanged,
+        'profile.supr',
+        {
+          profileName: 'profile',
+          scope: 'test',
+        },
+        cachePath
+      );
 
       expect(fsp.mkdir).toHaveBeenCalledTimes(2);
       expect(fsp.writeFile).toHaveBeenCalledTimes(2);

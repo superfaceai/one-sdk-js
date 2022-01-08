@@ -23,6 +23,7 @@ import createDebug from 'debug';
 import { promises as fsp } from 'fs';
 import { join as joinPath } from 'path';
 
+import { Config } from '../config';
 import {
   invalidProfileError,
   invalidSecurityValuesError,
@@ -68,8 +69,18 @@ const boundProfileProviderDebug = createDebug(
   'superface:bound-profile-provider'
 );
 
-export class BoundProfileProvider {
-  //TODO: Interceptable and set metadata
+export interface IBoundProfileProvider {
+  perform<
+    TInput extends NonPrimitive | undefined = undefined,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    TResult = any
+  >(
+    usecase: string,
+    input?: TInput
+  ): Promise<Result<TResult, ProfileParameterError | MapInterpreterError>>;
+}
+
+export class BoundProfileProvider implements IBoundProfileProvider {
   private profileValidator: ProfileParameterValidator;
   private fetchInstance: FetchInstance & Interceptable;
 
@@ -93,23 +104,6 @@ export class BoundProfileProvider {
       provider: providerName,
     };
     this.fetchInstance.events = events;
-  }
-
-  private composeInput(
-    usecase: string,
-    input?: NonPrimitive | undefined
-  ): NonPrimitive | undefined {
-    let composed = input;
-
-    const defaultInput = castToNonPrimitive(
-      this.configuration.profileProviderSettings?.defaults[usecase]?.input
-    );
-    if (defaultInput !== undefined) {
-      composed = mergeVariables(defaultInput, input ?? {});
-      boundProfileProviderDebug('Composed input with defaults:', composed);
-    }
-
-    return composed;
   }
 
   /**
@@ -181,6 +175,23 @@ export class BoundProfileProvider {
 
     return ok(result.value);
   }
+
+  private composeInput(
+    usecase: string,
+    input?: NonPrimitive | undefined
+  ): NonPrimitive | undefined {
+    let composed = input;
+
+    const defaultInput = castToNonPrimitive(
+      this.configuration.profileProviderSettings?.defaults[usecase]?.input
+    );
+    if (defaultInput !== undefined) {
+      composed = mergeVariables(defaultInput, input ?? {});
+      boundProfileProviderDebug('Composed input with defaults:', composed);
+    }
+
+    return composed;
+  }
 }
 
 export type BindConfiguration = {
@@ -196,12 +207,13 @@ export class ProfileProvider {
 
   constructor(
     /** Preloaded superJson instance */
-    //TODO: Use superJson from events/Client?
+    // TODO: Use superJson from events/Client?
     public readonly superJson: SuperJson,
     /** profile id, url, ast node or configuration instance */
     private profile: string | ProfileDocumentNode | ProfileConfiguration,
     /** provider name, url or configuration instance */
     private provider: string | ProviderJson | ProviderConfiguration,
+    private config: Config,
     private events: Events,
     /** url or ast node */
     private map?: string | MapDocumentNode
@@ -268,38 +280,46 @@ export class ProfileProvider {
     // resolve map ast using bind and fill in provider info if not specified
     if (mapAst === undefined) {
       profileProviderDebug('Fetching map from store');
-      //throw error when we have remote map and local provider
+      // throw error when we have remote map and local provider
       if (providerInfo) {
         throw localProviderAndRemoteMapError(providerName, this.profileId);
       }
-      const fetchResponse = await fetchBind({
-        profileId:
-          profileId +
-          `@${profileAst.header.version.major}.${profileAst.header.version.minor}.${profileAst.header.version.patch}`,
-        provider: providerName,
-        mapVariant,
-        mapRevision,
-      });
+      const fetchResponse = await fetchBind(
+        {
+          profileId:
+            profileId +
+            `@${profileAst.header.version.major}.${profileAst.header.version.minor}.${profileAst.header.version.patch}`,
+          provider: providerName,
+          mapVariant,
+          mapRevision,
+        },
+        this.config
+      );
 
       providerInfo ??= fetchResponse.provider;
       mapAst = fetchResponse.mapAst;
-      //If we don't have a map (probably due to validation issue) we try to get map source and parse it on our own
+      // If we don't have a map (probably due to validation issue) we try to get map source and parse it on our own
       if (!mapAst) {
         const version = `${profileAst.header.version.major}.${profileAst.header.version.minor}.${profileAst.header.version.patch}`;
         const mapId = mapVariant
           ? `${profileId}.${providerName}.${mapVariant}@${version}`
           : `${profileId}.${providerName}@${version}`;
-        const mapSource = await fetchMapSource(mapId);
+        const mapSource = await fetchMapSource(mapId, this.config);
 
-        mapAst = await Parser.parseMap(mapSource, mapId, {
-          profileName: profileAst.header.name,
-          scope: profileAst.header.scope,
-          providerName,
-        });
+        mapAst = await Parser.parseMap(
+          mapSource,
+          mapId,
+          {
+            profileName: profileAst.header.name,
+            scope: profileAst.header.scope,
+            providerName,
+          },
+          this.config.cachePath
+        );
       }
     } else if (providerInfo === undefined) {
       // resolve only provider info if map is specified locally
-      providerInfo = await fetchProviderInfo(providerName);
+      providerInfo = await fetchProviderInfo(providerName, this.config);
     }
 
     if (providerName !== mapAst.header.provider) {
@@ -372,12 +392,12 @@ export class ProfileProvider {
       providerJson.name,
       providerJsonParameters
     );
-    //Resolve parameters defined in super.json
+    // Resolve parameters defined in super.json
     for (const [key, value] of Object.entries(superJsonParameters)) {
       const providerJsonParameter = providerJsonParameters.find(
         parameter => parameter.name === key
       );
-      //If value name and prepared value equals we are dealing with unset env
+      // If value name and prepared value equals we are dealing with unset env
       if (
         providerJsonParameter &&
         preparedParameters[providerJsonParameter.name] === value
@@ -387,13 +407,13 @@ export class ProfileProvider {
         }
       }
 
-      //Use original value
+      // Use original value
       if (!result[key]) {
         result[key] = value;
       }
     }
 
-    //Resolve parameters which are missing in super.json and have default value
+    // Resolve parameters which are missing in super.json and have default value
     for (const parameter of providerJsonParameters) {
       if (result[parameter.name] === undefined && parameter.default) {
         result[parameter.name] = parameter.default;
@@ -414,10 +434,15 @@ export class ProfileProvider {
       async (fileContents, fileName) => {
         // If we have profile source, we parse
         if (fileName !== undefined && isProfileFile(fileName)) {
-          return Parser.parseProfile(fileContents, fileName, {
-            profileName: this.profileName,
-            scope: this.scope,
-          });
+          return Parser.parseProfile(
+            fileContents,
+            fileName,
+            {
+              profileName: this.profileName,
+              scope: this.scope,
+            },
+            this.config.cachePath
+          );
         }
 
         // Otherwise we return parsed
@@ -502,11 +527,16 @@ export class ProfileProvider {
       async (fileContents, fileName) => {
         // If we have source, we parse
         if (fileName !== undefined && isMapFile(fileName)) {
-          return Parser.parseMap(fileContents, fileName, {
-            profileName: this.profileName,
-            providerName,
-            scope: this.scope,
-          });
+          return Parser.parseMap(
+            fileContents,
+            fileName,
+            {
+              profileName: this.profileName,
+              providerName,
+              scope: this.scope,
+            },
+            this.config.cachePath
+          );
         }
 
         // Otherwise we return parsed

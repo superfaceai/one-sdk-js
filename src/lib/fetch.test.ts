@@ -44,7 +44,7 @@ describe('fetch', () => {
     it('rethrows error if it is string', async () => {
       const { CrossFetch } = await import('./fetch');
 
-      //We are mocking node-fetch
+      // We are mocking node-fetch
       const { fetch } = await import('cross-fetch');
       jest.mock('cross-fetch');
       mocked(fetch).mockRejectedValue('something-bad');
@@ -62,7 +62,7 @@ describe('fetch', () => {
     it('rethrows error if it does not contain type property', async () => {
       const { CrossFetch } = await import('./fetch');
 
-      //We are mocking node-fetch
+      // We are mocking node-fetch
       const { fetch } = await import('cross-fetch');
       jest.mock('cross-fetch');
       mocked(fetch).mockRejectedValue({ some: 'something-bad' });
@@ -80,7 +80,7 @@ describe('fetch', () => {
     it('throws request abort if error does not get recognized', async () => {
       const { CrossFetch } = await import('./fetch');
 
-      //We are mocking node-fetch
+      // We are mocking node-fetch
       const { fetch } = await import('cross-fetch');
       jest.mock('cross-fetch');
       mocked(fetch).mockRejectedValue({ type: 'something-bad' });
@@ -98,7 +98,7 @@ describe('fetch', () => {
     it('throws on dns ENOTFOUND', async () => {
       const { CrossFetch } = await import('./fetch');
 
-      //We are mocking node-fetch
+      // We are mocking node-fetch
       const { fetch } = await import('cross-fetch');
       jest.mock('cross-fetch');
       mocked(fetch).mockRejectedValue({
@@ -120,7 +120,7 @@ describe('fetch', () => {
     it('throws on dns EAI_AGAIN', async () => {
       const { CrossFetch } = await import('./fetch');
 
-      //We are mocking node-fetch
+      // We are mocking node-fetch
       const { fetch } = await import('cross-fetch');
       jest.mock('cross-fetch');
       mocked(fetch).mockRejectedValue({

@@ -1,7 +1,12 @@
 import { BackoffKind, OnFail } from '@superfaceai/ast';
 import createDebug from 'debug';
 
-import { MapInterpreterError, ProfileParameterError } from '../internal';
+import { Config } from '../config';
+import {
+  MapInterpreterError,
+  ProfileParameterError,
+  SuperJson,
+} from '../internal';
 import { UnexpectedError } from '../internal/errors';
 import { NonPrimitive, Variables } from '../internal/interpreter/variables';
 import { Result } from '../lib';
@@ -12,14 +17,20 @@ import {
   Interceptable,
   InterceptableMetadata,
 } from '../lib/events';
+import { SuperCache } from './cache';
+import {
+  bindProfileProvider,
+  getProvider,
+  getProviderForProfile,
+} from './client';
 import {
   AbortPolicy,
   CircuitBreakerPolicy,
   FailurePolicyRouter,
 } from './failure/policies';
 import { FailurePolicy, UsecaseInfo } from './failure/policy';
-import { ProfileBase } from './profile';
-import { BoundProfileProvider } from './profile-provider';
+import { ProfileConfiguration } from './profile';
+import { IBoundProfileProvider } from './profile-provider';
 import { Provider, ProviderConfiguration } from './provider';
 
 const debug = createDebug('superface:usecase');
@@ -31,19 +42,27 @@ export type PerformOptions = {
 // TODO
 export type PerformError = ProfileParameterError | MapInterpreterError;
 
+export type ProviderProvider = {
+  getProvider: (provider: string) => Promise<Provider>;
+  getProviderForProfile: (profileId: string) => Promise<Provider>;
+};
+
 class UseCaseBase implements Interceptable {
   public metadata: InterceptableMetadata;
 
-  private boundProfileProvider: BoundProfileProvider | undefined;
+  private boundProfileProvider: IBoundProfileProvider | undefined;
 
   constructor(
-    public readonly profile: ProfileBase,
+    public readonly profileConfiguration: ProfileConfiguration,
     public readonly name: string,
-    public readonly events: Events
+    public readonly events: Events,
+    private readonly config: Config,
+    private readonly superJson: SuperJson,
+    private readonly boundProfileProviderCache: SuperCache<IBoundProfileProvider>
   ) {
     this.metadata = {
       usecase: name,
-      profile: this.profile.configuration.id,
+      profile: this.profileConfiguration.id,
     };
 
     this.configureHookContext();
@@ -51,20 +70,24 @@ class UseCaseBase implements Interceptable {
 
   private async bind(options?: PerformOptions): Promise<void> {
     const hookRouter =
-      this.profile.client.hookContext[
-        `${this.profile.configuration.id}/${this.name}`
-      ].router;
+      this.events.hookContext[`${this.profileConfiguration.id}/${this.name}`]
+        .router;
 
     let providerConfig: ProviderConfiguration;
 
     const chosenProvider = options?.provider ?? hookRouter.getCurrentProvider();
     if (chosenProvider === undefined) {
-      const provider = await this.profile.client.getProviderForProfile(
-        this.profile.configuration.id
+      // const provider = await this.profile.client.getProviderForProfile(
+      //   this.profile.configuration.id
+      // );
+      const provider = getProviderForProfile(
+        this.superJson,
+        this.profileConfiguration.id
       );
       providerConfig = provider.configuration;
     } else if (typeof chosenProvider === 'string') {
-      const provider = await this.profile.client.getProvider(chosenProvider);
+      // const provider = await this.profile.client.getProvider(chosenProvider);
+      const provider = getProvider(this.superJson, chosenProvider);
       providerConfig = provider.configuration;
     } else {
       providerConfig = chosenProvider.configuration;
@@ -73,12 +96,22 @@ class UseCaseBase implements Interceptable {
     this.metadata.provider = providerConfig.name;
     hookRouter.setCurrentProvider(providerConfig.name);
 
-    //In this instance we can set metadata for events
-    this.boundProfileProvider =
-      await this.profile.client.cacheBoundProfileProvider(
-        this.profile.configuration,
-        providerConfig
-      );
+    // In this instance we can set metadata for events
+    this.boundProfileProvider = await this.boundProfileProviderCache.getCached(
+      this.profileConfiguration.cacheKey + providerConfig.cacheKey,
+      () =>
+        bindProfileProvider(
+          this.profileConfiguration,
+          providerConfig,
+          this.superJson,
+          this.config,
+          this.events
+        )
+    );
+    // await this.profile.client.cacheBoundProfileProvider(
+    //   this.profile.configuration,
+    //   providerConfig
+    // );
   }
 
   @eventInterceptor({ eventName: 'perform', placement: 'around' })
@@ -118,11 +151,10 @@ class UseCaseBase implements Interceptable {
   }
 
   private checkWarnFailoverMisconfiguration() {
-    const profileId = this.profile.configuration.id;
+    const profileId = this.profileConfiguration.id;
 
     // Check providerFailover/priority array
-    const profileEntry =
-      this.profile.client.superJson.normalized.profiles[profileId];
+    const profileEntry = this.superJson.normalized.profiles[profileId];
 
     if (profileEntry.defaults[this.name] === undefined) {
       return;
@@ -156,14 +188,13 @@ class UseCaseBase implements Interceptable {
   private configureHookContext() {
     this.checkWarnFailoverMisconfiguration();
 
-    const profileId = this.profile.configuration.id;
-    const profileSettings =
-      this.profile.client.superJson.normalized.profiles[profileId];
+    const profileId = this.profileConfiguration.id;
+    const profileSettings = this.superJson.normalized.profiles[profileId];
 
     const key = `${profileId}/${this.name}`;
 
-    if (this.profile.client.hookContext[key] === undefined) {
-      this.profile.client.hookContext[key] = {
+    if (this.events.hookContext[key] === undefined) {
+      this.events.hookContext[key] = {
         router: new FailurePolicyRouter(
           provider => this.instantiateFailurePolicy(provider),
           // Use priority only when provider failover is enabled
@@ -177,13 +208,13 @@ class UseCaseBase implements Interceptable {
   }
 
   protected toggleFailover(enabled: boolean) {
-    this.profile.client.hookContext[
-      `${this.profile.configuration.id}/${this.name}`
+    this.events.hookContext[
+      `${this.profileConfiguration.id}/${this.name}`
     ].router.setAllowFailover(enabled);
   }
 
   private instantiateFailurePolicy(provider: string): FailurePolicy {
-    const profileId = this.profile.configuration.id;
+    const profileId = this.profileConfiguration.id;
     const usecaseInfo: UsecaseInfo = {
       profileId,
       usecaseName: this.name,
@@ -191,8 +222,7 @@ class UseCaseBase implements Interceptable {
       usecaseSafety: 'unsafe',
     };
 
-    const profileSettings =
-      this.profile.client.superJson.normalized.profiles[profileId];
+    const profileSettings = this.superJson.normalized.profiles[profileId];
     const retryPolicyConfig = profileSettings.providers[provider]?.defaults[
       this.name
     ]?.retryPolicy ?? { kind: OnFail.NONE };
@@ -212,7 +242,7 @@ class UseCaseBase implements Interceptable {
 
       policy = new CircuitBreakerPolicy(
         usecaseInfo,
-        //TODO are these defauts ok?
+        // TODO are these defauts ok?
         retryPolicyConfig.maxContiguousRetries ?? 5,
         30_000,
         retryPolicyConfig.requestTimeout,
@@ -229,13 +259,6 @@ class UseCaseBase implements Interceptable {
 }
 
 export class UseCase extends UseCaseBase {
-  constructor(
-    public override readonly profile: ProfileBase,
-    public override readonly name: string
-  ) {
-    super(profile, name);
-  }
-
   async perform<
     TInput extends NonPrimitive | undefined = Record<
       string,

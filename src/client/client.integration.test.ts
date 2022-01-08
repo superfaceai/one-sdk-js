@@ -3,8 +3,6 @@ import { parseMap, parseProfile, Source } from '@superfaceai/parser';
 
 import { ProfileProvider } from '..';
 import { SuperfaceClient } from '../client';
-import { invalidateSuperfaceClientCache } from '../client/client';
-import { Config } from '../config';
 import { SuperJson } from '../internal/superjson';
 import { ok } from '../lib/result/result';
 
@@ -74,21 +72,18 @@ const mockMapDocumentSuccess = parseMapFromSource(`
         map result parameters.test
       }`);
 
+process.env.SUPERFACE_DISABLE_METRIC_REPORTING = 'true';
+
 describe('SuperfaceClient integration test', () => {
   beforeEach(async () => {
     SuperJson.loadSync = () => ok(mockSuperJsonSingle);
-    Config.instance().disableReporting = true;
-  });
-
-  afterEach(async () => {
-    invalidateSuperfaceClientCache();
   });
 
   it('should pass parameters from super.json to the map', async () => {
     const client = new SuperfaceClient();
 
-    //Let .bind happen with mocked inputs
-    //Mocking private property of ProfileProvider
+    // Let .bind happen with mocked inputs
+    // Mocking private property of ProfileProvider
     jest
       .spyOn(ProfileProvider.prototype as any, 'resolveProfileAst')
       .mockResolvedValue(mockProfileDocument);
