@@ -142,7 +142,7 @@ export class ProfileParameterValidator implements ProfileVisitor {
       case 'ComlinkPrimitiveLiteral':
         return this.visitComlinkPrimitiveLiteralNode(node, kind, usecase);
       case 'ComlinkAssignment':
-        throw new Error("unreachable");
+        throw new Error('unreachable');
       case 'EnumDefinition':
         return this.visitEnumDefinitionNode(node, kind, usecase);
       case 'EnumValue':

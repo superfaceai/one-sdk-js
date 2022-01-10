@@ -50,6 +50,7 @@ import { mergeSecurity } from '../internal/superjson/mutate';
 import { err, ok, Result } from '../lib';
 import { Events, Interceptable } from '../lib/events';
 import { CrossFetch } from '../lib/fetch';
+import { ServicesSelector } from '../lib/services';
 import { MapInterpreterEventAdapter } from './failure/map-interpreter-adapter';
 import { ProfileConfiguration } from './profile';
 import { ProviderConfiguration } from './provider';
@@ -77,8 +78,7 @@ export class BoundProfileProvider {
     private readonly mapAst: MapDocumentNode,
     private readonly providerName: string,
     readonly configuration: {
-      serviceUrls: Record<string, string>;
-      defaultService: string;
+      services: ServicesSelector;
       profileProviderSettings?: NormalizedProfileProviderSettings;
       security: SecurityConfiguration[];
       parameters?: Record<string, string>;
@@ -150,8 +150,7 @@ export class BoundProfileProvider {
       {
         input: composedInput,
         usecase,
-        serviceUrls: this.configuration.serviceUrls,
-        defaultService: this.configuration.defaultService,
+        services: this.configuration.services,
         security: this.configuration.security,
         parameters: this.mergeParameters(
           parameters,
@@ -344,10 +343,10 @@ export class ProfileProvider {
       mapAst,
       providerInfo.name,
       {
-        serviceUrls: Object.fromEntries(
-          providerInfo.services.map(service => [service.id, service.baseUrl])
+        services: new ServicesSelector(
+          providerInfo.services,
+          providerInfo.defaultService
         ),
-        defaultService: providerInfo.defaultService,
         profileProviderSettings:
           this.superJson.normalized.profiles[profileId]?.providers[
             providerInfo.name
