@@ -145,7 +145,17 @@ export class HttpClient {
     const { fetchInstance, url, headers, request, requestBody } = options;
     debug('Executing HTTP Call');
     // secrets might appear in headers, url path, query parameters or body
-    debugSensitive(`\t${request.method || 'UNKNOWN METHOD'} ${url} HTTP/1.1`);
+    if (debugSensitive.enabled) {
+      const hasSearchParams =
+        Object.keys(request.queryParameters || {}).length > 0;
+      const searchParams = new URLSearchParams(request.queryParameters);
+      debugSensitive(
+        '\t%s %s%s HTTP/1.1',
+        request.method || 'UNKNOWN METHOD',
+        url,
+        hasSearchParams ? '?' + searchParams.toString() : ''
+      );
+    }
     Object.entries(headers).forEach(([headerName, value]) =>
       debugSensitive(`\t${headerName}: ${value}`)
     );

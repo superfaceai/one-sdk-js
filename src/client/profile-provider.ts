@@ -71,7 +71,7 @@ const boundProfileProviderDebug = createDebug(
 export type AuthCache = { cache?: DigestAuthValues };
 
 export class BoundProfileProvider {
-  //TODO: Interceptable and set metadata
+  // TODO: Interceptable and set metadata
   private profileValidator: ProfileParameterValidator;
   private fetchInstance: FetchInstance & Interceptable & AuthCache;
 
@@ -126,7 +126,8 @@ export class BoundProfileProvider {
     TResult = any
   >(
     usecase: string,
-    input?: TInput
+    input?: TInput,
+    parameters?: Record<string, string>
   ): Promise<Result<TResult, ProfileParameterError | MapInterpreterError>> {
     this.fetchInstance.metadata = {
       profile: profileAstId(this.profileAst),
@@ -153,7 +154,10 @@ export class BoundProfileProvider {
         usecase,
         serviceBaseUrl: this.configuration.baseUrl,
         security: this.configuration.security,
-        parameters: this.configuration.parameters,
+        parameters: this.mergeParameters(
+          parameters,
+          this.configuration.parameters
+        ),
       },
       {
         fetchInstance: this.fetchInstance,
@@ -182,6 +186,24 @@ export class BoundProfileProvider {
     forceCast<TResult>(result.value);
 
     return ok(result.value);
+  }
+
+  private mergeParameters(
+    parameters?: Record<string, string>,
+    providerParameters?: Record<string, string>
+  ): Record<string, string> | undefined {
+    if (parameters === undefined) {
+      return providerParameters;
+    }
+
+    if (providerParameters === undefined) {
+      return parameters;
+    }
+
+    return {
+      ...providerParameters,
+      ...parameters,
+    };
   }
 }
 
@@ -343,8 +365,8 @@ export class ProfileProvider {
           ],
         security: securityConfiguration,
         parameters: this.resolveIntegrationParameters(
-          this.superJson.normalized.providers[providerInfo.name]?.parameters,
-          providerInfo
+          providerInfo,
+          this.superJson.normalized.providers[providerInfo.name]?.parameters
         ),
       },
       this.events
@@ -352,8 +374,8 @@ export class ProfileProvider {
   }
 
   private resolveIntegrationParameters(
-    superJsonParameters: { [key: string]: string } | undefined,
-    providerJson: ProviderJson
+    providerJson: ProviderJson,
+    superJsonParameters?: Record<string, string>
   ): Record<string, string> | undefined {
     if (superJsonParameters === undefined) {
       return undefined;
@@ -365,7 +387,7 @@ export class ProfileProvider {
       providerJsonParameters.length === 0
     ) {
       console.warn(
-        `Warning: Super.json defines integration parameters but provider.json does not`
+        'Warning: Super.json defines integration parameters but provider.json does not'
       );
     }
     const result: Record<string, string> = {};
@@ -374,12 +396,13 @@ export class ProfileProvider {
       providerJson.name,
       providerJsonParameters
     );
-    //Resolve parameters defined in super.json
+
+    // Resolve parameters defined in super.json
     for (const [key, value] of Object.entries(superJsonParameters)) {
       const providerJsonParameter = providerJsonParameters.find(
         parameter => parameter.name === key
       );
-      //If value name and prepared value equals we are dealing with unset env
+      // If value name and prepared value equals we are dealing with unset env
       if (
         providerJsonParameter &&
         preparedParameters[providerJsonParameter.name] === value
@@ -389,13 +412,13 @@ export class ProfileProvider {
         }
       }
 
-      //Use original value
+      // Use original value
       if (!result[key]) {
         result[key] = value;
       }
     }
 
-    //Resolve parameters which are missing in super.json and have default value
+    // Resolve parameters which are missing in super.json and have default value
     for (const parameter of providerJsonParameters) {
       if (result[parameter.name] === undefined && parameter.default) {
         result[parameter.name] = parameter.default;

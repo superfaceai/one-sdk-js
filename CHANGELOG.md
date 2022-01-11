@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2021-12-22
+### Added
+- Pass integration parameters in `perform`
+
+### Fixed
+- Display query parameters in URL with `DEBUG=superface:http:sensitive`
+
 ## [1.0.1] - 2021-11-24
 ### Added
 - Use [JSON Pointer](https://datatracker.ietf.org/doc/html/rfc6901) (arrays not supported) to specify api token location in body
@@ -270,7 +277,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Profile parameter validator
 - CI/CD workflows
 
-[Unreleased]: https://github.com/superfaceai/one-sdk-js/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/superfaceai/one-sdk-js/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/superfaceai/one-sdk-js/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/superfaceai/one-sdk-js/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.40...v1.0.0
 [0.0.40]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.39...v0.0.40
