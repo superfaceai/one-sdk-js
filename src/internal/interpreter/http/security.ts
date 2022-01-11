@@ -14,17 +14,21 @@ import {
 
 import { AuthCache } from '../../..';
 import { UnexpectedError } from '../../errors';
-// import { AuthCache } from '../../..';
-// import { UnexpectedError } from '../..';
 import { apiKeyInBodyError } from '../../errors.helpers';
 import { NonPrimitive, Variables } from '../variables';
 import { HttpResponse } from '.';
 import { DigestHelper } from './digest';
-import { FetchInstance, FetchParameters } from './interfaces';
-// import { DigestHelper } from './digest';
-// import { FetchInstance } from './interfaces';
+// import { FetchInstance, FetchParameters } from './interfaces';
 
 const DEFAULT_AUTHORIZATION_HEADER_NAME = 'Authorization';
+
+/**
+ * Represents class that is able to prepare authentication
+ */
+export interface SecurityHandler {
+  prepare(context: RequestContext, configuration: SecurityConfiguration & { type: SecurityType }, cache?: AuthCache): void,
+  handle?(response: HttpResponse, url: string, method: string, context: RequestContext, cache?: AuthCache): boolean
+}
 
 export type SecurityConfiguration =
   | (ApiKeySecurityScheme & ApiKeySecurityValues)
@@ -41,7 +45,84 @@ export type RequestContext = {
   requestBody: Variables | undefined;
 };
 
-export function applyApiKeyAuthInBody(
+export class DigestHandler implements SecurityHandler {
+  private helper?: DigestHelper
+
+  prepare(context: RequestContext, _configuration: SecurityConfiguration & { type: SecurityType; }, cache?: AuthCache): void {
+    //FIX: Should be passed in super.json configuration
+    const user = process.env.CLOCKPLUS_USERNAME;
+    if (!user) {
+      throw new UnexpectedError('Missing user');
+    }
+    const password = process.env.CLOCKPLUS_PASSWORD;
+    if (!password) {
+      throw new UnexpectedError('Missing password');
+    }
+    this.helper = new DigestHelper({ credentials: { user, password } })
+
+    if (cache?.cache?.digest) {
+      context.headers[AUTH_HEADER_NAME] = cache.cache.digest
+    }
+  }
+
+  handle(response: HttpResponse, url: string, method: string, context: RequestContext, _cache?: AuthCache): boolean {
+    if (!this.helper) {
+      throw new Error('Digest helper not initialized')
+    }
+    const credentials = this.helper.handle(response, url, method)
+    if (credentials) {
+      context.headers[AUTH_HEADER_NAME] = credentials
+      return true
+    }
+    return false
+
+  }
+
+}
+export class ApiKeyHandler implements SecurityHandler {
+  prepare(context: RequestContext, configuration: SecurityConfiguration & { type: SecurityType.APIKEY; }): void {
+    const name = configuration.name || DEFAULT_AUTHORIZATION_HEADER_NAME;
+
+    switch (configuration.in) {
+      case ApiKeyPlacement.HEADER:
+        context.headers[name] = configuration.apikey;
+        break;
+
+      case ApiKeyPlacement.BODY:
+        context.requestBody = applyApiKeyAuthInBody(
+          context.requestBody ?? {},
+          name.startsWith('/') ? name.slice(1).split('/') : [name],
+          configuration.apikey
+        );
+        break;
+
+      case ApiKeyPlacement.PATH:
+        context.pathParameters[name] = configuration.apikey;
+        break;
+
+      case ApiKeyPlacement.QUERY:
+        context.queryAuth[name] = configuration.apikey;
+
+        break;
+    }
+  }
+  handle: undefined;
+}
+
+export class HttpHandler implements SecurityHandler {
+  prepare(context: RequestContext, configuration: SecurityConfiguration & { type: SecurityType.HTTP; }): void {
+    switch (configuration.scheme) {
+      case HttpScheme.BASIC:
+        applyBasicAuth(context, configuration);
+        break;
+      case HttpScheme.BEARER:
+        applyBearerToken(context, configuration);
+        break;
+    }
+  }
+}
+
+function applyApiKeyAuthInBody(
   requestBody: Variables,
   referenceTokens: string[],
   apikey: string,
@@ -95,6 +176,7 @@ export function applyApiKeyAuth(
 
     case ApiKeyPlacement.QUERY:
       context.queryAuth[name] = configuration.apikey;
+
       break;
   }
 }
@@ -137,48 +219,48 @@ export function applyBearerToken(
   context.headers[AUTH_HEADER_NAME] = `Bearer ${configuration.token}`;
 }
 
-export async function useDigest(
-  _context: RequestContext,
-  _configuration: SecurityConfiguration & {
-    type: SecurityType.HTTP;
-    scheme: HttpScheme.DIGEST;
-  },
-  options: {
-    fetchInstance: FetchInstance & AuthCache;
-    useFetch: (options: {
-      fetchInstance: FetchInstance;
-      url: string;
-      headers: Record<string, string>;
-      requestBody: Variables | undefined;
-      request: FetchParameters;
-    }) => Promise<HttpResponse>;
-    url: string;
-    headers: Record<string, string>;
-    request: FetchParameters;
-    requestBody: Variables | undefined;
-  }
-): Promise<HttpResponse> {
-  const { fetchInstance, url, headers, request, requestBody, useFetch } =
-    options;
+// export async function useDigest(
+//   _context: RequestContext,
+//   _configuration: SecurityConfiguration & {
+//     type: SecurityType.HTTP;
+//     scheme: HttpScheme.DIGEST;
+//   },
+//   options: {
+//     fetchInstance: FetchInstance & AuthCache;
+//     useFetch: (options: {
+//       fetchInstance: FetchInstance;
+//       url: string;
+//       headers: Record<string, string>;
+//       requestBody: Variables | undefined;
+//       request: FetchParameters;
+//     }) => Promise<HttpResponse>;
+//     url: string;
+//     headers: Record<string, string>;
+//     request: FetchParameters;
+//     requestBody: Variables | undefined;
+//   }
+// ): Promise<HttpResponse> {
+//   const { fetchInstance, url, headers, request, requestBody, useFetch } =
+//     options;
 
-  //FIX: Should be passed in super.json configuration
-  const user = process.env.CLOCKPLUS_USERNAME;
-  if (!user) {
-    throw new UnexpectedError('Missing user');
-  }
-  const password = process.env.CLOCKPLUS_PASSWORD;
-  if (!password) {
-    throw new UnexpectedError('Missing password');
-  }
+//   //FIX: Should be passed in super.json configuration
+//   const user = process.env.CLOCKPLUS_USERNAME;
+//   if (!user) {
+//     throw new UnexpectedError('Missing user');
+//   }
+//   const password = process.env.CLOCKPLUS_PASSWORD;
+//   if (!password) {
+//     throw new UnexpectedError('Missing password');
+//   }
 
-  const digestHelper = new DigestHelper({
-    fetchInstance,
-    useFetch,
-    credentials: {
-      user,
-      password,
-    },
-  });
+//   const digestHelper = new DigestHelper({
+//     fetchInstance,
+//     useFetch,
+//     credentials: {
+//       user,
+//       password,
+//     },
+//   });
 
-  return digestHelper.use({ url, headers, request, requestBody });
-}
+//   return digestHelper.use({ url, headers, request, requestBody });
+// }

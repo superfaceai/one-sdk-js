@@ -21,7 +21,7 @@ import {
   Variables,
   variablesToStrings,
 } from '../variables';
-import { useDigest } from '.';
+import { ApiKeyHandler, DigestHandler } from '.';
 import {
   BINARY_CONTENT_REGEXP,
   BINARY_CONTENT_TYPES,
@@ -36,9 +36,11 @@ import {
   urlSearchParamsBody,
 } from './interfaces';
 import {
-  applyApiKeyAuth,
-  applyHttpAuth,
+  // applyApiKeyAuth,
+  // applyHttpAuth,
+  HttpHandler,
   SecurityConfiguration,
+  SecurityHandler,
 } from './security';
 
 const debug = createDebug('superface:http');
@@ -130,7 +132,7 @@ export const createUrl = (
 };
 
 export class HttpClient {
-  constructor(private fetchInstance: FetchInstance & AuthCache) {}
+  constructor(private fetchInstance: FetchInstance & AuthCache) { }
 
   private static async makeRequest(
     this: void,
@@ -201,7 +203,8 @@ export class HttpClient {
       integrationParameters?: Record<string, string>;
     }
   ): Promise<HttpResponse> {
-    // let authCacheHit = false;
+    const securityHandlers: SecurityHandler[] = []
+    let retry = true
     const headers = variablesToStrings(parameters?.headers);
     headers['accept'] = parameters.accept || '*/*';
 
@@ -221,6 +224,39 @@ export class HttpClient {
       pathParameters,
       requestBody,
     };
+    for (const requirement of parameters.securityRequirements ?? []) {
+      const configuration = securityConfiguration.find(
+        configuration => configuration.id === requirement.id
+      );
+      if (configuration === undefined) {
+        throw missingSecurityValuesError(requirement.id);
+      }
+
+      if (configuration.type === SecurityType.APIKEY) {
+        // applyApiKeyAuth(contextForSecurity, configuration);
+        const handler = new ApiKeyHandler()
+        handler.prepare(contextForSecurity, configuration)
+        securityHandlers.push(handler)
+      } else if (configuration.scheme === HttpScheme.DIGEST) {
+        const handler = new DigestHandler()
+        handler.prepare(contextForSecurity, configuration)
+        securityHandlers.push(handler)
+        // return useDigest(contextForSecurity, configuration, {
+        //   fetchInstance: this.fetchInstance,
+        //   useFetch: HttpClient.makeRequest,
+        //   url: finalUrl,
+        //   headers,
+        //   request,
+        //   requestBody,
+        // });
+      } else {
+        // applyHttpAuth(contextForSecurity, configuration);
+        const handler = new HttpHandler()
+        handler.prepare(contextForSecurity, configuration)
+        securityHandlers.push(handler)
+      }
+    }
+
 
     if (
       parameters.body &&
@@ -262,7 +298,7 @@ export class HttpClient {
     }
     headers['user-agent'] ??= USER_AGENT;
 
-    const finalUrl = createUrl(url, {
+    let finalUrl = createUrl(url, {
       baseUrl: parameters.baseUrl,
       pathParameters,
       integrationParameters: parameters.integrationParameters,
@@ -272,37 +308,25 @@ export class HttpClient {
       ...variablesToStrings(parameters.queryParameters),
       ...queryAuth,
     };
-
-    for (const requirement of parameters.securityRequirements ?? []) {
-      const configuration = securityConfiguration.find(
-        configuration => configuration.id === requirement.id
-      );
-      if (configuration === undefined) {
-        throw missingSecurityValuesError(requirement.id);
-      }
-
-      if (configuration.type === SecurityType.APIKEY) {
-        applyApiKeyAuth(contextForSecurity, configuration);
-      } else if (configuration.scheme === HttpScheme.DIGEST) {
-        return useDigest(contextForSecurity, configuration, {
-          fetchInstance: this.fetchInstance,
-          useFetch: HttpClient.makeRequest,
-          url: finalUrl,
-          headers,
-          request,
-          requestBody,
-        });
+    let response: HttpResponse;
+    do {
+      response = await HttpClient.makeRequest({
+        fetchInstance: this.fetchInstance,
+        url: finalUrl,
+        headers,
+        requestBody,
+        request,
+      });
+      //TODO: or call handle on all the handers (with defined handle)?
+      const handler = securityHandlers.find(h => h.handle !== undefined)
+      //If we have handle we use it to get new values for api call and new retry value
+      if (handler && handler.handle) {
+        retry = handler.handle(response, finalUrl, request.method, contextForSecurity)
       } else {
-        applyHttpAuth(contextForSecurity, configuration);
+        retry = false
       }
-    }
+    } while (retry);
 
-    return HttpClient.makeRequest({
-      fetchInstance: this.fetchInstance,
-      url: finalUrl,
-      headers,
-      requestBody,
-      request,
-    });
+    return response
   }
 }

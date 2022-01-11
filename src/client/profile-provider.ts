@@ -38,7 +38,6 @@ import {
   ProfileParameterError,
   ProfileParameterValidator,
 } from '../internal/interpreter';
-import { DigestAuthValues } from '../internal/interpreter/http/digest';
 import { FetchInstance } from '../internal/interpreter/http/interfaces';
 import { SecurityConfiguration } from '../internal/interpreter/http/security';
 import {
@@ -57,7 +56,7 @@ import { ProfileConfiguration } from './profile';
 import { ProviderConfiguration } from './provider';
 import { fetchBind, fetchMapSource, fetchProviderInfo } from './registry';
 
-function forceCast<T>(_: unknown): asserts _ is T {}
+function forceCast<T>(_: unknown): asserts _ is T { }
 
 function profileAstId(ast: ProfileDocumentNode): string {
   return ast.header.scope !== undefined
@@ -68,7 +67,7 @@ function profileAstId(ast: ProfileDocumentNode): string {
 const boundProfileProviderDebug = createDebug(
   'superface:bound-profile-provider'
 );
-export type AuthCache = { cache?: DigestAuthValues };
+export type AuthCache = { cache?: { digest?: string } };
 
 export class BoundProfileProvider {
   // TODO: Interceptable and set metadata
@@ -361,7 +360,7 @@ export class ProfileProvider {
         baseUrl,
         profileProviderSettings:
           this.superJson.normalized.profiles[profileId]?.providers[
-            providerInfo.name
+          providerInfo.name
           ],
         security: securityConfiguration,
         parameters: this.resolveIntegrationParameters(

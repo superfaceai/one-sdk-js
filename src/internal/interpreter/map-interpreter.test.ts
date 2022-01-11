@@ -447,7 +447,7 @@ describe('MapInterpreter', () => {
     expect(result.isOk() && result.value).toEqual(12);
   });
 
-  it('should call an API with Apikey auth in query', async () => {
+  it.only('should call an API with Apikey auth in query', async () => {
     const url = '/apikey';
     await mockServer
       .get(url)
@@ -480,7 +480,7 @@ describe('MapInterpreter', () => {
         }
       }`);
     const result = await interpreter.perform(ast);
-
+    console.log('res', result)
     expect(result.isOk() && result.value).toEqual(12);
   });
 
