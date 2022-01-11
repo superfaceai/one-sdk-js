@@ -21,7 +21,7 @@ import {
   Variables,
   variablesToStrings,
 } from '../variables';
-import { DigestHelper } from './digest';
+import { useDigest } from '.';
 import {
   BINARY_CONTENT_REGEXP,
   BINARY_CONTENT_TYPES,
@@ -130,21 +130,29 @@ export const createUrl = (
 };
 
 export class HttpClient {
-  constructor(private fetchInstance: FetchInstance & AuthCache) { }
+  constructor(private fetchInstance: FetchInstance & AuthCache) {}
 
-  private async makeRequest(url: string, headers: Record<string, string>, requestBody: Variables | undefined, request: FetchParameters): Promise<HttpResponse> {
+  private static async makeRequest(
+    this: void,
+    options: {
+      fetchInstance: FetchInstance;
+      url: string;
+      headers: Record<string, string>;
+      requestBody: Variables | undefined;
+      request: FetchParameters;
+    }
+  ): Promise<HttpResponse> {
+    const { fetchInstance, url, headers, request, requestBody } = options;
     debug('Executing HTTP Call');
     // secrets might appear in headers, url path, query parameters or body
-    debugSensitive(
-      `\t${request.method || 'UNKNOWN METHOD'} ${url} HTTP/1.1`
-    );
+    debugSensitive(`\t${request.method || 'UNKNOWN METHOD'} ${url} HTTP/1.1`);
     Object.entries(headers).forEach(([headerName, value]) =>
       debugSensitive(`\t${headerName}: ${value}`)
     );
     if (requestBody !== undefined) {
       debugSensitive(`\n${inspect(requestBody, true, 5)}`);
     }
-    const response = await this.fetchInstance.fetch(url, request);
+    const response = await fetchInstance.fetch(url, request);
 
     debug('Received response');
     debugSensitive(`\tHTTP/1.1 ${response.status} ${response.statusText}`);
@@ -166,6 +174,7 @@ export class HttpClient {
       },
     };
   }
+
   public async request(
     url: string,
     parameters: {
@@ -264,66 +273,26 @@ export class HttpClient {
 
       if (configuration.type === SecurityType.APIKEY) {
         applyApiKeyAuth(contextForSecurity, configuration);
-        //TODO: move this to separate file
       } else if (configuration.scheme === HttpScheme.DIGEST) {
-        //FIX: Should be passed in super.json configuration
-        const user = process.env.CLOCKPLUS_USERNAME;
-        if (!user) {
-          throw new UnexpectedError('Missing user');
-        }
-        const password = process.env.CLOCKPLUS_PASSWORD;
-        if (!password) {
-          throw new UnexpectedError('Missing password');
-        }
-
-
-        //FIX: Provider.json configuration should also contain optional: statusCode, header containing challange, header used for athorization
-        const digest = new DigestHelper(user, password, this.fetchInstance);
-
-        const AUTH_HEADER_NAME = 'Authorization';
-
-        let response: HttpResponse
-
-        //Try to reuse old header
-        //Make call with old header or without it (to get challange header)
-        if (this.fetchInstance.cache) {
-          headers[AUTH_HEADER_NAME] = digest.buildDigestAuth(finalUrl, request.method, this.fetchInstance.cache)
-        }
-        response = await this.makeRequest(finalUrl, headers, requestBody, request)
-
-        //Properties from helper instance
-        const statusCode = 401;
-        const header = 'www-authenticate'
-
-        if (response.statusCode === statusCode) {
-          if (response.headers[header]) {
-            const digestValues = digest.extractDigestValues(response.headers[header])
-            headers[AUTH_HEADER_NAME] = digest.buildDigestAuth(finalUrl, request.method, digestValues)
-            response = await this.makeRequest(finalUrl, headers, requestBody, request)
-            //Some how check response to avoid caching invalid values??
-            this.fetchInstance.cache = digestValues;
-          }
-        }
-
-        return response
+        return useDigest(contextForSecurity, configuration, {
+          fetchInstance: this.fetchInstance,
+          useFetch: HttpClient.makeRequest,
+          url: finalUrl,
+          headers,
+          request,
+          requestBody,
+        });
       } else {
         applyHttpAuth(contextForSecurity, configuration);
       }
     }
 
-    return this.makeRequest(finalUrl, headers, requestBody, request)
-
-    //TODO: we should be able to retry request when we "resused" authCache (we are using old auth header value) and response has statusCode matching status code in provider.json.
-    //It means auth failed and server sends new challenge
-    //Something like:
-    // if (authCacheHit && isDigestAuth && response.status === statusCodeFromProviderJson) {
-    //   const extracted = DigestHelper.extractDigestValues(response.headers[headerFromProviderJson])
-    //   const auth = DigestHelper.buildDigestAuth(url, method, extracted)
-    //   context.headers[authheaderFromProviderJson || AUTH_HEADER_NAME]
-
-    //   retry request
-    // }
-    // It looks like requests itself should be wraped be some security helper which will prepare auth and can react on response - and retry it.
-
+    return HttpClient.makeRequest({
+      fetchInstance: this.fetchInstance,
+      url: finalUrl,
+      headers,
+      requestBody,
+      request,
+    });
   }
 }

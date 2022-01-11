@@ -41,9 +41,9 @@ export class CrossFetch implements FetchInstance, Interceptable {
   ): Promise<FetchResponse> {
     const headersInit = parameters.headers
       ? Object.entries(parameters.headers).map(([key, value]) => [
-        key,
-        ...(Array.isArray(value) ? value : [value]),
-      ])
+          key,
+          ...(Array.isArray(value) ? value : [value]),
+        ])
       : undefined;
     const request: RequestInit = {
       headers: new Headers(headersInit),
@@ -65,8 +65,8 @@ export class CrossFetch implements FetchInstance, Interceptable {
     let body: unknown;
 
     if (
-      (headers['content-type'] &&
-        headers['content-type'].includes(JSON_CONTENT)) //||
+      headers['content-type'] &&
+      headers['content-type'].includes(JSON_CONTENT) //||
       //This should be used when we don't have a response content-type
       // parameters.headers?.['accept']?.includes(JSON_CONTENT)
     ) {

@@ -13,11 +13,16 @@ import {
 } from '@superfaceai/ast';
 
 import { AuthCache } from '../../..';
-import { UnexpectedError } from '../..';
+import { UnexpectedError } from '../../errors';
+// import { AuthCache } from '../../..';
+// import { UnexpectedError } from '../..';
 import { apiKeyInBodyError } from '../../errors.helpers';
 import { NonPrimitive, Variables } from '../variables';
+import { HttpResponse } from '.';
 import { DigestHelper } from './digest';
-import { FetchInstance } from './interfaces';
+import { FetchInstance, FetchParameters } from './interfaces';
+// import { DigestHelper } from './digest';
+// import { FetchInstance } from './interfaces';
 
 const DEFAULT_AUTHORIZATION_HEADER_NAME = 'Authorization';
 
@@ -132,16 +137,30 @@ export function applyBearerToken(
   context.headers[AUTH_HEADER_NAME] = `Bearer ${configuration.token}`;
 }
 
-export async function applyDigest(
-  context: RequestContext,
+export async function useDigest(
+  _context: RequestContext,
   _configuration: SecurityConfiguration & {
     type: SecurityType.HTTP;
     scheme: HttpScheme.DIGEST;
   },
-  method: string,
-  url: string,
-  fetchInstance: FetchInstance & AuthCache
-): Promise<void> {
+  options: {
+    fetchInstance: FetchInstance & AuthCache;
+    useFetch: (options: {
+      fetchInstance: FetchInstance;
+      url: string;
+      headers: Record<string, string>;
+      requestBody: Variables | undefined;
+      request: FetchParameters;
+    }) => Promise<HttpResponse>;
+    url: string;
+    headers: Record<string, string>;
+    request: FetchParameters;
+    requestBody: Variables | undefined;
+  }
+): Promise<HttpResponse> {
+  const { fetchInstance, url, headers, request, requestBody, useFetch } =
+    options;
+
   //FIX: Should be passed in super.json configuration
   const user = process.env.CLOCKPLUS_USERNAME;
   if (!user) {
@@ -152,8 +171,14 @@ export async function applyDigest(
     throw new UnexpectedError('Missing password');
   }
 
-  //FIX: Provider.json configuration should also contain optional: statusCode, header containing challange, header used for athorization
-  const digest = new DigestHelper(user, password, fetchInstance);
-  //"Proxy-Authorization" can be also used when communicating thru proxy https://datatracker.ietf.org/doc/html/rfc2617#section-1.2
-  context.headers[AUTH_HEADER_NAME] = await digest.prepareAuth(url, method);
+  const digestHelper = new DigestHelper({
+    fetchInstance,
+    useFetch,
+    credentials: {
+      user,
+      password,
+    },
+  });
+
+  return digestHelper.use({ url, headers, request, requestBody });
 }

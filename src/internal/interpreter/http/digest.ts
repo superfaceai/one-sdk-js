@@ -1,10 +1,11 @@
 import { createHash } from 'crypto';
 import createDebug from 'debug';
-import { inspect } from 'util';
 
 import { AuthCache } from '../../..';
 import { UnexpectedError } from '../..';
-import { FetchInstance } from './interfaces';
+import { Variables } from '../variables';
+import { HttpResponse } from '.';
+import { FetchInstance, FetchParameters } from './interfaces';
 
 const debug = createDebug('superface:http:digest');
 const debugSensitive = createDebug('superface:http:digest:sensitive');
@@ -37,66 +38,135 @@ export type DigestAuthValues = {
  */
 export class DigestHelper {
   private readonly nonceRaw: string = 'abcdef0123456789';
+  private readonly fetchInstance: FetchInstance & AuthCache;
+  private readonly useFetch: (options: {
+    fetchInstance: FetchInstance;
+    url: string;
+    headers: Record<string, string>;
+    requestBody: Variables | undefined;
+    request: FetchParameters;
+  }) => Promise<HttpResponse>;
 
-  constructor(
-    private readonly user: string,
-    private readonly password: string,
-    private readonly fetchInstance: FetchInstance & AuthCache,
-    private readonly cnonceSize: number = 32,
-    //407 can be also used when communicating thru proxy https://datatracker.ietf.org/doc/html/rfc2617#section-1.2
-    private readonly statusCode: number = 401,
-    //"Proxy-Authenticate" can be also used when communicating thru proxy https://datatracker.ietf.org/doc/html/rfc2617#section-1.2
-    private readonly header: string = 'www-authenticate',
-    private nc: number = 0
-  ) {
+  private readonly user: string;
+  private readonly password: string;
+  private readonly cnonceSize: number;
+  //407 can be also used when communicating thru proxy https://datatracker.ietf.org/doc/html/rfc2617#section-1.2
+  private readonly statusCode: number;
+  //"Proxy-Authenticate" can be also used when communicating thru proxy https://datatracker.ietf.org/doc/html/rfc2617#section-1.2
+  private readonly challangeHeader: string;
+  private readonly authorizationHeader: string;
+  private nc = 0;
+
+  constructor(options: {
+    //Fetch related
+    fetchInstance: FetchInstance & AuthCache;
+    useFetch: (options: {
+      fetchInstance: FetchInstance;
+      url: string;
+      headers: Record<string, string>;
+      requestBody: Variables | undefined;
+      request: FetchParameters;
+    }) => Promise<HttpResponse>;
+    //Secrets
+    credentials: {
+      user: string;
+      password: string;
+    };
+    //Digest related
+    cnonceSize?: number;
+    statusCode?: number;
+    challangeHeader?: string;
+    authorizationHeader?: string;
+  }) {
     debug('Initialized DigestHelper');
+    this.fetchInstance = options.fetchInstance;
+    this.useFetch = options.useFetch;
+    this.user = options.credentials.user;
+    this.password = options.credentials.password;
+    this.cnonceSize = options.cnonceSize || 32;
+    this.statusCode = options.statusCode || 401;
+    this.challangeHeader = options.challangeHeader || 'www-authenticate';
+    this.authorizationHeader = options.authorizationHeader || 'Authorization';
+
     debugSensitive(
-      `Initialized with: userame="${this.user}", password="${this.password}", cnonce size=${this.cnonceSize}, status code=${this.statusCode}, challenge header="${this.header}"`
+      `Initialized with: userame="${this.user}", password="${this.password}", cnonce size=${this.cnonceSize}, status code=${this.statusCode}, challenge header="${this.challangeHeader}"`
     );
   }
 
   /**
-   * Sends request to specified url, expectes response with 401 (or custom) status code,
-   * extracts digest values from response and prepares Authorization header for final request
-   * Logic is havily inspired by: https://github.com/devfans/digest-fetch/blob/master/digest-fetch-src.js and https://en.wikipedia.org/wiki/Digest_access_authentication
+   * Use digest authorization to make API call, it resuses cached values if possible and refresh cache if new values obtained.
+   * @param options for the API call
+   * @returns http response from API call
    */
-  async prepareAuth(url: string, method: string): Promise<string> {
-    debugSensitive(`Preparing digest auth for: ${url} and method: ${method}`);
+  async use(options: {
+    url: string;
+    headers: Record<string, string>;
+    request: FetchParameters;
+    requestBody: Variables | undefined;
+  }): Promise<HttpResponse> {
+    const { url, headers, request, requestBody } = options;
 
+    let response: HttpResponse;
+
+    //Try to reuse cached values
     if (this.fetchInstance.cache) {
-      return this.buildDigestAuth(url, method, this.fetchInstance.cache);
-    }
-    const resp = await this.fetchInstance.fetch(url, { method });
-    debugSensitive(`Initial request response\n${inspect(resp, true, 5)}`);
-    if (resp.status !== this.statusCode) {
-      throw new UnexpectedError(
-        `Digest auth failed, server returned unexpected code ${resp.status}`,
-        resp
+      debugSensitive(`Reusing cached digest values`);
+      headers[this.authorizationHeader] = this.buildDigestAuth(
+        url,
+        request.method,
+        this.fetchInstance.cache
       );
     }
-    const challangeHeader = resp.headers[this.header];
-    if (!challangeHeader) {
-      throw new UnexpectedError(
-        `Digest auth failed, unable to extract digest values from response. Header "${this.header}" not found in response headers`,
-        resp.headers
-      );
+
+    response = await this.useFetch({
+      fetchInstance: this.fetchInstance,
+      url,
+      headers,
+      requestBody,
+      request,
+    });
+
+    if (response.statusCode === this.statusCode) {
+      if (response.headers[this.challangeHeader]) {
+        debugSensitive(`Getting new digest values`);
+        const credentials = this.extractDigestValues(
+          response.headers[this.challangeHeader]
+        );
+        headers[this.authorizationHeader] = this.buildDigestAuth(
+          url,
+          request.method,
+          credentials
+        );
+        response = await this.useFetch({
+          fetchInstance: this.fetchInstance,
+          url,
+          headers,
+          requestBody,
+          request,
+        });
+        //TODO:Somehow check response to avoid caching invalid values??
+        this.fetchInstance.cache = credentials;
+      }
     }
-    debugSensitive(`Extracting digest values from: ${challangeHeader}`);
-    const digestValues = this.extractDigestValues(challangeHeader);
-    debugSensitive(
-      `Extracted digest values\n${inspect(digestValues, true, 2)}`
-    );
 
-    this.fetchInstance.cache = digestValues;
-
-    return this.buildDigestAuth(url, method, digestValues);
+    return response;
   }
 
-  buildDigestAuth(
+  /**
+   *
+   * @param url url of the request
+   * @param method HTTP method
+   * @param digest extracted of cached digest values
+   * @returns string containing information needed to digest authorization
+   */
+  private buildDigestAuth(
     url: string,
     method: string,
     digest: DigestAuthValues
   ): string {
+    debugSensitive(
+      `Preparing digest authentication for: ${url} and method: ${method}`
+    );
     const uri = new URL(url).pathname;
 
     //Default H1
@@ -137,19 +207,20 @@ export class DigestHelper {
     return `${digest.scheme} username="${this.user}",realm="${digest.realm}",nonce="${digest.nonce}",uri="${uri}",${opaqueString}${qopString}algorithm="${digest.algorithm}",response="${hashedResponse}",nc=${ncString},cnonce="${digest.cnonce}"`;
   }
 
-  extractDigestValues(header: string): DigestAuthValues {
-    console.log('Header to extract', header)
+  private extractDigestValues(header: string): DigestAuthValues {
+    debugSensitive(`Extracting digest authentication values from: ${header}`);
+
     const scheme = header.split(/\s/)[0];
     if (!scheme) {
       throw new UnexpectedError(
-        `Digest auth failed, unable to extract digest values from response. Header "${this.header}" does not contain scheme value eq. Digest`,
+        `Digest auth failed, unable to extract digest values from response. Header "${this.challangeHeader}" does not contain scheme value eq. Digest`,
         header
       );
     }
     const nonce = this.extract(header, 'nonce');
     if (!nonce) {
       throw new UnexpectedError(
-        `Digest auth failed, unable to extract digest values from response. Header "${this.header}" does not contain "nonce"`,
+        `Digest auth failed, unable to extract digest values from response. Header "${this.challangeHeader}" does not contain "nonce"`,
         header
       );
     }
