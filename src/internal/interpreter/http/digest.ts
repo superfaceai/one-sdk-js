@@ -89,7 +89,7 @@ export class DigestHelper {
     this.authorizationHeader = options.authorizationHeader || 'Authorization';
 
     debugSensitive(
-      `Initialized with: userame="${this.user}", password="${this.password}", cnonce size=${this.cnonceSize}, status code=${this.statusCode}, challenge header="${this.challangeHeader}"`
+      `Initialized with: username="${this.user}", password="${this.password}", cnonce size=${this.cnonceSize}, status code=${this.statusCode}, challenge header="${this.challangeHeader}"`
     );
   }
 
@@ -127,26 +127,29 @@ export class DigestHelper {
     });
 
     if (response.statusCode === this.statusCode) {
-      if (response.headers[this.challangeHeader]) {
-        debugSensitive(`Getting new digest values`);
-        const credentials = this.extractDigestValues(
-          response.headers[this.challangeHeader]
+      if (!response.headers[this.challangeHeader]) {
+        throw new UnexpectedError(
+          `Digest auth failed, unable to extract digest values from response. Header "${this.challangeHeader}" not found in response headers.`
         );
-        headers[this.authorizationHeader] = this.buildDigestAuth(
-          url,
-          request.method,
-          credentials
-        );
-        response = await this.useFetch({
-          fetchInstance: this.fetchInstance,
-          url,
-          headers,
-          requestBody,
-          request,
-        });
-        //TODO:Somehow check response to avoid caching invalid values??
-        this.fetchInstance.cache = credentials;
       }
+      debugSensitive(`Getting new digest values`);
+      const credentials = this.extractDigestValues(
+        response.headers[this.challangeHeader]
+      );
+      headers[this.authorizationHeader] = this.buildDigestAuth(
+        url,
+        request.method,
+        credentials
+      );
+      response = await this.useFetch({
+        fetchInstance: this.fetchInstance,
+        url,
+        headers,
+        requestBody,
+        request,
+      });
+      //TODO:Somehow check response to avoid caching invalid values??
+      this.fetchInstance.cache = credentials;
     }
 
     return response;
