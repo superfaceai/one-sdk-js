@@ -1,9 +1,9 @@
 import { createHash } from 'crypto';
 import createDebug from 'debug';
-import { HttpResponse } from '.';
 
 // import { AuthCache } from '../../..';
 import { UnexpectedError } from '../..';
+import { HttpResponse } from '.';
 // import { Variables } from '../variables';
 // import { HttpResponse } from '.';
 // import { FetchInstance, FetchParameters } from './interfaces';
@@ -111,7 +111,8 @@ export class DigestHelper {
             response.headers[this.challangeHeader]
           ));
     }
-    return credentials
+    
+return credentials
   }
 
   /**

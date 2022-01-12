@@ -32,7 +32,7 @@ export interface SecurityHandler {
    * @param configuration security configuration from super.json and provider.json
    * @param cache this cache can hold credentials for some of the authentication methods eg. digest
    */
-  prepare(context: RequestContext, configuration: SecurityConfiguration & { type: SecurityType }, cache?: AuthCache): void,
+  prepare(context: RequestContext, configuration: SecurityConfiguration & { type: SecurityType }, cache: AuthCache): void,
   /**
    * Handles responses for more complex authentization methods (eg. digest)
    * @param response response from http call - can contain challange
@@ -42,7 +42,7 @@ export interface SecurityHandler {
    * @param cache this cache can hold credentials for some of the authentication methods eg. digest
    * @returns flag if we need to retry http request (with new setting applied)
    */
-  handle?(response: HttpResponse, url: string, method: string, context: RequestContext, cache?: AuthCache): boolean
+  handle?(response: HttpResponse, url: string, method: string, context: RequestContext, cache: AuthCache): boolean
 }
 
 export type SecurityConfiguration =
@@ -63,7 +63,7 @@ export type RequestContext = {
 export class DigestHandler implements SecurityHandler {
   private helper?: DigestHelper
 
-  prepare(context: RequestContext, _configuration: SecurityConfiguration & { type: SecurityType; }, cache?: AuthCache): void {
+  prepare(context: RequestContext, _configuration: SecurityConfiguration & { type: SecurityType; }, cache: AuthCache): void {
     //FIX: Should be passed in super.json configuration
     const user = process.env.CLOCKPLUS_USERNAME;
     if (!user) {
@@ -80,22 +80,25 @@ export class DigestHandler implements SecurityHandler {
     }
   }
 
-  handle(response: HttpResponse, url: string, method: string, context: RequestContext, _cache?: AuthCache): boolean {
+  handle(response: HttpResponse, url: string, method: string, context: RequestContext, cache: AuthCache): boolean {
     if (!this.helper) {
       throw new Error('Digest helper not initialized')
     }
     const credentials = this.helper.handle(response, url, method)
     if (credentials) {
       context.headers[AUTH_HEADER_NAME] = credentials
+      if (!cache.cache) {
+        cache.cache = {}
+      }
+      cache.cache.digest = credentials;
+
       return true
     }
+
     return false
-
   }
-
 }
 export class ApiKeyHandler implements SecurityHandler {
-  //TODO: move applyX methods here
   prepare(context: RequestContext, configuration: SecurityConfiguration & { type: SecurityType.APIKEY; }): void {
     const name = configuration.name || DEFAULT_AUTHORIZATION_HEADER_NAME;
 
@@ -122,6 +125,7 @@ export class ApiKeyHandler implements SecurityHandler {
         break;
     }
   }
+
   private applyApiKeyAuthInBody(
     requestBody: Variables,
     referenceTokens: string[],
@@ -153,7 +157,6 @@ export class ApiKeyHandler implements SecurityHandler {
 }
 
 export class HttpHandler implements SecurityHandler {
-  //TODO: move applyX methods here
   prepare(context: RequestContext, configuration: SecurityConfiguration & { type: SecurityType.HTTP; }): void {
     switch (configuration.scheme) {
       case HttpScheme.BASIC:
@@ -189,49 +192,3 @@ export class HttpHandler implements SecurityHandler {
     context.headers[AUTH_HEADER_NAME] = `Bearer ${configuration.token}`;
   }
 }
-
-// export async function useDigest(
-//   _context: RequestContext,
-//   _configuration: SecurityConfiguration & {
-//     type: SecurityType.HTTP;
-//     scheme: HttpScheme.DIGEST;
-//   },
-//   options: {
-//     fetchInstance: FetchInstance & AuthCache;
-//     useFetch: (options: {
-//       fetchInstance: FetchInstance;
-//       url: string;
-//       headers: Record<string, string>;
-//       requestBody: Variables | undefined;
-//       request: FetchParameters;
-//     }) => Promise<HttpResponse>;
-//     url: string;
-//     headers: Record<string, string>;
-//     request: FetchParameters;
-//     requestBody: Variables | undefined;
-//   }
-// ): Promise<HttpResponse> {
-//   const { fetchInstance, url, headers, request, requestBody, useFetch } =
-//     options;
-
-//   //FIX: Should be passed in super.json configuration
-//   const user = process.env.CLOCKPLUS_USERNAME;
-//   if (!user) {
-//     throw new UnexpectedError('Missing user');
-//   }
-//   const password = process.env.CLOCKPLUS_PASSWORD;
-//   if (!password) {
-//     throw new UnexpectedError('Missing password');
-//   }
-
-//   const digestHelper = new DigestHelper({
-//     fetchInstance,
-//     useFetch,
-//     credentials: {
-//       user,
-//       password,
-//     },
-//   });
-
-//   return digestHelper.use({ url, headers, request, requestBody });
-// }

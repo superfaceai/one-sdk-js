@@ -224,6 +224,7 @@ export class HttpClient {
       pathParameters,
       requestBody,
     };
+    //Prepare security
     for (const requirement of parameters.securityRequirements ?? []) {
       const configuration = securityConfiguration.find(
         configuration => configuration.id === requirement.id
@@ -233,83 +234,73 @@ export class HttpClient {
       }
 
       if (configuration.type === SecurityType.APIKEY) {
-        // applyApiKeyAuth(contextForSecurity, configuration);
         const handler = new ApiKeyHandler()
         handler.prepare(contextForSecurity, configuration)
         securityHandlers.push(handler)
       } else if (configuration.scheme === HttpScheme.DIGEST) {
         const handler = new DigestHandler()
-        handler.prepare(contextForSecurity, configuration)
+        handler.prepare(contextForSecurity, configuration, this.fetchInstance)
         securityHandlers.push(handler)
-        // return useDigest(contextForSecurity, configuration, {
-        //   fetchInstance: this.fetchInstance,
-        //   useFetch: HttpClient.makeRequest,
-        //   url: finalUrl,
-        //   headers,
-        //   request,
-        //   requestBody,
-        // });
       } else {
-        // applyHttpAuth(contextForSecurity, configuration);
         const handler = new HttpHandler()
         handler.prepare(contextForSecurity, configuration)
         securityHandlers.push(handler)
       }
     }
-
-
-    if (
-      parameters.body &&
-      ['post', 'put', 'patch'].includes(parameters.method.toLowerCase())
-    ) {
-      if (parameters.contentType === JSON_CONTENT) {
-        headers['Content-Type'] ??= JSON_CONTENT;
-        request.body = stringBody(JSON.stringify(requestBody));
-      } else if (parameters.contentType === URLENCODED_CONTENT) {
-        headers['Content-Type'] ??= URLENCODED_CONTENT;
-        request.body = urlSearchParamsBody(variablesToStrings(requestBody));
-      } else if (parameters.contentType === FORMDATA_CONTENT) {
-        headers['Content-Type'] ??= FORMDATA_CONTENT;
-        request.body = formDataBody(variablesToStrings(requestBody));
-      } else if (
-        parameters.contentType &&
-        BINARY_CONTENT_REGEXP.test(parameters.contentType)
-      ) {
-        headers['Content-Type'] ??= parameters.contentType;
-        let buffer: Buffer;
-        if (Buffer.isBuffer(requestBody)) {
-          buffer = requestBody;
-        } else {
-          //coerce to string then buffer
-          buffer = Buffer.from(String(requestBody));
-        }
-        request.body = binaryBody(buffer);
-      } else {
-        const contentType = parameters.contentType ?? '';
-        const supportedTypes = [
-          JSON_CONTENT,
-          URLENCODED_CONTENT,
-          FORMDATA_CONTENT,
-          ...BINARY_CONTENT_TYPES,
-        ];
-
-        throw unsupportedContentType(contentType, supportedTypes);
-      }
-    }
-    headers['user-agent'] ??= USER_AGENT;
-
-    let finalUrl = createUrl(url, {
-      baseUrl: parameters.baseUrl,
-      pathParameters,
-      integrationParameters: parameters.integrationParameters,
-    });
-
-    request.queryParameters = {
-      ...variablesToStrings(parameters.queryParameters),
-      ...queryAuth,
-    };
+    //Prepare the actual call
     let response: HttpResponse;
+
     do {
+      if (
+        parameters.body &&
+        ['post', 'put', 'patch'].includes(parameters.method.toLowerCase())
+      ) {
+        if (parameters.contentType === JSON_CONTENT) {
+          headers['Content-Type'] ??= JSON_CONTENT;
+          request.body = stringBody(JSON.stringify(requestBody));
+        } else if (parameters.contentType === URLENCODED_CONTENT) {
+          headers['Content-Type'] ??= URLENCODED_CONTENT;
+          request.body = urlSearchParamsBody(variablesToStrings(requestBody));
+        } else if (parameters.contentType === FORMDATA_CONTENT) {
+          headers['Content-Type'] ??= FORMDATA_CONTENT;
+          request.body = formDataBody(variablesToStrings(requestBody));
+        } else if (
+          parameters.contentType &&
+          BINARY_CONTENT_REGEXP.test(parameters.contentType)
+        ) {
+          headers['Content-Type'] ??= parameters.contentType;
+          let buffer: Buffer;
+          if (Buffer.isBuffer(requestBody)) {
+            buffer = requestBody;
+          } else {
+            //coerce to string then buffer
+            buffer = Buffer.from(String(requestBody));
+          }
+          request.body = binaryBody(buffer);
+        } else {
+          const contentType = parameters.contentType ?? '';
+          const supportedTypes = [
+            JSON_CONTENT,
+            URLENCODED_CONTENT,
+            FORMDATA_CONTENT,
+            ...BINARY_CONTENT_TYPES,
+          ];
+
+          throw unsupportedContentType(contentType, supportedTypes);
+        }
+      }
+      headers['user-agent'] ??= USER_AGENT;
+
+      const finalUrl = createUrl(url, {
+        baseUrl: parameters.baseUrl,
+        pathParameters,
+        integrationParameters: parameters.integrationParameters,
+      });
+
+      request.queryParameters = {
+        ...variablesToStrings(parameters.queryParameters),
+        ...queryAuth,
+      };
       response = await HttpClient.makeRequest({
         fetchInstance: this.fetchInstance,
         url: finalUrl,
@@ -321,10 +312,11 @@ export class HttpClient {
       const handler = securityHandlers.find(h => h.handle !== undefined)
       //If we have handle we use it to get new values for api call and new retry value
       if (handler && handler.handle) {
-        retry = handler.handle(response, finalUrl, request.method, contextForSecurity)
+        retry = handler.handle(response, finalUrl, request.method, contextForSecurity, this.fetchInstance)
       } else {
         retry = false
       }
+      //TODO: maybe some numeric limit to avoid inf. loop? 
     } while (retry);
 
     return response
