@@ -118,6 +118,8 @@ export class DigestHelper {
     this.nc++;
     const ncString = `00000000${this.nc}`.slice(-8);
 
+    console.log('nc ', ncString, String(this.nc).padStart(8, '0').slice(-8));
+
     let response: string;
     //Use  QOP
     if (digest.qop) {
@@ -131,10 +133,21 @@ export class DigestHelper {
     const hashedResponse = computeHash(digest.algorithm, response);
 
     //Build final auth header
-    const opaqueString = digest.opaque ? `opaque="${digest.opaque}",` : '';
-    const qopString = digest.qop ? `qop="${digest.qop}",` : '';
+    const opaqueString = digest.opaque ? `opaque="${digest.opaque}"` : '';
+    const qopString = digest.qop ? `qop="${digest.qop}"` : '';
 
-    return `${digest.scheme} username="${this.user}",realm="${digest.realm}",nonce="${digest.nonce}",uri="${uri}",${opaqueString}${qopString}algorithm="${digest.algorithm}",response="${hashedResponse}",nc=${ncString},cnonce="${digest.cnonce}"`;
+    return [
+      `${digest.scheme} username="${this.user}"`,
+      `realm="${digest.realm}"`,
+      `nonce="${digest.nonce}"`,
+      `uri="${uri}"`,
+      opaqueString,
+      qopString,
+      `algorithm="${digest.algorithm}"`,
+      `response="${hashedResponse}"`,
+      `nc=${ncString}`,
+      `cnonce="${digest.cnonce}"`,
+    ].join(',');
   }
 
   private extractDigestValues(header: string): DigestAuthValues {

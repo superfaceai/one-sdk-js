@@ -12,26 +12,25 @@ import {
   SecurityType,
 } from '@superfaceai/ast';
 
-import { AuthCache } from '../../..';
+import { AuthCache } from '../../../client';
 import { apiKeyInBodyError } from '../../errors.helpers';
 import { NonPrimitive, Variables } from '../variables';
-import { HttpResponse } from '.';
 import { DigestHelper } from './digest';
+import { HttpResponse } from './http';
 
 const DEFAULT_AUTHORIZATION_HEADER_NAME = 'Authorization';
 
 /**
  * Represents class that is able to prepare (set headers, path etc.) and handle (challange responses for eg. digest) authentication
  */
-export interface SecurityHandler {
+export interface ISecurityHandler {
   /**
-   * Hold Securityconfiguration context for handling more complex authenizations
+   * Hold SecurityConfiguration context for handling more complex authentizations
    */
   readonly configuration: SecurityConfiguration;
   /**
    * Prepares request context for making the api call.
    * @param context context for making request this can be changed during preparation (eg. authorize header will be added)
-   * @param configuration security configuration from super.json and provider.json
    * @param cache this cache can hold credentials for some of the authentication methods eg. digest
    */
   prepare(context: RequestContext, cache: AuthCache): void;
@@ -66,7 +65,7 @@ export type RequestContext = {
   requestBody: Variables | undefined;
 };
 
-export class DigestHandler implements SecurityHandler {
+export class DigestHandler implements ISecurityHandler {
   private helper?: DigestHelper;
 
   constructor(
@@ -84,11 +83,11 @@ export class DigestHandler implements SecurityHandler {
       }
     );
 
-    if (cache?.cache?.digest) {
+    if (cache?.digest) {
       context.headers[
         this.configuration.authorizationHeader ||
           DEFAULT_AUTHORIZATION_HEADER_NAME
-      ] = cache.cache.digest;
+      ] = cache.digest;
     }
   }
 
@@ -108,10 +107,7 @@ export class DigestHandler implements SecurityHandler {
         this.configuration.authorizationHeader ||
           DEFAULT_AUTHORIZATION_HEADER_NAME
       ] = credentials;
-      if (!cache.cache) {
-        cache.cache = {};
-      }
-      cache.cache.digest = credentials;
+      cache.digest = credentials;
 
       return true;
     }
@@ -119,7 +115,7 @@ export class DigestHandler implements SecurityHandler {
     return false;
   }
 }
-export class ApiKeyHandler implements SecurityHandler {
+export class ApiKeyHandler implements ISecurityHandler {
   constructor(
     readonly configuration: ApiKeySecurityScheme & ApiKeySecurityValues
   ) {}
@@ -185,7 +181,7 @@ export class ApiKeyHandler implements SecurityHandler {
   }
 }
 
-export class HttpHandler implements SecurityHandler {
+export class HttpHandler implements ISecurityHandler {
   constructor(
     readonly configuration: SecurityConfiguration & { type: SecurityType.HTTP }
   ) {}

@@ -1,15 +1,49 @@
 import { ApiKeyPlacement, HttpScheme, SecurityType } from '@superfaceai/ast';
 
 import { SDKExecutionError } from '../../errors';
-import { ApiKeyHandler } from '.';
-import { HttpHandler, RequestContext, SecurityConfiguration } from './security';
+import {
+  ApiKeyHandler,
+  DigestHandler,
+  HttpHandler,
+  RequestContext,
+  SecurityConfiguration,
+} from './security';
 
 describe('httpSecurity', () => {
+  describe('DigestHandler', () => {
+    let digestHandler: DigestHandler;
+    let context: RequestContext;
+    let configuration: SecurityConfiguration & {
+      type: SecurityType.HTTP;
+      scheme: HttpScheme.DIGEST;
+    };
+    describe('basic', () => {
+      it('does not change header', () => {
+        context = {
+          headers: {},
+          pathParameters: {},
+          queryAuth: {},
+          requestBody: undefined,
+        };
+        configuration = {
+          id: 'test',
+          type: SecurityType.HTTP,
+          scheme: HttpScheme.DIGEST,
+          username: 'user',
+          password: 'secret',
+        };
+        digestHandler = new DigestHandler(configuration);
+        digestHandler.prepare(context, {});
+
+        expect(context.headers).toEqual({});
+      });
+    });
+  });
   describe('HttpHandler', () => {
     let httpHandler: HttpHandler;
     let context: RequestContext;
     let configuration: SecurityConfiguration & { type: SecurityType.HTTP };
-    describe('basic', () => {
+    describe('prepare', () => {
       it('sets header to correct value', () => {
         context = {
           headers: {},

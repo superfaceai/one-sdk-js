@@ -37,8 +37,8 @@ import {
 } from './interfaces';
 import {
   HttpHandler,
+  ISecurityHandler,
   SecurityConfiguration,
-  SecurityHandler,
 } from './security';
 
 const debug = createDebug('superface:http');
@@ -151,21 +151,24 @@ export class HttpClient {
         url,
         hasSearchParams ? '?' + searchParams.toString() : ''
       );
-    }
-    Object.entries(headers).forEach(([headerName, value]) =>
-      debugSensitive(`\t${headerName}: ${value}`)
-    );
-    if (requestBody !== undefined) {
-      debugSensitive(`\n${inspect(requestBody, true, 5)}`);
+
+      Object.entries(headers).forEach(([headerName, value]) =>
+        debugSensitive(`\t${headerName}: ${value}`)
+      );
+      if (requestBody !== undefined) {
+        debugSensitive(`\n${inspect(requestBody, true, 5)}`);
+      }
     }
     const response = await this.fetchInstance.fetch(url, request);
 
     debug('Received response');
-    debugSensitive(`\tHTTP/1.1 ${response.status} ${response.statusText}`);
-    Object.entries(response.headers).forEach(([headerName, value]) =>
-      debugSensitive(`\t${headerName}: ${value}`)
-    );
-    debugSensitive('\n\t%j', response.body);
+    if (debugSensitive.enabled) {
+      debugSensitive(`\tHTTP/1.1 ${response.status} ${response.statusText}`);
+      Object.entries(response.headers).forEach(([headerName, value]) =>
+        debugSensitive(`\t${headerName}: ${value}`)
+      );
+      debugSensitive('\n\t%j', response.body);
+    }
 
     return {
       statusCode: response.status,
@@ -197,7 +200,7 @@ export class HttpClient {
       integrationParameters?: Record<string, string>;
     }
   ): Promise<HttpResponse> {
-    const securityHandlers: SecurityHandler[] = [];
+    const securityHandlers: ISecurityHandler[] = [];
     let retry = true;
     const headers = variablesToStrings(parameters?.headers);
     headers['accept'] = parameters.accept || '*/*';
