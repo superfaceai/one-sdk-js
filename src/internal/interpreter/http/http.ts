@@ -36,8 +36,6 @@ import {
   urlSearchParamsBody,
 } from './interfaces';
 import {
-  // applyApiKeyAuth,
-  // applyHttpAuth,
   HttpHandler,
   SecurityConfiguration,
   SecurityHandler,
@@ -134,17 +132,13 @@ export const createUrl = (
 export class HttpClient {
   constructor(private fetchInstance: FetchInstance & AuthCache) {}
 
-  private static async makeRequest(
-    this: void,
-    options: {
-      fetchInstance: FetchInstance;
-      url: string;
-      headers: Record<string, string>;
-      requestBody: Variables | undefined;
-      request: FetchParameters;
-    }
-  ): Promise<HttpResponse> {
-    const { fetchInstance, url, headers, request, requestBody } = options;
+  private async makeRequest(options: {
+    url: string;
+    headers: Record<string, string>;
+    requestBody: Variables | undefined;
+    request: FetchParameters;
+  }): Promise<HttpResponse> {
+    const { url, headers, request, requestBody } = options;
     debug('Executing HTTP Call');
     // secrets might appear in headers, url path, query parameters or body
     if (debugSensitive.enabled) {
@@ -164,7 +158,7 @@ export class HttpClient {
     if (requestBody !== undefined) {
       debugSensitive(`\n${inspect(requestBody, true, 5)}`);
     }
-    const response = await fetchInstance.fetch(url, request);
+    const response = await this.fetchInstance.fetch(url, request);
 
     debug('Received response');
     debugSensitive(`\tHTTP/1.1 ${response.status} ${response.statusText}`);
@@ -301,8 +295,7 @@ export class HttpClient {
         ...variablesToStrings(parameters.queryParameters),
         ...queryAuth,
       };
-      response = await HttpClient.makeRequest({
-        fetchInstance: this.fetchInstance,
+      response = await this.makeRequest({
         url: finalUrl,
         headers,
         requestBody,

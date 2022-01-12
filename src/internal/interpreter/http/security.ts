@@ -18,7 +18,6 @@ import { apiKeyInBodyError } from '../../errors.helpers';
 import { NonPrimitive, Variables } from '../variables';
 import { HttpResponse } from '.';
 import { DigestHelper } from './digest';
-// import { FetchInstance, FetchParameters } from './interfaces';
 
 const DEFAULT_AUTHORIZATION_HEADER_NAME = 'Authorization';
 
@@ -44,7 +43,7 @@ export interface SecurityHandler {
    * @param method method of (possibly next) http call
    * @param context context for making (possibly next) request - this can be changed during preparation (eg. authorize header will be added)
    * @param cache this cache can hold credentials for some of the authentication methods eg. digest
-   * @returns flag if we need to retry http request (with new setting applied)
+   * @returns flag if we need to retry http request (with new settings applied)
    */
   handle?(
     response: HttpResponse,
