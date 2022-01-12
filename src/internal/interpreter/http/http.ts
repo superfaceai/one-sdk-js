@@ -132,7 +132,7 @@ export const createUrl = (
 };
 
 export class HttpClient {
-  constructor(private fetchInstance: FetchInstance & AuthCache) { }
+  constructor(private fetchInstance: FetchInstance & AuthCache) {}
 
   private static async makeRequest(
     this: void,
@@ -203,8 +203,8 @@ export class HttpClient {
       integrationParameters?: Record<string, string>;
     }
   ): Promise<HttpResponse> {
-    const securityHandlers: SecurityHandler[] = []
-    let retry = true
+    const securityHandlers: SecurityHandler[] = [];
+    let retry = true;
     const headers = variablesToStrings(parameters?.headers);
     headers['accept'] = parameters.accept || '*/*';
 
@@ -234,17 +234,17 @@ export class HttpClient {
       }
 
       if (configuration.type === SecurityType.APIKEY) {
-        const handler = new ApiKeyHandler()
-        handler.prepare(contextForSecurity, configuration)
-        securityHandlers.push(handler)
+        const handler = new ApiKeyHandler();
+        handler.prepare(contextForSecurity, configuration);
+        securityHandlers.push(handler);
       } else if (configuration.scheme === HttpScheme.DIGEST) {
-        const handler = new DigestHandler()
-        handler.prepare(contextForSecurity, configuration, this.fetchInstance)
-        securityHandlers.push(handler)
+        const handler = new DigestHandler();
+        handler.prepare(contextForSecurity, configuration, this.fetchInstance);
+        securityHandlers.push(handler);
       } else {
-        const handler = new HttpHandler()
-        handler.prepare(contextForSecurity, configuration)
-        securityHandlers.push(handler)
+        const handler = new HttpHandler();
+        handler.prepare(contextForSecurity, configuration);
+        securityHandlers.push(handler);
       }
     }
     //Prepare the actual call
@@ -309,16 +309,22 @@ export class HttpClient {
         request,
       });
       //TODO: or call handle on all the handers (with defined handle)?
-      const handler = securityHandlers.find(h => h.handle !== undefined)
+      const handler = securityHandlers.find(h => h.handle !== undefined);
       //If we have handle we use it to get new values for api call and new retry value
       if (handler && handler.handle) {
-        retry = handler.handle(response, finalUrl, request.method, contextForSecurity, this.fetchInstance)
+        retry = handler.handle(
+          response,
+          finalUrl,
+          request.method,
+          contextForSecurity,
+          this.fetchInstance
+        );
       } else {
-        retry = false
+        retry = false;
       }
-      //TODO: maybe some numeric limit to avoid inf. loop? 
+      //TODO: maybe some numeric limit to avoid inf. loop?
     } while (retry);
 
-    return response
+    return response;
   }
 }

@@ -48,8 +48,6 @@ export class DigestHelper {
   //   request: FetchParameters;
   // }) => Promise<HttpResponse>;
 
-  private readonly user: string;
-  private readonly password: string;
   private readonly cnonceSize: number;
   //407 can be also used when communicating thru proxy https://datatracker.ietf.org/doc/html/rfc2617#section-1.2
   private readonly statusCode: number;
@@ -58,35 +56,32 @@ export class DigestHelper {
   // private readonly authorizationHeader: string;
   private nc = 0;
 
-  constructor(options: {
-    //Fetch related
-    // fetchInstance: FetchInstance & AuthCache;
-    // useFetch: (options: {
-    //   fetchInstance: FetchInstance;
-    //   url: string;
-    //   headers: Record<string, string>;
-    //   requestBody: Variables | undefined;
-    //   request: FetchParameters;
-    // }) => Promise<HttpResponse>;
-    //Secrets
-    credentials: {
-      user: string;
-      password: string;
-    };
-    //Digest related
-    cnonceSize?: number;
-    statusCode?: number;
-    challangeHeader?: string;
-    authorizationHeader?: string;
-  }) {
+  constructor(
+    private readonly user: string,
+    private readonly password: string,
+    options?: {
+      //Fetch related
+      // fetchInstance: FetchInstance & AuthCache;
+      // useFetch: (options: {
+      //   fetchInstance: FetchInstance;
+      //   url: string;
+      //   headers: Record<string, string>;
+      //   requestBody: Variables | undefined;
+      //   request: FetchParameters;
+      // }) => Promise<HttpResponse>;
+      //Digest related
+      cnonceSize?: number;
+      statusCode?: number;
+      challangeHeader?: string;
+      authorizationHeader?: string;
+    }
+  ) {
     debug('Initialized DigestHelper');
     // this.fetchInstance = options.fetchInstance;
     // this.useFetch = options.useFetch;
-    this.user = options.credentials.user;
-    this.password = options.credentials.password;
-    this.cnonceSize = options.cnonceSize || 32;
-    this.statusCode = options.statusCode || 401;
-    this.challangeHeader = options.challangeHeader || 'www-authenticate';
+    this.cnonceSize = options?.cnonceSize || 32;
+    this.statusCode = options?.statusCode || 401;
+    this.challangeHeader = options?.challangeHeader || 'www-authenticate';
     // this.authorizationHeader = options.authorizationHeader || 'Authorization';
 
     debugSensitive(
@@ -94,8 +89,12 @@ export class DigestHelper {
     );
   }
 
-  public handle(response: HttpResponse, url: string, method: string): string | undefined {
-    let credentials: string | undefined = undefined
+  public extractCredentials(
+    response: HttpResponse,
+    url: string,
+    method: string
+  ): string | undefined {
+    let credentials: string | undefined = undefined;
     if (response.statusCode === this.statusCode) {
       if (!response.headers[this.challangeHeader]) {
         throw new UnexpectedError(
@@ -103,16 +102,14 @@ export class DigestHelper {
         );
       }
       debugSensitive(`Getting new digest values`);
-      credentials =
-        this.buildDigestAuth(
-          url,
-          method,
-          this.extractDigestValues(
-            response.headers[this.challangeHeader]
-          ));
+      credentials = this.buildDigestAuth(
+        url,
+        method,
+        this.extractDigestValues(response.headers[this.challangeHeader])
+      );
     }
-    
-return credentials
+
+    return credentials;
   }
 
   /**
@@ -184,7 +181,7 @@ return credentials
    * @param digest extracted of cached digest values
    * @returns string containing information needed to digest authorization
    */
-  buildDigestAuth(
+  private buildDigestAuth(
     url: string,
     method: string,
     digest: DigestAuthValues
@@ -232,7 +229,7 @@ return credentials
     return `${digest.scheme} username="${this.user}",realm="${digest.realm}",nonce="${digest.nonce}",uri="${uri}",${opaqueString}${qopString}algorithm="${digest.algorithm}",response="${hashedResponse}",nc=${ncString},cnonce="${digest.cnonce}"`;
   }
 
-  extractDigestValues(header: string): DigestAuthValues {
+  private extractDigestValues(header: string): DigestAuthValues {
     debugSensitive(`Extracting digest authentication values from: ${header}`);
 
     const scheme = header.split(/\s/)[0];

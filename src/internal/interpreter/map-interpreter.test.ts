@@ -480,7 +480,7 @@ describe('MapInterpreter', () => {
         }
       }`);
     const result = await interpreter.perform(ast);
-    console.log('res', result)
+    console.log('res', result);
     expect(result.isOk() && result.value).toEqual(12);
   });
 

@@ -56,7 +56,7 @@ import { ProfileConfiguration } from './profile';
 import { ProviderConfiguration } from './provider';
 import { fetchBind, fetchMapSource, fetchProviderInfo } from './registry';
 
-function forceCast<T>(_: unknown): asserts _ is T { }
+function forceCast<T>(_: unknown): asserts _ is T {}
 
 function profileAstId(ast: ProfileDocumentNode): string {
   return ast.header.scope !== undefined
@@ -360,7 +360,7 @@ export class ProfileProvider {
         baseUrl,
         profileProviderSettings:
           this.superJson.normalized.profiles[profileId]?.providers[
-          providerInfo.name
+            providerInfo.name
           ],
         security: securityConfiguration,
         parameters: this.resolveIntegrationParameters(

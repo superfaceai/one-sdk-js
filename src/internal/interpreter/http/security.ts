@@ -32,7 +32,11 @@ export interface SecurityHandler {
    * @param configuration security configuration from super.json and provider.json
    * @param cache this cache can hold credentials for some of the authentication methods eg. digest
    */
-  prepare(context: RequestContext, configuration: SecurityConfiguration & { type: SecurityType }, cache: AuthCache): void,
+  prepare(
+    context: RequestContext,
+    configuration: SecurityConfiguration & { type: SecurityType },
+    cache: AuthCache
+  ): void;
   /**
    * Handles responses for more complex authentization methods (eg. digest)
    * @param response response from http call - can contain challange
@@ -42,7 +46,13 @@ export interface SecurityHandler {
    * @param cache this cache can hold credentials for some of the authentication methods eg. digest
    * @returns flag if we need to retry http request (with new setting applied)
    */
-  handle?(response: HttpResponse, url: string, method: string, context: RequestContext, cache: AuthCache): boolean
+  handle?(
+    response: HttpResponse,
+    url: string,
+    method: string,
+    context: RequestContext,
+    cache: AuthCache
+  ): boolean;
 }
 
 export type SecurityConfiguration =
@@ -50,8 +60,6 @@ export type SecurityConfiguration =
   | (BasicAuthSecurityScheme & BasicAuthSecurityValues)
   | (BearerTokenSecurityScheme & BearerTokenSecurityValues)
   | (DigestSecurityScheme & DigestSecurityValues);
-
-export const AUTH_HEADER_NAME = 'Authorization';
 
 export type RequestContext = {
   pathParameters: NonPrimitive;
@@ -61,9 +69,13 @@ export type RequestContext = {
 };
 
 export class DigestHandler implements SecurityHandler {
-  private helper?: DigestHelper
+  private helper?: DigestHelper;
 
-  prepare(context: RequestContext, _configuration: SecurityConfiguration & { type: SecurityType; }, cache: AuthCache): void {
+  prepare(
+    context: RequestContext,
+    _configuration: SecurityConfiguration & { type: SecurityType },
+    cache: AuthCache
+  ): void {
     //FIX: Should be passed in super.json configuration
     const user = process.env.CLOCKPLUS_USERNAME;
     if (!user) {
@@ -73,33 +85,43 @@ export class DigestHandler implements SecurityHandler {
     if (!password) {
       throw new UnexpectedError('Missing password');
     }
-    this.helper = new DigestHelper({ credentials: { user, password } })
+    //TODO: other options
+    this.helper = new DigestHelper(user, password);
 
     if (cache?.cache?.digest) {
-      context.headers[AUTH_HEADER_NAME] = cache.cache.digest
+      context.headers[DEFAULT_AUTHORIZATION_HEADER_NAME] = cache.cache.digest;
     }
   }
 
-  handle(response: HttpResponse, url: string, method: string, context: RequestContext, cache: AuthCache): boolean {
+  handle(
+    response: HttpResponse,
+    url: string,
+    method: string,
+    context: RequestContext,
+    cache: AuthCache
+  ): boolean {
     if (!this.helper) {
-      throw new Error('Digest helper not initialized')
+      throw new Error('Digest helper not initialized');
     }
-    const credentials = this.helper.handle(response, url, method)
+    const credentials = this.helper.extractCredentials(response, url, method);
     if (credentials) {
-      context.headers[AUTH_HEADER_NAME] = credentials
+      context.headers[DEFAULT_AUTHORIZATION_HEADER_NAME] = credentials;
       if (!cache.cache) {
-        cache.cache = {}
+        cache.cache = {};
       }
       cache.cache.digest = credentials;
 
-      return true
+      return true;
     }
 
-    return false
+    return false;
   }
 }
 export class ApiKeyHandler implements SecurityHandler {
-  prepare(context: RequestContext, configuration: SecurityConfiguration & { type: SecurityType.APIKEY; }): void {
+  prepare(
+    context: RequestContext,
+    configuration: SecurityConfiguration & { type: SecurityType.APIKEY }
+  ): void {
     const name = configuration.name || DEFAULT_AUTHORIZATION_HEADER_NAME;
 
     switch (configuration.in) {
@@ -136,7 +158,9 @@ export class ApiKeyHandler implements SecurityHandler {
       const valueLocation = visitedReferenceTokens.length
         ? `value at /${visitedReferenceTokens.join('/')}`
         : 'body';
-      const bodyType = Array.isArray(requestBody) ? 'Array' : typeof requestBody;
+      const bodyType = Array.isArray(requestBody)
+        ? 'Array'
+        : typeof requestBody;
 
       throw apiKeyInBodyError(valueLocation, bodyType);
     }
@@ -147,17 +171,22 @@ export class ApiKeyHandler implements SecurityHandler {
     }
 
     const segVal = requestBody[token] ?? {};
-    requestBody[token] = this.applyApiKeyAuthInBody(segVal, referenceTokens, apikey, [
-      ...visitedReferenceTokens,
-      token,
-    ]);
+    requestBody[token] = this.applyApiKeyAuthInBody(
+      segVal,
+      referenceTokens,
+      apikey,
+      [...visitedReferenceTokens, token]
+    );
 
     return requestBody;
   }
 }
 
 export class HttpHandler implements SecurityHandler {
-  prepare(context: RequestContext, configuration: SecurityConfiguration & { type: SecurityType.HTTP; }): void {
+  prepare(
+    context: RequestContext,
+    configuration: SecurityConfiguration & { type: SecurityType.HTTP }
+  ): void {
     switch (configuration.scheme) {
       case HttpScheme.BASIC:
         this.applyBasicAuth(context, configuration);
@@ -175,11 +204,11 @@ export class HttpHandler implements SecurityHandler {
       scheme: HttpScheme.BASIC;
     }
   ): void {
-    context.headers[AUTH_HEADER_NAME] =
+    context.headers[DEFAULT_AUTHORIZATION_HEADER_NAME] =
       'Basic ' +
-      Buffer.from(`${configuration.username}:${configuration.password}`).toString(
-        'base64'
-      );
+      Buffer.from(
+        `${configuration.username}:${configuration.password}`
+      ).toString('base64');
   }
 
   private applyBearerToken(
@@ -189,6 +218,8 @@ export class HttpHandler implements SecurityHandler {
       scheme: HttpScheme.BEARER;
     }
   ): void {
-    context.headers[AUTH_HEADER_NAME] = `Bearer ${configuration.token}`;
+    context.headers[
+      DEFAULT_AUTHORIZATION_HEADER_NAME
+    ] = `Bearer ${configuration.token}`;
   }
 }
