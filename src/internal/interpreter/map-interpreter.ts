@@ -27,7 +27,7 @@ import {
 import createDebug from 'debug';
 
 import { err, ok, Result } from '../../lib';
-import { ServicesSelector } from '../../lib/services';
+import { IServiceSelector } from '../../lib/services';
 import { UnexpectedError } from '../errors';
 import { MapInterpreterExternalHandler } from './external-handler';
 import { HttpClient, HttpResponse, SecurityConfiguration } from './http';
@@ -74,7 +74,7 @@ export interface MapParameters<
   usecase?: string;
   input?: TInput;
   parameters?: Record<string, string>;
-  services: ServicesSelector;
+  services: IServiceSelector;
   security: SecurityConfiguration[];
 }
 

@@ -13,7 +13,7 @@ import { Config } from '../config';
 import { SuperJson } from '../internal/superjson';
 import { FailoverReason } from './reporter';
 import { ok } from './result/result';
-import { ServicesSelector } from './services';
+import { ServiceSelector } from './services';
 
 jest.useFakeTimers('legacy');
 
@@ -282,7 +282,7 @@ describe('MetricReporter', () => {
       mockMapDocumentSuccess,
       'provider',
       {
-        services: ServicesSelector.withDefaultUrl(mockServer.url),
+        services: ServiceSelector.withDefaultUrl(mockServer.url),
         security: [],
       },
       client
@@ -326,7 +326,7 @@ describe('MetricReporter', () => {
       mockMapDocumentFailure(),
       'testprovider',
       {
-        services: ServicesSelector.withDefaultUrl('https://unavai.lable'),
+        services: ServiceSelector.withDefaultUrl('https://unavai.lable'),
         security: [],
       },
       client
@@ -396,7 +396,7 @@ describe('MetricReporter', () => {
       mockMapDocumentSuccess,
       'provider',
       {
-        services: ServicesSelector.withDefaultUrl(mockServer.url),
+        services: ServiceSelector.withDefaultUrl(mockServer.url),
         security: [],
       },
       client
@@ -431,7 +431,7 @@ describe('MetricReporter', () => {
       mockMapDocumentSuccess,
       'provider',
       {
-        services: ServicesSelector.withDefaultUrl(mockServer.url),
+        services: ServiceSelector.withDefaultUrl(mockServer.url),
         security: [],
       },
       client
@@ -476,7 +476,7 @@ describe('MetricReporter', () => {
       mockMapDocumentSuccess,
       'provider',
       {
-        services: ServicesSelector.withDefaultUrl(mockServer.url),
+        services: ServiceSelector.withDefaultUrl(mockServer.url),
         security: [],
       },
       client
@@ -547,7 +547,7 @@ describe('MetricReporter', () => {
       mockMapDocumentSuccess,
       'provider',
       {
-        services: ServicesSelector.withDefaultUrl(mockServer.url),
+        services: ServiceSelector.withDefaultUrl(mockServer.url),
         security: [],
       },
       client
@@ -621,7 +621,7 @@ describe('MetricReporter', () => {
       mockMapDocumentSuccess,
       'testprovider',
       {
-        services: ServicesSelector.withDefaultUrl('https://unavail.able'),
+        services: ServiceSelector.withDefaultUrl('https://unavail.able'),
         security: [],
       },
       client
@@ -631,7 +631,7 @@ describe('MetricReporter', () => {
       mockMapDocumentFailure('testprovider2'),
       'testprovider2',
       {
-        services: ServicesSelector.withDefaultUrl('https://unavail.able'),
+        services: ServiceSelector.withDefaultUrl('https://unavail.able'),
         security: [],
       },
       client

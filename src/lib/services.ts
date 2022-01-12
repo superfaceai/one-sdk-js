@@ -1,6 +1,10 @@
 import { ProviderService } from '@superfaceai/ast';
 
-export class ServicesSelector {
+export interface IServiceSelector {
+  getUrl(serviceId?: string): string | undefined;
+}
+
+export class ServiceSelector implements IServiceSelector {
   private readonly serviceUrls: Record<string, string>;
   private readonly defaultService?: string;
 
@@ -9,23 +13,23 @@ export class ServicesSelector {
     this.defaultService = defaultService;
   }
 
-  static empty(): ServicesSelector {
-    return new ServicesSelector([]);
+  static empty(): ServiceSelector {
+    return new ServiceSelector([]);
   }
 
-  static withDefaultUrl(baseUrl: string): ServicesSelector {
-    return new ServicesSelector([{ id: 'default', baseUrl }], 'default');
+  static withDefaultUrl(baseUrl: string): ServiceSelector {
+    return new ServiceSelector([{ id: 'default', baseUrl }], 'default');
   }
 
   /**
-   * Gets the url of `service`. If `service` is undefined returns url of the default service, or undefined if default service is also undefined.
+   * Gets the url of `serviceId`. If `serviceId` is undefined returns url of the default service, or undefined if default service is also undefined.
    */
-  getUrl(service?: string): string | undefined {
-    const srvc = service ?? this.defaultService;
-    if (srvc === undefined) {
+  getUrl(serviceId?: string): string | undefined {
+    const service = serviceId ?? this.defaultService;
+    if (service === undefined) {
       return undefined;
     }
 
-    return this.serviceUrls[srvc];
+    return this.serviceUrls[service];
   }
 }

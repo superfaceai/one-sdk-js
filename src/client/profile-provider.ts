@@ -50,7 +50,7 @@ import { mergeSecurity } from '../internal/superjson/mutate';
 import { err, ok, Result } from '../lib';
 import { Events, Interceptable } from '../lib/events';
 import { CrossFetch } from '../lib/fetch';
-import { ServicesSelector } from '../lib/services';
+import { IServiceSelector, ServiceSelector } from '../lib/services';
 import { MapInterpreterEventAdapter } from './failure/map-interpreter-adapter';
 import { ProfileConfiguration } from './profile';
 import { ProviderConfiguration } from './provider';
@@ -78,7 +78,7 @@ export class BoundProfileProvider {
     private readonly mapAst: MapDocumentNode,
     private readonly providerName: string,
     readonly configuration: {
-      services: ServicesSelector;
+      services: IServiceSelector;
       profileProviderSettings?: NormalizedProfileProviderSettings;
       security: SecurityConfiguration[];
       parameters?: Record<string, string>;
@@ -343,7 +343,7 @@ export class ProfileProvider {
       mapAst,
       providerInfo.name,
       {
-        services: new ServicesSelector(
+        services: new ServiceSelector(
           providerInfo.services,
           providerInfo.defaultService
         ),

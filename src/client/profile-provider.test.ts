@@ -23,7 +23,7 @@ import { Parser } from '../internal/parser';
 import { SuperJson } from '../internal/superjson';
 import * as SuperJsonMutate from '../internal/superjson/mutate';
 import { err, ok } from '../lib';
-import { ServicesSelector } from '../lib/services';
+import { ServiceSelector } from '../lib/services';
 import { SuperfaceClient } from './client';
 import { ProfileConfiguration } from './profile';
 import { BoundProfileProvider, ProfileProvider } from './profile-provider';
@@ -182,7 +182,7 @@ describe('profile provider', () => {
           mockMapDocument,
           'test',
           {
-            services: ServicesSelector.withDefaultUrl('test/url'),
+            services: ServiceSelector.withDefaultUrl('test/url'),
             security: [],
           }
         );
@@ -220,7 +220,7 @@ describe('profile provider', () => {
           mockMapDocument,
           'test',
           {
-            services: ServicesSelector.withDefaultUrl('test/url'),
+            services: ServiceSelector.withDefaultUrl('test/url'),
             security: [],
           }
         );
@@ -253,7 +253,7 @@ describe('profile provider', () => {
           mockMapDocument,
           'test',
           {
-            services: ServicesSelector.withDefaultUrl('test/url'),
+            services: ServiceSelector.withDefaultUrl('test/url'),
             security: [],
           }
         );
@@ -293,7 +293,7 @@ describe('profile provider', () => {
           mockMapDocument,
           'test',
           {
-            services: ServicesSelector.withDefaultUrl('test/url'),
+            services: ServiceSelector.withDefaultUrl('test/url'),
             security: [],
             profileProviderSettings: {
               defaults: {
@@ -340,7 +340,7 @@ describe('profile provider', () => {
         mapAst: mockMapDocument,
         providerName: mockProviderJson.name,
         configuration: {
-          services: new ServicesSelector(
+          services: new ServiceSelector(
             [{ id: 'test-service', baseUrl: 'service/base/url' }],
             'test-service'
           ),
