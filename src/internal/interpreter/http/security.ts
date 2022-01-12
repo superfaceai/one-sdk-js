@@ -23,10 +23,25 @@ import { DigestHelper } from './digest';
 const DEFAULT_AUTHORIZATION_HEADER_NAME = 'Authorization';
 
 /**
- * Represents class that is able to prepare authentication
+ * Represents class that is able to prepare (set headers, path etc.) and handle (challange responses for eg. digest) authentication
  */
 export interface SecurityHandler {
+  /**
+   * Prepares request context for making the api call.
+   * @param context context for making request this can be changed during preparation (eg. authorize header will be added)
+   * @param configuration security configuration from super.json and provider.json
+   * @param cache this cache can hold credentials for some of the authentication methods eg. digest
+   */
   prepare(context: RequestContext, configuration: SecurityConfiguration & { type: SecurityType }, cache?: AuthCache): void,
+  /**
+   * Handles responses for more complex authentization methods (eg. digest)
+   * @param response response from http call - can contain challange
+   * @param url url of (possibly next) http call
+   * @param method method of (possibly next) http call
+   * @param context context for making (possibly next) request - this can be changed during preparation (eg. authorize header will be added)
+   * @param cache this cache can hold credentials for some of the authentication methods eg. digest
+   * @returns flag if we need to retry http request (with new setting applied)
+   */
   handle?(response: HttpResponse, url: string, method: string, context: RequestContext, cache?: AuthCache): boolean
 }
 
@@ -80,6 +95,7 @@ export class DigestHandler implements SecurityHandler {
 
 }
 export class ApiKeyHandler implements SecurityHandler {
+  //TODO: move applyX methods here
   prepare(context: RequestContext, configuration: SecurityConfiguration & { type: SecurityType.APIKEY; }): void {
     const name = configuration.name || DEFAULT_AUTHORIZATION_HEADER_NAME;
 
@@ -89,7 +105,7 @@ export class ApiKeyHandler implements SecurityHandler {
         break;
 
       case ApiKeyPlacement.BODY:
-        context.requestBody = applyApiKeyAuthInBody(
+        context.requestBody = this.applyApiKeyAuthInBody(
           context.requestBody ?? {},
           name.startsWith('/') ? name.slice(1).split('/') : [name],
           configuration.apikey
@@ -106,117 +122,72 @@ export class ApiKeyHandler implements SecurityHandler {
         break;
     }
   }
-  handle: undefined;
+  private applyApiKeyAuthInBody(
+    requestBody: Variables,
+    referenceTokens: string[],
+    apikey: string,
+    visitedReferenceTokens: string[] = []
+  ): Variables {
+    if (typeof requestBody !== 'object' || Array.isArray(requestBody)) {
+      const valueLocation = visitedReferenceTokens.length
+        ? `value at /${visitedReferenceTokens.join('/')}`
+        : 'body';
+      const bodyType = Array.isArray(requestBody) ? 'Array' : typeof requestBody;
+
+      throw apiKeyInBodyError(valueLocation, bodyType);
+    }
+
+    const token = referenceTokens.shift();
+    if (token === undefined) {
+      return apikey;
+    }
+
+    const segVal = requestBody[token] ?? {};
+    requestBody[token] = this.applyApiKeyAuthInBody(segVal, referenceTokens, apikey, [
+      ...visitedReferenceTokens,
+      token,
+    ]);
+
+    return requestBody;
+  }
 }
 
 export class HttpHandler implements SecurityHandler {
+  //TODO: move applyX methods here
   prepare(context: RequestContext, configuration: SecurityConfiguration & { type: SecurityType.HTTP; }): void {
     switch (configuration.scheme) {
       case HttpScheme.BASIC:
-        applyBasicAuth(context, configuration);
+        this.applyBasicAuth(context, configuration);
         break;
       case HttpScheme.BEARER:
-        applyBearerToken(context, configuration);
+        this.applyBearerToken(context, configuration);
         break;
     }
   }
-}
 
-function applyApiKeyAuthInBody(
-  requestBody: Variables,
-  referenceTokens: string[],
-  apikey: string,
-  visitedReferenceTokens: string[] = []
-): Variables {
-  if (typeof requestBody !== 'object' || Array.isArray(requestBody)) {
-    const valueLocation = visitedReferenceTokens.length
-      ? `value at /${visitedReferenceTokens.join('/')}`
-      : 'body';
-    const bodyType = Array.isArray(requestBody) ? 'Array' : typeof requestBody;
-
-    throw apiKeyInBodyError(valueLocation, bodyType);
-  }
-
-  const token = referenceTokens.shift();
-  if (token === undefined) {
-    return apikey;
-  }
-
-  const segVal = requestBody[token] ?? {};
-  requestBody[token] = applyApiKeyAuthInBody(segVal, referenceTokens, apikey, [
-    ...visitedReferenceTokens,
-    token,
-  ]);
-
-  return requestBody;
-}
-
-export function applyApiKeyAuth(
-  context: RequestContext,
-  configuration: SecurityConfiguration & { type: SecurityType.APIKEY }
-): void {
-  const name = configuration.name || DEFAULT_AUTHORIZATION_HEADER_NAME;
-
-  switch (configuration.in) {
-    case ApiKeyPlacement.HEADER:
-      context.headers[name] = configuration.apikey;
-      break;
-
-    case ApiKeyPlacement.BODY:
-      context.requestBody = applyApiKeyAuthInBody(
-        context.requestBody ?? {},
-        name.startsWith('/') ? name.slice(1).split('/') : [name],
-        configuration.apikey
+  private applyBasicAuth(
+    context: RequestContext,
+    configuration: SecurityConfiguration & {
+      type: SecurityType.HTTP;
+      scheme: HttpScheme.BASIC;
+    }
+  ): void {
+    context.headers[AUTH_HEADER_NAME] =
+      'Basic ' +
+      Buffer.from(`${configuration.username}:${configuration.password}`).toString(
+        'base64'
       );
-      break;
-
-    case ApiKeyPlacement.PATH:
-      context.pathParameters[name] = configuration.apikey;
-      break;
-
-    case ApiKeyPlacement.QUERY:
-      context.queryAuth[name] = configuration.apikey;
-
-      break;
   }
-}
 
-export function applyHttpAuth(
-  context: RequestContext,
-  configuration: SecurityConfiguration & { type: SecurityType.HTTP }
-): void {
-  switch (configuration.scheme) {
-    case HttpScheme.BASIC:
-      applyBasicAuth(context, configuration);
-      break;
-    case HttpScheme.BEARER:
-      applyBearerToken(context, configuration);
-      break;
+  private applyBearerToken(
+    context: RequestContext,
+    configuration: SecurityConfiguration & {
+      type: SecurityType.HTTP;
+      scheme: HttpScheme.BEARER;
+    }
+  ): void {
+    context.headers[AUTH_HEADER_NAME] = `Bearer ${configuration.token}`;
   }
-}
-
-export function applyBasicAuth(
-  context: RequestContext,
-  configuration: SecurityConfiguration & {
-    type: SecurityType.HTTP;
-    scheme: HttpScheme.BASIC;
-  }
-): void {
-  context.headers[AUTH_HEADER_NAME] =
-    'Basic ' +
-    Buffer.from(`${configuration.username}:${configuration.password}`).toString(
-      'base64'
-    );
-}
-
-export function applyBearerToken(
-  context: RequestContext,
-  configuration: SecurityConfiguration & {
-    type: SecurityType.HTTP;
-    scheme: HttpScheme.BEARER;
-  }
-): void {
-  context.headers[AUTH_HEADER_NAME] = `Bearer ${configuration.token}`;
 }
 
 // export async function useDigest(
