@@ -13,7 +13,6 @@ import {
 } from '@superfaceai/ast';
 
 import { AuthCache } from '../../..';
-import { UnexpectedError } from '../../errors';
 import { apiKeyInBodyError } from '../../errors.helpers';
 import { NonPrimitive, Variables } from '../variables';
 import { HttpResponse } from '.';
@@ -26,16 +25,16 @@ const DEFAULT_AUTHORIZATION_HEADER_NAME = 'Authorization';
  */
 export interface SecurityHandler {
   /**
+   * Hold Securityconfiguration context for handling more complex authenizations
+   */
+  readonly configuration: SecurityConfiguration;
+  /**
    * Prepares request context for making the api call.
    * @param context context for making request this can be changed during preparation (eg. authorize header will be added)
    * @param configuration security configuration from super.json and provider.json
    * @param cache this cache can hold credentials for some of the authentication methods eg. digest
    */
-  prepare(
-    context: RequestContext,
-    configuration: SecurityConfiguration & { type: SecurityType },
-    cache: AuthCache
-  ): void;
+  prepare(context: RequestContext, cache: AuthCache): void;
   /**
    * Handles responses for more complex authentization methods (eg. digest)
    * @param response response from http call - can contain challange
@@ -70,25 +69,26 @@ export type RequestContext = {
 export class DigestHandler implements SecurityHandler {
   private helper?: DigestHelper;
 
-  prepare(
-    context: RequestContext,
-    _configuration: SecurityConfiguration & { type: SecurityType },
-    cache: AuthCache
-  ): void {
-    //FIX: Should be passed in super.json configuration
-    const user = process.env.CLOCKPLUS_USERNAME;
-    if (!user) {
-      throw new UnexpectedError('Missing user');
-    }
-    const password = process.env.CLOCKPLUS_PASSWORD;
-    if (!password) {
-      throw new UnexpectedError('Missing password');
-    }
+  constructor(
+    readonly configuration: DigestSecurityScheme & DigestSecurityValues
+  ) {}
+
+  prepare(context: RequestContext, cache: AuthCache): void {
     //TODO: other options
-    this.helper = new DigestHelper(user, password);
+    this.helper = new DigestHelper(
+      this.configuration.username,
+      this.configuration.password,
+      {
+        statusCode: this.configuration.statusCode,
+        challangeHeader: this.configuration.challengeHeader,
+      }
+    );
 
     if (cache?.cache?.digest) {
-      context.headers[DEFAULT_AUTHORIZATION_HEADER_NAME] = cache.cache.digest;
+      context.headers[
+        this.configuration.authorizationHeader ||
+          DEFAULT_AUTHORIZATION_HEADER_NAME
+      ] = cache.cache.digest;
     }
   }
 
@@ -104,7 +104,10 @@ export class DigestHandler implements SecurityHandler {
     }
     const credentials = this.helper.extractCredentials(response, url, method);
     if (credentials) {
-      context.headers[DEFAULT_AUTHORIZATION_HEADER_NAME] = credentials;
+      context.headers[
+        this.configuration.authorizationHeader ||
+          DEFAULT_AUTHORIZATION_HEADER_NAME
+      ] = credentials;
       if (!cache.cache) {
         cache.cache = {};
       }
@@ -117,31 +120,32 @@ export class DigestHandler implements SecurityHandler {
   }
 }
 export class ApiKeyHandler implements SecurityHandler {
-  prepare(
-    context: RequestContext,
-    configuration: SecurityConfiguration & { type: SecurityType.APIKEY }
-  ): void {
-    const name = configuration.name || DEFAULT_AUTHORIZATION_HEADER_NAME;
+  constructor(
+    readonly configuration: ApiKeySecurityScheme & ApiKeySecurityValues
+  ) {}
 
-    switch (configuration.in) {
+  prepare(context: RequestContext): void {
+    const name = this.configuration.name || DEFAULT_AUTHORIZATION_HEADER_NAME;
+
+    switch (this.configuration.in) {
       case ApiKeyPlacement.HEADER:
-        context.headers[name] = configuration.apikey;
+        context.headers[name] = this.configuration.apikey;
         break;
 
       case ApiKeyPlacement.BODY:
         context.requestBody = this.applyApiKeyAuthInBody(
           context.requestBody ?? {},
           name.startsWith('/') ? name.slice(1).split('/') : [name],
-          configuration.apikey
+          this.configuration.apikey
         );
         break;
 
       case ApiKeyPlacement.PATH:
-        context.pathParameters[name] = configuration.apikey;
+        context.pathParameters[name] = this.configuration.apikey;
         break;
 
       case ApiKeyPlacement.QUERY:
-        context.queryAuth[name] = configuration.apikey;
+        context.queryAuth[name] = this.configuration.apikey;
 
         break;
     }
@@ -182,16 +186,17 @@ export class ApiKeyHandler implements SecurityHandler {
 }
 
 export class HttpHandler implements SecurityHandler {
-  prepare(
-    context: RequestContext,
-    configuration: SecurityConfiguration & { type: SecurityType.HTTP }
-  ): void {
-    switch (configuration.scheme) {
+  constructor(
+    readonly configuration: SecurityConfiguration & { type: SecurityType.HTTP }
+  ) {}
+
+  prepare(context: RequestContext): void {
+    switch (this.configuration.scheme) {
       case HttpScheme.BASIC:
-        this.applyBasicAuth(context, configuration);
+        this.applyBasicAuth(context, this.configuration);
         break;
       case HttpScheme.BEARER:
-        this.applyBearerToken(context, configuration);
+        this.applyBearerToken(context, this.configuration);
         break;
     }
   }

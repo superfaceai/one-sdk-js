@@ -175,6 +175,11 @@ export class ProfileParameterValidator implements ProfileVisitor {
         return this.visitUseCaseExampleNode(node, kind, usecase);
 
       default:
+        if (node.kind === 'ComlinkAssignment') {
+          throw new UnexpectedError(
+            'Visiting of ComlinkAssignment not implemented'
+          );
+        }
         assertUnreachable(node);
     }
   }

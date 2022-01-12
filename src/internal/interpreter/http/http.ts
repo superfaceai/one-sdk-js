@@ -228,16 +228,16 @@ export class HttpClient {
       }
 
       if (configuration.type === SecurityType.APIKEY) {
-        const handler = new ApiKeyHandler();
-        handler.prepare(contextForSecurity, configuration);
+        const handler = new ApiKeyHandler(configuration);
+        handler.prepare(contextForSecurity);
         securityHandlers.push(handler);
       } else if (configuration.scheme === HttpScheme.DIGEST) {
-        const handler = new DigestHandler();
-        handler.prepare(contextForSecurity, configuration, this.fetchInstance);
+        const handler = new DigestHandler(configuration);
+        handler.prepare(contextForSecurity, this.fetchInstance);
         securityHandlers.push(handler);
       } else {
-        const handler = new HttpHandler();
-        handler.prepare(contextForSecurity, configuration);
+        const handler = new HttpHandler(configuration);
+        handler.prepare(contextForSecurity);
         securityHandlers.push(handler);
       }
     }

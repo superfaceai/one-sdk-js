@@ -157,7 +157,8 @@ describe('profile provider', () => {
       },
       {
         id: 'digest',
-        digest: 'test-digest-token',
+        username: 'test-digest-username',
+        password: 'test-digest-password',
       },
     ]);
 
@@ -353,7 +354,8 @@ describe('profile provider', () => {
               id: 'digest',
               type: SecurityType.HTTP,
               scheme: HttpScheme.DIGEST,
-              digest: 'test-digest-token',
+              username: 'test-digest-username',
+              password: 'test-digest-password',
             },
           ],
         },
@@ -877,7 +879,8 @@ describe('profile provider', () => {
           },
           {
             id: 'digest',
-            digest: 'test-digest-token',
+            username: 'test-digest-username',
+            password: 'test-digest-password',
           },
         ]);
         mocked(fetchBind).mockResolvedValue(mockFetchResponse);

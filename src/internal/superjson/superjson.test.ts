@@ -154,7 +154,8 @@ describe('SuperJson', () => {
     it('checks digest values input correctly', () => {
       const mockInput = {
         id: 'id',
-        digest: 'digest',
+        username: 'right-digest-username',
+        password: 'right-digest-password',
       };
       expect(isDigestSecurityValues(mockInput)).toEqual(true);
     });
@@ -780,7 +781,8 @@ describe('SuperJson', () => {
               },
               {
                 "id": "myCustomScheme",
-                "digest": "SECRET"
+                "username": "USER",
+                "password": "SECRET"
               }
             ]
           },
@@ -1266,7 +1268,8 @@ describe('SuperJson', () => {
       const mockRight: SecurityValues[] = [
         {
           id: 'right-digest-id',
-          digest: 'right-digest-key',
+          username: 'right-digest-username',
+          password: 'right-digest-password',
         },
       ];
 
@@ -1277,7 +1280,8 @@ describe('SuperJson', () => {
         },
         {
           id: 'right-digest-id',
-          digest: 'right-digest-key',
+          username: 'right-digest-username',
+          password: 'right-digest-password',
         },
       ]);
     });
@@ -1290,14 +1294,16 @@ describe('SuperJson', () => {
         },
         {
           id: 'digest-id',
-          digest: 'left-digest-key',
+          username: 'left-digest-username',
+          password: 'left-digest-password',
         },
       ];
 
       const mockRight: SecurityValues[] = [
         {
           id: 'digest-id',
-          digest: 'right-digest-key',
+          username: 'right-digest-username',
+          password: 'right-digest-password',
         },
       ];
 
@@ -1308,7 +1314,8 @@ describe('SuperJson', () => {
         },
         {
           id: 'digest-id',
-          digest: 'right-digest-key',
+          username: 'right-digest-username',
+          password: 'right-digest-password',
         },
       ]);
     });
