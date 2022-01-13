@@ -687,5 +687,5 @@ describe('MetricReporter', () => {
 
     systemTimeMock.mockRestore();
     Config.instance().metricDebounceTimeMin = originalDebounceMin;
-  });
+  }, 10000);
 });

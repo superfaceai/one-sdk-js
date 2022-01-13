@@ -21,7 +21,6 @@ import {
   Variables,
   variablesToStrings,
 } from '../variables';
-import { ApiKeyHandler, DigestHandler } from '.';
 import {
   BINARY_CONTENT_REGEXP,
   BINARY_CONTENT_TYPES,
@@ -36,6 +35,8 @@ import {
   urlSearchParamsBody,
 } from './interfaces';
 import {
+  ApiKeyHandler,
+  DigestHandler,
   HttpHandler,
   ISecurityHandler,
   SecurityConfiguration,

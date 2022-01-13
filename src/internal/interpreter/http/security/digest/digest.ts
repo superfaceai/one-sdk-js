@@ -1,8 +1,12 @@
+import { DigestSecurityScheme, DigestSecurityValues } from '@superfaceai/ast';
 import { createHash } from 'crypto';
 import createDebug from 'debug';
+import { DEFAULT_AUTHORIZATION_HEADER_NAME, ISecurityHandler } from '..';
+import { AuthCache } from '../../../../../client';
 
-import { UnexpectedError } from '../../../errors';
-import { HttpResponse } from '../http';
+import { UnexpectedError } from '../../../../errors';
+import { HttpResponse } from '../../http';
+import { RequestContext } from '../interfaces';
 
 const debug = createDebug('superface:http:digest');
 const debugSensitive = createDebug('superface:http:digest:sensitive');
@@ -33,38 +37,48 @@ export type DigestAuthValues = {
 /**
  * Helper for digest authentication
  */
-export class DigestHelper {
-  private readonly nonceRaw: string = 'abcdef0123456789';
-  private readonly cnonceSize = 32;
+export class DigestHandler implements ISecurityHandler {
   //407 can be also used when communicating thru proxy https://datatracker.ietf.org/doc/html/rfc2617#section-1.2
   private readonly statusCode: number;
   //"Proxy-Authenticate" can be also used when communicating thru proxy https://datatracker.ietf.org/doc/html/rfc2617#section-1.2
   private readonly challangeHeader: string;
+  private readonly authorizationHeader: string;
+  //Internal
+  private readonly nonceRaw: string = 'abcdef0123456789';
+  private readonly cnonceSize = 32;
   private nc = 0;
 
   constructor(
-    private readonly user: string,
-    private readonly password: string,
-    options?: {
-      statusCode?: number;
-      challangeHeader?: string;
-    }
+    readonly configuration: DigestSecurityScheme & DigestSecurityValues
   ) {
     debug('Initialized DigestHelper');
-    this.statusCode = options?.statusCode || 401;
-    this.challangeHeader = options?.challangeHeader || 'www-authenticate';
+    this.statusCode = configuration.statusCode || 401;
+    this.challangeHeader = configuration.challengeHeader || 'www-authenticate';
+    this.authorizationHeader =
+      configuration.authorizationHeader || DEFAULT_AUTHORIZATION_HEADER_NAME;
 
     debugSensitive(
-      `Initialized with: username="${this.user}", password="${this.password}", status code=${this.statusCode}, challenge header="${this.challangeHeader}"`
+      `Initialized with: username="${this.configuration.username}", password="${this.configuration.password}", status code=${this.statusCode}, challenge header="${this.challangeHeader}", authorization header="${this.authorizationHeader}"`
     );
   }
 
-  public extractCredentials(
+  prepare(context: RequestContext, cache: AuthCache): void {
+    if (cache?.digest) {
+      debugSensitive(`Using cached digest credentials`);
+      context.headers[
+        this.configuration.authorizationHeader ||
+        DEFAULT_AUTHORIZATION_HEADER_NAME
+      ] = cache.digest;
+    }
+  }
+
+  handle(
     response: HttpResponse,
     url: string,
-    method: string
-  ): string | undefined {
-    let credentials: string | undefined = undefined;
+    method: string,
+    context: RequestContext,
+    cache: AuthCache
+  ): boolean {
     if (response.statusCode === this.statusCode) {
       if (!response.headers[this.challangeHeader]) {
         throw new UnexpectedError(
@@ -72,14 +86,20 @@ export class DigestHelper {
         );
       }
       debugSensitive(`Getting new digest values`);
-      credentials = this.buildDigestAuth(
+      const credentials = this.buildDigestAuth(
         url,
         method,
         this.extractDigestValues(response.headers[this.challangeHeader])
       );
+      context.headers[
+        this.configuration.authorizationHeader ||
+        DEFAULT_AUTHORIZATION_HEADER_NAME
+      ] = credentials;
+      cache.digest = credentials;
+      return true;
     }
 
-    return credentials;
+    return false;
   }
 
   /**
@@ -102,7 +122,7 @@ export class DigestHelper {
     //Default H1
     let ha1 = computeHash(
       digest.algorithm,
-      `${this.user}:${digest.realm}:${this.password}`
+      `${this.configuration.username}:${digest.realm}:${this.configuration.password}`
     );
 
     //sess H1 contains original H1 and also nonce and cnonce
@@ -116,9 +136,7 @@ export class DigestHelper {
     //H2 is same for default and sess
     const ha2 = computeHash(digest.algorithm, `${method}:${uri}`);
     this.nc++;
-    const ncString = `00000000${this.nc}`.slice(-8);
-
-    console.log('nc ', ncString, String(this.nc).padStart(8, '0').slice(-8));
+    const ncString = String(this.nc).padStart(8, '0');
 
     let response: string;
     //Use  QOP
@@ -137,7 +155,7 @@ export class DigestHelper {
     const qopString = digest.qop ? `qop="${digest.qop}"` : '';
 
     return [
-      `${digest.scheme} username="${this.user}"`,
+      `${digest.scheme} username="${this.configuration.username}"`,
       `realm="${digest.realm}"`,
       `nonce="${digest.nonce}"`,
       `uri="${uri}"`,
