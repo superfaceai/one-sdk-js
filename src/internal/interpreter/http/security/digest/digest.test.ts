@@ -7,7 +7,11 @@ import {
 import { createHash } from 'crypto';
 
 import { AuthCache } from '../../../../..';
-import { UnexpectedError } from '../../../../errors';
+import {
+  digestHeaderNotFound,
+  missingPartOfDigestHeader,
+  unexpectedDigestValue,
+} from '../../../../errors.helpers';
 import { HttpResponse } from '../../http';
 import { DEFAULT_AUTHORIZATION_HEADER_NAME } from '..';
 import { RequestContext } from '../interfaces';
@@ -134,25 +138,20 @@ describe('DigestHandler', () => {
           context,
           {}
         )
-      ).toThrow(
-        new UnexpectedError(
-          `Digest auth failed, unable to extract digest values from response. Header "www-authenticate" not found in response headers.`
-          //FIX: casting
-        ) as unknown as Error
-      );
+      ).toThrow(digestHeaderNotFound('www-authenticate', []));
     });
 
     it('throws on corrupted challenge header - missing scheme', async () => {
       const qop = 'auth';
       const algorithm = 'MD5';
       const method = 'GET';
-      const mockheader = ` realm="${mockRealm}", qop="${qop}", algorithm=${algorithm}, nonce="${mockNonce}", opaque="${mockOpaque}"`;
+      const mockHeader = ` realm="${mockRealm}", qop="${qop}", algorithm=${algorithm}, nonce="${mockNonce}", opaque="${mockOpaque}"`;
 
       const response: HttpResponse = {
         statusCode: 401,
         body: 'HTTP Digest: Access denied.\n',
         headers: {
-          'www-authenticate': mockheader,
+          'www-authenticate': mockHeader,
         },
         debug: {
           request: {
@@ -172,11 +171,7 @@ describe('DigestHandler', () => {
           {}
         )
       ).toThrow(
-        new UnexpectedError(
-          `Digest auth failed, unable to extract digest values from response. Header "www-authenticate" does not contain scheme value eq. Digest`,
-          mockheader
-          //FIX: casting
-        ) as unknown as Error
+        missingPartOfDigestHeader('www-authenticate', mockHeader, 'scheme')
       );
     });
 
@@ -210,11 +205,7 @@ describe('DigestHandler', () => {
           {}
         )
       ).toThrow(
-        new UnexpectedError(
-          `Digest auth failed, unable to extract digest values from response. Header "www-authenticate" does not contain "nonce"`,
-          mockHeader
-          //FIX: casting
-        ) as unknown as Error
+        missingPartOfDigestHeader('www-authenticate', mockHeader, 'nonce')
       );
     });
 
@@ -247,11 +238,12 @@ describe('DigestHandler', () => {
           {}
         )
       ).toThrow(
-        new UnexpectedError(
-          `Digest auth failed, parameter "algorithm" has unexpected value`,
-          algorithm
-          //FIX: casting
-        ) as unknown as Error
+        unexpectedDigestValue('algorithm', algorithm, [
+          'MD5',
+          'MD5-sess',
+          'SHA-256',
+          'SHA-256-sess',
+        ])
       );
     });
 
@@ -284,11 +276,10 @@ describe('DigestHandler', () => {
           {}
         )
       ).toThrow(
-        new UnexpectedError(
-          `Digest auth failed, parameter "quality of protection" has unexpected value`,
-          qop
-          //FIX: casting
-        ) as unknown as Error
+        unexpectedDigestValue('quality of protection', qop, [
+          'auth',
+          'auth-int',
+        ])
       );
     });
 

@@ -3,7 +3,11 @@ import { createHash } from 'crypto';
 import createDebug from 'debug';
 
 import { AuthCache } from '../../../../../client';
-import { UnexpectedError } from '../../../../errors';
+import {
+  digestHeaderNotFound,
+  missingPartOfDigestHeader,
+  unexpectedDigestValue,
+} from '../../../../errors.helpers';
 import { HttpResponse } from '../../http';
 import { DEFAULT_AUTHORIZATION_HEADER_NAME, ISecurityHandler } from '..';
 import { RequestContext } from '../interfaces';
@@ -81,8 +85,9 @@ export class DigestHandler implements ISecurityHandler {
   ): boolean {
     if (response.statusCode === this.statusCode) {
       if (!response.headers[this.challangeHeader]) {
-        throw new UnexpectedError(
-          `Digest auth failed, unable to extract digest values from response. Header "${this.challangeHeader}" not found in response headers.`
+        throw digestHeaderNotFound(
+          this.challangeHeader,
+          Object.keys(response.headers)
         );
       }
       debugSensitive(`Getting new digest values`);
@@ -96,8 +101,8 @@ export class DigestHandler implements ISecurityHandler {
           DEFAULT_AUTHORIZATION_HEADER_NAME
       ] = credentials;
       cache.digest = credentials;
-      
-return true;
+
+      return true;
     }
 
     return false;
@@ -174,17 +179,11 @@ return true;
 
     const scheme = header.split(/\s/)[0];
     if (!scheme) {
-      throw new UnexpectedError(
-        `Digest auth failed, unable to extract digest values from response. Header "${this.challangeHeader}" does not contain scheme value eq. Digest`,
-        header
-      );
+      throw missingPartOfDigestHeader(this.challangeHeader, header, 'scheme');
     }
     const nonce = extract(header, 'nonce');
     if (!nonce) {
-      throw new UnexpectedError(
-        `Digest auth failed, unable to extract digest values from response. Header "${this.challangeHeader}" does not contain "nonce"`,
-        header
-      );
+      throw missingPartOfDigestHeader(this.challangeHeader, header, 'nonce');
     }
 
     return {
@@ -226,11 +225,12 @@ export function extractAlgorithm(rawHeader: string): DigestAlgorithm {
     } else if (extractedValue === 'SHA-256-sess') {
       return 'SHA-256-sess';
     } else {
-      //Throw when we get unexpected value
-      throw new UnexpectedError(
-        `Digest auth failed, parameter "algorithm" has unexpected value`,
-        extractedValue
-      );
+      throw unexpectedDigestValue('algorithm', extractedValue, [
+        'MD5',
+        'MD5-sess',
+        'SHA-256',
+        'SHA-256-sess',
+      ]);
     }
   }
 
@@ -258,10 +258,10 @@ export function extractQop(rawHeader: string): 'auth' | 'auth-int' | undefined {
     } else if (qops.includes('auth')) {
       return 'auth';
     } else {
-      throw new UnexpectedError(
-        `Digest auth failed, parameter "quality of protection" has unexpected value`,
-        parsedQop
-      );
+      throw unexpectedDigestValue('quality of protection', qops.join(', '), [
+        'auth',
+        'auth-int',
+      ]);
     }
   }
 

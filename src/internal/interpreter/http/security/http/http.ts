@@ -1,4 +1,4 @@
-import { HttpScheme,SecurityType } from '@superfaceai/ast';
+import { HttpScheme, SecurityType } from '@superfaceai/ast';
 
 import {
   DEFAULT_AUTHORIZATION_HEADER_NAME,
