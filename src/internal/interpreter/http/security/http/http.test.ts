@@ -1,4 +1,5 @@
 import { HttpScheme, SecurityType } from '@superfaceai/ast';
+
 import { RequestContext, SecurityConfiguration } from '../../security';
 import { HttpHandler } from './http';
 

@@ -1,4 +1,5 @@
 import { ApiKeyPlacement, SecurityType } from '@superfaceai/ast';
+
 import { SDKExecutionError } from '../../../../errors';
 import { RequestContext, SecurityConfiguration } from '../../security';
 import { ApiKeyHandler } from './api-key';

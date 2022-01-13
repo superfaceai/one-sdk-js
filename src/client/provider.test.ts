@@ -47,7 +47,13 @@ describe('Provider', () => {
   });
 
   it('configures provider correctly and merges configuration', async () => {
-    const mockSecurity = [{ id: 'first-id', username: 'username-digest', password: 'password-digest' }];
+    const mockSecurity = [
+      {
+        id: 'first-id',
+        username: 'username-digest',
+        password: 'password-digest',
+      },
+    ];
     const mockClient = new SuperfaceClient();
     const mockProviderConfiguration = new ProviderConfiguration(
       'test',
@@ -69,7 +75,11 @@ describe('Provider', () => {
       new Provider(
         mockClient,
         new ProviderConfiguration('test', [
-          { id: 'first-id', username: 'username-digest', password: 'password-digest' },
+          {
+            id: 'first-id',
+            username: 'username-digest',
+            password: 'password-digest',
+          },
           {
             username: 'second',
             password: 'seconds',

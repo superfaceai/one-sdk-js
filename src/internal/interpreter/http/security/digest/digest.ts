@@ -1,11 +1,11 @@
 import { DigestSecurityScheme, DigestSecurityValues } from '@superfaceai/ast';
 import { createHash } from 'crypto';
 import createDebug from 'debug';
-import { DEFAULT_AUTHORIZATION_HEADER_NAME, ISecurityHandler } from '..';
-import { AuthCache } from '../../../../../client';
 
+import { AuthCache } from '../../../../../client';
 import { UnexpectedError } from '../../../../errors';
 import { HttpResponse } from '../../http';
+import { DEFAULT_AUTHORIZATION_HEADER_NAME, ISecurityHandler } from '..';
 import { RequestContext } from '../interfaces';
 
 const debug = createDebug('superface:http:digest');
@@ -67,7 +67,7 @@ export class DigestHandler implements ISecurityHandler {
       debugSensitive(`Using cached digest credentials`);
       context.headers[
         this.configuration.authorizationHeader ||
-        DEFAULT_AUTHORIZATION_HEADER_NAME
+          DEFAULT_AUTHORIZATION_HEADER_NAME
       ] = cache.digest;
     }
   }
@@ -93,10 +93,11 @@ export class DigestHandler implements ISecurityHandler {
       );
       context.headers[
         this.configuration.authorizationHeader ||
-        DEFAULT_AUTHORIZATION_HEADER_NAME
+          DEFAULT_AUTHORIZATION_HEADER_NAME
       ] = credentials;
       cache.digest = credentials;
-      return true;
+      
+return true;
     }
 
     return false;

@@ -8,6 +8,7 @@ import {
   DigestSecurityScheme,
   DigestSecurityValues,
 } from '@superfaceai/ast';
+
 import { AuthCache } from '../../../../client';
 import { NonPrimitive, Variables } from '../../variables';
 import { HttpResponse } from '../http';

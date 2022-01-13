@@ -5,11 +5,11 @@ import {
   SecurityType,
 } from '@superfaceai/ast';
 import { createHash } from 'crypto';
-import { DEFAULT_AUTHORIZATION_HEADER_NAME } from '..';
-import { AuthCache } from '../../../../..';
 
+import { AuthCache } from '../../../../..';
 import { UnexpectedError } from '../../../../errors';
 import { HttpResponse } from '../../http';
+import { DEFAULT_AUTHORIZATION_HEADER_NAME } from '..';
 import { RequestContext } from '../interfaces';
 import { DigestHandler } from './digest';
 
@@ -410,7 +410,9 @@ describe('DigestHandler', () => {
 
       expect(retry).toEqual(true);
       expect(context.headers).toEqual({
-        [DEFAULT_AUTHORIZATION_HEADER_NAME]: expect.stringContaining(`response="${expectedResponse}"`),
+        [DEFAULT_AUTHORIZATION_HEADER_NAME]: expect.stringContaining(
+          `response="${expectedResponse}"`
+        ),
       });
       expect(cache).toEqual({
         digest: expect.stringContaining(`response="${expectedResponse}"`),
@@ -453,7 +455,9 @@ describe('DigestHandler', () => {
 
       expect(retry).toEqual(true);
       expect(context.headers).toEqual({
-        [DEFAULT_AUTHORIZATION_HEADER_NAME]: expect.stringContaining(`response="${expectedResponse}"`),
+        [DEFAULT_AUTHORIZATION_HEADER_NAME]: expect.stringContaining(
+          `response="${expectedResponse}"`
+        ),
       });
       expect(cache).toEqual({
         digest: expect.stringContaining(`response="${expectedResponse}"`),
@@ -483,7 +487,7 @@ describe('DigestHandler', () => {
         statusCode: 432,
         body: 'HTTP Digest: Access denied.\n',
         headers: {
-          'Challenge': `Digest realm="${mockRealm}", qop="${qop}", nonce="${mockNonce}", opaque="${mockOpaque}"`,
+          Challenge: `Digest realm="${mockRealm}", qop="${qop}", nonce="${mockNonce}", opaque="${mockOpaque}"`,
         },
         debug: {
           request: {
@@ -499,7 +503,7 @@ describe('DigestHandler', () => {
 
       expect(retry).toEqual(true);
       expect(context.headers).toEqual({
-        'Auth': expect.stringContaining(`response="${expectedResponse}"`),
+        Auth: expect.stringContaining(`response="${expectedResponse}"`),
       });
       expect(cache).toEqual({
         digest: expect.stringContaining(`response="${expectedResponse}"`),
@@ -544,7 +548,9 @@ describe('DigestHandler', () => {
 
       expect(retry).toEqual(true);
       expect(context.headers).toEqual({
-        [DEFAULT_AUTHORIZATION_HEADER_NAME]: expect.stringContaining(`response="${expectedResponse}"`),
+        [DEFAULT_AUTHORIZATION_HEADER_NAME]: expect.stringContaining(
+          `response="${expectedResponse}"`
+        ),
       });
       expect(cache).toEqual({
         digest: expect.stringContaining(`response="${expectedResponse}"`),
@@ -588,7 +594,9 @@ describe('DigestHandler', () => {
 
       expect(retry).toEqual(true);
       expect(context.headers).toEqual({
-        [DEFAULT_AUTHORIZATION_HEADER_NAME]: expect.stringContaining(`response="${expectedResponse}"`),
+        [DEFAULT_AUTHORIZATION_HEADER_NAME]: expect.stringContaining(
+          `response="${expectedResponse}"`
+        ),
       });
       expect(cache).toEqual({
         digest: expect.stringContaining(`response="${expectedResponse}"`),
@@ -635,7 +643,9 @@ describe('DigestHandler', () => {
 
       expect(retry).toEqual(true);
       expect(context.headers).toEqual({
-        [DEFAULT_AUTHORIZATION_HEADER_NAME]: expect.stringContaining(`response="${expectedResponse}"`),
+        [DEFAULT_AUTHORIZATION_HEADER_NAME]: expect.stringContaining(
+          `response="${expectedResponse}"`
+        ),
       });
       expect(cache).toEqual({
         digest: expect.stringContaining(`response="${expectedResponse}"`),

@@ -1,8 +1,9 @@
 import {
+  ApiKeyPlacement,
   ApiKeySecurityScheme,
   ApiKeySecurityValues,
-  ApiKeyPlacement,
 } from '@superfaceai/ast';
+
 import { apiKeyInBodyError } from '../../../../errors.helpers';
 import { Variables } from '../../../variables';
 import {
