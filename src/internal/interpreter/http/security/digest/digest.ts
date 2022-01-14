@@ -1,5 +1,5 @@
 import { DigestSecurityScheme, DigestSecurityValues } from '@superfaceai/ast';
-import { createHash } from 'crypto';
+import { createHash, randomInt } from 'crypto';
 import createDebug from 'debug';
 
 import { AuthCache } from '../../../../../client';
@@ -56,10 +56,10 @@ export class DigestHandler implements ISecurityHandler {
     readonly configuration: DigestSecurityScheme & DigestSecurityValues
   ) {
     debug('Initialized DigestHelper');
-    this.statusCode = configuration.statusCode || 401;
-    this.challangeHeader = configuration.challengeHeader || 'www-authenticate';
+    this.statusCode = configuration.statusCode ?? 401;
+    this.challangeHeader = configuration.challengeHeader ?? 'www-authenticate';
     this.authorizationHeader =
-      configuration.authorizationHeader || DEFAULT_AUTHORIZATION_HEADER_NAME;
+      configuration.authorizationHeader ?? DEFAULT_AUTHORIZATION_HEADER_NAME;
 
     debugSensitive(
       `Initialized with: username="${this.configuration.username}", password="${this.configuration.password}", status code=${this.statusCode}, challenge header="${this.challangeHeader}", authorization header="${this.authorizationHeader}"`
@@ -70,7 +70,7 @@ export class DigestHandler implements ISecurityHandler {
     if (cache?.digest) {
       debugSensitive(`Using cached digest credentials`);
       context.headers[
-        this.configuration.authorizationHeader ||
+        this.configuration.authorizationHeader ??
           DEFAULT_AUTHORIZATION_HEADER_NAME
       ] = cache.digest;
     }
@@ -200,7 +200,7 @@ export class DigestHandler implements ISecurityHandler {
   private makeNonce(): string {
     let uid = '';
     for (let i = 0; i < this.cnonceSize; ++i) {
-      uid += this.nonceRaw[Math.floor(Math.random() * this.nonceRaw.length)];
+      uid += this.nonceRaw[randomInt(this.nonceRaw.length)];
     }
 
     return uid;
@@ -270,7 +270,6 @@ export function extractQop(rawHeader: string): 'auth' | 'auth-int' | undefined {
 }
 
 function extract(raw: string, field: string, trim = true): string | undefined {
-  //TODO: field should be case-insensitive
   const regex = new RegExp(`${field}=("[^"]*"|[^,]*)`, 'i');
   const match = regex.exec(raw);
   if (match) return trim ? match[1].replace(/[\s"]/g, '') : match[1];

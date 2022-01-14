@@ -144,7 +144,7 @@ export class HttpClient {
     // secrets might appear in headers, url path, query parameters or body
     if (debugSensitive.enabled) {
       const hasSearchParams =
-        Object.keys(request.queryParameters || {}).length > 0;
+        Object.keys(request.queryParameters ?? {}).length > 0;
       const searchParams = new URLSearchParams(request.queryParameters);
       debugSensitive(
         '\t%s %s%s HTTP/1.1',
