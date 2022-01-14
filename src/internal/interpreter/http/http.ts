@@ -38,7 +38,9 @@ import {
   ApiKeyHandler,
   DigestHandler,
   HttpHandler,
+  HttpRequest,
   ISecurityHandler,
+  RequestContext,
   SecurityConfiguration,
 } from './security';
 
@@ -131,7 +133,7 @@ export const createUrl = (
 };
 
 export class HttpClient {
-  constructor(private fetchInstance: FetchInstance & AuthCache) {}
+  constructor(private fetchInstance: FetchInstance & AuthCache) { }
 
   private async makeRequest(options: {
     url: string;
@@ -139,7 +141,7 @@ export class HttpClient {
     requestBody: Variables | undefined;
     request: FetchParameters;
   }): Promise<HttpResponse> {
-    const { url, headers, request, requestBody } = options;
+    const { url, headers, request } = options;
     debug('Executing HTTP Call');
     // secrets might appear in headers, url path, query parameters or body
     if (debugSensitive.enabled) {
@@ -156,8 +158,8 @@ export class HttpClient {
       Object.entries(headers).forEach(([headerName, value]) =>
         debugSensitive(`\t${headerName}: ${value}`)
       );
-      if (requestBody !== undefined) {
-        debugSensitive(`\n${inspect(requestBody, true, 5)}`);
+      if (request.body !== undefined) {
+        debugSensitive(`\n${inspect(request.body, true, 5)}`);
       }
     }
     const response = await this.fetchInstance.fetch(url, request);
@@ -179,7 +181,7 @@ export class HttpClient {
         request: {
           url: url,
           headers,
-          body: requestBody,
+          body: request.body
         },
       },
     };
@@ -216,7 +218,7 @@ export class HttpClient {
     const pathParameters = { ...parameters.pathParameters };
 
     const securityConfiguration = parameters.securityConfiguration ?? [];
-    const contextForSecurity = {
+    const contextForSecurity: RequestContext = {
       headers,
       queryAuth,
       pathParameters,
@@ -299,8 +301,11 @@ export class HttpClient {
         ...variablesToStrings(parameters.queryParameters),
         ...queryAuth,
       };
+      if (contextForSecurity.method) {
+        request.method = contextForSecurity.method;
+      }
       response = await this.makeRequest({
-        url: finalUrl,
+        url: contextForSecurity.url || finalUrl,
         headers,
         requestBody,
         request,

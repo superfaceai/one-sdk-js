@@ -12,6 +12,7 @@ import {
 import { AuthCache } from '../../../../client';
 import { NonPrimitive, Variables } from '../../variables';
 import { HttpResponse } from '../http';
+import { FetchParameters } from '../interfaces';
 
 export const DEFAULT_AUTHORIZATION_HEADER_NAME = 'Authorization';
 
@@ -45,6 +46,10 @@ export interface ISecurityHandler {
     context: RequestContext,
     cache: AuthCache
   ): boolean;
+
+
+  //New prepare
+  prepareRequest?(parameters: RequestParameters, cache: AuthCache): HttpRequest;
 }
 
 export type SecurityConfiguration =
@@ -59,3 +64,17 @@ export type RequestContext = {
   headers: Record<string, string>;
   requestBody: Variables | undefined;
 };
+
+export type RequestParameters = {
+  //Url
+  baseUrl: string,
+  integrationParameters?: Record<string, string>;
+  pathParameters?: NonPrimitive;
+  //Body related
+  body?: Variables;
+  contentType?: string;
+  headers: Record<string, string>;
+  method: string;
+};
+
+export type HttpRequest = FetchParameters & { url: string }
