@@ -41,6 +41,7 @@ import {
   HttpRequest,
   ISecurityHandler,
   RequestContext,
+  RequestParameters,
   SecurityConfiguration,
 } from './security';
 
@@ -208,23 +209,33 @@ export class HttpClient {
     const headers = variablesToStrings(parameters?.headers);
     headers['accept'] = parameters.accept || '*/*';
 
-    const request: FetchParameters = {
-      headers,
-      method: parameters.method,
-    };
+    // const request: FetchParameters = {
+    //   headers,
+    //   method: parameters.method,
+    // };
 
     const queryAuth: Record<string, string> = {};
-    const requestBody = parameters.body;
-    const pathParameters = { ...parameters.pathParameters };
+    // const requestBody = parameters.body;
+    // const pathParameters = { ...parameters.pathParameters };
 
     const securityConfiguration = parameters.securityConfiguration ?? [];
-    const contextForSecurity: RequestContext = {
-      headers,
-      queryAuth,
-      pathParameters,
-      requestBody,
-    };
+    // const contextForSecurity: RequestContext = {
+    //   headers,
+    //   queryAuth,
+    //   pathParameters,
+    //   requestBody,
+    // };
     //Prepare security
+    const requestParameters: RequestParameters = {
+      url: parameters.baseUrl,
+      baseUrl: parameters.baseUrl,
+      integrationParameters: parameters.integrationParameters,
+      pathParameters: parameters.pathParameters,
+      body: parameters.body,
+      contentType: parameters.contentType,
+      method: parameters.method,
+      headers
+    }
     for (const requirement of parameters.securityRequirements ?? []) {
       const configuration = securityConfiguration.find(
         configuration => configuration.id === requirement.id
@@ -235,7 +246,7 @@ export class HttpClient {
 
       if (configuration.type === SecurityType.APIKEY) {
         const handler = new ApiKeyHandler(configuration);
-        handler.prepare(contextForSecurity);
+        handler.prepare(requestParameters);
         securityHandlers.push(handler);
       } else if (configuration.scheme === HttpScheme.DIGEST) {
         const handler = new DigestHandler(configuration);

@@ -29,7 +29,7 @@ export interface ISecurityHandler {
    * @param context context for making request this can be changed during preparation (eg. authorize header will be added)
    * @param cache this cache can hold credentials for some of the authentication methods eg. digest
    */
-  prepare(context: RequestContext, cache: AuthCache): void;
+  // prepare(context: RequestContext, cache: AuthCache): void;
   /**
    * Handles responses for more complex authentization methods (eg. digest)
    * @param response response from http call - can contain challange
@@ -49,7 +49,7 @@ export interface ISecurityHandler {
 
 
   //New prepare
-  prepareRequest?(parameters: RequestParameters, cache: AuthCache): HttpRequest;
+  prepare(parameters: RequestParameters, cache: AuthCache): HttpRequest;
 }
 
 export type SecurityConfiguration =
@@ -67,6 +67,7 @@ export type RequestContext = {
 
 export type RequestParameters = {
   //Url
+  url: string,
   baseUrl: string,
   integrationParameters?: Record<string, string>;
   pathParameters?: NonPrimitive;
@@ -74,6 +75,7 @@ export type RequestParameters = {
   body?: Variables;
   contentType?: string;
   headers: Record<string, string>;
+  queryParameters?: Variables;
   method: string;
 };
 

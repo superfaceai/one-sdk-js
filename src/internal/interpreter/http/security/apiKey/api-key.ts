@@ -5,43 +5,67 @@ import {
 } from '@superfaceai/ast';
 
 import { apiKeyInBodyError } from '../../../../errors.helpers';
-import { Variables } from '../../../variables';
+import { Variables, variablesToStrings } from '../../../variables';
+import { createUrl } from '../../http';
 import {
   DEFAULT_AUTHORIZATION_HEADER_NAME,
   ISecurityHandler,
-  RequestContext,
 } from '../../security';
+import { HttpRequest, RequestParameters } from '../interfaces';
+import { encodeBody } from '../utils';
 
 export class ApiKeyHandler implements ISecurityHandler {
   constructor(
     readonly configuration: ApiKeySecurityScheme & ApiKeySecurityValues
-  ) {}
+  ) { }
 
-  prepare(context: RequestContext): void {
+  prepare(context: RequestParameters): HttpRequest {
+    let body: Variables = context.body ?? {};
+    let headers: Record<string, string> = context.headers
+    let pathParameters = context.pathParameters ?? {}
+    const queryAuth: Record<string, string> = {};
+
     const name = this.configuration.name || DEFAULT_AUTHORIZATION_HEADER_NAME;
 
     switch (this.configuration.in) {
       case ApiKeyPlacement.HEADER:
-        context.headers[name] = this.configuration.apikey;
+        headers[name] = this.configuration.apikey;
         break;
 
       case ApiKeyPlacement.BODY:
-        context.requestBody = applyApiKeyAuthInBody(
-          context.requestBody ?? {},
+        body = applyApiKeyAuthInBody(
+          body,
           name.startsWith('/') ? name.slice(1).split('/') : [name],
           this.configuration.apikey
         );
         break;
 
       case ApiKeyPlacement.PATH:
-        context.pathParameters[name] = this.configuration.apikey;
+        pathParameters[name] = this.configuration.apikey;
         break;
 
       case ApiKeyPlacement.QUERY:
-        context.queryAuth[name] = this.configuration.apikey;
-
+        queryAuth[name] = this.configuration.apikey;
         break;
     }
+
+    const bodyAndHeaders = encodeBody(context.contentType, body, headers)
+
+    const request: HttpRequest = {
+      headers: bodyAndHeaders.headers,
+      method: context.method,
+      body: bodyAndHeaders.body,
+      queryParameters: {
+        ...variablesToStrings(context.queryParameters),
+        ...queryAuth,
+      },
+      url: createUrl(context.url, {
+        baseUrl: context.baseUrl,
+        pathParameters,
+        integrationParameters: context.integrationParameters
+      })
+    }
+    return request
   }
 }
 
