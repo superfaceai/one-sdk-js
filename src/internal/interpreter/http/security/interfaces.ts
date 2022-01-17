@@ -9,12 +9,28 @@ import {
   DigestSecurityValues,
 } from '@superfaceai/ast';
 
-import { AuthCache } from '../../../../client';
 import { NonPrimitive, Variables } from '../../variables';
 import { HttpResponse } from '../http';
 import { FetchParameters } from '../interfaces';
+import { OAuthTokenType } from './oauth/authorization-code/authorization-code';
 
 export const DEFAULT_AUTHORIZATION_HEADER_NAME = 'Authorization';
+
+//TODO: Move this to src/internal/interpreter/http/security?
+export type AuthCache = {
+  digest?: string;
+  oauth?: {
+    authotizationCode?: {
+      //Actual credentials
+      accessToken: string;
+      refreshToken?: string;
+      //expiresIn is not required by rfc.
+      expiresAt?: number;
+      tokenType: OAuthTokenType;
+      scopes: string[];
+    };
+  };
+};
 
 /**
  * Represents class that is able to prepare (set headers, path etc.) and handle (challange responses for eg. digest) authentication

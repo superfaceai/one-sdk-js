@@ -2,7 +2,6 @@ import { DigestSecurityScheme, DigestSecurityValues } from '@superfaceai/ast';
 import { createHash } from 'crypto';
 import createDebug from 'debug';
 
-import { AuthCache } from '../../../../../client';
 import {
   digestHeaderNotFound,
   missingPartOfDigestHeader,
@@ -10,6 +9,7 @@ import {
 } from '../../../../errors.helpers';
 import { createUrl, HttpResponse } from '../../http';
 import {
+  AuthCache,
   DEFAULT_AUTHORIZATION_HEADER_NAME,
   HttpRequest,
   ISecurityHandler,

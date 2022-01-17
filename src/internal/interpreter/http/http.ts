@@ -2,7 +2,6 @@ import { HttpSecurityRequirement } from '@superfaceai/ast';
 import createDebug from 'debug';
 import { inspect } from 'util';
 
-import { AuthCache } from '../../../client';
 import { USER_AGENT } from '../../../index';
 import { recursiveKeyList } from '../../../lib/object';
 import { UnexpectedError } from '../../errors';
@@ -15,6 +14,7 @@ import {
 } from '../variables';
 import { FetchInstance } from './interfaces';
 import {
+  AuthCache,
   HttpRequest,
   ISecurityHandler,
   RequestParameters,
@@ -148,6 +148,11 @@ export class HttpClient {
       debugSensitive('\n\t%j', response.body);
     }
 
+    let headers: Record<string, string> = {};
+    Object.entries(request.headers ?? {}).forEach(([key, value]) => {
+      headers[key] = Array.isArray(value) ? value.join(' ') : value;
+    });
+
     return {
       statusCode: response.status,
       body: response.body,
@@ -155,8 +160,7 @@ export class HttpClient {
       debug: {
         request: {
           url: request.url,
-          //FIX:
-          headers: {}, // request.headers || {},
+          headers,
           body: request.body,
         },
       },
@@ -229,6 +233,7 @@ export class HttpClient {
     //   }
     // }
 
+    //TODO: REMOVE
     //Test the oauth
     const config: TempAuthorizationCodeConfiguration = {
       clientId: process.env['GOOGLE_CLIENT_ID'] || '',
@@ -239,7 +244,6 @@ export class HttpClient {
     };
     const handler = new AuthorizationCodeHandler(config);
     request = handler.prepare(resourceRequestParameters, this.fetchInstance);
-    console.log('first req', request);
     securityHandlers.push(handler as unknown as ISecurityHandler);
     let response: HttpResponse;
 
