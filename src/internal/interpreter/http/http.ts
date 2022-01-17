@@ -1,8 +1,4 @@
-import {
-  HttpScheme,
-  HttpSecurityRequirement,
-  SecurityType,
-} from '@superfaceai/ast';
+import { HttpSecurityRequirement } from '@superfaceai/ast';
 import createDebug from 'debug';
 import { inspect } from 'util';
 
@@ -10,10 +6,7 @@ import { AuthCache } from '../../../client';
 import { USER_AGENT } from '../../../index';
 import { recursiveKeyList } from '../../../lib/object';
 import { UnexpectedError } from '../../errors';
-import {
-  missingPathReplacementError,
-  missingSecurityValuesError,
-} from '../../errors.helpers';
+import { missingPathReplacementError } from '../../errors.helpers';
 import {
   getValue,
   NonPrimitive,
@@ -22,14 +15,15 @@ import {
 } from '../variables';
 import { FetchInstance } from './interfaces';
 import {
-  ApiKeyHandler,
-  DigestHandler,
-  HttpHandler,
   HttpRequest,
   ISecurityHandler,
   RequestParameters,
   SecurityConfiguration,
 } from './security';
+import {
+  AuthorizationCodeHandler,
+  TempAuthorizationCodeConfiguration,
+} from './security/oauth/authorization-code/authorization-code';
 import { prepareRequest } from './security/utils';
 
 const debug = createDebug('superface:http');
@@ -123,16 +117,7 @@ export const createUrl = (
 export class HttpClient {
   constructor(private fetchInstance: FetchInstance & AuthCache) {}
 
-  private async makeRequest(
-    request: HttpRequest
-    //   options: {
-    //   url: string;
-    //   headers: Record<string, string>;
-    //   requestBody: Variables | undefined;
-    //   request: FetchParameters;
-    // }
-  ): Promise<HttpResponse> {
-    // const { url, headers, request } = options;
+  private async makeRequest(request: HttpRequest): Promise<HttpResponse> {
     debug('Executing HTTP Call');
     // secrets might appear in headers, url path, query parameters or body
     if (debugSensitive.enabled) {
@@ -196,26 +181,13 @@ export class HttpClient {
   ): Promise<HttpResponse> {
     const securityHandlers: ISecurityHandler[] = [];
     let retry = true;
+    let numberOfRequests = 0;
     const headers = variablesToStrings(parameters?.headers);
     headers['accept'] = parameters.accept || '*/*';
     headers['user-agent'] ??= USER_AGENT;
 
-    // const request: FetchParameters = {
-    //   headers,
-    //   method: parameters.method,
-    // };
+    // const securityConfiguration = parameters.securityConfiguration ?? [];
 
-    // const queryAuth: Record<string, string> = {};
-    // const requestBody = parameters.body;
-    // const pathParameters = { ...parameters.pathParameters };
-
-    const securityConfiguration = parameters.securityConfiguration ?? [];
-    // const contextForSecurity: RequestContext = {
-    //   headers,
-    //   queryAuth,
-    //   pathParameters,
-    //   requestBody,
-    // };
     const resourceRequestParameters: RequestParameters = {
       url,
       baseUrl: parameters.baseUrl,
@@ -231,95 +203,48 @@ export class HttpClient {
     //Add auth
     //TODO: this approach is problematic - it will be hard to do multiple auth. methods at once (eg. digest and oauth).
     //For now we ignore the problem
-    for (const requirement of parameters.securityRequirements ?? []) {
-      const configuration = securityConfiguration.find(
-        configuration => configuration.id === requirement.id
-      );
-      if (configuration === undefined) {
-        throw missingSecurityValuesError(requirement.id);
-      }
+    // for (const requirement of parameters.securityRequirements ?? []) {
+    //   const configuration = securityConfiguration.find(
+    //     configuration => configuration.id === requirement.id
+    //   );
+    //   if (configuration === undefined) {
+    //     throw missingSecurityValuesError(requirement.id);
+    //   }
 
-      if (configuration.type === SecurityType.APIKEY) {
-        const handler = new ApiKeyHandler(configuration);
-        request = handler.prepare(resourceRequestParameters);
-        securityHandlers.push(handler);
-      } else if (configuration.scheme === HttpScheme.DIGEST) {
-        const handler = new DigestHandler(configuration);
-        request = handler.prepare(
-          resourceRequestParameters,
-          this.fetchInstance
-        );
-        securityHandlers.push(handler);
-      } else {
-        const handler = new HttpHandler(configuration);
-        request = handler.prepare(resourceRequestParameters);
-        securityHandlers.push(handler);
-      }
-    }
+    //   if (configuration.type === SecurityType.APIKEY) {
+    //     const handler = new ApiKeyHandler(configuration);
+    //     request = handler.prepare(resourceRequestParameters);
+    //     securityHandlers.push(handler);
+    //   } else if (configuration.scheme === HttpScheme.DIGEST) {
+    //     const handler = new DigestHandler(configuration);
+    //     request = handler.prepare(
+    //       resourceRequestParameters,
+    //       this.fetchInstance
+    //     );
+    //     securityHandlers.push(handler);
+    //   } else {
+    //     const handler = new HttpHandler(configuration);
+    //     request = handler.prepare(resourceRequestParameters);
+    //     securityHandlers.push(handler);
+    //   }
+    // }
+
+    //Test the oauth
+    const config: TempAuthorizationCodeConfiguration = {
+      clientId: process.env['GOOGLE_CLIENT_ID'] || '',
+      clientSecret: process.env['GOOGLE_CLIENT_SECRET'] || '',
+      tokenUrl: '/oauth2/v4/token',
+      refreshToken: process.env['GOOGLE_CLIENT_REFRESH_TOKEN'] || '',
+      scopes: [],
+    };
+    const handler = new AuthorizationCodeHandler(config);
+    request = handler.prepare(resourceRequestParameters, this.fetchInstance);
+    console.log('first req', request);
+    securityHandlers.push(handler as unknown as ISecurityHandler);
     let response: HttpResponse;
 
     do {
-      // if (
-      //   parameters.body &&
-      //   ['post', 'put', 'patch'].includes(parameters.method.toLowerCase())
-      // ) {
-      //   if (parameters.contentType === JSON_CONTENT) {
-      //     headers['Content-Type'] ??= JSON_CONTENT;
-      //     request.body = stringBody(JSON.stringify(requestBody));
-      //   } else if (parameters.contentType === URLENCODED_CONTENT) {
-      //     headers['Content-Type'] ??= URLENCODED_CONTENT;
-      //     request.body = urlSearchParamsBody(variablesToStrings(requestBody));
-      //   } else if (parameters.contentType === FORMDATA_CONTENT) {
-      //     headers['Content-Type'] ??= FORMDATA_CONTENT;
-      //     request.body = formDataBody(variablesToStrings(requestBody));
-      //   } else if (
-      //     parameters.contentType &&
-      //     BINARY_CONTENT_REGEXP.test(parameters.contentType)
-      //   ) {
-      //     headers['Content-Type'] ??= parameters.contentType;
-      //     let buffer: Buffer;
-      //     if (Buffer.isBuffer(requestBody)) {
-      //       buffer = requestBody;
-      //     } else {
-      //       //coerce to string then buffer
-      //       buffer = Buffer.from(String(requestBody));
-      //     }
-      //     request.body = binaryBody(buffer);
-      //   } else {
-      //     const contentType = parameters.contentType ?? '';
-      //     const supportedTypes = [
-      //       JSON_CONTENT,
-      //       URLENCODED_CONTENT,
-      //       FORMDATA_CONTENT,
-      //       ...BINARY_CONTENT_TYPES,
-      //     ];
-
-      //     throw unsupportedContentType(contentType, supportedTypes);
-      //   }
-      // }
-
-      // const finalUrl = createUrl(url, {
-      //   baseUrl: parameters.baseUrl,
-      //   pathParameters,
-      //   integrationParameters: parameters.integrationParameters,
-      // });
-
-      // request.queryParameters = {
-      //   ...variablesToStrings(parameters.queryParameters),
-      //   ...queryAuth,
-      // };
-      // if (contextForSecurity.method) {
-      //   request.method = contextForSecurity.method;
-      // }
-      response = await this.makeRequest(
-        request
-        //   {
-        //   url: contextForSecurity.url || finalUrl,
-        //   headers,
-        //   requestBody,
-        //   request,
-        // }
-      );
+      response = await this.makeRequest(request);
       //TODO: or call handle on all the handers (with defined handle)?
       const handler = securityHandlers.find(h => h.handle !== undefined);
       //If we have handle we use it to get new values for api call and new retry value
@@ -327,9 +252,6 @@ export class HttpClient {
         const retryRequest = handler.handle(
           response,
           resourceRequestParameters,
-          // finalUrl,
-          // request.method,
-          // contextForSecurity,
           this.fetchInstance
         );
         if (retryRequest) {
@@ -341,7 +263,14 @@ export class HttpClient {
       } else {
         retry = false;
       }
-      //TODO: maybe some numeric limit to avoid inf. loop?
+      //numeric limit to avoid inf. loop
+      //TODO: this could be env. variable
+      if (numberOfRequests > 5) {
+        throw new UnexpectedError(
+          'Exceded number of calls - risk of falling into infinite loop'
+        );
+      }
+      numberOfRequests++;
     } while (retry);
 
     return response;

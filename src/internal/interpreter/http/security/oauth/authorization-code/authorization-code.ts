@@ -8,17 +8,19 @@ import { encodeBody, prepareRequest } from '../../utils';
 export enum AuthorizationCodeState {
   OK,
   REFRESHING,
+  //TODO: more states according to auth. process
 }
 
+//TODO: this shoul by in ast super.json/provider.json
 export type TempAuthorizationCodeConfiguration = {
-  //This could be in super.json or in provider.json integration parameters
+  //This could be in super.json or in provider.json
   clientId: string;
   clientSecret: string;
-  //Initial tokens - this will be in super.json - problem: how we will inform user/pass him new values
+  //Initial tokens - this will be in super.json - problem: how we will inform user/pass him new values?
   refreshToken: string;
-  accessToken: string;
+  accessToken?: string;
   //This will be in provider.json (stolen from postman and openAPI: https://swagger.io/specification/#oauth-flows-object )
-  authorizationUrl: string;
+  // authorizationUrl: string;
   tokenUrl: string;
   scopes: string[];
 };
@@ -29,27 +31,23 @@ export type TempAuthorizationCodeConfiguration = {
 export class AuthorizationCodeHandler {
   //implements ISecurityHandler {
   //This would hold the state/progress in the flow
-  // private state: AuthorizationCodeState
-
-  // private readonly resource
+  private state: AuthorizationCodeState;
 
   //This will be "configuration" property when we add oauth to ast package provider.json and super.json definitions
   //TODO: Pass o auth values in configuration (content of super.json and provider.json security)
   constructor(readonly configuration: TempAuthorizationCodeConfiguration) {
+    console.log('init with ', configuration);
     //For now we start at OK
-    // this.state = AuthorizationCodeState.OK;
+    this.state = AuthorizationCodeState.OK;
   }
   //TODO: here we would initialize the flow (get the first access token)
   //TODO: we will probably need a way to change url of of the request (like point to token enpoint instead of api resurce endpoint)
   prepare(parameters: RequestParameters, cache: AuthCache): HttpRequest {
     //Now we will just load access token from cache and add it as Bearer token. Or if we have it in we can check if token is expired.
     if (
-      cache.oauth?.authotizationCode &&
-      this.isAccessTokenExpired(cache.oauth.authotizationCode.expiresAt)
+      cache.oauth?.authotizationCode?.accessToken &&
+      !this.isAccessTokenExpired(cache.oauth.authotizationCode.expiresAt)
     ) {
-      //We should set up for refreshing of the token
-      return this.startRefreshing(parameters);
-    } else {
       return prepareRequest({
         ...parameters,
         headers: {
@@ -60,6 +58,9 @@ export class AuthorizationCodeHandler {
           }`,
         },
       });
+    } else {
+      //We should set up for refreshing of the token
+      return this.startRefreshing(parameters);
     }
   }
 
@@ -67,25 +68,42 @@ export class AuthorizationCodeHandler {
     response: HttpResponse,
     resourceRequestParameters: RequestParameters,
     cache: AuthCache
-  ): HttpRequest {
+  ): HttpRequest | undefined {
+    console.log('handle response', response);
     //Decide if we need to refresh token
     //TODO: can this be custom status code or even custom logic??
-    if (response.statusCode === 401) {
+    if (
+      this.state === AuthorizationCodeState.OK &&
+      response.statusCode === 401
+    ) {
       //Prepare refreshing token
       return this.startRefreshing(resourceRequestParameters);
     }
     //Handle refresh
     //TODO: can this be also custom?
-    if (response.statusCode === 201) {
+    if (
+      this.state === AuthorizationCodeState.REFRESHING &&
+      response.statusCode === 200
+    ) {
       //TODO: do this safely
       //Extract access token from body
       const accessToken = (response.body as Record<string, unknown>)
-        .accessToken;
-      const expiresIn = (response.body as Record<string, unknown>).expiresIn;
+        .access_token;
+      const expiresIn = (response.body as Record<string, unknown>).expires_in;
       const expiresAt = Math.floor(Date.now() / 1000) + Number(expiresIn);
-      const scopes = (response.body as Record<string, unknown>).scopes;
-      const tokenType = (response.body as Record<string, unknown>).tokenType;
+      const scopes = (response.body as Record<string, unknown>).scope;
+      const tokenType = (response.body as Record<string, unknown>).token_type;
 
+      console.log(
+        'extracted at',
+        accessToken,
+        ' eAt',
+        expiresAt,
+        ' scopes ',
+        scopes,
+        ' tt',
+        tokenType
+      );
       //Cache new token
       if (!cache.oauth) {
         cache.oauth = {};
@@ -96,6 +114,7 @@ export class AuthorizationCodeHandler {
         scopes: scopes as string[],
         tokenType: tokenType as string,
       };
+      this.state = AuthorizationCodeState.OK;
 
       return prepareRequest({
         ...resourceRequestParameters,
@@ -105,12 +124,12 @@ export class AuthorizationCodeHandler {
         },
       });
     }
-
-    throw new Error('Unreachable');
+    //Do nothing - this will lead to returning original response
+    return;
   }
 
   private startRefreshing(parameters: RequestParameters): HttpRequest {
-    // this.state = AuthorizationCodeState.REFRESHING
+    this.state = AuthorizationCodeState.REFRESHING;
 
     //TODO: custom content type, body and headers??
     const bodyAndHeaders = encodeBody(
@@ -129,11 +148,8 @@ export class AuthorizationCodeHandler {
       //TODO: custom method??
       method: 'post',
       body: bodyAndHeaders.body,
-      // queryParameters: variablesToStrings(parameters.queryParameters),
       url: createUrl(this.configuration.tokenUrl, {
         baseUrl: parameters.baseUrl,
-        // pathParameters,
-        // integrationParameters: parameters.integrationParameters
       }),
     };
     return request;
