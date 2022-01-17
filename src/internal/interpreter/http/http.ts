@@ -13,7 +13,6 @@ import { UnexpectedError } from '../../errors';
 import {
   missingPathReplacementError,
   missingSecurityValuesError,
-  unsupportedContentType,
 } from '../../errors.helpers';
 import {
   getValue,
@@ -21,29 +20,17 @@ import {
   Variables,
   variablesToStrings,
 } from '../variables';
-import {
-  BINARY_CONTENT_REGEXP,
-  BINARY_CONTENT_TYPES,
-  binaryBody,
-  FetchInstance,
-  FetchParameters,
-  FORMDATA_CONTENT,
-  formDataBody,
-  JSON_CONTENT,
-  stringBody,
-  URLENCODED_CONTENT,
-  urlSearchParamsBody,
-} from './interfaces';
+import { FetchInstance } from './interfaces';
 import {
   ApiKeyHandler,
   DigestHandler,
   HttpHandler,
   HttpRequest,
   ISecurityHandler,
-  RequestContext,
   RequestParameters,
   SecurityConfiguration,
 } from './security';
+import { prepareRequest } from './security/utils';
 
 const debug = createDebug('superface:http');
 const debugSensitive = createDebug('superface:http:sensitive');
@@ -134,15 +121,18 @@ export const createUrl = (
 };
 
 export class HttpClient {
-  constructor(private fetchInstance: FetchInstance & AuthCache) { }
+  constructor(private fetchInstance: FetchInstance & AuthCache) {}
 
-  private async makeRequest(options: {
-    url: string;
-    headers: Record<string, string>;
-    requestBody: Variables | undefined;
-    request: FetchParameters;
-  }): Promise<HttpResponse> {
-    const { url, headers, request } = options;
+  private async makeRequest(
+    request: HttpRequest
+    //   options: {
+    //   url: string;
+    //   headers: Record<string, string>;
+    //   requestBody: Variables | undefined;
+    //   request: FetchParameters;
+    // }
+  ): Promise<HttpResponse> {
+    // const { url, headers, request } = options;
     debug('Executing HTTP Call');
     // secrets might appear in headers, url path, query parameters or body
     if (debugSensitive.enabled) {
@@ -152,18 +142,17 @@ export class HttpClient {
       debugSensitive(
         '\t%s %s%s HTTP/1.1',
         request.method || 'UNKNOWN METHOD',
-        url,
+        request.url,
         hasSearchParams ? '?' + searchParams.toString() : ''
       );
-
-      Object.entries(headers).forEach(([headerName, value]) =>
+      Object.entries(request.headers || {}).forEach(([headerName, value]) =>
         debugSensitive(`\t${headerName}: ${value}`)
       );
       if (request.body !== undefined) {
         debugSensitive(`\n${inspect(request.body, true, 5)}`);
       }
     }
-    const response = await this.fetchInstance.fetch(url, request);
+    const response = await this.fetchInstance.fetch(request.url, request);
 
     debug('Received response');
     if (debugSensitive.enabled) {
@@ -180,9 +169,10 @@ export class HttpClient {
       headers: response.headers,
       debug: {
         request: {
-          url: url,
-          headers,
-          body: request.body
+          url: request.url,
+          //FIX:
+          headers: {}, // request.headers || {},
+          body: request.body,
         },
       },
     };
@@ -208,13 +198,14 @@ export class HttpClient {
     let retry = true;
     const headers = variablesToStrings(parameters?.headers);
     headers['accept'] = parameters.accept || '*/*';
+    headers['user-agent'] ??= USER_AGENT;
 
     // const request: FetchParameters = {
     //   headers,
     //   method: parameters.method,
     // };
 
-    const queryAuth: Record<string, string> = {};
+    // const queryAuth: Record<string, string> = {};
     // const requestBody = parameters.body;
     // const pathParameters = { ...parameters.pathParameters };
 
@@ -225,17 +216,21 @@ export class HttpClient {
     //   pathParameters,
     //   requestBody,
     // };
-    //Prepare security
-    const requestParameters: RequestParameters = {
-      url: parameters.baseUrl,
+    const resourceRequestParameters: RequestParameters = {
+      url,
       baseUrl: parameters.baseUrl,
       integrationParameters: parameters.integrationParameters,
       pathParameters: parameters.pathParameters,
       body: parameters.body,
       contentType: parameters.contentType,
       method: parameters.method,
-      headers
-    }
+      headers,
+    };
+    //Prepare request without any auth
+    let request = prepareRequest(resourceRequestParameters);
+    //Add auth
+    //TODO: this approach is problematic - it will be hard to do multiple auth. methods at once (eg. digest and oauth).
+    //For now we ignore the problem
     for (const requirement of parameters.securityRequirements ?? []) {
       const configuration = securityConfiguration.find(
         configuration => configuration.id === requirement.id
@@ -246,92 +241,103 @@ export class HttpClient {
 
       if (configuration.type === SecurityType.APIKEY) {
         const handler = new ApiKeyHandler(configuration);
-        handler.prepare(requestParameters);
+        request = handler.prepare(resourceRequestParameters);
         securityHandlers.push(handler);
       } else if (configuration.scheme === HttpScheme.DIGEST) {
         const handler = new DigestHandler(configuration);
-        handler.prepare(contextForSecurity, this.fetchInstance);
+        request = handler.prepare(
+          resourceRequestParameters,
+          this.fetchInstance
+        );
         securityHandlers.push(handler);
       } else {
         const handler = new HttpHandler(configuration);
-        handler.prepare(contextForSecurity);
+        request = handler.prepare(resourceRequestParameters);
         securityHandlers.push(handler);
       }
     }
-    //Prepare the actual call
     let response: HttpResponse;
 
     do {
-      if (
-        parameters.body &&
-        ['post', 'put', 'patch'].includes(parameters.method.toLowerCase())
-      ) {
-        if (parameters.contentType === JSON_CONTENT) {
-          headers['Content-Type'] ??= JSON_CONTENT;
-          request.body = stringBody(JSON.stringify(requestBody));
-        } else if (parameters.contentType === URLENCODED_CONTENT) {
-          headers['Content-Type'] ??= URLENCODED_CONTENT;
-          request.body = urlSearchParamsBody(variablesToStrings(requestBody));
-        } else if (parameters.contentType === FORMDATA_CONTENT) {
-          headers['Content-Type'] ??= FORMDATA_CONTENT;
-          request.body = formDataBody(variablesToStrings(requestBody));
-        } else if (
-          parameters.contentType &&
-          BINARY_CONTENT_REGEXP.test(parameters.contentType)
-        ) {
-          headers['Content-Type'] ??= parameters.contentType;
-          let buffer: Buffer;
-          if (Buffer.isBuffer(requestBody)) {
-            buffer = requestBody;
-          } else {
-            //coerce to string then buffer
-            buffer = Buffer.from(String(requestBody));
-          }
-          request.body = binaryBody(buffer);
-        } else {
-          const contentType = parameters.contentType ?? '';
-          const supportedTypes = [
-            JSON_CONTENT,
-            URLENCODED_CONTENT,
-            FORMDATA_CONTENT,
-            ...BINARY_CONTENT_TYPES,
-          ];
+      // if (
+      //   parameters.body &&
+      //   ['post', 'put', 'patch'].includes(parameters.method.toLowerCase())
+      // ) {
+      //   if (parameters.contentType === JSON_CONTENT) {
+      //     headers['Content-Type'] ??= JSON_CONTENT;
+      //     request.body = stringBody(JSON.stringify(requestBody));
+      //   } else if (parameters.contentType === URLENCODED_CONTENT) {
+      //     headers['Content-Type'] ??= URLENCODED_CONTENT;
+      //     request.body = urlSearchParamsBody(variablesToStrings(requestBody));
+      //   } else if (parameters.contentType === FORMDATA_CONTENT) {
+      //     headers['Content-Type'] ??= FORMDATA_CONTENT;
+      //     request.body = formDataBody(variablesToStrings(requestBody));
+      //   } else if (
+      //     parameters.contentType &&
+      //     BINARY_CONTENT_REGEXP.test(parameters.contentType)
+      //   ) {
+      //     headers['Content-Type'] ??= parameters.contentType;
+      //     let buffer: Buffer;
+      //     if (Buffer.isBuffer(requestBody)) {
+      //       buffer = requestBody;
+      //     } else {
+      //       //coerce to string then buffer
+      //       buffer = Buffer.from(String(requestBody));
+      //     }
+      //     request.body = binaryBody(buffer);
+      //   } else {
+      //     const contentType = parameters.contentType ?? '';
+      //     const supportedTypes = [
+      //       JSON_CONTENT,
+      //       URLENCODED_CONTENT,
+      //       FORMDATA_CONTENT,
+      //       ...BINARY_CONTENT_TYPES,
+      //     ];
 
-          throw unsupportedContentType(contentType, supportedTypes);
-        }
-      }
-      headers['user-agent'] ??= USER_AGENT;
+      //     throw unsupportedContentType(contentType, supportedTypes);
+      //   }
+      // }
 
-      const finalUrl = createUrl(url, {
-        baseUrl: parameters.baseUrl,
-        pathParameters,
-        integrationParameters: parameters.integrationParameters,
-      });
+      // const finalUrl = createUrl(url, {
+      //   baseUrl: parameters.baseUrl,
+      //   pathParameters,
+      //   integrationParameters: parameters.integrationParameters,
+      // });
 
-      request.queryParameters = {
-        ...variablesToStrings(parameters.queryParameters),
-        ...queryAuth,
-      };
-      if (contextForSecurity.method) {
-        request.method = contextForSecurity.method;
-      }
-      response = await this.makeRequest({
-        url: contextForSecurity.url || finalUrl,
-        headers,
-        requestBody,
-        request,
-      });
+      // request.queryParameters = {
+      //   ...variablesToStrings(parameters.queryParameters),
+      //   ...queryAuth,
+      // };
+      // if (contextForSecurity.method) {
+      //   request.method = contextForSecurity.method;
+      // }
+      response = await this.makeRequest(
+        request
+        //   {
+        //   url: contextForSecurity.url || finalUrl,
+        //   headers,
+        //   requestBody,
+        //   request,
+        // }
+      );
       //TODO: or call handle on all the handers (with defined handle)?
       const handler = securityHandlers.find(h => h.handle !== undefined);
       //If we have handle we use it to get new values for api call and new retry value
       if (handler && handler.handle) {
-        retry = handler.handle(
+        const retryRequest = handler.handle(
           response,
-          finalUrl,
-          request.method,
-          contextForSecurity,
+          resourceRequestParameters,
+          // finalUrl,
+          // request.method,
+          // contextForSecurity,
           this.fetchInstance
         );
+        if (retryRequest) {
+          request = retryRequest;
+          retry = true;
+        } else {
+          retry = false;
+        }
       } else {
         retry = false;
       }

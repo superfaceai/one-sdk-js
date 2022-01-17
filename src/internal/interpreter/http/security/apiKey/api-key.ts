@@ -17,12 +17,12 @@ import { encodeBody } from '../utils';
 export class ApiKeyHandler implements ISecurityHandler {
   constructor(
     readonly configuration: ApiKeySecurityScheme & ApiKeySecurityValues
-  ) { }
+  ) {}
 
   prepare(context: RequestParameters): HttpRequest {
-    let body: Variables = context.body ?? {};
-    let headers: Record<string, string> = context.headers
-    let pathParameters = context.pathParameters ?? {}
+    let body: Variables | undefined = context.body;
+    let headers: Record<string, string> = context.headers;
+    let pathParameters = context.pathParameters ?? {};
     const queryAuth: Record<string, string> = {};
 
     const name = this.configuration.name || DEFAULT_AUTHORIZATION_HEADER_NAME;
@@ -34,7 +34,7 @@ export class ApiKeyHandler implements ISecurityHandler {
 
       case ApiKeyPlacement.BODY:
         body = applyApiKeyAuthInBody(
-          body,
+          body || {},
           name.startsWith('/') ? name.slice(1).split('/') : [name],
           this.configuration.apikey
         );
@@ -49,7 +49,7 @@ export class ApiKeyHandler implements ISecurityHandler {
         break;
     }
 
-    const bodyAndHeaders = encodeBody(context.contentType, body, headers)
+    const bodyAndHeaders = encodeBody(context.contentType, body, headers);
 
     const request: HttpRequest = {
       headers: bodyAndHeaders.headers,
@@ -62,10 +62,10 @@ export class ApiKeyHandler implements ISecurityHandler {
       url: createUrl(context.url, {
         baseUrl: context.baseUrl,
         pathParameters,
-        integrationParameters: context.integrationParameters
-      })
-    }
-    return request
+        integrationParameters: context.integrationParameters,
+      }),
+    };
+    return request;
   }
 }
 

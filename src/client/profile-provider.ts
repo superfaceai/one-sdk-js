@@ -40,7 +40,6 @@ import {
 } from '../internal/interpreter';
 import { FetchInstance } from '../internal/interpreter/http/interfaces';
 import { SecurityConfiguration } from '../internal/interpreter/http/security';
-import { AuthorizationCodeState } from '../internal/interpreter/http/security/oauth/authorization-code/authorization-code';
 import {
   castToNonPrimitive,
   mergeVariables,
@@ -57,7 +56,7 @@ import { ProfileConfiguration } from './profile';
 import { ProviderConfiguration } from './provider';
 import { fetchBind, fetchMapSource, fetchProviderInfo } from './registry';
 
-function forceCast<T>(_: unknown): asserts _ is T { }
+function forceCast<T>(_: unknown): asserts _ is T {}
 
 function profileAstId(ast: ProfileDocumentNode): string {
   return ast.header.scope !== undefined
@@ -70,17 +69,18 @@ const boundProfileProviderDebug = createDebug(
 );
 //TODO: Move this to src/internal/interpreter/http/security?
 export type AuthCache = {
-  digest?: string, oauth?: {
+  digest?: string;
+  oauth?: {
     authotizationCode?: {
-      handlerState: AuthorizationCodeState
+      // handlerState: AuthorizationCodeState
       //Actual credentials - also refresh token?
-      accessToken: string
-      expiresAt: number
+      accessToken: string;
+      expiresAt: number;
       // expiresIn: number
-      tokenType: string //or enum?
-      scopes: string[]
-    }
-  }
+      tokenType: string; //or enum?
+      scopes: string[];
+    };
+  };
 };
 
 export class BoundProfileProvider {
@@ -374,7 +374,7 @@ export class ProfileProvider {
         baseUrl,
         profileProviderSettings:
           this.superJson.normalized.profiles[profileId]?.providers[
-          providerInfo.name
+            providerInfo.name
           ],
         security: securityConfiguration,
         parameters: this.resolveIntegrationParameters(

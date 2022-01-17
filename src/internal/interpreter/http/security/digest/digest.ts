@@ -8,9 +8,15 @@ import {
   missingPartOfDigestHeader,
   unexpectedDigestValue,
 } from '../../../../errors.helpers';
-import { HttpResponse } from '../../http';
-import { DEFAULT_AUTHORIZATION_HEADER_NAME, ISecurityHandler } from '..';
-import { RequestContext } from '../interfaces';
+import { createUrl, HttpResponse } from '../../http';
+import {
+  DEFAULT_AUTHORIZATION_HEADER_NAME,
+  HttpRequest,
+  ISecurityHandler,
+  RequestParameters,
+} from '..';
+import { Variables, variablesToStrings } from '../../../variables';
+import { encodeBody, prepareRequest } from '../utils';
 
 const debug = createDebug('superface:http:digest');
 const debugSensitive = createDebug('superface:http:digest:sensitive');
@@ -66,7 +72,11 @@ export class DigestHandler implements ISecurityHandler {
     );
   }
 
-  prepare(context: RequestContext, cache: AuthCache): void {
+  prepare(context: RequestParameters, cache: AuthCache): HttpRequest {
+    let body: Variables | undefined = context.body;
+    let headers: Record<string, string> = context.headers;
+    let pathParameters = context.pathParameters ?? {};
+
     if (cache?.digest) {
       debugSensitive(`Using cached digest credentials`);
       context.headers[
@@ -74,15 +84,30 @@ export class DigestHandler implements ISecurityHandler {
           DEFAULT_AUTHORIZATION_HEADER_NAME
       ] = cache.digest;
     }
+    const bodyAndHeaders = encodeBody(context.contentType, body, headers);
+
+    const request: HttpRequest = {
+      headers: bodyAndHeaders.headers,
+      method: context.method,
+      body: bodyAndHeaders.body,
+      queryParameters: variablesToStrings(context.queryParameters),
+      url: createUrl(context.url, {
+        baseUrl: context.baseUrl,
+        pathParameters,
+        integrationParameters: context.integrationParameters,
+      }),
+    };
+    return request;
   }
 
   handle(
     response: HttpResponse,
-    url: string,
-    method: string,
-    context: RequestContext,
+    resourceRequestParameters: RequestParameters,
+    // url: string,
+    // method: string,
+    // context: RequestContext,
     cache: AuthCache
-  ): boolean {
+  ): HttpRequest | undefined {
     if (response.statusCode === this.statusCode) {
       if (!response.headers[this.challangeHeader]) {
         throw digestHeaderNotFound(
@@ -92,20 +117,24 @@ export class DigestHandler implements ISecurityHandler {
       }
       debugSensitive(`Getting new digest values`);
       const credentials = this.buildDigestAuth(
-        url,
-        method,
+        //We need actual resolved url
+        response.debug.request.url,
+        resourceRequestParameters.method,
         this.extractDigestValues(response.headers[this.challangeHeader])
       );
-      context.headers[
-        this.configuration.authorizationHeader ||
-          DEFAULT_AUTHORIZATION_HEADER_NAME
-      ] = credentials;
       cache.digest = credentials;
 
-      return true;
+      return prepareRequest({
+        ...resourceRequestParameters,
+        headers: {
+          ...resourceRequestParameters.headers,
+          [this.configuration.authorizationHeader ||
+          DEFAULT_AUTHORIZATION_HEADER_NAME]: credentials,
+        },
+      });
     }
 
-    return false;
+    return undefined;
   }
 
   /**

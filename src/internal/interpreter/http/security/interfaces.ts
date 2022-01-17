@@ -39,17 +39,23 @@ export interface ISecurityHandler {
    * @param cache this cache can hold credentials for some of the authentication methods eg. digest
    * @returns flag if we need to retry http request (with new settings applied)
    */
-  handle?(
-    response: HttpResponse,
-    url: string,
-    method: string,
-    context: RequestContext,
-    cache: AuthCache
-  ): boolean;
-
+  // handle?(
+  //   response: HttpResponse,
+  //   url: string,
+  //   method: string,
+  //   context: RequestContext,
+  //   cache: AuthCache
+  // ): boolean;
 
   //New prepare
   prepare(parameters: RequestParameters, cache: AuthCache): HttpRequest;
+  //New handle
+  handle?(
+    response: HttpResponse,
+    //Request to original resource endpoint - needed in oauth when we need to switch majority of request parameters
+    resourceRequestParameters: RequestParameters,
+    cache: AuthCache
+  ): HttpRequest | undefined;
 }
 
 export type SecurityConfiguration =
@@ -67,8 +73,8 @@ export type RequestContext = {
 
 export type RequestParameters = {
   //Url
-  url: string,
-  baseUrl: string,
+  url: string;
+  baseUrl: string;
   integrationParameters?: Record<string, string>;
   pathParameters?: NonPrimitive;
   //Body related
@@ -79,4 +85,4 @@ export type RequestParameters = {
   method: string;
 };
 
-export type HttpRequest = FetchParameters & { url: string }
+export type HttpRequest = FetchParameters & { url: string };
