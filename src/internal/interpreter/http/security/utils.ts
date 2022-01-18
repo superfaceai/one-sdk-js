@@ -54,7 +54,6 @@ export function encodeBody(
     }
   }
 
-  console.log(' in body,', body, ' fin ', finalBody);
   return { body: finalBody, headers: finalHeaders };
 }
 

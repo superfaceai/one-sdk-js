@@ -241,6 +241,7 @@ export class HttpClient {
       tokenUrl: '/oauth2/v4/token',
       refreshToken: process.env['GOOGLE_CLIENT_REFRESH_TOKEN'] || '',
       scopes: [],
+      authorizationUrl: '',
     };
     const handler = new AuthorizationCodeHandler(config);
     request = handler.prepare(resourceRequestParameters, this.fetchInstance);

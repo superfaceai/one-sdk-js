@@ -1,13 +1,19 @@
 import { HttpRequest, RequestParameters } from '../..';
 import { UnexpectedError } from '../../../../..';
+import { Variables } from '../../../../variables';
 import { createUrl, HttpResponse } from '../../../http';
 import { URLENCODED_CONTENT } from '../../../interfaces';
 import { AuthCache, DEFAULT_AUTHORIZATION_HEADER_NAME } from '../../interfaces';
 import { encodeBody, prepareRequest } from '../../utils';
 
 export enum OAuthTokenType {
-  BEARER = 'bearer',
+  BEARER = 'Bearer',
   MAC = 'mac',
+}
+
+export enum OAuthClienAuthenticationMethod {
+  CLIENT_SECRET_BASIC = 'client_secret_basic',
+  CLIENT_SECRET_POST = 'client_secret_post',
 }
 export enum AuthorizationCodeState {
   OK,
@@ -15,7 +21,7 @@ export enum AuthorizationCodeState {
   //TODO: more states according to auth. process
 }
 
-//TODO: this shoul by in ast super.json/provider.json
+//TODO: this should by in ast super.json/provider.json
 export type TempAuthorizationCodeConfiguration = {
   //This could be in super.json or in provider.json
   clientId: string;
@@ -26,12 +32,17 @@ export type TempAuthorizationCodeConfiguration = {
   accessToken?: string;
   tokenType?: OAuthTokenType;
   //This will be in provider.json (stolen from postman and openAPI: https://swagger.io/specification/#oauth-flows-object )
-  // authorizationUrl: string;
+  //TODO: when working with urls - make them absolute or use base url from provider json?
+  authorizationUrl: string;
+  refreshUrl?: string;
   tokenUrl: string;
   scopes: string[];
 
-  //Custom oauth properties
+  clientAuthenticationMethod?: OAuthClienAuthenticationMethod;
+  //Customized oauth properties
   statusCode?: number;
+  //TODO: other customizable properties
+  //header??
 };
 
 /**
@@ -42,16 +53,24 @@ export class AuthorizationCodeHandler {
   //This would hold the state/progress in the flow
   private state: AuthorizationCodeState;
 
+  //TODO: naming
+  private readonly statusCode: number;
+  private readonly clientAuthenticationMathod: OAuthClienAuthenticationMethod;
+
   //This will be "configuration" property when we add oauth to ast package provider.json and super.json definitions
   //TODO: Pass o auth values in configuration (content of super.json and provider.json security)
   constructor(readonly configuration: TempAuthorizationCodeConfiguration) {
-    console.log('init with ', configuration);
     //For now we start at OK
     this.state = AuthorizationCodeState.OK;
+    this.statusCode = configuration.statusCode ?? 401;
+    //Basic must be supported according to rfc
+    this.clientAuthenticationMathod =
+      configuration.clientAuthenticationMethod ??
+      OAuthClienAuthenticationMethod.CLIENT_SECRET_BASIC;
   }
   //TODO: here we would initialize the flow (get the first access token)
   prepare(parameters: RequestParameters, cache: AuthCache): HttpRequest {
-    //Now we will just load access token from cache and add it as Bearer token. Or if we have it in we can check if token is expired.
+    //Now we will just load access token from cache and add it as Bearer token. Or if we have it in cache we can check if token is expired.
     if (
       cache.oauth?.authotizationCode?.accessToken &&
       !this.isAccessTokenExpired(cache.oauth.authotizationCode.expiresAt)
@@ -61,10 +80,9 @@ export class AuthorizationCodeHandler {
         headers: {
           ...parameters.headers,
           //TODO: set header according to tokenType
-          [DEFAULT_AUTHORIZATION_HEADER_NAME]: `Bearer ${
-            cache.oauth?.authotizationCode?.accessToken ||
+          [DEFAULT_AUTHORIZATION_HEADER_NAME]: `Bearer ${cache.oauth?.authotizationCode?.accessToken ||
             this.configuration.accessToken
-          }`,
+            }`,
         },
       });
     } else {
@@ -79,10 +97,9 @@ export class AuthorizationCodeHandler {
     cache: AuthCache
   ): HttpRequest | undefined {
     //Decide if we need to refresh token
-    //TODO: can this be custom status code or even custom logic??
     if (
       this.state === AuthorizationCodeState.OK &&
-      response.statusCode === 401
+      response.statusCode === this.statusCode
     ) {
       //Prepare refreshing token
       return this.startRefreshing(resourceRequestParameters);
@@ -103,6 +120,7 @@ export class AuthorizationCodeHandler {
       };
 
       if (!accessTokenResponse.access_token) {
+        //TODO: move to error helpers
         throw new UnexpectedError(
           `Missing property "access_token" in response body`,
           accessTokenResponse
@@ -117,8 +135,8 @@ export class AuthorizationCodeHandler {
       }
 
       if (
-        accessTokenResponse.token_type !== OAuthTokenType.BEARER &&
-        accessTokenResponse.token_type !== OAuthTokenType.MAC
+        accessTokenResponse.token_type !== OAuthTokenType.BEARER //&&
+        // accessTokenResponse.token_type !== OAuthTokenType.MAC
       ) {
         throw new UnexpectedError(
           `Property "token_type" has invalid value`,
@@ -159,23 +177,32 @@ export class AuthorizationCodeHandler {
   private startRefreshing(parameters: RequestParameters): HttpRequest {
     this.state = AuthorizationCodeState.REFRESHING;
 
+    let body: Variables = {
+      //grant_type and refresh_token is defined in rfc.
+      grant_type: 'refresh_token',
+      refresh_token: this.configuration.refreshToken,
+      //We are omiting scope to ensure that user is not extending his access
+    };
+    let headers: Record<string, string> = {};
+
+    if (
+      this.clientAuthenticationMathod ===
+      OAuthClienAuthenticationMethod.CLIENT_SECRET_BASIC
+    ) {
+      headers[DEFAULT_AUTHORIZATION_HEADER_NAME] =
+        'Basic ' +
+        Buffer.from(
+          `${this.configuration.clientId}:${this.configuration.clientSecret}`
+        ).toString('base64');
+    } else {
+      body.client_id = this.configuration.clientId;
+      body.client_secret = this.configuration.clientSecret;
+    }
     //TODO: custom content type, body and headers??
-    const bodyAndHeaders = encodeBody(
-      URLENCODED_CONTENT,
-      {
-        //grant_type and refresh_token is defined in rfc.
-        grant_type: 'refresh_token',
-        refresh_token: this.configuration.refreshToken,
-        client_id: this.configuration.clientId,
-        client_secret: this.configuration.clientSecret,
-        //We are omiting scope to ensure that user is not extending his access
-      },
-      {}
-    );
+    const bodyAndHeaders = encodeBody(URLENCODED_CONTENT, body, headers);
 
     const request: HttpRequest = {
       headers: bodyAndHeaders.headers,
-      //TODO: custom method??
       method: 'post',
       body: bodyAndHeaders.body,
       url: createUrl(this.configuration.tokenUrl, {
