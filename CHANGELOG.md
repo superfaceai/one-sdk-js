@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2022-01-19
 ### Added
 - Added support for service selection in http calls
 
@@ -280,7 +281,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Profile parameter validator
 - CI/CD workflows
 
-[Unreleased]: https://github.com/superfaceai/one-sdk-js/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/superfaceai/one-sdk-js/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/superfaceai/one-sdk-js/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/superfaceai/one-sdk-js/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/superfaceai/one-sdk-js/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.40...v1.0.0
