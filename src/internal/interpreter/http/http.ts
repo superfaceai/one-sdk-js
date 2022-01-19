@@ -3,6 +3,12 @@ import createDebug from 'debug';
 import { inspect } from 'util';
 
 import { USER_AGENT } from '../../../index';
+import {
+  eventInterceptor,
+  Events,
+  Interceptable,
+  InterceptableMetadata,
+} from '../../../lib/events';
 import { recursiveKeyList } from '../../../lib/object';
 import { UnexpectedError } from '../../errors';
 import { missingPathReplacementError } from '../../errors.helpers';
@@ -16,14 +22,10 @@ import { FetchInstance } from './interfaces';
 import {
   AuthCache,
   HttpRequest,
-  ISecurityHandler,
   RequestParameters,
   SecurityConfiguration,
 } from './security';
-import {
-  AuthorizationCodeHandler,
-  TempAuthorizationCodeConfiguration,
-} from './security/oauth/authorization-code/authorization-code';
+import { registerSecurityHooks } from './security/authenticate';
 import { prepareRequest } from './security/utils';
 
 const debug = createDebug('superface:http');
@@ -114,10 +116,90 @@ export const createUrl = (
   return baseUrl.replace(/\/+$/, '') + url;
 };
 
-export class HttpClient {
-  constructor(private fetchInstance: FetchInstance & AuthCache) {}
+export class HttpClient implements Interceptable {
+  public metadata:
+    | (InterceptableMetadata & {
+      resourceRequest?: RequestParameters;
+      previousResponse?: HttpResponse;
+    })
+    | undefined;
+  public events: Events | undefined;
 
-  private async makeRequest(request: HttpRequest): Promise<HttpResponse> {
+  constructor(
+    //TODO: make this nice?
+    private fetchInstance: FetchInstance & Interceptable & AuthCache
+  ) {
+    this.metadata = fetchInstance.metadata;
+    //TODO: handle this in some sane way
+    if (!this.fetchInstance.events) {
+      throw new Error('Missing events');
+    }
+
+    this.events = this.fetchInstance.events;
+  }
+
+  @eventInterceptor({ eventName: 'request', placement: 'around' })
+  //TODO: cache and security should be pass directly to event handler somehow
+  private async makeRequest(parameters: RequestParameters): Promise<HttpResponse> {
+    // const securityConfiguration = parameters.securityConfiguration ?? [];
+
+    //Prepare request without any auth
+    //Add auth
+    //TODO: this approach is problematic - it will be hard to do multiple auth. methods at once (eg. digest and oauth).
+    //For now we ignore the problem
+    // for (const requirement of parameters.securityRequirements ?? []) {
+    //   const configuration = securityConfiguration.find(
+    //     configuration => configuration.id === requirement.id
+    //   );
+    //   if (configuration === undefined) {
+    //     throw missingSecurityValuesError(requirement.id);
+    //   }
+
+    //   if (configuration.type === SecurityType.APIKEY) {
+    //     const handler = new ApiKeyHandler(configuration);
+    //     request = handler.prepare(resourceRequestParameters);
+    //     securityHandlers.push(handler);
+    //   } else if (configuration.scheme === HttpScheme.DIGEST) {
+    //     const handler = new DigestHandler(configuration);
+    //     request = handler.prepare(
+    //       resourceRequestParameters,
+    //       this.fetchInstance
+    //     );
+    //     securityHandlers.push(handler);
+    //   } else {
+    //     const handler = new HttpHandler(configuration);
+    //     request = handler.prepare(resourceRequestParameters);
+    //     securityHandlers.push(handler);
+    //   }
+    // }
+
+    //TODO: REMOVE
+    //Test the oauth
+    // const config: TempAuthorizationCodeConfiguration = {
+    //   clientId: process.env['GOOGLE_CLIENT_ID'] || '',
+    //   clientSecret: process.env['GOOGLE_CLIENT_SECRET'] || '',
+    //   tokenUrl: '/oauth2/v4/token',
+    //   refreshToken: process.env['GOOGLE_CLIENT_REFRESH_TOKEN'] || '',
+    //   scopes: [],
+    //   authorizationUrl: '',
+    // };
+    // const handler = new AuthorizationCodeHandler(config);
+    // request = handler.prepare(parameters, this.fetchInstance);
+    const request = prepareRequest(parameters);
+
+
+    //Actual fetch
+    const response = await this.fetchRequest(request);
+
+    if (!this.metadata) {
+      this.metadata = {};
+    }
+    this.metadata.previousResponse = response;
+
+    return response;
+  }
+
+  private async fetchRequest(request: HttpRequest): Promise<HttpResponse> {
     debug('Executing HTTP Call');
     // secrets might appear in headers, url path, query parameters or body
     if (debugSensitive.enabled) {
@@ -183,14 +265,15 @@ export class HttpClient {
       integrationParameters?: Record<string, string>;
     }
   ): Promise<HttpResponse> {
-    const securityHandlers: ISecurityHandler[] = [];
-    let retry = true;
-    let numberOfRequests = 0;
+    registerSecurityHooks(
+      this.events!,
+      this.fetchInstance,
+      parameters.securityConfiguration || [],
+      parameters.securityRequirements || []
+    );
     const headers = variablesToStrings(parameters?.headers);
     headers['accept'] = parameters.accept || '*/*';
     headers['user-agent'] ??= USER_AGENT;
-
-    // const securityConfiguration = parameters.securityConfiguration ?? [];
 
     const resourceRequestParameters: RequestParameters = {
       url,
@@ -202,82 +285,11 @@ export class HttpClient {
       method: parameters.method,
       headers,
     };
-    //Prepare request without any auth
-    let request = prepareRequest(resourceRequestParameters);
-    //Add auth
-    //TODO: this approach is problematic - it will be hard to do multiple auth. methods at once (eg. digest and oauth).
-    //For now we ignore the problem
-    // for (const requirement of parameters.securityRequirements ?? []) {
-    //   const configuration = securityConfiguration.find(
-    //     configuration => configuration.id === requirement.id
-    //   );
-    //   if (configuration === undefined) {
-    //     throw missingSecurityValuesError(requirement.id);
-    //   }
+    if (!this.metadata) {
+      this.metadata = {};
+    }
+    this.metadata.resourceRequest = resourceRequestParameters;
 
-    //   if (configuration.type === SecurityType.APIKEY) {
-    //     const handler = new ApiKeyHandler(configuration);
-    //     request = handler.prepare(resourceRequestParameters);
-    //     securityHandlers.push(handler);
-    //   } else if (configuration.scheme === HttpScheme.DIGEST) {
-    //     const handler = new DigestHandler(configuration);
-    //     request = handler.prepare(
-    //       resourceRequestParameters,
-    //       this.fetchInstance
-    //     );
-    //     securityHandlers.push(handler);
-    //   } else {
-    //     const handler = new HttpHandler(configuration);
-    //     request = handler.prepare(resourceRequestParameters);
-    //     securityHandlers.push(handler);
-    //   }
-    // }
-
-    //TODO: REMOVE
-    //Test the oauth
-    const config: TempAuthorizationCodeConfiguration = {
-      clientId: process.env['GOOGLE_CLIENT_ID'] || '',
-      clientSecret: process.env['GOOGLE_CLIENT_SECRET'] || '',
-      tokenUrl: '/oauth2/v4/token',
-      refreshToken: process.env['GOOGLE_CLIENT_REFRESH_TOKEN'] || '',
-      scopes: [],
-      authorizationUrl: '',
-    };
-    const handler = new AuthorizationCodeHandler(config);
-    request = handler.prepare(resourceRequestParameters, this.fetchInstance);
-    securityHandlers.push(handler as unknown as ISecurityHandler);
-    let response: HttpResponse;
-
-    do {
-      response = await this.makeRequest(request);
-      //TODO: or call handle on all the handers (with defined handle)?
-      const handler = securityHandlers.find(h => h.handle !== undefined);
-      //If we have handle we use it to get new values for api call and new retry value
-      if (handler && handler.handle) {
-        const retryRequest = handler.handle(
-          response,
-          resourceRequestParameters,
-          this.fetchInstance
-        );
-        if (retryRequest) {
-          request = retryRequest;
-          retry = true;
-        } else {
-          retry = false;
-        }
-      } else {
-        retry = false;
-      }
-      //numeric limit to avoid inf. loop
-      //TODO: this could be env. variable
-      if (numberOfRequests > 5) {
-        throw new UnexpectedError(
-          'Exceded number of calls - risk of falling into infinite loop'
-        );
-      }
-      numberOfRequests++;
-    } while (retry);
-
-    return response;
+    return this.makeRequest(resourceRequestParameters);
   }
 }

@@ -1,10 +1,13 @@
-import { HttpRequest, RequestParameters } from '../..';
+import { RequestParameters } from '../..';
 import { UnexpectedError } from '../../../../..';
+import {
+  AfterHookResult,
+  BeforeHookResult,
+} from '../../../../../../lib/events';
 import { Variables } from '../../../../variables';
-import { createUrl, HttpResponse } from '../../../http';
+import { createUrl, HttpClient, HttpResponse } from '../../../http';
 import { URLENCODED_CONTENT } from '../../../interfaces';
 import { AuthCache, DEFAULT_AUTHORIZATION_HEADER_NAME } from '../../interfaces';
-import { encodeBody, prepareRequest } from '../../utils';
 
 export enum OAuthTokenType {
   BEARER = 'Bearer',
@@ -38,8 +41,8 @@ export type TempAuthorizationCodeConfiguration = {
   tokenUrl: string;
   scopes: string[];
 
-  clientAuthenticationMethod?: OAuthClienAuthenticationMethod;
   //Customized oauth properties
+  clientAuthenticationMethod?: OAuthClienAuthenticationMethod;
   statusCode?: number;
   //TODO: other customizable properties
   //header??
@@ -69,13 +72,17 @@ export class AuthorizationCodeHandler {
       OAuthClienAuthenticationMethod.CLIENT_SECRET_BASIC;
   }
   //TODO: here we would initialize the flow (get the first access token)
-  prepare(parameters: RequestParameters, cache: AuthCache): HttpRequest {
+  prepare(
+    parameters: RequestParameters,
+    cache: AuthCache
+  ): BeforeHookResult<InstanceType<typeof HttpClient>['makeRequest']> {
     //Now we will just load access token from cache and add it as Bearer token. Or if we have it in cache we can check if token is expired.
+    let newArgs;
     if (
       cache.oauth?.authotizationCode?.accessToken &&
       !this.isAccessTokenExpired(cache.oauth.authotizationCode.expiresAt)
     ) {
-      return prepareRequest({
+      newArgs = {
         ...parameters,
         headers: {
           ...parameters.headers,
@@ -84,25 +91,36 @@ export class AuthorizationCodeHandler {
             this.configuration.accessToken
             }`,
         },
-      });
+      };
     } else {
       //Set up for refreshing of the token
-      return this.startRefreshing(parameters);
+      newArgs = this.startRefreshing(parameters);
     }
+
+    return {
+      kind: 'modify',
+      newArgs: [newArgs],
+    };
   }
 
   handle(
-    response: HttpResponse,
-    resourceRequestParameters: RequestParameters,
+    response: HttpResponse | undefined,
+    resourceRequestParameters: RequestParameters | undefined,
     cache: AuthCache
-  ): HttpRequest | undefined {
+  ): AfterHookResult<InstanceType<typeof HttpClient>['makeRequest']> {
+    if (!response || !resourceRequestParameters) {
+      return { kind: 'continue' };
+    }
     //Decide if we need to refresh token
     if (
       this.state === AuthorizationCodeState.OK &&
       response.statusCode === this.statusCode
     ) {
       //Prepare refreshing token
-      return this.startRefreshing(resourceRequestParameters);
+      return {
+        kind: 'retry',
+        newArgs: [this.startRefreshing(resourceRequestParameters)]
+      }
     }
     //Handle refresh
     if (
@@ -161,20 +179,26 @@ export class AuthorizationCodeHandler {
       };
       this.state = AuthorizationCodeState.OK;
 
-      return prepareRequest({
-        ...resourceRequestParameters,
-        headers: {
-          ...resourceRequestParameters.headers,
-          //TODO: prepare header according to token type
-          [DEFAULT_AUTHORIZATION_HEADER_NAME]: `Bearer ${cache.oauth?.authotizationCode?.accessToken}`,
-        },
-      });
+      return {
+        kind: 'retry',
+        newArgs: [
+          {
+            ...resourceRequestParameters,
+            headers: {
+              ...resourceRequestParameters.headers,
+              //TODO: prepare header according to token type
+              [DEFAULT_AUTHORIZATION_HEADER_NAME]: `Bearer ${cache.oauth?.authotizationCode?.accessToken}`,
+            },
+          },
+        ],
+      };
     }
     //Do nothing - this will lead to returning original response
-    return;
+    return { kind: 'continue' };
   }
 
-  private startRefreshing(parameters: RequestParameters): HttpRequest {
+  private startRefreshing(parameters: RequestParameters): RequestParameters {
+    console.log('refereshing');
     this.state = AuthorizationCodeState.REFRESHING;
 
     let body: Variables = {
@@ -198,18 +222,30 @@ export class AuthorizationCodeHandler {
       body.client_id = this.configuration.clientId;
       body.client_secret = this.configuration.clientSecret;
     }
-    //TODO: custom content type, body and headers??
-    const bodyAndHeaders = encodeBody(URLENCODED_CONTENT, body, headers);
 
-    const request: HttpRequest = {
-      headers: bodyAndHeaders.headers,
+    return {
       method: 'post',
-      body: bodyAndHeaders.body,
-      url: createUrl(this.configuration.tokenUrl, {
+      headers,
+      body,
+      contentType: URLENCODED_CONTENT,
+      baseUrl: createUrl(this.configuration.tokenUrl, {
         baseUrl: parameters.baseUrl,
       }),
+      url: '',
     };
-    return request;
+
+    //TODO: custom content type, body and headers??
+    // const bodyAndHeaders = encodeBody(URLENCODED_CONTENT, body, headers);
+
+    // const request: HttpRequest = {
+    //   headers: bodyAndHeaders.headers,
+    //   method: 'post',
+    //   body: bodyAndHeaders.body,
+    //   url: createUrl(this.configuration.tokenUrl, {
+    //     baseUrl: parameters.baseUrl,
+    //   }),
+    // };
+    // return request;
   }
 
   private isAccessTokenExpired(expiresAt?: number): boolean {
