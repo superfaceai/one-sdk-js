@@ -1,26 +1,26 @@
-import { HttpRequest, RequestParameters } from './interfaces';
 import { unsupportedContentType } from '../../../errors.helpers';
 import { Variables, variablesToStrings } from '../../variables';
 import { createUrl } from '../http';
 import {
-  binaryBody,
   BINARY_CONTENT_REGEXP,
   BINARY_CONTENT_TYPES,
+  binaryBody,
   FetchBody,
-  formDataBody,
   FORMDATA_CONTENT,
+  formDataBody,
   JSON_CONTENT,
   stringBody,
   URLENCODED_CONTENT,
   urlSearchParamsBody,
 } from '../interfaces';
+import { HttpRequest, RequestParameters } from './interfaces';
 
 export function encodeBody(
   contentType: string | undefined,
   body: Variables | undefined,
   headers: Record<string, string>
 ): { body: FetchBody | undefined; headers: Record<string, string> } {
-  let finalHeaders = headers;
+  const finalHeaders = headers;
   let finalBody: FetchBody | undefined;
   if (body) {
     if (contentType === JSON_CONTENT) {
@@ -58,9 +58,9 @@ export function encodeBody(
 }
 
 export function prepareRequest(parameters: RequestParameters): HttpRequest {
-  let body: Variables | undefined = parameters.body;
-  let headers: Record<string, string> = parameters.headers;
-  let pathParameters = parameters.pathParameters ?? {};
+  const body: Variables | undefined = parameters.body;
+  const headers: Record<string, string> = parameters.headers;
+  const pathParameters = parameters.pathParameters ?? {};
 
   const bodyAndHeaders = encodeBody(parameters.contentType, body, headers);
 
@@ -75,5 +75,6 @@ export function prepareRequest(parameters: RequestParameters): HttpRequest {
       integrationParameters: parameters.integrationParameters,
     }),
   };
-  return request;
+  
+return request;
 }

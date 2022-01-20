@@ -3,11 +3,11 @@ import {
   HttpSecurityRequirement,
   SecurityType,
 } from '@superfaceai/ast';
-import { ApiKeyHandler, DigestHandler, HttpHandler, ISecurityHandler } from '.';
+
 import { Events } from '../../../../lib/events';
 import { missingSecurityValuesError } from '../../../errors.helpers';
+import { ApiKeyHandler, DigestHandler, HttpHandler, ISecurityHandler } from '.';
 import { AuthCache, SecurityConfiguration } from './interfaces';
-
 import { OAuthHandler } from './oauth/oauth';
 
 export function registerAuthenticationHooks(

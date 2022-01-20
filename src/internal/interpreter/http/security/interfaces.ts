@@ -1,7 +1,4 @@
-import { OAuthSecurityScheme, OAuthTokenType } from '@superfaceai/ast';
-import { OAuthSecurityValues } from '@superfaceai/ast';
-import {
-  ApiKeySecurityScheme,
+import {   ApiKeySecurityScheme,
   ApiKeySecurityValues,
   BasicAuthSecurityScheme,
   BasicAuthSecurityValues,
@@ -9,9 +6,10 @@ import {
   BearerTokenSecurityValues,
   DigestSecurityScheme,
   DigestSecurityValues,
-} from '@superfaceai/ast';
-import { AfterHookResult, BeforeHookResult } from '../../../../lib/events';
+OAuthSecurityScheme, OAuthSecurityValues ,
+OAuthTokenType , } from '@superfaceai/ast';
 
+import { AfterHookResult, BeforeHookResult } from '../../../../lib/events';
 import { NonPrimitive, Variables } from '../../variables';
 import { HttpClient, HttpResponse } from '../http';
 import { FetchParameters } from '../interfaces';

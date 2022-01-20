@@ -4,11 +4,12 @@ import {
   OAuthSecurityValues,
   OAuthTokenType,
 } from '@superfaceai/ast';
-import { AuthCache, AuthCacheAuthorizationCode } from '..';
-import { createUrl, HttpResponse } from '../..';
+
 import { UnexpectedError } from '../../../../errors';
 import { Variables } from '../../../variables';
+import { createUrl, HttpResponse } from '../..';
 import { URLENCODED_CONTENT } from '../../interfaces';
+import { AuthCache, AuthCacheAuthorizationCode } from '..';
 import {
   DEFAULT_AUTHORIZATION_HEADER_NAME,
   RequestParameters,
@@ -75,7 +76,8 @@ export class RefreshHelper {
     ) {
       return true;
     }
-    return false;
+    
+return false;
   }
 
   stopRefreshing(
@@ -87,7 +89,7 @@ export class RefreshHelper {
       //200 is defined by rfc
       response.statusCode === 200
     ) {
-      console.log('response body', response.body)
+      console.log('response body', response.body);
       //Extract access token info from body
       const accessTokenResponse = response.body as {
         access_token: string;
@@ -131,25 +133,26 @@ export class RefreshHelper {
           : undefined,
         scopes: accessTokenResponse.scope
           ? //TODO: custom separator
-          accessTokenResponse.scope.split(' ')
+            accessTokenResponse.scope.split(' ')
           : [],
         tokenType: accessTokenResponse.token_type,
       };
     }
-    return undefined;
+    
+return undefined;
   }
 
   startRefreshing(parameters: RequestParameters): RequestParameters {
     console.log('refereshing');
     this.state = RefreshState.REFRESHING;
 
-    let body: Variables = {
+    const body: Variables = {
       //grant_type and refresh_token is defined in rfc.
       grant_type: 'refresh_token',
-      refresh_token: this.configuration.refreshToken!,
+      refresh_token: this.configuration.refreshToken,
       //We are omiting scope to ensure that user is not extending his access
     };
-    let headers: Record<string, string> = {};
+    const headers: Record<string, string> = {};
 
     if (
       this.clientAuthenticationMethod ===
@@ -183,6 +186,7 @@ export class RefreshHelper {
       return false;
     }
     const currentTime = Math.floor(Date.now() / 1000);
-    return currentTime >= expiresAt;
+    
+return currentTime >= expiresAt;
   }
 }

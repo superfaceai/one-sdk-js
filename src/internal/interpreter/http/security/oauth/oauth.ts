@@ -3,14 +3,15 @@ import {
   OAuthSecurityScheme,
   OAuthSecurityValues,
 } from '@superfaceai/ast';
+
 import { HttpResponse } from '../../http';
 import {
-  RequestParameters,
+  AffterHookAuthResult,
   AuthCache,
   BeforeHookAuthResult,
-  AffterHookAuthResult,
-  ISecurityHandler,
   DEFAULT_AUTHORIZATION_HEADER_NAME,
+  ISecurityHandler,
+  RequestParameters,
 } from '../interfaces';
 import { RefreshHelper } from './refresh';
 
@@ -37,6 +38,7 @@ export class OAuthHandler implements ISecurityHandler {
 
     //TODO: create instance of helper for selected flow.
   }
+
   prepare(
     parameters: RequestParameters,
     cache: AuthCache
@@ -50,6 +52,7 @@ export class OAuthHandler implements ISecurityHandler {
     //TODO: use selected flow helper
     return { kind: 'continue' };
   }
+
   handle(
     response: HttpResponse,
     resourceRequestParameters: RequestParameters,

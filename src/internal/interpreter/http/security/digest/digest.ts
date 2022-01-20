@@ -75,7 +75,7 @@ export class DigestHandler implements ISecurityHandler {
     parameters: RequestParameters,
     cache: AuthCache
   ): BeforeHookAuthResult {
-    let headers: Record<string, string> = parameters.headers;
+    const headers: Record<string, string> = parameters.headers;
 
     if (cache?.digest) {
       debugSensitive(`Using cached digest credentials`);
@@ -89,7 +89,8 @@ export class DigestHandler implements ISecurityHandler {
       ...parameters,
       headers,
     };
-    return { kind: 'modify', newArgs: [request] };
+    
+return { kind: 'modify', newArgs: [request] };
   }
 
   handle(

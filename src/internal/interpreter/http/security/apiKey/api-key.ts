@@ -22,6 +22,7 @@ export class ApiKeyHandler implements ISecurityHandler {
   constructor(
     readonly configuration: ApiKeySecurityScheme & ApiKeySecurityValues
   ) {}
+
   handle(
     _response: HttpResponse,
     _resourceRequestParameters: RequestParameters,
@@ -32,8 +33,8 @@ export class ApiKeyHandler implements ISecurityHandler {
 
   prepare(parameters: RequestParameters): BeforeHookAuthResult {
     let body: Variables | undefined = parameters.body;
-    let headers: Record<string, string> = parameters.headers;
-    let pathParameters = parameters.pathParameters ?? {};
+    const headers: Record<string, string> = parameters.headers;
+    const pathParameters = parameters.pathParameters ?? {};
     const queryAuth: Record<string, string> = {};
 
     const name = this.configuration.name || DEFAULT_AUTHORIZATION_HEADER_NAME;
@@ -67,7 +68,8 @@ export class ApiKeyHandler implements ISecurityHandler {
       queryParameters: queryAuth,
       body,
     };
-    return {
+    
+return {
       kind: 'modify',
       newArgs: [request],
     };

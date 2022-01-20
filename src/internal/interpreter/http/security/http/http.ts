@@ -1,6 +1,6 @@
 import { HttpScheme, SecurityType } from '@superfaceai/ast';
-import { HttpResponse } from '../../http';
 
+import { HttpResponse } from '../../http';
 import {
   DEFAULT_AUTHORIZATION_HEADER_NAME,
   ISecurityHandler,
@@ -17,6 +17,7 @@ export class HttpHandler implements ISecurityHandler {
   constructor(
     readonly configuration: SecurityConfiguration & { type: SecurityType.HTTP }
   ) {}
+
   handle(
     _response: HttpResponse,
     _resourceRequestParameters: RequestParameters,
@@ -26,7 +27,7 @@ export class HttpHandler implements ISecurityHandler {
   }
 
   prepare(parameters: RequestParameters): BeforeHookAuthResult {
-    let headers: Record<string, string> = parameters.headers;
+    const headers: Record<string, string> = parameters.headers;
 
     switch (this.configuration.scheme) {
       case HttpScheme.BASIC:
@@ -45,7 +46,8 @@ export class HttpHandler implements ISecurityHandler {
       ...parameters,
       headers,
     };
-    return { kind: 'modify', newArgs: [request] };
+    
+return { kind: 'modify', newArgs: [request] };
   }
 }
 

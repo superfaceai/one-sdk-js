@@ -123,6 +123,7 @@ export class HttpClient implements Interceptable {
         previousResponse?: HttpResponse;
       })
     | undefined;
+
   public events: Events | undefined;
 
   constructor(
@@ -188,7 +189,7 @@ export class HttpClient implements Interceptable {
       debugSensitive('\n\t%j', response.body);
     }
 
-    let headers: Record<string, string> = {};
+    const headers: Record<string, string> = {};
     Object.entries(request.headers ?? {}).forEach(([key, value]) => {
       headers[key] = Array.isArray(value) ? value.join(' ') : value;
     });
