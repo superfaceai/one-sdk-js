@@ -1,24 +1,32 @@
 import { HttpScheme, SecurityType } from '@superfaceai/ast';
-import { createUrl } from '../..';
-import { Variables, variablesToStrings } from '../../../variables';
+import { HttpResponse } from '../../http';
 
 import {
   DEFAULT_AUTHORIZATION_HEADER_NAME,
   ISecurityHandler,
   SecurityConfiguration,
 } from '../../security';
-import { HttpRequest, RequestParameters } from '../interfaces';
-import { encodeBody } from '../utils';
+import {
+  AffterHookAuthResult,
+  AuthCache,
+  BeforeHookAuthResult,
+  RequestParameters,
+} from '../interfaces';
 
 export class HttpHandler implements ISecurityHandler {
   constructor(
     readonly configuration: SecurityConfiguration & { type: SecurityType.HTTP }
   ) {}
+  handle(
+    _response: HttpResponse,
+    _resourceRequestParameters: RequestParameters,
+    _cache: AuthCache
+  ): AffterHookAuthResult {
+    return { kind: 'continue' };
+  }
 
-  prepare(context: RequestParameters): HttpRequest {
-    let body: Variables | undefined = context.body;
-    let headers: Record<string, string> = context.headers;
-    let pathParameters = context.pathParameters ?? {};
+  prepare(parameters: RequestParameters): BeforeHookAuthResult {
+    let headers: Record<string, string> = parameters.headers;
 
     switch (this.configuration.scheme) {
       case HttpScheme.BASIC:
@@ -33,20 +41,11 @@ export class HttpHandler implements ISecurityHandler {
         break;
     }
 
-    const bodyAndHeaders = encodeBody(context.contentType, body, headers);
-
-    const request: HttpRequest = {
-      headers: bodyAndHeaders.headers,
-      method: context.method,
-      body: bodyAndHeaders.body,
-      queryParameters: variablesToStrings(context.queryParameters),
-      url: createUrl(context.url, {
-        baseUrl: context.baseUrl,
-        pathParameters,
-        integrationParameters: context.integrationParameters,
-      }),
+    const request: RequestParameters = {
+      ...parameters,
+      headers,
     };
-    return request;
+    return { kind: 'modify', newArgs: [request] };
   }
 }
 

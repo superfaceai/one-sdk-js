@@ -5,24 +5,35 @@ import {
 } from '@superfaceai/ast';
 
 import { apiKeyInBodyError } from '../../../../errors.helpers';
-import { Variables, variablesToStrings } from '../../../variables';
-import { createUrl } from '../../http';
+import { Variables } from '../../../variables';
+import { HttpResponse } from '../../http';
 import {
   DEFAULT_AUTHORIZATION_HEADER_NAME,
   ISecurityHandler,
 } from '../../security';
-import { HttpRequest, RequestParameters } from '../interfaces';
-import { encodeBody } from '../utils';
+import {
+  AffterHookAuthResult,
+  AuthCache,
+  BeforeHookAuthResult,
+  RequestParameters,
+} from '../interfaces';
 
 export class ApiKeyHandler implements ISecurityHandler {
   constructor(
     readonly configuration: ApiKeySecurityScheme & ApiKeySecurityValues
   ) {}
+  handle(
+    _response: HttpResponse,
+    _resourceRequestParameters: RequestParameters,
+    _cache: AuthCache
+  ): AffterHookAuthResult {
+    return { kind: 'continue' };
+  }
 
-  prepare(context: RequestParameters): HttpRequest {
-    let body: Variables | undefined = context.body;
-    let headers: Record<string, string> = context.headers;
-    let pathParameters = context.pathParameters ?? {};
+  prepare(parameters: RequestParameters): BeforeHookAuthResult {
+    let body: Variables | undefined = parameters.body;
+    let headers: Record<string, string> = parameters.headers;
+    let pathParameters = parameters.pathParameters ?? {};
     const queryAuth: Record<string, string> = {};
 
     const name = this.configuration.name || DEFAULT_AUTHORIZATION_HEADER_NAME;
@@ -49,23 +60,17 @@ export class ApiKeyHandler implements ISecurityHandler {
         break;
     }
 
-    const bodyAndHeaders = encodeBody(context.contentType, body, headers);
-
-    const request: HttpRequest = {
-      headers: bodyAndHeaders.headers,
-      method: context.method,
-      body: bodyAndHeaders.body,
-      queryParameters: {
-        ...variablesToStrings(context.queryParameters),
-        ...queryAuth,
-      },
-      url: createUrl(context.url, {
-        baseUrl: context.baseUrl,
-        pathParameters,
-        integrationParameters: context.integrationParameters,
-      }),
+    const request: RequestParameters = {
+      ...parameters,
+      headers,
+      pathParameters,
+      queryParameters: queryAuth,
+      body,
     };
-    return request;
+    return {
+      kind: 'modify',
+      newArgs: [request],
+    };
   }
 }
 

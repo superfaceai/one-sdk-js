@@ -43,50 +43,50 @@ type EventContextBase = {
 
 export type BeforeHookResult<Target extends AsyncFunction> = MaybePromise<
   | {
-    kind: 'continue';
-  }
+      kind: 'continue';
+    }
   | {
-    kind: 'modify';
-    newArgs: Parameters<Target>;
-  }
+      kind: 'modify';
+      newArgs: Parameters<Target>;
+    }
   | {
-    kind: 'abort';
-    newResult: ReturnType<Target>;
-  }
+      kind: 'abort';
+      newResult: ReturnType<Target>;
+    }
   | void
 >;
 
 export type BeforeHook<
   EventContext extends EventContextBase,
   Target extends AsyncFunction
-  > = (
-    context: EventContext,
-    args: Parameters<Target>
-  ) => BeforeHookResult<Target>;
+> = (
+  context: EventContext,
+  args: Parameters<Target>
+) => BeforeHookResult<Target>;
 
 export type AfterHookResult<Target extends AsyncFunction> = MaybePromise<
   | {
-    kind: 'continue';
-  }
+      kind: 'continue';
+    }
   | {
-    kind: 'modify';
-    newResult: ReturnType<Target>;
-  }
+      kind: 'modify';
+      newResult: ReturnType<Target>;
+    }
   | {
-    kind: 'retry';
-    newArgs?: Parameters<Target>;
-  }
+      kind: 'retry';
+      newArgs?: Parameters<Target>;
+    }
   | void
 >;
 
 export type AfterHook<
   EventContext extends EventContextBase,
   Target extends AsyncFunction
-  > = (
-    context: EventContext,
-    args: Parameters<Target>,
-    result: ReturnType<Target>
-  ) => AfterHookResult<Target>;
+> = (
+  context: EventContext,
+  args: Parameters<Target>,
+  result: ReturnType<Target>
+) => AfterHookResult<Target>;
 
 export type BindContext = EventContextBase & {
   profile: string;
@@ -146,7 +146,10 @@ type EventTypes = {
     InstanceType<typeof UseCase>['bindAndPerform'],
     BindContext
   ];
-  request: [InstanceType<typeof HttpClient>['makeRequest'], AuthenticateContext];
+  request: [
+    InstanceType<typeof HttpClient>['makeRequest'],
+    AuthenticateContext
+  ];
 };
 
 export type EventParams = {
@@ -224,7 +227,8 @@ export class Events {
         }
         const hookResult = await callback(...params);
         debug(
-          `Event "${event}" listener ${i} result: ${(hookResult?.kind ?? 'continue') as string
+          `Event "${event}" listener ${i} result: ${
+            (hookResult?.kind ?? 'continue') as string
           }`
         );
         if (hookResult === undefined || hookResult.kind === 'continue') {
@@ -263,9 +267,11 @@ function replacementFunction<E extends keyof EventTypes>(
     if (debug.enabled) {
       let metadataString = 'undefined';
       if (this.metadata !== undefined) {
-        metadataString = `{ profile: ${this.metadata.profile ?? 'undefined'
-          }, provider: ${this.metadata.provider ?? 'undefined'}, usecase: ${this.metadata.usecase ?? 'undefined'
-          } }`;
+        metadataString = `{ profile: ${
+          this.metadata.profile ?? 'undefined'
+        }, provider: ${this.metadata.provider ?? 'undefined'}, usecase: ${
+          this.metadata.usecase ?? 'undefined'
+        } }`;
       }
 
       let eventsString = 'undefined';
@@ -274,7 +280,8 @@ function replacementFunction<E extends keyof EventTypes>(
       }
 
       debug(
-        `Intercepted function for "${metadata.eventName}" (placement: ${metadata.placement ?? ''
+        `Intercepted function for "${metadata.eventName}" (placement: ${
+          metadata.placement ?? ''
         }) with context: { metadata: ${metadataString}, events: ${eventsString} }`
       );
     }
@@ -369,10 +376,10 @@ function replacementFunction<E extends keyof EventTypes>(
 export function eventInterceptor<E extends keyof EventTypes>(
   eventMetadata: EventMetadata<E>
 ): (
-    target: Interceptable,
-    propertyKey: string,
-    descriptor: TypedPropertyDescriptor<EventTypes[E][0]>
-  ) => PropertyDescriptor {
+  target: Interceptable,
+  propertyKey: string,
+  descriptor: TypedPropertyDescriptor<EventTypes[E][0]>
+) => PropertyDescriptor {
   return function (
     target: Interceptable,
     propertyKey: string,

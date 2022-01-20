@@ -87,9 +87,10 @@ export class AuthorizationCodeHandler {
         headers: {
           ...parameters.headers,
           //TODO: set header according to tokenType
-          [DEFAULT_AUTHORIZATION_HEADER_NAME]: `Bearer ${cache.oauth?.authotizationCode?.accessToken ||
+          [DEFAULT_AUTHORIZATION_HEADER_NAME]: `Bearer ${
+            cache.oauth?.authotizationCode?.accessToken ||
             this.configuration.accessToken
-            }`,
+          }`,
         },
       };
     } else {
@@ -119,8 +120,8 @@ export class AuthorizationCodeHandler {
       //Prepare refreshing token
       return {
         kind: 'retry',
-        newArgs: [this.startRefreshing(resourceRequestParameters)]
-      }
+        newArgs: [this.startRefreshing(resourceRequestParameters)],
+      };
     }
     //Handle refresh
     if (

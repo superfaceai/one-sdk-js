@@ -25,7 +25,7 @@ import {
   RequestParameters,
   SecurityConfiguration,
 } from './security';
-import { registerSecurityHooks } from './security/authenticate';
+import { registerAuthenticationHooks } from './security/authenticate';
 import { prepareRequest } from './security/utils';
 
 const debug = createDebug('superface:http');
@@ -119,9 +119,9 @@ export const createUrl = (
 export class HttpClient implements Interceptable {
   public metadata:
     | (InterceptableMetadata & {
-      resourceRequest?: RequestParameters;
-      previousResponse?: HttpResponse;
-    })
+        resourceRequest?: RequestParameters;
+        previousResponse?: HttpResponse;
+      })
     | undefined;
   public events: Events | undefined;
 
@@ -138,55 +138,13 @@ export class HttpClient implements Interceptable {
     this.events = this.fetchInstance.events;
   }
 
+  //This is basicaly just handling authnetication and passing response to metadata
   @eventInterceptor({ eventName: 'request', placement: 'around' })
   //TODO: cache and security should be pass directly to event handler somehow
-  private async makeRequest(parameters: RequestParameters): Promise<HttpResponse> {
-    // const securityConfiguration = parameters.securityConfiguration ?? [];
-
-    //Prepare request without any auth
-    //Add auth
-    //TODO: this approach is problematic - it will be hard to do multiple auth. methods at once (eg. digest and oauth).
-    //For now we ignore the problem
-    // for (const requirement of parameters.securityRequirements ?? []) {
-    //   const configuration = securityConfiguration.find(
-    //     configuration => configuration.id === requirement.id
-    //   );
-    //   if (configuration === undefined) {
-    //     throw missingSecurityValuesError(requirement.id);
-    //   }
-
-    //   if (configuration.type === SecurityType.APIKEY) {
-    //     const handler = new ApiKeyHandler(configuration);
-    //     request = handler.prepare(resourceRequestParameters);
-    //     securityHandlers.push(handler);
-    //   } else if (configuration.scheme === HttpScheme.DIGEST) {
-    //     const handler = new DigestHandler(configuration);
-    //     request = handler.prepare(
-    //       resourceRequestParameters,
-    //       this.fetchInstance
-    //     );
-    //     securityHandlers.push(handler);
-    //   } else {
-    //     const handler = new HttpHandler(configuration);
-    //     request = handler.prepare(resourceRequestParameters);
-    //     securityHandlers.push(handler);
-    //   }
-    // }
-
-    //TODO: REMOVE
-    //Test the oauth
-    // const config: TempAuthorizationCodeConfiguration = {
-    //   clientId: process.env['GOOGLE_CLIENT_ID'] || '',
-    //   clientSecret: process.env['GOOGLE_CLIENT_SECRET'] || '',
-    //   tokenUrl: '/oauth2/v4/token',
-    //   refreshToken: process.env['GOOGLE_CLIENT_REFRESH_TOKEN'] || '',
-    //   scopes: [],
-    //   authorizationUrl: '',
-    // };
-    // const handler = new AuthorizationCodeHandler(config);
-    // request = handler.prepare(parameters, this.fetchInstance);
+  private async makeRequest(
+    parameters: RequestParameters
+  ): Promise<HttpResponse> {
     const request = prepareRequest(parameters);
-
 
     //Actual fetch
     const response = await this.fetchRequest(request);
@@ -265,7 +223,8 @@ export class HttpClient implements Interceptable {
       integrationParameters?: Record<string, string>;
     }
   ): Promise<HttpResponse> {
-    registerSecurityHooks(
+    //We register auth hooks
+    registerAuthenticationHooks(
       this.events!,
       this.fetchInstance,
       parameters.securityConfiguration || [],
@@ -275,6 +234,7 @@ export class HttpClient implements Interceptable {
     headers['accept'] = parameters.accept || '*/*';
     headers['user-agent'] ??= USER_AGENT;
 
+    //Prepare resource request
     const resourceRequestParameters: RequestParameters = {
       url,
       baseUrl: parameters.baseUrl,
@@ -285,6 +245,7 @@ export class HttpClient implements Interceptable {
       method: parameters.method,
       headers,
     };
+    //Add resource request to (hooks) metadata
     if (!this.metadata) {
       this.metadata = {};
     }

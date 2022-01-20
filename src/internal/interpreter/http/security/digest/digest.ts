@@ -7,16 +7,15 @@ import {
   missingPartOfDigestHeader,
   unexpectedDigestValue,
 } from '../../../../errors.helpers';
-import { createUrl, HttpResponse } from '../../http';
+import { HttpResponse } from '../../http';
 import {
+  AffterHookAuthResult,
   AuthCache,
+  BeforeHookAuthResult,
   DEFAULT_AUTHORIZATION_HEADER_NAME,
-  HttpRequest,
   ISecurityHandler,
   RequestParameters,
 } from '..';
-import { Variables, variablesToStrings } from '../../../variables';
-import { encodeBody, prepareRequest } from '../utils';
 
 const debug = createDebug('superface:http:digest');
 const debugSensitive = createDebug('superface:http:digest:sensitive');
@@ -72,42 +71,32 @@ export class DigestHandler implements ISecurityHandler {
     );
   }
 
-  prepare(context: RequestParameters, cache: AuthCache): HttpRequest {
-    let body: Variables | undefined = context.body;
-    let headers: Record<string, string> = context.headers;
-    let pathParameters = context.pathParameters ?? {};
+  prepare(
+    parameters: RequestParameters,
+    cache: AuthCache
+  ): BeforeHookAuthResult {
+    let headers: Record<string, string> = parameters.headers;
 
     if (cache?.digest) {
       debugSensitive(`Using cached digest credentials`);
-      context.headers[
+      headers[
         this.configuration.authorizationHeader ||
           DEFAULT_AUTHORIZATION_HEADER_NAME
       ] = cache.digest;
     }
-    const bodyAndHeaders = encodeBody(context.contentType, body, headers);
 
-    const request: HttpRequest = {
-      headers: bodyAndHeaders.headers,
-      method: context.method,
-      body: bodyAndHeaders.body,
-      queryParameters: variablesToStrings(context.queryParameters),
-      url: createUrl(context.url, {
-        baseUrl: context.baseUrl,
-        pathParameters,
-        integrationParameters: context.integrationParameters,
-      }),
+    const request: RequestParameters = {
+      ...parameters,
+      headers,
     };
-    return request;
+    return { kind: 'modify', newArgs: [request] };
   }
 
   handle(
     response: HttpResponse,
     resourceRequestParameters: RequestParameters,
-    // url: string,
-    // method: string,
-    // context: RequestContext,
     cache: AuthCache
-  ): HttpRequest | undefined {
+  ): AffterHookAuthResult {
     if (response.statusCode === this.statusCode) {
       if (!response.headers[this.challangeHeader]) {
         throw digestHeaderNotFound(
@@ -124,14 +113,19 @@ export class DigestHandler implements ISecurityHandler {
       );
       cache.digest = credentials;
 
-      return prepareRequest({
-        ...resourceRequestParameters,
-        headers: {
-          ...resourceRequestParameters.headers,
-          [this.configuration.authorizationHeader ||
-          DEFAULT_AUTHORIZATION_HEADER_NAME]: credentials,
-        },
-      });
+      return {
+        kind: 'retry',
+        newArgs: [
+          {
+            ...resourceRequestParameters,
+            headers: {
+              ...resourceRequestParameters.headers,
+              [this.configuration.authorizationHeader ||
+              DEFAULT_AUTHORIZATION_HEADER_NAME]: credentials,
+            },
+          },
+        ],
+      };
     }
 
     return undefined;

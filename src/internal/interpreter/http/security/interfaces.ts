@@ -8,13 +8,21 @@ import {
   DigestSecurityScheme,
   DigestSecurityValues,
 } from '@superfaceai/ast';
+import { AfterHookResult, BeforeHookResult } from '../../../../lib/events';
 
 import { NonPrimitive, Variables } from '../../variables';
-import { HttpResponse } from '../http';
+import { HttpClient, HttpResponse } from '../http';
 import { FetchParameters } from '../interfaces';
 import { OAuthTokenType } from './oauth/authorization-code/authorization-code';
 
 export const DEFAULT_AUTHORIZATION_HEADER_NAME = 'Authorization';
+
+export type BeforeHookAuthResult = BeforeHookResult<
+  InstanceType<typeof HttpClient>['makeRequest']
+>;
+export type AffterHookAuthResult = AfterHookResult<
+  InstanceType<typeof HttpClient>['makeRequest']
+>;
 
 //TODO: Move this to src/internal/interpreter/http/security?
 export type AuthCache = {
@@ -40,38 +48,29 @@ export interface ISecurityHandler {
    * Hold SecurityConfiguration context for handling more complex authentizations
    */
   readonly configuration: SecurityConfiguration;
-  /**
-   * Prepares request context for making the api call.
-   * @param context context for making request this can be changed during preparation (eg. authorize header will be added)
-   * @param cache this cache can hold credentials for some of the authentication methods eg. digest
-   */
-  // prepare(context: RequestContext, cache: AuthCache): void;
-  /**
-   * Handles responses for more complex authentization methods (eg. digest)
-   * @param response response from http call - can contain challange
-   * @param url url of (possibly next) http call
-   * @param method method of (possibly next) http call
-   * @param context context for making (possibly next) request - this can be changed during preparation (eg. authorize header will be added)
-   * @param cache this cache can hold credentials for some of the authentication methods eg. digest
-   * @returns flag if we need to retry http request (with new settings applied)
-   */
-  // handle?(
-  //   response: HttpResponse,
-  //   url: string,
-  //   method: string,
-  //   context: RequestContext,
-  //   cache: AuthCache
-  // ): boolean;
 
-  //New prepare
-  prepare(parameters: RequestParameters, cache: AuthCache): HttpRequest;
-  //New handle
-  handle?(
+  /**
+   *  Prepares request parameters for making the api call.
+   * @param parameters resource request parameters
+   * @param cache this cache can hold credentials for some of the authentication methods eg. digest
+   */
+  prepare(
+    parameters: RequestParameters,
+    cache: AuthCache
+  ): BeforeHookAuthResult;
+
+  /**
+   * Handles responses. Useful in more complex authentization methods (eg. digest)
+   * @param response response from http call - can contain challange
+   * @param resourceRequestParameters original resource request parameters
+   * @param cache this cache can hold credentials for some of the authentication methods eg. digest
+   */
+  handle(
     response: HttpResponse,
     //Request to original resource endpoint - needed in oauth when we need to switch majority of request parameters
     resourceRequestParameters: RequestParameters,
     cache: AuthCache
-  ): HttpRequest | undefined;
+  ): AffterHookAuthResult;
 }
 
 export type SecurityConfiguration =
