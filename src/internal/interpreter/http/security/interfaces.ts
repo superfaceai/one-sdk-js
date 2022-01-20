@@ -1,3 +1,5 @@
+import { OAuthSecurityScheme, OAuthTokenType } from '@superfaceai/ast';
+import { OAuthSecurityValues } from '@superfaceai/ast';
 import {
   ApiKeySecurityScheme,
   ApiKeySecurityValues,
@@ -13,7 +15,6 @@ import { AfterHookResult, BeforeHookResult } from '../../../../lib/events';
 import { NonPrimitive, Variables } from '../../variables';
 import { HttpClient, HttpResponse } from '../http';
 import { FetchParameters } from '../interfaces';
-import { OAuthTokenType } from './oauth/authorization-code/authorization-code';
 
 export const DEFAULT_AUTHORIZATION_HEADER_NAME = 'Authorization';
 
@@ -24,19 +25,20 @@ export type AffterHookAuthResult = AfterHookResult<
   InstanceType<typeof HttpClient>['makeRequest']
 >;
 
+export type AuthCacheAuthorizationCode = {
+  //Actual credentials
+  accessToken: string;
+  refreshToken?: string;
+  //expiresIn is not required by rfc.
+  expiresAt?: number;
+  tokenType: OAuthTokenType;
+  scopes: string[];
+};
 //TODO: Move this to src/internal/interpreter/http/security?
 export type AuthCache = {
   digest?: string;
   oauth?: {
-    authotizationCode?: {
-      //Actual credentials
-      accessToken: string;
-      refreshToken?: string;
-      //expiresIn is not required by rfc.
-      expiresAt?: number;
-      tokenType: OAuthTokenType;
-      scopes: string[];
-    };
+    authotizationCode?: AuthCacheAuthorizationCode;
   };
 };
 
@@ -77,7 +79,8 @@ export type SecurityConfiguration =
   | (ApiKeySecurityScheme & ApiKeySecurityValues)
   | (BasicAuthSecurityScheme & BasicAuthSecurityValues)
   | (BearerTokenSecurityScheme & BearerTokenSecurityValues)
-  | (DigestSecurityScheme & DigestSecurityValues);
+  | (DigestSecurityScheme & DigestSecurityValues)
+  | (OAuthSecurityScheme & OAuthSecurityValues);
 
 export type RequestContext = {
   pathParameters: NonPrimitive;

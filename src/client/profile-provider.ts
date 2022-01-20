@@ -10,6 +10,7 @@ import {
   isFileURIString,
   isMapFile,
   isProfileFile,
+  isOAuthSecurityValues,
   MapDocumentNode,
   NormalizedProfileProviderSettings,
   prepareProviderParameters,
@@ -678,6 +679,14 @@ export class ProfileProvider {
           throw invalidSchemeValuesErrorBuilder(scheme, vals, ['apikey']);
         }
 
+        result.push({
+          ...scheme,
+          ...vals,
+        });
+      } else if (scheme.type === SecurityType.OAUTH) {
+        if (!isOAuthSecurityValues(vals)) {
+          throw invalidSchemeValuesErrorBuilder(scheme, vals, ['']);
+        }
         result.push({
           ...scheme,
           ...vals,
