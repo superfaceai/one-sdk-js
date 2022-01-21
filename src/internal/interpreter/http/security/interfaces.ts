@@ -1,4 +1,5 @@
-import {   ApiKeySecurityScheme,
+import {
+  ApiKeySecurityScheme,
   ApiKeySecurityValues,
   BasicAuthSecurityScheme,
   BasicAuthSecurityValues,
@@ -6,8 +7,10 @@ import {   ApiKeySecurityScheme,
   BearerTokenSecurityValues,
   DigestSecurityScheme,
   DigestSecurityValues,
-OAuthSecurityScheme, OAuthSecurityValues ,
-OAuthTokenType , } from '@superfaceai/ast';
+  OAuthSecurityScheme,
+  OAuthSecurityValues,
+  OAuthTokenType,
+} from '@superfaceai/ast';
 
 import { AfterHookResult, BeforeHookResult } from '../../../../lib/events';
 import { NonPrimitive, Variables } from '../../variables';
@@ -23,6 +26,7 @@ export type AffterHookAuthResult = AfterHookResult<
   InstanceType<typeof HttpClient>['makeRequest']
 >;
 
+//TODO: rename? it's not connected to specific flow
 export type AuthCacheAuthorizationCode = {
   //Actual credentials
   accessToken: string;

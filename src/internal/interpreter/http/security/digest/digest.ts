@@ -89,8 +89,8 @@ export class DigestHandler implements ISecurityHandler {
       ...parameters,
       headers,
     };
-    
-return { kind: 'modify', newArgs: [request] };
+
+    return { kind: 'modify', newArgs: [request] };
   }
 
   handle(

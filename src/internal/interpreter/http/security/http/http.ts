@@ -46,8 +46,8 @@ export class HttpHandler implements ISecurityHandler {
       ...parameters,
       headers,
     };
-    
-return { kind: 'modify', newArgs: [request] };
+
+    return { kind: 'modify', newArgs: [request] };
   }
 }
 

@@ -68,8 +68,8 @@ export class ApiKeyHandler implements ISecurityHandler {
       queryParameters: queryAuth,
       body,
     };
-    
-return {
+
+    return {
       kind: 'modify',
       newArgs: [request],
     };

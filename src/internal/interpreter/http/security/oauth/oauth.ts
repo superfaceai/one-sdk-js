@@ -17,6 +17,7 @@ import { RefreshHelper } from './refresh';
 
 export class OAuthHandler implements ISecurityHandler {
   private readonly selectedFlow: OAuthFlow;
+  //TODO: think about better refresh handling - must be sparated from actual flow helper
   private readonly refreshHelper: RefreshHelper | undefined;
 
   constructor(
@@ -74,7 +75,6 @@ export class OAuthHandler implements ISecurityHandler {
       this.refreshHelper.shouldStopRefreshing(response)
     ) {
       const newValues = this.refreshHelper.stopRefreshing(response);
-      console.log('new values', newValues);
       if (newValues) {
         if (!cache.oauth) {
           cache.oauth = {};
@@ -97,7 +97,6 @@ export class OAuthHandler implements ISecurityHandler {
         };
       }
     }
-    console.log('returning continue');
     //TODO: use selected flow helper
     return { kind: 'continue' };
   }

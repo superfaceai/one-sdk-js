@@ -75,6 +75,6 @@ export function prepareRequest(parameters: RequestParameters): HttpRequest {
       integrationParameters: parameters.integrationParameters,
     }),
   };
-  
-return request;
+
+  return request;
 }

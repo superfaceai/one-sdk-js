@@ -76,8 +76,8 @@ export class RefreshHelper {
     ) {
       return true;
     }
-    
-return false;
+
+    return false;
   }
 
   stopRefreshing(
@@ -138,8 +138,8 @@ return false;
         tokenType: accessTokenResponse.token_type,
       };
     }
-    
-return undefined;
+
+    return undefined;
   }
 
   startRefreshing(parameters: RequestParameters): RequestParameters {
@@ -186,7 +186,7 @@ return undefined;
       return false;
     }
     const currentTime = Math.floor(Date.now() / 1000);
-    
-return currentTime >= expiresAt;
+
+    return currentTime >= expiresAt;
   }
 }
