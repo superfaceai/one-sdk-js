@@ -26,7 +26,8 @@
     "lint:fix": "yarn lint --fix",
     "format": "prettier -c ./src",
     "format:fix": "prettier --write ./src",
-    "prepush": "yarn build && yarn test:clean && yarn lint && yarn format"
+    "prepush": "yarn build && yarn test:clean && yarn lint && yarn format",
+    "check_dependencies": "node scripts/check_dependencies.js"
   },
   "devDependencies": {
     "@types/debug": "^4.1.7",
