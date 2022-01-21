@@ -131,6 +131,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-yarn-
 
-      # Install and run license checker
+      # Install and run dependency checker
       - name: Check dependencies
         run: yarn check_dependencies
