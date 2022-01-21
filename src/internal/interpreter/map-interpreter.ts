@@ -28,6 +28,7 @@ import createDebug from 'debug';
 
 import { AuthCache } from '../..';
 import { err, ok, Result } from '../../lib';
+import { IServiceSelector } from '../../lib/services';
 import { UnexpectedError } from '../errors';
 import { MapInterpreterExternalHandler } from './external-handler';
 import { HttpClient, HttpResponse, SecurityConfiguration } from './http';
@@ -74,7 +75,7 @@ export interface MapParameters<
   usecase?: string;
   input?: TInput;
   parameters?: Record<string, string>;
-  serviceBaseUrl?: string;
+  services: IServiceSelector;
   security: SecurityConfiguration[];
 }
 
@@ -288,7 +289,9 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
   }
 
   async visitHttpCallStatementNode(node: HttpCallStatementNode): Promise<void> {
-    if (this.parameters.serviceBaseUrl === undefined) {
+    // if node.serviceId is undefined returns the default service, or undefined if no default service is defined
+    const serviceUrl = this.parameters.services.getUrl(node.serviceId);
+    if (serviceUrl === undefined) {
       throw new UnexpectedError(
         'Base url for a service not provided for HTTP call.'
       );
@@ -318,7 +321,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
         headers: request?.headers,
         contentType: request?.contentType ?? 'application/json',
         accept,
-        baseUrl: this.parameters.serviceBaseUrl,
+        baseUrl: serviceUrl,
         queryParameters: request?.queryParameters,
         pathParameters: this.variables,
         body: request?.body,

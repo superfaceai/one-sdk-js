@@ -1,4 +1,5 @@
 import {
+  ComlinkAssignmentNode,
   ComlinkListLiteralNode,
   ComlinkObjectLiteralNode,
   ComlinkPrimitiveLiteralNode,
@@ -141,6 +142,8 @@ export class ProfileParameterValidator implements ProfileVisitor {
         return this.visitComlinkObjectLiteralNode(node, kind, usecase);
       case 'ComlinkPrimitiveLiteral':
         return this.visitComlinkPrimitiveLiteralNode(node, kind, usecase);
+      case 'ComlinkAssignment':
+        return this.visitComlinkAssignmentNode(node, kind, usecase);
       case 'EnumDefinition':
         return this.visitEnumDefinitionNode(node, kind, usecase);
       case 'EnumValue':
@@ -175,11 +178,6 @@ export class ProfileParameterValidator implements ProfileVisitor {
         return this.visitUseCaseExampleNode(node, kind, usecase);
 
       default:
-        if (node.kind === 'ComlinkAssignment') {
-          throw new UnexpectedError(
-            'Visiting of ComlinkAssignment not implemented'
-          );
-        }
         assertUnreachable(node);
     }
   }
@@ -202,6 +200,14 @@ export class ProfileParameterValidator implements ProfileVisitor {
 
   visitComlinkPrimitiveLiteralNode(
     _node: ComlinkPrimitiveLiteralNode,
+    _kind: ProfileParameterKind,
+    _usecase: string
+  ): never {
+    throw new UnexpectedError('Method not implemented.');
+  }
+
+  visitComlinkAssignmentNode(
+    _node: ComlinkAssignmentNode,
     _kind: ProfileParameterKind,
     _usecase: string
   ): never {

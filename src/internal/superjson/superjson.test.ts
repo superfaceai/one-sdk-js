@@ -144,7 +144,8 @@ describe('SuperJson', () => {
     it('checks unknow input correctly', () => {
       const mockInput = {
         id: 'id',
-        digest: 'digest',
+        username: 'digest-user',
+        password: 'digest-password',
       };
       expect(isBearerTokenSecurityValues(mockInput)).toEqual(false);
     });
@@ -154,8 +155,8 @@ describe('SuperJson', () => {
     it('checks digest values input correctly', () => {
       const mockInput = {
         id: 'id',
-        username: 'right-digest-username',
-        password: 'right-digest-password',
+        username: 'digest-user',
+        password: 'digest-password',
       };
       expect(isDigestSecurityValues(mockInput)).toEqual(true);
     });
@@ -781,8 +782,8 @@ describe('SuperJson', () => {
               },
               {
                 "id": "myCustomScheme",
-                "username": "USER",
-                "password": "SECRET"
+                "username": "digest-user",
+                "password": "digest-password"
               }
             ]
           },
@@ -1268,7 +1269,7 @@ describe('SuperJson', () => {
       const mockRight: SecurityValues[] = [
         {
           id: 'right-digest-id',
-          username: 'right-digest-username',
+          username: 'right-digest-user',
           password: 'right-digest-password',
         },
       ];
@@ -1280,7 +1281,7 @@ describe('SuperJson', () => {
         },
         {
           id: 'right-digest-id',
-          username: 'right-digest-username',
+          username: 'right-digest-user',
           password: 'right-digest-password',
         },
       ]);
@@ -1294,7 +1295,7 @@ describe('SuperJson', () => {
         },
         {
           id: 'digest-id',
-          username: 'left-digest-username',
+          username: 'left-digest-user',
           password: 'left-digest-password',
         },
       ];
@@ -1302,7 +1303,7 @@ describe('SuperJson', () => {
       const mockRight: SecurityValues[] = [
         {
           id: 'digest-id',
-          username: 'right-digest-username',
+          username: 'right-digest-user',
           password: 'right-digest-password',
         },
       ];
@@ -1314,7 +1315,7 @@ describe('SuperJson', () => {
         },
         {
           id: 'digest-id',
-          username: 'right-digest-username',
+          username: 'right-digest-user',
           password: 'right-digest-password',
         },
       ]);
