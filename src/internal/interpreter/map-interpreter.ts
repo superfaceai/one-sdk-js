@@ -26,6 +26,7 @@ import {
 } from '@superfaceai/ast';
 import createDebug from 'debug';
 
+import { AuthCache } from '../..';
 import { err, ok, Result } from '../../lib';
 import { IServiceSelector } from '../../lib/services';
 import { UnexpectedError } from '../errors';
@@ -142,7 +143,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
       fetchInstance,
       externalHandler,
     }: {
-      fetchInstance: FetchInstance;
+      fetchInstance: FetchInstance & AuthCache;
       externalHandler?: MapInterpreterExternalHandler;
     }
   ) {

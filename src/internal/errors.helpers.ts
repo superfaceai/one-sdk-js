@@ -361,3 +361,47 @@ export function providersDoNotMatchError(
     []
   );
 }
+
+export function digestHeaderNotFound(
+  headerName: string,
+  foundHeaders: string[]
+): SDKExecutionError {
+  return new SDKExecutionError(
+    `Digest auth failed, unable to extract digest values from response. Header "${headerName}" not found in response headers.`,
+    [`Found headers: ${foundHeaders.join(', ')}.`],
+    [
+      `Check API documentation if it specifies challenge header`,
+      `You can set challenge header in provider.json`,
+    ]
+  );
+}
+
+export function missingPartOfDigestHeader(
+  headerName: string,
+  header: string,
+  part: string
+): SDKExecutionError {
+  return new SDKExecutionError(
+    `Digest auth failed, unable to extract digest values from response. Header "${headerName}" does not contain "${part}"`,
+    [
+      `Header: "${headerName}" with content: "${header}" does not contain part specifing: "${part}"`,
+    ],
+    []
+  );
+}
+
+export function unexpectedDigestValue(
+  valueName: string,
+  value: string,
+  possibleValues: string[]
+): SDKExecutionError {
+  return new SDKExecutionError(
+    `Digest auth failed, parameter "${valueName}" has unexpected value: "${value}"`,
+    [
+      `Digest auth failed, parameter "${valueName}" has unexpected value: "${value}". Supported values: ${possibleValues.join(
+        ', '
+      )}`,
+    ],
+    []
+  );
+}

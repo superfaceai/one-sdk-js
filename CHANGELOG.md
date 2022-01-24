@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Added support for service selection in http calls
+- Added support for digest authentication in http calls
 
 ## [1.2.1] - 2022-01-19
 
