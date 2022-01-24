@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.2.1] - 2022-01-19
 
+This is a recovery release after introduction of compatibility-breaking changes in version 1.2.0.
+
+- No changes since 1.1.0
+
 ## [1.1.0] - 2021-12-22
 ### Added
 - Pass integration parameters in `perform`
