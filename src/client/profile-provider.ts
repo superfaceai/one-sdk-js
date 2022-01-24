@@ -67,7 +67,7 @@ function profileAstId(ast: ProfileDocumentNode): string {
 const boundProfileProviderDebug = createDebug(
   'superface:bound-profile-provider'
 );
-export type AuthCache = { digest?: string };
+export type AuthCache = { digest?: Record<string, string> };
 
 export class BoundProfileProvider {
   // TODO: Interceptable and set metadata

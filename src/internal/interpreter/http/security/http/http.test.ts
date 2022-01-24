@@ -10,6 +10,7 @@ describe('HttpHandler', () => {
   describe('prepare', () => {
     it('sets header to correct value', () => {
       context = {
+        url: '',
         headers: {},
         pathParameters: {},
         queryAuth: {},
@@ -34,6 +35,7 @@ describe('HttpHandler', () => {
   describe('bearer', () => {
     it('sets header to correct value', () => {
       context = {
+        url: '',
         headers: {},
         pathParameters: {},
         queryAuth: {},

@@ -54,6 +54,7 @@ export type SecurityConfiguration =
   | (DigestSecurityScheme & DigestSecurityValues);
 
 export type RequestContext = {
+  url: string;
   pathParameters: NonPrimitive;
   queryAuth: Record<string, string>;
   headers: Record<string, string>;

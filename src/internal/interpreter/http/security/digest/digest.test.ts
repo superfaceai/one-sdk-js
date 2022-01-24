@@ -45,6 +45,7 @@ describe('DigestHandler', () => {
       type,
     };
     context = {
+      url: '/some/url',
       pathParameters: {},
       queryAuth: {},
       headers: {},
@@ -63,9 +64,18 @@ describe('DigestHandler', () => {
       expect(context.headers).toEqual({});
     });
 
+    it('does not change headers when cache is not empty but has different key', () => {
+      mockInstance = new DigestHandler(configuration);
+      mockInstance.prepare(context, {
+        digest: { ['/different/url']: 'blabla' },
+      });
+
+      expect(context.headers).toEqual({});
+    });
+
     it('changes default authorization header when cache is not empty', () => {
       mockInstance = new DigestHandler(configuration);
-      mockInstance.prepare(context, { digest: 'secret' });
+      mockInstance.prepare(context, { digest: { ['/some/url']: 'secret' } });
 
       expect(context.headers).toEqual({
         [DEFAULT_AUTHORIZATION_HEADER_NAME]: 'secret',
@@ -76,7 +86,7 @@ describe('DigestHandler', () => {
       configuration.authorizationHeader = 'custom';
 
       mockInstance = new DigestHandler(configuration);
-      mockInstance.prepare(context, { digest: 'secret' });
+      mockInstance.prepare(context, { digest: { ['/some/url']: 'secret' } });
 
       expect(context.headers).toEqual({ custom: 'secret' });
     });
@@ -322,7 +332,11 @@ describe('DigestHandler', () => {
         ),
       });
       expect(cache).toEqual({
-        digest: expect.stringContaining(`response="${digestResponse}"`),
+        digest: {
+          ['/some/url']: expect.stringContaining(
+            `response="${digestResponse}"`
+          ),
+        },
       });
     });
 
@@ -364,7 +378,11 @@ describe('DigestHandler', () => {
         Custom: expect.stringContaining(`response="${digestResponse}"`),
       });
       expect(cache).toEqual({
-        digest: expect.stringContaining(`response="${digestResponse}"`),
+        digest: {
+          ['/some/url']: expect.stringContaining(
+            `response="${digestResponse}"`
+          ),
+        },
       });
     });
 
@@ -377,7 +395,7 @@ describe('DigestHandler', () => {
         .update(`${username}:${mockRealm}:${password}`)
         .digest('hex');
       const h2 = createHash('MD5').update(`${method}:${mockUri}`).digest('hex');
-      const expectedResponse = createHash('MD5')
+      const digestResponse = createHash('MD5')
         .update(`${h1}:${mockNonce}:00000001:${mockCnonce}:${qop}:${h2}`)
         .digest('hex');
 
@@ -402,11 +420,15 @@ describe('DigestHandler', () => {
       expect(retry).toEqual(true);
       expect(context.headers).toEqual({
         [DEFAULT_AUTHORIZATION_HEADER_NAME]: expect.stringContaining(
-          `response="${expectedResponse}"`
+          `response="${digestResponse}"`
         ),
       });
       expect(cache).toEqual({
-        digest: expect.stringContaining(`response="${expectedResponse}"`),
+        digest: {
+          ['/some/url']: expect.stringContaining(
+            `response="${digestResponse}"`
+          ),
+        },
       });
     });
 
@@ -422,7 +444,7 @@ describe('DigestHandler', () => {
       const h2 = createHash(algorithm)
         .update(`${method}:${mockUri}`)
         .digest('hex');
-      const expectedResponse = createHash(algorithm)
+      const digestResponse = createHash(algorithm)
         .update(`${h1}:${mockNonce}:00000001:${mockCnonce}:${qop}:${h2}`)
         .digest('hex');
 
@@ -447,11 +469,15 @@ describe('DigestHandler', () => {
       expect(retry).toEqual(true);
       expect(context.headers).toEqual({
         [DEFAULT_AUTHORIZATION_HEADER_NAME]: expect.stringContaining(
-          `response="${expectedResponse}"`
+          `response="${digestResponse}"`
         ),
       });
       expect(cache).toEqual({
-        digest: expect.stringContaining(`response="${expectedResponse}"`),
+        digest: {
+          ['/some/url']: expect.stringContaining(
+            `response="${digestResponse}"`
+          ),
+        },
       });
     });
 
@@ -470,7 +496,7 @@ describe('DigestHandler', () => {
       const h2 = createHash(algorithm)
         .update(`${method}:${mockUri}`)
         .digest('hex');
-      const expectedResponse = createHash(algorithm)
+      const digestResponse = createHash(algorithm)
         .update(`${h1}:${mockNonce}:00000001:${mockCnonce}:${qop}:${h2}`)
         .digest('hex');
 
@@ -494,10 +520,14 @@ describe('DigestHandler', () => {
 
       expect(retry).toEqual(true);
       expect(context.headers).toEqual({
-        Auth: expect.stringContaining(`response="${expectedResponse}"`),
+        Auth: expect.stringContaining(`response="${digestResponse}"`),
       });
       expect(cache).toEqual({
-        digest: expect.stringContaining(`response="${expectedResponse}"`),
+        digest: {
+          ['/some/url']: expect.stringContaining(
+            `response="${digestResponse}"`
+          ),
+        },
       });
     });
 
@@ -514,7 +544,7 @@ describe('DigestHandler', () => {
         .update(`${h1}:${mockNonce}:${mockCnonce}`)
         .digest('hex');
       const h2 = createHash('MD5').update(`${method}:${mockUri}`).digest('hex');
-      const expectedResponse = createHash('MD5')
+      const digestResponse = createHash('MD5')
         .update(`${h1}:${mockNonce}:00000001:${mockCnonce}:${qop}:${h2}`)
         .digest('hex');
 
@@ -540,11 +570,15 @@ describe('DigestHandler', () => {
       expect(retry).toEqual(true);
       expect(context.headers).toEqual({
         [DEFAULT_AUTHORIZATION_HEADER_NAME]: expect.stringContaining(
-          `response="${expectedResponse}"`
+          `response="${digestResponse}"`
         ),
       });
       expect(cache).toEqual({
-        digest: expect.stringContaining(`response="${expectedResponse}"`),
+        digest: {
+          ['/some/url']: expect.stringContaining(
+            `response="${digestResponse}"`
+          ),
+        },
       });
     });
 
@@ -560,7 +594,7 @@ describe('DigestHandler', () => {
       const h2 = createHash('sha256')
         .update(`${method}:${mockUri}`)
         .digest('hex');
-      const expectedResponse = createHash('sha256')
+      const digestResponse = createHash('sha256')
         .update(`${h1}:${mockNonce}:00000001:${mockCnonce}:${qop}:${h2}`)
         .digest('hex');
 
@@ -586,11 +620,15 @@ describe('DigestHandler', () => {
       expect(retry).toEqual(true);
       expect(context.headers).toEqual({
         [DEFAULT_AUTHORIZATION_HEADER_NAME]: expect.stringContaining(
-          `response="${expectedResponse}"`
+          `response="${digestResponse}"`
         ),
       });
       expect(cache).toEqual({
-        digest: expect.stringContaining(`response="${expectedResponse}"`),
+        digest: {
+          ['/some/url']: expect.stringContaining(
+            `response="${digestResponse}"`
+          ),
+        },
       });
     });
 
@@ -609,7 +647,7 @@ describe('DigestHandler', () => {
       const h2 = createHash('sha256')
         .update(`${method}:${mockUri}`)
         .digest('hex');
-      const expectedResponse = createHash('sha256')
+      const digestResponse = createHash('sha256')
         .update(`${h1}:${mockNonce}:00000001:${mockCnonce}:${qop}:${h2}`)
         .digest('hex');
 
@@ -635,11 +673,15 @@ describe('DigestHandler', () => {
       expect(retry).toEqual(true);
       expect(context.headers).toEqual({
         [DEFAULT_AUTHORIZATION_HEADER_NAME]: expect.stringContaining(
-          `response="${expectedResponse}"`
+          `response="${digestResponse}"`
         ),
       });
       expect(cache).toEqual({
-        digest: expect.stringContaining(`response="${expectedResponse}"`),
+        digest: {
+          ['/some/url']: expect.stringContaining(
+            `response="${digestResponse}"`
+          ),
+        },
       });
     });
   });

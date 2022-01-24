@@ -67,12 +67,12 @@ export class DigestHandler implements ISecurityHandler {
   }
 
   prepare(context: RequestContext, cache: AuthCache): void {
-    if (cache?.digest) {
+    if (cache?.digest && cache.digest[context.url]) {
       debugSensitive(`Using cached digest credentials`);
       context.headers[
         this.configuration.authorizationHeader ??
           DEFAULT_AUTHORIZATION_HEADER_NAME
-      ] = cache.digest;
+      ] = cache.digest[context.url];
     }
   }
 
@@ -100,7 +100,10 @@ export class DigestHandler implements ISecurityHandler {
         this.configuration.authorizationHeader ||
           DEFAULT_AUTHORIZATION_HEADER_NAME
       ] = credentials;
-      cache.digest = credentials;
+      if (!cache.digest) {
+        cache.digest = {};
+      }
+      cache.digest[context.url] = credentials;
 
       return true;
     }

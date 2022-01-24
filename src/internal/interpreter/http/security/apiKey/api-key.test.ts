@@ -11,6 +11,7 @@ describe('ApiKeyHandler', () => {
   describe('in header', () => {
     beforeEach(() => {
       context = {
+        url: '',
         headers: {},
         pathParameters: {},
         queryAuth: {},
@@ -42,6 +43,7 @@ describe('ApiKeyHandler', () => {
   describe('in path', () => {
     beforeEach(() => {
       context = {
+        url: '',
         headers: {},
         pathParameters: {},
         queryAuth: {},
@@ -73,6 +75,7 @@ describe('ApiKeyHandler', () => {
   describe('in query', () => {
     beforeEach(() => {
       context = {
+        url: '',
         headers: {},
         pathParameters: {},
         queryAuth: {},
@@ -103,6 +106,7 @@ describe('ApiKeyHandler', () => {
   describe('in body', () => {
     beforeEach(() => {
       context = {
+        url: '',
         headers: {},
         pathParameters: {},
         queryAuth: {},

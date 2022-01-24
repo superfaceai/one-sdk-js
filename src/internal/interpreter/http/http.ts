@@ -217,6 +217,7 @@ export class HttpClient {
 
     const securityConfiguration = parameters.securityConfiguration ?? [];
     const contextForSecurity = {
+      url,
       headers,
       queryAuth,
       pathParameters,
