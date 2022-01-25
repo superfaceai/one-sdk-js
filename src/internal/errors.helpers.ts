@@ -269,10 +269,13 @@ export function missingSecurityValuesError(id: string): SDKExecutionError {
   );
 }
 
-export function apiKeyInBodyError(bodyType: string): SDKExecutionError {
+export function apiKeyInBodyError(
+  valueLocation: string,
+  bodyType: string
+): SDKExecutionError {
   return new SDKExecutionError(
-    'ApiKey in body can be used only when body is an object.',
-    [`Actual body type is ${bodyType}`],
+    'ApiKey in body can be used only on object.',
+    [`Actual ${valueLocation} is ${bodyType}`],
     []
   );
 }
@@ -372,12 +375,56 @@ export function bindResponseError(input: unknown): SDKExecutionError {
   );
 }
 
+export function digestHeaderNotFound(
+  headerName: string,
+  foundHeaders: string[]
+): SDKExecutionError {
+  return new SDKExecutionError(
+    `Digest auth failed, unable to extract digest values from response. Header "${headerName}" not found in response headers.`,
+    [`Found headers: ${foundHeaders.join(', ')}.`],
+    [
+      `Check API documentation if it specifies challenge header`,
+      `You can set challenge header in provider.json`,
+    ]
+  );
+}
+
+export function missingPartOfDigestHeader(
+  headerName: string,
+  header: string,
+  part: string
+): SDKExecutionError {
+  return new SDKExecutionError(
+    `Digest auth failed, unable to extract digest values from response. Header "${headerName}" does not contain "${part}"`,
+    [
+      `Header: "${headerName}" with content: "${header}" does not contain part specifing: "${part}"`,
+    ],
+    []
+  );
+}
+
 export function invalidProviderResponseError(
   input: unknown
 ): SDKExecutionError {
   return new SDKBindError(
     `Bind call responded with invalid provider body: ${JSON.stringify(input)}`,
     ['Received provider should be of type "ProviderJson"'],
+    []
+  );
+}
+
+export function unexpectedDigestValue(
+  valueName: string,
+  value: string,
+  possibleValues: string[]
+): SDKExecutionError {
+  return new SDKExecutionError(
+    `Digest auth failed, parameter "${valueName}" has unexpected value: "${value}"`,
+    [
+      `Digest auth failed, parameter "${valueName}" has unexpected value: "${value}". Supported values: ${possibleValues.join(
+        ', '
+      )}`,
+    ],
     []
   );
 }

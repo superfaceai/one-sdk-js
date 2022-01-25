@@ -1,10 +1,13 @@
 import {
+  ComlinkAssignmentNode,
   ComlinkListLiteralNode,
   ComlinkObjectLiteralNode,
   ComlinkPrimitiveLiteralNode,
   EnumDefinitionNode,
   EnumValueNode,
   FieldDefinitionNode,
+  isNamedFieldDefinitionNode,
+  isNamedModelDefinitionNode,
   ListDefinitionNode,
   ModelTypeNameNode,
   NamedFieldDefinitionNode,
@@ -139,6 +142,8 @@ export class ProfileParameterValidator implements ProfileVisitor {
         return this.visitComlinkObjectLiteralNode(node, kind, usecase);
       case 'ComlinkPrimitiveLiteral':
         return this.visitComlinkPrimitiveLiteralNode(node, kind, usecase);
+      case 'ComlinkAssignment':
+        return this.visitComlinkAssignmentNode(node, kind, usecase);
       case 'EnumDefinition':
         return this.visitEnumDefinitionNode(node, kind, usecase);
       case 'EnumValue':
@@ -195,6 +200,14 @@ export class ProfileParameterValidator implements ProfileVisitor {
 
   visitComlinkPrimitiveLiteralNode(
     _node: ComlinkPrimitiveLiteralNode,
+    _kind: ProfileParameterKind,
+    _usecase: string
+  ): never {
+    throw new UnexpectedError('Method not implemented.');
+  }
+
+  visitComlinkAssignmentNode(
+    _node: ComlinkAssignmentNode,
     _kind: ProfileParameterKind,
     _usecase: string
   ): never {
@@ -482,32 +495,24 @@ export class ProfileParameterValidator implements ProfileVisitor {
 
     if (!this.namedDefinitionsInitialized) {
       node.definitions
-        .filter(
-          (definition): definition is NamedFieldDefinitionNode =>
-            definition.kind === 'NamedFieldDefinition'
-        )
-        .forEach(
-          definition =>
-            (this.namedFieldDefinitions[definition.fieldName] = this.visit(
-              definition,
-              kind,
-              usecase
-            ))
-        );
+        .filter(isNamedModelDefinitionNode)
+        .forEach(definition => {
+          this.namedModelDefinitions[definition.modelName] = this.visit(
+            definition,
+            kind,
+            usecase
+          );
+        });
 
       node.definitions
-        .filter(
-          (definition): definition is NamedModelDefinitionNode =>
-            definition.kind === 'NamedModelDefinition'
-        )
-        .forEach(
-          definition =>
-            (this.namedModelDefinitions[definition.modelName] = this.visit(
-              definition,
-              kind,
-              usecase
-            ))
-        );
+        .filter(isNamedFieldDefinitionNode)
+        .forEach(definition => {
+          this.namedFieldDefinitions[definition.fieldName] = this.visit(
+            definition,
+            kind,
+            usecase
+          );
+        });
 
       this.namedDefinitionsInitialized = true;
     }

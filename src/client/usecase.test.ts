@@ -7,6 +7,7 @@ import {
 
 import { SuperJson } from '../internal';
 import { ok } from '../lib/result/result';
+import { ServiceSelector } from '../lib/services';
 import { SuperfaceClient } from './client';
 import { Profile, ProfileConfiguration } from './profile';
 import { BoundProfileProvider } from './profile-provider';
@@ -93,7 +94,7 @@ describe('UseCase', () => {
         mockProfileDocument,
         mockMapDocument,
         'test',
-        { baseUrl: '', security: [] }
+        { services: ServiceSelector.withDefaultUrl(''), security: [] }
       );
       const mockClient = new SuperfaceClient();
 
@@ -135,7 +136,7 @@ describe('UseCase', () => {
         mockProfileDocument,
         mockMapDocument,
         'test',
-        { baseUrl: '', security: [] }
+        { services: ServiceSelector.withDefaultUrl(''), security: [] }
       );
       const mockClient = new SuperfaceClient();
 
@@ -176,7 +177,11 @@ describe('UseCase', () => {
       );
 
       expect(performSpy).toHaveBeenCalledTimes(1);
-      expect(performSpy).toHaveBeenCalledWith('test-usecase', undefined);
+      expect(performSpy).toHaveBeenCalledWith(
+        'test-usecase',
+        undefined,
+        undefined
+      );
     });
   });
 });

@@ -4,7 +4,37 @@ import { UnexpectedError } from '../internal/errors';
  * Creates a deep clone of the value.
  */
 export function clone<T>(value: T): T {
-  return JSON.parse(JSON.stringify(value)) as T;
+  if (value === null) {
+    return value;
+  }
+
+  if (value instanceof Date) {
+    return new Date(value.getTime()) as unknown as T;
+  }
+
+  if (Array.isArray(value)) {
+    const arrayCopy = [] as unknown[];
+    for (const item of value) {
+      arrayCopy.push(clone<unknown>(item));
+    }
+
+    return arrayCopy as unknown as T;
+  }
+
+  if (Buffer.isBuffer(value)) {
+    return Buffer.from(value) as unknown as T;
+  }
+
+  if (typeof value === 'object') {
+    const objectCopy = Object.entries(value).map(([key, value]) => [
+      key,
+      clone(value) as unknown,
+    ]);
+
+    return Object.fromEntries(objectCopy) as unknown as T;
+  }
+
+  return value;
 }
 
 export function isRecord(input: unknown): input is Record<string, unknown> {

@@ -87,8 +87,8 @@ describe('SuperfaceClient integration test', () => {
   it('should pass parameters from super.json to the map', async () => {
     const client = new SuperfaceClient();
 
-    //Let .bind happen with mocked inputs
-    //Mocking private property of ProfileProvider
+    // Let .bind happen with mocked inputs
+    // Mocking private property of ProfileProvider
     jest
       .spyOn(ProfileProvider.prototype as any, 'resolveProfileAst')
       .mockResolvedValue(mockProfileDocument);
@@ -107,5 +107,32 @@ describe('SuperfaceClient integration test', () => {
     const result = await profile.getUseCase('Test').perform({});
 
     expect(result.isOk() && result.value).toEqual('it works!');
+  });
+
+  it('should pass parameters from perform to the map', async () => {
+    const client = new SuperfaceClient();
+
+    // Let .bind happen with mocked inputs
+    // Mocking private property of ProfileProvider
+    jest
+      .spyOn(ProfileProvider.prototype as any, 'resolveProfileAst')
+      .mockResolvedValue(mockProfileDocument);
+    jest
+      .spyOn(ProfileProvider.prototype as any, 'resolveProviderInfo')
+      .mockResolvedValue({
+        providerName: 'example',
+        providerInfo: mockProviderJson,
+      });
+    jest
+      .spyOn(ProfileProvider.prototype as any, 'resolveMapAst')
+      .mockResolvedValue({ mapAst: mockMapDocumentSuccess });
+
+    const profile = await client.getProfile('example');
+
+    const result = await profile
+      .getUseCase('Test')
+      .perform({}, { parameters: { test: 'it also works!' } });
+
+    expect(result.isOk() && result.value).toEqual('it also works!');
   });
 });

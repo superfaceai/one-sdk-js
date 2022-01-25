@@ -53,4 +53,85 @@ describe('clone', () => {
     const cloned = clone(object);
     expect(cloned).toStrictEqual(cloned);
   });
+
+  it('should clone undefined', () => {
+    const object = undefined;
+    const cloned = clone(object);
+    expect(cloned).toStrictEqual(undefined);
+  });
+
+  it('should clone null', () => {
+    const object = null;
+    const cloned = clone(object);
+    expect(cloned).toStrictEqual(null);
+  });
+
+  it('should clone empty object', () => {
+    const object = {};
+    const cloned = clone(object);
+    expect(cloned).toStrictEqual({});
+  });
+
+  describe('when cloning buffer', () => {
+    let object: { buffer: Buffer };
+
+    beforeEach(() => {
+      object = {
+        buffer: Buffer.from('data'),
+      };
+    });
+
+    it('should clone buffer', () => {
+      const cloned = clone(object);
+      expect(Buffer.isBuffer(cloned.buffer)).toBe(true);
+      expect(cloned.buffer.toString()).toEqual(object.buffer.toString());
+    });
+
+    it('should create new instance of buffer', () => {
+      const cloned = clone(object);
+      expect(cloned.buffer).not.toBe(object.buffer);
+    });
+  });
+
+  describe('when cloning array', () => {
+    let object: { array: Array<any> };
+
+    beforeEach(() => {
+      object = {
+        array: [1, { a: 1, b: 2, c: 'string' }],
+      };
+    });
+
+    it('should clone array', () => {
+      const cloned = clone(object);
+      expect(Array.isArray(cloned.array)).toBe(true);
+      expect(cloned).toStrictEqual(object);
+    });
+
+    it('should create new instance of array', () => {
+      const cloned = clone(object);
+      expect(cloned.array).not.toBe(object.array);
+    });
+  });
+
+  describe('when cloning date', () => {
+    let object: { date: Date };
+
+    beforeEach(() => {
+      object = {
+        date: new Date(),
+      };
+    });
+
+    it('should clone date', () => {
+      const cloned = clone(object);
+      expect(cloned.date).toBeInstanceOf(Date);
+      expect(cloned.date).toStrictEqual(object.date);
+    });
+
+    it('should create new instance of date', () => {
+      const cloned = clone(object);
+      expect(cloned.date).not.toBe(object.date);
+    });
+  });
 });
