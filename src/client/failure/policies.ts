@@ -71,7 +71,7 @@ export class FailurePolicyRouter {
     return { kind: 'switch-provider', provider: newProvider, reason };
   }
 
-  public attemptFailover(
+  private attemptFailover(
     info: ExecutionInfo,
     reason: FailurePolicyReason
   ): SwitchProviderResolution | undefined {
@@ -264,6 +264,9 @@ export class RetryPolicy extends FailurePolicy {
   }
 
   override afterFailure(info: ExecutionFailure): FailureResolution {
+    if (info.kind === 'bind') {
+      this.streak = 0;
+    }
     // either reset to -1 or make the negative streak longer
     this.streak = Math.min(-1, this.streak - 1);
     this.lastCallTime = info.time;
@@ -382,6 +385,10 @@ export class CircuitBreakerPolicy extends FailurePolicy {
   }
 
   override afterFailure(info: ExecutionFailure): FailureResolution {
+    if (info.kind === 'bind') {
+      this.state = 'half-open';
+    }
+
     if (this.state === 'half-open') {
       this.open(info.time);
 
