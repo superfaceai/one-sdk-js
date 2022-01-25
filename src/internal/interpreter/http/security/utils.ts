@@ -59,7 +59,7 @@ export function encodeBody(
 
 export function prepareRequest(parameters: RequestParameters): HttpRequest {
   const body: Variables | undefined = parameters.body;
-  const headers: Record<string, string> = parameters.headers;
+  const headers: Record<string, string> = parameters.headers ?? {};
   const pathParameters = parameters.pathParameters ?? {};
 
   const bodyAndHeaders = encodeBody(parameters.contentType, body, headers);

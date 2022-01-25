@@ -1,33 +1,19 @@
 import { HttpScheme, SecurityType } from '@superfaceai/ast';
 
-import { HttpResponse } from '../../http';
 import {
   DEFAULT_AUTHORIZATION_HEADER_NAME,
   ISecurityHandler,
   SecurityConfiguration,
 } from '../../security';
-import {
-  AffterHookAuthResult,
-  AuthCache,
-  BeforeHookAuthResult,
-  RequestParameters,
-} from '../interfaces';
+import { RequestParameters } from '../interfaces';
 
 export class HttpHandler implements ISecurityHandler {
   constructor(
     readonly configuration: SecurityConfiguration & { type: SecurityType.HTTP }
   ) {}
 
-  handle(
-    _response: HttpResponse,
-    _resourceRequestParameters: RequestParameters,
-    _cache: AuthCache
-  ): AffterHookAuthResult {
-    return { kind: 'continue' };
-  }
-
-  prepare(parameters: RequestParameters): BeforeHookAuthResult {
-    const headers: Record<string, string> = parameters.headers;
+  authenticate(parameters: RequestParameters): RequestParameters {
+    const headers: Record<string, string> = parameters.headers || {};
 
     switch (this.configuration.scheme) {
       case HttpScheme.BASIC:
@@ -42,13 +28,43 @@ export class HttpHandler implements ISecurityHandler {
         break;
     }
 
-    const request: RequestParameters = {
+    return {
       ...parameters,
       headers,
     };
-
-    return { kind: 'modify', newArgs: [request] };
   }
+
+  // handle(
+  //   _response: HttpResponse,
+  //   _resourceRequestParameters: RequestParameters,
+  //   _cache: AuthCache
+  // ): AffterHookAuthResult {
+  //   return { kind: 'continue' };
+  // }
+
+  // prepare(parameters: RequestParameters): BeforeHookAuthResult {
+  //   const headers: Record<string, string> = parameters.headers;
+
+  //   switch (this.configuration.scheme) {
+  //     case HttpScheme.BASIC:
+  //       headers[DEFAULT_AUTHORIZATION_HEADER_NAME] = applyBasicAuth(
+  //         this.configuration
+  //       );
+  //       break;
+  //     case HttpScheme.BEARER:
+  //       headers[DEFAULT_AUTHORIZATION_HEADER_NAME] = applyBearerToken(
+  //         this.configuration
+  //       );
+  //       break;
+  //   }
+
+  //   const request: RequestParameters = {
+  //     ...parameters,
+  //     headers,
+  //   };
+
+  //   return { kind: 'modify', newArgs: [request] };
+  // }
 }
 
 function applyBasicAuth(

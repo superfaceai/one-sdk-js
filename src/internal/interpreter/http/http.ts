@@ -1,17 +1,23 @@
-import { HttpSecurityRequirement } from '@superfaceai/ast';
+import {
+  HttpScheme,
+  HttpSecurityRequirement,
+  SecurityType,
+} from '@superfaceai/ast';
 import createDebug from 'debug';
 import { inspect } from 'util';
 
 import { USER_AGENT } from '../../../index';
 import {
-  eventInterceptor,
   Events,
   Interceptable,
   InterceptableMetadata,
 } from '../../../lib/events';
 import { recursiveKeyList } from '../../../lib/object';
 import { UnexpectedError } from '../../errors';
-import { missingPathReplacementError } from '../../errors.helpers';
+import {
+  missingPathReplacementError,
+  missingSecurityValuesError,
+} from '../../errors.helpers';
 import {
   getValue,
   NonPrimitive,
@@ -21,11 +27,15 @@ import {
 import { FetchInstance } from './interfaces';
 import {
   AuthCache,
+  DigestHandler,
+  HttpHandler,
   HttpRequest,
+  ISecurityHandler,
+  MiddleWare,
+  MiddleWareAsync,
   RequestParameters,
   SecurityConfiguration,
 } from './security';
-import { registerAuthenticationHooks } from './security/authenticate';
 import { prepareRequest } from './security/utils';
 
 const debug = createDebug('superface:http');
@@ -119,9 +129,9 @@ export const createUrl = (
 export class HttpClient implements Interceptable {
   public metadata:
     | (InterceptableMetadata & {
-        resourceRequest?: RequestParameters;
-        previousResponse?: HttpResponse;
-      })
+      resourceRequest?: RequestParameters;
+      previousResponse?: HttpResponse;
+    })
     | undefined;
 
   public events: Events | undefined;
@@ -140,23 +150,23 @@ export class HttpClient implements Interceptable {
   }
 
   //This is basicaly just handling authnetication and passing response to metadata
-  @eventInterceptor({ eventName: 'request', placement: 'around' })
-  //TODO: cache and security should be pass directly to event handler somehow
-  private async makeRequest(
-    parameters: RequestParameters
-  ): Promise<HttpResponse> {
-    const request = prepareRequest(parameters);
+  // @eventInterceptor({ eventName: 'request', placement: 'around' })
+  // //TODO: cache and security should be pass directly to event handler somehow
+  // private async makeRequest(
+  //   parameters: RequestParameters
+  // ): Promise<HttpResponse> {
+  //   const request = prepareRequest(parameters);
 
-    //Actual fetch
-    const response = await this.fetchRequest(request);
+  //   //Actual fetch
+  //   const response = await this.fetchRequest(request);
 
-    if (!this.metadata) {
-      this.metadata = {};
-    }
-    this.metadata.previousResponse = response;
+  //   if (!this.metadata) {
+  //     this.metadata = {};
+  //   }
+  //   this.metadata.previousResponse = response;
 
-    return response;
-  }
+  //   return response;
+  // }
 
   private async fetchRequest(request: HttpRequest): Promise<HttpResponse> {
     debug('Executing HTTP Call');
@@ -224,34 +234,111 @@ export class HttpClient implements Interceptable {
       integrationParameters?: Record<string, string>;
     }
   ): Promise<HttpResponse> {
-    //We register auth hooks
-    registerAuthenticationHooks(
-      this.events!,
-      this.fetchInstance,
+    //Here we wil start the chain of functions to prepare actual request, each function take RequestParameters as a input, it can also take cache and fetch function. It returns RequestParameters or promise of them
+
+    const b = new RequestBuilder()
+    b.authenticate()
+    //1: Headers - first because of the user-agent - we want it in auth call
+    let p = headers({
+      url,
+      ...parameters,
+      headers: variablesToStrings(parameters?.headers),
+    });
+    p = await authorize(p, this.fetchInstance, this.fetchRequest);
+
+    //Body
+    //Query
+
+    //Start setting parts of final request
+
+    return this.fetchRequest(prepareRequest(p));
+  }
+}
+
+export class RequestBuilder {
+
+  private parameters: RequestParameters | undefined
+  private handler: ISecurityHandler | undefined
+
+
+  public async authenticate(
+    parameters: RequestParameters,
+    cache: AuthCache,
+    fetch: (request: HttpRequest) => Promise<HttpResponse>
+  ) {
+    this.handler = getSecurityHandler(
       parameters.securityConfiguration || [],
-      parameters.securityRequirements || []
+      parameters.securityRequirements
     );
-    const headers = variablesToStrings(parameters?.headers);
+    if (!this.handler) {
+      this.parameters = parameters
+    } else {
+      this.parameters = await this.handler.authenticate(parameters, cache, fetch);
+    }
+
+    return this
+  };
+
+  public headers(parameters: RequestParameters) {
+    const headers: Record<string, string> = parameters.headers || {};
     headers['accept'] = parameters.accept || '*/*';
     headers['user-agent'] ??= USER_AGENT;
-
-    //Prepare resource request
-    const resourceRequestParameters: RequestParameters = {
-      url,
-      baseUrl: parameters.baseUrl,
-      integrationParameters: parameters.integrationParameters,
-      pathParameters: parameters.pathParameters,
-      body: parameters.body,
-      contentType: parameters.contentType,
-      method: parameters.method,
+    this.parameters = {
+      ...parameters,
       headers,
     };
-    //Add resource request to (hooks) metadata
-    if (!this.metadata) {
-      this.metadata = {};
-    }
-    this.metadata.resourceRequest = resourceRequestParameters;
 
-    return this.makeRequest(resourceRequestParameters);
+    return this
+  };
+
+  public async fetch(): HttpResponse {
+    //Do fetch here
+
+    //Hande with handler - somehow check if authenticae function was ran before (flag)
+
   }
+}
+
+
+
+const authorize: MiddleWareAsync = async (
+  parameters: RequestParameters,
+  cache: AuthCache,
+  fetch: (request: HttpRequest) => Promise<HttpResponse>
+) => {
+  const handler = getSecurityHandler(
+    parameters.securityConfiguration || [],
+    parameters.securityRequirements
+  );
+  if (!handler) {
+    return parameters;
+  }
+
+  return handler.authenticate(parameters, cache, fetch);
+};
+
+function getSecurityHandler(
+  securityConfiguration: SecurityConfiguration[],
+  securityRequirements?: HttpSecurityRequirement[]
+): ISecurityHandler | undefined {
+  let handler: ISecurityHandler | undefined = undefined;
+  for (const requirement of securityRequirements ?? []) {
+    const configuration = securityConfiguration.find(
+      configuration => configuration.id === requirement.id
+    );
+    if (configuration === undefined) {
+      throw missingSecurityValuesError(requirement.id);
+    }
+    if (configuration.type === SecurityType.APIKEY) {
+      // handler = new ApiKeyHandler(configuration);
+    } else if (configuration.type === SecurityType.OAUTH) {
+      // handler = new OAuthHandler(configuration);
+    } else if (configuration.scheme === HttpScheme.DIGEST) {
+      handler = new DigestHandler(configuration);
+    } else {
+      handler = new HttpHandler(configuration);
+    }
+  }
+
+  return handler;
 }

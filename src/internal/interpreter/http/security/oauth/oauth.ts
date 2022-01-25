@@ -6,13 +6,15 @@ import {
 
 import { HttpResponse } from '../../http';
 import {
-  AffterHookAuthResult,
   AuthCache,
-  BeforeHookAuthResult,
   DEFAULT_AUTHORIZATION_HEADER_NAME,
+  HttpRequest,
   ISecurityHandler,
+  MiddleWare,
+  MiddleWareAsync,
   RequestParameters,
 } from '../interfaces';
+import { prepareRequest } from '../utils';
 import { RefreshHelper } from './refresh';
 
 export class OAuthHandler implements ISecurityHandler {
@@ -38,6 +40,17 @@ export class OAuthHandler implements ISecurityHandler {
     }
 
     //TODO: create instance of helper for selected flow.
+  }
+  authenticate: MiddleWareAsync = (
+    parameters: RequestParameters,
+    cache: AuthCache,
+    fetch: (request: HttpRequest) => Promise<HttpResponse>
+  ) => {
+    if (this.refreshHelper && this.refreshHelper.shouldStartRefreshing(cache)) {
+      fetch(prepareRequest(this.refreshHelper.startRefreshing(parameters)))
+    }
+    //TODO: use selected flow helper
+    return { kind: 'continue' };
   }
 
   prepare(

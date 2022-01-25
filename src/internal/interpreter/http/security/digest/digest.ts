@@ -9,13 +9,14 @@ import {
 } from '../../../../errors.helpers';
 import { HttpResponse } from '../../http';
 import {
-  AffterHookAuthResult,
   AuthCache,
-  BeforeHookAuthResult,
   DEFAULT_AUTHORIZATION_HEADER_NAME,
   ISecurityHandler,
+  MiddleWareAsync,
   RequestParameters,
 } from '..';
+import { HttpRequest } from '../interfaces';
+import { prepareRequest } from '../utils';
 
 const debug = createDebug('superface:http:digest');
 const debugSensitive = createDebug('superface:http:digest:sensitive');
@@ -71,11 +72,12 @@ export class DigestHandler implements ISecurityHandler {
     );
   }
 
-  prepare(
+  authenticate: MiddleWareAsync = async (
     parameters: RequestParameters,
-    cache: AuthCache
-  ): BeforeHookAuthResult {
-    const headers: Record<string, string> = parameters.headers;
+    cache: AuthCache,
+    fetch: (request: HttpRequest) => Promise<HttpResponse>
+  ) => {
+    const headers: Record<string, string> = parameters.headers || {};
 
     if (cache?.digest) {
       debugSensitive(`Using cached digest credentials`);
@@ -85,52 +87,102 @@ export class DigestHandler implements ISecurityHandler {
       ] = cache.digest;
     }
 
-    const request: RequestParameters = {
-      ...parameters,
-      headers,
-    };
+    const response = await fetch(
+      prepareRequest({
+        ...parameters,
+        headers,
+      })
+    );
 
-    return { kind: 'modify', newArgs: [request] };
-  }
-
-  handle(
-    response: HttpResponse,
-    resourceRequestParameters: RequestParameters,
-    cache: AuthCache
-  ): AffterHookAuthResult {
-    if (response.statusCode === this.statusCode) {
-      if (!response.headers[this.challangeHeader]) {
-        throw digestHeaderNotFound(
-          this.challangeHeader,
-          Object.keys(response.headers)
-        );
-      }
-      debugSensitive(`Getting new digest values`);
-      const credentials = this.buildDigestAuth(
-        //We need actual resolved url
-        response.debug.request.url,
-        resourceRequestParameters.method,
-        this.extractDigestValues(response.headers[this.challangeHeader])
+    if (
+      response.statusCode !== this.statusCode ||
+      !response.headers[this.challangeHeader]
+    ) {
+      throw digestHeaderNotFound(
+        this.challangeHeader,
+        Object.keys(response.headers)
       );
-      cache.digest = credentials;
-
-      return {
-        kind: 'retry',
-        newArgs: [
-          {
-            ...resourceRequestParameters,
-            headers: {
-              ...resourceRequestParameters.headers,
-              [this.configuration.authorizationHeader ||
-              DEFAULT_AUTHORIZATION_HEADER_NAME]: credentials,
-            },
-          },
-        ],
-      };
     }
 
-    return undefined;
-  }
+    debugSensitive(`Getting new digest values`);
+    const credentials = this.buildDigestAuth(
+      //We need actual resolved url
+      response.debug.request.url,
+      parameters.method,
+      this.extractDigestValues(response.headers[this.challangeHeader])
+    );
+    cache.digest = credentials;
+
+    return {
+      ...parameters,
+      headers: {
+        ...headers,
+        [this.configuration.authorizationHeader ||
+        DEFAULT_AUTHORIZATION_HEADER_NAME]: credentials,
+      },
+    };
+  };
+
+  // prepare(
+  //   parameters: RequestParameters,
+  //   cache: AuthCache
+  // ): BeforeHookAuthResult {
+  //   const headers: Record<string, string> = parameters.headers;
+
+  //   if (cache?.digest) {
+  //     debugSensitive(`Using cached digest credentials`);
+  //     headers[
+  //       this.configuration.authorizationHeader ||
+  //       DEFAULT_AUTHORIZATION_HEADER_NAME
+  //     ] = cache.digest;
+  //   }
+
+  //   const request: RequestParameters = {
+  //     ...parameters,
+  //     headers,
+  //   };
+
+  //   return { kind: 'modify', newArgs: [request] };
+  // }
+
+  // handle(
+  //   response: HttpResponse,
+  //   resourceRequestParameters: RequestParameters,
+  //   cache: AuthCache
+  // ): AffterHookAuthResult {
+  //   if (response.statusCode === this.statusCode) {
+  //     if (!response.headers[this.challangeHeader]) {
+  //       throw digestHeaderNotFound(
+  //         this.challangeHeader,
+  //         Object.keys(response.headers)
+  //       );
+  //     }
+  //     debugSensitive(`Getting new digest values`);
+  //     const credentials = this.buildDigestAuth(
+  //       //We need actual resolved url
+  //       response.debug.request.url,
+  //       resourceRequestParameters.method,
+  //       this.extractDigestValues(response.headers[this.challangeHeader])
+  //     );
+  //     cache.digest = credentials;
+
+  //     return {
+  //       kind: 'retry',
+  //       newArgs: [
+  //         {
+  //           ...resourceRequestParameters,
+  //           headers: {
+  //             ...resourceRequestParameters.headers,
+  //             [this.configuration.authorizationHeader ||
+  //               DEFAULT_AUTHORIZATION_HEADER_NAME]: credentials,
+  //           },
+  //         },
+  //       ],
+  //     };
+  //   }
+
+  //   return undefined;
+  // }
 
   /**
    *
