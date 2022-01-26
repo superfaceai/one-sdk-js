@@ -189,7 +189,7 @@ export async function fetchRequest(
 }
 
 export class HttpClient {
-  constructor(private fetchInstance: FetchInstance & AuthCache) {}
+  constructor(private fetchInstance: FetchInstance & AuthCache) { }
   public async request(
     url: string,
     parameters: {
@@ -434,7 +434,146 @@ function getSecurityHandler(
   return handler;
 }
 
-//Different approach
+//Getting rid of request builder class - body of this function would be in request function, main focus here was on clean(ish) function useage and simpler testing
+async function thisWouldBePartOfRequestFn(parameters: RequestParameters, fetchInstance: FetchInstance & AuthCache): Promise<HttpResponse> {
+  let request: Partial<HttpRequest> = {}
+  let preparedParameters = parameters
+  //We get security handler
+  const handler = getSecurityHandler(parameters.securityConfiguration ?? [], parameters.securityRequirements)
+  //It would be cool if ISecurityHandler would work with HttpRequest instead of RequestParameters - now we change parameters with authenticate a then use them as base for final request.
+  //Working with HttpRequest not gonna work - we can't easily change stuff like path parameters
+  if (handler) {
+    preparedParameters = await handler.authenticate(preparedParameters, fetchInstance)
+  }
+
+  request.headers = headers(preparedParameters)
+  request.body = body(preparedParameters)
+  request.queryParameters = queryParameters(preparedParameters)
+  request.method = method(preparedParameters)
+  request.url = url(preparedParameters)
+
+
+  //Do fetch here
+  let response = await fetchRequest(
+    fetchInstance,
+    request as HttpRequest
+  );
+
+  if (handler && handler.handleResponse) {
+    //Returning RequestParameters is wrong here :/ 
+    const newParameters = await handler.handleResponse(
+      response,
+      parameters,
+      fetchInstance
+    );
+    if (newParameters) {
+      parameters = newParameters;
+      response = await fetchRequest(
+        fetchInstance,
+        prepareRequest(parameters)
+      );
+    }
+  }
+
+  return response;
+}
+
+//These should be easy to test
+function headers(parameters: RequestParameters): Record<string, string> {
+  const headers: Record<string, string> = parameters.headers || {};
+  headers['accept'] = parameters.accept || '*/*';
+  headers['user-agent'] ??= USER_AGENT;
+  if (parameters.contentType === JSON_CONTENT) {
+    headers['Content-Type'] ??= JSON_CONTENT;
+  } else if (parameters.contentType === URLENCODED_CONTENT) {
+    headers['Content-Type'] ??= URLENCODED_CONTENT;
+  } else if (parameters.contentType === FORMDATA_CONTENT) {
+    headers['Content-Type'] ??= FORMDATA_CONTENT;
+  } else if (
+    parameters.contentType &&
+    BINARY_CONTENT_REGEXP.test(parameters.contentType)
+  ) {
+    headers['Content-Type'] ??= parameters.contentType;
+  } else {
+    const supportedTypes = [
+      JSON_CONTENT,
+      URLENCODED_CONTENT,
+      FORMDATA_CONTENT,
+      ...BINARY_CONTENT_TYPES,
+    ];
+
+    throw unsupportedContentType(
+      parameters.contentType ?? '',
+      supportedTypes
+    );
+  }
+
+  return headers;
+}
+
+function body(parameters: RequestParameters): FetchBody | undefined {
+  if (parameters.body) {
+    let finalBody: FetchBody | undefined;
+    if (parameters.contentType === JSON_CONTENT) {
+      finalBody = stringBody(JSON.stringify(parameters.body));
+    } else if (parameters.contentType === URLENCODED_CONTENT) {
+      finalBody = urlSearchParamsBody(
+        variablesToStrings(parameters.body)
+      );
+    } else if (parameters.contentType === FORMDATA_CONTENT) {
+      finalBody = formDataBody(variablesToStrings(parameters.body));
+    } else if (
+      parameters.contentType &&
+      BINARY_CONTENT_REGEXP.test(parameters.contentType)
+    ) {
+      let buffer: Buffer;
+      if (Buffer.isBuffer(parameters.body)) {
+        buffer = parameters.body;
+      } else {
+        //coerce to string then buffer
+        buffer = Buffer.from(String(parameters.body));
+      }
+      finalBody = binaryBody(buffer);
+    } else {
+      const supportedTypes = [
+        JSON_CONTENT,
+        URLENCODED_CONTENT,
+        FORMDATA_CONTENT,
+        ...BINARY_CONTENT_TYPES,
+      ];
+
+      throw unsupportedContentType(
+        parameters.contentType ?? '',
+        supportedTypes
+      );
+    }
+    return finalBody;
+  }
+
+  return undefined
+}
+
+function queryParameters(parameters: RequestParameters): Record<string, string> {
+  return variablesToStrings(
+    parameters.queryParameters
+  );
+}
+
+function method(parameters: RequestParameters): string {
+  return parameters.method;
+}
+
+function url(parameters: RequestParameters): string {
+  return createUrl(parameters.url, {
+    baseUrl: parameters.baseUrl,
+    pathParameters: parameters.pathParameters ?? {},
+    integrationParameters: parameters.integrationParameters,
+  });
+
+}
+
+
+//Different approach -> something like pipe
 
 // type MW = () => Promise<RequestBuilder> | RequestBuilder
 
