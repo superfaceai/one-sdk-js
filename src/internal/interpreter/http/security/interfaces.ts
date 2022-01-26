@@ -65,6 +65,17 @@ export type HandleResponse = (
   cache: AuthCache
 ) => RequestParameters | undefined;
 
+export type HandleResponseAsync = (
+  response: HttpResponse,
+  resourceRequestParameters: RequestParameters,
+  cache: AuthCache,
+  fetchInstance: FetchInstance,
+  fetch: (
+    fetchInstance: FetchInstance,
+    request: HttpRequest
+  ) => Promise<HttpResponse>
+) => Promise<RequestParameters | undefined>;
+
 /**
  * Represents class that is able to prepare (set headers, path etc.) and handle (challange responses for eg. digest) authentication
  */
@@ -76,7 +87,7 @@ export interface ISecurityHandler {
 
   authenticate: AuthenticateRequest | AuthenticateRequestAsync;
 
-  handleResponse?: HandleResponse;
+  handleResponse?: HandleResponse | HandleResponseAsync;
 }
 
 export type SecurityConfiguration =

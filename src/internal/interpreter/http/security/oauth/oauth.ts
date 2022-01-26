@@ -6,6 +6,7 @@ import {
 
 import { HttpResponse } from '../../http';
 import { FetchInstance } from '../../interfaces';
+import { HandleResponseAsync } from '..';
 import {
   AuthCache,
   AuthenticateRequestAsync,
@@ -14,7 +15,6 @@ import {
   ISecurityHandler,
   RequestParameters,
 } from '../interfaces';
-import { prepareRequest } from '../utils';
 import { RefreshHelper } from './refresh';
 
 export class OAuthHandler implements ISecurityHandler {
@@ -41,7 +41,8 @@ export class OAuthHandler implements ISecurityHandler {
 
     //TODO: create instance of helper for selected flow.
   }
-  authenticate: AuthenticateRequestAsync = (
+
+  authenticate: AuthenticateRequestAsync = async (
     parameters: RequestParameters,
     cache: AuthCache,
     fetchInstance: FetchInstance,
@@ -50,71 +51,113 @@ export class OAuthHandler implements ISecurityHandler {
       request: HttpRequest
     ) => Promise<HttpResponse>
   ) => {
-    if (this.refreshHelper && this.refreshHelper.shouldStartRefreshing(cache)) {
-      fetch(prepareRequest(this.refreshHelper.startRefreshing(parameters)));
+    if (this.refreshHelper && this.refreshHelper.shouldRefresh(cache)) {
+      return await this.refreshHelper.refresh(
+        parameters,
+        cache,
+        fetchInstance,
+        fetch
+      );
     }
-    //TODO: use selected flow helper
-    return { kind: 'continue' };
+    //TODO: use selected flow helper (and actualy write some flow helpers)
+    //Now we just get access token from cache and use it
+    if (cache.oauth?.authotizationCode?.accessToken) {
+      return {
+        ...parameters,
+        headers: {
+          ...parameters.headers,
+          //TODO: prepare header according to token type
+          [DEFAULT_AUTHORIZATION_HEADER_NAME]: `Bearer ${cache.oauth?.authotizationCode?.accessToken}`,
+        },
+      };
+    }
+
+    return parameters;
   };
 
-  prepare(
-    parameters: RequestParameters,
-    cache: AuthCache
-  ): BeforeHookAuthResult {
-    if (this.refreshHelper && this.refreshHelper.shouldStartRefreshing(cache)) {
-      return {
-        kind: 'modify',
-        newArgs: [this.refreshHelper.startRefreshing(parameters)],
-      };
-    }
-    //TODO: use selected flow helper
-    return { kind: 'continue' };
-  }
-
-  handle(
+  handleResponse: HandleResponseAsync = async (
     response: HttpResponse,
     resourceRequestParameters: RequestParameters,
-    cache: AuthCache
-  ): AffterHookAuthResult {
+    cache: AuthCache,
+    fetchInstance: FetchInstance,
+    fetch: (
+      fetchInstance: FetchInstance,
+      request: HttpRequest
+    ) => Promise<HttpResponse>
+  ): Promise<RequestParameters | undefined> => {
     if (
       this.refreshHelper &&
-      this.refreshHelper.shouldStartRefreshing(cache, response)
+      this.refreshHelper.shouldRefresh(cache, response)
     ) {
-      return {
-        kind: 'retry',
-        newArgs: [
-          this.refreshHelper.startRefreshing(resourceRequestParameters),
-        ],
-      };
+      return await this.refreshHelper.refresh(
+        resourceRequestParameters,
+        cache,
+        fetchInstance,
+        fetch
+      );
     }
-    if (
-      this.refreshHelper &&
-      this.refreshHelper.shouldStopRefreshing(response)
-    ) {
-      const newValues = this.refreshHelper.stopRefreshing(response);
-      if (newValues) {
-        if (!cache.oauth) {
-          cache.oauth = {};
-        }
-        cache.oauth.authotizationCode = newValues;
-        //TODO: use selected flow helper
 
-        return {
-          kind: 'retry',
-          newArgs: [
-            {
-              ...resourceRequestParameters,
-              headers: {
-                ...resourceRequestParameters.headers,
-                //TODO: prepare header according to token type
-                [DEFAULT_AUTHORIZATION_HEADER_NAME]: `Bearer ${newValues.accessToken}`,
-              },
-            },
-          ],
-        };
-      }
-    }
-    //TODO: use selected flow helper
-    return { kind: 'continue' };
-  }
+    return undefined;
+  };
+
+  // prepare(
+  //   parameters: RequestParameters,
+  //   cache: AuthCache
+  // ): BeforeHookAuthResult {
+  //   if (this.refreshHelper && this.refreshHelper.shouldStartRefreshing(cache)) {
+  //     return {
+  //       kind: 'modify',
+  //       newArgs: [this.refreshHelper.startRefreshing(parameters)],
+  //     };
+  //   }
+  //   //TODO: use selected flow helper
+  //   return { kind: 'continue' };
+  // }
+
+  // handle(
+  //   response: HttpResponse,
+  //   resourceRequestParameters: RequestParameters,
+  //   cache: AuthCache
+  // ): AffterHookAuthResult {
+  //   if (
+  //     this.refreshHelper &&
+  //     this.refreshHelper.shouldStartRefreshing(cache, response)
+  //   ) {
+  //     return {
+  //       kind: 'retry',
+  //       newArgs: [
+  //         this.refreshHelper.startRefreshing(resourceRequestParameters),
+  //       ],
+  //     };
+  //   }
+  //   if (
+  //     this.refreshHelper &&
+  //     this.refreshHelper.shouldStopRefreshing(response)
+  //   ) {
+  //     const newValues = this.refreshHelper.stopRefreshing(response);
+  //     if (newValues) {
+  //       if (!cache.oauth) {
+  //         cache.oauth = {};
+  //       }
+  //       cache.oauth.authotizationCode = newValues;
+  //       //TODO: use selected flow helper
+
+  //       return {
+  //         kind: 'retry',
+  //         newArgs: [
+  //           {
+  //             ...resourceRequestParameters,
+  //             headers: {
+  //               ...resourceRequestParameters.headers,
+  //               //TODO: prepare header according to token type
+  //               [DEFAULT_AUTHORIZATION_HEADER_NAME]: `Bearer ${newValues.accessToken}`,
+  //             },
+  //           },
+  //         ],
+  //       };
+  //     }
+  //   }
+  //   //TODO: use selected flow helper
+  //   return { kind: 'continue' };
+  // }
 }

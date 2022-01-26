@@ -413,10 +413,12 @@ export class RequestBuilder {
 
     //TODO: this could be another step fn
     if (this.handler && this.handler.handleResponse) {
-      const newParameters = this.handler.handleResponse(
+      const newParameters = await this.handler.handleResponse(
         response,
         this.parameters,
-        this.fetchInstance
+        this.fetchInstance,
+        this.fetchInstance,
+        this.fetchRequest
       );
       if (newParameters) {
         this.parameters = newParameters;

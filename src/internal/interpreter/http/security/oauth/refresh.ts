@@ -24,11 +24,8 @@ import { prepareRequest } from '../utils';
 // }
 
 export class RefreshHelper {
-  //TODO: naming
   private readonly refreshStatusCode: number;
   private readonly clientAuthenticationMethod: OAuthClientAuthenticationMethod;
-
-  //TODO: Pass o auth values in configuration (content of super.json and provider.json security)
   constructor(
     private readonly flow: OAuthFlow,
     private configuration: OAuthSecurityValues
