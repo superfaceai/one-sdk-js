@@ -110,3 +110,12 @@ jobs:
           prerelease: ${{ startsWith(github.event.inputs.release-level, 'pre') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Trigger Daily test for released version (excluding pre and rc)
+      - name: Trigger Daily Test
+        if: startsWith(github.event.inputs.release-level, 'pre') != true
+        uses: peter-evans/repository-dispatch@v1
+        with:
+          token: ${{ secrets.GH_BOT_PAT }}
+          repository: superfaceai/superface-daily
+          event-type: on-demand-test
