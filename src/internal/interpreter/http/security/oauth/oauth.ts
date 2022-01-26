@@ -5,13 +5,13 @@ import {
 } from '@superfaceai/ast';
 
 import { HttpResponse } from '../../http';
+import { FetchInstance } from '../../interfaces';
 import {
   AuthCache,
+  AuthenticateRequestAsync,
   DEFAULT_AUTHORIZATION_HEADER_NAME,
   HttpRequest,
   ISecurityHandler,
-  MiddleWare,
-  MiddleWareAsync,
   RequestParameters,
 } from '../interfaces';
 import { prepareRequest } from '../utils';
@@ -41,17 +41,21 @@ export class OAuthHandler implements ISecurityHandler {
 
     //TODO: create instance of helper for selected flow.
   }
-  authenticate: MiddleWareAsync = (
+  authenticate: AuthenticateRequestAsync = (
     parameters: RequestParameters,
     cache: AuthCache,
-    fetch: (request: HttpRequest) => Promise<HttpResponse>
+    fetchInstance: FetchInstance,
+    fetch: (
+      fetchInstance: FetchInstance,
+      request: HttpRequest
+    ) => Promise<HttpResponse>
   ) => {
     if (this.refreshHelper && this.refreshHelper.shouldStartRefreshing(cache)) {
-      fetch(prepareRequest(this.refreshHelper.startRefreshing(parameters)))
+      fetch(prepareRequest(this.refreshHelper.startRefreshing(parameters)));
     }
     //TODO: use selected flow helper
     return { kind: 'continue' };
-  }
+  };
 
   prepare(
     parameters: RequestParameters,

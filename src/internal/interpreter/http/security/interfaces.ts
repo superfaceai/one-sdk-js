@@ -15,7 +15,7 @@ import {
 
 import { NonPrimitive, Variables } from '../../variables';
 import { HttpResponse } from '../http';
-import { FetchParameters } from '../interfaces';
+import { FetchInstance, FetchParameters } from '../interfaces';
 
 export const DEFAULT_AUTHORIZATION_HEADER_NAME = 'Authorization';
 
@@ -44,14 +44,26 @@ export type AuthCache = {
   };
 };
 
-export type MiddleWareAsync = (
+export type AuthenticateRequestAsync = (
   parameters: RequestParameters,
+  //TODO: simplify/ get rid of
   cache: AuthCache,
-  fetch: (request: HttpRequest) => Promise<HttpResponse>
+  fetchInstance: FetchInstance,
+  fetch: (
+    fetchInstance: FetchInstance,
+    request: HttpRequest
+  ) => Promise<HttpResponse>
 ) => Promise<RequestParameters>;
 
-//TODO: when we don't need async we don't need to hold state - we could pass configuration here and ger rid of classe for simple auth
-export type MiddleWare = (parameters: RequestParameters) => RequestParameters;
+export type AuthenticateRequest = (
+  parameters: RequestParameters
+) => RequestParameters;
+
+export type HandleResponse = (
+  response: HttpResponse,
+  resourceRequestParameters: RequestParameters,
+  cache: AuthCache
+) => RequestParameters | undefined;
 
 /**
  * Represents class that is able to prepare (set headers, path etc.) and handle (challange responses for eg. digest) authentication
@@ -62,30 +74,9 @@ export interface ISecurityHandler {
    */
   readonly configuration: SecurityConfiguration;
 
-  authenticate: MiddleWare | MiddleWareAsync;
+  authenticate: AuthenticateRequest | AuthenticateRequestAsync;
 
-  /**
-   *  Prepares request parameters for making the api call.
-   * @param parameters resource request parameters
-   * @param cache this cache can hold credentials for some of the authentication methods eg. digest
-   */
-  // prepare(
-  //   parameters: RequestParameters,
-  //   cache: AuthCache
-  // ): BeforeHookAuthResult;
-
-  /**
-   * Handles responses. Useful in more complex authentization methods (eg. digest)
-   * @param response response from http call - can contain challange
-   * @param resourceRequestParameters original resource request parameters
-   * @param cache this cache can hold credentials for some of the authentication methods eg. digest
-   */
-  // handle(
-  //   response: HttpResponse,
-  //   //Request to original resource endpoint - needed in oauth when we need to switch majority of request parameters
-  //   resourceRequestParameters: RequestParameters,
-  //   cache: AuthCache
-  // ): AffterHookAuthResult;
+  handleResponse?: HandleResponse;
 }
 
 export type SecurityConfiguration =
@@ -95,12 +86,12 @@ export type SecurityConfiguration =
   | (DigestSecurityScheme & DigestSecurityValues)
   | (OAuthSecurityScheme & OAuthSecurityValues);
 
-export type RequestContext = {
-  pathParameters: NonPrimitive;
-  queryAuth: Record<string, string>;
-  headers: Record<string, string>;
-  requestBody: Variables | undefined;
-};
+// export type RequestContext = {
+//   pathParameters: NonPrimitive;
+//   queryAuth: Record<string, string>;
+//   headers: Record<string, string>;
+//   requestBody: Variables | undefined;
+// };
 
 export type RequestParameters = {
   url: string;
@@ -115,18 +106,6 @@ export type RequestParameters = {
   baseUrl: string;
   pathParameters?: NonPrimitive;
   integrationParameters?: Record<string, string>;
-  // }
-  // //Url
-  // url: string;
-  // baseUrl: string;
-  // integrationParameters?: Record<string, string>;
-  // pathParameters?: NonPrimitive;
-  // //Body related
-  // body?: Variables;
-  // contentType?: string;
-  // headers: Record<string, string>;
-  // queryParameters?: Variables;
-  // method: string;
 };
 
 export type HttpRequest = FetchParameters & { url: string };

@@ -9,11 +9,7 @@ import { UseCase } from '../client';
 import { MapInterpreterEventAdapter } from '../client/failure/map-interpreter-adapter';
 import { FailurePolicyReason } from '../client/failure/policy';
 import { UnexpectedError } from '../internal/errors';
-import {
-  HttpClient,
-  HttpResponse,
-  RequestParameters,
-} from '../internal/interpreter/http';
+import { HttpResponse, RequestParameters } from '../internal/interpreter/http';
 import { FetchInstance } from '../internal/interpreter/http/interfaces';
 
 const debug = createDebug('superface:events');
@@ -146,10 +142,10 @@ type EventTypes = {
     InstanceType<typeof UseCase>['bindAndPerform'],
     BindContext
   ];
-  request: [
-    InstanceType<typeof HttpClient>['makeRequest'],
-    AuthenticateContext
-  ];
+  // request: [
+  //   InstanceType<typeof HttpClient>['makeRequest'],
+  //   AuthenticateContext
+  // ];
 };
 
 export type EventParams = {

@@ -10,18 +10,16 @@ import {
   DEFAULT_AUTHORIZATION_HEADER_NAME,
   ISecurityHandler,
 } from '../../security';
-import {
-  MiddleWare,
-  RequestParameters,
-} from '../interfaces';
+import { AuthenticateRequest, RequestParameters } from '../interfaces';
 
 export class ApiKeyHandler implements ISecurityHandler {
   constructor(
     readonly configuration: ApiKeySecurityScheme & ApiKeySecurityValues
-  ) { }
-  authenticate: MiddleWare = (parameters: RequestParameters) => {
+  ) {}
+
+  authenticate: AuthenticateRequest = (parameters: RequestParameters) => {
     let body: Variables | undefined = parameters.body;
-    const headers: Record<string, string> = parameters.headers ?? {}
+    const headers: Record<string, string> = parameters.headers ?? {};
     const pathParameters = parameters.pathParameters ?? {};
     const queryAuth: Record<string, string> = {};
 
@@ -56,8 +54,7 @@ export class ApiKeyHandler implements ISecurityHandler {
       queryParameters: queryAuth,
       body,
     };
-  }
-
+  };
 
   // prepare(parameters: RequestParameters): BeforeHookAuthResult {
   //     let body: Variables | undefined = parameters.body;

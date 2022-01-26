@@ -8,14 +8,15 @@ import {
   unexpectedDigestValue,
 } from '../../../../errors.helpers';
 import { HttpResponse } from '../../http';
+import { FetchInstance } from '../../interfaces';
 import {
   AuthCache,
+  AuthenticateRequestAsync,
   DEFAULT_AUTHORIZATION_HEADER_NAME,
   ISecurityHandler,
-  MiddleWareAsync,
   RequestParameters,
 } from '..';
-import { HttpRequest } from '../interfaces';
+import { HandleResponse, HttpRequest } from '../interfaces';
 import { prepareRequest } from '../utils';
 
 const debug = createDebug('superface:http:digest');
@@ -72,22 +73,33 @@ export class DigestHandler implements ISecurityHandler {
     );
   }
 
-  authenticate: MiddleWareAsync = async (
+  authenticate: AuthenticateRequestAsync = async (
     parameters: RequestParameters,
     cache: AuthCache,
-    fetch: (request: HttpRequest) => Promise<HttpResponse>
+    fetchInstance: FetchInstance,
+    fetch: (
+      fetchInstance: FetchInstance,
+      request: HttpRequest
+    ) => Promise<HttpResponse>
   ) => {
     const headers: Record<string, string> = parameters.headers || {};
 
+    //If we have cached credentials we use them
     if (cache?.digest) {
       debugSensitive(`Using cached digest credentials`);
       headers[
         this.configuration.authorizationHeader ||
           DEFAULT_AUTHORIZATION_HEADER_NAME
       ] = cache.digest;
-    }
 
+      return {
+        ...parameters,
+        headers,
+      };
+    }
+    //If we don't we try to get challange header
     const response = await fetch(
+      fetchInstance,
       prepareRequest({
         ...parameters,
         headers,
@@ -121,6 +133,40 @@ export class DigestHandler implements ISecurityHandler {
         DEFAULT_AUTHORIZATION_HEADER_NAME]: credentials,
       },
     };
+  };
+
+  handleResponse: HandleResponse = (
+    response: HttpResponse,
+    resourceRequestParameters: RequestParameters,
+    cache: AuthCache
+  ) => {
+    if (response.statusCode === this.statusCode) {
+      if (!response.headers[this.challangeHeader]) {
+        throw digestHeaderNotFound(
+          this.challangeHeader,
+          Object.keys(response.headers)
+        );
+      }
+      debugSensitive(`Getting new digest values`);
+      const credentials = this.buildDigestAuth(
+        //We need actual resolved url
+        response.debug.request.url,
+        resourceRequestParameters.method,
+        this.extractDigestValues(response.headers[this.challangeHeader])
+      );
+      cache.digest = credentials;
+
+      return {
+        ...resourceRequestParameters,
+        headers: {
+          ...resourceRequestParameters.headers,
+          [this.configuration.authorizationHeader ||
+          DEFAULT_AUTHORIZATION_HEADER_NAME]: credentials,
+        },
+      };
+    }
+
+    return undefined;
   };
 
   // prepare(
