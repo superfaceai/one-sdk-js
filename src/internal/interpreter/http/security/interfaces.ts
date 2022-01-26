@@ -47,12 +47,11 @@ export type AuthCache = {
 export type AuthenticateRequestAsync = (
   parameters: RequestParameters,
   //TODO: simplify/ get rid of
-  cache: AuthCache,
-  fetchInstance: FetchInstance,
-  fetch: (
-    fetchInstance: FetchInstance,
-    request: HttpRequest
-  ) => Promise<HttpResponse>
+  fetchInstance: FetchInstance & AuthCache
+  // fetch: (
+  //   fetchInstance: FetchInstance,
+  //   request: HttpRequest
+  // ) => Promise<HttpResponse>
 ) => Promise<RequestParameters>;
 
 export type AuthenticateRequest = (
@@ -68,12 +67,11 @@ export type HandleResponse = (
 export type HandleResponseAsync = (
   response: HttpResponse,
   resourceRequestParameters: RequestParameters,
-  cache: AuthCache,
-  fetchInstance: FetchInstance,
-  fetch: (
-    fetchInstance: FetchInstance,
-    request: HttpRequest
-  ) => Promise<HttpResponse>
+  fetchInstance: FetchInstance & AuthCache
+  // fetch: (
+  //   fetchInstance: FetchInstance,
+  //   request: HttpRequest
+  // ) => Promise<HttpResponse>
 ) => Promise<RequestParameters | undefined>;
 
 /**

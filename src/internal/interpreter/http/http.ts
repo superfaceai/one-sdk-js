@@ -132,8 +132,8 @@ export const createUrl = (
 
   return baseUrl.replace(/\/+$/, '') + url;
 };
-
-async function fetchRequest(
+//TODO: not sure if this can be exported or shoul be passed as argument
+export async function fetchRequest(
   fetchInstance: FetchInstance,
   request: HttpRequest
 ): Promise<HttpResponse> {
@@ -190,26 +190,6 @@ async function fetchRequest(
 
 export class HttpClient {
   constructor(private fetchInstance: FetchInstance & AuthCache) {}
-
-  //This is basicaly just handling authnetication and passing response to metadata
-  // @eventInterceptor({ eventName: 'request', placement: 'around' })
-  // //TODO: cache and security should be pass directly to event handler somehow
-  // private async makeRequest(
-  //   parameters: RequestParameters
-  // ): Promise<HttpResponse> {
-  //   const request = prepareRequest(parameters);
-
-  //   //Actual fetch
-  //   const response = await this.fetchRequest(request);
-
-  //   if (!this.metadata) {
-  //     this.metadata = {};
-  //   }
-  //   this.metadata.previousResponse = response;
-
-  //   return response;
-  // }
-
   public async request(
     url: string,
     parameters: {
@@ -242,15 +222,13 @@ export class HttpClient {
       fetchRequest: fetchRequest,
     });
 
-    const res = await (await builder.authenticate())
+    return (await builder.authenticate())
       .headers()
       .queryParameters()
       .method()
       .body()
       .url()
       .execute();
-
-    return res;
   }
 }
 
@@ -291,9 +269,7 @@ export class RequestBuilder {
     if (this.handler) {
       this.parameters = await this.handler.authenticate(
         this.parameters,
-        this.fetchInstance,
-        this.fetchInstance,
-        this.fetchRequest
+        this.fetchInstance
       );
     }
 
@@ -416,9 +392,8 @@ export class RequestBuilder {
       const newParameters = await this.handler.handleResponse(
         response,
         this.parameters,
-        this.fetchInstance,
-        this.fetchInstance,
-        this.fetchRequest
+        this.fetchInstance
+        // this.fetchRequest
       );
       if (newParameters) {
         this.parameters = newParameters;
@@ -458,3 +433,29 @@ function getSecurityHandler(
 
   return handler;
 }
+
+//Different approach
+
+// type MW = () => Promise<RequestBuilder> | RequestBuilder
+
+// const authenticate: MW = async (handler: ISecurityHandler | undefined): Promise<RequestBuilder> => {
+//   if (handler) {
+//     this.parameters = await this.handler.authenticate(
+//       this.parameters,
+//       this.fetchInstance,
+//       this.fetchInstance,
+//       this.fetchRequest
+//     );
+//   }
+
+//   return this;
+// }
+
+// async function pipe(parameters: RequestParameters, fetchInstance: FetchInstance & AuthCache, fetch: (
+//   fetchInstance: FetchInstance,
+//   request: HttpRequest,
+//   fns: []
+// ) => Promise<HttpResponse>): Promise<HttpResponse> {
+//   const handler = getSecurityHandler(parameters.securityConfiguration ?? [], parameters.securityRequirements)
+
+// }

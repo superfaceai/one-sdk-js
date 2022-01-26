@@ -11,11 +11,11 @@ import {
   AuthCache,
   AuthenticateRequestAsync,
   DEFAULT_AUTHORIZATION_HEADER_NAME,
-  HttpRequest,
   ISecurityHandler,
   RequestParameters,
 } from '../interfaces';
 import { RefreshHelper } from './refresh';
+import { fetchRequest } from '../..';
 
 export class OAuthHandler implements ISecurityHandler {
   private readonly selectedFlow: OAuthFlow;
@@ -44,30 +44,30 @@ export class OAuthHandler implements ISecurityHandler {
 
   authenticate: AuthenticateRequestAsync = async (
     parameters: RequestParameters,
-    cache: AuthCache,
-    fetchInstance: FetchInstance,
-    fetch: (
-      fetchInstance: FetchInstance,
-      request: HttpRequest
-    ) => Promise<HttpResponse>
+    // cache: AuthCache,
+    fetchInstance: FetchInstance & AuthCache
+    // fetch: (
+    //   fetchInstance: FetchInstance,
+    //   request: HttpRequest
+    // ) => Promise<HttpResponse>
   ) => {
-    if (this.refreshHelper && this.refreshHelper.shouldRefresh(cache)) {
+    if (this.refreshHelper && this.refreshHelper.shouldRefresh(fetchInstance)) {
       return await this.refreshHelper.refresh(
         parameters,
-        cache,
         fetchInstance,
-        fetch
+        fetchInstance,
+        fetchRequest
       );
     }
     //TODO: use selected flow helper (and actualy write some flow helpers)
     //Now we just get access token from cache and use it
-    if (cache.oauth?.authotizationCode?.accessToken) {
+    if (fetchInstance.oauth?.authotizationCode?.accessToken) {
       return {
         ...parameters,
         headers: {
           ...parameters.headers,
           //TODO: prepare header according to token type
-          [DEFAULT_AUTHORIZATION_HEADER_NAME]: `Bearer ${cache.oauth?.authotizationCode?.accessToken}`,
+          [DEFAULT_AUTHORIZATION_HEADER_NAME]: `Bearer ${fetchInstance.oauth?.authotizationCode?.accessToken}`,
         },
       };
     }
@@ -78,22 +78,21 @@ export class OAuthHandler implements ISecurityHandler {
   handleResponse: HandleResponseAsync = async (
     response: HttpResponse,
     resourceRequestParameters: RequestParameters,
-    cache: AuthCache,
-    fetchInstance: FetchInstance,
-    fetch: (
-      fetchInstance: FetchInstance,
-      request: HttpRequest
-    ) => Promise<HttpResponse>
+    fetchInstance: FetchInstance & AuthCache
+    // fetch: (
+    //   fetchInstance: FetchInstance,
+    //   request: HttpRequest
+    // ) => Promise<HttpResponse>
   ): Promise<RequestParameters | undefined> => {
     if (
       this.refreshHelper &&
-      this.refreshHelper.shouldRefresh(cache, response)
+      this.refreshHelper.shouldRefresh(fetchInstance, response)
     ) {
       return await this.refreshHelper.refresh(
         resourceRequestParameters,
-        cache,
         fetchInstance,
-        fetch
+        fetchInstance,
+        fetchRequest
       );
     }
 

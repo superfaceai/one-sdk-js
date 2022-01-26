@@ -7,7 +7,7 @@ import {
   missingPartOfDigestHeader,
   unexpectedDigestValue,
 } from '../../../../errors.helpers';
-import { HttpResponse } from '../../http';
+import { fetchRequest, HttpResponse } from '../../http';
 import { FetchInstance } from '../../interfaces';
 import {
   AuthCache,
@@ -15,8 +15,8 @@ import {
   DEFAULT_AUTHORIZATION_HEADER_NAME,
   ISecurityHandler,
   RequestParameters,
-} from '..';
-import { HandleResponse, HttpRequest } from '../interfaces';
+} from '../interfaces';
+import { HandleResponse } from '../interfaces';
 import { prepareRequest } from '../utils';
 
 const debug = createDebug('superface:http:digest');
@@ -75,22 +75,21 @@ export class DigestHandler implements ISecurityHandler {
 
   authenticate: AuthenticateRequestAsync = async (
     parameters: RequestParameters,
-    cache: AuthCache,
-    fetchInstance: FetchInstance,
-    fetch: (
-      fetchInstance: FetchInstance,
-      request: HttpRequest
-    ) => Promise<HttpResponse>
+    fetchInstance: FetchInstance & AuthCache
+    // fetch: (
+    //   fetchInstance: FetchInstance,
+    //   request: HttpRequest
+    // ) => Promise<HttpResponse>
   ) => {
     const headers: Record<string, string> = parameters.headers || {};
 
     //If we have cached credentials we use them
-    if (cache?.digest) {
+    if (fetchInstance?.digest) {
       debugSensitive(`Using cached digest credentials`);
       headers[
         this.configuration.authorizationHeader ||
           DEFAULT_AUTHORIZATION_HEADER_NAME
-      ] = cache.digest;
+      ] = fetchInstance.digest;
 
       return {
         ...parameters,
@@ -98,7 +97,7 @@ export class DigestHandler implements ISecurityHandler {
       };
     }
     //If we don't we try to get challange header
-    const response = await fetch(
+    const response = await fetchRequest(
       fetchInstance,
       prepareRequest({
         ...parameters,
@@ -123,7 +122,7 @@ export class DigestHandler implements ISecurityHandler {
       parameters.method,
       this.extractDigestValues(response.headers[this.challangeHeader])
     );
-    cache.digest = credentials;
+    fetchInstance.digest = credentials;
 
     return {
       ...parameters,
