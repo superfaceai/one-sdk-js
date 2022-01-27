@@ -19,13 +19,6 @@ import { FetchInstance, FetchParameters } from '../interfaces';
 
 export const DEFAULT_AUTHORIZATION_HEADER_NAME = 'Authorization';
 
-// export type BeforeHookAuthResult = BeforeHookResult<
-//   InstanceType<typeof HttpClient>['makeRequest']
-// >;
-// export type AffterHookAuthResult = AfterHookResult<
-//   InstanceType<typeof HttpClient>['makeRequest']
-// >;
-
 //TODO: rename? it's not connected to specific flow
 export type AuthCacheAuthorizationCode = {
   //Actual credentials
@@ -36,7 +29,7 @@ export type AuthCacheAuthorizationCode = {
   tokenType: OAuthTokenType;
   scopes: string[];
 };
-//TODO: Move this to src/internal/interpreter/http/security?
+
 export type AuthCache = {
   digest?: string;
   oauth?: {
@@ -44,6 +37,9 @@ export type AuthCache = {
   };
 };
 
+/**
+ * This type defines function used for authentization with more complex auth. methods (oauth, diges), we useFetchInstance to fetch auth. response and to set credentials to cache
+ */
 export type AuthenticateRequestAsync = (
   parameters: RequestParameters,
   //TODO: simplify/ get rid of
@@ -54,16 +50,27 @@ export type AuthenticateRequestAsync = (
   // ) => Promise<HttpResponse>
 ) => Promise<RequestParameters>;
 
+/**
+ * This type defines function used for authentization with simple auth. methods (apiKey, http basic, bearer), there is no need for FetchInstance because we don't need cache or fetching
+ */
 export type AuthenticateRequest = (
   parameters: RequestParameters
 ) => RequestParameters;
 
+/**
+ * This type defines function used for handling response with digest auth, there is no need for FetchInstance because we don't fetching (just cache).
+ * It returns undefined (when there is no need to retry request) or úarameters used in new request
+ */
 export type HandleResponse = (
   response: HttpResponse,
   resourceRequestParameters: RequestParameters,
   cache: AuthCache
 ) => RequestParameters | undefined;
 
+/**
+ * This type defines function used for handling response with complex auth methods.
+ * It returns undefined (when there is no need to retry request) or úarameters used in new request
+ */
 export type HandleResponseAsync = (
   response: HttpResponse,
   resourceRequestParameters: RequestParameters,

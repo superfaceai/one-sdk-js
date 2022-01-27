@@ -86,6 +86,7 @@ export class DigestHandler implements ISecurityHandler {
     //If we have cached credentials we use them
     if (fetchInstance?.digest) {
       debugSensitive(`Using cached digest credentials`);
+      console.log('REUSE');
       headers[
         this.configuration.authorizationHeader ||
           DEFAULT_AUTHORIZATION_HEADER_NAME

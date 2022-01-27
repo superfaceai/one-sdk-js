@@ -7,7 +7,7 @@ import createDebug from 'debug';
 import { inspect } from 'util';
 
 import { USER_AGENT } from '../../../index';
-import { recursiveKeyList } from '../../../lib/object';
+import { clone, recursiveKeyList } from '../../../lib/object';
 import { UnexpectedError } from '../../errors';
 import {
   missingPathReplacementError,
@@ -43,6 +43,7 @@ import {
   RequestParameters,
   SecurityConfiguration,
 } from './security';
+import { OAuthHandler } from './security/oauth';
 import { prepareRequest } from './security/utils';
 
 const debug = createDebug('superface:http');
@@ -189,7 +190,7 @@ export async function fetchRequest(
 }
 
 export class HttpClient {
-  constructor(private fetchInstance: FetchInstance & AuthCache) { }
+  constructor(private fetchInstance: FetchInstance & AuthCache) {}
   public async request(
     url: string,
     parameters: {
@@ -206,33 +207,41 @@ export class HttpClient {
       integrationParameters?: Record<string, string>;
     }
   ): Promise<HttpResponse> {
-    //Here we wil start the chain of functions to prepare actual request, each function take RequestParameters as a input, it can also take cache and fetch function. It returns RequestParameters or promise of them
-
-    const builder = new RequestBuilder({
-      parameters: {
+    return thisWouldBePartOfRequestFn(
+      {
         url,
         ...parameters,
         headers: variablesToStrings(parameters?.headers),
       },
-      fetchInstance: this.fetchInstance,
-      handler: getSecurityHandler(
-        parameters.securityConfiguration ?? [],
-        parameters.securityRequirements
-      ),
-      fetchRequest: fetchRequest,
-    });
+      this.fetchInstance
+    );
+    //Here we wil start the chain of functions to prepare actual request, each function take RequestParameters as a input, it can also take cache and fetch function. It returns RequestParameters or promise of them
+    // const builder = new RequestBuilder({
+    //   parameters: {
+    //     url,
+    //     ...parameters,
+    //     headers: variablesToStrings(parameters?.headers),
+    //   },
+    //   fetchInstance: this.fetchInstance,
+    //   handler: getSecurityHandler(
+    //     parameters.securityConfiguration ?? [],
+    //     parameters.securityRequirements
+    //   ),
+    //   fetchRequest: fetchRequest,
+    // });
 
-    return (await builder.authenticate())
-      .headers()
-      .queryParameters()
-      .method()
-      .body()
-      .url()
-      .execute();
+    // return (await builder.authenticate())
+    //   .headers()
+    //   .queryParameters()
+    //   .method()
+    //   .body()
+    //   .url()
+    //   .execute();
   }
 }
 
-//TODO: try to get rid of class
+//TODO: try to get rid of class to improve testing
+//Chaining approach - we
 export class RequestBuilder {
   //TODO: parameters should be read only - we will mutate HttpRequest
   private parameters: RequestParameters;
@@ -423,7 +432,7 @@ function getSecurityHandler(
     if (configuration.type === SecurityType.APIKEY) {
       handler = new ApiKeyHandler(configuration);
     } else if (configuration.type === SecurityType.OAUTH) {
-      // handler = new OAuthHandler(configuration);
+      handler = new OAuthHandler(configuration);
     } else if (configuration.scheme === HttpScheme.DIGEST) {
       handler = new DigestHandler(configuration);
     } else {
@@ -433,52 +442,62 @@ function getSecurityHandler(
 
   return handler;
 }
-
-//Getting rid of request builder class - body of this function would be in request function, main focus here was on clean(ish) function useage and simpler testing
-async function thisWouldBePartOfRequestFn(parameters: RequestParameters, fetchInstance: FetchInstance & AuthCache): Promise<HttpResponse> {
-  let request: Partial<HttpRequest> = {}
-  let preparedParameters = parameters
-  //We get security handler
-  const handler = getSecurityHandler(parameters.securityConfiguration ?? [], parameters.securityRequirements)
-  //It would be cool if ISecurityHandler would work with HttpRequest instead of RequestParameters - now we change parameters with authenticate a then use them as base for final request.
-  //Working with HttpRequest not gonna work - we can't easily change stuff like path parameters
-  if (handler) {
-    preparedParameters = await handler.authenticate(preparedParameters, fetchInstance)
-  }
-
-  request.headers = headers(preparedParameters)
-  request.body = body(preparedParameters)
-  request.queryParameters = queryParameters(preparedParameters)
-  request.method = method(preparedParameters)
-  request.url = url(preparedParameters)
-
-
-  //Do fetch here
-  let response = await fetchRequest(
-    fetchInstance,
-    request as HttpRequest
+//Probably simplest solution
+//Getting rid of request builder class - body of this function would be in request function, main focus here was on pure(ish) function useage and simpler testing
+async function thisWouldBePartOfRequestFn(
+  parameters: RequestParameters,
+  fetchInstance: FetchInstance & AuthCache
+): Promise<HttpResponse> {
+  //deep copy
+  let preparedParameters = clone<RequestParameters>(parameters);
+  //We get security handler - it can be undefined when there is no auth
+  const handler = getSecurityHandler(
+    parameters.securityConfiguration ?? [],
+    parameters.securityRequirements
   );
-
-  if (handler && handler.handleResponse) {
-    //Returning RequestParameters is wrong here :/ 
-    const newParameters = await handler.handleResponse(
-      response,
-      parameters,
+  //It would be cool if ISecurityHandler would work with HttpRequest instead of RequestParameters - now we change parameters with authenticate a then use them as base for final request.
+  //Working with HttpRequest not gonna work - we can't easily change stuff like path parameters - HttpRequest is just too "finished"
+  if (handler) {
+    preparedParameters = await handler.authenticate(
+      preparedParameters,
       fetchInstance
     );
+  }
+
+  //Build request from prepared (authenticated) parameters
+  const request = buildRequest(preparedParameters);
+
+  //Do fetch here
+  let response = await fetchRequest(fetchInstance, request);
+
+  //This is handlig the cases when we are authenticated but eg. digest credentials expired or oauth access token is no longer valid
+  if (handler && handler.handleResponse) {
+    //We get new parameters (with updated auth, also updated cache)
+    const newParameters = await handler.handleResponse(
+      response,
+      preparedParameters,
+      fetchInstance
+    );
+    //We retry the request
     if (newParameters) {
-      parameters = newParameters;
-      response = await fetchRequest(
-        fetchInstance,
-        prepareRequest(parameters)
-      );
+      response = await fetchRequest(fetchInstance, buildRequest(newParameters));
     }
   }
 
   return response;
 }
+//These fns should be easy to test
+//TODO: maybe move them to src/internal/interpreter/http/security/utils.ts
+function buildRequest(parameters: RequestParameters): HttpRequest {
+  return {
+    headers: headers(parameters),
+    body: body(parameters),
+    queryParameters: queryParameters(parameters),
+    method: method(parameters),
+    url: url(parameters),
+  };
+}
 
-//These should be easy to test
 function headers(parameters: RequestParameters): Record<string, string> {
   const headers: Record<string, string> = parameters.headers || {};
   headers['accept'] = parameters.accept || '*/*';
@@ -502,10 +521,7 @@ function headers(parameters: RequestParameters): Record<string, string> {
       ...BINARY_CONTENT_TYPES,
     ];
 
-    throw unsupportedContentType(
-      parameters.contentType ?? '',
-      supportedTypes
-    );
+    throw unsupportedContentType(parameters.contentType ?? '', supportedTypes);
   }
 
   return headers;
@@ -517,9 +533,7 @@ function body(parameters: RequestParameters): FetchBody | undefined {
     if (parameters.contentType === JSON_CONTENT) {
       finalBody = stringBody(JSON.stringify(parameters.body));
     } else if (parameters.contentType === URLENCODED_CONTENT) {
-      finalBody = urlSearchParamsBody(
-        variablesToStrings(parameters.body)
-      );
+      finalBody = urlSearchParamsBody(variablesToStrings(parameters.body));
     } else if (parameters.contentType === FORMDATA_CONTENT) {
       finalBody = formDataBody(variablesToStrings(parameters.body));
     } else if (
@@ -550,13 +564,13 @@ function body(parameters: RequestParameters): FetchBody | undefined {
     return finalBody;
   }
 
-  return undefined
+  return undefined;
 }
 
-function queryParameters(parameters: RequestParameters): Record<string, string> {
-  return variablesToStrings(
-    parameters.queryParameters
-  );
+function queryParameters(
+  parameters: RequestParameters
+): Record<string, string> {
+  return variablesToStrings(parameters.queryParameters);
 }
 
 function method(parameters: RequestParameters): string {
@@ -569,9 +583,7 @@ function url(parameters: RequestParameters): string {
     pathParameters: parameters.pathParameters ?? {},
     integrationParameters: parameters.integrationParameters,
   });
-
 }
-
 
 //Different approach -> something like pipe
 

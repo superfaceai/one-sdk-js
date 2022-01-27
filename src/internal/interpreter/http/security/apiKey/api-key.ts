@@ -15,7 +15,7 @@ import { AuthenticateRequest, RequestParameters } from '../interfaces';
 export class ApiKeyHandler implements ISecurityHandler {
   constructor(
     readonly configuration: ApiKeySecurityScheme & ApiKeySecurityValues
-  ) { }
+  ) {}
 
   authenticate: AuthenticateRequest = (parameters: RequestParameters) => {
     let body: Variables | undefined = parameters.body;
