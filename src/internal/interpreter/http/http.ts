@@ -190,7 +190,7 @@ export async function fetchRequest(
 }
 
 export class HttpClient {
-  constructor(private fetchInstance: FetchInstance & AuthCache) {}
+  constructor(private fetchInstance: FetchInstance & AuthCache) { }
   public async request(
     url: string,
     parameters: {
@@ -241,7 +241,7 @@ export class HttpClient {
 }
 
 //TODO: try to get rid of class to improve testing
-//Chaining approach - we
+//Chaining approach - class holds "final value" (HttpRequest) and functions changes/set parts of it. Order is important (we muset start with authentice, and end with execute)
 export class RequestBuilder {
   //TODO: parameters should be read only - we will mutate HttpRequest
   private parameters: RequestParameters;
@@ -486,19 +486,50 @@ async function thisWouldBePartOfRequestFn(
 
   return response;
 }
-//These fns should be easy to test
 //TODO: maybe move them to src/internal/interpreter/http/security/utils.ts
 function buildRequest(parameters: RequestParameters): HttpRequest {
-  return {
-    headers: headers(parameters),
-    body: body(parameters),
-    queryParameters: queryParameters(parameters),
-    method: method(parameters),
-    url: url(parameters),
+  const mergeRequests = (
+    left: Partial<HttpRequest>,
+    right: Partial<HttpRequest>
+  ): Partial<HttpRequest> => {
+    //TODO: maybe use some better way of merging
+    return {
+      ...left,
+      ...right,
+    };
   };
+
+  const r = compose<RequestParameters, Partial<HttpRequest>>(
+    parameters,
+    {},
+    mergeRequests,
+    headers,
+    body,
+    queryParameters,
+    method,
+    url
+  );
+
+  //TODO: check if request is complete
+  return r as HttpRequest;
 }
 
-function headers(parameters: RequestParameters): Record<string, string> {
+//This is just to try it out
+export const compose = <A, R>(
+  parameters: A,
+  initial: R,
+  merge: (left: R, right: R) => R,
+  ...fns: Array<(a: A) => R>
+) => {
+  for (const fn of fns) {
+    initial = merge(initial, fn(parameters));
+  }
+
+  return initial;
+};
+//These fns should be easy to test
+
+function headers(parameters: RequestParameters): Partial<HttpRequest> {
   const headers: Record<string, string> = parameters.headers || {};
   headers['accept'] = parameters.accept || '*/*';
   headers['user-agent'] ??= USER_AGENT;
@@ -524,10 +555,10 @@ function headers(parameters: RequestParameters): Record<string, string> {
     throw unsupportedContentType(parameters.contentType ?? '', supportedTypes);
   }
 
-  return headers;
+  return { headers };
 }
 
-function body(parameters: RequestParameters): FetchBody | undefined {
+function body(parameters: RequestParameters): Partial<HttpRequest> {
   if (parameters.body) {
     let finalBody: FetchBody | undefined;
     if (parameters.contentType === JSON_CONTENT) {
@@ -561,32 +592,39 @@ function body(parameters: RequestParameters): FetchBody | undefined {
         supportedTypes
       );
     }
-    return finalBody;
+    return { body: finalBody };
   }
 
-  return undefined;
+  return {};
 }
 
-function queryParameters(
-  parameters: RequestParameters
-): Record<string, string> {
-  return variablesToStrings(parameters.queryParameters);
+function queryParameters(parameters: RequestParameters): Partial<HttpRequest> {
+  return { queryParameters: variablesToStrings(parameters.queryParameters) };
 }
 
-function method(parameters: RequestParameters): string {
-  return parameters.method;
+function method(parameters: RequestParameters): Partial<HttpRequest> {
+  return { method: parameters.method };
 }
 
-function url(parameters: RequestParameters): string {
-  return createUrl(parameters.url, {
-    baseUrl: parameters.baseUrl,
-    pathParameters: parameters.pathParameters ?? {},
-    integrationParameters: parameters.integrationParameters,
-  });
+function url(parameters: RequestParameters): Partial<HttpRequest> {
+  return {
+    url: createUrl(parameters.url, {
+      baseUrl: parameters.baseUrl,
+      pathParameters: parameters.pathParameters ?? {},
+      integrationParameters: parameters.integrationParameters,
+    }),
+  };
 }
 
 //Different approach -> something like pipe
+//https://medium.com/ackee/typescript-function-composition-and-recurrent-types-a9efbc8e7736
 
+// export const compose = <A, R>(p: A, ...fns: Array<(a: A) => R>) =>
+//   fns.reduce((prevFn, nextFn) => value => prevFn(nextFn(p)));
+
+// function fn1(parameters: RequestParameters): RequestParameters {
+//   return parameters
+// }
 // type MW = () => Promise<RequestBuilder> | RequestBuilder
 
 // const authenticate: MW = async (handler: ISecurityHandler | undefined): Promise<RequestBuilder> => {
