@@ -190,7 +190,7 @@ export async function fetchRequest(
 }
 
 export class HttpClient {
-  constructor(private fetchInstance: FetchInstance & AuthCache) { }
+  constructor(private fetchInstance: FetchInstance & AuthCache) {}
   public async request(
     url: string,
     parameters: {
