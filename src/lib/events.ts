@@ -142,10 +142,6 @@ type EventTypes = {
     InstanceType<typeof UseCase>['bindAndPerform'],
     BindContext
   ];
-  // request: [
-  //   InstanceType<typeof HttpClient>['makeRequest'],
-  //   AuthenticateContext
-  // ];
 };
 
 export type EventParams = {
@@ -300,7 +296,6 @@ function replacementFunction<E extends keyof EventTypes>(
             profile: this.metadata?.profile,
             usecase: this.metadata?.usecase,
             provider: this.metadata?.provider,
-            ...this.metadata,
           },
           functionArgs,
         ] as any);
@@ -338,7 +333,6 @@ function replacementFunction<E extends keyof EventTypes>(
             profile: this.metadata?.profile,
             usecase: this.metadata?.usecase,
             provider: this.metadata?.provider,
-            ...this.metadata,
           },
           functionArgs as any,
           result,

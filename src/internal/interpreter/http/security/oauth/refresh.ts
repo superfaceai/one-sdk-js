@@ -17,12 +17,6 @@ import {
 } from '../interfaces';
 import { prepareRequest } from '../utils';
 
-// export enum RefreshState {
-//   OK,
-//   REFRESHING,
-//   //TODO: more states according to auth. process
-// }
-
 export class RefreshHelper {
   private readonly refreshStatusCode: number;
   private readonly clientAuthenticationMethod: OAuthClientAuthenticationMethod;
@@ -170,107 +164,6 @@ export class RefreshHelper {
     //TODO: handle this
     return parameters;
   }
-
-  // stopRefreshing(
-  //   response: HttpResponse
-  // ): AuthCacheAuthorizationCode | undefined {
-  //   //Handle refresh
-  //   if (
-  //     this.state === RefreshState.REFRESHING &&
-  //     //200 is defined by rfc
-  //     response.statusCode === 200
-  //   ) {
-  //     console.log('response body', response.body);
-  //     //Extract access token info from body
-  //     const accessTokenResponse = response.body as {
-  //       access_token: string;
-  //       token_type: string;
-  //       refresh_token?: string;
-  //       expires_in?: number;
-  //       scope: string;
-  //     };
-
-  //     if (!accessTokenResponse.access_token) {
-  //       //TODO: move to error helpers
-  //       throw new UnexpectedError(
-  //         `Missing property "access_token" in response body`,
-  //         accessTokenResponse
-  //       );
-  //     }
-
-  //     if (!accessTokenResponse.token_type) {
-  //       throw new UnexpectedError(
-  //         `Missing property "token_type" in response body`,
-  //         accessTokenResponse
-  //       );
-  //     }
-
-  //     if (
-  //       accessTokenResponse.token_type !== OAuthTokenType.BEARER //&&
-  //       // accessTokenResponse.token_type !== OAuthTokenType.MAC
-  //     ) {
-  //       throw new UnexpectedError(
-  //         `Property "token_type" has invalid value`,
-  //         accessTokenResponse.token_type
-  //       );
-  //     }
-  //     this.state = RefreshState.OK;
-
-  //     return {
-  //       accessToken: accessTokenResponse.access_token,
-  //       refreshToken: accessTokenResponse.refresh_token,
-  //       expiresAt: accessTokenResponse.expires_in
-  //         ? Math.floor(Date.now() / 1000) + accessTokenResponse.expires_in
-  //         : undefined,
-  //       scopes: accessTokenResponse.scope
-  //         ? //TODO: custom separator
-  //         accessTokenResponse.scope.split(' ')
-  //         : [],
-  //       tokenType: accessTokenResponse.token_type,
-  //     };
-  //   }
-
-  //   return undefined;
-  // }
-
-  // startRefreshing(parameters: RequestParameters): RequestParameters {
-  //   console.log('refereshing');
-  //   this.state = RefreshState.REFRESHING;
-
-  //   const body: Variables = {
-  //     //grant_type and refresh_token is defined in rfc.
-  //     grant_type: 'refresh_token',
-  //     refresh_token: this.configuration.refreshToken,
-  //     //We are omiting scope to ensure that user is not extending his access
-  //   };
-  //   const headers: Record<string, string> = {};
-
-  //   if (
-  //     this.clientAuthenticationMethod ===
-  //     OAuthClientAuthenticationMethod.CLIENT_SECRET_BASIC
-  //   ) {
-  //     headers[DEFAULT_AUTHORIZATION_HEADER_NAME] =
-  //       'Basic ' +
-  //       Buffer.from(
-  //         `${this.configuration.clientId}:${this.configuration.clientSecret}`
-  //       ).toString('base64');
-  //   } else {
-  //     body.client_id = this.configuration.clientId;
-  //     body.client_secret = this.configuration.clientSecret;
-  //   }
-
-  //   return {
-  //     method: 'post',
-  //     headers,
-  //     body,
-  //     //TODO: Custom content type
-  //     contentType: URLENCODED_CONTENT,
-  //     baseUrl: createUrl(this.flow.refreshUrl!, {
-  //       baseUrl: parameters.baseUrl,
-  //     }),
-  //     url: '',
-  //   };
-  // }
 
   private isAccessTokenExpired(expiresAt?: number): boolean {
     if (!expiresAt) {

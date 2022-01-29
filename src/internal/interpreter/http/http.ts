@@ -206,13 +206,20 @@ export class HttpClient {
       integrationParameters?: Record<string, string>;
     }
   ): Promise<HttpResponse> {
+    const requestParameters: RequestParameters = {
+      url,
+      ...parameters,
+      headers: variablesToStrings(parameters?.headers),
+    };
+
+    //TODO: change name? Something like requestPipe?
     return pipe(
-      {
-        url,
-        ...parameters,
-        headers: variablesToStrings(parameters?.headers),
-      },
+      requestParameters,
       this.fetchInstance,
+      getSecurityHandler(
+        requestParameters.securityConfiguration,
+        requestParameters.securityRequirements
+      ),
       [
         headers,
         body,
@@ -228,12 +235,12 @@ export class HttpClient {
 }
 
 function getSecurityHandler(
-  securityConfiguration: SecurityConfiguration[],
+  securityConfiguration?: SecurityConfiguration[],
   securityRequirements?: HttpSecurityRequirement[]
 ): ISecurityHandler | undefined {
   let handler: ISecurityHandler | undefined = undefined;
   for (const requirement of securityRequirements ?? []) {
-    const configuration = securityConfiguration.find(
+    const configuration = (securityConfiguration ?? []).find(
       configuration => configuration.id === requirement.id
     );
     if (configuration === undefined) {
@@ -252,49 +259,34 @@ function getSecurityHandler(
 
   return handler;
 }
+
+//TODO: move this to new file.
 //Represents pipe helper function
-type PipeFilterInput = {
+export type PipeFilterInput = {
   parameters: RequestParameters;
   request: Partial<HttpRequest>;
   response: HttpResponse | undefined;
   fetchInstance: FetchInstance & AuthCache;
   handler: ISecurityHandler | undefined;
 };
-type PipeFilter = ({
+export type PipeFilter = ({
   parameters,
   request,
   response,
   fetchInstance,
-}: PipeFilterInput) => {
-  parameters: RequestParameters;
-  request: Partial<HttpRequest>;
-  response: HttpResponse | undefined;
-};
-type PipeFilterAsync = ({
-  parameters,
-  request,
-  response,
-  fetchInstance,
-}: PipeFilterInput) => Promise<{
-  parameters: RequestParameters;
-  request: Partial<HttpRequest>;
-  response: HttpResponse | undefined;
-}>;
+  handler,
+}: PipeFilterInput) =>
+  | Pick<PipeFilterInput, 'parameters' | 'request' | 'response'>
+  | Promise<Pick<PipeFilterInput, 'parameters' | 'request' | 'response'>>;
 
-async function pipe(
+export async function pipe(
   parameters: RequestParameters,
   fetchInstance: FetchInstance & AuthCache,
-  fns: (PipeFilter | PipeFilterAsync)[]
+  handler: ISecurityHandler | undefined,
+  fns: PipeFilter[]
 ): Promise<HttpResponse> {
   let request: Partial<HttpRequest> = {};
   let response: HttpResponse | undefined;
-
-  //TODO: handler does make sense only on top level pipe - when we call pipe from auth handler we don't want it - pass it as optional parameter
-  //We get security handler - it can be undefined when there is no auth
-  const handler = getSecurityHandler(
-    parameters.securityConfiguration ?? [],
-    parameters.securityRequirements
-  );
 
   for (const fn of fns) {
     const updated = await fn({
@@ -308,38 +300,6 @@ async function pipe(
     response = updated.response;
   }
 
-  //OLD
-  //deep copy
-  // let preparedParameters = clone<RequestParameters>(parameters);
-
-  // //It would be cool if ISecurityHandler would work with HttpRequest instead of RequestParameters - now we change parameters with authenticate a then use them as base for final request.
-  // //Working with HttpRequest not gonna work - we can't easily change stuff like path parameters - HttpRequest is just too "finished"
-  // if (handler) {
-  //   preparedParameters = await handler.authenticate(
-  //     preparedParameters,
-  //     fetchInstance
-  //   );
-  // }
-
-  // //Build request from prepared (authenticated) parameters
-  // const request = buildRequest(preparedParameters);
-
-  // //Do fetch here
-  // let response = await fetchRequest(fetchInstance, request);
-
-  // //This is handlig the cases when we are authenticated but eg. digest credentials expired or oauth access token is no longer valid
-  // if (handler && handler.handleResponse) {
-  //   //We get new parameters (with updated auth, also updated cache)
-  //   const newParameters = await handler.handleResponse(
-  //     response,
-  //     preparedParameters,
-  //     fetchInstance
-  //   );
-  //   //We retry the request
-  //   if (newParameters) {
-  //     response = await fetchRequest(fetchInstance, buildRequest(newParameters));
-  //   }
-  // }
   if (!response) {
     throw new Error('Response undefined');
   }
@@ -347,7 +307,7 @@ async function pipe(
   return response;
 }
 
-const mergeRequests = (
+export const mergeRequests = (
   left: Partial<HttpRequest>,
   right: Partial<HttpRequest>
 ): Partial<HttpRequest> => {
@@ -358,21 +318,8 @@ const mergeRequests = (
   };
 };
 
-//This is just to try it out
-export const compose = <A, R>(
-  parameters: A,
-  initial: R,
-  merge: (left: R, right: R) => R,
-  ...fns: Array<(a: A) => R>
-) => {
-  for (const fn of fns) {
-    initial = merge(initial, fn(parameters));
-  }
-
-  return initial;
-};
 //These fns should be easy to test
-const fetch: PipeFilterAsync = async ({
+export const fetch: PipeFilter = async ({
   parameters,
   request,
   fetchInstance,
@@ -386,7 +333,7 @@ const fetch: PipeFilterAsync = async ({
 };
 
 //TODO: how to auth without keeping the handler instance
-const authenticate: PipeFilterAsync = async ({
+export const authenticate: PipeFilter = async ({
   parameters,
   request,
   response,
@@ -395,8 +342,8 @@ const authenticate: PipeFilterAsync = async ({
 }: PipeFilterInput) => {
   if (handler) {
     const authRequest = await handler.authenticate(parameters, fetchInstance);
-    
-return {
+
+    return {
       parameters,
       request: mergeRequests(request, authRequest),
       response,
@@ -411,16 +358,15 @@ return {
 };
 
 //TODO: how to auth without keeping the handler instance, naming
-// //This is handlig the cases when we are authenticated but eg. digest credentials expired or oauth access token is no longer valid
-
-const resolveResponse: PipeFilterAsync = async ({
+//This is handling the cases when we are authenticated but eg. digest credentials expired or oauth access token is no longer valid
+export const resolveResponse: PipeFilter = async ({
   parameters,
   request,
   response,
   fetchInstance,
   handler,
 }: PipeFilterInput) => {
-  //TODO:
+  //TODO: better error
   if (!response) {
     throw new Error('response is undefined');
   }
@@ -440,7 +386,7 @@ const resolveResponse: PipeFilterAsync = async ({
   return { parameters, request, response };
 };
 
-const headers: PipeFilter = ({
+export const headers: PipeFilter = ({
   parameters,
   request,
   response,
@@ -484,7 +430,7 @@ const headers: PipeFilter = ({
   };
 };
 
-const body: PipeFilter = ({
+export const body: PipeFilter = ({
   parameters,
   request,
   response,
@@ -527,8 +473,8 @@ const body: PipeFilter = ({
       );
     }
   }
-  
-return {
+
+  return {
     parameters,
     request: {
       ...request,
@@ -538,7 +484,7 @@ return {
   };
 };
 
-const queryParameters: PipeFilter = ({
+export const queryParameters: PipeFilter = ({
   parameters,
   request,
   response,
@@ -576,7 +522,7 @@ const method: PipeFilter = ({
   };
 };
 
-const prepareUrl: PipeFilter = ({
+export const prepareUrl: PipeFilter = ({
   parameters,
   request,
   response,

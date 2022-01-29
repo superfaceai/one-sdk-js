@@ -13,8 +13,10 @@ import {
   AuthCache,
   AuthenticateRequestAsync,
   DEFAULT_AUTHORIZATION_HEADER_NAME,
- HandleResponse,  ISecurityHandler,
-  RequestParameters } from '../interfaces';
+  HandleResponse,
+  ISecurityHandler,
+  RequestParameters,
+} from '../interfaces';
 import { prepareRequest } from '../utils';
 
 const debug = createDebug('superface:http:digest');

@@ -34,38 +34,6 @@ export class HttpHandler implements ISecurityHandler {
       headers,
     });
   }
-
-  // handle(
-  //   _response: HttpResponse,
-  //   _resourceRequestParameters: RequestParameters,
-  //   _cache: AuthCache
-  // ): AffterHookAuthResult {
-  //   return { kind: 'continue' };
-  // }
-
-  // prepare(parameters: RequestParameters): BeforeHookAuthResult {
-  //   const headers: Record<string, string> = parameters.headers;
-
-  //   switch (this.configuration.scheme) {
-  //     case HttpScheme.BASIC:
-  //       headers[DEFAULT_AUTHORIZATION_HEADER_NAME] = applyBasicAuth(
-  //         this.configuration
-  //       );
-  //       break;
-  //     case HttpScheme.BEARER:
-  //       headers[DEFAULT_AUTHORIZATION_HEADER_NAME] = applyBearerToken(
-  //         this.configuration
-  //       );
-  //       break;
-  //   }
-
-  //   const request: RequestParameters = {
-  //     ...parameters,
-  //     headers,
-  //   };
-
-  //   return { kind: 'modify', newArgs: [request] };
-  // }
 }
 
 function applyBasicAuth(
