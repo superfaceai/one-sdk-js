@@ -44,28 +44,24 @@ export type AuthenticateRequestAsync = (
   parameters: RequestParameters,
   //TODO: simplify/ get rid of
   fetchInstance: FetchInstance & AuthCache
-  // fetch: (
-  //   fetchInstance: FetchInstance,
-  //   request: HttpRequest
-  // ) => Promise<HttpResponse>
-) => Promise<RequestParameters>;
+) => Promise<HttpRequest>;
 
 /**
  * This type defines function used for authentization with simple auth. methods (apiKey, http basic, bearer), there is no need for FetchInstance because we don't need cache or fetching
  */
 export type AuthenticateRequest = (
   parameters: RequestParameters
-) => RequestParameters;
+) => Partial<HttpRequest>;
 
 /**
  * This type defines function used for handling response with digest auth, there is no need for FetchInstance because we don't fetching (just cache).
- * It returns undefined (when there is no need to retry request) or úarameters used in new request
+ * It returns undefined (when there is no need to retry request) or parameters used in new request
  */
 export type HandleResponse = (
   response: HttpResponse,
   resourceRequestParameters: RequestParameters,
   cache: AuthCache
-) => RequestParameters | undefined;
+) => HttpRequest | undefined;
 
 /**
  * This type defines function used for handling response with complex auth methods.
@@ -75,11 +71,7 @@ export type HandleResponseAsync = (
   response: HttpResponse,
   resourceRequestParameters: RequestParameters,
   fetchInstance: FetchInstance & AuthCache
-  // fetch: (
-  //   fetchInstance: FetchInstance,
-  //   request: HttpRequest
-  // ) => Promise<HttpResponse>
-) => Promise<RequestParameters | undefined>;
+) => Promise<HttpRequest | undefined>;
 
 /**
  * Represents class that is able to prepare (set headers, path etc.) and handle (challange responses for eg. digest) authentication
@@ -101,13 +93,6 @@ export type SecurityConfiguration =
   | (BearerTokenSecurityScheme & BearerTokenSecurityValues)
   | (DigestSecurityScheme & DigestSecurityValues)
   | (OAuthSecurityScheme & OAuthSecurityValues);
-
-// export type RequestContext = {
-//   pathParameters: NonPrimitive;
-//   queryAuth: Record<string, string>;
-//   headers: Record<string, string>;
-//   requestBody: Variables | undefined;
-// };
 
 export type RequestParameters = {
   url: string;

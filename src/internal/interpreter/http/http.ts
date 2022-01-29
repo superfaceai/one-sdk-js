@@ -7,7 +7,7 @@ import createDebug from 'debug';
 import { inspect } from 'util';
 
 import { USER_AGENT } from '../../../index';
-import { clone, recursiveKeyList } from '../../../lib/object';
+import { recursiveKeyList } from '../../../lib/object';
 import { UnexpectedError } from '../../errors';
 import {
   missingPathReplacementError,
@@ -44,7 +44,6 @@ import {
   SecurityConfiguration,
 } from './security';
 import { OAuthHandler } from './security/oauth';
-import { prepareRequest } from './security/utils';
 
 const debug = createDebug('superface:http');
 const debugSensitive = createDebug('superface:http:sensitive');
@@ -207,213 +206,24 @@ export class HttpClient {
       integrationParameters?: Record<string, string>;
     }
   ): Promise<HttpResponse> {
-    return thisWouldBePartOfRequestFn(
+    return pipe(
       {
         url,
         ...parameters,
         headers: variablesToStrings(parameters?.headers),
       },
-      this.fetchInstance
-    );
-    //Here we wil start the chain of functions to prepare actual request, each function take RequestParameters as a input, it can also take cache and fetch function. It returns RequestParameters or promise of them
-    // const builder = new RequestBuilder({
-    //   parameters: {
-    //     url,
-    //     ...parameters,
-    //     headers: variablesToStrings(parameters?.headers),
-    //   },
-    //   fetchInstance: this.fetchInstance,
-    //   handler: getSecurityHandler(
-    //     parameters.securityConfiguration ?? [],
-    //     parameters.securityRequirements
-    //   ),
-    //   fetchRequest: fetchRequest,
-    // });
-
-    // return (await builder.authenticate())
-    //   .headers()
-    //   .queryParameters()
-    //   .method()
-    //   .body()
-    //   .url()
-    //   .execute();
-  }
-}
-
-//TODO: try to get rid of class to improve testing
-//Chaining approach - class holds "final value" (HttpRequest) and functions changes/set parts of it. Order is important (we muset start with authentice, and end with execute)
-export class RequestBuilder {
-  //TODO: parameters should be read only - we will mutate HttpRequest
-  private parameters: RequestParameters;
-  private readonly handler: ISecurityHandler | undefined;
-  private readonly fetchRequest: (
-    fetchInstance: FetchInstance,
-    request: HttpRequest
-  ) => Promise<HttpResponse>;
-
-  private fetchInstance: FetchInstance & AuthCache;
-  private request: Partial<HttpRequest> = {};
-
-  constructor({
-    parameters,
-    handler,
-    fetchInstance,
-    fetchRequest,
-  }: {
-    parameters: RequestParameters;
-    fetchInstance: FetchInstance & AuthCache;
-    handler: ISecurityHandler | undefined;
-    fetchRequest: (
-      fetchInstance: FetchInstance,
-      request: HttpRequest
-    ) => Promise<HttpResponse>;
-  }) {
-    this.parameters = parameters;
-    this.fetchRequest = fetchRequest;
-    this.handler = handler;
-    this.fetchInstance = fetchInstance;
-  }
-
-  public async authenticate(): Promise<this> {
-    if (this.handler) {
-      this.parameters = await this.handler.authenticate(
-        this.parameters,
-        this.fetchInstance
-      );
-    }
-
-    return this;
-  }
-
-  public headers(): this {
-    const headers: Record<string, string> = this.parameters.headers || {};
-    headers['accept'] = this.parameters.accept || '*/*';
-    headers['user-agent'] ??= USER_AGENT;
-    if (this.parameters.contentType === JSON_CONTENT) {
-      headers['Content-Type'] ??= JSON_CONTENT;
-    } else if (this.parameters.contentType === URLENCODED_CONTENT) {
-      headers['Content-Type'] ??= URLENCODED_CONTENT;
-    } else if (this.parameters.contentType === FORMDATA_CONTENT) {
-      headers['Content-Type'] ??= FORMDATA_CONTENT;
-    } else if (
-      this.parameters.contentType &&
-      BINARY_CONTENT_REGEXP.test(this.parameters.contentType)
-    ) {
-      headers['Content-Type'] ??= this.parameters.contentType;
-    } else {
-      const supportedTypes = [
-        JSON_CONTENT,
-        URLENCODED_CONTENT,
-        FORMDATA_CONTENT,
-        ...BINARY_CONTENT_TYPES,
-      ];
-
-      throw unsupportedContentType(
-        this.parameters.contentType ?? '',
-        supportedTypes
-      );
-    }
-
-    this.request.headers = headers;
-
-    return this;
-  }
-
-  public body(): this {
-    if (this.parameters.body) {
-      let finalBody: FetchBody | undefined;
-      if (this.parameters.contentType === JSON_CONTENT) {
-        finalBody = stringBody(JSON.stringify(this.parameters.body));
-      } else if (this.parameters.contentType === URLENCODED_CONTENT) {
-        finalBody = urlSearchParamsBody(
-          variablesToStrings(this.parameters.body)
-        );
-      } else if (this.parameters.contentType === FORMDATA_CONTENT) {
-        finalBody = formDataBody(variablesToStrings(this.parameters.body));
-      } else if (
-        this.parameters.contentType &&
-        BINARY_CONTENT_REGEXP.test(this.parameters.contentType)
-      ) {
-        let buffer: Buffer;
-        if (Buffer.isBuffer(this.parameters.body)) {
-          buffer = this.parameters.body;
-        } else {
-          //coerce to string then buffer
-          buffer = Buffer.from(String(this.parameters.body));
-        }
-        finalBody = binaryBody(buffer);
-      } else {
-        const supportedTypes = [
-          JSON_CONTENT,
-          URLENCODED_CONTENT,
-          FORMDATA_CONTENT,
-          ...BINARY_CONTENT_TYPES,
-        ];
-
-        throw unsupportedContentType(
-          this.parameters.contentType ?? '',
-          supportedTypes
-        );
-      }
-      this.request.body = finalBody;
-    }
-
-    return this;
-  }
-
-  public queryParameters(): this {
-    this.request.queryParameters = variablesToStrings(
-      this.parameters.queryParameters
-    );
-
-    return this;
-  }
-
-  public method(): this {
-    this.request.method = this.parameters.method;
-
-    return this;
-  }
-
-  public url(): this {
-    this.request.url = createUrl(this.parameters.url, {
-      baseUrl: this.parameters.baseUrl,
-      pathParameters: this.parameters.pathParameters ?? {},
-      integrationParameters: this.parameters.integrationParameters,
-    });
-
-    return this;
-  }
-
-  public async execute(): Promise<HttpResponse> {
-    if (!this.parameters) {
-      throw new Error('Parameters not set');
-    }
-
-    //Do fetch here
-    let response = await this.fetchRequest(
       this.fetchInstance,
-      this.request as HttpRequest
+      [
+        headers,
+        body,
+        queryParameters,
+        method,
+        prepareUrl,
+        authenticate,
+        fetch,
+        resolveResponse,
+      ]
     );
-
-    //TODO: this could be another step fn
-    if (this.handler && this.handler.handleResponse) {
-      const newParameters = await this.handler.handleResponse(
-        response,
-        this.parameters,
-        this.fetchInstance
-        // this.fetchRequest
-      );
-      if (newParameters) {
-        this.parameters = newParameters;
-        response = await this.fetchRequest(
-          this.fetchInstance,
-          prepareRequest(this.parameters)
-        );
-      }
-    }
-
-    return response;
   }
 }
 
@@ -442,77 +252,111 @@ function getSecurityHandler(
 
   return handler;
 }
-//Probably simplest solution
-//Getting rid of request builder class - body of this function would be in request function, main focus here was on pure(ish) function useage and simpler testing
-async function thisWouldBePartOfRequestFn(
+//Represents pipe helper function
+type PipeFilterInput = {
+  parameters: RequestParameters;
+  request: Partial<HttpRequest>;
+  response: HttpResponse | undefined;
+  fetchInstance: FetchInstance & AuthCache;
+  handler: ISecurityHandler | undefined;
+};
+type PipeFilter = ({
+  parameters,
+  request,
+  response,
+  fetchInstance,
+}: PipeFilterInput) => {
+  parameters: RequestParameters;
+  request: Partial<HttpRequest>;
+  response: HttpResponse | undefined;
+};
+type PipeFilterAsync = ({
+  parameters,
+  request,
+  response,
+  fetchInstance,
+}: PipeFilterInput) => Promise<{
+  parameters: RequestParameters;
+  request: Partial<HttpRequest>;
+  response: HttpResponse | undefined;
+}>;
+
+async function pipe(
   parameters: RequestParameters,
-  fetchInstance: FetchInstance & AuthCache
+  fetchInstance: FetchInstance & AuthCache,
+  fns: (PipeFilter | PipeFilterAsync)[]
 ): Promise<HttpResponse> {
-  //deep copy
-  let preparedParameters = clone<RequestParameters>(parameters);
+  let request: Partial<HttpRequest> = {};
+  let response: HttpResponse | undefined;
+
+  //TODO: handler does make sense only on top level pipe - when we call pipe from auth handler we don't want it - pass it as optional parameter
   //We get security handler - it can be undefined when there is no auth
   const handler = getSecurityHandler(
     parameters.securityConfiguration ?? [],
     parameters.securityRequirements
   );
-  //It would be cool if ISecurityHandler would work with HttpRequest instead of RequestParameters - now we change parameters with authenticate a then use them as base for final request.
-  //Working with HttpRequest not gonna work - we can't easily change stuff like path parameters - HttpRequest is just too "finished"
-  if (handler) {
-    preparedParameters = await handler.authenticate(
-      preparedParameters,
-      fetchInstance
-    );
+
+  for (const fn of fns) {
+    const updated = await fn({
+      parameters,
+      request,
+      response,
+      fetchInstance,
+      handler,
+    });
+    request = mergeRequests(request, updated.request);
+    response = updated.response;
   }
 
-  //Build request from prepared (authenticated) parameters
-  const request = buildRequest(preparedParameters);
+  //OLD
+  //deep copy
+  // let preparedParameters = clone<RequestParameters>(parameters);
 
-  //Do fetch here
-  let response = await fetchRequest(fetchInstance, request);
+  // //It would be cool if ISecurityHandler would work with HttpRequest instead of RequestParameters - now we change parameters with authenticate a then use them as base for final request.
+  // //Working with HttpRequest not gonna work - we can't easily change stuff like path parameters - HttpRequest is just too "finished"
+  // if (handler) {
+  //   preparedParameters = await handler.authenticate(
+  //     preparedParameters,
+  //     fetchInstance
+  //   );
+  // }
 
-  //This is handlig the cases when we are authenticated but eg. digest credentials expired or oauth access token is no longer valid
-  if (handler && handler.handleResponse) {
-    //We get new parameters (with updated auth, also updated cache)
-    const newParameters = await handler.handleResponse(
-      response,
-      preparedParameters,
-      fetchInstance
-    );
-    //We retry the request
-    if (newParameters) {
-      response = await fetchRequest(fetchInstance, buildRequest(newParameters));
-    }
+  // //Build request from prepared (authenticated) parameters
+  // const request = buildRequest(preparedParameters);
+
+  // //Do fetch here
+  // let response = await fetchRequest(fetchInstance, request);
+
+  // //This is handlig the cases when we are authenticated but eg. digest credentials expired or oauth access token is no longer valid
+  // if (handler && handler.handleResponse) {
+  //   //We get new parameters (with updated auth, also updated cache)
+  //   const newParameters = await handler.handleResponse(
+  //     response,
+  //     preparedParameters,
+  //     fetchInstance
+  //   );
+  //   //We retry the request
+  //   if (newParameters) {
+  //     response = await fetchRequest(fetchInstance, buildRequest(newParameters));
+  //   }
+  // }
+  if (!response) {
+    throw new Error('Response undefined');
   }
 
   return response;
 }
-//TODO: maybe move them to src/internal/interpreter/http/security/utils.ts
-function buildRequest(parameters: RequestParameters): HttpRequest {
-  const mergeRequests = (
-    left: Partial<HttpRequest>,
-    right: Partial<HttpRequest>
-  ): Partial<HttpRequest> => {
-    //TODO: maybe use some better way of merging
-    return {
-      ...left,
-      ...right,
-    };
+
+const mergeRequests = (
+  left: Partial<HttpRequest>,
+  right: Partial<HttpRequest>
+): Partial<HttpRequest> => {
+  //TODO: maybe use some better way of merging
+  return {
+    ...left,
+    ...right,
   };
-
-  const r = compose<RequestParameters, Partial<HttpRequest>>(
-    parameters,
-    {},
-    mergeRequests,
-    headers,
-    body,
-    queryParameters,
-    method,
-    url
-  );
-
-  //TODO: check if request is complete
-  return r as HttpRequest;
-}
+};
 
 //This is just to try it out
 export const compose = <A, R>(
@@ -528,8 +372,83 @@ export const compose = <A, R>(
   return initial;
 };
 //These fns should be easy to test
+const fetch: PipeFilterAsync = async ({
+  parameters,
+  request,
+  fetchInstance,
+}: PipeFilterInput) => {
+  return {
+    parameters,
+    request,
+    //TODO: check if request is complete
+    response: await fetchRequest(fetchInstance, request as HttpRequest),
+  };
+};
 
-function headers(parameters: RequestParameters): Partial<HttpRequest> {
+//TODO: how to auth without keeping the handler instance
+const authenticate: PipeFilterAsync = async ({
+  parameters,
+  request,
+  response,
+  fetchInstance,
+  handler,
+}: PipeFilterInput) => {
+  if (handler) {
+    const authRequest = await handler.authenticate(parameters, fetchInstance);
+    
+return {
+      parameters,
+      request: mergeRequests(request, authRequest),
+      response,
+    };
+  }
+
+  return {
+    parameters,
+    request,
+    response,
+  };
+};
+
+//TODO: how to auth without keeping the handler instance, naming
+// //This is handlig the cases when we are authenticated but eg. digest credentials expired or oauth access token is no longer valid
+
+const resolveResponse: PipeFilterAsync = async ({
+  parameters,
+  request,
+  response,
+  fetchInstance,
+  handler,
+}: PipeFilterInput) => {
+  //TODO:
+  if (!response) {
+    throw new Error('response is undefined');
+  }
+  if (handler && handler.handleResponse) {
+    //We get new parameters (with updated auth, also updated cache)
+    const authRequest = await handler.handleResponse(
+      response,
+      parameters,
+      fetchInstance
+    );
+    //We retry the request
+    if (authRequest) {
+      response = await fetchRequest(fetchInstance, authRequest);
+    }
+  }
+
+  return { parameters, request, response };
+};
+
+const headers: PipeFilter = ({
+  parameters,
+  request,
+  response,
+}: {
+  parameters: RequestParameters;
+  request: Partial<HttpRequest>;
+  response: HttpResponse | undefined;
+}) => {
   const headers: Record<string, string> = parameters.headers || {};
   headers['accept'] = parameters.accept || '*/*';
   headers['user-agent'] ??= USER_AGENT;
@@ -555,12 +474,27 @@ function headers(parameters: RequestParameters): Partial<HttpRequest> {
     throw unsupportedContentType(parameters.contentType ?? '', supportedTypes);
   }
 
-  return { headers };
-}
+  return {
+    parameters,
+    request: {
+      ...request,
+      headers,
+    },
+    response,
+  };
+};
 
-function body(parameters: RequestParameters): Partial<HttpRequest> {
+const body: PipeFilter = ({
+  parameters,
+  request,
+  response,
+}: {
+  parameters: RequestParameters;
+  request: Partial<HttpRequest>;
+  response: HttpResponse | undefined;
+}) => {
+  let finalBody: FetchBody | undefined;
   if (parameters.body) {
-    let finalBody: FetchBody | undefined;
     if (parameters.contentType === JSON_CONTENT) {
       finalBody = stringBody(JSON.stringify(parameters.body));
     } else if (parameters.contentType === URLENCODED_CONTENT) {
@@ -592,59 +526,75 @@ function body(parameters: RequestParameters): Partial<HttpRequest> {
         supportedTypes
       );
     }
-    return { body: finalBody };
   }
-
-  return {};
-}
-
-function queryParameters(parameters: RequestParameters): Partial<HttpRequest> {
-  return { queryParameters: variablesToStrings(parameters.queryParameters) };
-}
-
-function method(parameters: RequestParameters): Partial<HttpRequest> {
-  return { method: parameters.method };
-}
-
-function url(parameters: RequestParameters): Partial<HttpRequest> {
-  return {
-    url: createUrl(parameters.url, {
-      baseUrl: parameters.baseUrl,
-      pathParameters: parameters.pathParameters ?? {},
-      integrationParameters: parameters.integrationParameters,
-    }),
+  
+return {
+    parameters,
+    request: {
+      ...request,
+      body: finalBody,
+    },
+    response,
   };
-}
+};
 
-//Different approach -> something like pipe
-//https://medium.com/ackee/typescript-function-composition-and-recurrent-types-a9efbc8e7736
+const queryParameters: PipeFilter = ({
+  parameters,
+  request,
+  response,
+}: {
+  parameters: RequestParameters;
+  request: Partial<HttpRequest>;
+  response: HttpResponse | undefined;
+}) => {
+  return {
+    parameters,
+    request: {
+      ...request,
+      queryParameters: variablesToStrings(parameters.queryParameters),
+    },
+    response,
+  };
+};
 
-// export const compose = <A, R>(p: A, ...fns: Array<(a: A) => R>) =>
-//   fns.reduce((prevFn, nextFn) => value => prevFn(nextFn(p)));
+const method: PipeFilter = ({
+  parameters,
+  request,
+  response,
+}: {
+  parameters: RequestParameters;
+  request: Partial<HttpRequest>;
+  response: HttpResponse | undefined;
+}) => {
+  return {
+    parameters,
+    request: {
+      ...request,
+      method: parameters.method,
+    },
+    response,
+  };
+};
 
-// function fn1(parameters: RequestParameters): RequestParameters {
-//   return parameters
-// }
-// type MW = () => Promise<RequestBuilder> | RequestBuilder
-
-// const authenticate: MW = async (handler: ISecurityHandler | undefined): Promise<RequestBuilder> => {
-//   if (handler) {
-//     this.parameters = await this.handler.authenticate(
-//       this.parameters,
-//       this.fetchInstance,
-//       this.fetchInstance,
-//       this.fetchRequest
-//     );
-//   }
-
-//   return this;
-// }
-
-// async function pipe(parameters: RequestParameters, fetchInstance: FetchInstance & AuthCache, fetch: (
-//   fetchInstance: FetchInstance,
-//   request: HttpRequest,
-//   fns: []
-// ) => Promise<HttpResponse>): Promise<HttpResponse> {
-//   const handler = getSecurityHandler(parameters.securityConfiguration ?? [], parameters.securityRequirements)
-
-// }
+const prepareUrl: PipeFilter = ({
+  parameters,
+  request,
+  response,
+}: {
+  parameters: RequestParameters;
+  request: Partial<HttpRequest>;
+  response: HttpResponse | undefined;
+}) => {
+  return {
+    parameters,
+    request: {
+      ...request,
+      url: createUrl(parameters.url, {
+        baseUrl: parameters.baseUrl,
+        pathParameters: parameters.pathParameters ?? {},
+        integrationParameters: parameters.integrationParameters,
+      }),
+    },
+    response,
+  };
+};

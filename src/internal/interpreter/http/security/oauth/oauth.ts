@@ -4,9 +4,10 @@ import {
   OAuthSecurityValues,
 } from '@superfaceai/ast';
 
+import { fetchRequest } from '../..';
 import { HttpResponse } from '../../http';
 import { FetchInstance } from '../../interfaces';
-import { HandleResponseAsync } from '..';
+import { HandleResponseAsync, HttpRequest } from '..';
 import {
   AuthCache,
   AuthenticateRequestAsync,
@@ -14,8 +15,8 @@ import {
   ISecurityHandler,
   RequestParameters,
 } from '../interfaces';
+import { prepareRequest } from '../utils';
 import { RefreshHelper } from './refresh';
-import { fetchRequest } from '../..';
 
 export class OAuthHandler implements ISecurityHandler {
   private readonly selectedFlow: OAuthFlow;
@@ -44,119 +45,53 @@ export class OAuthHandler implements ISecurityHandler {
 
   authenticate: AuthenticateRequestAsync = async (
     parameters: RequestParameters,
-    // cache: AuthCache,
     fetchInstance: FetchInstance & AuthCache
-    // fetch: (
-    //   fetchInstance: FetchInstance,
-    //   request: HttpRequest
-    // ) => Promise<HttpResponse>
   ) => {
     if (this.refreshHelper && this.refreshHelper.shouldRefresh(fetchInstance)) {
-      return await this.refreshHelper.refresh(
-        parameters,
-        fetchInstance,
-        fetchInstance,
-        fetchRequest
+      return prepareRequest(
+        await this.refreshHelper.refresh(
+          parameters,
+          fetchInstance,
+          fetchInstance,
+          fetchRequest
+        )
       );
     }
     //TODO: use selected flow helper (and actualy write some flow helpers)
     //Now we just get access token from cache and use it
     if (fetchInstance.oauth?.authotizationCode?.accessToken) {
-      return {
+      return prepareRequest({
         ...parameters,
         headers: {
           ...parameters.headers,
           //TODO: prepare header according to token type
           [DEFAULT_AUTHORIZATION_HEADER_NAME]: `Bearer ${fetchInstance.oauth?.authotizationCode?.accessToken}`,
         },
-      };
+      });
     }
 
-    return parameters;
+    return prepareRequest(parameters);
   };
 
   handleResponse: HandleResponseAsync = async (
     response: HttpResponse,
     resourceRequestParameters: RequestParameters,
     fetchInstance: FetchInstance & AuthCache
-    // fetch: (
-    //   fetchInstance: FetchInstance,
-    //   request: HttpRequest
-    // ) => Promise<HttpResponse>
-  ): Promise<RequestParameters | undefined> => {
+  ): Promise<HttpRequest | undefined> => {
     if (
       this.refreshHelper &&
       this.refreshHelper.shouldRefresh(fetchInstance, response)
     ) {
-      return await this.refreshHelper.refresh(
-        resourceRequestParameters,
-        fetchInstance,
-        fetchInstance,
-        fetchRequest
+      return prepareRequest(
+        await this.refreshHelper.refresh(
+          resourceRequestParameters,
+          fetchInstance,
+          fetchInstance,
+          fetchRequest
+        )
       );
     }
 
     return undefined;
   };
-
-  // prepare(
-  //   parameters: RequestParameters,
-  //   cache: AuthCache
-  // ): BeforeHookAuthResult {
-  //   if (this.refreshHelper && this.refreshHelper.shouldStartRefreshing(cache)) {
-  //     return {
-  //       kind: 'modify',
-  //       newArgs: [this.refreshHelper.startRefreshing(parameters)],
-  //     };
-  //   }
-  //   //TODO: use selected flow helper
-  //   return { kind: 'continue' };
-  // }
-
-  // handle(
-  //   response: HttpResponse,
-  //   resourceRequestParameters: RequestParameters,
-  //   cache: AuthCache
-  // ): AffterHookAuthResult {
-  //   if (
-  //     this.refreshHelper &&
-  //     this.refreshHelper.shouldStartRefreshing(cache, response)
-  //   ) {
-  //     return {
-  //       kind: 'retry',
-  //       newArgs: [
-  //         this.refreshHelper.startRefreshing(resourceRequestParameters),
-  //       ],
-  //     };
-  //   }
-  //   if (
-  //     this.refreshHelper &&
-  //     this.refreshHelper.shouldStopRefreshing(response)
-  //   ) {
-  //     const newValues = this.refreshHelper.stopRefreshing(response);
-  //     if (newValues) {
-  //       if (!cache.oauth) {
-  //         cache.oauth = {};
-  //       }
-  //       cache.oauth.authotizationCode = newValues;
-  //       //TODO: use selected flow helper
-
-  //       return {
-  //         kind: 'retry',
-  //         newArgs: [
-  //           {
-  //             ...resourceRequestParameters,
-  //             headers: {
-  //               ...resourceRequestParameters.headers,
-  //               //TODO: prepare header according to token type
-  //               [DEFAULT_AUTHORIZATION_HEADER_NAME]: `Bearer ${newValues.accessToken}`,
-  //             },
-  //           },
-  //         ],
-  //       };
-  //     }
-  //   }
-  //   //TODO: use selected flow helper
-  //   return { kind: 'continue' };
-  // }
 }

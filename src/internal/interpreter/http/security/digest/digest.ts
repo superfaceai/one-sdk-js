@@ -13,10 +13,8 @@ import {
   AuthCache,
   AuthenticateRequestAsync,
   DEFAULT_AUTHORIZATION_HEADER_NAME,
-  ISecurityHandler,
-  RequestParameters,
-} from '../interfaces';
-import { HandleResponse } from '../interfaces';
+ HandleResponse,  ISecurityHandler,
+  RequestParameters } from '../interfaces';
 import { prepareRequest } from '../utils';
 
 const debug = createDebug('superface:http:digest');
@@ -76,10 +74,6 @@ export class DigestHandler implements ISecurityHandler {
   authenticate: AuthenticateRequestAsync = async (
     parameters: RequestParameters,
     fetchInstance: FetchInstance & AuthCache
-    // fetch: (
-    //   fetchInstance: FetchInstance,
-    //   request: HttpRequest
-    // ) => Promise<HttpResponse>
   ) => {
     const headers: Record<string, string> = parameters.headers || {};
 
@@ -92,10 +86,10 @@ export class DigestHandler implements ISecurityHandler {
           DEFAULT_AUTHORIZATION_HEADER_NAME
       ] = fetchInstance.digest;
 
-      return {
+      return prepareRequest({
         ...parameters,
         headers,
-      };
+      });
     }
     //If we don't we try to get challange header
     const response = await fetchRequest(
@@ -125,14 +119,14 @@ export class DigestHandler implements ISecurityHandler {
     );
     fetchInstance.digest = credentials;
 
-    return {
+    return prepareRequest({
       ...parameters,
       headers: {
         ...headers,
         [this.configuration.authorizationHeader ||
         DEFAULT_AUTHORIZATION_HEADER_NAME]: credentials,
       },
-    };
+    });
   };
 
   handleResponse: HandleResponse = (
@@ -156,14 +150,14 @@ export class DigestHandler implements ISecurityHandler {
       );
       cache.digest = credentials;
 
-      return {
+      return prepareRequest({
         ...resourceRequestParameters,
         headers: {
           ...resourceRequestParameters.headers,
           [this.configuration.authorizationHeader ||
           DEFAULT_AUTHORIZATION_HEADER_NAME]: credentials,
         },
-      };
+      });
     }
 
     return undefined;

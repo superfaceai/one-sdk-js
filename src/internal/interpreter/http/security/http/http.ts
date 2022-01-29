@@ -5,14 +5,15 @@ import {
   ISecurityHandler,
   SecurityConfiguration,
 } from '../../security';
-import { RequestParameters } from '../interfaces';
+import { HttpRequest, RequestParameters } from '../interfaces';
+import { prepareRequest } from '../utils';
 
 export class HttpHandler implements ISecurityHandler {
   constructor(
     readonly configuration: SecurityConfiguration & { type: SecurityType.HTTP }
   ) {}
 
-  authenticate(parameters: RequestParameters): RequestParameters {
+  authenticate(parameters: RequestParameters): HttpRequest {
     const headers: Record<string, string> = parameters.headers || {};
 
     switch (this.configuration.scheme) {
@@ -28,10 +29,10 @@ export class HttpHandler implements ISecurityHandler {
         break;
     }
 
-    return {
+    return prepareRequest({
       ...parameters,
       headers,
-    };
+    });
   }
 
   // handle(

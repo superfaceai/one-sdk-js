@@ -11,6 +11,7 @@ import {
   ISecurityHandler,
 } from '../../security';
 import { AuthenticateRequest, RequestParameters } from '../interfaces';
+import { prepareRequest } from '../utils';
 
 export class ApiKeyHandler implements ISecurityHandler {
   constructor(
@@ -21,7 +22,7 @@ export class ApiKeyHandler implements ISecurityHandler {
     let body: Variables | undefined = parameters.body;
     const headers: Record<string, string> = parameters.headers ?? {};
     const pathParameters = parameters.pathParameters ?? {};
-    const queryAuth: Record<string, string> = {};
+    const queryParameters: Record<string, string> = {};
 
     const name = this.configuration.name || DEFAULT_AUTHORIZATION_HEADER_NAME;
 
@@ -43,17 +44,18 @@ export class ApiKeyHandler implements ISecurityHandler {
         break;
 
       case ApiKeyPlacement.QUERY:
-        queryAuth[name] = this.configuration.apikey;
+        queryParameters[name] = this.configuration.apikey;
         break;
     }
 
-    return {
+    //TODO: better way of request preparation
+    return prepareRequest({
       ...parameters,
       headers,
       pathParameters,
-      queryParameters: queryAuth,
+      queryParameters,
       body,
-    };
+    });
   };
 
   // prepare(parameters: RequestParameters): BeforeHookAuthResult {
