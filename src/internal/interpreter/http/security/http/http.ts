@@ -1,19 +1,26 @@
 import { HttpScheme, SecurityType } from '@superfaceai/ast';
 
 import {
+  pipe,
+  pipeBody,
+  pipeHeaders,
+  pipeMethod,
+  pipeQueryParameters,
+  pipeUrl,
+} from '../../http';
+import {
   DEFAULT_AUTHORIZATION_HEADER_NAME,
   ISecurityHandler,
   SecurityConfiguration,
 } from '../../security';
-import { HttpRequest, RequestParameters } from '../interfaces';
-import { prepareRequest } from '../utils';
+import { AuthenticateRequestAsync, RequestParameters } from '../interfaces';
 
 export class HttpHandler implements ISecurityHandler {
   constructor(
     readonly configuration: SecurityConfiguration & { type: SecurityType.HTTP }
   ) {}
 
-  authenticate(parameters: RequestParameters): HttpRequest {
+  authenticate: AuthenticateRequestAsync = (parameters: RequestParameters) => {
     const headers: Record<string, string> = parameters.headers || {};
 
     switch (this.configuration.scheme) {
@@ -29,11 +36,14 @@ export class HttpHandler implements ISecurityHandler {
         break;
     }
 
-    return prepareRequest({
-      ...parameters,
-      headers,
+    return pipe({
+      parameters: {
+        ...parameters,
+        headers,
+      },
+      fns: [pipeHeaders, pipeBody, pipeQueryParameters, pipeMethod, pipeUrl],
     });
-  }
+  };
 }
 
 function applyBasicAuth(

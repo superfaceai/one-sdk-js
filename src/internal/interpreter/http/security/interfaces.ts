@@ -49,19 +49,19 @@ export type AuthenticateRequestAsync = (
 /**
  * This type defines function used for authentization with simple auth. methods (apiKey, http basic, bearer), there is no need for FetchInstance because we don't need cache or fetching
  */
-export type AuthenticateRequest = (
-  parameters: RequestParameters
-) => Partial<HttpRequest>;
+// export type AuthenticateRequest = (
+//   parameters: RequestParameters
+// ) => Partial<HttpRequest>;
 
 /**
  * This type defines function used for handling response with digest auth, there is no need for FetchInstance because we don't fetching (just cache).
  * It returns undefined (when there is no need to retry request) or parameters used in new request
  */
-export type HandleResponse = (
-  response: HttpResponse,
-  resourceRequestParameters: RequestParameters,
-  cache: AuthCache
-) => HttpRequest | undefined;
+// export type HandleResponse = (
+//   response: HttpResponse,
+//   resourceRequestParameters: RequestParameters,
+//   cache: AuthCache
+// ) => HttpRequest | undefined;
 
 /**
  * This type defines function used for handling response with complex auth methods.
@@ -71,7 +71,7 @@ export type HandleResponseAsync = (
   response: HttpResponse,
   resourceRequestParameters: RequestParameters,
   fetchInstance: FetchInstance & AuthCache
-) => Promise<HttpRequest | undefined>;
+) => Promise<HttpRequest | undefined> | undefined;
 
 /**
  * Represents class that is able to prepare (set headers, path etc.) and handle (challange responses for eg. digest) authentication
@@ -82,9 +82,9 @@ export interface ISecurityHandler {
    */
   readonly configuration: SecurityConfiguration;
 
-  authenticate: AuthenticateRequest | AuthenticateRequestAsync;
+  authenticate: AuthenticateRequestAsync;
 
-  handleResponse?: HandleResponse | HandleResponseAsync;
+  handleResponse?: HandleResponseAsync;
 }
 
 export type SecurityConfiguration =

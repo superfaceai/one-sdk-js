@@ -213,24 +213,24 @@ export class HttpClient {
     };
 
     //TODO: change name? Something like requestPipe?
-    return pipe(
-      requestParameters,
-      this.fetchInstance,
-      getSecurityHandler(
+    return pipe({
+      parameters: requestParameters,
+      fetchInstance: this.fetchInstance,
+      handler: getSecurityHandler(
         requestParameters.securityConfiguration,
         requestParameters.securityRequirements
       ),
-      [
-        headers,
-        body,
-        queryParameters,
-        method,
-        prepareUrl,
-        authenticate,
-        fetch,
-        resolveResponse,
-      ]
-    );
+      fns: [
+        pipeHeaders,
+        pipeBody,
+        pipeQueryParameters,
+        pipeMethod,
+        pipeUrl,
+        pipeAuthenticate,
+        pipeFetch,
+        pipeResponse,
+      ],
+    });
   }
 }
 
@@ -262,49 +262,116 @@ function getSecurityHandler(
 
 //TODO: move this to new file.
 //Represents pipe helper function
-export type PipeFilterInput = {
+export type FetchPipeFilterInput = {
   parameters: RequestParameters;
   request: Partial<HttpRequest>;
   response: HttpResponse | undefined;
   fetchInstance: FetchInstance & AuthCache;
   handler: ISecurityHandler | undefined;
 };
-export type PipeFilter = ({
+export type FetchPipeFilter = ({
   parameters,
   request,
   response,
   fetchInstance,
   handler,
-}: PipeFilterInput) =>
-  | Pick<PipeFilterInput, 'parameters' | 'request' | 'response'>
-  | Promise<Pick<PipeFilterInput, 'parameters' | 'request' | 'response'>>;
+}: FetchPipeFilterInput) =>
+  | Pick<FetchPipeFilterInput, 'request' | 'response'>
+  | Promise<Pick<FetchPipeFilterInput, 'request' | 'response'>>;
+//Prepare pipe
 
-export async function pipe(
-  parameters: RequestParameters,
-  fetchInstance: FetchInstance & AuthCache,
-  handler: ISecurityHandler | undefined,
-  fns: PipeFilter[]
-): Promise<HttpResponse> {
-  let request: Partial<HttpRequest> = {};
-  let response: HttpResponse | undefined;
+export type PreparePipeFilterInput = {
+  parameters: RequestParameters;
+  request: Partial<HttpRequest>;
+  // response: HttpResponse | undefined;
+  // handler: ISecurityHandler | undefined;
+};
 
-  for (const fn of fns) {
-    const updated = await fn({
-      parameters,
-      request,
-      response,
-      fetchInstance,
-      handler,
-    });
-    request = mergeRequests(request, updated.request);
-    response = updated.response;
+export type PreparePipeFilter = ({
+  parameters,
+  request,
+}: // response,
+// fetchInstance,
+// handler,
+PreparePipeFilterInput) =>
+  | Pick<PreparePipeFilterInput, 'request'>
+  | Promise<Pick<PreparePipeFilterInput, 'request'>>;
+
+export type PreparePipeInput = {
+  // kind: 'prepare';
+  parameters: RequestParameters;
+  fns: PreparePipeFilter[];
+};
+
+export type PreparePipeOutput = HttpRequest;
+
+export type PreparePipe = ({
+  parameters,
+  fns,
+}: PreparePipeInput) => PreparePipeOutput;
+
+export type FetchPipeInput = {
+  parameters: RequestParameters;
+  fetchInstance: FetchInstance & AuthCache;
+  handler: ISecurityHandler | undefined;
+  fns: (FetchPipeFilter | PreparePipeFilter)[];
+};
+
+export type FetchPipeOutput = Promise<HttpResponse>;
+
+export type FetchPipe = ({
+  parameters,
+  fns,
+  fetchInstance,
+  handler,
+}: FetchPipeInput) => FetchPipeOutput;
+
+type PipeReturnType<T extends PreparePipeInput | FetchPipeInput> =
+  T extends FetchPipeInput
+    ? HttpResponse
+    : T extends PreparePipeInput
+    ? HttpRequest
+    : never;
+
+export async function pipe<T extends PreparePipeInput | FetchPipeInput>(
+  arg: T
+): Promise<PipeReturnType<T>> {
+  //We are just preparing the request (used in handlers)
+  if (!('fetchInstance' in arg)) {
+    let request: Partial<HttpRequest> = {};
+
+    for (const fn of arg.fns) {
+      const updated = await fn({
+        ...arg,
+        request,
+      });
+      request = mergeRequests(request, updated.request);
+    }
+
+    return request as PipeReturnType<T>;
+  } else {
+    //We are actually getting the response
+    let request: Partial<HttpRequest> = {};
+    let response: HttpResponse | undefined;
+
+    for (const fn of arg.fns) {
+      const updated = await (fn({
+        ...arg,
+        request,
+        response,
+      }) as ReturnType<FetchPipeFilter | PreparePipeFilter>);
+
+      request = mergeRequests(request, updated.request);
+      if ('response' in updated) response = updated.response;
+    }
+
+    //TODO:
+    if (!response) {
+      throw new Error('Response undefined');
+    }
+
+    return response as PipeReturnType<T>;
   }
-
-  if (!response) {
-    throw new Error('Response undefined');
-  }
-
-  return response;
 }
 
 export const mergeRequests = (
@@ -319,11 +386,11 @@ export const mergeRequests = (
 };
 
 //These fns should be easy to test
-export const fetch: PipeFilter = async ({
+export const pipeFetch: FetchPipeFilter = async ({
   parameters,
   request,
   fetchInstance,
-}: PipeFilterInput) => {
+}: FetchPipeFilterInput) => {
   return {
     parameters,
     request,
@@ -333,13 +400,13 @@ export const fetch: PipeFilter = async ({
 };
 
 //TODO: how to auth without keeping the handler instance
-export const authenticate: PipeFilter = async ({
+export const pipeAuthenticate: FetchPipeFilter = async ({
   parameters,
   request,
   response,
   fetchInstance,
   handler,
-}: PipeFilterInput) => {
+}: FetchPipeFilterInput) => {
   if (handler) {
     const authRequest = await handler.authenticate(parameters, fetchInstance);
 
@@ -359,13 +426,13 @@ export const authenticate: PipeFilter = async ({
 
 //TODO: how to auth without keeping the handler instance, naming
 //This is handling the cases when we are authenticated but eg. digest credentials expired or oauth access token is no longer valid
-export const resolveResponse: PipeFilter = async ({
+export const pipeResponse: FetchPipeFilter = async ({
   parameters,
   request,
   response,
   fetchInstance,
   handler,
-}: PipeFilterInput) => {
+}: FetchPipeFilterInput) => {
   //TODO: better error
   if (!response) {
     throw new Error('response is undefined');
@@ -386,14 +453,12 @@ export const resolveResponse: PipeFilter = async ({
   return { parameters, request, response };
 };
 
-export const headers: PipeFilter = ({
+export const pipeHeaders: PreparePipeFilter = ({
   parameters,
   request,
-  response,
 }: {
   parameters: RequestParameters;
   request: Partial<HttpRequest>;
-  response: HttpResponse | undefined;
 }) => {
   const headers: Record<string, string> = parameters.headers || {};
   headers['accept'] = parameters.accept || '*/*';
@@ -426,18 +491,15 @@ export const headers: PipeFilter = ({
       ...request,
       headers,
     },
-    response,
   };
 };
 
-export const body: PipeFilter = ({
+export const pipeBody: PreparePipeFilter = ({
   parameters,
   request,
-  response,
 }: {
   parameters: RequestParameters;
   request: Partial<HttpRequest>;
-  response: HttpResponse | undefined;
 }) => {
   let finalBody: FetchBody | undefined;
   if (parameters.body) {
@@ -480,18 +542,15 @@ export const body: PipeFilter = ({
       ...request,
       body: finalBody,
     },
-    response,
   };
 };
 
-export const queryParameters: PipeFilter = ({
+export const pipeQueryParameters: PreparePipeFilter = ({
   parameters,
   request,
-  response,
 }: {
   parameters: RequestParameters;
   request: Partial<HttpRequest>;
-  response: HttpResponse | undefined;
 }) => {
   return {
     parameters,
@@ -499,18 +558,15 @@ export const queryParameters: PipeFilter = ({
       ...request,
       queryParameters: variablesToStrings(parameters.queryParameters),
     },
-    response,
   };
 };
 
-const method: PipeFilter = ({
+export const pipeMethod: PreparePipeFilter = ({
   parameters,
   request,
-  response,
 }: {
   parameters: RequestParameters;
   request: Partial<HttpRequest>;
-  response: HttpResponse | undefined;
 }) => {
   return {
     parameters,
@@ -518,18 +574,15 @@ const method: PipeFilter = ({
       ...request,
       method: parameters.method,
     },
-    response,
   };
 };
 
-export const prepareUrl: PipeFilter = ({
+export const pipeUrl: PreparePipeFilter = ({
   parameters,
   request,
-  response,
 }: {
   parameters: RequestParameters;
   request: Partial<HttpRequest>;
-  response: HttpResponse | undefined;
 }) => {
   return {
     parameters,
@@ -541,6 +594,5 @@ export const prepareUrl: PipeFilter = ({
         integrationParameters: parameters.integrationParameters,
       }),
     },
-    response,
   };
 };

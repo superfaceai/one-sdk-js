@@ -7,15 +7,24 @@ import {
 
 import { UnexpectedError } from '../../../../errors';
 import { Variables } from '../../../variables';
-import { createUrl, HttpResponse } from '../..';
-import { FetchInstance, URLENCODED_CONTENT } from '../../interfaces';
-import { AuthCache } from '..';
 import {
+  createUrl,
+  HttpResponse,
+  pipe,
+  pipeBody,
+  pipeFetch,
+  pipeHeaders,
+  pipeMethod,
+  pipeQueryParameters,
+  pipeUrl,
+} from '../../http';
+import { FetchInstance, URLENCODED_CONTENT } from '../../interfaces';
+import {
+  AuthCache,
   DEFAULT_AUTHORIZATION_HEADER_NAME,
   HttpRequest,
   RequestParameters,
 } from '../interfaces';
-import { prepareRequest } from '../utils';
 
 export class RefreshHelper {
   private readonly refreshStatusCode: number;
@@ -54,12 +63,12 @@ export class RefreshHelper {
   async refresh(
     parameters: RequestParameters,
     cache: AuthCache,
-    fetchInstance: FetchInstance,
-    fetch: (
-      fetchInstance: FetchInstance,
-      request: HttpRequest
-    ) => Promise<HttpResponse>
-  ): Promise<RequestParameters> {
+    fetchInstance: FetchInstance
+  ): Promise<HttpRequest> {
+    if (!this.flow.refreshUrl) {
+      throw new Error('Refresh url must be difined');
+    }
+
     const body: Variables = {
       //grant_type and refresh_token is defined in rfc.
       grant_type: 'refresh_token',
@@ -88,13 +97,26 @@ export class RefreshHelper {
       body,
       //TODO: Custom content type
       contentType: URLENCODED_CONTENT,
-      baseUrl: createUrl(this.flow.refreshUrl!, {
+      baseUrl: createUrl(this.flow.refreshUrl, {
         baseUrl: parameters.baseUrl,
       }),
       url: '',
     };
 
-    const refreshResponse = await fetch(fetchInstance, prepareRequest(req));
+    //TODO: use pipe here
+    const refreshResponse = await pipe({
+      parameters: req,
+      fetchInstance,
+      handler: undefined,
+      fns: [
+        pipeHeaders,
+        pipeBody,
+        pipeQueryParameters,
+        pipeMethod,
+        pipeUrl,
+        pipeFetch,
+      ],
+    });
 
     if (
       //200 is defined by rfc
@@ -151,18 +173,21 @@ export class RefreshHelper {
         tokenType: accessTokenResponse.token_type,
       };
 
-      return {
-        ...parameters,
-        headers: {
-          ...parameters.headers,
-          //TODO: prepare header according to token type
-          [DEFAULT_AUTHORIZATION_HEADER_NAME]: `Bearer ${accessTokenResponse.access_token}`,
+      return pipe({
+        parameters: {
+          ...parameters,
+          headers: {
+            ...parameters.headers,
+            //TODO: prepare header according to token type
+            [DEFAULT_AUTHORIZATION_HEADER_NAME]: `Bearer ${accessTokenResponse.access_token}`,
+          },
         },
-      };
+        fns: [pipeHeaders, pipeBody, pipeQueryParameters, pipeMethod, pipeUrl],
+      });
     }
 
     //TODO: handle this
-    return parameters;
+    throw new Error('Unable to get refresh token - unknown response status');
   }
 
   private isAccessTokenExpired(expiresAt?: number): boolean {

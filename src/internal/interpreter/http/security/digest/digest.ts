@@ -7,17 +7,25 @@ import {
   missingPartOfDigestHeader,
   unexpectedDigestValue,
 } from '../../../../errors.helpers';
-import { fetchRequest, HttpResponse } from '../../http';
+import {
+  HttpResponse,
+  pipe,
+  pipeBody,
+  pipeFetch,
+  pipeHeaders,
+  pipeMethod,
+  pipeQueryParameters,
+  pipeUrl,
+} from '../../http';
 import { FetchInstance } from '../../interfaces';
+import { HandleResponseAsync } from '..';
 import {
   AuthCache,
   AuthenticateRequestAsync,
   DEFAULT_AUTHORIZATION_HEADER_NAME,
-  HandleResponse,
   ISecurityHandler,
   RequestParameters,
 } from '../interfaces';
-import { prepareRequest } from '../utils';
 
 const debug = createDebug('superface:http:digest');
 const debugSensitive = createDebug('superface:http:digest:sensitive');
@@ -88,19 +96,31 @@ export class DigestHandler implements ISecurityHandler {
           DEFAULT_AUTHORIZATION_HEADER_NAME
       ] = fetchInstance.digest;
 
-      return prepareRequest({
-        ...parameters,
-        headers,
+      return pipe({
+        parameters: {
+          ...parameters,
+          headers,
+        },
+        fns: [pipeHeaders, pipeBody, pipeQueryParameters, pipeMethod, pipeUrl],
       });
     }
     //If we don't we try to get challange header
-    const response = await fetchRequest(
-      fetchInstance,
-      prepareRequest({
+    const response = await pipe({
+      parameters: {
         ...parameters,
         headers,
-      })
-    );
+      },
+      fetchInstance,
+      handler: undefined,
+      fns: [
+        pipeHeaders,
+        pipeBody,
+        pipeQueryParameters,
+        pipeMethod,
+        pipeUrl,
+        pipeFetch,
+      ],
+    });
 
     if (
       response.statusCode !== this.statusCode ||
@@ -121,17 +141,20 @@ export class DigestHandler implements ISecurityHandler {
     );
     fetchInstance.digest = credentials;
 
-    return prepareRequest({
-      ...parameters,
-      headers: {
-        ...headers,
-        [this.configuration.authorizationHeader ||
-        DEFAULT_AUTHORIZATION_HEADER_NAME]: credentials,
+    return pipe({
+      parameters: {
+        ...parameters,
+        headers: {
+          ...headers,
+          [this.configuration.authorizationHeader ||
+          DEFAULT_AUTHORIZATION_HEADER_NAME]: credentials,
+        },
       },
+      fns: [pipeHeaders, pipeBody, pipeQueryParameters, pipeMethod, pipeUrl],
     });
   };
 
-  handleResponse: HandleResponse = (
+  handleResponse: HandleResponseAsync = (
     response: HttpResponse,
     resourceRequestParameters: RequestParameters,
     cache: AuthCache
@@ -152,17 +175,20 @@ export class DigestHandler implements ISecurityHandler {
       );
       cache.digest = credentials;
 
-      return prepareRequest({
-        ...resourceRequestParameters,
-        headers: {
-          ...resourceRequestParameters.headers,
-          [this.configuration.authorizationHeader ||
-          DEFAULT_AUTHORIZATION_HEADER_NAME]: credentials,
+      return pipe({
+        parameters: {
+          ...resourceRequestParameters,
+          headers: {
+            ...resourceRequestParameters.headers,
+            [this.configuration.authorizationHeader ||
+            DEFAULT_AUTHORIZATION_HEADER_NAME]: credentials,
+          },
         },
+        fns: [pipeHeaders, pipeBody, pipeQueryParameters, pipeMethod, pipeUrl],
       });
     }
 
-    return undefined;
+    return;
   };
 
   // prepare(

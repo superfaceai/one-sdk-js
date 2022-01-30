@@ -4,18 +4,25 @@ import {
   OAuthSecurityValues,
 } from '@superfaceai/ast';
 
-import { fetchRequest } from '../..';
-import { HttpResponse } from '../../http';
+import {
+  HttpResponse,
+  pipe,
+  pipeBody,
+  pipeHeaders,
+  pipeMethod,
+  pipeQueryParameters,
+  pipeUrl,
+} from '../../http';
 import { FetchInstance } from '../../interfaces';
-import { HandleResponseAsync, HttpRequest } from '..';
 import {
   AuthCache,
   AuthenticateRequestAsync,
   DEFAULT_AUTHORIZATION_HEADER_NAME,
+  HandleResponseAsync,
+  HttpRequest,
   ISecurityHandler,
   RequestParameters,
 } from '../interfaces';
-import { prepareRequest } from '../utils';
 import { RefreshHelper } from './refresh';
 
 export class OAuthHandler implements ISecurityHandler {
@@ -48,29 +55,30 @@ export class OAuthHandler implements ISecurityHandler {
     fetchInstance: FetchInstance & AuthCache
   ) => {
     if (this.refreshHelper && this.refreshHelper.shouldRefresh(fetchInstance)) {
-      return prepareRequest(
-        await this.refreshHelper.refresh(
-          parameters,
-          fetchInstance,
-          fetchInstance,
-          fetchRequest
-        )
+      return this.refreshHelper.refresh(
+        parameters,
+        fetchInstance,
+        fetchInstance
       );
     }
     //TODO: use selected flow helper (and actualy write some flow helpers)
     //Now we just get access token from cache and use it
+    let authenticateParameters = parameters;
     if (fetchInstance.oauth?.authotizationCode?.accessToken) {
-      return prepareRequest({
+      authenticateParameters = {
         ...parameters,
         headers: {
           ...parameters.headers,
           //TODO: prepare header according to token type
           [DEFAULT_AUTHORIZATION_HEADER_NAME]: `Bearer ${fetchInstance.oauth?.authotizationCode?.accessToken}`,
         },
-      });
+      };
     }
 
-    return prepareRequest(parameters);
+    return pipe({
+      parameters: authenticateParameters,
+      fns: [pipeHeaders, pipeBody, pipeQueryParameters, pipeMethod, pipeUrl],
+    });
   };
 
   handleResponse: HandleResponseAsync = async (
@@ -82,13 +90,10 @@ export class OAuthHandler implements ISecurityHandler {
       this.refreshHelper &&
       this.refreshHelper.shouldRefresh(fetchInstance, response)
     ) {
-      return prepareRequest(
-        await this.refreshHelper.refresh(
-          resourceRequestParameters,
-          fetchInstance,
-          fetchInstance,
-          fetchRequest
-        )
+      return this.refreshHelper.refresh(
+        resourceRequestParameters,
+        fetchInstance,
+        fetchInstance
       );
     }
 
