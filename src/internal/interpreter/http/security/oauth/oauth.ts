@@ -5,14 +5,13 @@ import {
 } from '@superfaceai/ast';
 
 import {
-  HttpResponse,
   pipe,
   pipeBody,
   pipeHeaders,
   pipeMethod,
   pipeQueryParameters,
   pipeUrl,
-} from '../../http';
+} from '../../pipe';
 import { FetchInstance } from '../../interfaces';
 import {
   AuthCache,
@@ -24,6 +23,7 @@ import {
   RequestParameters,
 } from '../interfaces';
 import { RefreshHelper } from './refresh';
+import { HttpResponse } from '../../http';
 
 export class OAuthHandler implements ISecurityHandler {
   private readonly selectedFlow: OAuthFlow;

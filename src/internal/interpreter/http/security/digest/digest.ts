@@ -8,7 +8,6 @@ import {
   unexpectedDigestValue,
 } from '../../../../errors.helpers';
 import {
-  HttpResponse,
   pipe,
   pipeBody,
   pipeFetch,
@@ -16,7 +15,7 @@ import {
   pipeMethod,
   pipeQueryParameters,
   pipeUrl,
-} from '../../http';
+} from '../../pipe';
 import { FetchInstance } from '../../interfaces';
 import { HandleResponseAsync } from '..';
 import {
@@ -26,6 +25,7 @@ import {
   ISecurityHandler,
   RequestParameters,
 } from '../interfaces';
+import { HttpResponse } from '../../http';
 
 const debug = createDebug('superface:http:digest');
 const debugSensitive = createDebug('superface:http:digest:sensitive');

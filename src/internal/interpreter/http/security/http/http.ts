@@ -7,7 +7,7 @@ import {
   pipeMethod,
   pipeQueryParameters,
   pipeUrl,
-} from '../../http';
+} from '../../pipe';
 import {
   DEFAULT_AUTHORIZATION_HEADER_NAME,
   ISecurityHandler,
