@@ -15,6 +15,7 @@ import {
   SecurityConfiguration,
 } from '../../security';
 import { AuthenticateRequestAsync, RequestParameters } from '../interfaces';
+
 const debug = createDebug('superface:http:security:http-handler');
 
 export class HttpHandler implements ISecurityHandler {
