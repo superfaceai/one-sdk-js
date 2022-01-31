@@ -6,16 +6,22 @@ import {
 } from '@superfaceai/ast';
 import { createHash } from 'crypto';
 
-import { AuthCache } from '../../../../..';
 import {
   digestHeaderNotFound,
   missingPartOfDigestHeader,
   unexpectedDigestValue,
 } from '../../../../errors.helpers';
 import { HttpResponse } from '../../http';
-import { DEFAULT_AUTHORIZATION_HEADER_NAME } from '..';
-import { RequestContext } from '../interfaces';
+import { FetchInstance, URLENCODED_CONTENT } from '../../interfaces';
+import { HttpRequest } from '..';
+import {
+  AuthCache,
+  DEFAULT_AUTHORIZATION_HEADER_NAME,
+  RequestParameters,
+} from '../interfaces';
 import { DigestHandler } from './digest';
+
+const mockFetch = jest.fn();
 
 describe('DigestHandler', () => {
   const id = 'digest';
@@ -30,11 +36,27 @@ describe('DigestHandler', () => {
     'MTYzODM0OTE4Nzo0YTdlODlmYjI3ODZiZGZhNDhiODAwM2NmNjIwMzE2OQ==';
   const mockCnonce = '9e3355cb6a75d66ce7eea7fc7fc8526d';
   const mockOpaque = 'b816d4d26130bed8ccf5149e855000ad';
+  const method = 'get';
+  const mockHeader = `Digest realm="${mockRealm}" nonce="${mockNonce}", opaque="${mockOpaque}"`;
+
+  //Prepare digest response
+  const h1 = createHash('MD5')
+    .update(`${username}:${mockRealm}:${password}`)
+    .digest('hex');
+  const h2 = createHash('MD5').update(`${method}:${mockUri}`).digest('hex');
+  const digestResponse = createHash('MD5')
+    .update(`${h1}:${mockNonce}:${h2}`)
+    .digest('hex');
+
   let mockInstance: DigestHandler;
   let configuration: DigestSecurityScheme & DigestSecurityValues;
-  let context: RequestContext;
+  let parameters: RequestParameters;
   let cache: AuthCache;
-  let retry: boolean;
+  let retryRequest: HttpRequest | undefined;
+
+  const fetchInstance: FetchInstance & AuthCache = {
+    fetch: mockFetch,
+  };
 
   beforeEach(() => {
     configuration = {
@@ -44,49 +66,78 @@ describe('DigestHandler', () => {
       scheme,
       type,
     };
-    context = {
-      pathParameters: {},
-      queryAuth: {},
+    parameters = {
+      url: mockUri,
+      baseUrl: mockUrl,
+      method,
       headers: {},
-      requestBody: undefined,
+      pathParameters: {},
+      queryParameters: {},
+      body: undefined,
+      contentType: URLENCODED_CONTENT,
     };
     cache = {};
+
+    mockFetch.mockImplementation(() => ({
+      status: 401,
+      body: undefined,
+      headers: {
+        ['www-authenticate']: mockHeader
+      },
+      debug: {
+        request: {
+          headers: {},
+          url: '',
+          body: undefined,
+        },
+      },
+    }));
   });
   afterEach(() => {
     jest.resetAllMocks();
   });
   describe('prepare', () => {
-    it('does not change headers when cache is empty', () => {
+    it.only('extracts values from challange request headers when cache is empty', async () => {
       mockInstance = new DigestHandler(configuration);
-      mockInstance.prepare(context, {});
 
-      expect(context.headers).toEqual({});
+      expect(
+        (await mockInstance.authenticate(parameters, fetchInstance)).headers?.Authorization
+      ).toEqual(expect.stringContaining(`response="${digestResponse}"`));
+
+      expect(fetchInstance).toEqual({
+        digest: expect.stringContaining(`response="${digestResponse}"`),
+      });
     });
 
-    it('changes default authorization header when cache is not empty', () => {
+    it('changes default authorization header when cache is not empty', async () => {
       mockInstance = new DigestHandler(configuration);
-      mockInstance.prepare(context, { digest: 'secret' });
 
-      expect(context.headers).toEqual({
+      expect(
+        (await mockInstance.authenticate(parameters, fetchInstance)).headers
+      ).toEqual({
         [DEFAULT_AUTHORIZATION_HEADER_NAME]: 'secret',
       });
     });
 
-    it('changes custom authorization header when cache is not empty', () => {
+    it('changes custom authorization header when cache is not empty', async () => {
       configuration.authorizationHeader = 'custom';
 
       mockInstance = new DigestHandler(configuration);
-      mockInstance.prepare(context, { digest: 'secret' });
-
-      expect(context.headers).toEqual({ custom: 'secret' });
+      expect(
+        (
+          await mockInstance.authenticate(parameters, {
+            ...fetchInstance,
+            digest: 'secret',
+          })
+        ).headers
+      ).toEqual({ custom: 'secret' });
     });
   });
 
   describe('handle', () => {
-    it('returns undefined on unexpected status code', () => {
+    it('returns undefined on unexpected status code', async () => {
       const qop = 'auth';
       const algorithm = 'MD5';
-      const method = 'GET';
 
       const response: HttpResponse = {
         statusCode: 409,
@@ -102,21 +153,16 @@ describe('DigestHandler', () => {
           },
         },
       };
-      retry = new DigestHandler(configuration).handle(
+      retryRequest = await new DigestHandler(configuration).handleResponse(
         response,
-        mockUrl,
-        method,
-        context,
-        {}
+        parameters,
+        fetchInstance
       );
 
-      expect(retry).toEqual(false);
-      expect(context.headers).toEqual({});
+      expect(retryRequest).toBeUndefined();
     });
 
     it('throws on missing challenge header', async () => {
-      const method = 'GET';
-
       const response: HttpResponse = {
         statusCode: 401,
         body: 'HTTP Digest: Access denied.\n',
@@ -131,12 +177,10 @@ describe('DigestHandler', () => {
       };
 
       expect(() =>
-        new DigestHandler(configuration).handle(
+        new DigestHandler(configuration).handleResponse(
           response,
-          mockUrl,
-          method,
-          context,
-          {}
+          parameters,
+          fetchInstance
         )
       ).toThrow(digestHeaderNotFound('www-authenticate', []));
     });
@@ -144,7 +188,6 @@ describe('DigestHandler', () => {
     it('throws on corrupted challenge header - missing scheme', async () => {
       const qop = 'auth';
       const algorithm = 'MD5';
-      const method = 'GET';
       const mockHeader = ` realm="${mockRealm}", qop="${qop}", algorithm=${algorithm}, nonce="${mockNonce}", opaque="${mockOpaque}"`;
 
       const response: HttpResponse = {
@@ -163,12 +206,10 @@ describe('DigestHandler', () => {
       };
 
       expect(() =>
-        new DigestHandler(configuration).handle(
+        new DigestHandler(configuration).handleResponse(
           response,
-          mockUrl,
-          method,
-          context,
-          {}
+          parameters,
+          fetchInstance
         )
       ).toThrow(
         missingPartOfDigestHeader('www-authenticate', mockHeader, 'scheme')
@@ -178,7 +219,6 @@ describe('DigestHandler', () => {
     it('throws on corrupted challenge header - missing nonce', async () => {
       const qop = 'auth';
       const algorithm = 'MD5';
-      const method = 'GET';
       const mockHeader = `Digest realm="${mockRealm}", qop="${qop}", algorithm=${algorithm}, opaque="${mockOpaque}"`;
 
       const response: HttpResponse = {
@@ -196,22 +236,19 @@ describe('DigestHandler', () => {
         },
       };
 
-      expect(() =>
-        new DigestHandler(configuration).handle(
+      await expect(
+        new DigestHandler(configuration).handleResponse(
           response,
-          mockUrl,
-          method,
-          context,
-          {}
+          parameters,
+          fetchInstance
         )
-      ).toThrow(
+      ).rejects.toEqual(
         missingPartOfDigestHeader('www-authenticate', mockHeader, 'nonce')
       );
     });
 
     it('throws on unexpected algorithm', async () => {
       const algorithm = 'SOME_algorithm';
-      const method = 'GET';
       const mockHeader = `Digest realm="${mockRealm}", algorithm=${algorithm}, nonce="${mockNonce}", opaque="${mockOpaque}"`;
 
       const response: HttpResponse = {
@@ -229,15 +266,13 @@ describe('DigestHandler', () => {
         },
       };
 
-      expect(() =>
-        new DigestHandler(configuration).handle(
+      await expect(
+        new DigestHandler(configuration).handleResponse(
           response,
-          mockUrl,
-          method,
-          context,
-          {}
+          parameters,
+          fetchInstance
         )
-      ).toThrow(
+      ).rejects.toEqual(
         unexpectedDigestValue('algorithm', algorithm, [
           'MD5',
           'MD5-sess',
@@ -249,7 +284,6 @@ describe('DigestHandler', () => {
 
     it('throws on unexpected qop', async () => {
       const qop = 'some_qop';
-      const method = 'GET';
       const mockHeader = `Digest realm="${mockRealm}", qop="${qop}", nonce="${mockNonce}", opaque="${mockOpaque}"`;
 
       const response: HttpResponse = {
@@ -267,15 +301,13 @@ describe('DigestHandler', () => {
         },
       };
 
-      expect(() =>
-        new DigestHandler(configuration).handle(
+      await expect(() =>
+        new DigestHandler(configuration).handleResponse(
           response,
-          mockUrl,
-          method,
-          context,
-          {}
+          parameters,
+          fetchInstance
         )
-      ).toThrow(
+      ).rejects.toEqual(
         unexpectedDigestValue('quality of protection', qop, [
           'auth',
           'auth-int',
@@ -313,10 +345,12 @@ describe('DigestHandler', () => {
       };
 
       (mockInstance as any).makeNonce = () => mockCnonce;
-      retry = mockInstance.handle(response, mockUrl, method, context, cache);
+      retryRequest = await mockInstance.handleResponse(response, parameters, {
+        ...fetchInstance,
+        ...cache,
+      });
 
-      expect(retry).toEqual(true);
-      expect(context.headers).toEqual({
+      expect(retryRequest?.headers).toEqual({
         [DEFAULT_AUTHORIZATION_HEADER_NAME]: expect.stringContaining(
           `response="${digestResponse}"`
         ),
@@ -357,10 +391,12 @@ describe('DigestHandler', () => {
       };
 
       (mockInstance as any).makeNonce = () => mockCnonce;
-      retry = mockInstance.handle(response, mockUrl, method, context, cache);
+      retryRequest = await mockInstance.handleResponse(response, parameters, {
+        ...fetchInstance,
+        ...cache,
+      });
 
-      expect(retry).toEqual(true);
-      expect(context.headers).toEqual({
+      expect(retryRequest?.headers).toEqual({
         Custom: expect.stringContaining(`response="${digestResponse}"`),
       });
       expect(cache).toEqual({
@@ -397,10 +433,12 @@ describe('DigestHandler', () => {
       };
 
       (mockInstance as any).makeNonce = () => mockCnonce;
-      retry = mockInstance.handle(response, mockUrl, method, context, cache);
+      retryRequest = await mockInstance.handleResponse(response, parameters, {
+        ...fetchInstance,
+        ...cache,
+      });
 
-      expect(retry).toEqual(true);
-      expect(context.headers).toEqual({
+      expect(retryRequest?.headers).toEqual({
         [DEFAULT_AUTHORIZATION_HEADER_NAME]: expect.stringContaining(
           `response="${expectedResponse}"`
         ),
@@ -442,10 +480,12 @@ describe('DigestHandler', () => {
       };
 
       (mockInstance as any).makeNonce = () => mockCnonce;
-      retry = mockInstance.handle(response, mockUrl, method, context, cache);
+      retryRequest = await mockInstance.handleResponse(response, parameters, {
+        ...fetchInstance,
+        ...cache,
+      });
 
-      expect(retry).toEqual(true);
-      expect(context.headers).toEqual({
+      expect(retryRequest?.headers).toEqual({
         [DEFAULT_AUTHORIZATION_HEADER_NAME]: expect.stringContaining(
           `response="${expectedResponse}"`
         ),
@@ -490,10 +530,12 @@ describe('DigestHandler', () => {
       };
 
       (mockInstance as any).makeNonce = () => mockCnonce;
-      retry = mockInstance.handle(response, mockUrl, method, context, cache);
+      retryRequest = await mockInstance.handleResponse(response, parameters, {
+        ...fetchInstance,
+        ...cache,
+      });
 
-      expect(retry).toEqual(true);
-      expect(context.headers).toEqual({
+      expect(retryRequest?.headers).toEqual({
         Auth: expect.stringContaining(`response="${expectedResponse}"`),
       });
       expect(cache).toEqual({
@@ -535,10 +577,12 @@ describe('DigestHandler', () => {
 
       (mockInstance as any).makeNonce = () => mockCnonce;
 
-      retry = mockInstance.handle(response, mockUrl, method, context, cache);
+      retryRequest = await mockInstance.handleResponse(response, parameters, {
+        ...fetchInstance,
+        ...cache,
+      });
 
-      expect(retry).toEqual(true);
-      expect(context.headers).toEqual({
+      expect(retryRequest?.headers).toEqual({
         [DEFAULT_AUTHORIZATION_HEADER_NAME]: expect.stringContaining(
           `response="${expectedResponse}"`
         ),
@@ -581,10 +625,12 @@ describe('DigestHandler', () => {
 
       (mockInstance as any).makeNonce = () => mockCnonce;
 
-      retry = mockInstance.handle(response, mockUrl, method, context, cache);
+      retryRequest = await mockInstance.handleResponse(response, parameters, {
+        ...fetchInstance,
+        ...cache,
+      });
 
-      expect(retry).toEqual(true);
-      expect(context.headers).toEqual({
+      expect(retryRequest?.headers).toEqual({
         [DEFAULT_AUTHORIZATION_HEADER_NAME]: expect.stringContaining(
           `response="${expectedResponse}"`
         ),
@@ -630,10 +676,12 @@ describe('DigestHandler', () => {
 
       (mockInstance as any).makeNonce = () => mockCnonce;
 
-      retry = mockInstance.handle(response, mockUrl, method, context, cache);
+      retryRequest = await mockInstance.handleResponse(response, parameters, {
+        ...fetchInstance,
+        ...cache,
+      });
 
-      expect(retry).toEqual(true);
-      expect(context.headers).toEqual({
+      expect(retryRequest?.headers).toEqual({
         [DEFAULT_AUTHORIZATION_HEADER_NAME]: expect.stringContaining(
           `response="${expectedResponse}"`
         ),

@@ -94,7 +94,7 @@ export class DigestHandler implements ISecurityHandler {
       debugSensitive(`Using cached digest credentials`);
       headers[
         this.configuration.authorizationHeader ||
-          DEFAULT_AUTHORIZATION_HEADER_NAME
+        DEFAULT_AUTHORIZATION_HEADER_NAME
       ] = fetchInstance.digest;
 
       return pipe({
@@ -123,6 +123,7 @@ export class DigestHandler implements ISecurityHandler {
       ],
     });
 
+    console.log(response)
     if (
       response.statusCode !== this.statusCode ||
       !response.headers[this.challangeHeader]
@@ -148,7 +149,7 @@ export class DigestHandler implements ISecurityHandler {
         headers: {
           ...headers,
           [this.configuration.authorizationHeader ||
-          DEFAULT_AUTHORIZATION_HEADER_NAME]: credentials,
+            DEFAULT_AUTHORIZATION_HEADER_NAME]: credentials,
         },
       },
       fns: [pipeHeaders, pipeBody, pipeQueryParameters, pipeMethod, pipeUrl],
@@ -182,7 +183,7 @@ export class DigestHandler implements ISecurityHandler {
           headers: {
             ...resourceRequestParameters.headers,
             [this.configuration.authorizationHeader ||
-            DEFAULT_AUTHORIZATION_HEADER_NAME]: credentials,
+              DEFAULT_AUTHORIZATION_HEADER_NAME]: credentials,
           },
         },
         fns: [pipeHeaders, pipeBody, pipeQueryParameters, pipeMethod, pipeUrl],
@@ -255,7 +256,7 @@ export class DigestHandler implements ISecurityHandler {
       `response="${hashedResponse}"`,
       `nc=${ncString}`,
       `cnonce="${digest.cnonce}"`,
-    ].join(',');
+    ].filter(s => s !== '').join(',');
   }
 
   private extractDigestValues(header: string): DigestAuthValues {
