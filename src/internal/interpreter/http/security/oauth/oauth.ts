@@ -3,6 +3,7 @@ import {
   OAuthSecurityScheme,
   OAuthSecurityValues,
 } from '@superfaceai/ast';
+import createDebug from 'debug';
 
 import { HttpResponse } from '../../http';
 import { FetchInstance } from '../../interfaces';
@@ -25,6 +26,8 @@ import {
 } from '../interfaces';
 import { RefreshHelper } from './refresh';
 
+const debug = createDebug('superface:http:security:o-auth-handler');
+
 export class OAuthHandler implements ISecurityHandler {
   private readonly selectedFlow: OAuthFlow;
   //TODO: think about better refresh handling - must be sparated from actual flow helper
@@ -33,6 +36,8 @@ export class OAuthHandler implements ISecurityHandler {
   constructor(
     readonly configuration: OAuthSecurityScheme & OAuthSecurityValues
   ) {
+    debug('Initialized OAuthHandler');
+
     //Here we would have helper for each o auth flow and possible refresh token helper
     if (configuration.flows.length === 0) {
       throw new Error('Flows cant be empty');
@@ -65,7 +70,7 @@ export class OAuthHandler implements ISecurityHandler {
     //Now we just get access token from cache and use it
     let authenticateParameters = parameters;
     if (fetchInstance.oauth?.authotizationCode?.accessToken) {
-      console.log('REUSE');
+      debug('Using cached credentials');
       authenticateParameters = {
         ...parameters,
         headers: {

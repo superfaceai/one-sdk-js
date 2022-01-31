@@ -129,7 +129,7 @@ export const createUrl = (
 
   return baseUrl.replace(/\/+$/, '') + url;
 };
-//TODO: not sure if this can be exported or shoul be passed as argument
+//TODO: not sure if this can be exported or should be passed as argument
 export async function fetchRequest(
   fetchInstance: FetchInstance,
   request: HttpRequest

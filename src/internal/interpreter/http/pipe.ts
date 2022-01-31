@@ -2,7 +2,7 @@ import { USER_AGENT } from '../../../index';
 import { UnexpectedError } from '../..';
 import { unsupportedContentType } from '../../errors.helpers';
 import { mergeVariables, variablesToStrings } from '../variables';
-import { createUrl,fetchRequest, HttpResponse } from './http';
+import { createUrl, fetchRequest, HttpResponse } from './http';
 import {
   BINARY_CONTENT_REGEXP,
   BINARY_CONTENT_TYPES,
@@ -172,11 +172,10 @@ export const pipeFetch: FetchPipeFilter = async ({
   if (!isCompleteHttpRequest(request)) {
     throw new UnexpectedError('Request is not complete', request);
   }
-  
-return {
+
+  return {
     parameters,
     request,
-    //TODO: check if request is complete
     response: await fetchRequest(fetchInstance, request),
   };
 };
@@ -194,6 +193,9 @@ export const pipeAuthenticate: FetchPipeFilter = async ({
 
     return {
       parameters,
+      //TODO: this can be problamatic - in cases when we actually send something in body and also there is apiKey in the body we must be able to resolve this.
+      //Simple solution is to leave request handlig on the security handler - it hase acces to parameters so it is capable to do that. Affter that we would just update the original request
+      //request: authRequest,
       request: mergeRequests(request, authRequest),
       response,
     };
@@ -379,6 +381,7 @@ export const pipeUrl: PreparePipeFilter = ({
   };
 };
 
+//TODO: We should try to minimaze need for this
 const mergeRequests = (
   left: Partial<HttpRequest>,
   right: Partial<HttpRequest>

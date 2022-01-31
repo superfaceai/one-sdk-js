@@ -3,6 +3,7 @@ import {
   ApiKeySecurityScheme,
   ApiKeySecurityValues,
 } from '@superfaceai/ast';
+import createDebug from 'debug';
 
 import { apiKeyInBodyError } from '../../../../errors.helpers';
 import { Variables } from '../../../variables';
@@ -20,10 +21,14 @@ import {
 } from '../../security';
 import { AuthenticateRequestAsync, RequestParameters } from '../interfaces';
 
+const debug = createDebug('superface:http:api-key-handler');
+
 export class ApiKeyHandler implements ISecurityHandler {
   constructor(
     readonly configuration: ApiKeySecurityScheme & ApiKeySecurityValues
-  ) {}
+  ) {
+    debug('Initialized api key authentization handler');
+  }
 
   authenticate: AuthenticateRequestAsync = (parameters: RequestParameters) => {
     let body: Variables | undefined = parameters.body;
@@ -35,10 +40,12 @@ export class ApiKeyHandler implements ISecurityHandler {
 
     switch (this.configuration.in) {
       case ApiKeyPlacement.HEADER:
+        debug('Setting api key to header');
         headers[name] = this.configuration.apikey;
         break;
 
       case ApiKeyPlacement.BODY:
+        debug('Setting api key to body');
         body = applyApiKeyAuthInBody(
           body || {},
           name.startsWith('/') ? name.slice(1).split('/') : [name],
@@ -47,15 +54,16 @@ export class ApiKeyHandler implements ISecurityHandler {
         break;
 
       case ApiKeyPlacement.PATH:
+        debug('Setting api key to path');
         pathParameters[name] = this.configuration.apikey;
         break;
 
       case ApiKeyPlacement.QUERY:
+        debug('Setting api key to query');
         queryParameters[name] = this.configuration.apikey;
         break;
     }
 
-    //TODO: better way of request preparation
     return pipe({
       parameters: {
         ...parameters,

@@ -4,6 +4,7 @@ import {
   OAuthSecurityValues,
   OAuthTokenType,
 } from '@superfaceai/ast';
+import createDebug from 'debug';
 
 import { UnexpectedError } from '../../../../errors';
 import { Variables } from '../../../variables';
@@ -25,6 +26,8 @@ import {
   RequestParameters,
 } from '../interfaces';
 
+const debug = createDebug('superface:http:security:refresh');
+
 export class RefreshHelper {
   private readonly refreshStatusCode: number;
   private readonly clientAuthenticationMethod: OAuthClientAuthenticationMethod;
@@ -32,6 +35,8 @@ export class RefreshHelper {
     private readonly flow: OAuthFlow,
     private configuration: OAuthSecurityValues
   ) {
+    debug('Initialized RefreshHelper');
+
     if (!this.flow.refreshUrl) {
       throw new Error('Refresh url must be difined');
     }
@@ -64,6 +69,8 @@ export class RefreshHelper {
     cache: AuthCache,
     fetchInstance: FetchInstance
   ): Promise<HttpRequest> {
+    debug('RefreshHelper started refreshing');
+
     if (!this.flow.refreshUrl) {
       throw new Error('Refresh url must be difined');
     }
@@ -90,7 +97,7 @@ export class RefreshHelper {
       body.client_secret = this.configuration.clientSecret;
     }
 
-    const req: RequestParameters = {
+    const refreshRequest: RequestParameters = {
       method: 'post',
       headers,
       body,
@@ -104,7 +111,7 @@ export class RefreshHelper {
 
     //TODO: use pipe here
     const refreshResponse = await pipe({
-      parameters: req,
+      parameters: refreshRequest,
       fetchInstance,
       handler: undefined,
       fns: [
@@ -121,7 +128,6 @@ export class RefreshHelper {
       //200 is defined by rfc
       refreshResponse.statusCode === 200
     ) {
-      console.log('response body', refreshResponse.body);
       //Extract access token info from body
       const accessTokenResponse = refreshResponse.body as {
         access_token: string;
