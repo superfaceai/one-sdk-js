@@ -1,19 +1,33 @@
 import { HttpScheme, SecurityType } from '@superfaceai/ast';
 
-import { RequestContext, SecurityConfiguration } from '../../security';
+import { FetchInstance, URLENCODED_CONTENT } from '../../interfaces';
+import {
+  AuthCache,
+  RequestParameters,
+  SecurityConfiguration,
+} from '../../security';
 import { HttpHandler } from './http';
+
+const mockFetch = jest.fn();
 
 describe('HttpHandler', () => {
   let httpHandler: HttpHandler;
-  let context: RequestContext;
+  let parameters: RequestParameters;
   let configuration: SecurityConfiguration & { type: SecurityType.HTTP };
+  const fetchInstance: FetchInstance & AuthCache = {
+    fetch: mockFetch,
+  };
   describe('prepare', () => {
-    it('sets header to correct value', () => {
-      context = {
+    it('sets header to correct value', async () => {
+      parameters = {
+        url: '/api/',
+        baseUrl: 'https://test.com/',
+        method: 'get',
         headers: {},
         pathParameters: {},
-        queryAuth: {},
-        requestBody: undefined,
+        queryParameters: {},
+        body: undefined,
+        contentType: URLENCODED_CONTENT,
       };
       configuration = {
         id: 'test',
@@ -23,21 +37,25 @@ describe('HttpHandler', () => {
         password: 'secret',
       };
       httpHandler = new HttpHandler(configuration);
-      httpHandler.prepare(context);
-
-      expect(context.headers).toEqual({
-        Authorization: 'Basic dXNlcjpzZWNyZXQ=',
-      });
+      expect(
+        (await httpHandler.authenticate(parameters, fetchInstance)).headers?.[
+          'Authorization'
+        ]
+      ).toEqual('Basic dXNlcjpzZWNyZXQ=');
     });
   });
 
   describe('bearer', () => {
-    it('sets header to correct value', () => {
-      context = {
+    it('sets header to correct value', async () => {
+      parameters = {
+        url: '/api/',
+        baseUrl: 'https://test.com/',
+        method: 'get',
         headers: {},
         pathParameters: {},
-        queryAuth: {},
-        requestBody: undefined,
+        queryParameters: {},
+        body: undefined,
+        contentType: URLENCODED_CONTENT,
       };
       configuration = {
         id: 'test',
@@ -46,9 +64,12 @@ describe('HttpHandler', () => {
         token: 'secret',
       };
       httpHandler = new HttpHandler(configuration);
-      httpHandler.prepare(context);
 
-      expect(context.headers).toEqual({ Authorization: 'Bearer secret' });
+      expect(
+        (await httpHandler.authenticate(parameters, fetchInstance)).headers?.[
+          'Authorization'
+        ]
+      ).toEqual('Bearer secret');
     });
   });
 });
