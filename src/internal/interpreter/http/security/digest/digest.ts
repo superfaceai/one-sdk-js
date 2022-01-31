@@ -7,6 +7,8 @@ import {
   missingPartOfDigestHeader,
   unexpectedDigestValue,
 } from '../../../../errors.helpers';
+import { HttpResponse } from '../../http';
+import { FetchInstance } from '../../interfaces';
 import {
   pipe,
   pipeBody,
@@ -16,7 +18,6 @@ import {
   pipeQueryParameters,
   pipeUrl,
 } from '../../pipe';
-import { FetchInstance } from '../../interfaces';
 import { HandleResponseAsync } from '..';
 import {
   AuthCache,
@@ -25,7 +26,6 @@ import {
   ISecurityHandler,
   RequestParameters,
 } from '../interfaces';
-import { HttpResponse } from '../../http';
 
 const debug = createDebug('superface:http:digest');
 const debugSensitive = createDebug('superface:http:digest:sensitive');

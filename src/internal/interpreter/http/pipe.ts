@@ -1,19 +1,24 @@
-import { HttpResponse, fetchRequest, createUrl } from './http';
 import { USER_AGENT } from '../../../index';
+import { UnexpectedError } from '../..';
 import { unsupportedContentType } from '../../errors.helpers';
-import { variablesToStrings } from '../variables';
+import { mergeVariables, variablesToStrings } from '../variables';
+import { createUrl,fetchRequest, HttpResponse } from './http';
 import {
-  FetchInstance,
-  JSON_CONTENT,
-  URLENCODED_CONTENT,
-  FORMDATA_CONTENT,
   BINARY_CONTENT_REGEXP,
   BINARY_CONTENT_TYPES,
-  FetchBody,
-  stringBody,
-  urlSearchParamsBody,
-  formDataBody,
   binaryBody,
+  FetchBody,
+  FetchInstance,
+  FORMDATA_CONTENT,
+  formDataBody,
+  isBinaryBody,
+  isFormDataBody,
+  isStringBody,
+  isUrlSearchParamsBody,
+  JSON_CONTENT,
+  stringBody,
+  URLENCODED_CONTENT,
+  urlSearchParamsBody,
 } from './interfaces';
 import {
   AuthCache,
@@ -148,25 +153,15 @@ export async function pipe<T extends PreparePipeInput | FetchPipeInput>(
       if ('response' in updated) response = updated.response;
     }
 
-    //TODO:
     if (!response) {
-      throw new Error('Response undefined');
+      throw new Error(
+        'Final response in pipe undefined - empty function array?'
+      );
     }
 
     return response as PipeReturnType<T>;
   }
 }
-
-export const mergeRequests = (
-  left: Partial<HttpRequest>,
-  right: Partial<HttpRequest>
-): Partial<HttpRequest> => {
-  //TODO: maybe use some better way of merging
-  return {
-    ...left,
-    ...right,
-  };
-};
 
 //These fns should be easy to test
 export const pipeFetch: FetchPipeFilter = async ({
@@ -174,11 +169,15 @@ export const pipeFetch: FetchPipeFilter = async ({
   request,
   fetchInstance,
 }: FetchPipeFilterInput) => {
-  return {
+  if (!isCompleteHttpRequest(request)) {
+    throw new UnexpectedError('Request is not complete', request);
+  }
+  
+return {
     parameters,
     request,
     //TODO: check if request is complete
-    response: await fetchRequest(fetchInstance, request as HttpRequest),
+    response: await fetchRequest(fetchInstance, request),
   };
 };
 
@@ -379,3 +378,120 @@ export const pipeUrl: PreparePipeFilter = ({
     },
   };
 };
+
+const mergeRequests = (
+  left: Partial<HttpRequest>,
+  right: Partial<HttpRequest>
+): Partial<HttpRequest> => {
+  //TODO: maybe use some better way of merging
+  const result: Partial<HttpRequest> = { ...left, ...right };
+  //Headers
+  if (left.headers && right.headers) {
+    result.headers = mergeVariables(left.headers, right.headers) as Record<
+      string,
+      string | string[]
+    >;
+  }
+
+  //Query
+  if (left.queryParameters && right.queryParameters) {
+    result.queryParameters = mergeVariables(
+      left.queryParameters,
+      right.queryParameters
+    ) as Record<string, string>;
+  }
+
+  if (left.body && right.body) {
+    if (left.body._type !== right.body._type) {
+      throw new UnexpectedError(
+        'Unable to merge request bodies - body types not matching',
+        { left, right }
+      );
+    }
+    if (isStringBody(left.body) && isStringBody(right.body)) {
+      result.body = stringBody(
+        JSON.stringify({
+          ...JSON.parse(left.body.data),
+          ...JSON.parse(right.body.data),
+        })
+      );
+    }
+
+    if (isUrlSearchParamsBody(left.body) && isUrlSearchParamsBody(right.body)) {
+      result.body = urlSearchParamsBody({
+        ...left.body.data,
+        ...right.body.data,
+      });
+    }
+
+    if (isFormDataBody(left.body) && isFormDataBody(right.body)) {
+      result.body = formDataBody({ ...left.body.data, ...right.body.data });
+    }
+
+    if (isBinaryBody(left.body) && isBinaryBody(right.body)) {
+      throw new UnexpectedError('Not implemented yet');
+    }
+  }
+
+  return result;
+};
+
+function isCompleteHttpRequest(
+  input: Partial<HttpRequest>
+): input is HttpRequest {
+  if (!input.url || typeof input.url !== 'string') {
+    return false;
+  }
+  if (!input.method || typeof input.method !== 'string') {
+    return false;
+  }
+  if (input.headers) {
+    if (typeof input.headers !== 'object') {
+      return false;
+    }
+    if (!Object.keys(input.headers).every(key => typeof key === 'string')) {
+      return false;
+    }
+
+    if (
+      !Object.values(input.headers).every(
+        value => typeof value === 'string' || Array.isArray(value)
+      )
+    ) {
+      return false;
+    }
+  }
+
+  if (input.queryParameters) {
+    if (typeof input.queryParameters !== 'object') {
+      return false;
+    }
+    if (
+      !Object.keys(input.queryParameters).every(key => typeof key === 'string')
+    ) {
+      return false;
+    }
+
+    if (
+      !Object.values(input.queryParameters).every(
+        value => typeof value === 'string'
+      )
+    ) {
+      return false;
+    }
+  }
+
+  if (
+    input.body &&
+    !(
+      isStringBody(input.body) ||
+      isFormDataBody(input.body) ||
+      isUrlSearchParamsBody(input.body) ||
+      isBinaryBody(input.body)
+    )
+  ) {
+    return false;
+  }
+
+  return true;
+}

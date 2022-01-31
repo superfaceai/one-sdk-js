@@ -7,6 +7,8 @@ import {
 
 import { UnexpectedError } from '../../../../errors';
 import { Variables } from '../../../variables';
+import { createUrl, HttpResponse } from '../../http';
+import { FetchInstance, URLENCODED_CONTENT } from '../../interfaces';
 import {
   pipe,
   pipeBody,
@@ -16,14 +18,12 @@ import {
   pipeQueryParameters,
   pipeUrl,
 } from '../../pipe';
-import { FetchInstance, URLENCODED_CONTENT } from '../../interfaces';
 import {
   AuthCache,
   DEFAULT_AUTHORIZATION_HEADER_NAME,
   HttpRequest,
   RequestParameters,
 } from '../interfaces';
-import { createUrl, HttpResponse } from '../../http';
 
 export class RefreshHelper {
   private readonly refreshStatusCode: number;

@@ -4,6 +4,8 @@ import {
   OAuthSecurityValues,
 } from '@superfaceai/ast';
 
+import { HttpResponse } from '../../http';
+import { FetchInstance } from '../../interfaces';
 import {
   pipe,
   pipeBody,
@@ -12,7 +14,6 @@ import {
   pipeQueryParameters,
   pipeUrl,
 } from '../../pipe';
-import { FetchInstance } from '../../interfaces';
 import {
   AuthCache,
   AuthenticateRequestAsync,
@@ -23,7 +24,6 @@ import {
   RequestParameters,
 } from '../interfaces';
 import { RefreshHelper } from './refresh';
-import { HttpResponse } from '../../http';
 
 export class OAuthHandler implements ISecurityHandler {
   private readonly selectedFlow: OAuthFlow;
@@ -65,6 +65,7 @@ export class OAuthHandler implements ISecurityHandler {
     //Now we just get access token from cache and use it
     let authenticateParameters = parameters;
     if (fetchInstance.oauth?.authotizationCode?.accessToken) {
+      console.log('REUSE');
       authenticateParameters = {
         ...parameters,
         headers: {
