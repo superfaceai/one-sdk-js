@@ -60,6 +60,7 @@ export type PreparePipeFilterInput = {
 
 /**
  * Represents pipe filter which only prepares http request
+ * This kind of filter should be able to return same result when ran for the forst time and when ran mutiple times (with same inputs)
  */
 export type PreparePipeFilter = ({
   parameters,
@@ -277,7 +278,7 @@ export const pipeHeaders: PreparePipeFilter = ({
     },
   };
 };
-
+//TODO: this should be able to resolve and merge existing body in request
 export const pipeBody: PreparePipeFilter = ({
   parameters,
   request,
@@ -340,7 +341,10 @@ export const pipeQueryParameters: PreparePipeFilter = ({
     parameters,
     request: {
       ...request,
-      queryParameters: variablesToStrings(parameters.queryParameters),
+      queryParameters: {
+        ...request.queryParameters,
+        ...variablesToStrings(parameters.queryParameters),
+      },
     },
   };
 };
@@ -381,7 +385,7 @@ export const pipeUrl: PreparePipeFilter = ({
   };
 };
 
-//TODO: We should try to minimaze need for this
+//TODO: We should try to minimalize need for this
 const mergeRequests = (
   left: Partial<HttpRequest>,
   right: Partial<HttpRequest>

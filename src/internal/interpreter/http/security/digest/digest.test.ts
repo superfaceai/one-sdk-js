@@ -79,11 +79,9 @@ describe('DigestHandler', () => {
         .update(`${username}:${mockRealm}:${password}`)
         .digest('hex');
 
-      console.log('test h1', h1);
       const h2 = createHash(algorithm)
         .update(`${method}:${mockUri}`)
         .digest('hex');
-      console.log('test h2', h2);
 
       const digestResponse = createHash(algorithm)
         .update(`${h1}:${mockNonce}:00000001:${mockCnonce}:${qop}:${h2}`)
