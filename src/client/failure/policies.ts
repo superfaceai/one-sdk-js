@@ -265,7 +265,7 @@ export class RetryPolicy extends FailurePolicy {
 
   override afterFailure(info: ExecutionFailure): FailureResolution {
     if (info.kind === 'bind') {
-      this.streak = 0;
+      this.streak = -this.maxContiguousRetries;
     }
     // either reset to -1 or make the negative streak longer
     this.streak = Math.min(-1, this.streak - 1);
@@ -385,10 +385,6 @@ export class CircuitBreakerPolicy extends FailurePolicy {
   }
 
   override afterFailure(info: ExecutionFailure): FailureResolution {
-    if (info.kind === 'bind') {
-      this.state = 'half-open';
-    }
-
     if (this.state === 'half-open') {
       this.open(info.time);
 
