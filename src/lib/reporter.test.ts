@@ -444,11 +444,13 @@ describe('MetricReporter', () => {
 
     await profile.getUseCase('Test').perform({});
     await profile.getUseCase('Test').perform({});
-    jest.advanceTimersByTime(2000);
+    jest.advanceTimersByTime(5000);
     while (await eventEndpoint.isPending()) {
       await new Promise(setImmediate);
     }
     const requests = await eventEndpoint.getSeenRequests();
+
+    console.log('requests', requests)
 
     expect(requests).toHaveLength(2);
     expect(await requests[1].body.getJson()).toMatchObject({
