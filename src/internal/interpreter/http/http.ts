@@ -232,12 +232,12 @@ export class HttpClient {
 }
 
 function getSecurityHandler(
-  securityConfiguration?: SecurityConfiguration[],
-  securityRequirements?: HttpSecurityRequirement[]
+  securityConfiguration: SecurityConfiguration[] = [],
+  securityRequirements: HttpSecurityRequirement[] = [],
 ): ISecurityHandler | undefined {
   let handler: ISecurityHandler | undefined = undefined;
-  for (const requirement of securityRequirements ?? []) {
-    const configuration = (securityConfiguration ?? []).find(
+  for (const requirement of securityRequirements]) {
+    const configuration = securityConfiguration.find(
       configuration => configuration.id === requirement.id
     );
     if (configuration === undefined) {

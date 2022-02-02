@@ -33,9 +33,9 @@ import {
 export type FetchPipeFilterInput = {
   parameters: RequestParameters;
   request: Partial<HttpRequest>;
-  response: HttpResponse | undefined;
+  response?: HttpResponse;
   fetchInstance: FetchInstance & AuthCache;
-  handler: ISecurityHandler | undefined;
+  handler?: ISecurityHandler;
 };
 /**
  * Represents pipe filter which works with http response
