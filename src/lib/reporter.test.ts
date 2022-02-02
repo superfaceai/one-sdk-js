@@ -321,6 +321,20 @@ describe('MetricReporter', () => {
     const requests = await eventEndpoint.getSeenRequests();
 
     expect(requests).toHaveLength(2);
+    expect(await requests[0].body.getJson()).toMatchObject({
+      event_type: 'SDKInit',
+      configuration_hash: expect.stringMatching(/\w+/),
+      data: {
+        configuration: {
+          profiles: {
+            ['test-profile']: {
+              version: '1.0.0',
+            },
+          },
+          providers: ['testprovider'],
+        },
+      },
+    });
     expect(await requests[1].body.getJson()).toMatchObject({
       event_type: 'Metrics',
       data: {
@@ -367,9 +381,12 @@ describe('MetricReporter', () => {
     }
 
     expect(requests).toHaveLength(3);
-    let metricRequest, changeRequest;
+    let metricRequest, changeRequest, initRequest;
     for (const request of requests) {
       const body = (await request.body.getJson()) as { event_type: string };
+      if (body.event_type === 'SDKInit') {
+        initRequest = body;
+      }
       if (body.event_type === 'Metrics') {
         metricRequest = body;
       }
@@ -377,6 +394,20 @@ describe('MetricReporter', () => {
         changeRequest = body;
       }
     }
+    expect(initRequest).toMatchObject({
+      event_type: 'SDKInit',
+      configuration_hash: expect.stringMatching(/\w+/),
+      data: {
+        configuration: {
+          profiles: {
+            ['test-profile']: {
+              version: '2.0.0',
+            },
+          },
+          providers: ['testprovider'],
+        },
+      },
+    });
     expect(metricRequest).toMatchObject({
       event_type: 'Metrics',
       data: {
@@ -469,12 +500,13 @@ describe('MetricReporter', () => {
 
     await profile.getUseCase('Test').perform({});
     await profile.getUseCase('Test').perform({});
-    jest.runAllTimers();
+    jest.advanceTimersByTime(2000);
+    let requests = await eventEndpoint.getSeenRequests();
 
-    while (await eventEndpoint.isPending()) {
+    while (requests.length < 2) {
       await new Promise(setImmediate);
+      requests = await eventEndpoint.getSeenRequests();
     }
-    const requests = await eventEndpoint.getSeenRequests();
     for (const r of requests) {
       console.log('4', inspect(await r.body.getJson(), true, 12));
     }
