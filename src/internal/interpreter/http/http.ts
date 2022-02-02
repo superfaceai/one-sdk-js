@@ -21,14 +21,14 @@ import {
 import { FetchInstance } from './interfaces';
 import {
   pipe,
-  pipeAuthenticate,
-  pipeBody,
-  pipeFetch,
-  pipeHeaders,
-  pipeMethod,
-  pipeQueryParameters,
-  pipeResponse,
-  pipeUrl,
+  authenticateFilter,
+  bodyFilter,
+  fetchFilter,
+  headersFilter,
+  methodFilter,
+  queryParametersFilter,
+  handleResponseFilter,
+  urlFilter,
 } from './pipe';
 import {
   ApiKeyHandler,
@@ -218,14 +218,14 @@ export class HttpClient {
         requestParameters.securityRequirements
       ),
       filters: [
-        pipeHeaders,
-        pipeBody,
-        pipeQueryParameters,
-        pipeMethod,
-        pipeUrl,
-        pipeAuthenticate,
-        pipeFetch,
-        pipeResponse,
+        headersFilter,
+        bodyFilter,
+        queryParametersFilter,
+        methodFilter,
+        urlFilter,
+        authenticateFilter,
+        fetchFilter,
+        handleResponseFilter,
       ],
     });
   }

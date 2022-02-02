@@ -11,12 +11,12 @@ import { HttpResponse } from '../../http';
 import { FetchInstance } from '../../interfaces';
 import {
   pipe,
-  pipeBody,
-  pipeFetch,
-  pipeHeaders,
-  pipeMethod,
-  pipeQueryParameters,
-  pipeUrl,
+  bodyFilter,
+  fetchFilter,
+  headersFilter,
+  methodFilter,
+  queryParametersFilter,
+  urlFilter,
 } from '../../pipe';
 import { HandleResponseAsync } from '..';
 import {
@@ -103,11 +103,11 @@ export class DigestHandler implements ISecurityHandler {
           headers,
         },
         filters: [
-          pipeHeaders,
-          pipeBody,
-          pipeQueryParameters,
-          pipeMethod,
-          pipeUrl,
+          headersFilter,
+          bodyFilter,
+          queryParametersFilter,
+          methodFilter,
+          urlFilter,
         ],
       });
     }
@@ -120,12 +120,12 @@ export class DigestHandler implements ISecurityHandler {
       fetchInstance,
       handler: undefined,
       filters: [
-        pipeHeaders,
-        pipeBody,
-        pipeQueryParameters,
-        pipeMethod,
-        pipeUrl,
-        pipeFetch,
+        headersFilter,
+        bodyFilter,
+        queryParametersFilter,
+        methodFilter,
+        urlFilter,
+        fetchFilter,
       ],
     });
 
@@ -158,11 +158,11 @@ export class DigestHandler implements ISecurityHandler {
         },
       },
       filters: [
-        pipeHeaders,
-        pipeBody,
-        pipeQueryParameters,
-        pipeMethod,
-        pipeUrl,
+        headersFilter,
+        bodyFilter,
+        queryParametersFilter,
+        methodFilter,
+        urlFilter,
       ],
     });
   };
@@ -198,11 +198,11 @@ export class DigestHandler implements ISecurityHandler {
           },
         },
         filters: [
-          pipeHeaders,
-          pipeBody,
-          pipeQueryParameters,
-          pipeMethod,
-          pipeUrl,
+          headersFilter,
+          bodyFilter,
+          queryParametersFilter,
+          methodFilter,
+          urlFilter,
         ],
       });
     }

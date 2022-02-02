@@ -40,7 +40,7 @@ export type FetchFilterInput = {
 /**
  * Represents pipe filter which works with http response
  */
-export type FetchPipeFilter = ({
+export type FetchFilter = ({
   parameters,
   request,
   response,
@@ -62,7 +62,7 @@ export type PrepareFilterInput = {
  * Represents pipe filter which only prepares http request
  * This kind of filter should be able to return same result when ran for the forst time and when ran mutiple times (with same inputs)
  */
-export type PreparePipeFilter = ({
+export type PrepareFilter = ({
   parameters,
   request,
 }: PrepareFilterInput) =>
@@ -74,7 +74,7 @@ export type PreparePipeFilter = ({
  */
 export type PreparePipeInput = {
   parameters: RequestParameters;
-  filters: PreparePipeFilter[];
+  filters: PrepareFilter[];
 };
 
 /**
@@ -97,7 +97,7 @@ export type FetchPipeInput = {
   parameters: RequestParameters;
   fetchInstance: FetchInstance & AuthCache;
   handler: ISecurityHandler | undefined;
-  filters: (FetchPipeFilter | PreparePipeFilter)[];
+  filters: (FetchFilter | PrepareFilter)[];
 };
 
 /**
@@ -148,7 +148,7 @@ export async function pipe<T extends PreparePipeInput | FetchPipeInput>(
         ...arg,
         request,
         response,
-      }) as ReturnType<FetchPipeFilter | PreparePipeFilter>);
+      }) as ReturnType<FetchFilter | PrepareFilter>);
 
       request = mergeRequests(request, updated.request);
       if ('response' in updated) response = updated.response;
@@ -165,7 +165,7 @@ export async function pipe<T extends PreparePipeInput | FetchPipeInput>(
 }
 
 //These filters should be easy to test
-export const pipeFetch: FetchPipeFilter = async ({
+export const fetchFilter: FetchFilter = async ({
   parameters,
   request,
   fetchInstance,
@@ -182,7 +182,7 @@ export const pipeFetch: FetchPipeFilter = async ({
 };
 
 //TODO: how to auth without keeping the handler instance
-export const pipeAuthenticate: FetchPipeFilter = async ({
+export const authenticateFilter: FetchFilter = async ({
   parameters,
   request,
   response,
@@ -211,7 +211,7 @@ export const pipeAuthenticate: FetchPipeFilter = async ({
 
 //TODO: how to auth without keeping the handler instance, naming
 //This is handling the cases when we are authenticated but eg. digest credentials expired or oauth access token is no longer valid
-export const pipeResponse: FetchPipeFilter = async ({
+export const handleResponseFilter: FetchFilter = async ({
   parameters,
   request,
   response,
@@ -238,7 +238,7 @@ export const pipeResponse: FetchPipeFilter = async ({
   return { parameters, request, response };
 };
 
-export const pipeHeaders: PreparePipeFilter = ({
+export const headersFilter: PrepareFilter = ({
   parameters,
   request,
 }: {
@@ -279,7 +279,7 @@ export const pipeHeaders: PreparePipeFilter = ({
   };
 };
 //TODO: this should be able to resolve and merge existing body in request
-export const pipeBody: PreparePipeFilter = ({
+export const bodyFilter: PrepareFilter = ({
   parameters,
   request,
 }: {
@@ -330,7 +330,7 @@ export const pipeBody: PreparePipeFilter = ({
   };
 };
 
-export const pipeQueryParameters: PreparePipeFilter = ({
+export const queryParametersFilter: PrepareFilter = ({
   parameters,
   request,
 }: {
@@ -349,7 +349,7 @@ export const pipeQueryParameters: PreparePipeFilter = ({
   };
 };
 
-export const pipeMethod: PreparePipeFilter = ({
+export const methodFilter: PrepareFilter = ({
   parameters,
   request,
 }: {
@@ -365,7 +365,7 @@ export const pipeMethod: PreparePipeFilter = ({
   };
 };
 
-export const pipeUrl: PreparePipeFilter = ({
+export const urlFilter: PrepareFilter = ({
   parameters,
   request,
 }: {

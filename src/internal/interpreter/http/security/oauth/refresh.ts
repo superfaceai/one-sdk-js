@@ -12,12 +12,12 @@ import { createUrl, HttpResponse } from '../../http';
 import { FetchInstance, URLENCODED_CONTENT } from '../../interfaces';
 import {
   pipe,
-  pipeBody,
-  pipeFetch,
-  pipeHeaders,
-  pipeMethod,
-  pipeQueryParameters,
-  pipeUrl,
+  bodyFilter,
+  fetchFilter,
+  headersFilter,
+  methodFilter,
+  queryParametersFilter,
+  urlFilter,
 } from '../../pipe';
 import {
   AuthCache,
@@ -115,12 +115,12 @@ export class RefreshHelper {
       fetchInstance,
       handler: undefined,
       filters: [
-        pipeHeaders,
-        pipeBody,
-        pipeQueryParameters,
-        pipeMethod,
-        pipeUrl,
-        pipeFetch,
+        headersFilter,
+        bodyFilter,
+        queryParametersFilter,
+        methodFilter,
+        urlFilter,
+        fetchFilter,
       ],
     });
 
@@ -188,11 +188,11 @@ export class RefreshHelper {
           },
         },
         filters: [
-          pipeHeaders,
-          pipeBody,
-          pipeQueryParameters,
-          pipeMethod,
-          pipeUrl,
+          headersFilter,
+          bodyFilter,
+          queryParametersFilter,
+          methodFilter,
+          urlFilter,
         ],
       });
     }

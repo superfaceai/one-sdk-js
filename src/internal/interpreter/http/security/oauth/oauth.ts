@@ -9,11 +9,11 @@ import { HttpResponse } from '../../http';
 import { FetchInstance } from '../../interfaces';
 import {
   pipe,
-  pipeBody,
-  pipeHeaders,
-  pipeMethod,
-  pipeQueryParameters,
-  pipeUrl,
+  bodyFilter,
+  headersFilter,
+  methodFilter,
+  queryParametersFilter,
+  urlFilter,
 } from '../../pipe';
 import {
   AuthCache,
@@ -84,11 +84,11 @@ export class OAuthHandler implements ISecurityHandler {
     return pipe({
       parameters: authenticateParameters,
       filters: [
-        pipeHeaders,
-        pipeBody,
-        pipeQueryParameters,
-        pipeMethod,
-        pipeUrl,
+        headersFilter,
+        bodyFilter,
+        queryParametersFilter,
+        methodFilter,
+        urlFilter,
       ],
     });
   };

@@ -3,11 +3,11 @@ import createDebug from 'debug';
 
 import {
   pipe,
-  pipeBody,
-  pipeHeaders,
-  pipeMethod,
-  pipeQueryParameters,
-  pipeUrl,
+  bodyFilter,
+  headersFilter,
+  methodFilter,
+  queryParametersFilter,
+  urlFilter,
 } from '../../pipe';
 import {
   DEFAULT_AUTHORIZATION_HEADER_NAME,
@@ -51,11 +51,11 @@ export class HttpHandler implements ISecurityHandler {
         headers,
       },
       filters: [
-        pipeHeaders,
-        pipeBody,
-        pipeQueryParameters,
-        pipeMethod,
-        pipeUrl,
+        headersFilter,
+        bodyFilter,
+        queryParametersFilter,
+        methodFilter,
+        urlFilter,
       ],
     });
   };
