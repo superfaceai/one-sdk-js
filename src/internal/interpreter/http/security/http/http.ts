@@ -50,7 +50,13 @@ export class HttpHandler implements ISecurityHandler {
         ...parameters,
         headers,
       },
-      fns: [pipeHeaders, pipeBody, pipeQueryParameters, pipeMethod, pipeUrl],
+      filters: [
+        pipeHeaders,
+        pipeBody,
+        pipeQueryParameters,
+        pipeMethod,
+        pipeUrl,
+      ],
     });
   };
 }

@@ -13,6 +13,7 @@ import { Config } from '../config';
 import { SuperJson } from '../internal/superjson';
 import { FailoverReason } from './reporter';
 import { ok } from './result/result';
+import { ServiceSelector } from './services';
 
 jest.useFakeTimers('legacy');
 
@@ -280,7 +281,10 @@ describe('MetricReporter', () => {
       mockProfileDocument,
       mockMapDocumentSuccess,
       'provider',
-      { baseUrl: mockServer.url, security: [] },
+      {
+        services: ServiceSelector.withDefaultUrl(mockServer.url),
+        security: [],
+      },
       client
     );
     jest
@@ -321,7 +325,10 @@ describe('MetricReporter', () => {
       mockProfileDocument,
       mockMapDocumentFailure(),
       'testprovider',
-      { baseUrl: 'https://unavai.lable', security: [] },
+      {
+        services: ServiceSelector.withDefaultUrl('https://unavai.lable'),
+        security: [],
+      },
       client
     );
     jest
@@ -388,7 +395,10 @@ describe('MetricReporter', () => {
       mockProfileDocument,
       mockMapDocumentSuccess,
       'provider',
-      { baseUrl: mockServer.url, security: [] },
+      {
+        services: ServiceSelector.withDefaultUrl(mockServer.url),
+        security: [],
+      },
       client
     );
     jest
@@ -420,7 +430,10 @@ describe('MetricReporter', () => {
       mockProfileDocument,
       mockMapDocumentSuccess,
       'provider',
-      { baseUrl: mockServer.url, security: [] },
+      {
+        services: ServiceSelector.withDefaultUrl(mockServer.url),
+        security: [],
+      },
       client
     );
     jest
@@ -462,7 +475,10 @@ describe('MetricReporter', () => {
       mockProfileDocument,
       mockMapDocumentSuccess,
       'provider',
-      { baseUrl: mockServer.url, security: [] },
+      {
+        services: ServiceSelector.withDefaultUrl(mockServer.url),
+        security: [],
+      },
       client
     );
     jest
@@ -530,7 +546,10 @@ describe('MetricReporter', () => {
       mockProfileDocument,
       mockMapDocumentSuccess,
       'provider',
-      { baseUrl: mockServer.url, security: [] },
+      {
+        services: ServiceSelector.withDefaultUrl(mockServer.url),
+        security: [],
+      },
       client
     );
     jest
@@ -601,14 +620,20 @@ describe('MetricReporter', () => {
       mockProfileDocument,
       mockMapDocumentSuccess,
       'testprovider',
-      { baseUrl: 'https://unavail.able', security: [] },
+      {
+        services: ServiceSelector.withDefaultUrl('https://unavail.able'),
+        security: [],
+      },
       client
     );
     const mockBoundProfileProvider2 = new BoundProfileProvider(
       mockProfileDocument,
       mockMapDocumentFailure('testprovider2'),
       'testprovider2',
-      { baseUrl: 'https://unavail.able', security: [] },
+      {
+        services: ServiceSelector.withDefaultUrl('https://unavail.able'),
+        security: [],
+      },
       client
     );
     jest

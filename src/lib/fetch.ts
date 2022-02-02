@@ -67,7 +67,7 @@ export class CrossFetch implements FetchInstance, Interceptable {
     if (
       headers['content-type'] &&
       headers['content-type'].includes(JSON_CONTENT) //||
-      //This should be used when we don't have a response content-type
+      //TODO: update this when we have security handlers preparing whole requests
       // parameters.headers?.['accept']?.includes(JSON_CONTENT)
     ) {
       body = await response.json();

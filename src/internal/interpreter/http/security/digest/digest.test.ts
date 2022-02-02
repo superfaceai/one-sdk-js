@@ -425,7 +425,7 @@ describe('DigestHandler', () => {
         .update(`${username}:${mockRealm}:${password}`)
         .digest('hex');
       const h2 = createHash('MD5').update(`${method}:${mockUri}`).digest('hex');
-      const expectedResponse = createHash('MD5')
+      const digestResponse = createHash('MD5')
         .update(`${h1}:${mockNonce}:00000001:${mockCnonce}:${qop}:${h2}`)
         .digest('hex');
 
@@ -456,8 +456,8 @@ describe('DigestHandler', () => {
 
       expect(
         retryRequest?.headers?.[DEFAULT_AUTHORIZATION_HEADER_NAME]
-      ).toMatch(`response="${expectedResponse}"`);
-      expect(cacheAndFetch.digest).toMatch(`response="${expectedResponse}"`);
+      ).toMatch(`response="${digestResponse}"`);
+      expect(cacheAndFetch.digest).toMatch(`response="${digestResponse}"`);
     });
 
     it('prepares digest auth with default values and MD5', async () => {
@@ -472,7 +472,7 @@ describe('DigestHandler', () => {
       const h2 = createHash(algorithm)
         .update(`${method}:${mockUri}`)
         .digest('hex');
-      const expectedResponse = createHash(algorithm)
+      const digestResponse = createHash(algorithm)
         .update(`${h1}:${mockNonce}:00000001:${mockCnonce}:${qop}:${h2}`)
         .digest('hex');
 
@@ -504,8 +504,8 @@ describe('DigestHandler', () => {
 
       expect(
         retryRequest?.headers?.[DEFAULT_AUTHORIZATION_HEADER_NAME]
-      ).toMatch(`response="${expectedResponse}"`);
-      expect(cacheAndFetch.digest).toMatch(`response="${expectedResponse}"`);
+      ).toMatch(`response="${digestResponse}"`);
+      expect(cacheAndFetch.digest).toMatch(`response="${digestResponse}"`);
     });
 
     it('prepares digest auth with default values, custom headers and status code', async () => {
@@ -523,7 +523,7 @@ describe('DigestHandler', () => {
       const h2 = createHash(algorithm)
         .update(`${method}:${mockUri}`)
         .digest('hex');
-      const expectedResponse = createHash(algorithm)
+      const digestResponse = createHash(algorithm)
         .update(`${h1}:${mockNonce}:00000001:${mockCnonce}:${qop}:${h2}`)
         .digest('hex');
 
@@ -553,10 +553,10 @@ describe('DigestHandler', () => {
       );
 
       expect(retryRequest?.headers?.Auth).toMatch(
-        `response="${expectedResponse}"`
+        `response="${digestResponse}"`
       );
 
-      expect(cacheAndFetch.digest).toMatch(`response="${expectedResponse}"`);
+      expect(cacheAndFetch.digest).toMatch(`response="${digestResponse}"`);
     });
 
     it('prepares digest auth with default values and MD5-sess', async () => {
@@ -572,7 +572,7 @@ describe('DigestHandler', () => {
         .update(`${h1}:${mockNonce}:${mockCnonce}`)
         .digest('hex');
       const h2 = createHash('MD5').update(`${method}:${mockUri}`).digest('hex');
-      const expectedResponse = createHash('MD5')
+      const digestResponse = createHash('MD5')
         .update(`${h1}:${mockNonce}:00000001:${mockCnonce}:${qop}:${h2}`)
         .digest('hex');
 
@@ -604,8 +604,8 @@ describe('DigestHandler', () => {
 
       expect(
         retryRequest?.headers?.[DEFAULT_AUTHORIZATION_HEADER_NAME]
-      ).toMatch(`response="${expectedResponse}"`);
-      expect(cacheAndFetch.digest).toMatch(`response="${expectedResponse}"`);
+      ).toMatch(`response="${digestResponse}"`);
+      expect(cacheAndFetch.digest).toMatch(`response="${digestResponse}"`);
     });
 
     it('prepares digest auth with default values and SHA-256', async () => {
@@ -620,7 +620,7 @@ describe('DigestHandler', () => {
       const h2 = createHash('sha256')
         .update(`${method}:${mockUri}`)
         .digest('hex');
-      const expectedResponse = createHash('sha256')
+      const digestResponse = createHash('sha256')
         .update(`${h1}:${mockNonce}:00000001:${mockCnonce}:${qop}:${h2}`)
         .digest('hex');
 
@@ -652,8 +652,8 @@ describe('DigestHandler', () => {
 
       expect(
         retryRequest?.headers?.[DEFAULT_AUTHORIZATION_HEADER_NAME]
-      ).toMatch(`response="${expectedResponse}"`);
-      expect(cacheAndFetch.digest).toMatch(`response="${expectedResponse}"`);
+      ).toMatch(`response="${digestResponse}"`);
+      expect(cacheAndFetch.digest).toMatch(`response="${digestResponse}"`);
     });
 
     it('prepares digest auth with default values and SHA-256-sess', async () => {
@@ -671,7 +671,7 @@ describe('DigestHandler', () => {
       const h2 = createHash('sha256')
         .update(`${method}:${mockUri}`)
         .digest('hex');
-      const expectedResponse = createHash('sha256')
+      const digestResponse = createHash('sha256')
         .update(`${h1}:${mockNonce}:00000001:${mockCnonce}:${qop}:${h2}`)
         .digest('hex');
 
@@ -704,8 +704,8 @@ describe('DigestHandler', () => {
 
       expect(
         retryRequest?.headers?.[DEFAULT_AUTHORIZATION_HEADER_NAME]
-      ).toMatch(`response="${expectedResponse}"`);
-      expect(cacheAndFetch.digest).toMatch(`response="${expectedResponse}"`);
+      ).toMatch(`response="${digestResponse}"`);
+      expect(cacheAndFetch.digest).toMatch(`response="${digestResponse}"`);
     });
   });
 });

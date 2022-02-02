@@ -114,7 +114,7 @@ export class RefreshHelper {
       parameters: refreshRequest,
       fetchInstance,
       handler: undefined,
-      fns: [
+      filters: [
         pipeHeaders,
         pipeBody,
         pipeQueryParameters,
@@ -187,7 +187,13 @@ export class RefreshHelper {
             [DEFAULT_AUTHORIZATION_HEADER_NAME]: `Bearer ${accessTokenResponse.access_token}`,
           },
         },
-        fns: [pipeHeaders, pipeBody, pipeQueryParameters, pipeMethod, pipeUrl],
+        filters: [
+          pipeHeaders,
+          pipeBody,
+          pipeQueryParameters,
+          pipeMethod,
+          pipeUrl,
+        ],
       });
     }
 

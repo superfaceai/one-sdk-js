@@ -8,6 +8,7 @@ import { parseMap, Source } from '@superfaceai/parser';
 import { getLocal } from 'mockttp';
 
 import { CrossFetch } from '../../lib/fetch';
+import { ServiceSelector } from '../../lib/services';
 import { UnexpectedError } from '../errors';
 import { MapInterpreter } from './map-interpreter';
 import {
@@ -208,10 +209,10 @@ AST Path: definitions[0].statements[0].assignments[0].value`
   });
 
   describe('MapInterpreter', () => {
-    let serviceBaseUrl: string;
+    let mockServicesSelector: ServiceSelector;
     beforeEach(async () => {
       await mockServer.start();
-      serviceBaseUrl = mockServer.url;
+      mockServicesSelector = ServiceSelector.withDefaultUrl(mockServer.url);
     });
 
     afterEach(async () => {
@@ -222,6 +223,7 @@ AST Path: definitions[0].statements[0].assignments[0].value`
       const interpreter = new MapInterpreter(
         {
           security: [],
+          services: ServiceSelector.empty(),
         },
         { fetchInstance }
       );
@@ -238,6 +240,7 @@ AST Path: definitions[0].statements[0].assignments[0].value`
         {
           usecase: 'nonexistent',
           security: [],
+          services: ServiceSelector.empty(),
         },
         { fetchInstance }
       );
@@ -255,6 +258,7 @@ AST Path: definitions[0].statements[0].assignments[0].value`
         {
           usecase: 'Test',
           security: [],
+          services: ServiceSelector.empty(),
         },
         { fetchInstance }
       );
@@ -277,6 +281,7 @@ AST Path: definitions[0].statements[0].assignments[0].value`
         {
           usecase: 'Test',
           security: [],
+          services: ServiceSelector.empty(),
         },
         { fetchInstance }
       );
@@ -306,7 +311,7 @@ AST Path: definitions[0].statements[0].assignments[0].value`
         {
           usecase: 'Test',
           security: [],
-          serviceBaseUrl,
+          services: mockServicesSelector,
         },
         { fetchInstance }
       );
@@ -340,7 +345,7 @@ AST Path: definitions[0].statements[0].assignments[0].value`
         {
           usecase: 'testCase',
           security: [],
-          serviceBaseUrl,
+          services: mockServicesSelector,
         },
         { fetchInstance }
       );
@@ -370,7 +375,7 @@ AST Path: definitions[0].statements[0].assignments[0].value`
         {
           usecase: 'Test',
           security: [],
-          serviceBaseUrl,
+          services: mockServicesSelector,
         },
         { fetchInstance }
       );
@@ -409,7 +414,7 @@ AST Path: definitions[0].statements[0].assignments[0].value`
         {
           usecase: 'Test',
           security: [],
-          serviceBaseUrl,
+          services: mockServicesSelector,
         },
         { fetchInstance }
       );
@@ -440,6 +445,7 @@ AST Path: definitions[0].statements[0].assignments[0].value`
         {
           usecase: 'Test',
           security: [],
+          services: ServiceSelector.empty(),
         },
         { fetchInstance }
       );
@@ -458,7 +464,7 @@ AST Path: definitions[0].statements[0].assignments[0].value`
         {
           usecase: 'Test',
           security: [],
-          serviceBaseUrl,
+          services: mockServicesSelector,
         },
         { fetchInstance }
       );
@@ -482,7 +488,7 @@ AST Path: definitions[0].statements[0].assignments[0].value`
         {
           usecase: 'Test',
           security: [],
-          serviceBaseUrl,
+          services: mockServicesSelector,
         },
         { fetchInstance }
       );
@@ -522,7 +528,9 @@ AST Path: definitions[0].statements[0].assignments[0].value`
         {
           usecase: 'Test',
           security: [],
-          serviceBaseUrl: `${serviceBaseUrl}/{path}`,
+          services: ServiceSelector.withDefaultUrl(
+            `${mockServicesSelector.getUrl()!}/{path}`
+          ),
         },
         { fetchInstance }
       );
@@ -557,6 +565,7 @@ AST Path: definitions[0].statements[0].assignments[0].value`
       {
         usecase: 'Test',
         security: [],
+        services: ServiceSelector.empty(),
       },
       { fetchInstance }
     );
@@ -592,6 +601,7 @@ AST Path: definitions[0].statements[0].assignments[0].value`
       {
         usecase: 'Test',
         security: [],
+        services: ServiceSelector.empty(),
       },
       { fetchInstance }
     );
@@ -627,6 +637,7 @@ AST Path: definitions[0].statements[0].assignments[0].value`
       {
         usecase: 'Test',
         security: [],
+        services: ServiceSelector.empty(),
       },
       { fetchInstance }
     );

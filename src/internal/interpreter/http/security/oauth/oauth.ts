@@ -83,7 +83,13 @@ export class OAuthHandler implements ISecurityHandler {
 
     return pipe({
       parameters: authenticateParameters,
-      fns: [pipeHeaders, pipeBody, pipeQueryParameters, pipeMethod, pipeUrl],
+      filters: [
+        pipeHeaders,
+        pipeBody,
+        pipeQueryParameters,
+        pipeMethod,
+        pipeUrl,
+      ],
     });
   };
 

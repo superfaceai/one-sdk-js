@@ -72,7 +72,13 @@ export class ApiKeyHandler implements ISecurityHandler {
         queryParameters,
         body,
       },
-      fns: [pipeHeaders, pipeBody, pipeQueryParameters, pipeMethod, pipeUrl],
+      filters: [
+        pipeHeaders,
+        pipeBody,
+        pipeQueryParameters,
+        pipeMethod,
+        pipeUrl,
+      ],
     });
   };
 }
