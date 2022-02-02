@@ -6,7 +6,6 @@ import {
   ProfileDocumentNode,
 } from '@superfaceai/ast';
 import { getLocal, MockedEndpoint } from 'mockttp';
-import { inspect } from 'util';
 
 import { BoundProfileProvider, SuperfaceClient } from '../client';
 import { invalidateSuperfaceClientCache } from '../client/client';
@@ -18,36 +17,20 @@ import { ServiceSelector } from './services';
 
 jest.useFakeTimers('legacy');
 
-const mockSuperJson = (version: string): SuperJson =>
-  new SuperJson({
-    profiles: {
-      ['test-profile']: {
-        version,
-        defaults: {},
-        providers: {
-          testprovider: {},
-        },
+const mockSuperJsonSingle = new SuperJson({
+  profiles: {
+    ['test-profile']: {
+      version: '1.0.0',
+      defaults: {},
+      providers: {
+        testprovider: {},
       },
     },
-    providers: {
-      testprovider: {},
-    },
-  });
-
-// const mockSuperJsonSingle = new SuperJson({
-//   profiles: {
-//     ['test-profile']: {
-//       version: '1.0.0',
-//       defaults: {},
-//       providers: {
-//         testprovider: {},
-//       },
-//     },
-//   },
-//   providers: {
-//     testprovider: {},
-//   },
-// });
+  },
+  providers: {
+    testprovider: {},
+  },
+});
 
 const mockSuperJsonFailover = new SuperJson({
   profiles: {
@@ -253,7 +236,7 @@ const mockServer = getLocal();
 describe('MetricReporter', () => {
   let eventEndpoint: MockedEndpoint;
   beforeEach(async () => {
-    // SuperJson.loadSync = () => ok(mockSuperJsonSingle);
+    SuperJson.loadSync = () => ok(mockSuperJsonSingle);
     await mockServer.start();
     eventEndpoint = await mockServer
       .post('/insights/sdk_event')
@@ -269,7 +252,6 @@ describe('MetricReporter', () => {
   });
 
   it('should report SDK Init', async () => {
-    SuperJson.loadSync = () => ok(mockSuperJson('0.0.0'));
     const client = new SuperfaceClient();
     void client;
     while (await eventEndpoint.isPending()) {
@@ -285,7 +267,7 @@ describe('MetricReporter', () => {
         configuration: {
           profiles: {
             ['test-profile']: {
-              version: '0.0.0',
+              version: '1.0.0',
             },
           },
           providers: ['testprovider'],
@@ -295,7 +277,6 @@ describe('MetricReporter', () => {
   });
 
   it('should report success', async () => {
-    SuperJson.loadSync = () => ok(mockSuperJson('1.0.0'));
     const client = new SuperfaceClient();
     const mockBoundProfileProvider = new BoundProfileProvider(
       mockProfileDocument,
@@ -354,7 +335,6 @@ describe('MetricReporter', () => {
   });
 
   it('should report failure and unsuccessful switch', async () => {
-    SuperJson.loadSync = () => ok(mockSuperJson('2.0.0'));
     const client = new SuperfaceClient();
     const mockBoundProfileProvider = new BoundProfileProvider(
       mockProfileDocument,
@@ -401,7 +381,7 @@ describe('MetricReporter', () => {
         configuration: {
           profiles: {
             ['test-profile']: {
-              version: '2.0.0',
+              version: '1.0.0',
             },
           },
           providers: ['testprovider'],
@@ -442,8 +422,6 @@ describe('MetricReporter', () => {
   });
 
   it('should report success with a delay', async () => {
-    SuperJson.loadSync = () => ok(mockSuperJson('3.0.0'));
-
     const client = new SuperfaceClient();
     const mockBoundProfileProvider = new BoundProfileProvider(
       mockProfileDocument,
@@ -479,8 +457,6 @@ describe('MetricReporter', () => {
   });
 
   it('should report multiple successes', async () => {
-    SuperJson.loadSync = () => ok(mockSuperJson('4.0.0'));
-
     const client = new SuperfaceClient();
     const mockBoundProfileProvider = new BoundProfileProvider(
       mockProfileDocument,
@@ -507,9 +483,6 @@ describe('MetricReporter', () => {
       await new Promise(setImmediate);
       requests = await eventEndpoint.getSeenRequests();
     }
-    for (const r of requests) {
-      console.log('4', inspect(await r.body.getJson(), true, 12));
-    }
 
     expect(requests).toHaveLength(2);
     expect(await requests[1].body.getJson()).toMatchObject({
@@ -531,8 +504,6 @@ describe('MetricReporter', () => {
   });
 
   it('should report multiple successes with a delay', async () => {
-    SuperJson.loadSync = () => ok(mockSuperJson('5.0.0'));
-
     const client = new SuperfaceClient();
     const mockBoundProfileProvider = new BoundProfileProvider(
       mockProfileDocument,
@@ -562,10 +533,6 @@ describe('MetricReporter', () => {
     while (requests.length < 3) {
       await new Promise(setImmediate);
       requests = await eventEndpoint.getSeenRequests();
-    }
-
-    for (const r of requests) {
-      console.log('5', inspect(await r.body.getJson(), true, 12));
     }
 
     expect(requests).toHaveLength(3);
@@ -605,8 +572,6 @@ describe('MetricReporter', () => {
   });
 
   it('should report maximum successes within a timeout', async () => {
-    SuperJson.loadSync = () => ok(mockSuperJson('6.0.0'));
-
     let currentTime = new Date().valueOf();
     const systemTimeMock = jest
       .spyOn(Date, 'now')
@@ -639,9 +604,6 @@ describe('MetricReporter', () => {
     while (requests.length < 3) {
       await new Promise(setImmediate);
       requests = await eventEndpoint.getSeenRequests();
-    }
-    for (const r of requests) {
-      console.log('6', inspect(await r.body.getJson(), true, 12));
     }
 
     expect(requests).toHaveLength(3);
@@ -681,8 +643,6 @@ describe('MetricReporter', () => {
   });
 
   it('should report failure and successful switch', async () => {
-    SuperJson.loadSync = () => ok(mockSuperJson('7.0.0'));
-
     const originalDebounceMin = Config.instance().metricDebounceTimeMin;
     Config.instance().metricDebounceTimeMin = 10000;
     let currentTime = new Date().valueOf();
