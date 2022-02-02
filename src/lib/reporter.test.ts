@@ -248,6 +248,7 @@ describe('MetricReporter', () => {
   afterEach(async () => {
     invalidateSuperfaceClientCache();
     await mockServer.stop();
+    jest.clearAllTimers();
   });
 
   it('should report SDK Init', async () => {
@@ -444,12 +445,12 @@ describe('MetricReporter', () => {
 
     await profile.getUseCase('Test').perform({});
     await profile.getUseCase('Test').perform({});
-    jest.advanceTimersByTime(12000);
+    // jest.advanceTimersByTime(12000);
+    jest.runAllTimers();
     while (await eventEndpoint.isPending()) {
       await new Promise(setImmediate);
     }
-    let requests = await eventEndpoint.getSeenRequests();
-    requests = await eventEndpoint.getSeenRequests();
+    const requests = await eventEndpoint.getSeenRequests();
 
     expect(requests).toHaveLength(2);
     expect(await requests[1].body.getJson()).toMatchObject({
