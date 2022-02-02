@@ -30,7 +30,7 @@ import {
 /**
  * Represents input of pipe filter which works with http response
  */
-export type FetchPipeFilterInput = {
+export type FetchFilterInput = {
   parameters: RequestParameters;
   request: Partial<HttpRequest>;
   response?: HttpResponse;
@@ -46,14 +46,14 @@ export type FetchPipeFilter = ({
   response,
   fetchInstance,
   handler,
-}: FetchPipeFilterInput) =>
-  | Pick<FetchPipeFilterInput, 'request' | 'response'>
-  | Promise<Pick<FetchPipeFilterInput, 'request' | 'response'>>;
+}: FetchFilterInput) =>
+  | Pick<FetchFilterInput, 'request' | 'response'>
+  | Promise<Pick<FetchFilterInput, 'request' | 'response'>>;
 
 /**
  * Represents input of pipe filter which only prepares http request
  */
-export type PreparePipeFilterInput = {
+export type PrepareFilterInput = {
   parameters: RequestParameters;
   request: Partial<HttpRequest>;
 };
@@ -65,16 +65,16 @@ export type PreparePipeFilterInput = {
 export type PreparePipeFilter = ({
   parameters,
   request,
-}: PreparePipeFilterInput) =>
-  | Pick<PreparePipeFilterInput, 'request'>
-  | Promise<Pick<PreparePipeFilterInput, 'request'>>;
+}: PrepareFilterInput) =>
+  | Pick<PrepareFilterInput, 'request'>
+  | Promise<Pick<PrepareFilterInput, 'request'>>;
 
 /**
  * Represents input of pipe which only prepares http request
  */
 export type PreparePipeInput = {
   parameters: RequestParameters;
-  fns: PreparePipeFilter[];
+  filters: PreparePipeFilter[];
 };
 
 /**
@@ -87,7 +87,7 @@ export type PreparePipeOutput = HttpRequest;
  */
 export type PreparePipe = ({
   parameters,
-  fns,
+  filters,
 }: PreparePipeInput) => PreparePipeOutput;
 
 /**
@@ -97,7 +97,7 @@ export type FetchPipeInput = {
   parameters: RequestParameters;
   fetchInstance: FetchInstance & AuthCache;
   handler: ISecurityHandler | undefined;
-  fns: (FetchPipeFilter | PreparePipeFilter)[];
+  filters: (FetchPipeFilter | PreparePipeFilter)[];
 };
 
 /**
@@ -110,7 +110,7 @@ export type FetchPipeOutput = Promise<HttpResponse>;
  */
 export type FetchPipe = ({
   parameters,
-  fns,
+  filters,
   fetchInstance,
   handler,
 }: FetchPipeInput) => FetchPipeOutput;
@@ -129,7 +129,7 @@ export async function pipe<T extends PreparePipeInput | FetchPipeInput>(
   if (!('fetchInstance' in arg)) {
     let request: Partial<HttpRequest> = {};
 
-    for (const fn of arg.fns) {
+    for (const fn of arg.filters) {
       const updated = await fn({
         ...arg,
         request,
@@ -143,7 +143,7 @@ export async function pipe<T extends PreparePipeInput | FetchPipeInput>(
     let request: Partial<HttpRequest> = {};
     let response: HttpResponse | undefined;
 
-    for (const fn of arg.fns) {
+    for (const fn of arg.filters) {
       const updated = await (fn({
         ...arg,
         request,
@@ -164,12 +164,12 @@ export async function pipe<T extends PreparePipeInput | FetchPipeInput>(
   }
 }
 
-//These fns should be easy to test
+//These filters should be easy to test
 export const pipeFetch: FetchPipeFilter = async ({
   parameters,
   request,
   fetchInstance,
-}: FetchPipeFilterInput) => {
+}: FetchFilterInput) => {
   if (!isCompleteHttpRequest(request)) {
     throw new UnexpectedError('Request is not complete', request);
   }
@@ -188,7 +188,7 @@ export const pipeAuthenticate: FetchPipeFilter = async ({
   response,
   fetchInstance,
   handler,
-}: FetchPipeFilterInput) => {
+}: FetchFilterInput) => {
   if (handler) {
     const authRequest = await handler.authenticate(parameters, fetchInstance);
 
@@ -217,7 +217,7 @@ export const pipeResponse: FetchPipeFilter = async ({
   response,
   fetchInstance,
   handler,
-}: FetchPipeFilterInput) => {
+}: FetchFilterInput) => {
   //TODO: better error
   if (!response) {
     throw new Error('response is undefined');

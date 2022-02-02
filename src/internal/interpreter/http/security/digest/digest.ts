@@ -102,7 +102,13 @@ export class DigestHandler implements ISecurityHandler {
           ...parameters,
           headers,
         },
-        fns: [pipeHeaders, pipeBody, pipeQueryParameters, pipeMethod, pipeUrl],
+        filters: [
+          pipeHeaders,
+          pipeBody,
+          pipeQueryParameters,
+          pipeMethod,
+          pipeUrl,
+        ],
       });
     }
     //If we don't we try to get challange header
@@ -113,7 +119,7 @@ export class DigestHandler implements ISecurityHandler {
       },
       fetchInstance,
       handler: undefined,
-      fns: [
+      filters: [
         pipeHeaders,
         pipeBody,
         pipeQueryParameters,
@@ -151,7 +157,13 @@ export class DigestHandler implements ISecurityHandler {
           DEFAULT_AUTHORIZATION_HEADER_NAME]: credentials,
         },
       },
-      fns: [pipeHeaders, pipeBody, pipeQueryParameters, pipeMethod, pipeUrl],
+      filters: [
+        pipeHeaders,
+        pipeBody,
+        pipeQueryParameters,
+        pipeMethod,
+        pipeUrl,
+      ],
     });
   };
 
@@ -185,7 +197,13 @@ export class DigestHandler implements ISecurityHandler {
             DEFAULT_AUTHORIZATION_HEADER_NAME]: credentials,
           },
         },
-        fns: [pipeHeaders, pipeBody, pipeQueryParameters, pipeMethod, pipeUrl],
+        filters: [
+          pipeHeaders,
+          pipeBody,
+          pipeQueryParameters,
+          pipeMethod,
+          pipeUrl,
+        ],
       });
     }
 

@@ -217,7 +217,7 @@ export class HttpClient {
         requestParameters.securityConfiguration,
         requestParameters.securityRequirements
       ),
-      fns: [
+      filters: [
         pipeHeaders,
         pipeBody,
         pipeQueryParameters,
@@ -233,10 +233,10 @@ export class HttpClient {
 
 function getSecurityHandler(
   securityConfiguration: SecurityConfiguration[] = [],
-  securityRequirements: HttpSecurityRequirement[] = [],
+  securityRequirements: HttpSecurityRequirement[] = []
 ): ISecurityHandler | undefined {
   let handler: ISecurityHandler | undefined = undefined;
-  for (const requirement of securityRequirements]) {
+  for (const requirement of securityRequirements) {
     const configuration = securityConfiguration.find(
       configuration => configuration.id === requirement.id
     );
