@@ -476,7 +476,7 @@ describe('MetricReporter', () => {
     }
     const requests = await eventEndpoint.getSeenRequests();
     for (const r of requests) {
-      console.log('r', inspect(await r.body.getJson(), true, 12));
+      console.log('4', inspect(await r.body.getJson(), true, 12));
     }
 
     expect(requests).toHaveLength(2);
@@ -532,9 +532,9 @@ describe('MetricReporter', () => {
       requests = await eventEndpoint.getSeenRequests();
     }
 
-    // for (const r of requests) {
-    //   console.log('r', inspect(await r.body.getJson(), true, 12))
-    // }
+    for (const r of requests) {
+      console.log('5', inspect(await r.body.getJson(), true, 12));
+    }
 
     expect(requests).toHaveLength(3);
 
@@ -607,6 +607,9 @@ describe('MetricReporter', () => {
     while (requests.length < 3) {
       await new Promise(setImmediate);
       requests = await eventEndpoint.getSeenRequests();
+    }
+    for (const r of requests) {
+      console.log('6', inspect(await r.body.getJson(), true, 12));
     }
 
     expect(requests).toHaveLength(3);
