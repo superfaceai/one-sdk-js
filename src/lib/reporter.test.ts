@@ -6,6 +6,7 @@ import {
   ProfileDocumentNode,
 } from '@superfaceai/ast';
 import { getLocal, MockedEndpoint } from 'mockttp';
+import { inspect } from 'util';
 
 import { BoundProfileProvider, SuperfaceClient } from '../client';
 import { invalidateSuperfaceClientCache } from '../client/client';
@@ -14,7 +15,6 @@ import { SuperJson } from '../internal/superjson';
 import { FailoverReason } from './reporter';
 import { ok } from './result/result';
 import { ServiceSelector } from './services';
-import { inspect } from 'util';
 
 jest.useFakeTimers('legacy');
 
