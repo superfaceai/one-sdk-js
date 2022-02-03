@@ -11,18 +11,14 @@ import { Variables } from '../../../variables';
 import { createUrl, HttpResponse } from '../../http';
 import { FetchInstance, URLENCODED_CONTENT } from '../../interfaces';
 import {
-  pipe,
-  bodyFilter,
   fetchFilter,
   headersFilter,
-  methodFilter,
-  queryParametersFilter,
-  urlFilter,
+  pipe,
+  prepareRequestFilter,
 } from '../../pipe';
 import {
   AuthCache,
   DEFAULT_AUTHORIZATION_HEADER_NAME,
-  HttpRequest,
   RequestParameters,
 } from '../interfaces';
 
@@ -68,7 +64,7 @@ export class RefreshHelper {
     parameters: RequestParameters,
     cache: AuthCache,
     fetchInstance: FetchInstance
-  ): Promise<HttpRequest> {
+  ): Promise<RequestParameters> {
     debug('RefreshHelper started refreshing');
 
     if (!this.flow.refreshUrl) {
@@ -110,19 +106,18 @@ export class RefreshHelper {
     };
 
     //TODO: use pipe here
-    const refreshResponse = await pipe({
-      parameters: refreshRequest,
-      fetchInstance,
-      handler: undefined,
-      filters: [
-        headersFilter,
-        bodyFilter,
-        queryParametersFilter,
-        methodFilter,
-        urlFilter,
-        fetchFilter,
-      ],
-    });
+    const refreshResponse = (
+      await pipe({
+        parameters: refreshRequest,
+        fetchInstance,
+        handler: undefined,
+        filters: [headersFilter, prepareRequestFilter, fetchFilter],
+      })
+    ).response;
+
+    if (!refreshResponse) {
+      throw new Error('Response is undefined');
+    }
 
     if (
       //200 is defined by rfc
@@ -178,7 +173,7 @@ export class RefreshHelper {
         tokenType: accessTokenResponse.token_type,
       };
 
-      return pipe({
+      const prepared = await pipe({
         parameters: {
           ...parameters,
           headers: {
@@ -187,14 +182,11 @@ export class RefreshHelper {
             [DEFAULT_AUTHORIZATION_HEADER_NAME]: `Bearer ${accessTokenResponse.access_token}`,
           },
         },
-        filters: [
-          headersFilter,
-          bodyFilter,
-          queryParametersFilter,
-          methodFilter,
-          urlFilter,
-        ],
+        fetchInstance,
+        filters: [headersFilter, prepareRequestFilter],
       });
+
+      return prepared.parameters;
     }
 
     //TODO: handle this

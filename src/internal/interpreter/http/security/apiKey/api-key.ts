@@ -7,19 +7,17 @@ import createDebug from 'debug';
 
 import { apiKeyInBodyError } from '../../../../errors.helpers';
 import { Variables } from '../../../variables';
-import {
-  pipe,
-  bodyFilter,
-  headersFilter,
-  methodFilter,
-  queryParametersFilter,
-  urlFilter,
-} from '../../pipe';
+import { FetchInstance } from '../../interfaces';
+import { headersFilter, pipe,prepareRequestFilter } from '../../pipe';
 import {
   DEFAULT_AUTHORIZATION_HEADER_NAME,
   ISecurityHandler,
 } from '../../security';
-import { AuthenticateRequestAsync, RequestParameters } from '../interfaces';
+import {
+  AuthCache,
+  AuthenticateRequestAsync,
+  RequestParameters,
+} from '../interfaces';
 
 const debug = createDebug('superface:http:api-key-handler');
 
@@ -30,7 +28,10 @@ export class ApiKeyHandler implements ISecurityHandler {
     debug('Initialized api key authentization handler');
   }
 
-  authenticate: AuthenticateRequestAsync = (parameters: RequestParameters) => {
+  authenticate: AuthenticateRequestAsync = async (
+    parameters: RequestParameters,
+    fetchInstance: FetchInstance & AuthCache
+  ) => {
     let body: Variables | undefined = parameters.body;
     const headers: Record<string, string> = parameters.headers ?? {};
     const pathParameters = parameters.pathParameters ?? {};
@@ -64,7 +65,7 @@ export class ApiKeyHandler implements ISecurityHandler {
         break;
     }
 
-    return pipe({
+    const prepared = await pipe({
       parameters: {
         ...parameters,
         headers,
@@ -72,14 +73,16 @@ export class ApiKeyHandler implements ISecurityHandler {
         queryParameters,
         body,
       },
-      filters: [
-        headersFilter,
-        bodyFilter,
-        queryParametersFilter,
-        methodFilter,
-        urlFilter,
-      ],
+      handler: undefined,
+      fetchInstance,
+      filters: [headersFilter, prepareRequestFilter],
     });
+
+    if (!prepared.request) {
+      throw new Error('Request not defined');
+    }
+
+    return prepared.request;
   };
 }
 

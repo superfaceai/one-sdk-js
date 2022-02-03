@@ -1,7 +1,8 @@
 import { USER_AGENT } from '../../../index';
+import { clone } from '../../../lib';
 import { UnexpectedError } from '../..';
 import { unsupportedContentType } from '../../errors.helpers';
-import { mergeVariables, variablesToStrings } from '../variables';
+import { variablesToStrings } from '../variables';
 import { createUrl, fetchRequest, HttpResponse } from './http';
 import {
   BINARY_CONTENT_REGEXP,
@@ -30,9 +31,9 @@ import {
 /**
  * Represents input of pipe filter which works with http response
  */
-export type FetchFilterInput = {
+export type FilterInput = {
   parameters: RequestParameters;
-  request: Partial<HttpRequest>;
+  request?: HttpRequest;
   response?: HttpResponse;
   fetchInstance: FetchInstance & AuthCache;
   handler?: ISecurityHandler;
@@ -40,137 +41,90 @@ export type FetchFilterInput = {
 /**
  * Represents pipe filter which works with http response
  */
-export type FetchFilter = ({
+export type Filter = ({
   parameters,
   request,
   response,
   fetchInstance,
   handler,
-}: FetchFilterInput) =>
-  | Pick<FetchFilterInput, 'request' | 'response'>
-  | Promise<Pick<FetchFilterInput, 'request' | 'response'>>;
+}: FilterInput) =>
+  | {
+      parameters: RequestParameters;
+      request?: HttpRequest;
+      response?: HttpResponse;
+    }
+  | Promise<{
+      parameters: RequestParameters;
+      request?: HttpRequest;
+      response?: HttpResponse;
+    }>;
 
 /**
- * Represents input of pipe filter which only prepares http request
+ * Represents pipe input
  */
-export type PrepareFilterInput = {
-  parameters: RequestParameters;
-  request: Partial<HttpRequest>;
-};
-
-/**
- * Represents pipe filter which only prepares http request
- * This kind of filter should be able to return same result when ran for the forst time and when ran mutiple times (with same inputs)
- */
-export type PrepareFilter = ({
-  parameters,
-  request,
-}: PrepareFilterInput) =>
-  | Pick<PrepareFilterInput, 'request'>
-  | Promise<Pick<PrepareFilterInput, 'request'>>;
-
-/**
- * Represents input of pipe which only prepares http request
- */
-export type PreparePipeInput = {
-  parameters: RequestParameters;
-  filters: PrepareFilter[];
-};
-
-/**
- * Represents output of pipe which only prepares http request
- */
-export type PreparePipeOutput = HttpRequest;
-
-/**
- * Represents pipe filter which only prepares http request
- */
-export type PreparePipe = ({
-  parameters,
-  filters,
-}: PreparePipeInput) => PreparePipeOutput;
-
-/**
- * Represents pipe filter input which works with http response
- */
-export type FetchPipeInput = {
+export type PipeInput = {
   parameters: RequestParameters;
   fetchInstance: FetchInstance & AuthCache;
-  handler: ISecurityHandler | undefined;
-  filters: (FetchFilter | PrepareFilter)[];
+  handler?: ISecurityHandler;
+  filters: Filter[];
+  response?: HttpResponse;
+  request?: HttpRequest;
 };
 
-/**
- * Represents pipe filter output which works with http response
- */
-export type FetchPipeOutput = Promise<HttpResponse>;
+//TODO: two problems here:
+//1) merging of request
+//2) pipe retrun type
+export async function pipe(
+  arg: PipeInput
+): Promise<// | { parameters: RequestParameters, request: undefined, response: undefined }
+// | { parameters: RequestParameters; request: HttpRequest, response: undefined }
+// | {
+{
+  parameters: RequestParameters;
+  request?: HttpRequest;
+  response?: HttpResponse;
+}> {
+  let request: HttpRequest | undefined;
+  let response: HttpResponse | undefined;
+  let parameters = clone(arg.parameters);
 
-/**
- * Represents pipe filter which works with http response
- */
-export type FetchPipe = ({
-  parameters,
-  filters,
-  fetchInstance,
-  handler,
-}: FetchPipeInput) => FetchPipeOutput;
+  let stage: 'prepare' | 'request' | 'response' = 'prepare';
 
-type PipeReturnType<T extends PreparePipeInput | FetchPipeInput> =
-  T extends FetchPipeInput
-    ? HttpResponse
-    : T extends PreparePipeInput
-    ? HttpRequest
-    : never;
+  for (const fn of arg.filters) {
+    const updated = await fn({
+      ...arg,
+      parameters,
+      request,
+      response,
+    });
 
-export async function pipe<T extends PreparePipeInput | FetchPipeInput>(
-  arg: T
-): Promise<PipeReturnType<T>> {
-  //We are just preparing the request (used in handlers)
-  if (!('fetchInstance' in arg)) {
-    let request: Partial<HttpRequest> = {};
+    parameters = updated.parameters;
 
-    for (const fn of arg.filters) {
-      const updated = await fn({
-        ...arg,
-        request,
-      });
-      request = mergeRequests(request, updated.request);
+    if (updated.request) {
+      stage = 'request';
+      request = updated.request;
     }
-
-    return request as PipeReturnType<T>;
+    if (updated.response) {
+      stage = 'response';
+      response = updated.response;
+    }
+  }
+  if (stage === 'prepare') {
+    return { parameters, request: undefined, response: undefined };
+  } else if (stage === 'request') {
+    return { parameters, request, response: undefined };
   } else {
-    //We are actually getting the response
-    let request: Partial<HttpRequest> = {};
-    let response: HttpResponse | undefined;
-
-    for (const fn of arg.filters) {
-      const updated = await (fn({
-        ...arg,
-        request,
-        response,
-      }) as ReturnType<FetchFilter | PrepareFilter>);
-
-      request = mergeRequests(request, updated.request);
-      if ('response' in updated) response = updated.response;
-    }
-
-    if (!response) {
-      throw new Error(
-        'Final response in pipe undefined - empty function array?'
-      );
-    }
-
-    return response as PipeReturnType<T>;
+    return { parameters, request, response };
   }
 }
 
 //These filters should be easy to test
-export const fetchFilter: FetchFilter = async ({
+export const fetchFilter: Filter = async ({
   parameters,
   request,
   fetchInstance,
-}: FetchFilterInput) => {
-  if (!isCompleteHttpRequest(request)) {
+}: FilterInput) => {
+  if (!request || !isCompleteHttpRequest(request)) {
     throw new UnexpectedError('Request is not complete', request);
   }
 
@@ -182,22 +136,19 @@ export const fetchFilter: FetchFilter = async ({
 };
 
 //TODO: how to auth without keeping the handler instance
-export const authenticateFilter: FetchFilter = async ({
+export const authenticateFilter: Filter = async ({
   parameters,
   request,
   response,
   fetchInstance,
   handler,
-}: FetchFilterInput) => {
+}: FilterInput) => {
   if (handler) {
     const authRequest = await handler.authenticate(parameters, fetchInstance);
 
     return {
       parameters,
-      //TODO: this can be problamatic - in cases when we actually send something in body and also there is apiKey in the body we must be able to resolve this.
-      //Simple solution is to leave request handlig on the security handler - it hase acces to parameters so it is capable to do that. Affter that we would just update the original request
-      //request: authRequest,
-      request: mergeRequests(request, authRequest),
+      request: authRequest,
       response,
     };
   }
@@ -211,80 +162,41 @@ export const authenticateFilter: FetchFilter = async ({
 
 //TODO: how to auth without keeping the handler instance, naming
 //This is handling the cases when we are authenticated but eg. digest credentials expired or oauth access token is no longer valid
-export const handleResponseFilter: FetchFilter = async ({
+export const handleResponseFilter: Filter = async ({
   parameters,
   request,
   response,
   fetchInstance,
   handler,
-}: FetchFilterInput) => {
+}: FilterInput) => {
   //TODO: better error
   if (!response) {
     throw new Error('response is undefined');
   }
   if (handler && handler.handleResponse) {
     //We get new parameters (with updated auth, also updated cache)
-    const authRequest = await handler.handleResponse(
+    const authParameters = await handler.handleResponse(
       response,
       parameters,
       fetchInstance
     );
     //We retry the request
-    if (authRequest) {
-      response = await fetchRequest(fetchInstance, authRequest);
+    if (authParameters) {
+      response = await fetchRequest(fetchInstance, authParameters);
     }
   }
 
   return { parameters, request, response };
 };
 
-export const headersFilter: PrepareFilter = ({
+export const prepareRequestFilter: Filter = ({
   parameters,
   request,
+  response,
 }: {
   parameters: RequestParameters;
-  request: Partial<HttpRequest>;
-}) => {
-  const headers: Record<string, string> = parameters.headers || {};
-  headers['accept'] = parameters.accept || '*/*';
-  headers['user-agent'] ??= USER_AGENT;
-  if (parameters.contentType === JSON_CONTENT) {
-    headers['Content-Type'] ??= JSON_CONTENT;
-  } else if (parameters.contentType === URLENCODED_CONTENT) {
-    headers['Content-Type'] ??= URLENCODED_CONTENT;
-  } else if (parameters.contentType === FORMDATA_CONTENT) {
-    headers['Content-Type'] ??= FORMDATA_CONTENT;
-  } else if (
-    parameters.contentType &&
-    BINARY_CONTENT_REGEXP.test(parameters.contentType)
-  ) {
-    headers['Content-Type'] ??= parameters.contentType;
-  } else {
-    const supportedTypes = [
-      JSON_CONTENT,
-      URLENCODED_CONTENT,
-      FORMDATA_CONTENT,
-      ...BINARY_CONTENT_TYPES,
-    ];
-
-    throw unsupportedContentType(parameters.contentType ?? '', supportedTypes);
-  }
-
-  return {
-    parameters,
-    request: {
-      ...request,
-      headers,
-    },
-  };
-};
-//TODO: this should be able to resolve and merge existing body in request
-export const bodyFilter: PrepareFilter = ({
-  parameters,
-  request,
-}: {
-  parameters: RequestParameters;
-  request: Partial<HttpRequest>;
+  request?: HttpRequest;
+  response?: HttpResponse;
 }) => {
   let finalBody: FetchBody | undefined;
   if (parameters.body) {
@@ -321,127 +233,246 @@ export const bodyFilter: PrepareFilter = ({
     }
   }
 
+  //TODO: break this into more functions?
   return {
     parameters,
     request: {
       ...request,
       body: finalBody,
-    },
-  };
-};
-
-export const queryParametersFilter: PrepareFilter = ({
-  parameters,
-  request,
-}: {
-  parameters: RequestParameters;
-  request: Partial<HttpRequest>;
-}) => {
-  return {
-    parameters,
-    request: {
-      ...request,
       queryParameters: {
-        ...request.queryParameters,
+        ...request?.queryParameters,
         ...variablesToStrings(parameters.queryParameters),
       },
-    },
-  };
-};
-
-export const methodFilter: PrepareFilter = ({
-  parameters,
-  request,
-}: {
-  parameters: RequestParameters;
-  request: Partial<HttpRequest>;
-}) => {
-  return {
-    parameters,
-    request: {
-      ...request,
-      method: parameters.method,
-    },
-  };
-};
-
-export const urlFilter: PrepareFilter = ({
-  parameters,
-  request,
-}: {
-  parameters: RequestParameters;
-  request: Partial<HttpRequest>;
-}) => {
-  return {
-    parameters,
-    request: {
-      ...request,
+      headers: {
+        ...request?.headers,
+        ...parameters.headers,
+      },
       url: createUrl(parameters.url, {
         baseUrl: parameters.baseUrl,
         pathParameters: parameters.pathParameters ?? {},
         integrationParameters: parameters.integrationParameters,
       }),
+      method: parameters.method,
     },
+    response,
   };
 };
 
-//TODO: We should try to minimalize need for this
-const mergeRequests = (
-  left: Partial<HttpRequest>,
-  right: Partial<HttpRequest>
-): Partial<HttpRequest> => {
-  //TODO: maybe use some better way of merging
-  const result: Partial<HttpRequest> = { ...left, ...right };
-  //Headers
-  if (left.headers && right.headers) {
-    result.headers = mergeVariables(left.headers, right.headers) as Record<
-      string,
-      string | string[]
-    >;
+export const headersFilter: Filter = ({
+  parameters,
+  request,
+  response,
+}: {
+  parameters: RequestParameters;
+  request?: HttpRequest;
+  response?: HttpResponse;
+}) => {
+  const headers: Record<string, string> = parameters.headers || {};
+  headers['accept'] = parameters.accept || '*/*';
+  headers['user-agent'] ??= USER_AGENT;
+  if (parameters.contentType === JSON_CONTENT) {
+    headers['Content-Type'] ??= JSON_CONTENT;
+  } else if (parameters.contentType === URLENCODED_CONTENT) {
+    headers['Content-Type'] ??= URLENCODED_CONTENT;
+  } else if (parameters.contentType === FORMDATA_CONTENT) {
+    headers['Content-Type'] ??= FORMDATA_CONTENT;
+  } else if (
+    parameters.contentType &&
+    BINARY_CONTENT_REGEXP.test(parameters.contentType)
+  ) {
+    headers['Content-Type'] ??= parameters.contentType;
+  } else {
+    const supportedTypes = [
+      JSON_CONTENT,
+      URLENCODED_CONTENT,
+      FORMDATA_CONTENT,
+      ...BINARY_CONTENT_TYPES,
+    ];
+
+    throw unsupportedContentType(parameters.contentType ?? '', supportedTypes);
   }
 
-  //Query
-  if (left.queryParameters && right.queryParameters) {
-    result.queryParameters = mergeVariables(
-      left.queryParameters,
-      right.queryParameters
-    ) as Record<string, string>;
-  }
-
-  if (left.body && right.body) {
-    if (left.body._type !== right.body._type) {
-      throw new UnexpectedError(
-        'Unable to merge request bodies - body types not matching',
-        { left, right }
-      );
-    }
-    if (isStringBody(left.body) && isStringBody(right.body)) {
-      result.body = stringBody(
-        JSON.stringify({
-          ...JSON.parse(left.body.data),
-          ...JSON.parse(right.body.data),
-        })
-      );
-    }
-
-    if (isUrlSearchParamsBody(left.body) && isUrlSearchParamsBody(right.body)) {
-      result.body = urlSearchParamsBody({
-        ...left.body.data,
-        ...right.body.data,
-      });
-    }
-
-    if (isFormDataBody(left.body) && isFormDataBody(right.body)) {
-      result.body = formDataBody({ ...left.body.data, ...right.body.data });
-    }
-
-    if (isBinaryBody(left.body) && isBinaryBody(right.body)) {
-      throw new UnexpectedError('Not implemented yet');
-    }
-  }
-
-  return result;
+  return {
+    parameters: {
+      ...parameters,
+      headers,
+    },
+    request,
+    response,
+  };
 };
+//TODO: this should be able to resolve and merge existing body in request
+// export const bodyFilter: Filter = ({
+//   parameters,
+//   request,
+//   response,
+// }: {
+//   parameters: RequestParameters;
+//   request?: HttpRequest;
+//   response?: HttpResponse;
+// }) => {
+//   let finalBody: FetchBody | undefined;
+//   if (parameters.body) {
+//     if (parameters.contentType === JSON_CONTENT) {
+//       finalBody = stringBody(JSON.stringify(parameters.body));
+//     } else if (parameters.contentType === URLENCODED_CONTENT) {
+//       finalBody = urlSearchParamsBody(variablesToStrings(parameters.body));
+//     } else if (parameters.contentType === FORMDATA_CONTENT) {
+//       finalBody = formDataBody(variablesToStrings(parameters.body));
+//     } else if (
+//       parameters.contentType &&
+//       BINARY_CONTENT_REGEXP.test(parameters.contentType)
+//     ) {
+//       let buffer: Buffer;
+//       if (Buffer.isBuffer(parameters.body)) {
+//         buffer = parameters.body;
+//       } else {
+//         //coerce to string then buffer
+//         buffer = Buffer.from(String(parameters.body));
+//       }
+//       finalBody = binaryBody(buffer);
+//     } else {
+//       const supportedTypes = [
+//         JSON_CONTENT,
+//         URLENCODED_CONTENT,
+//         FORMDATA_CONTENT,
+//         ...BINARY_CONTENT_TYPES,
+//       ];
+
+//       throw unsupportedContentType(
+//         parameters.contentType ?? '',
+//         supportedTypes
+//       );
+//     }
+//   }
+
+//   return {
+//     parameters,
+//     request: {
+//       ...request,
+//       body: finalBody,
+//     },
+//   };
+// };
+
+//TODO: this is not needed when woring with parameters only
+// export const queryParametersFilter: Filter = ({
+//   parameters,
+//   request,
+//   response,
+// }: {
+//   parameters: RequestParameters;
+//   request?: HttpRequest;
+//   response?: HttpResponse;
+// }) => {
+//   return {
+//     parameters,
+//     request: {
+//       ...request,
+//       queryParameters: {
+//         ...request.queryParameters,
+//         ...variablesToStrings(parameters.queryParameters),
+//       },
+//     },
+//     response,
+//   };
+// };
+
+//TODO: this is not needed when woring with parameters only
+// export const methodFilter: Filter = ({
+//   parameters,
+//   request,
+//   response,
+// }: {
+//   parameters: RequestParameters;
+//   request?: HttpRequest;
+//   response?: HttpResponse;
+// }) => {
+//   return {
+//     parameters,
+//     request,
+//     response,
+//   };
+// };
+
+//TODO: this is not needed when woring with parameters only
+// export const urlFilter: Filter = ({
+//   parameters,
+//   request,
+// }: {
+//   parameters: RequestParameters;
+//   request: Partial<HttpRequest>;
+// }) => {
+//   return {
+//     parameters,
+//     request: {
+//       ...request,
+//       url: createUrl(parameters.url, {
+//         baseUrl: parameters.baseUrl,
+//         pathParameters: parameters.pathParameters ?? {},
+//         integrationParameters: parameters.integrationParameters,
+//       }),
+//     },
+//   };
+// };
+
+//TODO: We should try to minimalize need for this
+// const mergeRequests = (
+//   left: Partial<HttpRequest>,
+//   right: Partial<HttpRequest>
+// ): Partial<HttpRequest> => {
+//   //TODO: maybe use some better way of merging
+//   const result: Partial<HttpRequest> = { ...left, ...right };
+//   //Headers
+//   if (left.headers && right.headers) {
+//     result.headers = mergeVariables(left.headers, right.headers) as Record<
+//       string,
+//       string | string[]
+//     >;
+//   }
+
+//   //Query
+//   if (left.queryParameters && right.queryParameters) {
+//     result.queryParameters = mergeVariables(
+//       left.queryParameters,
+//       right.queryParameters
+//     ) as Record<string, string>;
+//   }
+
+//   if (left.body && right.body) {
+//     if (left.body._type !== right.body._type) {
+//       throw new UnexpectedError(
+//         'Unable to merge request bodies - body types not matching',
+//         { left, right }
+//       );
+//     }
+//     if (isStringBody(left.body) && isStringBody(right.body)) {
+//       result.body = stringBody(
+//         JSON.stringify({
+//           ...JSON.parse(left.body.data),
+//           ...JSON.parse(right.body.data),
+//         })
+//       );
+//     }
+
+//     if (isUrlSearchParamsBody(left.body) && isUrlSearchParamsBody(right.body)) {
+//       result.body = urlSearchParamsBody({
+//         ...left.body.data,
+//         ...right.body.data,
+//       });
+//     }
+
+//     if (isFormDataBody(left.body) && isFormDataBody(right.body)) {
+//       result.body = formDataBody({ ...left.body.data, ...right.body.data });
+//     }
+
+//     if (isBinaryBody(left.body) && isBinaryBody(right.body)) {
+//       throw new UnexpectedError('Not implemented yet');
+//     }
+//   }
+
+//   return result;
+// };
 
 function isCompleteHttpRequest(
   input: Partial<HttpRequest>

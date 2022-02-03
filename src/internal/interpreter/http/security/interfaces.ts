@@ -47,23 +47,6 @@ export type AuthenticateRequestAsync = (
 ) => Promise<HttpRequest>;
 
 /**
- * This type defines function used for authentization with simple auth. methods (apiKey, http basic, bearer), there is no need for FetchInstance because we don't need cache or fetching
- */
-// export type AuthenticateRequest = (
-//   parameters: RequestParameters
-// ) => Partial<HttpRequest>;
-
-/**
- * This type defines function used for handling response with digest auth, there is no need for FetchInstance because we don't fetching (just cache).
- * It returns undefined (when there is no need to retry request) or parameters used in new request
- */
-// export type HandleResponse = (
-//   response: HttpResponse,
-//   resourceRequestParameters: RequestParameters,
-//   cache: AuthCache
-// ) => HttpRequest | undefined;
-
-/**
  * This type defines function used for handling response with complex auth methods.
  * It returns undefined (when there is no need to retry request) or úarameters used in new request
  */

@@ -20,15 +20,12 @@ import {
 } from '../variables';
 import { FetchInstance } from './interfaces';
 import {
-  pipe,
   authenticateFilter,
-  bodyFilter,
   fetchFilter,
-  headersFilter,
-  methodFilter,
-  queryParametersFilter,
   handleResponseFilter,
-  urlFilter,
+  headersFilter,
+  pipe,
+  prepareRequestFilter,
 } from './pipe';
 import {
   ApiKeyHandler,
@@ -210,7 +207,7 @@ export class HttpClient {
     };
 
     //TODO: change name? Something like requestPipe?
-    return pipe({
+    const result = await pipe({
       parameters: requestParameters,
       fetchInstance: this.fetchInstance,
       handler: getSecurityHandler(
@@ -219,15 +216,18 @@ export class HttpClient {
       ),
       filters: [
         headersFilter,
-        bodyFilter,
-        queryParametersFilter,
-        methodFilter,
-        urlFilter,
         authenticateFilter,
+        prepareRequestFilter,
         fetchFilter,
         handleResponseFilter,
       ],
     });
+
+    if (!result.response) {
+      throw new Error('Response is undefined');
+    }
+
+    return result.response;
   }
 }
 

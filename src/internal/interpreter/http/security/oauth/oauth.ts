@@ -7,14 +7,7 @@ import createDebug from 'debug';
 
 import { HttpResponse } from '../../http';
 import { FetchInstance } from '../../interfaces';
-import {
-  pipe,
-  bodyFilter,
-  headersFilter,
-  methodFilter,
-  queryParametersFilter,
-  urlFilter,
-} from '../../pipe';
+import { headersFilter, pipe,prepareRequestFilter } from '../../pipe';
 import {
   AuthCache,
   AuthenticateRequestAsync,
@@ -60,11 +53,22 @@ export class OAuthHandler implements ISecurityHandler {
     fetchInstance: FetchInstance & AuthCache
   ) => {
     if (this.refreshHelper && this.refreshHelper.shouldRefresh(fetchInstance)) {
-      return this.refreshHelper.refresh(
+      const refreshedParameters = await this.refreshHelper.refresh(
         parameters,
         fetchInstance,
         fetchInstance
       );
+      const prepared = await pipe({
+        parameters: refreshedParameters,
+        fetchInstance,
+        filters: [headersFilter, prepareRequestFilter],
+      });
+
+      if (!prepared.request) {
+        throw new Error('Request not defined');
+      }
+
+      return prepared.request;
     }
     //TODO: use selected flow helper (and actualy write some flow helpers)
     //Now we just get access token from cache and use it
@@ -81,16 +85,17 @@ export class OAuthHandler implements ISecurityHandler {
       };
     }
 
-    return pipe({
+    const prepared = await pipe({
       parameters: authenticateParameters,
-      filters: [
-        headersFilter,
-        bodyFilter,
-        queryParametersFilter,
-        methodFilter,
-        urlFilter,
-      ],
+      fetchInstance,
+      filters: [headersFilter, prepareRequestFilter],
     });
+
+    if (!prepared.request) {
+      throw new Error('Request not defined');
+    }
+
+    return prepared.request;
   };
 
   handleResponse: HandleResponseAsync = async (
@@ -102,11 +107,17 @@ export class OAuthHandler implements ISecurityHandler {
       this.refreshHelper &&
       this.refreshHelper.shouldRefresh(fetchInstance, response)
     ) {
-      return this.refreshHelper.refresh(
-        resourceRequestParameters,
+      const prepared = await pipe({
+        parameters: resourceRequestParameters,
         fetchInstance,
-        fetchInstance
-      );
+        filters: [headersFilter, prepareRequestFilter],
+      });
+
+      if (!prepared.request) {
+        throw new Error('Request not defined');
+      }
+
+      return prepared.request;
     }
 
     return undefined;

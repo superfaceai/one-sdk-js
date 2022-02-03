@@ -1,20 +1,18 @@
 import { HttpScheme, SecurityType } from '@superfaceai/ast';
 import createDebug from 'debug';
 
-import {
-  pipe,
-  bodyFilter,
-  headersFilter,
-  methodFilter,
-  queryParametersFilter,
-  urlFilter,
-} from '../../pipe';
+import { FetchInstance } from '../../interfaces';
+import { headersFilter, pipe,prepareRequestFilter } from '../../pipe';
 import {
   DEFAULT_AUTHORIZATION_HEADER_NAME,
   ISecurityHandler,
   SecurityConfiguration,
 } from '../../security';
-import { AuthenticateRequestAsync, RequestParameters } from '../interfaces';
+import {
+  AuthCache,
+  AuthenticateRequestAsync,
+  RequestParameters,
+} from '../interfaces';
 
 const debug = createDebug('superface:http:security:http-handler');
 
@@ -25,7 +23,10 @@ export class HttpHandler implements ISecurityHandler {
     debug('Initialized http authentization handler');
   }
 
-  authenticate: AuthenticateRequestAsync = (parameters: RequestParameters) => {
+  authenticate: AuthenticateRequestAsync = async (
+    parameters: RequestParameters,
+    fetchInstance: FetchInstance & AuthCache
+  ) => {
     const headers: Record<string, string> = parameters.headers || {};
 
     switch (this.configuration.scheme) {
@@ -45,19 +46,21 @@ export class HttpHandler implements ISecurityHandler {
         break;
     }
 
-    return pipe({
+    const prepared = await pipe({
       parameters: {
         ...parameters,
         headers,
       },
-      filters: [
-        headersFilter,
-        bodyFilter,
-        queryParametersFilter,
-        methodFilter,
-        urlFilter,
-      ],
+      fetchInstance,
+      handler: undefined,
+      filters: [headersFilter, prepareRequestFilter],
     });
+
+    if (!prepared.request) {
+      throw new Error('Request not defined');
+    }
+
+    return prepared.request;
   };
 }
 
