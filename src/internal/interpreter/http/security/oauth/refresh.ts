@@ -106,18 +106,12 @@ export class RefreshHelper {
     };
 
     //TODO: use pipe here
-    const refreshResponse = (
-      await pipe({
-        parameters: refreshRequest,
-        fetchInstance,
-        handler: undefined,
-        filters: [headersFilter, prepareRequestFilter, fetchFilter],
-      })
-    ).response;
-
-    if (!refreshResponse) {
-      throw new Error('Response is undefined');
-    }
+    const refreshResponse = await pipe({
+      parameters: refreshRequest,
+      fetchInstance,
+      handler: undefined,
+      filters: [headersFilter, prepareRequestFilter, fetchFilter],
+    });
 
     if (
       //200 is defined by rfc
@@ -173,7 +167,7 @@ export class RefreshHelper {
         tokenType: accessTokenResponse.token_type,
       };
 
-      const prepared = await pipe({
+      return pipe({
         parameters: {
           ...parameters,
           headers: {
@@ -183,10 +177,8 @@ export class RefreshHelper {
           },
         },
         fetchInstance,
-        filters: [headersFilter, prepareRequestFilter],
+        filters: [headersFilter],
       });
-
-      return prepared.parameters;
     }
 
     //TODO: handle this

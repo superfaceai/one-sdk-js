@@ -7,7 +7,7 @@ import createDebug from 'debug';
 
 import { HttpResponse } from '../../http';
 import { FetchInstance } from '../../interfaces';
-import { headersFilter, pipe,prepareRequestFilter } from '../../pipe';
+import { headersFilter, pipe, prepareRequestFilter } from '../../pipe';
 import {
   AuthCache,
   AuthenticateRequestAsync,
@@ -58,17 +58,20 @@ export class OAuthHandler implements ISecurityHandler {
         fetchInstance,
         fetchInstance
       );
-      const prepared = await pipe({
+
+      const au = await pipe({
         parameters: refreshedParameters,
         fetchInstance,
         filters: [headersFilter, prepareRequestFilter],
       });
 
-      if (!prepared.request) {
-        throw new Error('Request not defined');
-      }
+      console.log('authenthicated ', au);
 
-      return prepared.request;
+      return pipe({
+        parameters: refreshedParameters,
+        fetchInstance,
+        filters: [headersFilter, prepareRequestFilter],
+      });
     }
     //TODO: use selected flow helper (and actualy write some flow helpers)
     //Now we just get access token from cache and use it
@@ -85,17 +88,11 @@ export class OAuthHandler implements ISecurityHandler {
       };
     }
 
-    const prepared = await pipe({
+    return pipe({
       parameters: authenticateParameters,
       fetchInstance,
       filters: [headersFilter, prepareRequestFilter],
     });
-
-    if (!prepared.request) {
-      throw new Error('Request not defined');
-    }
-
-    return prepared.request;
   };
 
   handleResponse: HandleResponseAsync = async (
@@ -107,17 +104,11 @@ export class OAuthHandler implements ISecurityHandler {
       this.refreshHelper &&
       this.refreshHelper.shouldRefresh(fetchInstance, response)
     ) {
-      const prepared = await pipe({
+      return pipe({
         parameters: resourceRequestParameters,
         fetchInstance,
         filters: [headersFilter, prepareRequestFilter],
       });
-
-      if (!prepared.request) {
-        throw new Error('Request not defined');
-      }
-
-      return prepared.request;
     }
 
     return undefined;

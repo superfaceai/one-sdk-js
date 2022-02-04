@@ -207,7 +207,7 @@ export class HttpClient {
     };
 
     //TODO: change name? Something like requestPipe?
-    const result = await pipe({
+    return pipe({
       parameters: requestParameters,
       fetchInstance: this.fetchInstance,
       handler: getSecurityHandler(
@@ -222,12 +222,6 @@ export class HttpClient {
         handleResponseFilter,
       ],
     });
-
-    if (!result.response) {
-      throw new Error('Response is undefined');
-    }
-
-    return result.response;
   }
 }
 

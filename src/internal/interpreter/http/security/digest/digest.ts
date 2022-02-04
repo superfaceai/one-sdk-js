@@ -94,7 +94,7 @@ export class DigestHandler implements ISecurityHandler {
           DEFAULT_AUTHORIZATION_HEADER_NAME
       ] = fetchInstance.digest;
 
-      const prepared = await pipe({
+      return pipe({
         parameters: {
           ...parameters,
           headers,
@@ -103,28 +103,17 @@ export class DigestHandler implements ISecurityHandler {
         handler: undefined,
         filters: [headersFilter, prepareRequestFilter],
       });
-
-      if (!prepared.request) {
-        throw new Error('Request is undefined');
-      }
-
-      return prepared.request;
     }
     //If we don't we try to get challange header
-    const response = (
-      await pipe({
-        parameters: {
-          ...parameters,
-          headers,
-        },
-        fetchInstance,
-        handler: undefined,
-        filters: [headersFilter, prepareRequestFilter, fetchFilter],
-      })
-    ).response;
-    if (!response) {
-      throw new Error('Response is undefined');
-    }
+    const response = await pipe({
+      parameters: {
+        ...parameters,
+        headers,
+      },
+      fetchInstance,
+      handler: undefined,
+      filters: [headersFilter, prepareRequestFilter, fetchFilter],
+    });
 
     if (
       response.statusCode !== this.statusCode ||
@@ -145,7 +134,7 @@ export class DigestHandler implements ISecurityHandler {
     );
     fetchInstance.digest = credentials;
 
-    const prepared = await pipe({
+    return pipe({
       parameters: {
         ...parameters,
         headers: {
@@ -158,11 +147,6 @@ export class DigestHandler implements ISecurityHandler {
       handler: undefined,
       filters: [headersFilter, prepareRequestFilter],
     });
-    if (!prepared.request) {
-      throw new Error('Request is undefined');
-    }
-
-    return prepared.request;
   };
 
   handleResponse: HandleResponseAsync = async (
@@ -186,7 +170,7 @@ export class DigestHandler implements ISecurityHandler {
       );
       fetchInstance.digest = credentials;
 
-      const prepared = await pipe({
+      return pipe({
         parameters: {
           ...resourceRequestParameters,
           headers: {
@@ -198,12 +182,6 @@ export class DigestHandler implements ISecurityHandler {
         fetchInstance,
         filters: [headersFilter, prepareRequestFilter],
       });
-
-      if (!prepared.request) {
-        throw new Error('Request is undefined');
-      }
-
-      return prepared.request;
     }
 
     return;
