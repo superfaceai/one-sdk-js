@@ -71,15 +71,7 @@ export type PipeInput = {
   request?: HttpRequest;
 };
 
-//TODO: two problems here:
-//1) merging of request
-//2) pipe retrun type
-export async function pipe(
-  arg: PipeInput
-): Promise<// | { parameters: RequestParameters, request: undefined, response: undefined }
-// | { parameters: RequestParameters; request: HttpRequest, response: undefined }
-// | {
-{
+export async function pipe(arg: PipeInput): Promise<{
   parameters: RequestParameters;
   request?: HttpRequest;
   response?: HttpResponse;
@@ -87,8 +79,6 @@ export async function pipe(
   let request: HttpRequest | undefined;
   let response: HttpResponse | undefined;
   let parameters = clone(arg.parameters);
-
-  let stage: 'prepare' | 'request' | 'response' = 'prepare';
 
   for (const fn of arg.filters) {
     const updated = await fn({
@@ -101,21 +91,14 @@ export async function pipe(
     parameters = updated.parameters;
 
     if (updated.request) {
-      stage = 'request';
       request = updated.request;
     }
     if (updated.response) {
-      stage = 'response';
       response = updated.response;
     }
   }
-  if (stage === 'prepare') {
-    return { parameters, request: undefined, response: undefined };
-  } else if (stage === 'request') {
-    return { parameters, request, response: undefined };
-  } else {
-    return { parameters, request, response };
-  }
+
+  return { parameters, request, response };
 }
 
 //These filters should be easy to test
@@ -301,178 +284,6 @@ export const headersFilter: Filter = ({
     response,
   };
 };
-//TODO: this should be able to resolve and merge existing body in request
-// export const bodyFilter: Filter = ({
-//   parameters,
-//   request,
-//   response,
-// }: {
-//   parameters: RequestParameters;
-//   request?: HttpRequest;
-//   response?: HttpResponse;
-// }) => {
-//   let finalBody: FetchBody | undefined;
-//   if (parameters.body) {
-//     if (parameters.contentType === JSON_CONTENT) {
-//       finalBody = stringBody(JSON.stringify(parameters.body));
-//     } else if (parameters.contentType === URLENCODED_CONTENT) {
-//       finalBody = urlSearchParamsBody(variablesToStrings(parameters.body));
-//     } else if (parameters.contentType === FORMDATA_CONTENT) {
-//       finalBody = formDataBody(variablesToStrings(parameters.body));
-//     } else if (
-//       parameters.contentType &&
-//       BINARY_CONTENT_REGEXP.test(parameters.contentType)
-//     ) {
-//       let buffer: Buffer;
-//       if (Buffer.isBuffer(parameters.body)) {
-//         buffer = parameters.body;
-//       } else {
-//         //coerce to string then buffer
-//         buffer = Buffer.from(String(parameters.body));
-//       }
-//       finalBody = binaryBody(buffer);
-//     } else {
-//       const supportedTypes = [
-//         JSON_CONTENT,
-//         URLENCODED_CONTENT,
-//         FORMDATA_CONTENT,
-//         ...BINARY_CONTENT_TYPES,
-//       ];
-
-//       throw unsupportedContentType(
-//         parameters.contentType ?? '',
-//         supportedTypes
-//       );
-//     }
-//   }
-
-//   return {
-//     parameters,
-//     request: {
-//       ...request,
-//       body: finalBody,
-//     },
-//   };
-// };
-
-//TODO: this is not needed when woring with parameters only
-// export const queryParametersFilter: Filter = ({
-//   parameters,
-//   request,
-//   response,
-// }: {
-//   parameters: RequestParameters;
-//   request?: HttpRequest;
-//   response?: HttpResponse;
-// }) => {
-//   return {
-//     parameters,
-//     request: {
-//       ...request,
-//       queryParameters: {
-//         ...request.queryParameters,
-//         ...variablesToStrings(parameters.queryParameters),
-//       },
-//     },
-//     response,
-//   };
-// };
-
-//TODO: this is not needed when woring with parameters only
-// export const methodFilter: Filter = ({
-//   parameters,
-//   request,
-//   response,
-// }: {
-//   parameters: RequestParameters;
-//   request?: HttpRequest;
-//   response?: HttpResponse;
-// }) => {
-//   return {
-//     parameters,
-//     request,
-//     response,
-//   };
-// };
-
-//TODO: this is not needed when woring with parameters only
-// export const urlFilter: Filter = ({
-//   parameters,
-//   request,
-// }: {
-//   parameters: RequestParameters;
-//   request: Partial<HttpRequest>;
-// }) => {
-//   return {
-//     parameters,
-//     request: {
-//       ...request,
-//       url: createUrl(parameters.url, {
-//         baseUrl: parameters.baseUrl,
-//         pathParameters: parameters.pathParameters ?? {},
-//         integrationParameters: parameters.integrationParameters,
-//       }),
-//     },
-//   };
-// };
-
-//TODO: We should try to minimalize need for this
-// const mergeRequests = (
-//   left: Partial<HttpRequest>,
-//   right: Partial<HttpRequest>
-// ): Partial<HttpRequest> => {
-//   //TODO: maybe use some better way of merging
-//   const result: Partial<HttpRequest> = { ...left, ...right };
-//   //Headers
-//   if (left.headers && right.headers) {
-//     result.headers = mergeVariables(left.headers, right.headers) as Record<
-//       string,
-//       string | string[]
-//     >;
-//   }
-
-//   //Query
-//   if (left.queryParameters && right.queryParameters) {
-//     result.queryParameters = mergeVariables(
-//       left.queryParameters,
-//       right.queryParameters
-//     ) as Record<string, string>;
-//   }
-
-//   if (left.body && right.body) {
-//     if (left.body._type !== right.body._type) {
-//       throw new UnexpectedError(
-//         'Unable to merge request bodies - body types not matching',
-//         { left, right }
-//       );
-//     }
-//     if (isStringBody(left.body) && isStringBody(right.body)) {
-//       result.body = stringBody(
-//         JSON.stringify({
-//           ...JSON.parse(left.body.data),
-//           ...JSON.parse(right.body.data),
-//         })
-//       );
-//     }
-
-//     if (isUrlSearchParamsBody(left.body) && isUrlSearchParamsBody(right.body)) {
-//       result.body = urlSearchParamsBody({
-//         ...left.body.data,
-//         ...right.body.data,
-//       });
-//     }
-
-//     if (isFormDataBody(left.body) && isFormDataBody(right.body)) {
-//       result.body = formDataBody({ ...left.body.data, ...right.body.data });
-//     }
-
-//     if (isBinaryBody(left.body) && isBinaryBody(right.body)) {
-//       throw new UnexpectedError('Not implemented yet');
-//     }
-//   }
-
-//   return result;
-// };
 
 function isCompleteHttpRequest(
   input: Partial<HttpRequest>
