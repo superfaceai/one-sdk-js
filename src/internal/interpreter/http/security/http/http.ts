@@ -2,7 +2,7 @@ import { HttpScheme, SecurityType } from '@superfaceai/ast';
 import createDebug from 'debug';
 
 import { FetchInstance } from '../../interfaces';
-import { headersFilter, pipe, prepareRequestFilter } from '../../pipe';
+import { headersFilter } from '../../pipe';
 import {
   DEFAULT_AUTHORIZATION_HEADER_NAME,
   ISecurityHandler,
@@ -46,21 +46,15 @@ export class HttpHandler implements ISecurityHandler {
         break;
     }
 
-    const prepared = await pipe({
-      parameters: {
-        ...parameters,
-        headers,
-      },
-      fetchInstance,
-      handler: undefined,
-      filters: [headersFilter, prepareRequestFilter],
-    });
-
-    if (!prepared.request) {
-      throw new Error('Request not defined');
-    }
-
-    return prepared.request;
+    return (
+      await headersFilter({
+        parameters: {
+          ...parameters,
+          headers,
+        },
+        fetchInstance,
+      })
+    ).parameters;
   };
 }
 

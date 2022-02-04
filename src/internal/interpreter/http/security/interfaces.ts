@@ -44,7 +44,7 @@ export type AuthenticateRequestAsync = (
   parameters: RequestParameters,
   //TODO: simplify/ get rid of
   fetchInstance: FetchInstance & AuthCache
-) => Promise<HttpRequest>;
+) => Promise<RequestParameters>;
 
 /**
  * This type defines function used for handling response with complex auth methods.

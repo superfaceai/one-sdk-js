@@ -94,21 +94,15 @@ export class DigestHandler implements ISecurityHandler {
           DEFAULT_AUTHORIZATION_HEADER_NAME
       ] = fetchInstance.digest;
 
-      const prepared = await pipe({
-        parameters: {
-          ...parameters,
-          headers,
-        },
-        fetchInstance,
-        handler: undefined,
-        filters: [headersFilter, prepareRequestFilter],
-      });
-
-      if (!prepared.request) {
-        throw new Error('Request is undefined');
-      }
-
-      return prepared.request;
+      return (
+        await headersFilter({
+          parameters: {
+            ...parameters,
+            headers,
+          },
+          fetchInstance,
+        })
+      ).parameters;
     }
     //If we don't we try to get challange header
     const response = (
@@ -145,24 +139,19 @@ export class DigestHandler implements ISecurityHandler {
     );
     fetchInstance.digest = credentials;
 
-    const prepared = await pipe({
-      parameters: {
-        ...parameters,
-        headers: {
-          ...headers,
-          [this.configuration.authorizationHeader ||
-          DEFAULT_AUTHORIZATION_HEADER_NAME]: credentials,
+    return (
+      await headersFilter({
+        parameters: {
+          ...parameters,
+          headers: {
+            ...headers,
+            [this.configuration.authorizationHeader ||
+            DEFAULT_AUTHORIZATION_HEADER_NAME]: credentials,
+          },
         },
-      },
-      fetchInstance,
-      handler: undefined,
-      filters: [headersFilter, prepareRequestFilter],
-    });
-    if (!prepared.request) {
-      throw new Error('Request is undefined');
-    }
-
-    return prepared.request;
+        fetchInstance,
+      })
+    ).parameters;
   };
 
   handleResponse: HandleResponseAsync = async (
@@ -196,7 +185,7 @@ export class DigestHandler implements ISecurityHandler {
           },
         },
         fetchInstance,
-        filters: [headersFilter, prepareRequestFilter],
+        filters: [headersFilter],
       });
 
       if (!prepared.request) {

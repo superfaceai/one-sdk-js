@@ -8,7 +8,7 @@ import createDebug from 'debug';
 import { apiKeyInBodyError } from '../../../../errors.helpers';
 import { Variables } from '../../../variables';
 import { FetchInstance } from '../../interfaces';
-import { headersFilter, pipe, prepareRequestFilter } from '../../pipe';
+import { headersFilter } from '../../pipe';
 import {
   DEFAULT_AUTHORIZATION_HEADER_NAME,
   ISecurityHandler,
@@ -65,24 +65,18 @@ export class ApiKeyHandler implements ISecurityHandler {
         break;
     }
 
-    const prepared = await pipe({
-      parameters: {
-        ...parameters,
-        headers,
-        pathParameters,
-        queryParameters,
-        body,
-      },
-      handler: undefined,
-      fetchInstance,
-      filters: [headersFilter, prepareRequestFilter],
-    });
-
-    if (!prepared.request) {
-      throw new Error('Request not defined');
-    }
-
-    return prepared.request;
+    return (
+      await headersFilter({
+        parameters: {
+          ...parameters,
+          headers,
+          pathParameters,
+          queryParameters,
+          body,
+        },
+        fetchInstance,
+      })
+    ).parameters;
   };
 }
 

@@ -127,11 +127,9 @@ export const authenticateFilter: Filter = async ({
   handler,
 }: FilterInput) => {
   if (handler) {
-    const authRequest = await handler.authenticate(parameters, fetchInstance);
-
     return {
-      parameters,
-      request: authRequest,
+      parameters: await handler.authenticate(parameters, fetchInstance),
+      request,
       response,
     };
   }
@@ -158,14 +156,14 @@ export const handleResponseFilter: Filter = async ({
   }
   if (handler && handler.handleResponse) {
     //We get new parameters (with updated auth, also updated cache)
-    const authParameters = await handler.handleResponse(
+    const authRequest = await handler.handleResponse(
       response,
       parameters,
       fetchInstance
     );
     //We retry the request
-    if (authParameters) {
-      response = await fetchRequest(fetchInstance, authParameters);
+    if (authRequest) {
+      response = await fetchRequest(fetchInstance, authRequest);
     }
   }
 

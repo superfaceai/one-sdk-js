@@ -53,22 +53,16 @@ export class OAuthHandler implements ISecurityHandler {
     fetchInstance: FetchInstance & AuthCache
   ) => {
     if (this.refreshHelper && this.refreshHelper.shouldRefresh(fetchInstance)) {
-      const refreshedParameters = await this.refreshHelper.refresh(
-        parameters,
-        fetchInstance,
-        fetchInstance
-      );
-      const prepared = await pipe({
-        parameters: refreshedParameters,
-        fetchInstance,
-        filters: [headersFilter, prepareRequestFilter],
-      });
-
-      if (!prepared.request) {
-        throw new Error('Request not defined');
-      }
-
-      return prepared.request;
+      return (
+        await headersFilter({
+          parameters: await this.refreshHelper.refresh(
+            parameters,
+            fetchInstance,
+            fetchInstance
+          ),
+          fetchInstance,
+        })
+      ).parameters;
     }
     //TODO: use selected flow helper (and actualy write some flow helpers)
     //Now we just get access token from cache and use it
@@ -84,18 +78,13 @@ export class OAuthHandler implements ISecurityHandler {
         },
       };
     }
-
-    const prepared = await pipe({
-      parameters: authenticateParameters,
-      fetchInstance,
-      filters: [headersFilter, prepareRequestFilter],
-    });
-
-    if (!prepared.request) {
-      throw new Error('Request not defined');
-    }
-
-    return prepared.request;
+    
+return (
+      await headersFilter({
+        parameters: authenticateParameters,
+        fetchInstance,
+      })
+    ).parameters;
   };
 
   handleResponse: HandleResponseAsync = async (
