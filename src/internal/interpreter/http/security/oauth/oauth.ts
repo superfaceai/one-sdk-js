@@ -7,7 +7,7 @@ import createDebug from 'debug';
 
 import { HttpResponse } from '../../http';
 import { FetchInstance } from '../../interfaces';
-import { headersFilter, pipe,prepareRequestFilter } from '../../pipe';
+import { headersFilter, pipe, prepareRequestFilter } from '../../pipe';
 import {
   AuthCache,
   AuthenticateRequestAsync,

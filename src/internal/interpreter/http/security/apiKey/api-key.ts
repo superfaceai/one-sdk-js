@@ -8,7 +8,7 @@ import createDebug from 'debug';
 import { apiKeyInBodyError } from '../../../../errors.helpers';
 import { Variables } from '../../../variables';
 import { FetchInstance } from '../../interfaces';
-import { headersFilter, pipe,prepareRequestFilter } from '../../pipe';
+import { headersFilter, pipe, prepareRequestFilter } from '../../pipe';
 import {
   DEFAULT_AUTHORIZATION_HEADER_NAME,
   ISecurityHandler,
