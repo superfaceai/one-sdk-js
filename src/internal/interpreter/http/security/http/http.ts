@@ -2,7 +2,7 @@ import { HttpScheme, SecurityType } from '@superfaceai/ast';
 import createDebug from 'debug';
 
 import { FetchInstance } from '../../interfaces';
-import { headersFilter, pipe, prepareRequestFilter } from '../../pipe';
+import { headersFilter, pipe } from '../../pipe';
 import {
   DEFAULT_AUTHORIZATION_HEADER_NAME,
   ISecurityHandler,
@@ -53,7 +53,7 @@ export class HttpHandler implements ISecurityHandler {
       },
       fetchInstance,
       handler: undefined,
-      filters: [headersFilter, prepareRequestFilter],
+      filters: [headersFilter],
     });
   };
 }

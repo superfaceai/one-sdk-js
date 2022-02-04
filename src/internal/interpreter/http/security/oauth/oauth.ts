@@ -53,25 +53,11 @@ export class OAuthHandler implements ISecurityHandler {
     fetchInstance: FetchInstance & AuthCache
   ) => {
     if (this.refreshHelper && this.refreshHelper.shouldRefresh(fetchInstance)) {
-      const refreshedParameters = await this.refreshHelper.refresh(
+      return this.refreshHelper.refresh(
         parameters,
         fetchInstance,
         fetchInstance
       );
-
-      const au = await pipe({
-        parameters: refreshedParameters,
-        fetchInstance,
-        filters: [headersFilter, prepareRequestFilter],
-      });
-
-      console.log('authenthicated ', au);
-
-      return pipe({
-        parameters: refreshedParameters,
-        fetchInstance,
-        filters: [headersFilter, prepareRequestFilter],
-      });
     }
     //TODO: use selected flow helper (and actualy write some flow helpers)
     //Now we just get access token from cache and use it
@@ -91,7 +77,7 @@ export class OAuthHandler implements ISecurityHandler {
     return pipe({
       parameters: authenticateParameters,
       fetchInstance,
-      filters: [headersFilter, prepareRequestFilter],
+      filters: [headersFilter],
     });
   };
 

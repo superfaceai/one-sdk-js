@@ -101,7 +101,7 @@ export class DigestHandler implements ISecurityHandler {
         },
         fetchInstance,
         handler: undefined,
-        filters: [headersFilter, prepareRequestFilter],
+        filters: [headersFilter],
       });
     }
     //If we don't we try to get challange header
@@ -145,7 +145,7 @@ export class DigestHandler implements ISecurityHandler {
       },
       fetchInstance,
       handler: undefined,
-      filters: [headersFilter, prepareRequestFilter],
+      filters: [headersFilter],
     });
   };
 

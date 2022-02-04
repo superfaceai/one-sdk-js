@@ -8,7 +8,7 @@ import createDebug from 'debug';
 import { apiKeyInBodyError } from '../../../../errors.helpers';
 import { Variables } from '../../../variables';
 import { FetchInstance } from '../../interfaces';
-import { headersFilter, pipe, prepareRequestFilter } from '../../pipe';
+import { headersFilter, pipe } from '../../pipe';
 import {
   DEFAULT_AUTHORIZATION_HEADER_NAME,
   ISecurityHandler,
@@ -75,7 +75,7 @@ export class ApiKeyHandler implements ISecurityHandler {
       },
       handler: undefined,
       fetchInstance,
-      filters: [headersFilter, prepareRequestFilter],
+      filters: [headersFilter],
     });
   };
 }

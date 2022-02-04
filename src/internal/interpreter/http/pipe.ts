@@ -180,17 +180,14 @@ export const authenticateFilter: PrepareFilter = async ({
   handler,
 }: FilterInput) => {
   if (handler) {
-    const authRequest = await handler.authenticate(parameters, fetchInstance);
-
     return {
       kind: 'prepare',
-      parameters,
-      request: authRequest,
+      parameters: await handler.authenticate(parameters, fetchInstance),
+      request,
       response,
     };
   }
 
-  console.log('MISSING handler');
   return {
     kind: 'prepare',
     parameters,
@@ -276,31 +273,6 @@ export const prepareRequestFilter: RequestFilter = ({
   }
 
   //TODO: break this into more functions?
-  const finalRequest = {
-    kind: 'request',
-    parameters,
-    request: {
-      ...request,
-      body: finalBody,
-      queryParameters: {
-        ...request?.queryParameters,
-        ...variablesToStrings(parameters.queryParameters),
-      },
-      headers: {
-        ...request?.headers,
-        ...parameters.headers,
-      },
-      url: createUrl(parameters.url, {
-        baseUrl: parameters.baseUrl,
-        pathParameters: parameters.pathParameters ?? {},
-        integrationParameters: parameters.integrationParameters,
-      }),
-      method: parameters.method,
-    },
-    response,
-  };
-
-  console.log('prepared', finalRequest);
   return {
     kind: 'request',
     parameters,
