@@ -2,6 +2,10 @@ import { AstMetadata, MapDocumentNode, ProviderJson } from '@superfaceai/ast';
 
 import { Config } from '../config';
 import {
+  bindResponseError,
+  unknownBindResponseError,
+} from '../internal/errors.helpers';
+import {
   assertIsRegistryProviderInfo,
   fetchBind,
   fetchMapSource,
@@ -253,6 +257,163 @@ describe('registry', () => {
           mapRevision: 'test-map-revision',
         })
       ).rejects.toThrow('validation failed');
+
+      expect(request).toHaveBeenCalledTimes(1);
+      expect(request).toHaveBeenCalledWith('/registry/bind', {
+        method: 'POST',
+        baseUrl: TEST_REGISTRY_URL,
+        accept: 'application/json',
+        headers: [`Authorization: SUPERFACE-SDK-TOKEN ${MOCK_TOKEN}`],
+        contentType: 'application/json',
+        body: {
+          profile_id: 'test-profile-id',
+          provider: 'test-provider',
+          map_variant: 'test-map-variant',
+          map_revision: 'test-map-revision',
+        },
+      });
+    });
+
+    it('throws error on invalid response body', async () => {
+      const mockBody = {};
+      const mockResponse = {
+        statusCode: 200,
+        body: mockBody,
+        headers: { test: 'test' },
+        debug: {
+          request: {
+            headers: { test: 'test' },
+            url: 'test',
+            body: {},
+          },
+        },
+      };
+
+      request.mockResolvedValue(mockResponse);
+
+      await expect(
+        fetchBind({
+          profileId: 'test-profile-id',
+          provider: 'test-provider',
+          mapVariant: 'test-map-variant',
+          mapRevision: 'test-map-revision',
+        })
+      ).rejects.toEqual(
+        unknownBindResponseError({
+          profileId: 'test-profile-id',
+          provider: 'test-provider',
+          mapVariant: 'test-map-variant',
+          mapRevision: 'test-map-revision',
+          statusCode: 200,
+          body: mockBody,
+        })
+      );
+
+      expect(request).toHaveBeenCalledTimes(1);
+      expect(request).toHaveBeenCalledWith('/registry/bind', {
+        method: 'POST',
+        baseUrl: TEST_REGISTRY_URL,
+        accept: 'application/json',
+        headers: [`Authorization: SUPERFACE-SDK-TOKEN ${MOCK_TOKEN}`],
+        contentType: 'application/json',
+        body: {
+          profile_id: 'test-profile-id',
+          provider: 'test-provider',
+          map_variant: 'test-map-variant',
+          map_revision: 'test-map-revision',
+        },
+      });
+    });
+
+    it('throws error on invalid status code and empty response body', async () => {
+      const mockBody = {};
+      const mockResponse = {
+        statusCode: 400,
+        body: mockBody,
+        headers: { test: 'test' },
+        debug: {
+          request: {
+            headers: { test: 'test' },
+            url: 'test',
+            body: {},
+          },
+        },
+      };
+
+      request.mockResolvedValue(mockResponse);
+
+      await expect(
+        fetchBind({
+          profileId: 'test-profile-id',
+          provider: 'test-provider',
+          mapVariant: 'test-map-variant',
+          mapRevision: 'test-map-revision',
+        })
+      ).rejects.toEqual(
+        unknownBindResponseError({
+          profileId: 'test-profile-id',
+          provider: 'test-provider',
+          mapVariant: 'test-map-variant',
+          mapRevision: 'test-map-revision',
+          statusCode: 400,
+          body: mockBody,
+        })
+      );
+
+      expect(request).toHaveBeenCalledTimes(1);
+      expect(request).toHaveBeenCalledWith('/registry/bind', {
+        method: 'POST',
+        baseUrl: TEST_REGISTRY_URL,
+        accept: 'application/json',
+        headers: [`Authorization: SUPERFACE-SDK-TOKEN ${MOCK_TOKEN}`],
+        contentType: 'application/json',
+        body: {
+          profile_id: 'test-profile-id',
+          provider: 'test-provider',
+          map_variant: 'test-map-variant',
+          map_revision: 'test-map-revision',
+        },
+      });
+    });
+
+    it('throws error on invalid status code and response body with detail', async () => {
+      const mockBody = {
+        detail: 'Test',
+        title: 'Title',
+      };
+      const mockResponse = {
+        statusCode: 400,
+        body: JSON.stringify(mockBody),
+        headers: { test: 'test' },
+        debug: {
+          request: {
+            headers: { test: 'test' },
+            url: 'test',
+            body: {},
+          },
+        },
+      };
+
+      request.mockResolvedValue(mockResponse);
+
+      await expect(
+        fetchBind({
+          profileId: 'test-profile-id',
+          provider: 'test-provider',
+          mapVariant: 'test-map-variant',
+          mapRevision: 'test-map-revision',
+        })
+      ).rejects.toEqual(
+        bindResponseError({
+          profileId: 'test-profile-id',
+          provider: 'test-provider',
+          mapVariant: 'test-map-variant',
+          mapRevision: 'test-map-revision',
+          statusCode: 400,
+          detail: 'Test',
+          title: 'Title',
+        })
+      );
 
       expect(request).toHaveBeenCalledTimes(1);
       expect(request).toHaveBeenCalledWith('/registry/bind', {

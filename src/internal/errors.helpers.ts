@@ -414,7 +414,7 @@ export function bindResponseError({
   title,
   detail,
   mapVariant,
-  mapVersion,
+  mapRevision,
 }: {
   statusCode: number;
   profileId: string;
@@ -422,7 +422,7 @@ export function bindResponseError({
   title?: string;
   detail?: string;
   mapVariant?: string;
-  mapVersion?: string;
+  mapRevision?: string;
 }): SDKExecutionError {
   const longLines = [];
 
@@ -434,8 +434,8 @@ export function bindResponseError({
     longLines.push(`Looking for map variant "${mapVariant}"`);
   }
 
-  if (mapVersion) {
-    longLines.push(`Looking for map version "${mapVersion}"`);
+  if (mapRevision) {
+    longLines.push(`Looking for map revision "${mapRevision}"`);
   }
 
   return new SDKExecutionError(
@@ -462,14 +462,14 @@ export function unknownBindResponseError({
   body,
   provider,
   mapVariant,
-  mapVersion,
+  mapRevision,
 }: {
   statusCode: number;
   profileId: string;
   body: unknown;
   provider?: string;
   mapVariant?: string;
-  mapVersion?: string;
+  mapRevision?: string;
 }): SDKExecutionError {
   const longLines = [
     provider
@@ -481,8 +481,8 @@ export function unknownBindResponseError({
     longLines.push(`Looking for map variant "${mapVariant}"`);
   }
 
-  if (mapVersion) {
-    longLines.push(`Looking for map version "${mapVersion}"`);
+  if (mapRevision) {
+    longLines.push(`Looking for map revision "${mapRevision}"`);
   }
 
   return new SDKExecutionError(

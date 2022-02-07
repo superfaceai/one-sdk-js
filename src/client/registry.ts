@@ -14,7 +14,7 @@ import {
   unknownBindResponseError,
   unknownProviderInfoError,
 } from '../internal/errors.helpers';
-import { HttpClient } from '../internal/interpreter/http';
+import { HttpClient, HttpResponse } from '../internal/interpreter/http';
 import { CrossFetch } from '../lib/fetch';
 
 const registryDebug = createDebug('superface:registry');
@@ -116,10 +116,50 @@ export async function fetchProviderInfo(
   return body.definition;
 }
 
-function parseBindResponse(input: unknown): {
+function parseBindResponse(
+  request: {
+    profileId: string;
+    provider?: string;
+    mapVariant?: string;
+    mapRevision?: string;
+  },
+  response: HttpResponse
+): {
   provider: ProviderJson;
   mapAst?: MapDocumentNode;
 } {
+  if (response.statusCode !== 200) {
+    if (typeof response.body === 'string') {
+      let parsed;
+      try {
+        parsed = JSON.parse(response.body) as Record<string, unknown>;
+      } catch (error) {
+        void error;
+      }
+      if (
+        typeof parsed === 'object' &&
+        parsed !== null &&
+        'detail' in parsed === true &&
+        'title' in parsed === true &&
+        typeof parsed.detail === 'string' &&
+        typeof parsed.title === 'string'
+      ) {
+        throw bindResponseError({
+          ...request,
+          statusCode: response.statusCode,
+          title: parsed.title,
+          detail: parsed.detail,
+        });
+      }
+    }
+
+    throw unknownBindResponseError({
+      ...request,
+      statusCode: response.statusCode,
+      body: response.body,
+    });
+  }
+
   function assertProperties(
     obj: unknown
   ): asserts obj is { provider: unknown; map_ast: string } {
@@ -129,21 +169,25 @@ function parseBindResponse(input: unknown): {
       'provider' in obj === false ||
       'map_ast' in obj === false
     ) {
-      throw new UnexpectedError('Registry responded with invalid body');
+      throw unknownBindResponseError({
+        ...request,
+        statusCode: response.statusCode,
+        body: response.body,
+      });
     }
   }
 
-  assertProperties(input);
+  assertProperties(response.body);
 
   let mapAst: MapDocumentNode | undefined;
   try {
-    mapAst = assertMapDocumentNode(JSON.parse(input.map_ast));
+    mapAst = assertMapDocumentNode(JSON.parse(response.body.map_ast));
   } catch (error) {
     mapAst = undefined;
   }
 
   return {
-    provider: assertProviderJson(input.provider),
+    provider: assertProviderJson(response.body.provider),
     mapAst,
   };
 }
@@ -162,7 +206,7 @@ export async function fetchBind(request: {
   const sdkToken = Config.instance().sdkAuthToken;
   registryDebug('Binding SDK to registry');
 
-  const { body, statusCode } = await http.request('/registry/bind', {
+  const fetchResponse = await http.request('/registry/bind', {
     method: 'POST',
     headers: sdkToken
       ? [`Authorization: SUPERFACE-SDK-TOKEN ${sdkToken}`]
@@ -178,43 +222,7 @@ export async function fetchBind(request: {
     },
   });
 
-  function handleBindError(body: unknown): void {
-    if (typeof body === 'string') {
-      let parsed;
-      try {
-        parsed = JSON.parse(body) as Record<string, unknown>;
-      } catch (error) {
-        void error;
-      }
-      if (
-        typeof parsed === 'object' &&
-        parsed !== null &&
-        'detail' in parsed === true &&
-        'title' in parsed === true &&
-        typeof parsed.detail === 'string' &&
-        typeof parsed.title === 'string'
-      ) {
-        throw bindResponseError({
-          ...request,
-          statusCode,
-          title: parsed.title,
-          detail: parsed.detail,
-        });
-      }
-    }
-
-    throw unknownBindResponseError({
-      ...request,
-      statusCode,
-      body,
-    });
-  }
-
-  if (statusCode !== 200) {
-    handleBindError(body);
-  }
-
-  return parseBindResponse(body);
+  return parseBindResponse(request, fetchResponse);
 }
 
 export async function fetchMapSource(mapId: string): Promise<string> {
