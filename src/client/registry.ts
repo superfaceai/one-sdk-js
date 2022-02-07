@@ -9,6 +9,11 @@ import createDebug from 'debug';
 
 import { Config } from '../config';
 import { UnexpectedError } from '../internal/errors';
+import {
+  bindResponseError,
+  unknownBindResponseError,
+  unknownProviderInfoError,
+} from '../internal/errors.helpers';
 import { HttpClient } from '../internal/interpreter/http';
 import { CrossFetch } from '../lib/fetch';
 
@@ -67,15 +72,18 @@ export async function fetchProviderInfo(
   const sdkToken = Config.instance().sdkAuthToken;
 
   registryDebug(`Fetching provider ${providerName} from registry`);
-  const { body } = await http.request(`/providers/${providerName}`, {
-    method: 'GET',
-    headers: sdkToken
-      ? [`Authorization: SUPERFACE-SDK-TOKEN ${sdkToken}`]
-      : undefined,
-    baseUrl: Config.instance().superfaceApiUrl,
-    accept: 'application/json',
-    contentType: 'application/json',
-  });
+  const { body, statusCode } = await http.request(
+    `/providers/${providerName}`,
+    {
+      method: 'GET',
+      headers: sdkToken
+        ? [`Authorization: SUPERFACE-SDK-TOKEN ${sdkToken}`]
+        : undefined,
+      baseUrl: Config.instance().superfaceApiUrl,
+      accept: 'application/json',
+      contentType: 'application/json',
+    }
+  );
 
   function assertProperties(
     obj: unknown
@@ -85,14 +93,24 @@ export async function fetchProviderInfo(
       obj === null ||
       'definition' in obj === false
     ) {
-      throw new UnexpectedError('Registry responded with invalid body');
+      throw unknownProviderInfoError({
+        message: `Registry responded with invalid body`,
+        body: obj,
+        provider: providerName,
+        statusCode,
+      });
     }
   }
 
   assertProperties(body);
 
   if (!isProviderJson(body.definition)) {
-    throw new UnexpectedError('Registry responded with invalid body');
+    throw unknownProviderInfoError({
+      message: `Registry responded with invalid ProviderJson definition`,
+      body: body.definition,
+      provider: providerName,
+      statusCode,
+    });
   }
 
   return body.definition;
@@ -143,7 +161,8 @@ export async function fetchBind(request: {
   const http = new HttpClient(fetchInstance);
   const sdkToken = Config.instance().sdkAuthToken;
   registryDebug('Binding SDK to registry');
-  const { body } = await http.request('/registry/bind', {
+
+  const { body, statusCode } = await http.request('/registry/bind', {
     method: 'POST',
     headers: sdkToken
       ? [`Authorization: SUPERFACE-SDK-TOKEN ${sdkToken}`]
@@ -158,6 +177,42 @@ export async function fetchBind(request: {
       map_revision: request.mapRevision,
     },
   });
+
+  function handleBindError(body: unknown): void {
+    if (typeof body === 'string') {
+      let parsed;
+      try {
+        parsed = JSON.parse(body) as Record<string, unknown>;
+      } catch (error) {
+        void error;
+      }
+      if (
+        typeof parsed === 'object' &&
+        parsed !== null &&
+        'detail' in parsed === true &&
+        'title' in parsed === true &&
+        typeof parsed.detail === 'string' &&
+        typeof parsed.title === 'string'
+      ) {
+        throw bindResponseError({
+          ...request,
+          statusCode,
+          title: parsed.title,
+          detail: parsed.detail,
+        });
+      }
+    }
+
+    throw unknownBindResponseError({
+      ...request,
+      statusCode,
+      body,
+    });
+  }
+
+  if (statusCode !== 200) {
+    handleBindError(body);
+  }
 
   return parseBindResponse(body);
 }

@@ -1,5 +1,6 @@
 import { BackoffKind, SecurityValues } from '@superfaceai/ast';
 
+import { Config } from '../config';
 import { SDKExecutionError } from './errors';
 
 export function ensureErrorSubclass(error: unknown): Error {
@@ -403,5 +404,126 @@ export function unexpectedDigestValue(
       )}`,
     ],
     []
+  );
+}
+
+export function bindResponseError({
+  statusCode,
+  profileId,
+  provider,
+  title,
+  detail,
+  mapVariant,
+  mapVersion,
+}: {
+  statusCode: number;
+  profileId: string;
+  provider?: string;
+  title?: string;
+  detail?: string;
+  mapVariant?: string;
+  mapVersion?: string;
+}): SDKExecutionError {
+  const longLines = [];
+
+  if (detail) {
+    longLines.push(detail);
+  }
+
+  if (mapVariant) {
+    longLines.push(`Looking for map variant "${mapVariant}"`);
+  }
+
+  if (mapVersion) {
+    longLines.push(`Looking for map version "${mapVersion}"`);
+  }
+
+  return new SDKExecutionError(
+    `Registry responded with status code ${statusCode}${
+      title ? ` - ${title}.` : '.'
+    }`,
+    longLines,
+    [
+      provider
+        ? `Check if profile "${profileId}" can be used with provider "${provider}"`
+        : `Check if profile "${profileId}" can be used with selected provider.`,
+      `If you are using remote profile you can check informations about profile at "${
+        new URL(profileId, Config.instance().superfaceApiUrl).href
+      }"`,
+      `If you are trying to use remote profile check if profile "${profileId}" is published`,
+      `If you are using local profile you can use local map and provider to bypass the binding`,
+    ]
+  );
+}
+
+export function unknownBindResponseError({
+  statusCode,
+  profileId,
+  body,
+  provider,
+  mapVariant,
+  mapVersion,
+}: {
+  statusCode: number;
+  profileId: string;
+  body: unknown;
+  provider?: string;
+  mapVariant?: string;
+  mapVersion?: string;
+}): SDKExecutionError {
+  const longLines = [
+    provider
+      ? `Error occured when binding profile "${profileId}" with provider "${provider}"`
+      : `Error occured when binding profile "${profileId}" with selected provider`,
+  ];
+
+  if (mapVariant) {
+    longLines.push(`Looking for map variant "${mapVariant}"`);
+  }
+
+  if (mapVersion) {
+    longLines.push(`Looking for map version "${mapVersion}"`);
+  }
+
+  return new SDKExecutionError(
+    `Registry responded with status code ${statusCode} and unexpected body ${String(
+      body
+    )}`,
+    longLines,
+    [
+      provider
+        ? `Check if profile "${profileId}" can be used with provider "${provider}"`
+        : `Check if profile "${profileId}" can be used with selected provider`,
+      `If you are using remote profile you can check informations about profile at "${
+        new URL(profileId, Config.instance().superfaceApiUrl).href
+      }"`,
+      `If you are trying to use remote profile check if profile "${profileId}" is published`,
+      `If you are using local profile you can use local map and provider to bypass the binding`,
+    ]
+  );
+}
+
+export function unknownProviderInfoError({
+  message,
+  provider,
+  body,
+  statusCode,
+}: {
+  message: string;
+  provider: string;
+  body: unknown;
+  statusCode: number;
+}): SDKExecutionError {
+  const longLines = [
+    message,
+    `Error occured when fetching info about provider "${provider}"`,
+  ];
+
+  return new SDKExecutionError(
+    `Registry responded with status code ${statusCode} and unexpected body ${String(
+      body
+    )}`,
+    longLines,
+    [`Check if provider "${provider}" is published`]
   );
 }
