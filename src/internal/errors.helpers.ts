@@ -451,7 +451,7 @@ export function bindResponseError({
         new URL(profileId, Config.instance().superfaceApiUrl).href
       }"`,
       `If you are trying to use remote profile check if profile "${profileId}" is published`,
-      `If you are using local profile you can use local map and provider to bypass the binding`,
+      'If you are using local profile you can use local map and provider to bypass the binding',
     ]
   );
 }

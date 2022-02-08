@@ -131,16 +131,12 @@ function parseBindResponse(
   function isErrorBody(
     input: unknown
   ): input is { detail: string; title: string } {
-    if (
+    return (
       typeof input === 'object' &&
       input !== null &&
-      'detail' in input === true &&
-      'title' in input === true
-    ) {
-      return true;
-    }
-
-    return false;
+      'detail' in input &&
+      'title' in input
+    );
   }
 
   function assertProperties(

@@ -229,14 +229,6 @@ describe('registry', () => {
       );
 
       expect(request).toHaveBeenCalledTimes(1);
-      expect(request).toHaveBeenCalledWith('/providers/test', {
-        method: 'GET',
-        headers: [`Authorization: SUPERFACE-SDK-TOKEN ${TEST_SDK_TOKEN}`],
-        baseUrl: TEST_REGISTRY_URL,
-        accept: 'application/json',
-        contentType: 'application/json',
-        body: undefined,
-      });
     });
   });
 
