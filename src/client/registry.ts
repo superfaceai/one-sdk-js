@@ -128,36 +128,19 @@ function parseBindResponse(
   provider: ProviderJson;
   mapAst?: MapDocumentNode;
 } {
-  if (response.statusCode !== 200) {
-    if (typeof response.body === 'string') {
-      let parsed;
-      try {
-        parsed = JSON.parse(response.body) as Record<string, unknown>;
-      } catch (error) {
-        void error;
-      }
-      if (
-        typeof parsed === 'object' &&
-        parsed !== null &&
-        'detail' in parsed === true &&
-        'title' in parsed === true &&
-        typeof parsed.detail === 'string' &&
-        typeof parsed.title === 'string'
-      ) {
-        throw bindResponseError({
-          ...request,
-          statusCode: response.statusCode,
-          title: parsed.title,
-          detail: parsed.detail,
-        });
-      }
+  function isErrorBody(
+    input: unknown
+  ): input is { detail: string; title: string } {
+    if (
+      typeof input === 'object' &&
+      input !== null &&
+      'detail' in input === true &&
+      'title' in input === true
+    ) {
+      return true;
     }
 
-    throw unknownBindResponseError({
-      ...request,
-      statusCode: response.statusCode,
-      body: response.body,
-    });
+    return false;
   }
 
   function assertProperties(
@@ -175,6 +158,23 @@ function parseBindResponse(
         body: response.body,
       });
     }
+  }
+
+  if (response.statusCode !== 200) {
+    if (isErrorBody(response.body)) {
+      throw bindResponseError({
+        ...request,
+        statusCode: response.statusCode,
+        title: response.body.title,
+        detail: response.body.detail,
+      });
+    }
+
+    throw unknownBindResponseError({
+      ...request,
+      statusCode: response.statusCode,
+      body: response.body,
+    });
   }
 
   assertProperties(response.body);
