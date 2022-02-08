@@ -192,14 +192,6 @@ describe('registry', () => {
       );
 
       expect(request).toHaveBeenCalledTimes(1);
-      expect(request).toHaveBeenCalledWith('/providers/test', {
-        method: 'GET',
-        headers: [`Authorization: SUPERFACE-SDK-TOKEN ${TEST_SDK_TOKEN}`],
-        baseUrl: TEST_REGISTRY_URL,
-        accept: 'application/json',
-        contentType: 'application/json',
-        body: undefined,
-      });
     });
 
     it('throws on invalid provider json', async () => {
@@ -373,19 +365,6 @@ describe('registry', () => {
       ).rejects.toThrow('validation failed');
 
       expect(request).toHaveBeenCalledTimes(1);
-      expect(request).toHaveBeenCalledWith('/registry/bind', {
-        method: 'POST',
-        baseUrl: TEST_REGISTRY_URL,
-        accept: 'application/json',
-        headers: [`Authorization: SUPERFACE-SDK-TOKEN ${MOCK_TOKEN}`],
-        contentType: 'application/json',
-        body: {
-          profile_id: 'test-profile-id',
-          provider: 'test-provider',
-          map_variant: 'test-map-variant',
-          map_revision: 'test-map-revision',
-        },
-      });
     });
 
     it('throws error on invalid response body', async () => {
@@ -424,19 +403,6 @@ describe('registry', () => {
       );
 
       expect(request).toHaveBeenCalledTimes(1);
-      expect(request).toHaveBeenCalledWith('/registry/bind', {
-        method: 'POST',
-        baseUrl: TEST_REGISTRY_URL,
-        accept: 'application/json',
-        headers: [`Authorization: SUPERFACE-SDK-TOKEN ${MOCK_TOKEN}`],
-        contentType: 'application/json',
-        body: {
-          profile_id: 'test-profile-id',
-          provider: 'test-provider',
-          map_variant: 'test-map-variant',
-          map_revision: 'test-map-revision',
-        },
-      });
     });
 
     it('throws error on invalid status code and empty response body', async () => {
@@ -475,19 +441,6 @@ describe('registry', () => {
       );
 
       expect(request).toHaveBeenCalledTimes(1);
-      expect(request).toHaveBeenCalledWith('/registry/bind', {
-        method: 'POST',
-        baseUrl: TEST_REGISTRY_URL,
-        accept: 'application/json',
-        headers: [`Authorization: SUPERFACE-SDK-TOKEN ${MOCK_TOKEN}`],
-        contentType: 'application/json',
-        body: {
-          profile_id: 'test-profile-id',
-          provider: 'test-provider',
-          map_variant: 'test-map-variant',
-          map_revision: 'test-map-revision',
-        },
-      });
     });
 
     it('throws error on invalid status code and response body with detail', async () => {
@@ -530,19 +483,6 @@ describe('registry', () => {
       );
 
       expect(request).toHaveBeenCalledTimes(1);
-      expect(request).toHaveBeenCalledWith('/registry/bind', {
-        method: 'POST',
-        baseUrl: TEST_REGISTRY_URL,
-        accept: 'application/json',
-        headers: [`Authorization: SUPERFACE-SDK-TOKEN ${MOCK_TOKEN}`],
-        contentType: 'application/json',
-        body: {
-          profile_id: 'test-profile-id',
-          provider: 'test-provider',
-          map_variant: 'test-map-variant',
-          map_revision: 'test-map-revision',
-        },
-      });
     });
 
     it('returns undefined on invalid map document', async () => {
@@ -578,19 +518,6 @@ describe('registry', () => {
       });
 
       expect(request).toHaveBeenCalledTimes(1);
-      expect(request).toHaveBeenCalledWith('/registry/bind', {
-        method: 'POST',
-        baseUrl: TEST_REGISTRY_URL,
-        accept: 'application/json',
-        headers: [`Authorization: SUPERFACE-SDK-TOKEN ${MOCK_TOKEN}`],
-        contentType: 'application/json',
-        body: {
-          profile_id: 'test-profile-id',
-          provider: 'test-provider',
-          map_variant: 'test-map-variant',
-          map_revision: 'test-map-revision',
-        },
-      });
     });
   });
 
