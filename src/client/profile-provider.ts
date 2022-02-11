@@ -30,7 +30,6 @@ import {
   providersDoNotMatchError,
   referencedFileNotFoundError,
   securityNotFoundError,
-  serviceNotFoundError,
 } from '../internal/errors.helpers';
 import {
   MapInterpreter,
@@ -51,6 +50,7 @@ import { mergeSecurity } from '../internal/superjson/mutate';
 import { err, ok, Result } from '../lib';
 import { Events, Interceptable } from '../lib/events';
 import { CrossFetch } from '../lib/fetch';
+import { IServiceSelector, ServiceSelector } from '../lib/services';
 import { MapInterpreterEventAdapter } from './failure/map-interpreter-adapter';
 import { ProfileConfiguration } from './profile';
 import { ProviderConfiguration } from './provider';
@@ -67,18 +67,19 @@ function profileAstId(ast: ProfileDocumentNode): string {
 const boundProfileProviderDebug = createDebug(
   'superface:bound-profile-provider'
 );
+export type AuthCache = { digest?: Record<string, string> };
 
 export class BoundProfileProvider {
   // TODO: Interceptable and set metadata
   private profileValidator: ProfileParameterValidator;
-  private fetchInstance: FetchInstance & Interceptable;
+  private fetchInstance: FetchInstance & Interceptable & AuthCache;
 
   constructor(
     private readonly profileAst: ProfileDocumentNode,
     private readonly mapAst: MapDocumentNode,
     private readonly providerName: string,
     readonly configuration: {
-      baseUrl: string;
+      services: IServiceSelector;
       profileProviderSettings?: NormalizedProfileProviderSettings;
       security: SecurityConfiguration[];
       parameters?: Record<string, string>;
@@ -150,7 +151,7 @@ export class BoundProfileProvider {
       {
         input: composedInput,
         usecase,
-        serviceBaseUrl: this.configuration.baseUrl,
+        services: this.configuration.services,
         security: this.configuration.security,
         parameters: this.mergeParameters(
           parameters,
@@ -332,19 +333,6 @@ export class ProfileProvider {
       );
     }
 
-    // prepare service info
-    const serviceId = providerInfo.defaultService;
-    const baseUrl = providerInfo.services.find(
-      s => s.id === serviceId
-    )?.baseUrl;
-    if (baseUrl === undefined) {
-      throw serviceNotFoundError(
-        serviceId,
-        providerName,
-        serviceId === providerInfo.defaultService
-      );
-    }
-
     const securityConfiguration = this.resolveSecurityConfiguration(
       providerInfo.securitySchemes ?? [],
       securityValues,
@@ -356,7 +344,10 @@ export class ProfileProvider {
       mapAst,
       providerInfo.name,
       {
-        baseUrl,
+        services: new ServiceSelector(
+          providerInfo.services,
+          providerInfo.defaultService
+        ),
         profileProviderSettings:
           this.superJson.normalized.profiles[profileId]?.providers[
             providerInfo.name

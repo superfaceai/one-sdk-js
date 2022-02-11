@@ -65,9 +65,10 @@ export class CrossFetch implements FetchInstance, Interceptable {
     let body: unknown;
 
     if (
-      (headers['content-type'] &&
-        headers['content-type'].includes(JSON_CONTENT)) ||
-      parameters.headers?.['accept']?.includes(JSON_CONTENT)
+      headers['content-type'] &&
+      headers['content-type'].includes(JSON_CONTENT) //||
+      //TODO: update this when we have security handlers preparing whole requests
+      // parameters.headers?.['accept']?.includes(JSON_CONTENT)
     ) {
       body = await response.json();
     } else if (this.isBinaryContent(headers, parameters.headers)) {

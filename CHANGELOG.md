@@ -7,11 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added support for service selection in http calls
+- Added support for digest authentication in http calls
+
 ## [1.2.2] - 2022-02-11
 ### Added
 - Make sandbox timeout configurable through environment variable `SUPERFACE_SANDBOX_TIMEOUT`
 
 ## [1.2.1] - 2022-01-19
+
+This is a recovery release after introduction of compatibility-breaking changes in version 1.2.0.
+
+- No changes since 1.1.0
 
 ## [1.1.0] - 2021-12-22
 ### Added
