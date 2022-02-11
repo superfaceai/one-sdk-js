@@ -3,7 +3,6 @@ import { parseMap, Source } from '@superfaceai/parser';
 import { getLocal } from 'mockttp';
 
 import { CrossFetch } from '../../lib/fetch';
-import { ServiceSelector } from '../../lib/services';
 import { MapInterpreter } from './map-interpreter';
 
 const mockServer = getLocal();
@@ -20,10 +19,11 @@ const parseMapFromSource = (source: string) =>
   );
 
 describe('MapInterpreter', () => {
-  let mockServicesSelector: ServiceSelector;
+  let serviceBaseUrl: string;
+
   beforeEach(async () => {
     await mockServer.start();
-    mockServicesSelector = ServiceSelector.withDefaultUrl(mockServer.url);
+    serviceBaseUrl = mockServer.url;
   });
 
   afterEach(async () => {
@@ -35,7 +35,6 @@ describe('MapInterpreter', () => {
       {
         usecase: 'testCase',
         security: [],
-        services: ServiceSelector.withDefaultUrl(''),
       },
       { fetchInstance }
     );
@@ -54,7 +53,6 @@ describe('MapInterpreter', () => {
       {
         usecase: 'Test',
         security: [],
-        services: ServiceSelector.withDefaultUrl(''),
       },
       { fetchInstance }
     );
@@ -74,7 +72,6 @@ describe('MapInterpreter', () => {
       {
         usecase: 'Test',
         security: [],
-        services: ServiceSelector.withDefaultUrl(''),
       },
       { fetchInstance }
     );
@@ -92,7 +89,6 @@ describe('MapInterpreter', () => {
       {
         usecase: 'Test',
         security: [],
-        services: ServiceSelector.withDefaultUrl(''),
       },
       { fetchInstance }
     );
@@ -115,7 +111,6 @@ describe('MapInterpreter', () => {
       {
         usecase: 'Test',
         security: [],
-        services: ServiceSelector.withDefaultUrl(''),
       },
       { fetchInstance }
     );
@@ -139,7 +134,6 @@ describe('MapInterpreter', () => {
       {
         usecase: 'Test',
         security: [],
-        services: ServiceSelector.withDefaultUrl(''),
       },
       { fetchInstance }
     );
@@ -173,7 +167,7 @@ describe('MapInterpreter', () => {
       {
         usecase: 'Test',
         security: [],
-        services: mockServicesSelector,
+        serviceBaseUrl,
       },
       { fetchInstance }
     );
@@ -204,7 +198,7 @@ describe('MapInterpreter', () => {
         usecase: 'Test',
         input: { page: '2' },
         security: [],
-        services: mockServicesSelector,
+        serviceBaseUrl,
       },
       { fetchInstance }
     );
@@ -239,7 +233,7 @@ describe('MapInterpreter', () => {
         usecase: 'Test',
         input: { page: 2 },
         security: [],
-        services: mockServicesSelector,
+        serviceBaseUrl,
       },
       { fetchInstance }
     );
@@ -276,7 +270,7 @@ describe('MapInterpreter', () => {
       {
         usecase: 'Test',
         security: [],
-        services: mockServicesSelector,
+        serviceBaseUrl,
       },
       { fetchInstance }
     );
@@ -314,7 +308,7 @@ describe('MapInterpreter', () => {
       {
         usecase: 'Test',
         security: [],
-        services: mockServicesSelector,
+        serviceBaseUrl,
       },
       { fetchInstance }
     );
@@ -360,7 +354,7 @@ describe('MapInterpreter', () => {
             password: 'password',
           },
         ],
-        services: mockServicesSelector,
+        serviceBaseUrl,
       },
       { fetchInstance }
     );
@@ -396,7 +390,7 @@ describe('MapInterpreter', () => {
             token: 'SuperSecret',
           },
         ],
-        services: mockServicesSelector,
+        serviceBaseUrl,
       },
       { fetchInstance }
     );
@@ -433,7 +427,7 @@ describe('MapInterpreter', () => {
             apikey: 'SuperSecret',
           },
         ],
-        services: mockServicesSelector,
+        serviceBaseUrl,
       },
       { fetchInstance }
     );
@@ -471,7 +465,7 @@ describe('MapInterpreter', () => {
             apikey: 'SuperSecret',
           },
         ],
-        services: mockServicesSelector,
+        serviceBaseUrl,
       },
       { fetchInstance }
     );
@@ -486,6 +480,7 @@ describe('MapInterpreter', () => {
         }
       }`);
     const result = await interpreter.perform(ast);
+
     expect(result.isOk() && result.value).toEqual(12);
   });
 
@@ -512,7 +507,7 @@ describe('MapInterpreter', () => {
       {
         usecase: 'testCase',
         security: [],
-        services: mockServicesSelector,
+        serviceBaseUrl,
       },
       { fetchInstance }
     );
@@ -546,7 +541,7 @@ describe('MapInterpreter', () => {
       {
         usecase: 'testCase',
         security: [],
-        services: mockServicesSelector,
+        serviceBaseUrl,
       },
       { fetchInstance }
     );
@@ -575,7 +570,6 @@ describe('MapInterpreter', () => {
       {
         usecase: 'testCase',
         security: [],
-        services: ServiceSelector.withDefaultUrl(''),
       },
       { fetchInstance }
     );
@@ -606,7 +600,6 @@ describe('MapInterpreter', () => {
         usecase: 'Test',
         input: { condition: true },
         security: [],
-        services: ServiceSelector.withDefaultUrl(''),
       },
       { fetchInstance }
     );
@@ -615,7 +608,6 @@ describe('MapInterpreter', () => {
         usecase: 'Test',
         input: { condition: false },
         security: [],
-        services: ServiceSelector.withDefaultUrl(''),
       },
       { fetchInstance }
     );
@@ -630,7 +622,6 @@ describe('MapInterpreter', () => {
       {
         usecase: 'Test',
         security: [],
-        services: ServiceSelector.withDefaultUrl(''),
       },
       { fetchInstance }
     );
@@ -653,7 +644,7 @@ describe('MapInterpreter', () => {
       {
         usecase: 'Test',
         security: [],
-        services: mockServicesSelector,
+        serviceBaseUrl,
       },
       { fetchInstance }
     );
@@ -700,7 +691,6 @@ describe('MapInterpreter', () => {
       {
         usecase: 'test',
         security: [],
-        services: ServiceSelector.withDefaultUrl(''),
       },
       { fetchInstance }
     );
@@ -744,7 +734,7 @@ describe('MapInterpreter', () => {
       {
         usecase: 'Test',
         security: [],
-        services: mockServicesSelector,
+        serviceBaseUrl,
       },
       { fetchInstance }
     );
@@ -775,7 +765,6 @@ describe('MapInterpreter', () => {
       {
         usecase: 'test',
         security: [],
-        services: ServiceSelector.withDefaultUrl(''),
       },
       { fetchInstance }
     );
@@ -803,7 +792,6 @@ describe('MapInterpreter', () => {
       {
         usecase: 'Test',
         security: [],
-        services: ServiceSelector.withDefaultUrl(''),
       },
       { fetchInstance }
     );
@@ -831,7 +819,6 @@ describe('MapInterpreter', () => {
       {
         usecase: 'Test',
         security: [],
-        services: ServiceSelector.withDefaultUrl(''),
       },
       { fetchInstance }
     );
@@ -858,7 +845,6 @@ describe('MapInterpreter', () => {
       {
         usecase: 'Test',
         security: [],
-        services: ServiceSelector.withDefaultUrl(''),
       },
       { fetchInstance }
     );
@@ -886,7 +872,6 @@ describe('MapInterpreter', () => {
       {
         usecase: 'Test',
         security: [],
-        services: ServiceSelector.withDefaultUrl(''),
       },
       { fetchInstance }
     );
@@ -915,7 +900,6 @@ describe('MapInterpreter', () => {
       {
         usecase: 'Test',
         security: [],
-        services: ServiceSelector.withDefaultUrl(''),
       },
       { fetchInstance }
     );
@@ -942,7 +926,6 @@ describe('MapInterpreter', () => {
       {
         usecase: 'Test',
         security: [],
-        services: ServiceSelector.withDefaultUrl(''),
       },
       { fetchInstance }
     );
@@ -969,7 +952,7 @@ describe('MapInterpreter', () => {
         usecase: 'Test',
         input: { test: 'twelve' },
         security: [],
-        services: mockServicesSelector,
+        serviceBaseUrl,
       },
       { fetchInstance }
     );
@@ -996,8 +979,8 @@ describe('MapInterpreter', () => {
     const interpreter = new MapInterpreter(
       {
         usecase: 'Test',
+        serviceBaseUrl: baseUrl,
         security: [],
-        services: ServiceSelector.withDefaultUrl(baseUrl),
       },
       { fetchInstance }
     );
@@ -1021,7 +1004,7 @@ describe('MapInterpreter', () => {
       {
         usecase: 'Test',
         security: [],
-        services: mockServicesSelector,
+        serviceBaseUrl,
       },
       { fetchInstance }
     );
@@ -1054,7 +1037,7 @@ describe('MapInterpreter', () => {
       {
         usecase: 'Test',
         security: [],
-        services: mockServicesSelector,
+        serviceBaseUrl,
         parameters: {
           message: 'nice!',
         },
@@ -1085,7 +1068,7 @@ describe('MapInterpreter', () => {
         usecase: 'Test',
         parameters: { path: 'twelve' },
         security: [],
-        services: mockServicesSelector,
+        serviceBaseUrl,
       },
       { fetchInstance }
     );
@@ -1111,70 +1094,12 @@ describe('MapInterpreter', () => {
         usecase: 'Test',
         parameters: { path: 'twelve' },
         security: [],
-        services: ServiceSelector.withDefaultUrl(
-          `${mockServicesSelector.getUrl()!}/{path}`
-        ),
+        serviceBaseUrl: `${serviceBaseUrl}/{path}`,
       },
       { fetchInstance }
     );
     const result = await interpreter.perform(ast);
     expect(result.isOk() && result.value).toEqual({ result: 12 });
-  });
-
-  it('should correctly select service', async () => {
-    const urlOne = '/one/something';
-    await mockServer.get(urlOne).thenJson(200, { data: 1 });
-
-    const urlTwo = '/two/something';
-    await mockServer.get(urlTwo).thenJson(200, { data: 2 });
-
-    const urlThree = '/three/something';
-    await mockServer.get(urlThree).thenJson(200, { data: 3 });
-
-    const ast = parseMapFromSource(`
-      map Test {
-        value = 0
-
-        http GET default "/something" {
-          response 200 "application/json" {
-            value = value + body.data
-          }
-        }
-
-        http GET "two" "/something" {
-          response 200 "application/json" {
-            value = value + body.data
-          }
-        }
-
-        http GET "three" "/something" {
-          response 200 "application/json" {
-            value = value + body.data
-          }
-        }
-
-        map result {
-          result = value
-        }
-      }`);
-
-    const interpreter = new MapInterpreter(
-      {
-        usecase: 'Test',
-        security: [],
-        services: new ServiceSelector(
-          [
-            { id: 'one', baseUrl: `${mockServicesSelector.getUrl()!}/one` },
-            { id: 'two', baseUrl: `${mockServicesSelector.getUrl()!}/two` },
-            { id: 'three', baseUrl: `${mockServicesSelector.getUrl()!}/three` },
-          ],
-          'one'
-        ),
-      },
-      { fetchInstance }
-    );
-    const result = await interpreter.perform(ast);
-    expect(result.isOk() && result.value).toEqual({ result: 6 });
   });
 
   it('should correctly return error from operation', async () => {
@@ -1192,7 +1117,6 @@ describe('MapInterpreter', () => {
       {
         usecase: 'Test',
         security: [],
-        services: ServiceSelector.withDefaultUrl(''),
       },
       { fetchInstance }
     );
@@ -1217,7 +1141,6 @@ describe('MapInterpreter', () => {
       {
         usecase: 'Test',
         security: [],
-        services: ServiceSelector.withDefaultUrl(''),
       },
       { fetchInstance }
     );
@@ -1245,7 +1168,6 @@ describe('MapInterpreter', () => {
       {
         usecase: 'Test',
         security: [],
-        services: ServiceSelector.withDefaultUrl(''),
       },
       { fetchInstance }
     );
@@ -1276,7 +1198,6 @@ describe('MapInterpreter', () => {
       {
         usecase: 'Test',
         security: [],
-        services: ServiceSelector.withDefaultUrl(''),
       },
       { fetchInstance }
     );
@@ -1301,7 +1222,6 @@ describe('MapInterpreter', () => {
       {
         usecase: 'Test',
         security: [],
-        services: ServiceSelector.withDefaultUrl(''),
       },
       { fetchInstance }
     );

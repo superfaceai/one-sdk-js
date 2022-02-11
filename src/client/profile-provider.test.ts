@@ -23,7 +23,6 @@ import { Parser } from '../internal/parser';
 import { SuperJson } from '../internal/superjson';
 import * as SuperJsonMutate from '../internal/superjson/mutate';
 import { err, ok } from '../lib';
-import { ServiceSelector } from '../lib/services';
 import { SuperfaceClient } from './client';
 import { ProfileConfiguration } from './profile';
 import { BoundProfileProvider, ProfileProvider } from './profile-provider';
@@ -158,8 +157,7 @@ describe('profile provider', () => {
       },
       {
         id: 'digest',
-        username: 'test-digest-user',
-        password: 'test-digest-password',
+        digest: 'test-digest-token',
       },
     ]);
 
@@ -181,10 +179,7 @@ describe('profile provider', () => {
           mockProfileDocument,
           mockMapDocument,
           'test',
-          {
-            services: ServiceSelector.withDefaultUrl('test/url'),
-            security: [],
-          }
+          { baseUrl: 'test/url', security: [] }
         );
 
         await expect(
@@ -219,10 +214,7 @@ describe('profile provider', () => {
           mockProfileDocument,
           mockMapDocument,
           'test',
-          {
-            services: ServiceSelector.withDefaultUrl('test/url'),
-            security: [],
-          }
+          { baseUrl: 'test/url', security: [] }
         );
 
         await expect(
@@ -252,10 +244,7 @@ describe('profile provider', () => {
           mockProfileDocument,
           mockMapDocument,
           'test',
-          {
-            services: ServiceSelector.withDefaultUrl('test/url'),
-            security: [],
-          }
+          { baseUrl: 'test/url', security: [] }
         );
 
         await expect(
@@ -293,7 +282,7 @@ describe('profile provider', () => {
           mockMapDocument,
           'test',
           {
-            services: ServiceSelector.withDefaultUrl('test/url'),
+            baseUrl: 'test/url',
             security: [],
             profileProviderSettings: {
               defaults: {
@@ -340,10 +329,7 @@ describe('profile provider', () => {
         mapAst: mockMapDocument,
         providerName: mockProviderJson.name,
         configuration: {
-          services: new ServiceSelector(
-            [{ id: 'test-service', baseUrl: 'service/base/url' }],
-            'test-service'
-          ),
+          baseUrl: 'service/base/url',
           security: [
             {
               id: 'basic',
@@ -367,8 +353,7 @@ describe('profile provider', () => {
               id: 'digest',
               type: SecurityType.HTTP,
               scheme: HttpScheme.DIGEST,
-              username: 'test-digest-user',
-              password: 'test-digest-password',
+              digest: 'test-digest-token',
             },
           ],
         },
@@ -892,8 +877,7 @@ describe('profile provider', () => {
           },
           {
             id: 'digest',
-            username: 'test-digest-user',
-            password: 'test-digest-password',
+            digest: 'test-digest-token',
           },
         ]);
         mocked(fetchBind).mockResolvedValue(mockFetchResponse);

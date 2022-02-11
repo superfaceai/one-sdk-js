@@ -1,5 +1,4 @@
 import {
-  ComlinkAssignmentNode,
   ComlinkListLiteralNode,
   ComlinkObjectLiteralNode,
   ComlinkPrimitiveLiteralNode,
@@ -38,10 +37,6 @@ export interface ProfileVisitor {
   ): unknown;
   visitComlinkPrimitiveLiteralNode(
     node: ComlinkPrimitiveLiteralNode,
-    ...parameters: unknown[]
-  ): unknown;
-  visitComlinkAssignmentNode(
-    node: ComlinkAssignmentNode,
     ...parameters: unknown[]
   ): unknown;
   visitEnumDefinitionNode(

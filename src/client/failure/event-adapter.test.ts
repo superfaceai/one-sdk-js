@@ -10,7 +10,6 @@ import { getLocal } from 'mockttp';
 
 import { SuperJson } from '../../internal';
 import { ok, sleep } from '../../lib';
-import { ServiceSelector } from '../../lib/services';
 import {
   createTypedClient,
   invalidateSuperfaceClientCache,
@@ -436,21 +435,21 @@ function spyOnCacheBoundProfileProvider(client: SuperfaceClientBase) {
     firstMockProfileDocument,
     firstMockMapDocument,
     'provider',
-    { services: ServiceSelector.withDefaultUrl(mockServer.url), security: [] },
+    { baseUrl: mockServer.url, security: [] },
     client
   );
   const secondMockBoundProfileProvider = new BoundProfileProvider(
     firstMockProfileDocument,
     secondMockMapDocument,
     'second',
-    { services: ServiceSelector.withDefaultUrl(mockServer.url), security: [] },
+    { baseUrl: mockServer.url, security: [] },
     client
   );
   const thirdMockBoundProfileProvider = new BoundProfileProvider(
     secondMockProfiledDocument,
     thirdMockMapDocument,
     'third',
-    { services: ServiceSelector.withDefaultUrl(mockServer.url), security: [] },
+    { baseUrl: mockServer.url, security: [] },
     client
   );
   const cacheBoundProfileProviderSpy = jest

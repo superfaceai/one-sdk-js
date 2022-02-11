@@ -9,10 +9,6 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - name: Branch check
-        if: startsWith(github.event.inputs.release-level, 'pre') != true && github.ref_name != 'main'
-        run: exit 1
-
       # Checkout project main and setup environment
       - name: Checkout
         uses: actions/checkout@v2.3.4

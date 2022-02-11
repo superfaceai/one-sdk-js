@@ -144,8 +144,7 @@ describe('SuperJson', () => {
     it('checks unknow input correctly', () => {
       const mockInput = {
         id: 'id',
-        username: 'digest-user',
-        password: 'digest-password',
+        digest: 'digest',
       };
       expect(isBearerTokenSecurityValues(mockInput)).toEqual(false);
     });
@@ -155,8 +154,7 @@ describe('SuperJson', () => {
     it('checks digest values input correctly', () => {
       const mockInput = {
         id: 'id',
-        username: 'digest-user',
-        password: 'digest-password',
+        digest: 'digest',
       };
       expect(isDigestSecurityValues(mockInput)).toEqual(true);
     });
@@ -782,8 +780,7 @@ describe('SuperJson', () => {
               },
               {
                 "id": "myCustomScheme",
-                "username": "digest-user",
-                "password": "digest-password"
+                "digest": "SECRET"
               }
             ]
           },
@@ -855,7 +852,7 @@ describe('SuperJson', () => {
     });
 
     it('returns error invalid document', () => {
-      const superJson = '"hello"';
+      const superJson = `"hello"`;
       expect(SuperJson.parse(JSON.parse(superJson)).isErr()).toBe(true);
     });
   });
@@ -1269,8 +1266,7 @@ describe('SuperJson', () => {
       const mockRight: SecurityValues[] = [
         {
           id: 'right-digest-id',
-          username: 'right-digest-user',
-          password: 'right-digest-password',
+          digest: 'right-digest-key',
         },
       ];
 
@@ -1281,8 +1277,7 @@ describe('SuperJson', () => {
         },
         {
           id: 'right-digest-id',
-          username: 'right-digest-user',
-          password: 'right-digest-password',
+          digest: 'right-digest-key',
         },
       ]);
     });
@@ -1295,16 +1290,14 @@ describe('SuperJson', () => {
         },
         {
           id: 'digest-id',
-          username: 'left-digest-user',
-          password: 'left-digest-password',
+          digest: 'left-digest-key',
         },
       ];
 
       const mockRight: SecurityValues[] = [
         {
           id: 'digest-id',
-          username: 'right-digest-user',
-          password: 'right-digest-password',
+          digest: 'right-digest-key',
         },
       ];
 
@@ -1315,8 +1308,7 @@ describe('SuperJson', () => {
         },
         {
           id: 'digest-id',
-          username: 'right-digest-user',
-          password: 'right-digest-password',
+          digest: 'right-digest-key',
         },
       ]);
     });

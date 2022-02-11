@@ -8,7 +8,6 @@ import { getLocal } from 'mockttp';
 import { BoundProfileProvider } from '../client';
 import { Events } from './events';
 import { err } from './result/result';
-import { ServiceSelector } from './services';
 
 const astMetadata: AstMetadata = {
   sourceChecksum: 'checksum',
@@ -148,10 +147,7 @@ describe('events', () => {
       mockProfileDocument,
       mockMapDocument,
       'provider',
-      {
-        services: ServiceSelector.withDefaultUrl(mockServer.url),
-        security: [],
-      },
+      { baseUrl: mockServer.url, security: [] },
       events
     );
 
@@ -188,12 +184,7 @@ describe('events', () => {
       mockProfileDocument,
       mockMapDocument,
       'someprovider',
-      {
-        services: ServiceSelector.withDefaultUrl(
-          'https://unreachable.localhost'
-        ),
-        security: [],
-      },
+      { baseUrl: 'https://unreachable.localhost', security: [] },
       events
     );
 
@@ -226,10 +217,7 @@ describe('events', () => {
       mockProfileDocument,
       mockMapDocument,
       'provider',
-      {
-        services: ServiceSelector.withDefaultUrl(mockServer.url),
-        security: [],
-      },
+      { baseUrl: mockServer.url, security: [] },
       events
     );
 
@@ -256,10 +244,7 @@ describe('events', () => {
       mockProfileDocument,
       mockMapDocument,
       'provider',
-      {
-        services: ServiceSelector.withDefaultUrl(mockServer.url),
-        security: [],
-      },
+      { baseUrl: mockServer.url, security: [] },
       events
     );
 
@@ -286,10 +271,7 @@ describe('events', () => {
       mockProfileDocument,
       mockMapDocument,
       'provider',
-      {
-        services: ServiceSelector.withDefaultUrl(mockServer.url),
-        security: [],
-      },
+      { baseUrl: mockServer.url, security: [] },
       events
     );
 

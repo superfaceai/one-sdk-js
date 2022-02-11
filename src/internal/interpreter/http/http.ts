@@ -1,12 +1,7 @@
-import {
-  HttpScheme,
-  HttpSecurityRequirement,
-  SecurityType,
-} from '@superfaceai/ast';
+import { HttpSecurityRequirement, SecurityType } from '@superfaceai/ast';
 import createDebug from 'debug';
 import { inspect } from 'util';
 
-import { AuthCache } from '../../../client';
 import { USER_AGENT } from '../../../index';
 import { recursiveKeyList } from '../../../lib/object';
 import { UnexpectedError } from '../../errors';
@@ -35,10 +30,8 @@ import {
   urlSearchParamsBody,
 } from './interfaces';
 import {
-  ApiKeyHandler,
-  DigestHandler,
-  HttpHandler,
-  ISecurityHandler,
+  applyApiKeyAuth,
+  applyHttpAuth,
   SecurityConfiguration,
 } from './security';
 
@@ -131,59 +124,7 @@ export const createUrl = (
 };
 
 export class HttpClient {
-  constructor(private fetchInstance: FetchInstance & AuthCache) {}
-
-  private async makeRequest(options: {
-    url: string;
-    headers: Record<string, string>;
-    requestBody: Variables | undefined;
-    request: FetchParameters;
-  }): Promise<HttpResponse> {
-    const { url, headers, request, requestBody } = options;
-    debug('Executing HTTP Call');
-    // secrets might appear in headers, url path, query parameters or body
-    if (debugSensitive.enabled) {
-      const hasSearchParams =
-        Object.keys(request.queryParameters ?? {}).length > 0;
-      const searchParams = new URLSearchParams(request.queryParameters);
-      debugSensitive(
-        '\t%s %s%s HTTP/1.1',
-        request.method || 'UNKNOWN METHOD',
-        url,
-        hasSearchParams ? '?' + searchParams.toString() : ''
-      );
-
-      Object.entries(headers).forEach(([headerName, value]) =>
-        debugSensitive(`\t${headerName}: ${value}`)
-      );
-      if (requestBody !== undefined) {
-        debugSensitive(`\n${inspect(requestBody, true, 5)}`);
-      }
-    }
-    const response = await this.fetchInstance.fetch(url, request);
-
-    debug('Received response');
-    if (debugSensitive.enabled) {
-      debugSensitive(`\tHTTP/1.1 ${response.status} ${response.statusText}`);
-      Object.entries(response.headers).forEach(([headerName, value]) =>
-        debugSensitive(`\t${headerName}: ${value}`)
-      );
-      debugSensitive('\n\t%j', response.body);
-    }
-
-    return {
-      statusCode: response.status,
-      body: response.body,
-      headers: response.headers,
-      debug: {
-        request: {
-          url: url,
-          headers,
-          body: requestBody,
-        },
-      },
-    };
-  }
+  constructor(private fetchInstance: FetchInstance) {}
 
   public async request(
     url: string,
@@ -201,8 +142,6 @@ export class HttpClient {
       integrationParameters?: Record<string, string>;
     }
   ): Promise<HttpResponse> {
-    const securityHandlers: ISecurityHandler[] = [];
-    let retry = true;
     const headers = variablesToStrings(parameters?.headers);
     headers['accept'] = parameters.accept || '*/*';
 
@@ -217,13 +156,11 @@ export class HttpClient {
 
     const securityConfiguration = parameters.securityConfiguration ?? [];
     const contextForSecurity = {
-      url,
       headers,
       queryAuth,
       pathParameters,
       requestBody,
     };
-    //Prepare security
     for (const requirement of parameters.securityRequirements ?? []) {
       const configuration = securityConfiguration.find(
         configuration => configuration.id === requirement.id
@@ -233,96 +170,101 @@ export class HttpClient {
       }
 
       if (configuration.type === SecurityType.APIKEY) {
-        const handler = new ApiKeyHandler(configuration);
-        handler.prepare(contextForSecurity);
-        securityHandlers.push(handler);
-      } else if (configuration.scheme === HttpScheme.DIGEST) {
-        const handler = new DigestHandler(configuration);
-        handler.prepare(contextForSecurity, this.fetchInstance);
-        securityHandlers.push(handler);
+        applyApiKeyAuth(contextForSecurity, configuration);
       } else {
-        const handler = new HttpHandler(configuration);
-        handler.prepare(contextForSecurity);
-        securityHandlers.push(handler);
+        applyHttpAuth(contextForSecurity, configuration);
       }
     }
-    //Prepare the actual call
-    let response: HttpResponse;
 
-    do {
-      if (
-        parameters.body &&
-        ['post', 'put', 'patch'].includes(parameters.method.toLowerCase())
+    if (
+      parameters.body &&
+      ['post', 'put', 'patch'].includes(parameters.method.toLowerCase())
+    ) {
+      if (parameters.contentType === JSON_CONTENT) {
+        headers['Content-Type'] ??= JSON_CONTENT;
+        request.body = stringBody(JSON.stringify(requestBody));
+      } else if (parameters.contentType === URLENCODED_CONTENT) {
+        headers['Content-Type'] ??= URLENCODED_CONTENT;
+        request.body = urlSearchParamsBody(variablesToStrings(requestBody));
+      } else if (parameters.contentType === FORMDATA_CONTENT) {
+        headers['Content-Type'] ??= FORMDATA_CONTENT;
+        request.body = formDataBody(variablesToStrings(requestBody));
+      } else if (
+        parameters.contentType &&
+        BINARY_CONTENT_REGEXP.test(parameters.contentType)
       ) {
-        if (parameters.contentType === JSON_CONTENT) {
-          headers['Content-Type'] ??= JSON_CONTENT;
-          request.body = stringBody(JSON.stringify(requestBody));
-        } else if (parameters.contentType === URLENCODED_CONTENT) {
-          headers['Content-Type'] ??= URLENCODED_CONTENT;
-          request.body = urlSearchParamsBody(variablesToStrings(requestBody));
-        } else if (parameters.contentType === FORMDATA_CONTENT) {
-          headers['Content-Type'] ??= FORMDATA_CONTENT;
-          request.body = formDataBody(variablesToStrings(requestBody));
-        } else if (
-          parameters.contentType &&
-          BINARY_CONTENT_REGEXP.test(parameters.contentType)
-        ) {
-          headers['Content-Type'] ??= parameters.contentType;
-          let buffer: Buffer;
-          if (Buffer.isBuffer(requestBody)) {
-            buffer = requestBody;
-          } else {
-            //coerce to string then buffer
-            buffer = Buffer.from(String(requestBody));
-          }
-          request.body = binaryBody(buffer);
+        headers['Content-Type'] ??= parameters.contentType;
+        let buffer: Buffer;
+        if (Buffer.isBuffer(requestBody)) {
+          buffer = requestBody;
         } else {
-          const contentType = parameters.contentType ?? '';
-          const supportedTypes = [
-            JSON_CONTENT,
-            URLENCODED_CONTENT,
-            FORMDATA_CONTENT,
-            ...BINARY_CONTENT_TYPES,
-          ];
-
-          throw unsupportedContentType(contentType, supportedTypes);
+          //coerce to string then buffer
+          buffer = Buffer.from(String(requestBody));
         }
-      }
-      headers['user-agent'] ??= USER_AGENT;
-
-      const finalUrl = createUrl(url, {
-        baseUrl: parameters.baseUrl,
-        pathParameters,
-        integrationParameters: parameters.integrationParameters,
-      });
-
-      request.queryParameters = {
-        ...variablesToStrings(parameters.queryParameters),
-        ...queryAuth,
-      };
-      response = await this.makeRequest({
-        url: finalUrl,
-        headers,
-        requestBody,
-        request,
-      });
-      //TODO: or call handle on all the handers (with defined handle)?
-      const handler = securityHandlers.find(h => h.handle !== undefined);
-      //If we have handle we use it to get new values for api call and new retry value
-      if (handler && handler.handle) {
-        retry = handler.handle(
-          response,
-          finalUrl,
-          request.method,
-          contextForSecurity,
-          this.fetchInstance
-        );
+        request.body = binaryBody(buffer);
       } else {
-        retry = false;
-      }
-      //TODO: maybe some numeric limit to avoid inf. loop?
-    } while (retry);
+        const contentType = parameters.contentType ?? '';
+        const supportedTypes = [
+          JSON_CONTENT,
+          URLENCODED_CONTENT,
+          FORMDATA_CONTENT,
+          ...BINARY_CONTENT_TYPES,
+        ];
 
-    return response;
+        throw unsupportedContentType(contentType, supportedTypes);
+      }
+    }
+    headers['user-agent'] ??= USER_AGENT;
+
+    const finalUrl = createUrl(url, {
+      baseUrl: parameters.baseUrl,
+      pathParameters,
+      integrationParameters: parameters.integrationParameters,
+    });
+
+    request.queryParameters = {
+      ...variablesToStrings(parameters.queryParameters),
+      ...queryAuth,
+    };
+
+    debug('Executing HTTP Call');
+    // secrets might appear in headers, url path, query parameters or body
+    if (debugSensitive.enabled) {
+      const hasSearchParams = Object.keys(request.queryParameters).length > 0;
+      const searchParams = new URLSearchParams(request.queryParameters);
+      debugSensitive(
+        '\t%s %s%s HTTP/1.1',
+        request.method || 'UNKNOWN METHOD',
+        finalUrl,
+        hasSearchParams ? '?' + searchParams.toString() : ''
+      );
+    }
+    Object.entries(headers).forEach(([headerName, value]) =>
+      debugSensitive(`\t${headerName}: ${value}`)
+    );
+    if (requestBody !== undefined) {
+      debugSensitive(`\n${inspect(requestBody, true, 5)}`);
+    }
+    const response = await this.fetchInstance.fetch(finalUrl, request);
+
+    debug('Received response');
+    debugSensitive(`\tHTTP/1.1 ${response.status} ${response.statusText}`);
+    Object.entries(response.headers).forEach(([headerName, value]) =>
+      debugSensitive(`\t${headerName}: ${value}`)
+    );
+    debugSensitive('\n\t%j', response.body);
+
+    return {
+      statusCode: response.status,
+      body: response.body,
+      headers: response.headers,
+      debug: {
+        request: {
+          url: finalUrl,
+          headers,
+          body: requestBody,
+        },
+      },
+    };
   }
 }
