@@ -68,7 +68,7 @@ export class DigestHandler implements ISecurityHandler {
 
   prepare(context: RequestContext, cache: AuthCache): void {
     if (cache?.digest && cache.digest[context.url]) {
-      debugSensitive(`Using cached digest credentials`);
+      debugSensitive('Using cached digest credentials');
       context.headers[
         this.configuration.authorizationHeader ??
           DEFAULT_AUTHORIZATION_HEADER_NAME
@@ -90,7 +90,7 @@ export class DigestHandler implements ISecurityHandler {
           Object.keys(response.headers)
         );
       }
-      debugSensitive(`Getting new digest values`);
+      debugSensitive('Getting new digest values');
       const credentials = this.buildDigestAuth(
         url,
         method,
