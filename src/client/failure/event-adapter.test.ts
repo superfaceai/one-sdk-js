@@ -468,7 +468,13 @@ function spyOnCacheBoundProfileProvider(client: SuperfaceClientBase) {
           return Promise.resolve(thirdMockBoundProfileProvider);
 
         case 'invalid':
-          return Promise.reject(bindResponseError({ test: 'test' }));
+          return Promise.reject(
+            bindResponseError({
+              statusCode: 400,
+              profileId: 'profileId',
+              title: 'test',
+            })
+          );
 
         default:
           throw 'unreachable';
@@ -1542,7 +1548,13 @@ describe.each([
     const useCase = profile.getUseCase('Test');
     const result = useCase.perform(undefined);
 
-    await expect(result).rejects.toThrow(bindResponseError({ test: 'test' }));
+    await expect(result).rejects.toThrow(
+      bindResponseError({
+        statusCode: 400,
+        profileId: 'profileId',
+        title: 'test',
+      })
+    );
 
     //We send request twice
     expect((await endpoint.getSeenRequests()).length).toEqual(0);

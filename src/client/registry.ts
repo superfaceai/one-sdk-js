@@ -12,8 +12,10 @@ import { UnexpectedError } from '../internal/errors';
 import {
   bindResponseError,
   invalidProviderResponseError,
+  unknownBindResponseError,
+  unknownProviderInfoError,
 } from '../internal/errors.helpers';
-import { HttpClient } from '../internal/interpreter/http';
+import { HttpClient, HttpResponse } from '../internal/interpreter/http';
 import { CrossFetch } from '../lib/fetch';
 
 const registryDebug = createDebug('superface:registry');
@@ -71,15 +73,18 @@ export async function fetchProviderInfo(
   const sdkToken = Config.instance().sdkAuthToken;
 
   registryDebug(`Fetching provider ${providerName} from registry`);
-  const { body } = await http.request(`/providers/${providerName}`, {
-    method: 'GET',
-    headers: sdkToken
-      ? [`Authorization: SUPERFACE-SDK-TOKEN ${sdkToken}`]
-      : undefined,
-    baseUrl: Config.instance().superfaceApiUrl,
-    accept: 'application/json',
-    contentType: 'application/json',
-  });
+  const { body, statusCode } = await http.request(
+    `/providers/${providerName}`,
+    {
+      method: 'GET',
+      headers: sdkToken
+        ? [`Authorization: SUPERFACE-SDK-TOKEN ${sdkToken}`]
+        : undefined,
+      baseUrl: Config.instance().superfaceApiUrl,
+      accept: 'application/json',
+      contentType: 'application/json',
+    }
+  );
 
   function assertProperties(
     obj: unknown
@@ -89,23 +94,52 @@ export async function fetchProviderInfo(
       obj === null ||
       'definition' in obj === false
     ) {
-      throw new UnexpectedError('Registry responded with invalid body');
+      throw unknownProviderInfoError({
+        message: 'Registry responded with invalid body',
+        body: obj,
+        provider: providerName,
+        statusCode,
+      });
     }
   }
 
   assertProperties(body);
 
   if (!isProviderJson(body.definition)) {
-    throw new UnexpectedError('Registry responded with invalid body');
+    throw unknownProviderInfoError({
+      message: 'Registry responded with invalid ProviderJson definition',
+      body: body.definition,
+      provider: providerName,
+      statusCode,
+    });
   }
 
   return body.definition;
 }
 
-function parseBindResponse(input: unknown): {
+function parseBindResponse(
+  request: {
+    profileId: string;
+    provider?: string;
+    mapVariant?: string;
+    mapRevision?: string;
+  },
+  response: HttpResponse
+): {
   provider: ProviderJson;
   mapAst?: MapDocumentNode;
 } {
+  function isErrorBody(
+    input: unknown
+  ): input is { detail: string; title: string } {
+    return (
+      typeof input === 'object' &&
+      input !== null &&
+      'detail' in input &&
+      'title' in input
+    );
+  }
+
   function assertProperties(
     obj: unknown
   ): asserts obj is { provider: unknown; map_ast: string } {
@@ -115,22 +149,43 @@ function parseBindResponse(input: unknown): {
       'provider' in obj === false ||
       'map_ast' in obj === false
     ) {
-      throw bindResponseError(input);
+      throw unknownBindResponseError({
+        ...request,
+        statusCode: response.statusCode,
+        body: response.body,
+      });
     }
   }
 
-  assertProperties(input);
+  if (response.statusCode !== 200) {
+    if (isErrorBody(response.body)) {
+      throw bindResponseError({
+        ...request,
+        statusCode: response.statusCode,
+        title: response.body.title,
+        detail: response.body.detail,
+      });
+    }
+
+    throw unknownBindResponseError({
+      ...request,
+      statusCode: response.statusCode,
+      body: response.body,
+    });
+  }
+
+  assertProperties(response.body);
 
   let mapAst: MapDocumentNode | undefined;
   try {
-    mapAst = assertMapDocumentNode(JSON.parse(input.map_ast));
+    mapAst = assertMapDocumentNode(JSON.parse(response.body.map_ast));
   } catch (error) {
     mapAst = undefined;
   }
 
   let provider;
   try {
-    provider = assertProviderJson(input.provider);
+    provider = assertProviderJson(response.body.provider);
   } catch (error) {
     throw invalidProviderResponseError(error);
   }
@@ -154,7 +209,8 @@ export async function fetchBind(request: {
   const http = new HttpClient(fetchInstance);
   const sdkToken = Config.instance().sdkAuthToken;
   registryDebug('Binding SDK to registry');
-  const { body } = await http.request('/registry/bind', {
+
+  const fetchResponse = await http.request('/registry/bind', {
     method: 'POST',
     headers: sdkToken
       ? [`Authorization: SUPERFACE-SDK-TOKEN ${sdkToken}`]
@@ -170,7 +226,7 @@ export async function fetchBind(request: {
     },
   });
 
-  return parseBindResponse(body);
+  return parseBindResponse(request, fetchResponse);
 }
 
 export async function fetchMapSource(mapId: string): Promise<string> {

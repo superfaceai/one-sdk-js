@@ -60,6 +60,7 @@ export type FetchInstance = {
 };
 
 export const JSON_CONTENT = 'application/json';
+export const JSON_PROBLEM_CONTENT = 'application/problem+json';
 export const URLENCODED_CONTENT = 'application/x-www-form-urlencoded';
 export const FORMDATA_CONTENT = 'multipart/form-data';
 export const BINARY_CONTENT_TYPES = [
