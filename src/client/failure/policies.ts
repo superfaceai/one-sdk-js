@@ -264,6 +264,9 @@ export class RetryPolicy extends FailurePolicy {
   }
 
   override afterFailure(info: ExecutionFailure): FailureResolution {
+    if (info.kind === 'bind') {
+      this.streak = -this.maxContiguousRetries;
+    }
     // either reset to -1 or make the negative streak longer
     this.streak = Math.min(-1, this.streak - 1);
     this.lastCallTime = info.time;

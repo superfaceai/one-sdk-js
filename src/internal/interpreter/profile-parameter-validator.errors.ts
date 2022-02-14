@@ -86,7 +86,7 @@ export function formatErrors(errors?: ValidationError[]): string {
           );
 
         case 'wrongInput':
-          return `Wrong input`;
+          return 'Wrong input';
 
         case 'nullInNonNullable':
           return `${prefix}Null in non-nullable field`;

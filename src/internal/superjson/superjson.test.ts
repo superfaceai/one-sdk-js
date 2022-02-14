@@ -855,7 +855,7 @@ describe('SuperJson', () => {
     });
 
     it('returns error invalid document', () => {
-      const superJson = `"hello"`;
+      const superJson = '"hello"';
       expect(SuperJson.parse(JSON.parse(superJson)).isErr()).toBe(true);
     });
   });
