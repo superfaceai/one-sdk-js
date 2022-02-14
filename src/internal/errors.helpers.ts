@@ -1,5 +1,6 @@
 import { BackoffKind, SecurityValues } from '@superfaceai/ast';
 
+import { SDKBindError } from '.';
 import { SDKExecutionError } from './errors';
 
 export function ensureErrorSubclass(error: unknown): Error {
@@ -361,6 +362,18 @@ export function providersDoNotMatchError(
     []
   );
 }
+//Bind errors
+export function bindResponseError(input: unknown): SDKExecutionError {
+  return new SDKBindError(
+    `Bind call responded with invalid body: ${JSON.stringify(input)}`,
+    [
+      'OneSdk expects response containing object',
+      'Received object should contain property "provider" of type "ProviderJson"',
+      'Received object should contain property "map_ast" of type "undefined" or "MapDocumentNode"',
+    ],
+    []
+  );
+}
 
 export function digestHeaderNotFound(
   headerName: string,
@@ -386,6 +399,16 @@ export function missingPartOfDigestHeader(
     [
       `Header: "${headerName}" with content: "${header}" does not contain part specifing: "${part}"`,
     ],
+    []
+  );
+}
+
+export function invalidProviderResponseError(
+  input: unknown
+): SDKExecutionError {
+  return new SDKBindError(
+    `Bind call responded with invalid provider body: ${JSON.stringify(input)}`,
+    ['Received provider should be of type "ProviderJson"'],
     []
   );
 }

@@ -9,6 +9,10 @@ import createDebug from 'debug';
 
 import { Config } from '../config';
 import { UnexpectedError } from '../internal/errors';
+import {
+  bindResponseError,
+  invalidProviderResponseError,
+} from '../internal/errors.helpers';
 import { HttpClient } from '../internal/interpreter/http';
 import { CrossFetch } from '../lib/fetch';
 
@@ -111,7 +115,7 @@ function parseBindResponse(input: unknown): {
       'provider' in obj === false ||
       'map_ast' in obj === false
     ) {
-      throw new UnexpectedError('Registry responded with invalid body');
+      throw bindResponseError(input);
     }
   }
 
@@ -124,8 +128,15 @@ function parseBindResponse(input: unknown): {
     mapAst = undefined;
   }
 
+  let provider;
+  try {
+    provider = assertProviderJson(input.provider);
+  } catch (error) {
+    throw invalidProviderResponseError(error);
+  }
+
   return {
-    provider: assertProviderJson(input.provider),
+    provider,
     mapAst,
   };
 }
