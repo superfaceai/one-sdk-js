@@ -11,6 +11,7 @@ import { Config } from '../config';
 import { UnexpectedError } from '../internal/errors';
 import {
   bindResponseError,
+  invalidProviderResponseError,
   unknownBindResponseError,
   unknownProviderInfoError,
 } from '../internal/errors.helpers';
@@ -94,7 +95,7 @@ export async function fetchProviderInfo(
       'definition' in obj === false
     ) {
       throw unknownProviderInfoError({
-        message: `Registry responded with invalid body`,
+        message: 'Registry responded with invalid body',
         body: obj,
         provider: providerName,
         statusCode,
@@ -106,7 +107,7 @@ export async function fetchProviderInfo(
 
   if (!isProviderJson(body.definition)) {
     throw unknownProviderInfoError({
-      message: `Registry responded with invalid ProviderJson definition`,
+      message: 'Registry responded with invalid ProviderJson definition',
       body: body.definition,
       provider: providerName,
       statusCode,
@@ -182,8 +183,15 @@ function parseBindResponse(
     mapAst = undefined;
   }
 
+  let provider;
+  try {
+    provider = assertProviderJson(response.body.provider);
+  } catch (error) {
+    throw invalidProviderResponseError(error);
+  }
+
   return {
-    provider: assertProviderJson(response.body.provider),
+    provider,
     mapAst,
   };
 }

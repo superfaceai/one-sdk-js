@@ -1,7 +1,7 @@
 import { BackoffKind, SecurityValues } from '@superfaceai/ast';
 
 import { Config } from '../config';
-import { SDKExecutionError } from './errors';
+import { SDKBindError, SDKExecutionError } from './errors';
 
 export function ensureErrorSubclass(error: unknown): Error {
   if (typeof error === 'string') {
@@ -58,7 +58,7 @@ export function noConfiguredProviderError(
     ],
     [
       `Check that a provider is configured for a profile in super.json -> profiles["${profileId}"].providers`,
-      `Providers can be configured using the superface cli tool: \`superface configure --help\` for more info`,
+      'Providers can be configured using the superface cli tool: `superface configure --help` for more info',
     ]
   );
 }
@@ -136,7 +136,7 @@ export function unconfiguredProviderError(
     `Provider not configured: ${providerName}`,
     [`Provider "${providerName}" was not configured in super.json`],
     [
-      `Providers can be configured using the superface cli tool: \`superface configure --help\` for more info`,
+      'Providers can be configured using the superface cli tool: `superface configure --help` for more info',
     ]
   );
 }
@@ -146,8 +146,8 @@ export function invalidProfileError(profileId: string): SDKExecutionError {
     `Invalid profile "${profileId}"`,
     [],
     [
-      `Check that the profile is installed in super.json -> profiles or that the url is valid`,
-      `Profiles can be installed using the superface cli tool: \`superface install --help\` for more info`,
+      'Check that the profile is installed in super.json -> profiles or that the url is valid',
+      'Profiles can be installed using the superface cli tool: `superface install --help` for more info',
     ]
   );
 }
@@ -222,7 +222,7 @@ export function invalidBackoffEntryError(kind: string): SDKExecutionError {
       `Property "kind" in super.json [profile].providers.[provider].defaults.[usecase].retryPolicy.backoff with value "${kind}" is not valid`,
     ],
     [
-      `Check your super.json`,
+      'Check your super.json',
       `Check property "kind" in [profile].providers.[provider].defaults.[usecase].retryPolicy.backoff with value "${kind}"`,
       `Change value of property "kind" in retryPolicy.backoff to one of possible values: ${Object.values(
         BackoffKind
@@ -260,7 +260,7 @@ export function missingSecurityValuesError(id: string): SDKExecutionError {
     `Security values for security scheme not found: ${id}`,
     [
       `Security values for scheme "${id}" are required by the map`,
-      `but they were not provided to the sdk`,
+      'but they were not provided to the sdk',
     ],
     [
       `Make sure that the security scheme "${id}" exists in provider definition`,
@@ -326,9 +326,9 @@ export function localProviderAndRemoteMapError(
       `Super.json settings providers.${providerName}`,
     ],
     [
-      `Use local provider and profile provider (map)`,
-      `Use remote provider and profile provider (map)`,
-      `Use remote provider and local profile provider (map)`,
+      'Use local provider and profile provider (map)',
+      'Use remote provider and profile provider (map)',
+      'Use remote provider and local profile provider (map)',
     ]
   );
 }
@@ -362,6 +362,18 @@ export function providersDoNotMatchError(
     []
   );
 }
+// //Bind errors
+// export function bindResponseError(input: unknown): SDKExecutionError {
+//   return new SDKBindError(
+//     `Bind call responded with invalid body: ${JSON.stringify(input)}`,
+//     [
+//       'OneSdk expects response containing object',
+//       'Received object should contain property "provider" of type "ProviderJson"',
+//       'Received object should contain property "map_ast" of type "undefined" or "MapDocumentNode"',
+//     ],
+//     []
+//   );
+// }
 
 export function digestHeaderNotFound(
   headerName: string,
@@ -371,8 +383,8 @@ export function digestHeaderNotFound(
     `Digest auth failed, unable to extract digest values from response. Header "${headerName}" not found in response headers.`,
     [`Found headers: ${foundHeaders.join(', ')}.`],
     [
-      `Check API documentation if it specifies challenge header`,
-      `You can set challenge header in provider.json`,
+      'Check API documentation if it specifies challenge header',
+      'You can set challenge header in provider.json',
     ]
   );
 }
@@ -406,6 +418,16 @@ export function unexpectedDigestValue(
     []
   );
 }
+//Bind errors
+export function invalidProviderResponseError(
+  input: unknown
+): SDKExecutionError {
+  return new SDKBindError(
+    `Bind call responded with invalid provider body: ${JSON.stringify(input)}`,
+    ['Received provider should be of type "ProviderJson"'],
+    []
+  );
+}
 
 export function bindResponseError({
   statusCode,
@@ -423,7 +445,7 @@ export function bindResponseError({
   detail?: string;
   mapVariant?: string;
   mapRevision?: string;
-}): SDKExecutionError {
+}): SDKBindError {
   const longLines = [];
 
   if (detail) {
@@ -438,7 +460,7 @@ export function bindResponseError({
     longLines.push(`Looking for map revision "${mapRevision}"`);
   }
 
-  return new SDKExecutionError(
+  return new SDKBindError(
     `Registry responded with status code ${statusCode}${
       title ? ` - ${title}.` : '.'
     }`,
@@ -470,7 +492,7 @@ export function unknownBindResponseError({
   provider?: string;
   mapVariant?: string;
   mapRevision?: string;
-}): SDKExecutionError {
+}): SDKBindError {
   const longLines = [
     provider
       ? `Error occured when binding profile "${profileId}" with provider "${provider}"`
@@ -485,7 +507,7 @@ export function unknownBindResponseError({
     longLines.push(`Looking for map revision "${mapRevision}"`);
   }
 
-  return new SDKExecutionError(
+  return new SDKBindError(
     `Registry responded with status code ${statusCode} and unexpected body ${String(
       body
     )}`,
@@ -498,7 +520,7 @@ export function unknownBindResponseError({
         new URL(profileId, Config.instance().superfaceApiUrl).href
       }"`,
       `If you are trying to use remote profile check if profile "${profileId}" is published`,
-      `If you are using local profile you can use local map and provider to bypass the binding`,
+      'If you are using local profile you can use local map and provider to bypass the binding',
     ]
   );
 }

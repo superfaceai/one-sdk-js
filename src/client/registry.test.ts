@@ -3,6 +3,7 @@ import { AstMetadata, MapDocumentNode, ProviderJson } from '@superfaceai/ast';
 import { Config } from '../config';
 import {
   bindResponseError,
+  invalidProviderResponseError,
   unknownBindResponseError,
   unknownProviderInfoError,
 } from '../internal/errors.helpers';
@@ -184,7 +185,7 @@ describe('registry', () => {
 
       await expect(fetchProviderInfo('test')).rejects.toEqual(
         unknownProviderInfoError({
-          message: `Registry responded with invalid body`,
+          message: 'Registry responded with invalid body',
           body: mockBody,
           provider: 'test',
           statusCode: 200,
@@ -213,7 +214,7 @@ describe('registry', () => {
 
       await expect(fetchProviderInfo('test')).rejects.toEqual(
         unknownProviderInfoError({
-          message: `Registry responded with invalid ProviderJson definition`,
+          message: 'Registry responded with invalid ProviderJson definition',
           body: {},
           provider: 'test',
           statusCode: 200,
@@ -362,7 +363,7 @@ describe('registry', () => {
           mapVariant: 'test-map-variant',
           mapRevision: 'test-map-revision',
         })
-      ).rejects.toThrow('validation failed');
+      ).rejects.toThrow(invalidProviderResponseError({ path: ['input'] }));
 
       expect(request).toHaveBeenCalledTimes(1);
     });

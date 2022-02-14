@@ -1,11 +1,10 @@
 import createDebug from 'debug';
 import { VM } from 'vm2';
 
+import { Config } from '../../config';
 import { NonPrimitive } from '../../internal/interpreter/variables';
 
 const debug = createDebug('superface:sandbox');
-
-export const SCRIPT_TIMEOUT = 100;
 
 export function evalScript(
   js: string,
@@ -18,7 +17,7 @@ export function evalScript(
     compiler: 'javascript',
     wasm: false,
     eval: false,
-    timeout: SCRIPT_TIMEOUT,
+    timeout: Config.instance().sandboxTimeout,
     fixAsync: true,
   });
 
