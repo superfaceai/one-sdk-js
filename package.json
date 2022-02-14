@@ -54,6 +54,6 @@
     "cross-fetch": "^3.0.5",
     "debug": "^4.3.2",
     "isomorphic-form-data": "^2.0.0",
-    "vm2": "^3.9.2"
+    "vm2": "^3.9.7"
   }
 }
