@@ -1,6 +1,7 @@
 import { BackoffKind, SecurityValues } from '@superfaceai/ast';
 
-import { SDKExecutionError } from './errors';
+import { Config } from '../config';
+import { SDKBindError, SDKExecutionError } from './errors';
 
 export function ensureErrorSubclass(error: unknown): Error {
   if (typeof error === 'string') {
@@ -361,6 +362,18 @@ export function providersDoNotMatchError(
     []
   );
 }
+// //Bind errors
+// export function bindResponseError(input: unknown): SDKExecutionError {
+//   return new SDKBindError(
+//     `Bind call responded with invalid body: ${JSON.stringify(input)}`,
+//     [
+//       'OneSdk expects response containing object',
+//       'Received object should contain property "provider" of type "ProviderJson"',
+//       'Received object should contain property "map_ast" of type "undefined" or "MapDocumentNode"',
+//     ],
+//     []
+//   );
+// }
 
 export function digestHeaderNotFound(
   headerName: string,
@@ -403,5 +416,136 @@ export function unexpectedDigestValue(
       )}`,
     ],
     []
+  );
+}
+//Bind errors
+export function invalidProviderResponseError(
+  input: unknown
+): SDKExecutionError {
+  return new SDKBindError(
+    `Bind call responded with invalid provider body: ${JSON.stringify(input)}`,
+    ['Received provider should be of type "ProviderJson"'],
+    []
+  );
+}
+
+export function bindResponseError({
+  statusCode,
+  profileId,
+  provider,
+  title,
+  detail,
+  mapVariant,
+  mapRevision,
+}: {
+  statusCode: number;
+  profileId: string;
+  provider?: string;
+  title?: string;
+  detail?: string;
+  mapVariant?: string;
+  mapRevision?: string;
+}): SDKBindError {
+  const longLines = [];
+
+  if (detail) {
+    longLines.push(detail);
+  }
+
+  if (mapVariant) {
+    longLines.push(`Looking for map variant "${mapVariant}"`);
+  }
+
+  if (mapRevision) {
+    longLines.push(`Looking for map revision "${mapRevision}"`);
+  }
+
+  return new SDKBindError(
+    `Registry responded with status code ${statusCode}${
+      title ? ` - ${title}.` : '.'
+    }`,
+    longLines,
+    [
+      provider
+        ? `Check if profile "${profileId}" can be used with provider "${provider}"`
+        : `Check if profile "${profileId}" can be used with selected provider.`,
+      `If you are using remote profile you can check informations about profile at "${
+        new URL(profileId, Config.instance().superfaceApiUrl).href
+      }"`,
+      `If you are trying to use remote profile check if profile "${profileId}" is published`,
+      'If you are using local profile you can use local map and provider to bypass the binding',
+    ]
+  );
+}
+
+export function unknownBindResponseError({
+  statusCode,
+  profileId,
+  body,
+  provider,
+  mapVariant,
+  mapRevision,
+}: {
+  statusCode: number;
+  profileId: string;
+  body: unknown;
+  provider?: string;
+  mapVariant?: string;
+  mapRevision?: string;
+}): SDKBindError {
+  const longLines = [
+    provider
+      ? `Error occured when binding profile "${profileId}" with provider "${provider}"`
+      : `Error occured when binding profile "${profileId}" with selected provider`,
+  ];
+
+  if (mapVariant) {
+    longLines.push(`Looking for map variant "${mapVariant}"`);
+  }
+
+  if (mapRevision) {
+    longLines.push(`Looking for map revision "${mapRevision}"`);
+  }
+
+  return new SDKBindError(
+    `Registry responded with status code ${statusCode} and unexpected body ${String(
+      body
+    )}`,
+    longLines,
+    [
+      provider
+        ? `Check if profile "${profileId}" can be used with provider "${provider}"`
+        : `Check if profile "${profileId}" can be used with selected provider`,
+      `If you are using remote profile you can check informations about profile at "${
+        new URL(profileId, Config.instance().superfaceApiUrl).href
+      }"`,
+      `If you are trying to use remote profile check if profile "${profileId}" is published`,
+      'If you are using local profile you can use local map and provider to bypass the binding',
+    ]
+  );
+}
+
+export function unknownProviderInfoError({
+  message,
+  provider,
+  body,
+  statusCode,
+}: {
+  message: string;
+  provider: string;
+  body: unknown;
+  statusCode: number;
+}): SDKExecutionError {
+  const longLines = [
+    message,
+    `Error occured when fetching info about provider "${provider}"`,
+  ];
+
+  return new SDKExecutionError(
+    `Registry responded with status code ${statusCode} and unexpected body ${String(
+      body
+    )}`,
+    longLines,
+    [`Check if provider "${provider}" is published`]
   );
 }

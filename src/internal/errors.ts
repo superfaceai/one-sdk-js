@@ -77,3 +77,14 @@ export class SDKExecutionError extends Error {
     return this.formatLong();
   }
 }
+
+export class SDKBindError extends SDKExecutionError {
+  constructor(shortMessage: string, longLines: string[], hints: string[]) {
+    super(shortMessage, longLines, hints);
+
+    // https://github.com/Microsoft/TypeScript/wiki/Breaking-Changes#extending-built-ins-like-error-array-and-map-may-no-longer-work
+    Object.setPrototypeOf(this, SDKBindError.prototype);
+
+    this.name = 'SDKBindError';
+  }
+}

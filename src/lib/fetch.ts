@@ -14,6 +14,7 @@ import {
   isStringBody,
   isUrlSearchParamsBody,
   JSON_CONTENT,
+  JSON_PROBLEM_CONTENT,
 } from '../internal/interpreter/http/interfaces';
 import {
   eventInterceptor,
@@ -66,7 +67,8 @@ export class CrossFetch implements FetchInstance, Interceptable {
 
     if (
       headers['content-type'] &&
-      headers['content-type'].includes(JSON_CONTENT) //||
+      (headers['content-type'].includes(JSON_CONTENT) ||
+        headers['content-type'].includes(JSON_PROBLEM_CONTENT)) //||
       //TODO: update this when we have security handlers preparing whole requests
       // parameters.headers?.['accept']?.includes(JSON_CONTENT)
     ) {
