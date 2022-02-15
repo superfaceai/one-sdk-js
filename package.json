@@ -51,9 +51,9 @@
     "@superfaceai/ast": "^1.1.0",
     "@superfaceai/parser": "^1.1.0",
     "abort-controller": "^3.0.0",
-    "cross-fetch": "^3.0.5",
+    "cross-fetch": "^3.1.5",
     "debug": "^4.3.2",
     "isomorphic-form-data": "^2.0.0",
-    "vm2": "^3.9.2"
+    "vm2": "^3.9.7"
   }
 }
