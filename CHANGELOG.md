@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 This is a recovery release after introduction of compatibility-breaking changes in version 1.2.0.
 
+### Changed
 - No changes since 1.1.0
 
 ## [1.1.0] - 2021-12-22
