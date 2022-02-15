@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2022-02-15
 ### Added
 - Added support for service selection in http calls
 - Added support for digest authentication in http calls
@@ -16,7 +17,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Make sandbox timeout configurable through environment variable `SUPERFACE_SANDBOX_TIMEOUT`
 
 ## [1.2.1] - 2022-01-19
-
 This is a recovery release after introduction of compatibility-breaking changes in version 1.2.0.
 
 ### Changed
@@ -292,7 +292,8 @@ This is a recovery release after introduction of compatibility-breaking changes 
 - Profile parameter validator
 - CI/CD workflows
 
-[Unreleased]: https://github.com/superfaceai/one-sdk-js/compare/v1.2.2...HEAD
+[Unreleased]: https://github.com/superfaceai/one-sdk-js/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/superfaceai/one-sdk-js/compare/v1.2.2...v1.3.0
 [1.2.2]: https://github.com/superfaceai/one-sdk-js/compare/v1.2.1...v1.2.2
 [1.2.1]: https://github.com/superfaceai/one-sdk-js/compare/v1.1.0...v1.2.1
 [1.1.0]: https://github.com/superfaceai/one-sdk-js/compare/v1.0.1...v1.1.0
