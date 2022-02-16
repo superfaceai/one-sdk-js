@@ -166,7 +166,7 @@ export class DigestHandler implements ISecurityHandler {
           Object.keys(response.headers)
         );
       }
-      debugSensitive(`Getting new digest values`);
+      debugSensitive('Getting new digest values');
       const credentials = this.buildDigestAuth(
         //We need actual resolved url
         response.debug.request.url,

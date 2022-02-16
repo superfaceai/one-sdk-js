@@ -50,9 +50,11 @@ describe('sandbox', () => {
     expect([1, 2, 3].toString()).toEqual('1,2,3');
   });
 
-  it('no io', () => {
-    expect(() => evalScript('import fs; fs.readFileSync("secrets")')).toThrow(
-      /(Cannot use import statement outside a module|Unexpected identifier)/
+  it('no io', async () => {
+    expect(() =>
+      evalScript('1; import fs; fs.readFileSync("secrets")')
+    ).toThrow(
+      /('import' and 'export' may appear only with 'sourceType: module')/
     );
 
     expect(() => evalScript('console.log')).toThrow('console is not defined');

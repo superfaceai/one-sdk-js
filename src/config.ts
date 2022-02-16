@@ -12,6 +12,7 @@ const METRIC_DEBOUNCE_TIME = {
   max: 'SUPERFACE_METRIC_DEBOUNCE_TIME_MAX',
 };
 const DISABLE_REPORTING = 'SUPERFACE_DISABLE_METRIC_REPORTING';
+const SANDBOX_TIMEOUT_ENV_NAME = 'SUPERFACE_SANDBOX_TIMEOUT';
 
 // Defaults
 export const DEFAULT_API_URL = 'https://superface.ai';
@@ -29,6 +30,7 @@ export const DEFAULT_CACHE_PATH = joinPath(
   'superface',
   '.cache'
 );
+export const DEFAULT_SANDBOX_TIMEOUT = 100;
 
 // Extraction functions
 function getSuperfaceApiUrl(): string {
@@ -79,6 +81,28 @@ function getMetricDebounceTime(which: 'min' | 'max'): number {
   }
 }
 
+function getSandboxTimeout(): number {
+  const envValue = process.env[SANDBOX_TIMEOUT_ENV_NAME];
+  if (envValue === undefined) {
+    return DEFAULT_SANDBOX_TIMEOUT;
+  }
+
+  try {
+    const result = parseInt(envValue);
+    if (result <= 0) {
+      throw undefined;
+    }
+
+    return result;
+  } catch (e) {
+    configDebug(
+      `Invalid value: ${envValue} for ${SANDBOX_TIMEOUT_ENV_NAME}, expected positive number`
+    );
+
+    return DEFAULT_SANDBOX_TIMEOUT;
+  }
+}
+
 export class Config {
   private static _instance?: Config;
 
@@ -103,6 +127,7 @@ export class Config {
   public metricDebounceTimeMax: number;
   public disableReporting: boolean;
   public cachePath: string;
+  public sandboxTimeout: number;
 
   private static loadEnv() {
     return {
@@ -116,6 +141,7 @@ export class Config {
           ? true
           : !!process.env[DISABLE_REPORTING],
       cachePath: DEFAULT_CACHE_PATH,
+      sandboxTimeout: getSandboxTimeout(),
     };
   }
 
@@ -128,5 +154,6 @@ export class Config {
     this.metricDebounceTimeMax = env.metricDebounceTimeMax;
     this.disableReporting = env.disableReporting;
     this.cachePath = env.cachePath;
+    this.sandboxTimeout = env.sandboxTimeout;
   }
 }
