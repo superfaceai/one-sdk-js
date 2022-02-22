@@ -10,12 +10,7 @@ import { UnexpectedError } from '../../../../errors';
 import { Variables } from '../../../variables';
 import { createUrl, HttpResponse } from '../../http';
 import { FetchInstance, URLENCODED_CONTENT } from '../../interfaces';
-import {
-  fetchFilter,
-  headersFilter,
-  pipe,
-  prepareRequestFilter,
-} from '../../pipe';
+import { fetchFilter, headersFilter, pipe, withRequest } from '../../pipe';
 import {
   AuthCache,
   DEFAULT_AUTHORIZATION_HEADER_NAME,
@@ -108,10 +103,8 @@ export class RefreshHelper {
     //TODO: use pipe here
     const refreshResponse = (
       await pipe({
-        parameters: refreshRequest,
-        fetchInstance,
-        handler: undefined,
-        filters: [headersFilter, prepareRequestFilter, fetchFilter],
+        initial: { parameters: refreshRequest },
+        filters: [headersFilter, withRequest(fetchFilter(fetchInstance))],
       })
     ).response;
 
@@ -135,14 +128,14 @@ export class RefreshHelper {
       if (!accessTokenResponse.access_token) {
         //TODO: move to error helpers
         throw new UnexpectedError(
-          `Missing property "access_token" in response body`,
+          'Missing property "access_token" in response body',
           accessTokenResponse
         );
       }
 
       if (!accessTokenResponse.token_type) {
         throw new UnexpectedError(
-          `Missing property "token_type" in response body`,
+          'Missing property "token_type" in response body',
           accessTokenResponse
         );
       }
@@ -152,7 +145,7 @@ export class RefreshHelper {
         // accessTokenResponse.token_type !== OAuthTokenType.MAC
       ) {
         throw new UnexpectedError(
-          `Property "token_type" has invalid value`,
+          'Property "token_type" has invalid value',
           accessTokenResponse.token_type
         );
       }
@@ -173,20 +166,14 @@ export class RefreshHelper {
         tokenType: accessTokenResponse.token_type,
       };
 
-      const prepared = await pipe({
-        parameters: {
-          ...parameters,
-          headers: {
-            ...parameters.headers,
-            //TODO: prepare header according to token type
-            [DEFAULT_AUTHORIZATION_HEADER_NAME]: `Bearer ${accessTokenResponse.access_token}`,
-          },
+      return {
+        ...parameters,
+        headers: {
+          ...parameters.headers,
+          // TODO: prepare header according to token type
+          [DEFAULT_AUTHORIZATION_HEADER_NAME]: `Bearer ${accessTokenResponse.access_token}`,
         },
-        fetchInstance,
-        filters: [headersFilter, prepareRequestFilter],
-      });
-
-      return prepared.parameters;
+      };
     }
 
     //TODO: handle this

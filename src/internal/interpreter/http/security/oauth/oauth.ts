@@ -7,7 +7,7 @@ import createDebug from 'debug';
 
 import { HttpResponse } from '../../http';
 import { FetchInstance } from '../../interfaces';
-import { headersFilter, pipe, prepareRequestFilter } from '../../pipe';
+import { isCompleteHttpRequest, pipe, prepareRequestFilter } from '../../pipe';
 import {
   AuthCache,
   AuthenticateRequestAsync,
@@ -53,16 +53,11 @@ export class OAuthHandler implements ISecurityHandler {
     fetchInstance: FetchInstance & AuthCache
   ) => {
     if (this.refreshHelper && this.refreshHelper.shouldRefresh(fetchInstance)) {
-      return (
-        await headersFilter({
-          parameters: await this.refreshHelper.refresh(
-            parameters,
-            fetchInstance,
-            fetchInstance
-          ),
-          fetchInstance,
-        })
-      ).parameters;
+      return await this.refreshHelper.refresh(
+        parameters,
+        fetchInstance,
+        fetchInstance
+      );
     }
     //TODO: use selected flow helper (and actualy write some flow helpers)
     //Now we just get access token from cache and use it
@@ -78,13 +73,8 @@ export class OAuthHandler implements ISecurityHandler {
         },
       };
     }
-    
-return (
-      await headersFilter({
-        parameters: authenticateParameters,
-        fetchInstance,
-      })
-    ).parameters;
+
+    return authenticateParameters;
   };
 
   handleResponse: HandleResponseAsync = async (
@@ -93,16 +83,18 @@ return (
     fetchInstance: FetchInstance & AuthCache
   ): Promise<HttpRequest | undefined> => {
     if (
-      this.refreshHelper &&
+      this.refreshHelper !== undefined &&
       this.refreshHelper.shouldRefresh(fetchInstance, response)
     ) {
       const prepared = await pipe({
-        parameters: resourceRequestParameters,
-        fetchInstance,
-        filters: [headersFilter, prepareRequestFilter],
+        initial: { parameters: resourceRequestParameters },
+        filters: [prepareRequestFilter],
       });
 
-      if (!prepared.request) {
+      if (
+        prepared.request === undefined ||
+        !isCompleteHttpRequest(prepared.request)
+      ) {
         throw new Error('Request not defined');
       }
 

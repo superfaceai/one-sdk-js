@@ -23,9 +23,10 @@ import {
   authenticateFilter,
   fetchFilter,
   handleResponseFilter,
-  headersFilter,
   pipe,
   prepareRequestFilter,
+  withRequest,
+  withResponse,
 } from './pipe';
 import {
   ApiKeyHandler,
@@ -206,20 +207,21 @@ export class HttpClient {
       headers: variablesToStrings(parameters?.headers),
     };
 
-    //TODO: change name? Something like requestPipe?
+    const handler = getSecurityHandler(
+      requestParameters.securityConfiguration,
+      requestParameters.securityRequirements
+    );
+
+    // TODO: change name? Something like requestPipe?
     const result = await pipe({
-      parameters: requestParameters,
-      fetchInstance: this.fetchInstance,
-      handler: getSecurityHandler(
-        requestParameters.securityConfiguration,
-        requestParameters.securityRequirements
-      ),
+      initial: {
+        parameters: requestParameters,
+      },
       filters: [
-        headersFilter,
-        authenticateFilter,
+        authenticateFilter(this.fetchInstance, handler),
         prepareRequestFilter,
-        fetchFilter,
-        handleResponseFilter,
+        withRequest(fetchFilter(this.fetchInstance)),
+        withResponse(handleResponseFilter(this.fetchInstance, handler)),
       ],
     });
 

@@ -1,18 +1,12 @@
 import { HttpScheme, SecurityType } from '@superfaceai/ast';
 import createDebug from 'debug';
 
-import { FetchInstance } from '../../interfaces';
-import { headersFilter } from '../../pipe';
 import {
   DEFAULT_AUTHORIZATION_HEADER_NAME,
   ISecurityHandler,
   SecurityConfiguration,
 } from '../../security';
-import {
-  AuthCache,
-  AuthenticateRequestAsync,
-  RequestParameters,
-} from '../interfaces';
+import { AuthenticateRequestAsync, RequestParameters } from '../interfaces';
 
 const debug = createDebug('superface:http:security:http-handler');
 
@@ -24,8 +18,7 @@ export class HttpHandler implements ISecurityHandler {
   }
 
   authenticate: AuthenticateRequestAsync = async (
-    parameters: RequestParameters,
-    fetchInstance: FetchInstance & AuthCache
+    parameters: RequestParameters
   ) => {
     const headers: Record<string, string> = parameters.headers || {};
 
@@ -46,15 +39,10 @@ export class HttpHandler implements ISecurityHandler {
         break;
     }
 
-    return (
-      await headersFilter({
-        parameters: {
-          ...parameters,
-          headers,
-        },
-        fetchInstance,
-      })
-    ).parameters;
+    return {
+      ...parameters,
+      headers,
+    };
   };
 }
 

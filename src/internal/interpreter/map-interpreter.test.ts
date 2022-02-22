@@ -412,6 +412,8 @@ describe('MapInterpreter', () => {
       }`);
     const result = await interpreter.perform(ast);
 
+    console.log(result);
+
     expect(result.isOk() && result.value).toEqual(12);
   });
 

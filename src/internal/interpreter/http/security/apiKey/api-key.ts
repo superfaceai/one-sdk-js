@@ -7,17 +7,11 @@ import createDebug from 'debug';
 
 import { apiKeyInBodyError } from '../../../../errors.helpers';
 import { Variables } from '../../../variables';
-import { FetchInstance } from '../../interfaces';
-import { headersFilter } from '../../pipe';
 import {
   DEFAULT_AUTHORIZATION_HEADER_NAME,
   ISecurityHandler,
 } from '../../security';
-import {
-  AuthCache,
-  AuthenticateRequestAsync,
-  RequestParameters,
-} from '../interfaces';
+import { AuthenticateRequestAsync, RequestParameters } from '../interfaces';
 
 const debug = createDebug('superface:http:api-key-handler');
 
@@ -29,8 +23,7 @@ export class ApiKeyHandler implements ISecurityHandler {
   }
 
   authenticate: AuthenticateRequestAsync = async (
-    parameters: RequestParameters,
-    fetchInstance: FetchInstance & AuthCache
+    parameters: RequestParameters
   ) => {
     let body: Variables | undefined = parameters.body;
     const headers: Record<string, string> = parameters.headers ?? {};
@@ -65,18 +58,13 @@ export class ApiKeyHandler implements ISecurityHandler {
         break;
     }
 
-    return (
-      await headersFilter({
-        parameters: {
-          ...parameters,
-          headers,
-          pathParameters,
-          queryParameters,
-          body,
-        },
-        fetchInstance,
-      })
-    ).parameters;
+    return {
+      ...parameters,
+      headers,
+      pathParameters,
+      queryParameters,
+      body,
+    };
   };
 }
 

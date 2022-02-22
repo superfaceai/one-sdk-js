@@ -27,158 +27,167 @@ import {
   ISecurityHandler,
   RequestParameters,
 } from './security';
+import { MaybePromise } from '../../../lib/types';
 
 /**
  * Represents input of pipe filter which works with http response
  */
-export type FilterInput = {
+export type FilterInputOutput = {
   parameters: RequestParameters;
-  request?: HttpRequest;
+  request?: Partial<HttpRequest>;
   response?: HttpResponse;
-  fetchInstance: FetchInstance & AuthCache;
-  handler?: ISecurityHandler;
 };
+
+export type FilterInputWithResponse = FilterInputOutput & {
+  response: HttpResponse;
+};
+
+export type FilterInputWithRequest = FilterInputOutput & {
+  request: HttpRequest;
+};
+
 /**
  * Represents pipe filter which works with http response
  */
-export type Filter = ({
-  parameters,
-  request,
-  response,
-  fetchInstance,
-  handler,
-}: FilterInput) =>
-  | {
-      parameters: RequestParameters;
-      request?: HttpRequest;
-      response?: HttpResponse;
-    }
-  | Promise<{
-      parameters: RequestParameters;
-      request?: HttpRequest;
-      response?: HttpResponse;
-    }>;
+export type Filter = (
+  input: FilterInputOutput
+) => MaybePromise<FilterInputOutput>;
+
+export type FilterWithResponse = (
+  input: FilterInputWithResponse
+) => MaybePromise<FilterInputOutput>;
+
+export type FilterWithRequest = (
+  input: FilterInputWithRequest
+) => MaybePromise<FilterInputOutput>;
 
 /**
  * Represents pipe input
  */
 export type PipeInput = {
-  parameters: RequestParameters;
-  fetchInstance: FetchInstance & AuthCache;
-  handler?: ISecurityHandler;
   filters: Filter[];
-  response?: HttpResponse;
-  request?: HttpRequest;
+  initial: FilterInputOutput;
 };
 
-export async function pipe(arg: PipeInput): Promise<{
-  parameters: RequestParameters;
-  request?: HttpRequest;
-  response?: HttpResponse;
-}> {
-  let request: HttpRequest | undefined;
-  let response: HttpResponse | undefined;
-  let parameters = clone(arg.parameters);
+export async function pipe({
+  filters,
+  initial,
+}: PipeInput): Promise<FilterInputOutput> {
+  let accumulator = clone(initial);
 
-  for (const fn of arg.filters) {
-    const updated = await fn({
-      ...arg,
-      parameters,
-      request,
-      response,
-    });
-
-    parameters = updated.parameters;
-
-    if (updated.request) {
-      request = updated.request;
-    }
-    if (updated.response) {
-      response = updated.response;
-    }
+  for (const filter of filters) {
+    accumulator = await filter(accumulator);
   }
 
-  return { parameters, request, response };
+  return accumulator;
 }
 
-//These filters should be easy to test
-export const fetchFilter: Filter = async ({
-  parameters,
-  request,
-  fetchInstance,
-}: FilterInput) => {
-  if (!request || !isCompleteHttpRequest(request)) {
-    throw new UnexpectedError('Request is not complete', request);
-  }
+export const withRequest = (filter: FilterWithRequest): Filter => {
+  return async ({ response, request, parameters }: FilterInputOutput) => {
+    if (request === undefined || !isCompleteHttpRequest(request)) {
+      throw new UnexpectedError('Request is not complete', request);
+    }
 
-  return {
-    parameters,
-    request,
-    response: await fetchRequest(fetchInstance, request),
+    return filter({ response, request, parameters });
   };
 };
 
-//TODO: how to auth without keeping the handler instance
-export const authenticateFilter: Filter = async ({
-  parameters,
-  request,
-  response,
-  fetchInstance,
-  handler,
-}: FilterInput) => {
-  if (handler) {
+// These filters should be easy to test
+export const fetchFilter: (
+  fetchInstance: FetchInstance & AuthCache
+) => FilterWithRequest =
+  fetchInstance =>
+  async ({ parameters, request }: FilterInputWithRequest) => {
     return {
-      parameters: await handler.authenticate(parameters, fetchInstance),
+      parameters,
+      request,
+      response: await fetchRequest(fetchInstance, request),
+    };
+  };
+
+// TODO: how to auth without keeping the handler instance
+export const authenticateFilter: (
+  fetchInstance: FetchInstance & AuthCache,
+  handler?: ISecurityHandler
+) => Filter =
+  (fetchInstance, handler) =>
+  async ({ parameters, request, response }: FilterInputOutput) => {
+    if (handler !== undefined) {
+      return {
+        parameters: await handler.authenticate(parameters, fetchInstance),
+        request,
+        response,
+      };
+    }
+
+    return {
+      parameters,
       request,
       response,
     };
-  }
+  };
+
+export const withResponse = (filter: FilterWithResponse): Filter => {
+  return async ({ response, request, parameters }: FilterInputOutput) => {
+    if (response === undefined) {
+      // TODO: better error
+      throw new Error('response is undefined');
+    }
+
+    return filter({ response, request, parameters });
+  };
+};
+
+// TODO: how to auth without keeping the handler instance, naming
+// This is handling the cases when we are authenticated but eg. digest credentials expired or oauth access token is no longer valid
+export const handleResponseFilter: (
+  fetchInstance: FetchInstance & AuthCache,
+  handler?: ISecurityHandler
+) => FilterWithResponse =
+  (fetchInstance, handler) =>
+  async ({ parameters, request, response }: FilterInputWithResponse) => {
+    if (handler && handler.handleResponse) {
+      // We get new parameters (with updated auth, also updated cache)
+      const authRequest = await handler.handleResponse(
+        response,
+        parameters,
+        fetchInstance
+      );
+      // We retry the request
+      if (authRequest !== undefined) {
+        response = await fetchRequest(fetchInstance, authRequest);
+      }
+    }
+
+    return { parameters, request, response };
+  };
+
+export const urlFilter: Filter = ({
+  parameters,
+  request,
+  response,
+}: FilterInputOutput) => {
+  const url = createUrl(parameters.url, {
+    baseUrl: parameters.baseUrl,
+    pathParameters: parameters.pathParameters ?? {},
+    integrationParameters: parameters.integrationParameters,
+  });
 
   return {
     parameters,
-    request,
+    request: {
+      ...(request ?? {}),
+      url,
+    },
     response,
   };
 };
 
-//TODO: how to auth without keeping the handler instance, naming
-//This is handling the cases when we are authenticated but eg. digest credentials expired or oauth access token is no longer valid
-export const handleResponseFilter: Filter = async ({
+export const bodyFilter: Filter = ({
   parameters,
   request,
   response,
-  fetchInstance,
-  handler,
-}: FilterInput) => {
-  //TODO: better error
-  if (!response) {
-    throw new Error('response is undefined');
-  }
-  if (handler && handler.handleResponse) {
-    //We get new parameters (with updated auth, also updated cache)
-    const authRequest = await handler.handleResponse(
-      response,
-      parameters,
-      fetchInstance
-    );
-    //We retry the request
-    if (authRequest) {
-      response = await fetchRequest(fetchInstance, authRequest);
-    }
-  }
-
-  return { parameters, request, response };
-};
-
-export const prepareRequestFilter: Filter = ({
-  parameters,
-  request,
-  response,
-}: {
-  parameters: RequestParameters;
-  request?: HttpRequest;
-  response?: HttpResponse;
-}) => {
+}: FilterInputOutput) => {
   let finalBody: FetchBody | undefined;
   if (parameters.body) {
     if (parameters.contentType === JSON_CONTENT) {
@@ -195,7 +204,7 @@ export const prepareRequestFilter: Filter = ({
       if (Buffer.isBuffer(parameters.body)) {
         buffer = parameters.body;
       } else {
-        //coerce to string then buffer
+        // convert to string then buffer
         buffer = Buffer.from(String(parameters.body));
       }
       finalBody = binaryBody(buffer);
@@ -214,26 +223,48 @@ export const prepareRequestFilter: Filter = ({
     }
   }
 
-  //TODO: break this into more functions?
   return {
     parameters,
     request: {
-      ...request,
+      ...(request ?? {}),
       body: finalBody,
-      queryParameters: {
-        ...request?.queryParameters,
-        ...variablesToStrings(parameters.queryParameters),
-      },
-      headers: {
-        ...request?.headers,
-        ...parameters.headers,
-      },
-      url: createUrl(parameters.url, {
-        baseUrl: parameters.baseUrl,
-        pathParameters: parameters.pathParameters ?? {},
-        integrationParameters: parameters.integrationParameters,
-      }),
-      method: parameters.method,
+    },
+    response,
+  };
+};
+
+export const queryParametersFilter: Filter = ({
+  parameters,
+  response,
+  request,
+}: FilterInputOutput) => {
+  const queryParameters = {
+    ...request?.queryParameters,
+    ...variablesToStrings(parameters.queryParameters),
+  };
+
+  return {
+    parameters,
+    response,
+    request: {
+      ...(request ?? {}),
+      queryParameters,
+    },
+  };
+};
+
+export const methodFilter: Filter = ({
+  parameters,
+  request,
+  response,
+}: FilterInputOutput) => {
+  const method = parameters.method;
+
+  return {
+    parameters,
+    request: {
+      ...(request ?? {}),
+      method,
     },
     response,
   };
@@ -243,11 +274,7 @@ export const headersFilter: Filter = ({
   parameters,
   request,
   response,
-}: {
-  parameters: RequestParameters;
-  request?: HttpRequest;
-  response?: HttpResponse;
-}) => {
+}: FilterInputOutput) => {
   const headers: Record<string, string> = parameters.headers || {};
   headers['accept'] = parameters.accept || '*/*';
   headers['user-agent'] ??= USER_AGENT;
@@ -274,25 +301,41 @@ export const headersFilter: Filter = ({
   }
 
   return {
-    parameters: {
-      ...parameters,
-      headers,
+    parameters,
+    request: {
+      ...request,
+      headers: {
+        ...request?.headers,
+        ...headers,
+      },
     },
-    request,
     response,
   };
 };
 
-function isCompleteHttpRequest(
+export const prepareRequestFilter: Filter = async input => {
+  return pipe({
+    initial: input,
+    filters: [
+      urlFilter,
+      bodyFilter,
+      queryParametersFilter,
+      methodFilter,
+      headersFilter,
+    ],
+  });
+};
+
+export function isCompleteHttpRequest(
   input: Partial<HttpRequest>
 ): input is HttpRequest {
-  if (!input.url || typeof input.url !== 'string') {
+  if (typeof input.url !== 'string') {
     return false;
   }
-  if (!input.method || typeof input.method !== 'string') {
+  if (typeof input.method !== 'string') {
     return false;
   }
-  if (input.headers) {
+  if (input.headers !== undefined) {
     if (typeof input.headers !== 'object') {
       return false;
     }
@@ -329,7 +372,7 @@ function isCompleteHttpRequest(
   }
 
   if (
-    input.body &&
+    input.body !== undefined &&
     !(
       isStringBody(input.body) ||
       isFormDataBody(input.body) ||
