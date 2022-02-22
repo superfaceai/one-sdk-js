@@ -1,9 +1,49 @@
-import { ExponentialBackoff } from './backoff';
+import { ConstantBackoff, ExponentialBackoff, LinearBackoff } from './backoff';
 
 describe('backoff', () => {
+  describe('constant backoff', () => {
+    it('stays the same', () => {
+      const backoff = new ConstantBackoff(1234);
+      expect(backoff.current).toBe(1234);
+
+      expect(backoff.up()).toBe(1234);
+      expect(backoff.up()).toBe(1234);
+
+      expect(backoff.down()).toBe(1234);
+      expect(backoff.down()).toBe(1234);
+      expect(backoff.down()).toBe(1234);
+
+      expect(backoff.up()).toBe(1234);
+
+      expect(backoff.down()).toBe(1234);
+
+      expect(backoff.current).toBe(1234);
+    });
+  });
+
+  describe('linear backoff', () => {
+    it('goes up and down linearily', () => {
+      const backoff = new LinearBackoff(100, 10);
+      expect(backoff.current).toBe(100);
+
+      expect(backoff.up()).toBe(110);
+      expect(backoff.up()).toBe(120);
+
+      expect(backoff.down()).toBe(110);
+      expect(backoff.down()).toBe(100);
+      expect(backoff.down()).toBe(90);
+
+      expect(backoff.up()).toBe(100);
+
+      expect(backoff.down()).toBe(90);
+
+      expect(backoff.current).toBe(90);
+    });
+  });
+
   describe('exponential backoff', () => {
     it('goes up exponentially', () => {
-      const backoff = new ExponentialBackoff(1);
+      const backoff = new ExponentialBackoff(1, 2.0);
       expect(backoff.current).toBe(1);
       expect(backoff.current).toBe(1);
 
@@ -19,7 +59,7 @@ describe('backoff', () => {
     });
 
     it('goes down exponentially', () => {
-      const backoff = new ExponentialBackoff(1024);
+      const backoff = new ExponentialBackoff(1024, 2.0);
       expect(backoff.current).toBe(1024);
 
       expect(backoff.down()).toBe(512);
@@ -34,7 +74,7 @@ describe('backoff', () => {
     });
 
     it('goes up and down exponentionally', () => {
-      const backoff = new ExponentialBackoff(1024);
+      const backoff = new ExponentialBackoff(1024, 2.0);
       expect(backoff.current).toBe(1024);
 
       expect(backoff.up()).toBe(2048);

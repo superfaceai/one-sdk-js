@@ -1,5 +1,5 @@
 import { UnexpectedError } from '../../internal/errors';
-import { Backoff, ExponentialBackoff } from '../../lib/backoff';
+import { Backoff } from '../../lib/backoff';
 import {
   ExecutionFailure,
   ExecutionInfo,
@@ -239,9 +239,9 @@ export class RetryPolicy extends FailurePolicy {
 
   constructor(
     usecaseInfo: UsecaseInfo,
-    public readonly maxContiguousRetries: number = 5,
-    public readonly requestTimeout: number = 30_000,
-    private readonly backoff: Backoff = new ExponentialBackoff(50, 2.0)
+    public readonly maxContiguousRetries: number,
+    public readonly requestTimeout: number,
+    private readonly backoff: Backoff
   ) {
     super(usecaseInfo);
 
@@ -336,8 +336,8 @@ export class CircuitBreakerPolicy extends FailurePolicy {
     failureThreshold: number,
     /** Reset timeout in milliseconds */
     private readonly resetTimeout: number,
-    requestTimeout?: number,
-    backoff?: Backoff
+    requestTimeout: number,
+    backoff: Backoff
   ) {
     super(usecaseInfo);
 
