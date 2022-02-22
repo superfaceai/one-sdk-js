@@ -5,7 +5,7 @@ import { MapInterpreterError, ProfileParameterError } from '../internal';
 import { UnexpectedError } from '../internal/errors';
 import { NonPrimitive, Variables } from '../internal/interpreter/variables';
 import { Result } from '../lib';
-import { ExponentialBackoff } from '../lib/backoff';
+import { ConstantBackoff, ExponentialBackoff } from '../lib/backoff';
 import {
   eventInterceptor,
   Events,
@@ -16,6 +16,7 @@ import {
   AbortPolicy,
   CircuitBreakerPolicy,
   FailurePolicyRouter,
+  RetryPolicy,
 } from './failure/policies';
 import { FailurePolicy, UsecaseInfo } from './failure/policy';
 import { ProfileBase } from './profile';
@@ -208,14 +209,17 @@ class UseCaseBase implements Interceptable {
 
     let policy: FailurePolicy;
     if (retryPolicyConfig.kind === OnFail.CIRCUIT_BREAKER) {
-      let backoff: ExponentialBackoff | undefined = undefined;
+      let backoff: ExponentialBackoff | undefined = new ExponentialBackoff(
+        2000,
+        2.0
+      );
       if (
         retryPolicyConfig.backoff?.kind &&
         retryPolicyConfig.backoff?.kind === BackoffKind.EXPONENTIAL
       ) {
         backoff = new ExponentialBackoff(
           retryPolicyConfig.backoff.start ?? 2000,
-          retryPolicyConfig.backoff.factor
+          retryPolicyConfig.backoff.factor ?? 2.0
         );
       }
 
@@ -223,9 +227,16 @@ class UseCaseBase implements Interceptable {
         usecaseInfo,
         //TODO are these defauts ok?
         retryPolicyConfig.maxContiguousRetries ?? 5,
-        30_000,
-        retryPolicyConfig.requestTimeout,
+        retryPolicyConfig.openTime ?? 30_000,
+        retryPolicyConfig.requestTimeout ?? 30_000,
         backoff
+      );
+    } else if (retryPolicyConfig.kind === OnFail.SIMPLE) {
+      policy = new RetryPolicy(
+        usecaseInfo,
+        retryPolicyConfig.maxContiguousRetries ?? 5,
+        retryPolicyConfig.requestTimeout ?? 30_000,
+        new ConstantBackoff(0)
       );
     } else if (retryPolicyConfig.kind === OnFail.NONE) {
       policy = new AbortPolicy(usecaseInfo);
