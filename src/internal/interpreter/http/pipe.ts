@@ -1,5 +1,6 @@
 import { USER_AGENT } from '../../../index';
 import { clone } from '../../../lib';
+import { MaybePromise } from '../../../lib/types';
 import { UnexpectedError } from '../..';
 import { unsupportedContentType } from '../../errors.helpers';
 import { variablesToStrings } from '../variables';
@@ -27,7 +28,6 @@ import {
   ISecurityHandler,
   RequestParameters,
 } from './security';
-import { MaybePromise } from '../../../lib/types';
 
 /**
  * Represents input of pipe filter which works with http response
