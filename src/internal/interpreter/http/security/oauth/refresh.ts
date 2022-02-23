@@ -10,7 +10,15 @@ import { UnexpectedError } from '../../../../errors';
 import { Variables } from '../../../variables';
 import { createUrl, HttpResponse } from '../../http';
 import { FetchInstance, URLENCODED_CONTENT } from '../../interfaces';
-import { fetchFilter, headersFilter, pipe, withRequest } from '../../pipe';
+import {
+  bodyFilter,
+  fetchFilter,
+  headersFilter,
+  methodFilter,
+  pipe,
+  urlFilter,
+  withRequest,
+} from '../../pipe';
 import {
   AuthCache,
   DEFAULT_AUTHORIZATION_HEADER_NAME,
@@ -100,11 +108,16 @@ export class RefreshHelper {
       url: '',
     };
 
-    //TODO: use pipe here
     const refreshResponse = (
       await pipe({
         initial: { parameters: refreshRequest },
-        filters: [headersFilter, withRequest(fetchFilter(fetchInstance))],
+        filters: [
+          headersFilter,
+          urlFilter,
+          methodFilter,
+          bodyFilter,
+          withRequest(fetchFilter(fetchInstance)),
+        ],
       })
     ).response;
 
