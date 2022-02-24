@@ -1,8 +1,9 @@
 import createDebug from 'debug';
 import { VM } from 'vm2';
 
-import { Config } from '../../config';
-import { NonPrimitive } from '../../internal/interpreter/variables';
+import { Config } from '../../../config';
+import { NonPrimitive } from '../../../internal/interpreter/variables';
+import { getStdlib } from './stdlib';
 
 const debug = createDebug('superface:sandbox');
 
@@ -12,6 +13,7 @@ export function evalScript(
 ): unknown {
   const vm = new VM({
     sandbox: {
+      std: getStdlib(),
       ...variableDefinitions,
     },
     compiler: 'javascript',
