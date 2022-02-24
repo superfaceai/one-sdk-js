@@ -66,15 +66,17 @@ describe('DigestHandler', () => {
       contentType: URLENCODED_CONTENT,
     };
   });
+
   afterEach(() => {
     jest.resetAllMocks();
   });
+
   describe('prepare', () => {
     it('extracts values from challange request headers when cache is empty', async () => {
       const qop = 'auth';
       const algorithm = 'MD5';
 
-      //Prepare digest response
+      // Prepare digest response
       const h1 = createHash(algorithm)
         .update(`${username}:${mockRealm}:${password}`)
         .digest('hex');
@@ -185,13 +187,13 @@ describe('DigestHandler', () => {
         },
       };
 
-      expect(() =>
+      await expect(async () =>
         new DigestHandler(configuration).handleResponse(
           response,
           parameters,
           fetchInstance
         )
-      ).toThrow(digestHeaderNotFound('www-authenticate', []));
+      ).rejects.toThrow(digestHeaderNotFound('www-authenticate', []));
     });
 
     it('throws on corrupted challenge header - missing scheme', async () => {
@@ -214,13 +216,13 @@ describe('DigestHandler', () => {
         },
       };
 
-      expect(() =>
+      await expect(async () =>
         new DigestHandler(configuration).handleResponse(
           response,
           parameters,
           fetchInstance
         )
-      ).toThrow(
+      ).rejects.toThrow(
         missingPartOfDigestHeader('www-authenticate', mockHeader, 'scheme')
       );
     });
@@ -245,13 +247,13 @@ describe('DigestHandler', () => {
         },
       };
 
-      expect(() =>
+      await expect(async () =>
         new DigestHandler(configuration).handleResponse(
           response,
           parameters,
           fetchInstance
         )
-      ).toThrow(
+      ).rejects.toThrow(
         missingPartOfDigestHeader('www-authenticate', mockHeader, 'nonce')
       );
     });
@@ -275,13 +277,13 @@ describe('DigestHandler', () => {
         },
       };
 
-      expect(() =>
+      await expect(async () =>
         new DigestHandler(configuration).handleResponse(
           response,
           parameters,
           fetchInstance
         )
-      ).toThrow(
+      ).rejects.toThrow(
         unexpectedDigestValue('algorithm', algorithm, [
           'MD5',
           'MD5-sess',
@@ -310,13 +312,13 @@ describe('DigestHandler', () => {
         },
       };
 
-      expect(() =>
+      await expect(async () =>
         new DigestHandler(configuration).handleResponse(
           response,
           parameters,
           fetchInstance
         )
-      ).toThrow(
+      ).rejects.toThrow(
         unexpectedDigestValue('quality of protection', qop, [
           'auth',
           'auth-int',
@@ -329,7 +331,7 @@ describe('DigestHandler', () => {
       const mockHeader = `Digest realm="${mockRealm}" nonce="${mockNonce}", opaque="${mockOpaque}"`;
       mockInstance = new DigestHandler(configuration);
 
-      //Prepare digest response
+      // Prepare digest response
       const h1 = createHash('MD5')
         .update(`${username}:${mockRealm}:${password}`)
         .digest('hex');
@@ -376,7 +378,7 @@ describe('DigestHandler', () => {
       configuration.authorizationHeader = 'Custom';
       mockInstance = new DigestHandler(configuration);
 
-      //Prepare digest response
+      // Prepare digest response
       const h1 = createHash('MD5')
         .update(`${username}:${mockRealm}:${password}`)
         .digest('hex');

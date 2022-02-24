@@ -418,7 +418,8 @@ export function unexpectedDigestValue(
     []
   );
 }
-//Bind errors
+
+// Bind errors
 export function invalidProviderResponseError(
   input: unknown
 ): SDKExecutionError {

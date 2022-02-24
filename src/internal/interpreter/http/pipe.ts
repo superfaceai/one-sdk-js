@@ -285,19 +285,24 @@ export const headersFilter: Filter = ({
   } else if (parameters.contentType === FORMDATA_CONTENT) {
     headers['Content-Type'] ??= FORMDATA_CONTENT;
   } else if (
-    parameters.contentType &&
+    parameters.contentType !== undefined &&
     BINARY_CONTENT_REGEXP.test(parameters.contentType)
   ) {
     headers['Content-Type'] ??= parameters.contentType;
   } else {
-    const supportedTypes = [
-      JSON_CONTENT,
-      URLENCODED_CONTENT,
-      FORMDATA_CONTENT,
-      ...BINARY_CONTENT_TYPES,
-    ];
+    if (parameters.body !== undefined) {
+      const supportedTypes = [
+        JSON_CONTENT,
+        URLENCODED_CONTENT,
+        FORMDATA_CONTENT,
+        ...BINARY_CONTENT_TYPES,
+      ];
 
-    throw unsupportedContentType(parameters.contentType ?? '', supportedTypes);
+      throw unsupportedContentType(
+        parameters.contentType ?? '',
+        supportedTypes
+      );
+    }
   }
 
   return {

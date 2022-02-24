@@ -11,12 +11,9 @@ import { Variables } from '../../../variables';
 import { createUrl, HttpResponse } from '../../http';
 import { FetchInstance, URLENCODED_CONTENT } from '../../interfaces';
 import {
-  bodyFilter,
   fetchFilter,
-  headersFilter,
-  methodFilter,
   pipe,
-  urlFilter,
+  prepareRequestFilter,
   withRequest,
 } from '../../pipe';
 import {
@@ -112,10 +109,7 @@ export class RefreshHelper {
       await pipe({
         initial: { parameters: refreshRequest },
         filters: [
-          headersFilter,
-          urlFilter,
-          methodFilter,
-          bodyFilter,
+          prepareRequestFilter,
           withRequest(fetchFilter(fetchInstance)),
         ],
       })

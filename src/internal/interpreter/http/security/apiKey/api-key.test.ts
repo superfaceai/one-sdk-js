@@ -19,6 +19,7 @@ describe('ApiKeyHandler', () => {
     fetch: mockFetch,
   };
   let configuration: SecurityConfiguration & { type: SecurityType.APIKEY };
+
   describe('in header', () => {
     beforeEach(() => {
       parameters = {
@@ -40,6 +41,7 @@ describe('ApiKeyHandler', () => {
       };
       apiKeyHandler = new ApiKeyHandler(configuration);
     });
+
     it('sets header to correct value', async () => {
       expect(
         (await apiKeyHandler.authenticate(parameters, fetchInstance)).headers?.[
@@ -79,10 +81,12 @@ describe('ApiKeyHandler', () => {
       };
       apiKeyHandler = new ApiKeyHandler(configuration);
     });
+
     it('sets pathParameters to correct value', async () => {
       expect(
-        (await apiKeyHandler.authenticate(parameters, fetchInstance)).url
-      ).toEqual(parameters.baseUrl + 'api/secret/');
+        (await apiKeyHandler.authenticate(parameters, fetchInstance))
+          .pathParameters
+      ).toMatchObject({ Authorization: 'secret' });
     });
 
     it('sets pathParameters header to correct value', async () => {
@@ -99,8 +103,9 @@ describe('ApiKeyHandler', () => {
       configuration.name = 'test';
 
       expect(
-        (await apiKeyHandler.authenticate(parameters, fetchInstance)).url
-      ).toEqual(parameters.baseUrl + 'api/secret/');
+        (await apiKeyHandler.authenticate(parameters, fetchInstance))
+          .pathParameters
+      ).toMatchObject({ test: 'secret' });
     });
   });
 
@@ -125,11 +130,12 @@ describe('ApiKeyHandler', () => {
       };
       apiKeyHandler = new ApiKeyHandler(configuration);
     });
+
     it('sets query to correct value', async () => {
       expect(
         (await apiKeyHandler.authenticate(parameters, fetchInstance))
-          .queryParameters?.['Authorization']
-      ).toEqual('secret');
+          .queryParameters
+      ).toMatchObject({ Authorization: 'secret' });
     });
 
     it('sets query header to correct value', async () => {
@@ -137,10 +143,11 @@ describe('ApiKeyHandler', () => {
 
       expect(
         (await apiKeyHandler.authenticate(parameters, fetchInstance))
-          .queryParameters?.test
-      ).toEqual('secret');
+          .queryParameters
+      ).toMatchObject({ test: 'secret' });
     });
   });
+
   describe('in body', () => {
     beforeEach(() => {
       parameters = {
@@ -167,24 +174,22 @@ describe('ApiKeyHandler', () => {
       configuration.name = 'token';
 
       expect(
-        (await apiKeyHandler.authenticate(parameters, fetchInstance)).body?.data
-      ).toEqual(JSON.stringify({ token: 'secret' }));
+        (await apiKeyHandler.authenticate(parameters, fetchInstance)).body
+      ).toMatchObject({ token: 'secret' });
     });
 
     it('creates new nested sctructure', async () => {
       configuration.name = '/a/b/c';
 
       expect(
-        (await apiKeyHandler.authenticate(parameters, fetchInstance)).body?.data
-      ).toEqual(
-        JSON.stringify({
-          a: {
-            b: {
-              c: 'secret',
-            },
+        (await apiKeyHandler.authenticate(parameters, fetchInstance)).body
+      ).toMatchObject({
+        a: {
+          b: {
+            c: 'secret',
           },
-        })
-      );
+        },
+      });
     });
 
     it('keep content of existing objects', async () => {
@@ -192,25 +197,23 @@ describe('ApiKeyHandler', () => {
       configuration.name = '/a/b/c';
 
       expect(
-        (await apiKeyHandler.authenticate(parameters, fetchInstance)).body?.data
-      ).toEqual(
-        JSON.stringify({
-          d: 'existing',
-          a: {
-            b: {
-              c: 'secret',
-            },
+        (await apiKeyHandler.authenticate(parameters, fetchInstance)).body
+      ).toMatchObject({
+        d: 'existing',
+        a: {
+          b: {
+            c: 'secret',
           },
-        })
-      );
+        },
+      });
     });
 
     it('throws exception if request body is array', async () => {
       parameters.body = [];
       parameters.contentType = JSON_CONTENT;
-      expect(() =>
+      await expect(async () =>
         apiKeyHandler.authenticate(parameters, fetchInstance)
-      ).toThrowError(
+      ).rejects.toThrowError(
         new SDKExecutionError(
           'ApiKey in body can be used only on object.',
           ['Actual body is Array'],
@@ -223,9 +226,9 @@ describe('ApiKeyHandler', () => {
       parameters.body = { a: { b: [] } };
       parameters.contentType = JSON_CONTENT;
       configuration.name = '/a/b/c';
-      expect(() =>
+      await expect(async () =>
         apiKeyHandler.authenticate(parameters, fetchInstance)
-      ).toThrowError(
+      ).rejects.toThrowError(
         new SDKExecutionError(
           'ApiKey in body can be used only on object.',
           ['Actual value at /a/b is Array'],
@@ -238,9 +241,9 @@ describe('ApiKeyHandler', () => {
       parameters.body = { a: { b: { c: 'xxx' } } };
       parameters.contentType = JSON_CONTENT;
       configuration.name = '/a/b/c';
-      expect(() =>
+      await expect(async () =>
         apiKeyHandler.authenticate(parameters, fetchInstance)
-      ).toThrowError(
+      ).rejects.toThrowError(
         new SDKExecutionError(
           'ApiKey in body can be used only on object.',
           ['Actual value at /a/b/c is string'],
