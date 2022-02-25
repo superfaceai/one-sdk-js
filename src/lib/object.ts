@@ -105,3 +105,18 @@ export function indexRecord<T extends unknown | Record<string, T>>(
 
   return indexRecord(next as Record<string, T>, key);
 }
+
+// from https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/freeze
+export type RecursiveReadonly<T> = {
+  readonly [P in keyof T]: RecursiveReadonly<T[P]>;
+};
+export function deepFreeze<T>(o: T): RecursiveReadonly<T> {
+  for (const name of Object.getOwnPropertyNames(o)) {
+    const value = (o as Record<string, unknown>)[name];
+    if (value && typeof value === 'object') {
+      deepFreeze(value);
+    }
+  }
+
+  return Object.freeze(o);
+}
