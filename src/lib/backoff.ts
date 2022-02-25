@@ -54,7 +54,12 @@ export class ConstantBackoff extends Backoff {
 }
 
 export class LinearBackoff extends Backoff {
-  constructor(initial: number, step: number, minimum?: number, maximum?: number) {
+  constructor(
+    initial: number,
+    step: number,
+    minimum?: number,
+    maximum?: number
+  ) {
     super(
       x => Backoff.clampValue(x + step, undefined, maximum),
       x => Backoff.clampValue(x - step, minimum, undefined),

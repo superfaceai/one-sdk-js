@@ -330,7 +330,7 @@ export class RetryPolicy extends FailurePolicy {
  */
 export class CircuitBreakerPolicy extends FailurePolicy {
   public static DEFAULT_OPEN_TIME = 30_000;
-  
+
   private readonly inner: RetryPolicy;
   private state: 'closed' | 'open' | 'half-open';
   private openTime: number;
