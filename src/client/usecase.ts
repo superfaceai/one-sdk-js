@@ -209,7 +209,10 @@ class UseCaseBase implements Interceptable {
 
     let policy: FailurePolicy;
     if (retryPolicyConfig.kind === OnFail.CIRCUIT_BREAKER) {
-      let backoff: ExponentialBackoff | undefined = new ExponentialBackoff(Backoff.DEFAULT_INITIAL, ExponentialBackoff.DEFAULT_BASE);
+      let backoff: ExponentialBackoff | undefined = new ExponentialBackoff(
+        Backoff.DEFAULT_INITIAL,
+        ExponentialBackoff.DEFAULT_BASE
+      );
       if (
         retryPolicyConfig.backoff?.kind &&
         retryPolicyConfig.backoff?.kind === BackoffKind.EXPONENTIAL
@@ -223,7 +226,8 @@ class UseCaseBase implements Interceptable {
       policy = new CircuitBreakerPolicy(
         usecaseInfo,
         //TODO are these defauts ok?
-        retryPolicyConfig.maxContiguousRetries ?? RetryPolicy.DEFAULT_MAX_CONTIGUOUS_RETRIES,
+        retryPolicyConfig.maxContiguousRetries ??
+          RetryPolicy.DEFAULT_MAX_CONTIGUOUS_RETRIES,
         retryPolicyConfig.openTime ?? CircuitBreakerPolicy.DEFAULT_OPEN_TIME,
         retryPolicyConfig.requestTimeout ?? RetryPolicy.DEFAULT_REQUEST_TIMEOUT,
         backoff
@@ -231,7 +235,8 @@ class UseCaseBase implements Interceptable {
     } else if (retryPolicyConfig.kind === OnFail.SIMPLE) {
       policy = new RetryPolicy(
         usecaseInfo,
-        retryPolicyConfig.maxContiguousRetries ?? RetryPolicy.DEFAULT_MAX_CONTIGUOUS_RETRIES,
+        retryPolicyConfig.maxContiguousRetries ??
+          RetryPolicy.DEFAULT_MAX_CONTIGUOUS_RETRIES,
         retryPolicyConfig.requestTimeout ?? RetryPolicy.DEFAULT_REQUEST_TIMEOUT,
         new ConstantBackoff(0)
       );
