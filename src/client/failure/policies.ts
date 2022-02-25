@@ -227,6 +227,9 @@ export class AbortPolicy extends FailurePolicy {
 
 /** Simple retry policy with exponential backoff */
 export class RetryPolicy extends FailurePolicy {
+  public static DEFAULT_MAX_CONTIGUOUS_RETRIES = 5;
+  public static DEFAULT_REQUEST_TIMEOUT = 30_000;
+
   /**
    * Counts the length of the current streak of actions
    *
@@ -326,6 +329,8 @@ export class RetryPolicy extends FailurePolicy {
  * If a successful execution is detected from half-open state, the breaker closes again and is in the same state as at the beginning.
  */
 export class CircuitBreakerPolicy extends FailurePolicy {
+  public static DEFAULT_OPEN_TIME = 30_000;
+  
   private readonly inner: RetryPolicy;
   private state: 'closed' | 'open' | 'half-open';
   private openTime: number;

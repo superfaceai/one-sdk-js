@@ -5,7 +5,7 @@ import { MapInterpreterError, ProfileParameterError } from '../internal';
 import { UnexpectedError } from '../internal/errors';
 import { NonPrimitive, Variables } from '../internal/interpreter/variables';
 import { Result } from '../lib';
-import { ConstantBackoff, ExponentialBackoff } from '../lib/backoff';
+import { Backoff, ConstantBackoff, ExponentialBackoff } from '../lib/backoff';
 import {
   eventInterceptor,
   Events,
@@ -209,33 +209,30 @@ class UseCaseBase implements Interceptable {
 
     let policy: FailurePolicy;
     if (retryPolicyConfig.kind === OnFail.CIRCUIT_BREAKER) {
-      let backoff: ExponentialBackoff | undefined = new ExponentialBackoff(
-        2000,
-        2.0
-      );
+      let backoff: ExponentialBackoff | undefined = new ExponentialBackoff(Backoff.DEFAULT_INITIAL, ExponentialBackoff.DEFAULT_BASE);
       if (
         retryPolicyConfig.backoff?.kind &&
         retryPolicyConfig.backoff?.kind === BackoffKind.EXPONENTIAL
       ) {
         backoff = new ExponentialBackoff(
-          retryPolicyConfig.backoff.start ?? 2000,
-          retryPolicyConfig.backoff.factor ?? 2.0
+          retryPolicyConfig.backoff.start ?? Backoff.DEFAULT_INITIAL,
+          retryPolicyConfig.backoff.factor ?? ExponentialBackoff.DEFAULT_BASE
         );
       }
 
       policy = new CircuitBreakerPolicy(
         usecaseInfo,
         //TODO are these defauts ok?
-        retryPolicyConfig.maxContiguousRetries ?? 5,
-        retryPolicyConfig.openTime ?? 30_000,
-        retryPolicyConfig.requestTimeout ?? 30_000,
+        retryPolicyConfig.maxContiguousRetries ?? RetryPolicy.DEFAULT_MAX_CONTIGUOUS_RETRIES,
+        retryPolicyConfig.openTime ?? CircuitBreakerPolicy.DEFAULT_OPEN_TIME,
+        retryPolicyConfig.requestTimeout ?? RetryPolicy.DEFAULT_REQUEST_TIMEOUT,
         backoff
       );
     } else if (retryPolicyConfig.kind === OnFail.SIMPLE) {
       policy = new RetryPolicy(
         usecaseInfo,
-        retryPolicyConfig.maxContiguousRetries ?? 5,
-        retryPolicyConfig.requestTimeout ?? 30_000,
+        retryPolicyConfig.maxContiguousRetries ?? RetryPolicy.DEFAULT_MAX_CONTIGUOUS_RETRIES,
+        retryPolicyConfig.requestTimeout ?? RetryPolicy.DEFAULT_REQUEST_TIMEOUT,
         new ConstantBackoff(0)
       );
     } else if (retryPolicyConfig.kind === OnFail.NONE) {
