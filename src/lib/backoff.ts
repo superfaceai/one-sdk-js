@@ -1,4 +1,6 @@
 export class Backoff {
+  public static DEFAULT_INITIAL = 2000;
+
   protected _current: number;
 
   constructor(
@@ -62,6 +64,8 @@ export class LinearBackoff extends Backoff {
 }
 
 export class ExponentialBackoff extends Backoff {
+  public static DEFAULT_BASE = 2;
+
   constructor(
     initial: number,
     base: number,
