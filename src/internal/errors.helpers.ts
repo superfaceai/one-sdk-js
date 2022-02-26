@@ -1,4 +1,4 @@
-import { BackoffKind, SecurityValues } from '@superfaceai/ast';
+import { AssertionError, BackoffKind, SecurityValues } from '@superfaceai/ast';
 
 import { Config } from '../config';
 import { SDKBindError, SDKExecutionError } from './errors';
@@ -421,11 +421,19 @@ export function unexpectedDigestValue(
 
 // Bind errors
 export function invalidProviderResponseError(
-  input: unknown
+  error: unknown
 ): SDKExecutionError {
+  if (error instanceof AssertionError) {
+    return new SDKBindError(
+      'Bind call responded with invalid provider body',
+      error.detailed().split('\n'),
+      ['Received provider should be of type "ProviderJson"']
+    );
+  }
+
   return new SDKBindError(
-    `Bind call responded with invalid provider body: ${JSON.stringify(input)}`,
-    ['Received provider should be of type "ProviderJson"'],
+    `Bind call response validation failed with unexpected error: ${JSON.stringify(error)}`,
+    [],
     []
   );
 }
