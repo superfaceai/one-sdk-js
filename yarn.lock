@@ -660,18 +660,20 @@
   dependencies:
     "@sinonjs/commons" "^1.7.0"
 
+"@superfaceai/ast@1.2.0-rc.2":
+  version "1.2.0-rc.2"
+  resolved "https://registry.yarnpkg.com/@superfaceai/ast/-/ast-1.2.0-rc.2.tgz#5e7774fd150568c5b6a1aac7fe481d1a944dc429"
+  integrity sha512-LsKJ7GfYbcbYFKk5/qrsMloijzeLbGAbcck6yZjkHjVU9DP8FvTyi2OAwKePEMasb98yCwEnftpgDtJZV/uStg==
+  dependencies:
+    ajv "^8.8.2"
+    ajv-formats "^2.1.1"
+
 "@superfaceai/ast@^1.1.0":
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/@superfaceai/ast/-/ast-1.1.0.tgz#cb87f9c980e600bd74536e14bafe7231d15c291c"
   integrity sha512-/Bpm21XWwUElogBB8AdKkjbe4h1vExBx2xTrfE5t74FiFZUxhnLYfVcUCKNqUqsuggF/uUUAZ+5uBtmffJYm6g==
   dependencies:
     typescript-is "^0.18.3"
-
-"@superfaceai/ast@file:.yalc/@superfaceai/ast":
-  version "1.2.0-rc.0"
-  dependencies:
-    ajv "^8.8.2"
-    ajv-formats "^2.1.1"
 
 "@superfaceai/parser@^1.1.0":
   version "1.1.0"
