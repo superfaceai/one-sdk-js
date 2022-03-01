@@ -114,4 +114,20 @@ describe('sandbox', () => {
     expect(v).toStrictEqual([1, 2, 3]);
     expect(Array.isArray(v)).toBe(true);
   });
+
+  describe('stdlib', () => {
+    it('provides unstable stdlib', () => {
+      expect(
+        evalScript(
+          'std.unstable.time.isoDateToUnixTimestamp("2022-01-01T00:11:00.123Z")'
+        )
+      ).toStrictEqual(1640995860123);
+
+      expect(
+        evalScript(
+          '(std.unstable.debug.log(1123), std.unstable.time.unixTimestampToIsoDate(1640995860123))'
+        )
+      ).toStrictEqual('2022-01-01T00:11:00.123Z');
+    });
+  });
 });
