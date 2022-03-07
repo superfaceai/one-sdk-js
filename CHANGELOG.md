@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Sandbox stdlib - `std.unstable.time.{isoDateToUnixTimestamp, unixTimestampToIsoDate}, std.unstable.debug.log`
+- Superjson simple retry policy configuration is now supported
+- Superjson circuit breaker configuration accepts `openTime` (default 30s, previously hardcoded)
+
+### Changed
+- Default backoff start value changed from 50ms to 500ms
 
 ## [1.3.0] - 2022-02-15
 ### Added
