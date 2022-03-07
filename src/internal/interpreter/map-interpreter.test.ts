@@ -1323,7 +1323,7 @@ describe('MapInterpreter', () => {
         return args.item
     }`);
 
-    let buffer = Buffer.from("hello");
+    const buffer = Buffer.from('hello');
     expect(Buffer.isBuffer(buffer)).toBe(true);
 
     const interpreter = new MapInterpreter(
@@ -1332,8 +1332,8 @@ describe('MapInterpreter', () => {
         security: [],
         services: ServiceSelector.withDefaultUrl(''),
         input: {
-          items: [{ buffer }, { buffer }]
-        }
+          items: [{ buffer }, { buffer }],
+        },
       },
       { fetchInstance }
     );
@@ -1366,8 +1366,8 @@ describe('MapInterpreter', () => {
         security: [],
         services: ServiceSelector.withDefaultUrl(''),
         input: {
-          items: [{ a: 1, b: 2 }, { a: 3 }]
-        }
+          items: [{ a: 1, b: 2 }, { a: 3 }],
+        },
       },
       { fetchInstance }
     );
@@ -1376,9 +1376,6 @@ describe('MapInterpreter', () => {
     expect(result.isOk()).toBe(true);
     const items = (result.unwrap() as any).items;
 
-    expect(items).toStrictEqual([
-      { a: 1, b: 2 },
-      { a: 3 }
-    ])
+    expect(items).toStrictEqual([{ a: 1, b: 2 }, { a: 3 }]);
   });
 });
