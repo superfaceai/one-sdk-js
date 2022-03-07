@@ -36,7 +36,7 @@ export abstract class SuperfaceClientBase extends Events {
   public readonly superJson: SuperJson;
   private readonly metricReporter: MetricReporter | undefined;
   private boundCache: {
-    [key: string]: BoundProfileProvider;
+    [key: string]: { profileProvider: BoundProfileProvider; expiresAt: number };
   } = {};
 
   public hookContext: HooksContext = {};
@@ -73,7 +73,8 @@ export abstract class SuperfaceClientBase extends Events {
     const cacheKey = profileConfig.cacheKey + providerConfig.cacheKey;
 
     const bound = this.boundCache[cacheKey];
-    if (bound === undefined) {
+    const now = Math.floor(Date.now() / 1000);
+    if (bound === undefined || bound.expiresAt < now) {
       const profileProvider = new ProfileProvider(
         this.superJson,
         profileConfig,
@@ -83,10 +84,13 @@ export abstract class SuperfaceClientBase extends Events {
       const boundProfileProvider = await profileProvider.bind({
         security: providerConfig.security,
       });
-      this.boundCache[cacheKey] = boundProfileProvider;
+      this.boundCache[cacheKey] = {
+        profileProvider: boundProfileProvider,
+        expiresAt: now + Config.instance().superfaceCacheTimeout,
+      };
     }
 
-    return this.boundCache[cacheKey];
+    return this.boundCache[cacheKey].profileProvider;
   }
 
   /** Gets a provider from super.json based on `providerName`. */
