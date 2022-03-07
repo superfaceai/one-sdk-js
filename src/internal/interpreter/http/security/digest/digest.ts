@@ -2,20 +2,20 @@ import { DigestSecurityScheme, DigestSecurityValues } from '@superfaceai/ast';
 import { createHash, randomInt } from 'crypto';
 import createDebug from 'debug';
 
+import { pipe } from '../../../../../lib/pipe/pipe';
 import {
   digestHeaderNotFound,
   missingPartOfDigestHeader,
   unexpectedDigestValue,
 } from '../../../../errors.helpers';
-import { HttpResponse } from '../../http';
-import { FetchInstance } from '../../interfaces';
 import {
   fetchFilter,
   isCompleteHttpRequest,
-  pipe,
   prepareRequestFilter,
   withRequest,
-} from '../../pipe';
+} from '../../filters';
+import { HttpResponse } from '../../http';
+import { FetchInstance } from '../../interfaces';
 import { HandleResponseAsync } from '..';
 import {
   AuthCache,
@@ -60,7 +60,7 @@ export class DigestHandler implements ISecurityHandler {
   // 407 can be also used when communicating thru proxy https://datatracker.ietf.org/doc/html/rfc2617#section-1.2
   private readonly statusCode: number;
   // "Proxy-Authenticate" can be also used when communicating thru proxy https://datatracker.ietf.org/doc/html/rfc2617#section-1.2
-  private readonly challangeHeader: string;
+  private readonly challengeHeader: string;
   private readonly authorizationHeader: string;
   // Internal
   private readonly nonceRaw: string = 'abcdef0123456789';
@@ -68,48 +68,50 @@ export class DigestHandler implements ISecurityHandler {
   private nc = 0;
 
   constructor(
-    readonly configuration: DigestSecurityScheme & DigestSecurityValues
+    readonly configuration: DigestSecurityScheme & DigestSecurityValues,
+    private readonly fetchInstance: FetchInstance & AuthCache
   ) {
     debug('Initialized DigestHandler');
     this.statusCode = configuration.statusCode || 401;
-    this.challangeHeader = configuration.challengeHeader || 'www-authenticate';
+    this.challengeHeader = configuration.challengeHeader || 'www-authenticate';
     this.authorizationHeader =
       configuration.authorizationHeader ?? DEFAULT_AUTHORIZATION_HEADER_NAME;
 
     debugSensitive(
-      `Initialized with: username="${this.configuration.username}", password="${this.configuration.password}", status code=${this.statusCode}, challenge header="${this.challangeHeader}", authorization header="${this.authorizationHeader}"`
+      `Initialized with: username="${this.configuration.username}", password="${this.configuration.password}", status code=${this.statusCode}, challenge header="${this.challengeHeader}", authorization header="${this.authorizationHeader}"`
     );
   }
 
   authenticate: AuthenticateRequestAsync = async (
-    parameters: RequestParameters,
-    fetchInstance: FetchInstance & AuthCache
+    parameters: RequestParameters
   ) => {
     const headers: Record<string, string> = parameters.headers || {};
 
     // If we have cached credentials we use them
-    if (fetchInstance?.digest) {
+    if (this.fetchInstance?.digest) {
       debugSensitive('Using cached digest credentials');
       headers[
         this.configuration.authorizationHeader ||
           DEFAULT_AUTHORIZATION_HEADER_NAME
-      ] = fetchInstance.digest;
+      ] = this.fetchInstance.digest;
 
       return {
         ...parameters,
         headers,
       };
     }
-    // If we don't we try to get challange header
-    const { response } = await pipe({
-      initial: {
+
+    // If we don't, we try to get challenge header
+    const { response } = await pipe(
+      {
         parameters: {
           ...parameters,
           headers,
         },
       },
-      filters: [prepareRequestFilter, withRequest(fetchFilter(fetchInstance))],
-    });
+      prepareRequestFilter,
+      withRequest(fetchFilter(this.fetchInstance))
+    );
 
     if (response === undefined) {
       throw new Error('Response is undefined');
@@ -117,10 +119,10 @@ export class DigestHandler implements ISecurityHandler {
 
     if (
       response.statusCode !== this.statusCode ||
-      !response.headers[this.challangeHeader]
+      !response.headers[this.challengeHeader]
     ) {
       throw digestHeaderNotFound(
-        this.challangeHeader,
+        this.challengeHeader,
         Object.keys(response.headers)
       );
     }
@@ -130,9 +132,9 @@ export class DigestHandler implements ISecurityHandler {
       // We need actual resolved url
       response.debug.request.url,
       parameters.method,
-      this.extractDigestValues(response.headers[this.challangeHeader])
+      this.extractDigestValues(response.headers[this.challengeHeader])
     );
-    fetchInstance.digest = credentials;
+    this.fetchInstance.digest = credentials;
 
     return {
       ...parameters,
@@ -146,13 +148,12 @@ export class DigestHandler implements ISecurityHandler {
 
   handleResponse: HandleResponseAsync = async (
     response: HttpResponse,
-    resourceRequestParameters: RequestParameters,
-    fetchInstance: FetchInstance & AuthCache
+    resourceRequestParameters: RequestParameters
   ) => {
     if (response.statusCode === this.statusCode) {
-      if (!response.headers[this.challangeHeader]) {
+      if (!response.headers[this.challengeHeader]) {
         throw digestHeaderNotFound(
-          this.challangeHeader,
+          this.challengeHeader,
           Object.keys(response.headers)
         );
       }
@@ -161,9 +162,9 @@ export class DigestHandler implements ISecurityHandler {
         // We need actual resolved url
         response.debug.request.url,
         resourceRequestParameters.method,
-        this.extractDigestValues(response.headers[this.challangeHeader])
+        this.extractDigestValues(response.headers[this.challengeHeader])
       );
-      fetchInstance.digest = credentials;
+      this.fetchInstance.digest = credentials;
 
       const prepared = await prepareRequestFilter({
         parameters: {
@@ -262,11 +263,11 @@ export class DigestHandler implements ISecurityHandler {
 
     const scheme = header.split(/\s/)[0];
     if (!scheme) {
-      throw missingPartOfDigestHeader(this.challangeHeader, header, 'scheme');
+      throw missingPartOfDigestHeader(this.challengeHeader, header, 'scheme');
     }
     const nonce = extract(header, 'nonce');
     if (!nonce) {
-      throw missingPartOfDigestHeader(this.challangeHeader, header, 'nonce');
+      throw missingPartOfDigestHeader(this.challengeHeader, header, 'nonce');
     }
 
     return {

@@ -7,6 +7,7 @@ import createDebug from 'debug';
 import { inspect } from 'util';
 
 import { recursiveKeyList } from '../../../lib/object';
+import { pipe } from '../../../lib/pipe/pipe';
 import { UnexpectedError } from '../../errors';
 import {
   missingPathReplacementError,
@@ -18,16 +19,15 @@ import {
   Variables,
   variablesToStrings,
 } from '../variables';
-import { FetchInstance } from './interfaces';
 import {
   authenticateFilter,
   fetchFilter,
   handleResponseFilter,
-  pipe,
   prepareRequestFilter,
   withRequest,
   withResponse,
-} from './pipe';
+} from './filters';
+import { FetchInstance } from './interfaces';
 import {
   ApiKeyHandler,
   AuthCache,
@@ -127,7 +127,7 @@ export const createUrl = (
 
   return baseUrl.replace(/\/+$/, '') + url;
 };
-//TODO: not sure if this can be exported or should be passed as argument
+
 export async function fetchRequest(
   fetchInstance: FetchInstance,
   request: HttpRequest
@@ -153,6 +153,7 @@ export async function fetchRequest(
       debugSensitive(`\n${inspect(request.body, true, 5)}`);
     }
   }
+
   const response = await fetchInstance.fetch(request.url, request);
 
   debug('Received response');
@@ -185,6 +186,7 @@ export async function fetchRequest(
 
 export class HttpClient {
   constructor(private fetchInstance: FetchInstance & AuthCache) {}
+
   public async request(
     url: string,
     parameters: {
@@ -207,33 +209,32 @@ export class HttpClient {
       headers: variablesToStrings(parameters?.headers),
     };
 
-    const handler = getSecurityHandler(
+    const handler = createSecurityHandler(
+      this.fetchInstance,
       requestParameters.securityConfiguration,
       requestParameters.securityRequirements
     );
 
-    // TODO: change name? Something like requestPipe?
-    const result = await pipe({
-      initial: {
+    const result = await pipe(
+      {
         parameters: requestParameters,
       },
-      filters: [
-        authenticateFilter(this.fetchInstance, handler),
-        prepareRequestFilter,
-        withRequest(fetchFilter(this.fetchInstance)),
-        withResponse(handleResponseFilter(this.fetchInstance, handler)),
-      ],
-    });
+      authenticateFilter(handler),
+      prepareRequestFilter,
+      withRequest(fetchFilter(this.fetchInstance)),
+      withResponse(handleResponseFilter(this.fetchInstance, handler))
+    );
 
-    if (!result.response) {
-      throw new Error('Response is undefined');
+    if (result.response === undefined) {
+      throw new UnexpectedError('Response is undefined');
     }
 
     return result.response;
   }
 }
 
-function getSecurityHandler(
+function createSecurityHandler(
+  fetchInstance: FetchInstance & AuthCache,
   securityConfiguration: SecurityConfiguration[] = [],
   securityRequirements: HttpSecurityRequirement[] = []
 ): ISecurityHandler | undefined {
@@ -248,9 +249,9 @@ function getSecurityHandler(
     if (configuration.type === SecurityType.APIKEY) {
       handler = new ApiKeyHandler(configuration);
     } else if (configuration.type === SecurityType.OAUTH) {
-      handler = new OAuthHandler(configuration);
+      handler = new OAuthHandler(configuration, fetchInstance);
     } else if (configuration.scheme === HttpScheme.DIGEST) {
-      handler = new DigestHandler(configuration);
+      handler = new DigestHandler(configuration, fetchInstance);
     } else {
       handler = new HttpHandler(configuration);
     }

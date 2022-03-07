@@ -73,7 +73,6 @@ const boundProfileProviderDebug = createDebug(
 );
 
 export class BoundProfileProvider {
-  // TODO: Interceptable and set metadata
   private profileValidator: ProfileParameterValidator;
   private fetchInstance: FetchInstance & Interceptable & AuthCache;
 

@@ -1,5 +1,5 @@
 import { USER_AGENT } from '../../../index';
-import { clone } from '../../../lib';
+import { pipe } from '../../../lib/pipe/pipe';
 import { MaybePromise } from '../../../lib/types';
 import { UnexpectedError } from '../..';
 import { unsupportedContentType } from '../../errors.helpers';
@@ -69,19 +69,9 @@ export type PipeInput = {
   initial: FilterInputOutput;
 };
 
-export async function pipe({
-  filters,
-  initial,
-}: PipeInput): Promise<FilterInputOutput> {
-  let accumulator = clone(initial);
-
-  for (const filter of filters) {
-    accumulator = await filter(accumulator);
-  }
-
-  return accumulator;
-}
-
+/**
+ * Asserts that given filter gets called with request present in input
+ */
 export const withRequest = (filter: FilterWithRequest): Filter => {
   return async ({ response, request, parameters }: FilterInputOutput) => {
     if (request === undefined || !isCompleteHttpRequest(request)) {
@@ -92,7 +82,19 @@ export const withRequest = (filter: FilterWithRequest): Filter => {
   };
 };
 
-// These filters should be easy to test
+/**
+ * Asserts that given filter gets called with response present in input
+ */
+export const withResponse = (filter: FilterWithResponse): Filter => {
+  return async ({ response, request, parameters }: FilterInputOutput) => {
+    if (response === undefined) {
+      throw new UnexpectedError('Response in HTTP Request is undefined.');
+    }
+
+    return filter({ response, request, parameters });
+  };
+};
+
 export const fetchFilter: (
   fetchInstance: FetchInstance & AuthCache
 ) => FilterWithRequest =
@@ -105,16 +107,12 @@ export const fetchFilter: (
     };
   };
 
-// TODO: how to auth without keeping the handler instance
-export const authenticateFilter: (
-  fetchInstance: FetchInstance & AuthCache,
-  handler?: ISecurityHandler
-) => Filter =
-  (fetchInstance, handler) =>
+export const authenticateFilter: (handler?: ISecurityHandler) => Filter =
+  handler =>
   async ({ parameters, request, response }: FilterInputOutput) => {
     if (handler !== undefined) {
       return {
-        parameters: await handler.authenticate(parameters, fetchInstance),
+        parameters: await handler.authenticate(parameters),
         request,
         response,
       };
@@ -127,32 +125,16 @@ export const authenticateFilter: (
     };
   };
 
-export const withResponse = (filter: FilterWithResponse): Filter => {
-  return async ({ response, request, parameters }: FilterInputOutput) => {
-    if (response === undefined) {
-      // TODO: better error
-      throw new Error('response is undefined');
-    }
-
-    return filter({ response, request, parameters });
-  };
-};
-
-// TODO: how to auth without keeping the handler instance, naming
-// This is handling the cases when we are authenticated but eg. digest credentials expired or oauth access token is no longer valid
+// This is handling the cases when we are authenticated but eg. digest credentials expired or OAuth access token is no longer valid
 export const handleResponseFilter: (
   fetchInstance: FetchInstance & AuthCache,
   handler?: ISecurityHandler
 ) => FilterWithResponse =
   (fetchInstance, handler) =>
   async ({ parameters, request, response }: FilterInputWithResponse) => {
-    if (handler && handler.handleResponse) {
+    if (handler?.handleResponse !== undefined) {
       // We get new parameters (with updated auth, also updated cache)
-      const authRequest = await handler.handleResponse(
-        response,
-        parameters,
-        fetchInstance
-      );
+      const authRequest = await handler.handleResponse(response, parameters);
       // We retry the request
       if (authRequest !== undefined) {
         response = await fetchRequest(fetchInstance, authRequest);
@@ -279,11 +261,11 @@ export const headersFilter: Filter = ({
   headers['accept'] = parameters.accept || '*/*';
   headers['user-agent'] ??= USER_AGENT;
   if (parameters.contentType === JSON_CONTENT) {
-    headers['Content-Type'] ??= JSON_CONTENT;
+    headers['content-type'] ??= JSON_CONTENT;
   } else if (parameters.contentType === URLENCODED_CONTENT) {
-    headers['Content-Type'] ??= URLENCODED_CONTENT;
+    headers['content-type'] ??= URLENCODED_CONTENT;
   } else if (parameters.contentType === FORMDATA_CONTENT) {
-    headers['Content-Type'] ??= FORMDATA_CONTENT;
+    headers['content-type'] ??= FORMDATA_CONTENT;
   } else if (
     parameters.contentType !== undefined &&
     BINARY_CONTENT_REGEXP.test(parameters.contentType)
@@ -319,16 +301,14 @@ export const headersFilter: Filter = ({
 };
 
 export const prepareRequestFilter: Filter = async input => {
-  return pipe({
-    initial: input,
-    filters: [
-      urlFilter,
-      bodyFilter,
-      queryParametersFilter,
-      methodFilter,
-      headersFilter,
-    ],
-  });
+  return pipe(
+    input,
+    urlFilter,
+    bodyFilter,
+    queryParametersFilter,
+    methodFilter,
+    headersFilter
+  );
 };
 
 export function isCompleteHttpRequest(
@@ -337,9 +317,11 @@ export function isCompleteHttpRequest(
   if (typeof input.url !== 'string') {
     return false;
   }
+
   if (typeof input.method !== 'string') {
     return false;
   }
+
   if (input.headers !== undefined) {
     if (typeof input.headers !== 'object') {
       return false;
@@ -357,7 +339,7 @@ export function isCompleteHttpRequest(
     }
   }
 
-  if (input.queryParameters) {
+  if (input.queryParameters !== undefined) {
     if (typeof input.queryParameters !== 'object') {
       return false;
     }

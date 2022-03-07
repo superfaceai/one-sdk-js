@@ -6,16 +6,12 @@ import {
 } from '@superfaceai/ast';
 import createDebug from 'debug';
 
+import { pipe } from '../../../../../lib/pipe/pipe';
 import { UnexpectedError } from '../../../../errors';
 import { Variables } from '../../../variables';
+import { fetchFilter, prepareRequestFilter, withRequest } from '../../filters';
 import { createUrl, HttpResponse } from '../../http';
 import { FetchInstance, URLENCODED_CONTENT } from '../../interfaces';
-import {
-  fetchFilter,
-  pipe,
-  prepareRequestFilter,
-  withRequest,
-} from '../../pipe';
 import {
   AuthCache,
   DEFAULT_AUTHORIZATION_HEADER_NAME,
@@ -23,6 +19,15 @@ import {
 } from '../interfaces';
 
 const debug = createDebug('superface:http:security:refresh');
+
+function isAccessTokenExpired(expiresAt?: number): boolean {
+  if (!expiresAt) {
+    return false;
+  }
+  const currentTime = Math.floor(Date.now() / 1000);
+
+  return currentTime >= expiresAt;
+}
 
 export class RefreshHelper {
   private readonly refreshStatusCode: number;
@@ -33,27 +38,30 @@ export class RefreshHelper {
   ) {
     debug('Initialized RefreshHelper');
 
-    if (!this.flow.refreshUrl) {
-      throw new Error('Refresh url must be difined');
+    if (this.flow.refreshUrl === undefined) {
+      throw new UnexpectedError('Refresh url must be defined');
     }
     this.refreshStatusCode = flow.refreshStatusCode ?? 401;
-    //Basic must be supported according to rfc
+    // Basic must be supported according to rfc
     this.clientAuthenticationMethod =
       flow.clientAuthenticationMethod ??
       OAuthClientAuthenticationMethod.CLIENT_SECRET_BASIC;
   }
 
   shouldRefresh(cache: AuthCache, response?: HttpResponse): boolean {
-    //If we dont have response we check cache
+    // If we dont have response we check cache
     if (
-      !response &&
-      (!cache.oauth?.authotizationCode?.accessToken ||
-        this.isAccessTokenExpired(cache.oauth.authotizationCode.expiresAt))
+      response === undefined &&
+      (cache.oauth?.authotizationCode?.accessToken === undefined ||
+        isAccessTokenExpired(cache.oauth.authotizationCode.expiresAt))
     ) {
       return true;
     }
 
-    if (response && response.statusCode === this.refreshStatusCode) {
+    if (
+      response !== undefined &&
+      response.statusCode === this.refreshStatusCode
+    ) {
       return true;
     }
 
@@ -62,13 +70,12 @@ export class RefreshHelper {
 
   async refresh(
     parameters: RequestParameters,
-    cache: AuthCache,
-    fetchInstance: FetchInstance
+    fetchInstance: FetchInstance & AuthCache
   ): Promise<RequestParameters> {
     debug('RefreshHelper started refreshing');
 
     if (!this.flow.refreshUrl) {
-      throw new Error('Refresh url must be difined');
+      throw new UnexpectedError('Refresh url must be difined');
     }
 
     const body: Variables = {
@@ -106,13 +113,11 @@ export class RefreshHelper {
     };
 
     const refreshResponse = (
-      await pipe({
-        initial: { parameters: refreshRequest },
-        filters: [
-          prepareRequestFilter,
-          withRequest(fetchFilter(fetchInstance)),
-        ],
-      })
+      await pipe(
+        { parameters: refreshRequest },
+        prepareRequestFilter,
+        withRequest(fetchFilter(fetchInstance))
+      )
     ).response;
 
     if (!refreshResponse) {
@@ -147,27 +152,24 @@ export class RefreshHelper {
         );
       }
 
-      if (
-        accessTokenResponse.token_type !== OAuthTokenType.BEARER //&&
-        // accessTokenResponse.token_type !== OAuthTokenType.MAC
-      ) {
+      if (accessTokenResponse.token_type !== OAuthTokenType.BEARER) {
         throw new UnexpectedError(
           'Property "token_type" has invalid value',
           accessTokenResponse.token_type
         );
       }
 
-      if (!cache.oauth) {
-        cache.oauth = {};
+      if (fetchInstance.oauth === undefined) {
+        fetchInstance.oauth = {};
       }
-      cache.oauth.authotizationCode = {
+      fetchInstance.oauth.authotizationCode = {
         accessToken: accessTokenResponse.access_token,
         refreshToken: accessTokenResponse.refresh_token,
         expiresAt: accessTokenResponse.expires_in
           ? Math.floor(Date.now() / 1000) + accessTokenResponse.expires_in
           : undefined,
         scopes: accessTokenResponse.scope
-          ? //TODO: custom separator
+          ? // TODO: custom separator
             accessTokenResponse.scope.split(' ')
           : [],
         tokenType: accessTokenResponse.token_type,
@@ -183,16 +185,9 @@ export class RefreshHelper {
       };
     }
 
-    //TODO: handle this
-    throw new Error('Unable to get refresh token - unknown response status');
-  }
-
-  private isAccessTokenExpired(expiresAt?: number): boolean {
-    if (!expiresAt) {
-      return false;
-    }
-    const currentTime = Math.floor(Date.now() / 1000);
-
-    return currentTime >= expiresAt;
+    // TODO: handle this
+    throw new UnexpectedError(
+      'Unable to get refresh token - unknown response status'
+    );
   }
 }

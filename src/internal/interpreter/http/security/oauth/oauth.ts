@@ -5,9 +5,9 @@ import {
 } from '@superfaceai/ast';
 import createDebug from 'debug';
 
+import { isCompleteHttpRequest, prepareRequestFilter } from '../../filters';
 import { HttpResponse } from '../../http';
 import { FetchInstance } from '../../interfaces';
-import { isCompleteHttpRequest, pipe, prepareRequestFilter } from '../../pipe';
 import {
   AuthCache,
   AuthenticateRequestAsync,
@@ -23,53 +23,53 @@ const debug = createDebug('superface:http:security:o-auth-handler');
 
 export class OAuthHandler implements ISecurityHandler {
   private readonly selectedFlow: OAuthFlow;
-  //TODO: think about better refresh handling - must be sparated from actual flow helper
+  // TODO: think about better refresh handling - must be sparated from actual flow helper
   private readonly refreshHelper: RefreshHelper | undefined;
 
   constructor(
-    readonly configuration: OAuthSecurityScheme & OAuthSecurityValues
+    readonly configuration: OAuthSecurityScheme & OAuthSecurityValues,
+    private readonly fetchInstance: FetchInstance & AuthCache
   ) {
     debug('Initialized OAuthHandler');
 
-    //Here we would have helper for each o auth flow and possible refresh token helper
+    // Here we would have helper for each o auth flow and possible refresh token helper
     if (configuration.flows.length === 0) {
       throw new Error('Flows cant be empty');
     }
-    //TODO: select the right (most secure available?) flow
+
+    // TODO: select the right (most secure available?) flow
     this.selectedFlow = configuration.flows[0];
 
     if (this.selectedFlow.refreshUrl) {
-      //We will use refreshing
+      // We will use refreshing
       this.refreshHelper = new RefreshHelper(this.selectedFlow, configuration);
     } else {
       this.refreshHelper = undefined;
     }
 
-    //TODO: create instance of helper for selected flow.
+    // TODO: create instance of helper for selected flow.
   }
 
   authenticate: AuthenticateRequestAsync = async (
-    parameters: RequestParameters,
-    fetchInstance: FetchInstance & AuthCache
+    parameters: RequestParameters
   ) => {
-    if (this.refreshHelper && this.refreshHelper.shouldRefresh(fetchInstance)) {
-      return await this.refreshHelper.refresh(
-        parameters,
-        fetchInstance,
-        fetchInstance
-      );
+    if (
+      this.refreshHelper &&
+      this.refreshHelper.shouldRefresh(this.fetchInstance)
+    ) {
+      return await this.refreshHelper.refresh(parameters, this.fetchInstance);
     }
-    //TODO: use selected flow helper (and actualy write some flow helpers)
-    //Now we just get access token from cache and use it
+    // TODO: use selected flow helper (and actualy write some flow helpers)
+    // Now we just get access token from cache and use it
     let authenticateParameters = parameters;
-    if (fetchInstance.oauth?.authotizationCode?.accessToken) {
+    if (this.fetchInstance.oauth?.authotizationCode?.accessToken) {
       debug('Using cached credentials');
       authenticateParameters = {
         ...parameters,
         headers: {
           ...parameters.headers,
           //TODO: prepare header according to token type
-          [DEFAULT_AUTHORIZATION_HEADER_NAME]: `Bearer ${fetchInstance.oauth?.authotizationCode?.accessToken}`,
+          [DEFAULT_AUTHORIZATION_HEADER_NAME]: `Bearer ${this.fetchInstance.oauth?.authotizationCode?.accessToken}`,
         },
       };
     }
@@ -79,16 +79,14 @@ export class OAuthHandler implements ISecurityHandler {
 
   handleResponse: HandleResponseAsync = async (
     response: HttpResponse,
-    resourceRequestParameters: RequestParameters,
-    fetchInstance: FetchInstance & AuthCache
+    resourceRequestParameters: RequestParameters
   ): Promise<HttpRequest | undefined> => {
     if (
       this.refreshHelper !== undefined &&
-      this.refreshHelper.shouldRefresh(fetchInstance, response)
+      this.refreshHelper.shouldRefresh(this.fetchInstance, response)
     ) {
-      const prepared = await pipe({
-        initial: { parameters: resourceRequestParameters },
-        filters: [prepareRequestFilter],
+      const prepared = await prepareRequestFilter({
+        parameters: resourceRequestParameters,
       });
 
       if (

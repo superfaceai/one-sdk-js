@@ -15,16 +15,16 @@ import {
 
 import { NonPrimitive, Variables } from '../../variables';
 import { HttpResponse } from '../http';
-import { FetchInstance, FetchParameters } from '../interfaces';
+import { FetchParameters } from '../interfaces';
 
 export const DEFAULT_AUTHORIZATION_HEADER_NAME = 'Authorization';
 
-//TODO: rename? it's not connected to specific flow
+// TODO: rename? it's not connected to specific flow
 export type AuthCacheAuthorizationCode = {
-  //Actual credentials
+  // Actual credentials
   accessToken: string;
   refreshToken?: string;
-  //expiresIn is not required by rfc.
+  // expiresIn is not required by rfc.
   expiresAt?: number;
   tokenType: OAuthTokenType;
   scopes: string[];
@@ -41,9 +41,7 @@ export type AuthCache = {
  * This type defines function used for authentization with more complex auth. methods (oauth, diges), we useFetchInstance to fetch auth. response and to set credentials to cache
  */
 export type AuthenticateRequestAsync = (
-  parameters: RequestParameters,
-  //TODO: simplify/ get rid of
-  fetchInstance: FetchInstance & AuthCache
+  parameters: RequestParameters
 ) => Promise<RequestParameters>;
 
 /**
@@ -52,8 +50,7 @@ export type AuthenticateRequestAsync = (
  */
 export type HandleResponseAsync = (
   response: HttpResponse,
-  resourceRequestParameters: RequestParameters,
-  fetchInstance: FetchInstance & AuthCache
+  resourceRequestParameters: RequestParameters
 ) => Promise<HttpRequest | undefined> | undefined;
 
 /**
