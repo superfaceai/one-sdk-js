@@ -33,7 +33,7 @@ export const DEFAULT_CACHE_PATH = joinPath(
 );
 export const DEFAULT_SANDBOX_TIMEOUT = 100;
 //1 hour
-export const DEFAULT_BOUND_PROVIDER_TIMEOUT = 1000 * 60 * 60 * 60;
+export const DEFAULT_BOUND_PROVIDER_TIMEOUT = 60 * 60;
 
 // Extraction functions
 function getSuperfaceApiUrl(): string {
