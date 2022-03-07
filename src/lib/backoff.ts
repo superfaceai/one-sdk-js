@@ -1,5 +1,5 @@
 export class Backoff {
-  public static DEFAULT_INITIAL = 2000;
+  public static DEFAULT_INITIAL = 500;
 
   protected _current: number;
 
