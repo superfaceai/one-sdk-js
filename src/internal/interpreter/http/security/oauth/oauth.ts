@@ -23,8 +23,7 @@ const debug = createDebug('superface:http:security:o-auth-handler');
 
 export class OAuthHandler implements ISecurityHandler {
   private readonly selectedFlow: OAuthFlow;
-  // TODO: think about better refresh handling - must be sparated from actual flow helper
-  private readonly refreshHelper: RefreshHelper | undefined;
+  private readonly refreshHelper?: RefreshHelper;
 
   constructor(
     readonly configuration: OAuthSecurityScheme & OAuthSecurityValues,
@@ -37,7 +36,6 @@ export class OAuthHandler implements ISecurityHandler {
       throw new Error('Flows cant be empty');
     }
 
-    // TODO: select the right (most secure available?) flow
     this.selectedFlow = configuration.flows[0];
 
     if (this.selectedFlow.refreshUrl) {
@@ -46,8 +44,6 @@ export class OAuthHandler implements ISecurityHandler {
     } else {
       this.refreshHelper = undefined;
     }
-
-    // TODO: create instance of helper for selected flow.
   }
 
   authenticate: AuthenticateRequestAsync = async (
@@ -59,7 +55,7 @@ export class OAuthHandler implements ISecurityHandler {
     ) {
       return await this.refreshHelper.refresh(parameters, this.fetchInstance);
     }
-    // TODO: use selected flow helper (and actualy write some flow helpers)
+
     // Now we just get access token from cache and use it
     let authenticateParameters = parameters;
     if (this.fetchInstance.oauth?.authotizationCode?.accessToken) {
@@ -68,7 +64,6 @@ export class OAuthHandler implements ISecurityHandler {
         ...parameters,
         headers: {
           ...parameters.headers,
-          //TODO: prepare header according to token type
           [DEFAULT_AUTHORIZATION_HEADER_NAME]: `Bearer ${this.fetchInstance.oauth?.authotizationCode?.accessToken}`,
         },
       };
