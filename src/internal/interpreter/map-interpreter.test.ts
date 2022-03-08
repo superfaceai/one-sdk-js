@@ -1308,4 +1308,74 @@ describe('MapInterpreter', () => {
     const result = await interpreter.perform(ast);
     expect(result.isOk() && result.value).toEqual(15);
   });
+
+  it('should preserve buffer types with foreach', async () => {
+    const ast = parseMapFromSource(`    
+    map Test {
+      mappedItems = call foreach(item of input.items) mapItem(item = item)
+    
+      map result {
+        items: mappedItems
+      }
+    }
+    
+    operation mapItem {
+        return args.item
+    }`);
+
+    const buffer = Buffer.from('hello');
+    expect(Buffer.isBuffer(buffer)).toBe(true);
+
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+        services: ServiceSelector.withDefaultUrl(''),
+        input: {
+          items: [{ buffer }, { buffer }],
+        },
+      },
+      { fetchInstance }
+    );
+
+    const result = await interpreter.perform(ast);
+    expect(result.isOk()).toBe(true);
+    const items = (result.unwrap() as any).items;
+
+    expect(Buffer.isBuffer(items[0].buffer)).toBe(true);
+    expect(Buffer.isBuffer(items[1].buffer)).toBe(true);
+  });
+
+  it('should not leak optional properties in foreach', async () => {
+    const ast = parseMapFromSource(`    
+    map Test {
+      mappedItems = call foreach(item of input.items) mapItem(item = item)
+    
+      map result {
+        items: mappedItems
+      }
+    }
+    
+    operation mapItem {
+        return args.item
+    }`);
+
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+        services: ServiceSelector.withDefaultUrl(''),
+        input: {
+          items: [{ a: 1, b: 2 }, { a: 3 }],
+        },
+      },
+      { fetchInstance }
+    );
+
+    const result = await interpreter.perform(ast);
+    expect(result.isOk()).toBe(true);
+    const items = (result.unwrap() as any).items;
+
+    expect(items).toStrictEqual([{ a: 1, b: 2 }, { a: 3 }]);
+  });
 });

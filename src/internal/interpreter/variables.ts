@@ -47,7 +47,11 @@ export function isPrimitive(input: Variables): input is Primitive {
 }
 
 export function isNonPrimitive(input: Variables): input is NonPrimitive {
-  return typeof input === 'object' && !Array.isArray(input);
+  return (
+    typeof input === 'object' &&
+    !Array.isArray(input) &&
+    !Buffer.isBuffer(input)
+  );
 }
 
 export function isEmptyRecord(

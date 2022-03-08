@@ -546,7 +546,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
           } else {
             this.stackTop().result = outcome?.result ?? this.stackTop().result;
           }
-          debug('Setting result', this.stackTop());
+          debug('Setting result: %O', this.stackTop());
 
           if (outcome?.terminateFlow) {
             this.stackTop().terminate = true;
@@ -694,7 +694,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
       variables
     );
 
-    debug('Updated stack:', this.stackTop());
+    debug('Updated stack: %O', this.stackTop());
   }
 
   private constructObject(keys: string[], value: Variables): NonPrimitive {
@@ -730,13 +730,13 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
             terminate: false,
           };
     this.stack.push(stack);
-    debug('New stack:', this.stackTop());
+    debug('New stack: %O', this.stackTop());
   }
 
   private popStack(): void {
     const last = this.stack.pop();
 
-    debug('Popped stack:', last);
+    debug('Popped stack: %O', last);
   }
 
   private stackTop(assertType: 'operation'): OperationStack;
@@ -794,9 +794,9 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
   ): Promise<void> {
     const iterationParams = await this.visit(node.iteration);
     for (const variable of iterationParams.iterable) {
-      this.addVariableToStack({
-        [iterationParams.iterationVariable]: variable,
-      });
+      // overwrite the iteration variable instead of merging
+      this.stackTop().variables[iterationParams.iterationVariable] = variable;
+
       if (node.condition) {
         const condition = await this.visit(node.condition);
         if (condition === false) {
