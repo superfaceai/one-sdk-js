@@ -104,7 +104,6 @@ export class RefreshHelper {
       method: 'post',
       headers,
       body,
-      //TODO: Custom content type
       contentType: URLENCODED_CONTENT,
       baseUrl: createUrl(this.flow.refreshUrl, {
         baseUrl: parameters.baseUrl,
@@ -125,69 +124,65 @@ export class RefreshHelper {
     }
 
     if (
-      //200 is defined by rfc
-      refreshResponse.statusCode === 200
+      // 200 is defined by rfc
+      refreshResponse.statusCode !== 200
     ) {
-      //Extract access token info from body
-      const accessTokenResponse = refreshResponse.body as {
-        access_token: string;
-        token_type: string;
-        refresh_token?: string;
-        expires_in?: number;
-        scope: string;
-      };
-
-      if (!accessTokenResponse.access_token) {
-        //TODO: move to error helpers
-        throw new UnexpectedError(
-          'Missing property "access_token" in response body',
-          accessTokenResponse
-        );
-      }
-
-      if (!accessTokenResponse.token_type) {
-        throw new UnexpectedError(
-          'Missing property "token_type" in response body',
-          accessTokenResponse
-        );
-      }
-
-      if (accessTokenResponse.token_type !== OAuthTokenType.BEARER) {
-        throw new UnexpectedError(
-          'Property "token_type" has invalid value',
-          accessTokenResponse.token_type
-        );
-      }
-
-      if (fetchInstance.oauth === undefined) {
-        fetchInstance.oauth = {};
-      }
-      fetchInstance.oauth.authotizationCode = {
-        accessToken: accessTokenResponse.access_token,
-        refreshToken: accessTokenResponse.refresh_token,
-        expiresAt: accessTokenResponse.expires_in
-          ? Math.floor(Date.now() / 1000) + accessTokenResponse.expires_in
-          : undefined,
-        scopes: accessTokenResponse.scope
-          ? // TODO: custom separator
-            accessTokenResponse.scope.split(' ')
-          : [],
-        tokenType: accessTokenResponse.token_type,
-      };
-
-      return {
-        ...parameters,
-        headers: {
-          ...parameters.headers,
-          // TODO: prepare header according to token type
-          [DEFAULT_AUTHORIZATION_HEADER_NAME]: `Bearer ${accessTokenResponse.access_token}`,
-        },
-      };
+      throw new UnexpectedError(
+        'Unable to get refresh token - unknown response status'
+      );
     }
 
-    // TODO: handle this
-    throw new UnexpectedError(
-      'Unable to get refresh token - unknown response status'
-    );
+    // Extract access token info from body
+    const accessTokenResponse = refreshResponse.body as {
+      access_token: string;
+      token_type: string;
+      refresh_token?: string;
+      expires_in?: number;
+      scope: string;
+    };
+
+    if (typeof accessTokenResponse.access_token !== 'string') {
+      throw new UnexpectedError(
+        'Missing or invalid property "access_token" in response body',
+        accessTokenResponse
+      );
+    }
+
+    if (typeof accessTokenResponse.token_type !== 'string') {
+      throw new UnexpectedError(
+        'Missing or invalid property "token_type" in response body',
+        accessTokenResponse
+      );
+    }
+
+    if (accessTokenResponse.token_type !== OAuthTokenType.BEARER) {
+      throw new UnexpectedError(
+        'Property "token_type" has invalid value',
+        accessTokenResponse.token_type
+      );
+    }
+
+    if (fetchInstance.oauth === undefined) {
+      fetchInstance.oauth = {};
+    }
+    fetchInstance.oauth.authotizationCode = {
+      accessToken: accessTokenResponse.access_token,
+      refreshToken: accessTokenResponse.refresh_token,
+      expiresAt: accessTokenResponse.expires_in
+        ? Math.floor(Date.now() / 1000) + accessTokenResponse.expires_in
+        : undefined,
+      scopes: accessTokenResponse.scope
+        ? accessTokenResponse.scope.split(' ')
+        : [],
+      tokenType: accessTokenResponse.token_type,
+    };
+
+    return {
+      ...parameters,
+      headers: {
+        ...parameters.headers,
+        [DEFAULT_AUTHORIZATION_HEADER_NAME]: `Bearer ${accessTokenResponse.access_token}`,
+      },
+    };
   }
 }
