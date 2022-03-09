@@ -47,6 +47,8 @@ jest.mock('fs', () => ({
   ...jest.requireActual<Record<string, unknown>>('fs'),
   promises: {
     readFile: jest.fn(),
+    mkdir: jest.fn(),
+    writeFile: jest.fn(),
   },
 }));
 

@@ -1,6 +1,7 @@
 import {
   assertMapDocumentNode,
   assertProfileDocumentNode,
+  assertProviderJson,
   FILE_URI_PROTOCOL,
   HttpScheme,
   isApiKeySecurityValues,
@@ -23,6 +24,7 @@ import createDebug from 'debug';
 import { promises as fsp } from 'fs';
 import { join as joinPath } from 'path';
 
+import { Config } from '../config';
 import {
   invalidProfileError,
   invalidSecurityValuesError,
@@ -216,6 +218,7 @@ export class ProfileProvider {
   private profileId: string;
   private scope: string | undefined;
   private profileName: string;
+  private providerJson?: ProviderJson;
 
   constructor(
     /** Preloaded superJson instance */
@@ -322,7 +325,7 @@ export class ProfileProvider {
       }
     } else if (providerInfo === undefined) {
       // resolve only provider info if map is specified locally
-      providerInfo = await fetchProviderInfo(providerName);
+      providerInfo = await this.cacheProviderInfo(providerName);
     }
 
     if (providerName !== mapAst.header.provider) {
@@ -415,6 +418,35 @@ export class ProfileProvider {
     }
 
     return result;
+  }
+
+  private async cacheProviderInfo(providerName: string): Promise<ProviderJson> {
+    // If we don't have provider info, we first try to read it from cache
+    if (this.providerJson === undefined) {
+      const cachePath = joinPath(Config.instance().cachePath, 'providers');
+      const providerCachePath = joinPath(cachePath, `${providerName}.json`);
+      try {
+        const providerJsonFile = await fsp.readFile(providerCachePath, 'utf8');
+        this.providerJson = assertProviderJson(JSON.parse(providerJsonFile));
+      } catch (e) {
+        profileProviderDebug(
+          `Failed to read provider.json for ${providerName}: %O`,
+          e
+        );
+      }
+
+      // If we don't have it in cache, we fetch it from the registry
+      if (this.providerJson === undefined) {
+        this.providerJson = await fetchProviderInfo(providerName);
+        await fsp.mkdir(cachePath, { recursive: true });
+        await fsp.writeFile(
+          providerCachePath,
+          JSON.stringify(this.providerJson)
+        );
+      }
+    }
+
+    return this.providerJson;
   }
 
   private async resolveProfileAst(): Promise<ProfileDocumentNode | undefined> {
