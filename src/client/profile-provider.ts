@@ -430,23 +430,21 @@ export class ProfileProvider {
       // If we don't have provider info, we first try to fetch it from the registry
       try {
         this.providerJson = await fetchProviderInfo(providerName);
+        try {
+          await fsp.mkdir(cachePath, { recursive: true });
+          await fsp.writeFile(
+            providerCachePath,
+            JSON.stringify(this.providerJson)
+          );
+        } catch (error) {
+          profileProviderDebug(
+            `Failed to cache provider.json for ${providerName}: %O`,
+            error
+          );
+        }
       } catch (error) {
         profileProviderDebug(
           `Failed to fetch provider.json for ${providerName}: %O`,
-          error
-        );
-        errors.push(error);
-      }
-
-      try {
-        await fsp.mkdir(cachePath, { recursive: true });
-        await fsp.writeFile(
-          providerCachePath,
-          JSON.stringify(this.providerJson)
-        );
-      } catch (error) {
-        profileProviderDebug(
-          `Failed to cache provider.json for ${providerName}: %O`,
           error
         );
         errors.push(error);
