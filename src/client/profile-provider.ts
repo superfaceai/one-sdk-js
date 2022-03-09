@@ -25,6 +25,7 @@ import { promises as fsp } from 'fs';
 import { join as joinPath } from 'path';
 
 import { Config } from '../config';
+import { UnexpectedError } from '../internal';
 import {
   invalidProfileError,
   invalidSecurityValuesError,
@@ -421,29 +422,59 @@ export class ProfileProvider {
   }
 
   private async cacheProviderInfo(providerName: string): Promise<ProviderJson> {
-    // If we don't have provider info, we first try to read it from cache
+    const errors: Error[] = [];
     if (this.providerJson === undefined) {
       const cachePath = joinPath(Config.instance().cachePath, 'providers');
       const providerCachePath = joinPath(cachePath, `${providerName}.json`);
+
+      // If we don't have provider info, we first try to fetch it from the registry
       try {
-        const providerJsonFile = await fsp.readFile(providerCachePath, 'utf8');
-        this.providerJson = assertProviderJson(JSON.parse(providerJsonFile));
-      } catch (e) {
+        this.providerJson = await fetchProviderInfo(providerName);
+      } catch (error) {
         profileProviderDebug(
-          `Failed to read provider.json for ${providerName}: %O`,
-          e
+          `Failed to fetch provider.json for ${providerName}: %O`,
+          error
         );
+        errors.push(error);
       }
 
-      // If we don't have it in cache, we fetch it from the registry
-      if (this.providerJson === undefined) {
-        this.providerJson = await fetchProviderInfo(providerName);
+      try {
         await fsp.mkdir(cachePath, { recursive: true });
         await fsp.writeFile(
           providerCachePath,
           JSON.stringify(this.providerJson)
         );
+      } catch (error) {
+        profileProviderDebug(
+          `Failed to cache provider.json for ${providerName}: %O`,
+          error
+        );
+        errors.push(error);
       }
+
+      // If we can't fetch provider info from registry, we try to read it from cache
+      if (this.providerJson === undefined) {
+        try {
+          const providerJsonFile = await fsp.readFile(
+            providerCachePath,
+            'utf8'
+          );
+          this.providerJson = assertProviderJson(JSON.parse(providerJsonFile));
+        } catch (error) {
+          profileProviderDebug(
+            `Failed to read cached provider.json for ${providerName}: %O`,
+            error
+          );
+          errors.push(error);
+        }
+      }
+    }
+
+    if (this.providerJson === undefined) {
+      throw new UnexpectedError(
+        'Failed to fetch provider.json or load it from cache.',
+        errors
+      );
     }
 
     return this.providerJson;
