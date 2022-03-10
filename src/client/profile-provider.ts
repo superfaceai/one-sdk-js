@@ -70,6 +70,7 @@ function profileAstId(ast: ProfileDocumentNode): string {
 const boundProfileProviderDebug = createDebug(
   'superface:bound-profile-provider'
 );
+const cachePath = joinPath(Config.instance().cachePath, 'providers');
 export type AuthCache = { digest?: Record<string, string> };
 
 export class BoundProfileProvider {
@@ -309,6 +310,8 @@ export class ProfileProvider {
       });
 
       providerInfo ??= fetchResponse.provider;
+      await this.writeProviderCache(providerInfo);
+      this.providerJson = providerInfo;
       mapAst = fetchResponse.mapAst;
       //If we don't have a map (probably due to validation issue) we try to get map source and parse it on our own
       if (!mapAst) {
@@ -424,24 +427,11 @@ export class ProfileProvider {
   private async cacheProviderInfo(providerName: string): Promise<ProviderJson> {
     const errors: Error[] = [];
     if (this.providerJson === undefined) {
-      const cachePath = joinPath(Config.instance().cachePath, 'providers');
-      const providerCachePath = joinPath(cachePath, `${providerName}.json`);
-
+      const providerCachePath = joinPath(cachePath, providerName);
       // If we don't have provider info, we first try to fetch it from the registry
       try {
         this.providerJson = await fetchProviderInfo(providerName);
-        try {
-          await fsp.mkdir(cachePath, { recursive: true });
-          await fsp.writeFile(
-            providerCachePath,
-            JSON.stringify(this.providerJson)
-          );
-        } catch (error) {
-          profileProviderDebug(
-            `Failed to cache provider.json for ${providerName}: %O`,
-            error
-          );
-        }
+        await this.writeProviderCache(this.providerJson);
       } catch (error) {
         profileProviderDebug(
           `Failed to fetch provider.json for ${providerName}: %O`,
@@ -476,6 +466,22 @@ export class ProfileProvider {
     }
 
     return this.providerJson;
+  }
+
+  private async writeProviderCache(providerJson: ProviderJson): Promise<void> {
+    const providerCachePath = joinPath(cachePath, `${providerJson.name}.json`);
+    try {
+      await fsp.mkdir(cachePath, { recursive: true });
+      await fsp.writeFile(
+        providerCachePath,
+        JSON.stringify(providerJson, undefined, 2)
+      );
+    } catch (error) {
+      profileProviderDebug(
+        `Failed to cache provider.json for ${providerJson.name}: %O`,
+        error
+      );
+    }
   }
 
   private async resolveProfileAst(): Promise<ProfileDocumentNode | undefined> {
