@@ -498,6 +498,8 @@ describe('profile provider', () => {
         const result = await mockProfileProvider.bind();
 
         expect(result).toMatchObject(expectedBoundProfileProvider);
+        // It should cache the provider
+        expect(fsp.writeFile).toHaveBeenCalled();
       });
 
       it('returns new BoundProfileProvider use profile id', async () => {
@@ -789,6 +791,93 @@ describe('profile provider', () => {
         const result = await mockProfileProvider.bind();
 
         expect(result).toMatchObject(expectedBoundProfileProvider);
+        // It should cache the provider
+        expect(fsp.writeFile).toHaveBeenCalled();
+      });
+
+      it('loads provider from cache when fetch fails', async () => {
+        mocked(fetchBind).mockResolvedValue(mockFetchResponse);
+        //normalized is getter on SuperJson - unable to mock or spy on
+        Object.assign(mockSuperJson, {
+          normalized: {
+            profiles: {
+              ['test-profile']: {
+                version: '1.0.0',
+                defaults: {},
+                providers: {
+                  test: {
+                    file: 'file://some/file',
+                  },
+                },
+              },
+            },
+            providers: {},
+          },
+        });
+
+        mocked(mockResolvePath).mockReturnValue('file://some/path/to');
+
+        jest
+          .spyOn(fsp, 'readFile')
+          .mockResolvedValueOnce(JSON.stringify(mockProfileDocument))
+          .mockResolvedValueOnce(JSON.stringify(mockMapDocument))
+          .mockResolvedValueOnce(JSON.stringify(mockProviderJson));
+
+        mocked(fetchProviderInfo).mockRejectedValue('denied!');
+
+        const mockProfileProvider = new ProfileProvider(
+          mockSuperJson,
+          'test-profile',
+          mockProviderConfiguration,
+          mockSuperfacClient
+        );
+        const result = await mockProfileProvider.bind();
+
+        expect(result).toMatchObject(expectedBoundProfileProvider);
+        expect(fsp.readFile).toHaveBeenCalledTimes(3);
+      });
+
+      it('throws when both fetch and cache read fails', async () => {
+        mocked(fetchBind).mockResolvedValue(mockFetchResponse);
+        //normalized is getter on SuperJson - unable to mock or spy on
+        Object.assign(mockSuperJson, {
+          normalized: {
+            profiles: {
+              ['test-profile']: {
+                version: '1.0.0',
+                defaults: {},
+                providers: {
+                  test: {
+                    file: 'file://some/file',
+                  },
+                },
+              },
+            },
+            providers: {},
+          },
+        });
+
+        mocked(mockResolvePath).mockReturnValue('file://some/path/to');
+
+        jest
+          .spyOn(fsp, 'readFile')
+          .mockResolvedValueOnce(JSON.stringify(mockProfileDocument))
+          .mockResolvedValueOnce(JSON.stringify(mockMapDocument))
+          .mockRejectedValueOnce('denied!');
+
+        mocked(fetchProviderInfo).mockRejectedValue('denied!');
+
+        const mockProfileProvider = new ProfileProvider(
+          mockSuperJson,
+          'test-profile',
+          mockProviderConfiguration,
+          mockSuperfacClient
+        );
+
+        await expect(() => mockProfileProvider.bind()).rejects.toMatchObject({
+          additionalContext: ['denied!', 'denied!'],
+        });
+        expect(fsp.readFile).toHaveBeenCalledTimes(3);
       });
 
       it('throws error when provider is provided locally but map is not', async () => {
