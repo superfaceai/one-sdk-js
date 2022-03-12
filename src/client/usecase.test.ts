@@ -1,6 +1,7 @@
 import { Config } from '../config';
 import { SuperJson } from '../internal';
 import { Events } from '../lib/events';
+import { MockFileSystem } from '../test/filesystem';
 import { SuperCache } from './cache';
 import { registerHooks } from './failure/event-adapter';
 import { ProfileConfiguration } from './profile';
@@ -46,6 +47,8 @@ describe('UseCase', () => {
       () => mockBoundProfileProvider2
     );
 
+    const filesystem = { ...MockFileSystem };
+
     const config = new Config();
 
     const usecase = new UseCase(
@@ -54,6 +57,7 @@ describe('UseCase', () => {
       events,
       config,
       mockSuperJson,
+      filesystem,
       cache
     );
 

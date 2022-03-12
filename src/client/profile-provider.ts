@@ -20,7 +20,6 @@ import {
   SecurityValues,
 } from '@superfaceai/ast';
 import createDebug from 'debug';
-import { promises as fsp } from 'fs';
 import { join as joinPath } from 'path';
 
 import { Config } from '../config';
@@ -52,6 +51,7 @@ import { mergeSecurity } from '../internal/superjson/mutate';
 import { err, ok, Result } from '../lib';
 import { Events, Interceptable } from '../lib/events';
 import { CrossFetch } from '../lib/fetch';
+import { IFileSystem } from '../lib/io';
 import { MapInterpreterEventAdapter } from './failure/map-interpreter-adapter';
 import { ProfileConfiguration } from './profile';
 import { ProviderConfiguration } from './provider';
@@ -68,6 +68,27 @@ function profileAstId(ast: ProfileDocumentNode): string {
 const boundProfileProviderDebug = createDebug(
   'superface:bound-profile-provider'
 );
+
+export async function bindProfileProvider(
+  profileConfig: ProfileConfiguration,
+  providerConfig: ProviderConfiguration,
+  superJson: SuperJson,
+  config: Config,
+  events: Events,
+  fileSystem: IFileSystem
+): Promise<BoundProfileProvider> {
+  const profileProvider = new ProfileProvider(
+    superJson,
+    profileConfig,
+    providerConfig,
+    config,
+    events,
+    fileSystem
+  );
+  const boundProfileProvider = await profileProvider.bind();
+
+  return boundProfileProvider;
+}
 
 export interface IBoundProfileProvider {
   perform<
@@ -215,6 +236,7 @@ export class ProfileProvider {
     private provider: string | ProviderJson | ProviderConfiguration,
     private config: Config,
     private events: Events,
+    private readonly fileSystem: IFileSystem,
     /** url or ast node */
     private map?: string | MapDocumentNode
   ) {
@@ -314,7 +336,8 @@ export class ProfileProvider {
             scope: profileAst.header.scope,
             providerName,
           },
-          this.config.cachePath
+          this.config.cachePath,
+          this.fileSystem
         );
       }
     } else if (providerInfo === undefined) {
@@ -441,7 +464,8 @@ export class ProfileProvider {
               profileName: this.profileName,
               scope: this.scope,
             },
-            this.config.cachePath
+            this.config.cachePath,
+            this.fileSystem
           );
         }
 
@@ -468,6 +492,7 @@ export class ProfileProvider {
           );
         }
       },
+      this.fileSystem,
       ['.ast.json', '']
     );
 
@@ -499,7 +524,8 @@ export class ProfileProvider {
           // local file not specified
           return undefined;
         }
-      }
+      },
+      this.fileSystem
     );
 
     let providerName;
@@ -535,7 +561,8 @@ export class ProfileProvider {
               providerName,
               scope: this.scope,
             },
-            this.config.cachePath
+            this.config.cachePath,
+            this.fileSystem
           );
         }
 
@@ -561,6 +588,7 @@ export class ProfileProvider {
           return undefined;
         }
       },
+      this.fileSystem,
       ['.ast.json', '']
     );
 
@@ -583,6 +611,7 @@ export class ProfileProvider {
     input: T | string | undefined,
     parseFile: (contents: string, fileName?: string) => Promise<T>,
     unpackNested: (input: string) => T | string | undefined,
+    fileSystem: IFileSystem,
     extensions: string[] = ['']
   ): Promise<T | undefined> {
     if (typeof input === 'string') {
@@ -595,9 +624,7 @@ export class ProfileProvider {
         for (const extension of extensions) {
           fileNameWithExtension = fileName + extension;
           try {
-            contents = await fsp.readFile(fileNameWithExtension, {
-              encoding: 'utf-8',
-            });
+            contents = await fileSystem.readFile(fileNameWithExtension);
             break;
           } catch (e) {
             void e;
@@ -615,7 +642,13 @@ export class ProfileProvider {
         // unpack nested and recursively process them
         const nested = unpackNested(input);
 
-        return ProfileProvider.resolveValue(nested, parseFile, unpackNested);
+        return ProfileProvider.resolveValue(
+          nested,
+          parseFile,
+          unpackNested,
+          fileSystem,
+          extensions
+        );
       }
     } else {
       // return undefined and T

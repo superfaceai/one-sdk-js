@@ -9,6 +9,10 @@ import {
 } from '../internal';
 import { UnexpectedError } from '../internal/errors';
 import { NonPrimitive, Variables } from '../internal/interpreter/variables';
+import {
+  getProvider,
+  getProviderForProfile,
+} from '../internal/superjson/utils';
 import { Result } from '../lib';
 import { ExponentialBackoff } from '../lib/backoff';
 import {
@@ -17,12 +21,8 @@ import {
   Interceptable,
   InterceptableMetadata,
 } from '../lib/events';
+import { IFileSystem } from '../lib/io';
 import { SuperCache } from './cache';
-import {
-  bindProfileProvider,
-  getProvider,
-  getProviderForProfile,
-} from './client';
 import {
   AbortPolicy,
   CircuitBreakerPolicy,
@@ -30,7 +30,7 @@ import {
 } from './failure/policies';
 import { FailurePolicy, UsecaseInfo } from './failure/policy';
 import { ProfileConfiguration } from './profile';
-import { IBoundProfileProvider } from './profile-provider';
+import { bindProfileProvider, IBoundProfileProvider } from './profile-provider';
 import { Provider, ProviderConfiguration } from './provider';
 
 const debug = createDebug('superface:usecase');
@@ -58,6 +58,7 @@ class UseCaseBase implements Interceptable {
     public readonly events: Events,
     private readonly config: Config,
     private readonly superJson: SuperJson,
+    private readonly fileSystem: IFileSystem,
     private readonly boundProfileProviderCache: SuperCache<IBoundProfileProvider>
   ) {
     this.metadata = {
@@ -77,16 +78,12 @@ class UseCaseBase implements Interceptable {
 
     const chosenProvider = options?.provider ?? hookRouter.getCurrentProvider();
     if (chosenProvider === undefined) {
-      // const provider = await this.profile.client.getProviderForProfile(
-      //   this.profile.configuration.id
-      // );
       const provider = getProviderForProfile(
         this.superJson,
         this.profileConfiguration.id
       );
       providerConfig = provider.configuration;
     } else if (typeof chosenProvider === 'string') {
-      // const provider = await this.profile.client.getProvider(chosenProvider);
       const provider = getProvider(this.superJson, chosenProvider);
       providerConfig = provider.configuration;
     } else {
@@ -105,13 +102,10 @@ class UseCaseBase implements Interceptable {
           providerConfig,
           this.superJson,
           this.config,
-          this.events
+          this.events,
+          this.fileSystem
         )
     );
-    // await this.profile.client.cacheBoundProfileProvider(
-    //   this.profile.configuration,
-    //   providerConfig
-    // );
   }
 
   @eventInterceptor({ eventName: 'perform', placement: 'around' })

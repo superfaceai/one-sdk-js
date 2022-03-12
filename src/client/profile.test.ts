@@ -1,6 +1,7 @@
 import { Config } from '../config';
 import { SuperJson } from '../internal';
 import { Events } from '../lib/events';
+import { NodeFileSystem } from '../lib/io/filesystem.node';
 import { SuperCache } from './cache';
 import { Profile, ProfileConfiguration } from './profile';
 import { IBoundProfileProvider } from './profile-provider';
@@ -19,7 +20,14 @@ function createProfile(): Profile {
     providers: {},
   });
 
-  return new Profile(configuration, events, superJson, config, cache);
+  return new Profile(
+    configuration,
+    events,
+    superJson,
+    config,
+    NodeFileSystem,
+    cache
+  );
 }
 
 describe('Profile', () => {

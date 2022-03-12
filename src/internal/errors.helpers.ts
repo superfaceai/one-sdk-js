@@ -14,13 +14,14 @@ export function ensureErrorSubclass(error: unknown): Error {
 
 export function superJsonNotFoundError(
   path: string,
-  error: Error
+  error?: Error
 ): SDKExecutionError {
-  return new SDKExecutionError(
-    'Unable to find super.json',
-    [`super.json not found in "${path}"`, error.toString()],
-    []
-  );
+  const errorMessage = [`super.json not found in "${path}"`];
+  if (error !== undefined) {
+    errorMessage.push(error.toString());
+  }
+
+  return new SDKExecutionError('Unable to find super.json', errorMessage, []);
 }
 
 export function superJsonNotAFileError(path: string): SDKExecutionError {

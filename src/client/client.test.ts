@@ -1,8 +1,6 @@
-import * as fs from 'fs';
-
 import { SuperJson } from '../internal/superjson';
+import { getProviderForProfile } from '../internal/superjson/utils';
 import { MockClient } from '../test/client';
-import { getProviderForProfile } from './client';
 
 const mockSuperJson = new SuperJson({
   profiles: {
@@ -33,16 +31,6 @@ const mockSuperJsonCustomPath = new SuperJson({
   },
 });
 
-jest.mock('fs', () => ({
-  statSync: jest.fn(),
-  readFileSync: jest.fn(),
-  promises: {
-    access: jest.fn(),
-  },
-  realpathSync: jest.fn(),
-}));
-const accessMock = fs.promises.access as jest.Mock;
-
 describe('superface client', () => {
   describe('getProfile', () => {
     it('rejects when profile does not exists', async () => {
@@ -54,11 +42,14 @@ describe('superface client', () => {
     });
 
     it('rejects when profile points to a non-existent path', async () => {
-      const client = new MockClient(mockSuperJson);
+      const client = new MockClient(mockSuperJson, {
+        fileSysteOverride: {
+          exists: jest.fn(async (path: string) => {
+            expect(path).toMatch('foo.supr');
 
-      accessMock.mockImplementationOnce((path: string) => {
-        expect(path).toMatch('foo.supr');
-        throw { code: 'ENOENT' };
+            return false;
+          }),
+        },
       });
 
       await expect(client.getProfile('foo')).rejects.toThrow(
@@ -68,13 +59,16 @@ but this path does not exist or is not accessible`
     });
 
     it('returns a valid profile when it points to existing path', async () => {
-      const client = new MockClient(mockSuperJson);
+      const client = new MockClient(mockSuperJson, {
+        fileSysteOverride: {
+          exists: jest.fn(async (path: string) => {
+            expect(path).toMatch('foo.supr');
 
-      accessMock.mockImplementationOnce(async (path: string) => {
-        expect(path).toMatch('foo.supr');
-
-        return undefined;
+            return true;
+          }),
+        },
       });
+
       const profile = await client.getProfile('foo');
       expect(profile.configuration.version).toBe('unknown');
     });

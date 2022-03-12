@@ -1,183 +1,24 @@
 import { Config } from '../config';
 import { SuperJson } from '../internal';
 import {
-  noConfiguredProviderError,
-  profileFileNotFoundError,
-  profileNotInstalledError,
-  unconfiguredProviderError,
-  unconfiguredProviderInPriorityError,
-} from '../internal/errors.helpers';
-import { Events, FailureContext, SuccessContext } from '../lib/events';
-import { exists } from '../lib/io';
-import { MetricReporter } from '../lib/reporter';
+  getProvider,
+  getProviderForProfile,
+} from '../internal/superjson/utils';
+import { Events } from '../lib/events';
+import { NodeFileSystem } from '../lib/io/filesystem.node';
+import { hookMetrics, MetricReporter } from '../lib/reporter';
 import { SuperCache } from './cache';
+import { InternalClient } from './client.internal';
 import { registerHooks as registerFailoverHooks } from './failure/event-adapter';
-import { Profile, ProfileConfiguration } from './profile';
-import { BoundProfileProvider, ProfileProvider } from './profile-provider';
-import { Provider, ProviderConfiguration } from './provider';
+import { Profile } from './profile';
+import { BoundProfileProvider } from './profile-provider';
+import { Provider } from './provider';
 
 export interface ISuperfaceClient {
   getProfile(profileId: string): Promise<Profile>;
   getProvider(providerName: string): Promise<Provider>;
   getProviderForProfile(profileId: string): Promise<Provider>;
   on(...args: Parameters<Events['on']>): void;
-}
-
-export async function bindProfileProvider(
-  profileConfig: ProfileConfiguration,
-  providerConfig: ProviderConfiguration,
-  superJson: SuperJson,
-  config: Config,
-  events: Events
-): Promise<BoundProfileProvider> {
-  const profileProvider = new ProfileProvider(
-    superJson,
-    profileConfig,
-    providerConfig,
-    config,
-    events
-  );
-  const boundProfileProvider = await profileProvider.bind();
-
-  return boundProfileProvider;
-}
-
-export class InternalClient {
-  constructor(
-    private readonly events: Events,
-    private readonly superJson: SuperJson,
-    private readonly config: Config,
-    private readonly boundProfileProviderCache: SuperCache<BoundProfileProvider>
-  ) {}
-
-  async getProfile(profileId: string): Promise<Profile> {
-    const profileConfiguration = await this.getProfileConfiguration(profileId);
-
-    return new Profile(
-      profileConfiguration,
-      this.events,
-      this.superJson,
-      this.config,
-      this.boundProfileProviderCache
-    );
-  }
-
-  private async getProfileConfiguration(
-    profileId: string
-  ): Promise<ProfileConfiguration> {
-    const profileSettings = this.superJson.normalized.profiles[profileId];
-    if (profileSettings === undefined) {
-      throw profileNotInstalledError(profileId);
-    }
-
-    let version;
-    if ('file' in profileSettings) {
-      const filePath = this.superJson.resolvePath(profileSettings.file);
-      if (!(await exists(filePath))) {
-        throw profileFileNotFoundError(profileSettings.file, profileId);
-      }
-
-      // TODO: read version from the ast?
-      version = 'unknown';
-    } else {
-      version = profileSettings.version;
-    }
-
-    // TODO: load priority and add it to ProfileConfiguration?
-    const priority = profileSettings.priority;
-    if (!priority.every(p => this.superJson.normalized.providers[p])) {
-      throw unconfiguredProviderInPriorityError(
-        profileId,
-        priority,
-        Object.keys(this.superJson.normalized.providers)
-      );
-    }
-
-    return new ProfileConfiguration(profileId, version);
-  }
-}
-
-export function getProvider(
-  superJson: SuperJson,
-  providerName: string
-): Provider {
-  const providerSettings = superJson.normalized.providers[providerName];
-
-  if (providerSettings === undefined) {
-    throw unconfiguredProviderError(providerName);
-  }
-
-  return new Provider(
-    new ProviderConfiguration(providerName, providerSettings.security)
-  );
-}
-
-export function getProviderForProfile(
-  superJson: SuperJson,
-  profileId: string
-): Provider {
-  const priorityProviders =
-    superJson.normalized.profiles[profileId]?.priority || [];
-  if (priorityProviders.length > 0) {
-    const name = priorityProviders[0];
-
-    return getProvider(superJson, name);
-  }
-
-  const knownProfileProviders = Object.keys(
-    superJson.normalized.profiles[profileId]?.providers ?? {}
-  );
-  if (knownProfileProviders.length > 0) {
-    const name = knownProfileProviders[0];
-
-    return getProvider(superJson, name);
-  }
-
-  throw noConfiguredProviderError(profileId);
-}
-
-export function hookMetrics(
-  events: Events,
-  metricReporter: MetricReporter
-): void {
-  process.on('beforeExit', () => metricReporter?.flush());
-  process.on('uncaughtExceptionMonitor', () => {
-    console.warn(
-      'Warning: you do not handle all exceptions. This can prevent failure report to be sent.'
-    );
-  });
-  events.on('success', { priority: 0 }, (context: SuccessContext) => {
-    metricReporter?.reportEvent({
-      eventType: 'PerformMetrics',
-      profile: context.profile,
-      success: true,
-      provider: context.provider,
-      occurredAt: context.time,
-    });
-
-    return { kind: 'continue' };
-  });
-  events.on('failure', { priority: 0 }, (context: FailureContext) => {
-    metricReporter?.reportEvent({
-      eventType: 'PerformMetrics',
-      profile: context.profile,
-      success: false,
-      provider: context.provider,
-      occurredAt: context.time,
-    });
-
-    return { kind: 'continue' };
-  });
-  events.on('provider-switch', { priority: 1000 }, context => {
-    metricReporter?.reportEvent({
-      eventType: 'ProviderChange',
-      profile: context.profile,
-      from: context.provider,
-      to: context.toProvider,
-      occurredAt: context.time,
-      reasons: [{ reason: context.reason, occurredAt: context.time }],
-    });
-  });
 }
 
 export abstract class SuperfaceClientBase {
@@ -210,6 +51,7 @@ export abstract class SuperfaceClientBase {
       this.events,
       this.superJson,
       config,
+      NodeFileSystem,
       boundProfileProviderCache
     );
   }

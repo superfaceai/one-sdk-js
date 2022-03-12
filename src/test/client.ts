@@ -8,20 +8,21 @@ import {
   ProviderConfiguration,
 } from '../client';
 import { SuperCache } from '../client/cache';
-import {
-  getProvider,
-  getProviderForProfile,
-  hookMetrics,
-  InternalClient,
-  ISuperfaceClient,
-} from '../client/client';
+import { ISuperfaceClient } from '../client/client';
+import { InternalClient } from '../client/client.internal';
 import { registerHooks } from '../client/failure/event-adapter';
 import { BoundProfileProvider } from '../client/profile-provider';
 import { Config, IConfig } from '../config';
 import { SecurityConfiguration } from '../internal/interpreter/http';
 import { SuperJson } from '../internal/superjson';
+import {
+  getProvider,
+  getProviderForProfile,
+} from '../internal/superjson/utils';
 import { Events } from '../lib/events';
-import { MetricReporter } from '../lib/reporter';
+import { IFileSystem } from '../lib/io';
+import { NodeFileSystem } from '../lib/io/filesystem.node';
+import { hookMetrics, MetricReporter } from '../lib/reporter';
 
 export class MockClient implements ISuperfaceClient {
   public config: Config;
@@ -34,6 +35,7 @@ export class MockClient implements ISuperfaceClient {
     public superJson: SuperJson,
     parameters?: {
       configOverride?: Partial<IConfig>;
+      fileSysteOverride?: Partial<IFileSystem>;
     }
   ) {
     this.config = new Config(parameters?.configOverride);
@@ -47,10 +49,20 @@ export class MockClient implements ISuperfaceClient {
 
     this.cache = new SuperCache<BoundProfileProvider>();
 
+    let fileSystem: IFileSystem = NodeFileSystem;
+
+    if (parameters?.fileSysteOverride !== undefined) {
+      fileSystem = {
+        ...fileSystem,
+        ...parameters.fileSysteOverride,
+      };
+    }
+
     this.internalClient = new InternalClient(
       this.events,
       superJson,
       this.config,
+      fileSystem,
       this.cache
     );
   }

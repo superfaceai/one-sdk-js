@@ -9,6 +9,7 @@ import {
   stringBody,
 } from '../internal/interpreter/http/interfaces';
 import { SuperJson } from '../internal/superjson';
+import { Events, FailureContext, SuccessContext } from './events';
 import { CrossFetch } from './fetch';
 
 const debug = createDebug('superface:metric-reporter');
@@ -133,6 +134,50 @@ export type EventInput =
   | SDKInitInput
   | PerformMetricsInput
   | ProviderChangeInput;
+
+export function hookMetrics(
+  events: Events,
+  metricReporter: MetricReporter
+): void {
+  process.on('beforeExit', () => metricReporter?.flush());
+  process.on('uncaughtExceptionMonitor', () => {
+    console.warn(
+      'Warning: you do not handle all exceptions. This can prevent failure report to be sent.'
+    );
+  });
+  events.on('success', { priority: 0 }, (context: SuccessContext) => {
+    metricReporter?.reportEvent({
+      eventType: 'PerformMetrics',
+      profile: context.profile,
+      success: true,
+      provider: context.provider,
+      occurredAt: context.time,
+    });
+
+    return { kind: 'continue' };
+  });
+  events.on('failure', { priority: 0 }, (context: FailureContext) => {
+    metricReporter?.reportEvent({
+      eventType: 'PerformMetrics',
+      profile: context.profile,
+      success: false,
+      provider: context.provider,
+      occurredAt: context.time,
+    });
+
+    return { kind: 'continue' };
+  });
+  events.on('provider-switch', { priority: 1000 }, context => {
+    metricReporter?.reportEvent({
+      eventType: 'ProviderChange',
+      profile: context.profile,
+      from: context.provider,
+      to: context.toProvider,
+      occurredAt: context.time,
+      reasons: [{ reason: context.reason, occurredAt: context.time }],
+    });
+  });
+}
 
 export class MetricReporter {
   private timer: NodeJS.Timeout | undefined;

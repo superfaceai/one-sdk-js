@@ -8,9 +8,9 @@ import {
 import { getLocal } from 'mockttp';
 
 import { SuperJson } from '../../internal';
+import { getProvider } from '../../internal/superjson/utils';
 import { sleep } from '../../lib';
 import { MockClient } from '../../test/client';
-import { getProvider } from '../client';
 
 const astMetadata: AstMetadata = {
   sourceChecksum: 'checksum',

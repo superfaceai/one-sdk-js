@@ -2,6 +2,7 @@ import { Config } from '../config';
 import { SuperJson } from '../internal';
 import { NonPrimitive } from '../internal/interpreter/variables';
 import { Events } from '../lib/events';
+import { IFileSystem } from '../lib/io';
 import { SuperCache } from './cache';
 import { IBoundProfileProvider } from './profile-provider';
 import { TypedUseCase, UseCase } from './usecase';
@@ -34,6 +35,7 @@ export class ProfileBase {
     protected readonly events: Events,
     protected readonly superJson: SuperJson,
     protected readonly config: Config,
+    protected readonly fileSystem: IFileSystem,
     protected readonly boundProfileProviderCache: SuperCache<IBoundProfileProvider>
   ) {}
 }
@@ -48,6 +50,7 @@ export class Profile extends ProfileBase {
       this.events,
       this.config,
       this.superJson,
+      this.fileSystem,
       this.boundProfileProviderCache
     );
   }

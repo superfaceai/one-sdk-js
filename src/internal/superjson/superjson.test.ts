@@ -11,71 +11,18 @@ import {
   ProfileProviderEntry,
   SecurityValues,
 } from '@superfaceai/ast';
-import { promises as fsp, readFileSync, statSync } from 'fs';
-import { relative as relativePath, resolve as resolvePath } from 'path';
-import { mocked } from 'ts-jest/utils';
 
-import { isAccessible } from '../../lib/io';
+import { IFileSystem } from '../../lib/io';
 import { ok } from '../../lib/result/result';
+import { MockFileSystem } from '../../test/filesystem';
 import { mergeSecurity } from './mutate';
 import * as normalize from './normalize';
 import { composeFileURI, trimFileURI } from './schema';
 import { SuperJson } from './superjson';
 
-// Mock fs
-jest.mock('fs', () => ({
-  ...jest.requireActual<Record<string, unknown>>('fs'),
-  statSync: jest.fn(),
-  readFileSync: jest.fn(),
-  promises: {
-    readFile: jest.fn(),
-    stat: jest.fn(),
-  },
-}));
-// Mock path
-jest.mock('path', () => ({
-  ...jest.requireActual<Record<string, unknown>>('path'),
-  resolve: jest.fn(),
-  relative: jest.fn(),
-  join: jest.fn(),
-}));
-
-// Mock io
-jest.mock('../../lib/io', () => ({
-  ...jest.requireActual<Record<string, unknown>>('../../lib/io'),
-  isAccessible: jest.fn(),
-}));
-
 describe('SuperJson', () => {
   let superjson: SuperJson;
-
-  const mockStats = {
-    isFile: () => true,
-    isDirectory: () => true,
-    isBlockDevice: () => true,
-    isCharacterDevice: () => true,
-    isSymbolicLink: () => true,
-    isFIFO: () => true,
-    isSocket: () => true,
-    dev: 1,
-    ino: 1,
-    mode: 1,
-    nlink: 1,
-    uid: 1,
-    gid: 1,
-    rdev: 1,
-    size: 1,
-    blksize: 1,
-    blocks: 1,
-    atimeMs: 1,
-    mtimeMs: 1,
-    ctimeMs: 1,
-    birthtimeMs: 1,
-    atime: new Date(),
-    mtime: new Date(),
-    ctime: new Date(),
-    birthtime: new Date(),
-  };
+  let fileSystem: IFileSystem;
 
   const mockSuperJsonDocument = {
     profiles: {
@@ -88,11 +35,8 @@ describe('SuperJson', () => {
   };
 
   beforeEach(() => {
-    superjson = new SuperJson({});
-  });
-
-  afterEach(() => {
-    jest.resetAllMocks();
+    fileSystem = { ...MockFileSystem };
+    superjson = new SuperJson({}, undefined, fileSystem);
   });
 
   describe('when checking if input is ApiKeySecurityValues', () => {
@@ -198,19 +142,17 @@ describe('SuperJson', () => {
     const mockError = new Error('test');
 
     it('returns err when unable to find super.json', () => {
-      mocked(statSync).mockImplementation(() => {
-        throw mockError;
-      });
-      const result = SuperJson.loadSync('test');
+      fileSystem.isAccessibleSync = () => false;
+      const result = SuperJson.loadSync('test', fileSystem);
       expect(result.isErr()).toBe(true);
       expect(result.isErr() && result.error.message).toMatch(
-        'super.json not found in "test"\nError: test'
+        'Unable to find super.json'
       );
     });
 
     it('returns err when super.json is not file', () => {
-      mocked(statSync).mockReturnValue({ ...mockStats, isFile: () => false });
-      const result = SuperJson.loadSync('test');
+      fileSystem.isFileSync = () => false;
+      const result = SuperJson.loadSync('test', fileSystem);
       expect(result.isErr()).toBe(true);
       expect(result.isErr() && result.error.message).toMatch(
         '"test" is not a file'
@@ -218,11 +160,10 @@ describe('SuperJson', () => {
     });
 
     it('returns err when unable to read super.json', () => {
-      mocked(statSync).mockReturnValue(mockStats);
-      mocked(readFileSync).mockImplementation(() => {
+      fileSystem.readFileSync = () => {
         throw mockError;
-      });
-      const result = SuperJson.loadSync('test');
+      };
+      const result = SuperJson.loadSync('test', fileSystem);
       expect(result.isErr()).toBe(true);
       expect(result.isErr() && result.error.message).toMatch(
         'Unable to read super.json\n\nError: test'
@@ -230,8 +171,7 @@ describe('SuperJson', () => {
     });
 
     it('returns err when there is an error during parsing super.json', () => {
-      mocked(statSync).mockReturnValue(mockStats);
-      mocked(readFileSync).mockReturnValue(`{
+      fileSystem.readFileSync = () => `{
         "profiles": {
           "send-message": {
             "version": "1.0.Z",
@@ -253,15 +193,14 @@ describe('SuperJson', () => {
             ]
           }
         }
-      }`);
-      expect(SuperJson.loadSync('test').isErr()).toEqual(true);
+      }`;
+      expect(SuperJson.loadSync('test', fileSystem).isErr()).toEqual(true);
     });
 
-    // TODO: Skipped for now, broken because of typescript-is bug
-    // https://github.com/woutervh-/typescript-is/issues/111
+    // // TODO: Skipped for now, broken because of typescript-is bug
+    // // https://github.com/woutervh-/typescript-is/issues/111
     it.skip('returns err when there is an error during parsing super.json - usecase not nested under defaults', () => {
-      mocked(statSync).mockReturnValue(mockStats);
-      mocked(readFileSync).mockReturnValue(`{
+      fileSystem.readFileSync = () => `{
         "profiles": {
           "send-message": {
             "version": "1.0.0",
@@ -286,18 +225,15 @@ describe('SuperJson', () => {
             ]
           }
         }
-      }`);
-      expect(SuperJson.loadSync('test').isErr()).toEqual(true);
+      }`;
+      expect(SuperJson.loadSync('test', fileSystem).isErr()).toEqual(true);
     });
 
     it('returns new super.json', () => {
-      mocked(statSync).mockReturnValue(mockStats);
-      mocked(readFileSync).mockReturnValue(
-        JSON.stringify(mockSuperJsonDocument)
-      );
+      fileSystem.readFileSync = () => JSON.stringify(mockSuperJsonDocument);
 
-      expect(SuperJson.loadSync('test')).toEqual(
-        ok(new SuperJson(mockSuperJsonDocument, 'test'))
+      expect(SuperJson.loadSync('test', fileSystem)).toEqual(
+        ok(new SuperJson(mockSuperJsonDocument, 'test', fileSystem))
       );
     });
   });
@@ -306,8 +242,8 @@ describe('SuperJson', () => {
     const mockError = new Error('test');
 
     it('returns err when unable to find super.json', async () => {
-      jest.spyOn(fsp, 'stat').mockRejectedValue(mockError);
-      const result = await SuperJson.load('test');
+      fileSystem.isAccessible = async () => false;
+      const result = await SuperJson.load('test', fileSystem);
       expect(result.isErr()).toBe(true);
       expect(result.isErr() && result.error.message).toMatch(
         'super.json not found in "test"'
@@ -315,10 +251,8 @@ describe('SuperJson', () => {
     });
 
     it('returns err when super.json is not file', async () => {
-      jest
-        .spyOn(fsp, 'stat')
-        .mockResolvedValue({ ...mockStats, isFile: () => false });
-      const result = await SuperJson.load('test');
+      fileSystem.isFile = async () => false;
+      const result = await SuperJson.load('test', fileSystem);
       expect(result.isErr()).toBe(true);
       expect(result.isErr() && result.error.message).toMatch(
         '"test" is not a file'
@@ -326,9 +260,10 @@ describe('SuperJson', () => {
     });
 
     it('returns err when unable to read super.json', async () => {
-      jest.spyOn(fsp, 'stat').mockResolvedValue(mockStats);
-      jest.spyOn(fsp, 'readFile').mockRejectedValue(mockError);
-      const result = await SuperJson.load('test');
+      fileSystem.readFile = async () => {
+        throw mockError;
+      };
+      const result = await SuperJson.load('test', fileSystem);
       expect(result.isErr()).toBe(true);
       expect(result.isErr() && result.error.message).toMatch(
         'Unable to read super.json'
@@ -336,8 +271,7 @@ describe('SuperJson', () => {
     });
 
     it('returns err when there is an error during parsing super.json', async () => {
-      jest.spyOn(fsp, 'stat').mockResolvedValue(mockStats);
-      jest.spyOn(fsp, 'readFile').mockResolvedValue(`{
+      fileSystem.readFile = async () => `{
         "profiles": {
           "send-message": {
             "version": "1.0.Z",
@@ -359,18 +293,15 @@ describe('SuperJson', () => {
             ]
           }
         }
-      }`);
-      expect((await SuperJson.load('test')).isErr()).toEqual(true);
+      }`;
+      expect((await SuperJson.load('test', fileSystem)).isErr()).toEqual(true);
     });
 
     it('returns new super.json', async () => {
-      jest.spyOn(fsp, 'stat').mockResolvedValue(mockStats);
-      jest
-        .spyOn(fsp, 'readFile')
-        .mockResolvedValue(JSON.stringify(mockSuperJsonDocument));
+      fileSystem.readFile = async () => JSON.stringify(mockSuperJsonDocument);
 
-      await expect(SuperJson.load('test')).resolves.toEqual(
-        ok(new SuperJson(mockSuperJsonDocument, 'test'))
+      await expect(SuperJson.load('test', fileSystem)).resolves.toEqual(
+        ok(new SuperJson(mockSuperJsonDocument, 'test', fileSystem))
       );
     });
   });
@@ -570,17 +501,21 @@ describe('SuperJson', () => {
 
   describe('when getting normalized super.json', () => {
     it('returns correct object when cache is undefined', async () => {
-      const mockSuperJson = new SuperJson({
-        providers: {
-          test: {},
-        },
-        profiles: {
-          profile: {
-            file: 'some/path',
-            defaults: {},
+      const mockSuperJson = new SuperJson(
+        {
+          providers: {
+            test: {},
+          },
+          profiles: {
+            profile: {
+              file: 'some/path',
+              defaults: {},
+            },
           },
         },
-      });
+        undefined,
+        fileSystem
+      );
 
       expect(mockSuperJson.normalized).toEqual({
         providers: {
@@ -602,17 +537,21 @@ describe('SuperJson', () => {
     });
 
     it('returns correct object when cache is defined', async () => {
-      const mockSuperJson = new SuperJson({
-        providers: {
-          test: {},
-        },
-        profiles: {
-          profile: {
-            file: 'some/path',
-            defaults: {},
+      const mockSuperJson = new SuperJson(
+        {
+          providers: {
+            test: {},
+          },
+          profiles: {
+            profile: {
+              file: 'some/path',
+              defaults: {},
+            },
           },
         },
-      });
+        undefined,
+        fileSystem
+      );
 
       expect(mockSuperJson.normalized).toEqual({
         providers: {
@@ -1241,7 +1180,7 @@ describe('SuperJson', () => {
   describe('when calling relative path', () => {
     it('returns path correctly', () => {
       const mockPath = '/mock/final/path';
-      mocked(relativePath).mockReturnValue(mockPath);
+      fileSystem.relativePath = () => mockPath;
       expect(superjson.relativePath('path')).toEqual(mockPath);
     });
   });
@@ -1249,7 +1188,7 @@ describe('SuperJson', () => {
   describe('when resolving path', () => {
     it('resolves path correctly', () => {
       const mockPath = '/mock/final/path';
-      mocked(resolvePath).mockReturnValue(mockPath);
+      fileSystem.resolvePath = () => mockPath;
       expect(superjson.resolvePath('path')).toEqual(mockPath);
     });
   });
@@ -1318,93 +1257,103 @@ describe('SuperJson', () => {
     it('detects super.json in cwd', async () => {
       const mockCwd = 'path/to/';
 
-      mocked(isAccessible).mockResolvedValue(true);
-      mocked(relativePath).mockReturnValue(mockCwd);
-      expect(await SuperJson.detectSuperJson(mockCwd)).toEqual(mockCwd);
-      expect(isAccessible).toHaveBeenCalledTimes(1);
-      expect(relativePath).toHaveBeenCalledTimes(1);
-    }, 10000);
+      fileSystem.relativePath = () => mockCwd;
+      expect(
+        await SuperJson.detectSuperJson(mockCwd, undefined, fileSystem)
+      ).toEqual(mockCwd);
+    });
 
     it('detects super.json from 1 level above', async () => {
       const mockCwd = 'path/to/';
 
-      mocked(isAccessible).mockResolvedValueOnce(false).mockResolvedValue(true);
-      mocked(relativePath).mockReturnValue(mockCwd);
-      expect(await SuperJson.detectSuperJson(process.cwd())).toEqual(mockCwd);
-      expect(isAccessible).toHaveBeenCalledTimes(2);
-      expect(relativePath).toHaveBeenCalledTimes(1);
-    }, 10000);
+      fileSystem.isAccessible = jest
+        .fn()
+        .mockResolvedValueOnce(false)
+        .mockResolvedValue(true);
+      fileSystem.relativePath = () => mockCwd;
+
+      expect(
+        await SuperJson.detectSuperJson(process.cwd(), undefined, fileSystem)
+      ).toEqual(mockCwd);
+    });
 
     it('does not detect super.json from 2 levels above', async () => {
       const mockCwd = 'path/to/';
 
-      mocked(isAccessible).mockResolvedValue(false);
-      mocked(relativePath).mockReturnValue(mockCwd);
+      fileSystem.isAccessible = async () => false;
+      fileSystem.relativePath = () => mockCwd;
 
-      expect(await SuperJson.detectSuperJson(mockCwd)).toBeUndefined();
-      expect(isAccessible).toHaveBeenCalledTimes(2);
-      expect(relativePath).not.toHaveBeenCalled();
-    }, 10000);
+      expect(
+        await SuperJson.detectSuperJson(mockCwd, undefined, fileSystem)
+      ).toBeUndefined();
+    });
 
     it('detects super.json from 1 level below', async () => {
       const mockCwd = 'path/to/';
-      mocked(relativePath).mockReturnValue(mockCwd);
-      mocked(isAccessible)
+      fileSystem.relativePath = () => mockCwd;
+      fileSystem.isAccessible = jest
+        .fn()
         .mockResolvedValueOnce(false)
         .mockResolvedValueOnce(false)
         .mockResolvedValueOnce(true)
-        .mockResolvedValueOnce(true);
+        .mockResolvedValue(true);
 
-      expect(await SuperJson.detectSuperJson(mockCwd, 1)).toEqual(mockCwd);
-      expect(isAccessible).toHaveBeenCalledTimes(4);
-      expect(relativePath).toHaveBeenCalledTimes(1);
-    }, 10000);
+      expect(await SuperJson.detectSuperJson(mockCwd, 1, fileSystem)).toEqual(
+        mockCwd
+      );
+    });
 
     it('detects super.json from 2 levels below', async () => {
       const mockCwd = 'path/to/';
-      mocked(relativePath).mockReturnValue(mockCwd);
-      mocked(isAccessible)
+      fileSystem.relativePath = () => mockCwd;
+
+      fileSystem.isAccessible = jest
+        .fn()
         .mockResolvedValueOnce(false)
         .mockResolvedValueOnce(false)
         .mockResolvedValueOnce(true)
         .mockResolvedValueOnce(false)
         .mockResolvedValueOnce(true);
 
-      expect(await SuperJson.detectSuperJson(mockCwd, 2)).toEqual(mockCwd);
-      expect(isAccessible).toHaveBeenCalledTimes(5);
-      expect(relativePath).toHaveBeenCalledTimes(1);
-    }, 10000);
+      expect(await SuperJson.detectSuperJson(mockCwd, 2, fileSystem)).toEqual(
+        mockCwd
+      );
+    });
   });
 
   // TODO: Proper tests for config hash and anonymization
   describe('when computing config hash', () => {
     it('does debug', () => {
-      const superJson = new SuperJson({
-        profiles: {
-          abc: {
-            file: 'x',
-            priority: ['first', 'second'],
-            providers: {
-              second: {
-                mapRevision: '1.0',
-              },
-              first: {
-                file: 'file://some/path',
+      const superJson = new SuperJson(
+        {
+          profiles: {
+            abc: {
+              file: 'x',
+              priority: ['first', 'second'],
+              providers: {
+                second: {
+                  mapRevision: '1.0',
+                },
+                first: {
+                  file: 'file://some/path',
+                },
               },
             },
+            ghe: {
+              version: '1.2.3',
+            },
+            def: 'file://hi/hello',
           },
-          ghe: {
-            version: '1.2.3',
+          providers: {
+            foo: {},
+            bar: {
+              file: 'hi',
+            },
           },
-          def: 'file://hi/hello',
         },
-        providers: {
-          foo: {},
-          bar: {
-            file: 'hi',
-          },
-        },
-      });
+        undefined,
+        fileSystem
+      );
 
       expect(superJson.anonymized).toEqual({
         profiles: {

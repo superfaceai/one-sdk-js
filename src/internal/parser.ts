@@ -12,10 +12,8 @@ import {
   parseProfile,
   Source,
 } from '@superfaceai/parser';
-import { promises as fsp } from 'fs';
-import { join as joinPath } from 'path';
 
-import { isAccessible } from '../lib/io';
+import { IFileSystem } from '../lib/io';
 import { UnexpectedError } from './errors';
 
 export class Parser {
@@ -30,14 +28,15 @@ export class Parser {
       providerName: string;
       scope?: string;
     },
-    cachePath: string
+    cachePath: string,
+    fileSystem: IFileSystem
   ): Promise<MapDocumentNode> {
     const sourceChecksum = new Source(input, fileName).checksum();
-    const profileCachePath = joinPath(
+    const profileCachePath = fileSystem.joinPath(
       cachePath,
       ...[...(info.scope !== undefined ? [info.scope] : []), info.profileName]
     );
-    const path = joinPath(
+    const path = fileSystem.joinPath(
       profileCachePath,
       `${info.providerName}${EXTENSIONS.map.build}`
     );
@@ -56,14 +55,15 @@ export class Parser {
       path,
       isMapDocumentNode,
       this.mapCache,
-      new Source(input, fileName).checksum()
+      new Source(input, fileName).checksum(),
+      fileSystem
     );
     if (parsedMap !== undefined) {
       return parsedMap;
     }
 
     // If not, delete old parsed maps
-    await Parser.clearFileCache(path);
+    await Parser.clearFileCache(path, fileSystem);
 
     // And write parsed file to cache
     parsedMap = parseMap(new Source(input, fileName));
@@ -81,7 +81,8 @@ export class Parser {
       parsedMap,
       this.mapCache,
       profileCachePath,
-      path
+      path,
+      fileSystem
     );
 
     return parsedMap;
@@ -94,14 +95,15 @@ export class Parser {
       profileName: string;
       scope?: string;
     },
-    cachePath: string
+    cachePath: string,
+    fileSystem: IFileSystem
   ): Promise<ProfileDocumentNode> {
     const sourceChecksum = new Source(input, fileName).checksum();
-    const scopeCachePath = joinPath(
+    const scopeCachePath = fileSystem.joinPath(
       cachePath,
       ...[...(info.scope !== undefined ? [info.scope] : [])]
     );
-    const path = joinPath(
+    const path = fileSystem.joinPath(
       scopeCachePath,
       `${info.profileName}${EXTENSIONS.profile.build}`
     );
@@ -120,7 +122,8 @@ export class Parser {
       path,
       isProfileDocumentNode,
       this.profileCache,
-      sourceChecksum
+      sourceChecksum,
+      fileSystem
     );
     // If we have cached AST, we can use it.
     if (parsedProfile !== undefined) {
@@ -128,7 +131,7 @@ export class Parser {
     }
 
     // If not, delete old parsed profiles
-    await Parser.clearFileCache(path);
+    await Parser.clearFileCache(path, fileSystem);
 
     // And write parsed file to cache
     parsedProfile = parseProfile(new Source(input, fileName));
@@ -146,18 +149,22 @@ export class Parser {
       parsedProfile,
       this.profileCache,
       scopeCachePath,
-      path
+      path,
+      fileSystem
     );
 
     return parsedProfile;
   }
 
-  static async clearCache(cachePath: string): Promise<void> {
+  static async clearCache(
+    cachePath: string,
+    fileSystem: IFileSystem
+  ): Promise<void> {
     this.mapCache = {};
     this.profileCache = {};
 
-    if (await isAccessible(cachePath)) {
-      await fsp.rm(cachePath, { recursive: true });
+    if (await fileSystem.isAccessible(cachePath)) {
+      await fileSystem.rm(cachePath, { recursive: true });
     }
   }
 
@@ -167,20 +174,13 @@ export class Parser {
     path: string,
     guard: (node: unknown) => node is T,
     cache: Record<string, T>,
-    sourceHash: string
+    sourceHash: string,
+    fileSystem: IFileSystem
   ): Promise<T | undefined> {
-    let fileExists = false;
-    try {
-      fileExists = (await fsp.stat(path)).isFile();
-    } catch (e) {
-      void e;
-    }
-    if (!fileExists) {
+    if (!(await fileSystem.exists(path))) {
       return undefined;
     }
-    const loaded = JSON.parse(
-      await fsp.readFile(path, { encoding: 'utf8' })
-    ) as unknown;
+    const loaded = JSON.parse(await fileSystem.readFile(path)) as unknown;
     // Check if valid type
     if (!guard(loaded)) {
       return undefined;
@@ -194,10 +194,13 @@ export class Parser {
     return loaded;
   }
 
-  private static async clearFileCache(path: string): Promise<void> {
+  private static async clearFileCache(
+    path: string,
+    fileSystem: IFileSystem
+  ): Promise<void> {
     try {
-      for (const file of await fsp.readdir(path)) {
-        await fsp.unlink(joinPath(path, file));
+      for (const file of await fileSystem.readdir(path)) {
+        await fileSystem.rm(fileSystem.joinPath(path, file));
       }
     } catch (e) {
       void e;
@@ -210,12 +213,13 @@ export class Parser {
     node: T,
     cache: Record<string, T>,
     cachePath: string,
-    filePath: string
+    filePath: string,
+    fileSystem: IFileSystem
   ): Promise<void> {
     cache[filePath] = node;
     try {
-      await fsp.mkdir(cachePath, { recursive: true });
-      await fsp.writeFile(filePath, JSON.stringify(node));
+      await fileSystem.mkdir(cachePath, { recursive: true });
+      await fileSystem.writeFile(filePath, JSON.stringify(node));
     } catch (e) {
       // Fail silently as the cache is strictly speaking unnecessary
       void e;
