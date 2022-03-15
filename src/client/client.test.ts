@@ -213,7 +213,7 @@ but this path does not exist or is not accessible`
       await expect(
         client.cacheBoundProfileProvider(profileConfigA, providerConfig)
       ).resolves.toBe('mocked bind result');
-      expect(ProfileProviderMock).toHaveBeenCalledTimes(2);
+      expect(ProfileProviderMock).toHaveBeenCalledTimes(3);
       expect(profileProviderBindMock).toHaveBeenCalledTimes(2);
     });
 
@@ -224,7 +224,10 @@ but this path does not exist or is not accessible`
       const profileConfig = new ProfileConfiguration('foo', '1.0.0');
       const providerConfig = new ProviderConfiguration('fooder', []);
 
-      const profileProviderBindMock = jest.fn(() => 'mocked bind result');
+      const profileProviderBindMock = jest
+        .fn()
+        .mockReturnValueOnce('first mocked bind result')
+        .mockReturnValueOnce('second mocked bind result');
       const ProfileProviderMock = jest
         .spyOn(profileProvider, 'ProfileProvider')
         .mockReturnValue({
@@ -233,17 +236,35 @@ but this path does not exist or is not accessible`
 
       await expect(
         client.cacheBoundProfileProvider(profileConfig, providerConfig)
-      ).resolves.toBe('mocked bind result');
+      ).resolves.toBe('first mocked bind result');
       expect(ProfileProviderMock).toHaveBeenCalledTimes(1);
       expect(profileProviderBindMock).toHaveBeenCalledTimes(1);
+
+      expect(
+        (client as any).boundCache[
+          profileConfig.cacheKey + providerConfig.cacheKey
+        ]
+      ).toEqual({
+        profileProvider: 'first mocked bind result',
+        expiresAt: expect.any(Number),
+      });
 
       jest.advanceTimersByTime(1000 + 1000 * 60 * 60);
 
       await expect(
         client.cacheBoundProfileProvider(profileConfig, providerConfig)
-      ).resolves.toBe('mocked bind result');
+      ).resolves.toBe('first mocked bind result');
       expect(ProfileProviderMock).toHaveBeenCalledTimes(2);
       expect(profileProviderBindMock).toHaveBeenCalledTimes(2);
+
+      expect(
+        (client as any).boundCache[
+          profileConfig.cacheKey + providerConfig.cacheKey
+        ]
+      ).toEqual({
+        profileProvider: 'second mocked bind result',
+        expiresAt: expect.any(Number),
+      });
     });
   });
 

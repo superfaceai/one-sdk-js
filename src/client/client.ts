@@ -1,3 +1,5 @@
+import { SecurityValues } from '@superfaceai/ast';
+
 import { Config } from '../config';
 import { SuperJson } from '../internal';
 import {
@@ -73,24 +75,62 @@ export abstract class SuperfaceClientBase extends Events {
     const cacheKey = profileConfig.cacheKey + providerConfig.cacheKey;
 
     const bound = this.boundCache[cacheKey];
+    const profileProvider = new ProfileProvider(
+      this.superJson,
+      profileConfig,
+      providerConfig,
+      this
+    );
+
     const now = Math.floor(Date.now() / 1000);
-    if (bound === undefined || bound.expiresAt < now) {
-      const profileProvider = new ProfileProvider(
-        this.superJson,
-        profileConfig,
-        providerConfig,
-        this
+    //If we don't have anything in cache we must bind
+    if (bound === undefined) {
+      await this.rebind(
+        cacheKey,
+        providerConfig.security,
+        profileProvider,
+        this.boundCache
       );
-      const boundProfileProvider = await profileProvider.bind({
-        security: providerConfig.security,
-      });
-      this.boundCache[cacheKey] = {
-        profileProvider: boundProfileProvider,
-        expiresAt: now + Config.instance().superfaceCacheTimeout,
-      };
+      //If we do but timeout is expired we schedule rebind
+    } else if (bound.expiresAt < now) {
+      console.log('expired');
+      void Promise.resolve().then(() =>
+        this.rebind(
+          cacheKey,
+          providerConfig.security,
+          profileProvider,
+          this.boundCache
+        )
+      );
+      // process.nextTick(this.rebind, cacheKey, providerConfig.security, profileProvider, this.boundCache)
+      console.log('planned');
     }
+    console.log('return');
 
     return this.boundCache[cacheKey].profileProvider;
+  }
+
+  private async rebind(
+    cacheKey: string,
+    security: SecurityValues[],
+    profileProvider: ProfileProvider,
+    boundCache: {
+      [key: string]: {
+        profileProvider: BoundProfileProvider;
+        expiresAt: number;
+      };
+    }
+  ): Promise<void> {
+    console.log('NEXT TICK');
+    const now = Math.floor(Date.now() / 1000);
+
+    const boundProfileProvider = await profileProvider.bind({
+      security,
+    });
+    boundCache[cacheKey] = {
+      profileProvider: boundProfileProvider,
+      expiresAt: now + Config.instance().superfaceCacheTimeout,
+    };
   }
 
   /** Gets a provider from super.json based on `providerName`. */
