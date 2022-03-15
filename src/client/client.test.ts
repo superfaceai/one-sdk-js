@@ -213,7 +213,7 @@ but this path does not exist or is not accessible`
       await expect(
         client.cacheBoundProfileProvider(profileConfigA, providerConfig)
       ).resolves.toBe('mocked bind result');
-      expect(ProfileProviderMock).toHaveBeenCalledTimes(3);
+      expect(ProfileProviderMock).toHaveBeenCalledTimes(2);
       expect(profileProviderBindMock).toHaveBeenCalledTimes(2);
     });
 

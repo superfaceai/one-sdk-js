@@ -1,5 +1,3 @@
-import { SecurityValues } from '@superfaceai/ast';
-
 import { Config } from '../config';
 import { SuperJson } from '../internal';
 import {
@@ -75,6 +73,29 @@ export abstract class SuperfaceClientBase extends Events {
     const cacheKey = profileConfig.cacheKey + providerConfig.cacheKey;
 
     const bound = this.boundCache[cacheKey];
+
+    const now = Math.floor(Date.now() / 1000);
+    //If we don't have anything in cache we must bind
+    if (bound === undefined) {
+      await this.rebind(profileConfig, providerConfig);
+      //If we do but timeout is expired we schedule rebind
+    } else if (bound.expiresAt < now) {
+      void Promise.resolve().then(() =>
+        this.rebind(profileConfig, providerConfig)
+      );
+    }
+
+    return this.boundCache[cacheKey].profileProvider;
+  }
+
+  private async rebind(
+    profileConfig: ProfileConfiguration,
+    providerConfig: ProviderConfiguration
+  ): Promise<void> {
+    const cacheKey = profileConfig.cacheKey + providerConfig.cacheKey;
+
+    const now = Math.floor(Date.now() / 1000);
+
     const profileProvider = new ProfileProvider(
       this.superJson,
       profileConfig,
@@ -82,52 +103,10 @@ export abstract class SuperfaceClientBase extends Events {
       this
     );
 
-    const now = Math.floor(Date.now() / 1000);
-    //If we don't have anything in cache we must bind
-    if (bound === undefined) {
-      await this.rebind(
-        cacheKey,
-        providerConfig.security,
-        profileProvider,
-        this.boundCache
-      );
-      //If we do but timeout is expired we schedule rebind
-    } else if (bound.expiresAt < now) {
-      console.log('expired');
-      void Promise.resolve().then(() =>
-        this.rebind(
-          cacheKey,
-          providerConfig.security,
-          profileProvider,
-          this.boundCache
-        )
-      );
-      // process.nextTick(this.rebind, cacheKey, providerConfig.security, profileProvider, this.boundCache)
-      console.log('planned');
-    }
-    console.log('return');
-
-    return this.boundCache[cacheKey].profileProvider;
-  }
-
-  private async rebind(
-    cacheKey: string,
-    security: SecurityValues[],
-    profileProvider: ProfileProvider,
-    boundCache: {
-      [key: string]: {
-        profileProvider: BoundProfileProvider;
-        expiresAt: number;
-      };
-    }
-  ): Promise<void> {
-    console.log('NEXT TICK');
-    const now = Math.floor(Date.now() / 1000);
-
     const boundProfileProvider = await profileProvider.bind({
-      security,
+      security: providerConfig.security,
     });
-    boundCache[cacheKey] = {
+    this.boundCache[cacheKey] = {
       profileProvider: boundProfileProvider,
       expiresAt: now + Config.instance().superfaceCacheTimeout,
     };
