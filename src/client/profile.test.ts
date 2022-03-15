@@ -21,9 +21,21 @@ describe('Profile', () => {
     profiles: {
       test: {
         version: '1.0.0',
+        providers: {
+          first: {
+            file: '../some.suma',
+          },
+          second: {
+            file: '../some.suma',
+          },
+        },
       },
     },
-    providers: {},
+    providers: {
+      first: {
+        file: '../provider.json',
+      },
+    },
   });
   afterEach(() => {
     jest.resetAllMocks();
@@ -40,6 +52,17 @@ describe('Profile', () => {
     expect(profile.getUseCase('sayHello')).toEqual(
       new UseCase(profile, 'sayHello')
     );
+  });
+
+  it('should call getConfiguredProviders correctly', async () => {
+    mockLoadSync.mockReturnValue(ok(mockSuperJson));
+    SuperJson.loadSync = mockLoadSync;
+    const mockClient = new SuperfaceClient();
+    const mockProfileConfiguration = new ProfileConfiguration('test', '1.0.0');
+
+    const profile = new Profile(mockClient, mockProfileConfiguration);
+
+    expect(profile.getConfiguredProviders()).toEqual(['first', 'second']);
   });
 });
 
