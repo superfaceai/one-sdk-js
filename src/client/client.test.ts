@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import { dirname, join as joinPath } from 'path';
 
 import { Config, DEFAULT_SUPERFACE_PATH } from '../config';
+import { SuperJson } from '../internal';
 import { SuperfaceClient } from './client';
 import { ProfileConfiguration } from './profile';
 import * as profileProvider from './profile-provider';
@@ -104,6 +105,26 @@ describe('superface client', () => {
 
   afterEach(() => {
     jest.resetAllMocks();
+  });
+  it('caches super.json passed as parameter correctly', () => {
+    const statCalls = statSyncMock.mock.calls.length;
+    const readFileCalls = readFileSyncMock.mock.calls.length;
+
+    const client = new SuperfaceClient(MOCK_SUPERJSON, 'custom/path');
+    expect(client.superJson).toEqual(
+      new SuperJson(MOCK_SUPERJSON, 'custom/path')
+    );
+    // no more calls than before
+    expect(statSyncMock).toHaveBeenCalledTimes(statCalls);
+    expect(readFileSyncMock).toHaveBeenCalledTimes(readFileCalls);
+
+    const clientCached = new SuperfaceClient(MOCK_SUPERJSON, 'custom/path');
+    expect(clientCached.superJson).toEqual(
+      new SuperJson(MOCK_SUPERJSON, 'custom/path')
+    );
+    // no more calls than before
+    expect(statSyncMock).toHaveBeenCalledTimes(statCalls);
+    expect(readFileSyncMock).toHaveBeenCalledTimes(readFileCalls);
   });
 
   it('caches super.json files correctly', () => {
