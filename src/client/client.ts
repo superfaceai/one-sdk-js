@@ -1,3 +1,6 @@
+import { SuperJsonDocument } from '@superfaceai/ast';
+import { inspect } from 'util';
+
 import { Config } from '../config';
 import { SuperJson } from '../internal';
 import {
@@ -41,15 +44,19 @@ export abstract class SuperfaceClientBase extends Events {
 
   public hookContext: HooksContext = {};
 
-  constructor() {
+  constructor(superJson?: SuperJsonDocument, path?: string) {
     super();
     const superCacheKey = Config.instance().superfacePath;
 
     if (SUPER_CACHE[superCacheKey] === undefined) {
-      SUPER_CACHE[superCacheKey] = SuperJson.loadSync(superCacheKey).unwrap();
+      SUPER_CACHE[superCacheKey] = superJson
+        ? new SuperJson(superJson, path ?? Config.instance().superfacePath)
+        : SuperJson.loadSync(superCacheKey).unwrap();
     }
 
     this.superJson = SUPER_CACHE[superCacheKey];
+
+    console.log(inspect(this.superJson, true, 20));
     if (!Config.instance().disableReporting) {
       this.hookMetrics();
       this.metricReporter = new MetricReporter(this.superJson);
