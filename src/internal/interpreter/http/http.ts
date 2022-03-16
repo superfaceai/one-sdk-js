@@ -38,7 +38,6 @@ import {
   RequestParameters,
   SecurityConfiguration,
 } from './security';
-import { OAuthHandler } from './security/oauth';
 
 const debug = createDebug('superface:http');
 const debugSensitive = createDebug('superface:http:sensitive');
@@ -248,8 +247,6 @@ function createSecurityHandler(
     }
     if (configuration.type === SecurityType.APIKEY) {
       handler = new ApiKeyHandler(configuration);
-    } else if (configuration.type === SecurityType.OAUTH) {
-      handler = new OAuthHandler(configuration, fetchInstance);
     } else if (configuration.scheme === HttpScheme.DIGEST) {
       handler = new DigestHandler(configuration, fetchInstance);
     } else {

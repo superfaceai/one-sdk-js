@@ -8,9 +8,6 @@ import {
   DigestSecurityScheme,
   DigestSecurityValues,
   HttpSecurityRequirement,
-  OAuthSecurityScheme,
-  OAuthSecurityValues,
-  OAuthTokenType,
 } from '@superfaceai/ast';
 
 import { NonPrimitive, Variables } from '../../variables';
@@ -19,22 +16,8 @@ import { FetchParameters } from '../interfaces';
 
 export const DEFAULT_AUTHORIZATION_HEADER_NAME = 'Authorization';
 
-// TODO: rename? it's not connected to specific flow
-export type AuthCacheAuthorizationCode = {
-  // Actual credentials
-  accessToken: string;
-  refreshToken?: string;
-  // expiresIn is not required by rfc.
-  expiresAt?: number;
-  tokenType: OAuthTokenType;
-  scopes: string[];
-};
-
 export type AuthCache = {
   digest?: string;
-  oauth?: {
-    authotizationCode?: AuthCacheAuthorizationCode;
-  };
 };
 
 /**
@@ -71,8 +54,7 @@ export type SecurityConfiguration =
   | (ApiKeySecurityScheme & ApiKeySecurityValues)
   | (BasicAuthSecurityScheme & BasicAuthSecurityValues)
   | (BearerTokenSecurityScheme & BearerTokenSecurityValues)
-  | (DigestSecurityScheme & DigestSecurityValues)
-  | (OAuthSecurityScheme & OAuthSecurityValues);
+  | (DigestSecurityScheme & DigestSecurityValues);
 
 export type RequestParameters = {
   url: string;
