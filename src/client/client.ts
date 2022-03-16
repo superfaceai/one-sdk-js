@@ -41,15 +41,19 @@ export abstract class SuperfaceClientBase extends Events {
 
   public hookContext: HooksContext = {};
 
-  constructor() {
+  constructor(superJson?: SuperJson) {
     super();
     const superCacheKey = Config.instance().superfacePath;
 
-    if (SUPER_CACHE[superCacheKey] === undefined) {
-      SUPER_CACHE[superCacheKey] = SuperJson.loadSync(superCacheKey).unwrap();
+    if (superJson === undefined) {
+      if (SUPER_CACHE[superCacheKey] === undefined) {
+        SUPER_CACHE[superCacheKey] = SuperJson.loadSync(superCacheKey).unwrap();
+      }
+      this.superJson = SUPER_CACHE[superCacheKey];
+    } else {
+      this.superJson = superJson;
     }
 
-    this.superJson = SUPER_CACHE[superCacheKey];
     if (!Config.instance().disableReporting) {
       this.hookMetrics();
       this.metricReporter = new MetricReporter(this.superJson);
@@ -202,6 +206,10 @@ export abstract class SuperfaceClientBase extends Events {
 }
 
 export class SuperfaceClient extends SuperfaceClientBase {
+  constructor(superJson?: SuperJson) {
+    super(superJson);
+  }
+
   /** Gets a profile from super.json based on `profileId` in format: `[scope/]name`. */
   async getProfile(profileId: string): Promise<Profile> {
     const profileConfiguration = await this.getProfileConfiguration(profileId);

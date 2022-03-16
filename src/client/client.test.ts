@@ -2,8 +2,9 @@ import * as fs from 'fs';
 import { dirname, join as joinPath } from 'path';
 
 import { Config, DEFAULT_SUPERFACE_PATH } from '../config';
+import { SuperJson } from '../internal';
 import { SuperfaceClient } from './client';
-import { ProfileConfiguration } from './profile';
+import { Profile, ProfileConfiguration } from './profile';
 import * as profileProvider from './profile-provider';
 import { ProviderConfiguration } from './provider';
 
@@ -232,6 +233,22 @@ but this path does not exist or is not accessible`
 
       const provider = await client.getProviderForProfile('baz');
       expect(provider.configuration.name).toBe('quz');
+    });
+  });
+
+  describe.only('SuperJson as argument', () => {
+    it('uses passed SuperJson instance', async () => {
+      const superJson = new SuperJson();
+      superJson.setProfile('communication/send-email', { version: '2.0.0' });
+
+      const spyLoad = jest.spyOn(SuperJson, 'loadSync');
+      const client = new SuperfaceClient(superJson);
+
+      expect(spyLoad).not.toBeCalled();
+
+      await expect(
+        client.getProfile('communication/send-email')
+      ).resolves.toBeInstanceOf(Profile);
     });
   });
 });
