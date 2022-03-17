@@ -1,4 +1,4 @@
-import { BackoffKind, OnFail } from '@superfaceai/ast';
+import { BackoffKind, OnFail, SecurityValues } from '@superfaceai/ast';
 import createDebug from 'debug';
 
 import { MapInterpreterError, ProfileParameterError } from '../internal';
@@ -27,6 +27,7 @@ const debug = createDebug('superface:usecase');
 export type PerformOptions = {
   provider?: Provider | string;
   parameters?: Record<string, string>;
+  security?: SecurityValues[];
 };
 
 // TODO
@@ -75,6 +76,12 @@ class UseCaseBase implements Interceptable {
     this.metadata.provider = providerConfig.name;
     hookRouter.setCurrentProvider(providerConfig.name);
 
+    if (options?.security) {
+      providerConfig = new ProviderConfiguration(
+        providerConfig.name,
+        options.security
+      );
+    }
     //In this instance we can set metadata for events
     this.boundProfileProvider =
       await this.profile.client.cacheBoundProfileProvider(
