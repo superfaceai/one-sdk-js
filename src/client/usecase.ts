@@ -76,6 +76,7 @@ class UseCaseBase implements Interceptable {
     this.metadata.provider = providerConfig.name;
     hookRouter.setCurrentProvider(providerConfig.name);
 
+    //If we have security values pass directly to perform we use them
     if (options?.security) {
       providerConfig = new ProviderConfiguration(
         providerConfig.name,
@@ -153,10 +154,8 @@ class UseCaseBase implements Interceptable {
       console.warn(
         `Super.json sets provider failover priority to: "${profileEntry.priority.join(
           ', '
-        )}" but provider failover is not allowed for usecase "${
-          this.name
-        }".\nTo allow provider failover please set property "providerFailover" in "${profileId}.defaults[${
-          this.name
+        )}" but provider failover is not allowed for usecase "${this.name
+        }".\nTo allow provider failover please set property "providerFailover" in "${profileId}.defaults[${this.name
         }]" to true`
       );
     }
@@ -274,7 +273,7 @@ export class UseCase extends UseCaseBase {
 export class TypedUseCase<
   TInput extends NonPrimitive | undefined,
   TOutput
-> extends UseCaseBase {
+  > extends UseCaseBase {
   async perform(
     input: TInput,
     options?: PerformOptions
