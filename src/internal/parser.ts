@@ -4,10 +4,10 @@ import {
   isProfileDocumentNode,
   MapDocumentNode,
   ProfileDocumentNode,
-  // VERSION as AstVersion,
+  VERSION as AstVersion,
 } from '@superfaceai/ast';
 import {
-  // PARSED_AST_VERSION,
+  PARSED_AST_VERSION,
   parseMap,
   parseProfile,
   Source,
@@ -17,7 +17,7 @@ import { join as joinPath } from 'path';
 
 import { Config } from '../config';
 import { isAccessible } from '../lib/io';
-// import { UnexpectedError } from './errors';
+import { UnexpectedError } from './errors';
 
 export class Parser {
   private static mapCache: Record<string, MapDocumentNode> = {};
@@ -68,15 +68,14 @@ export class Parser {
     // And write parsed file to cache
     parsedMap = parseMap(new Source(input, fileName));
     if (!isMapDocumentNode(parsedMap)) {
-      console.log('OUCH MAP');
-      // const parserAstVersion = `${PARSED_AST_VERSION.major}.${
-      //   PARSED_AST_VERSION.minor
-      // }.${PARSED_AST_VERSION.patch}${
-      //   PARSED_AST_VERSION.label ? '-' + PARSED_AST_VERSION.label : ''
-      // }`;
-      // throw new UnexpectedError(
-      //   `Parsed map is not valid. This can be caused by not matching versions of package @superfaceai/ast.\nVersion of AST in Parser used to parse map: ${parserAstVersion}.\nVersion of AST used to validation: ${AstVersion}`
-      // );
+      const parserAstVersion = `${PARSED_AST_VERSION.major}.${
+        PARSED_AST_VERSION.minor
+      }.${PARSED_AST_VERSION.patch}${
+        PARSED_AST_VERSION.label ? '-' + PARSED_AST_VERSION.label : ''
+      }`;
+      throw new UnexpectedError(
+        `Parsed map is not valid. This can be caused by not matching versions of package @superfaceai/ast.\nVersion of AST in Parser used to parse map: ${parserAstVersion}.\nVersion of AST used to validation: ${AstVersion}`
+      );
     }
     await Parser.writeFileCache(parsedMap, this.mapCache, cachePath, path);
 
@@ -128,16 +127,14 @@ export class Parser {
     // And write parsed file to cache
     parsedProfile = parseProfile(new Source(input, fileName));
     if (!isProfileDocumentNode(parsedProfile)) {
-      console.log('OUCH PROFILE');
-
-      // const parserAstVersion = `${PARSED_AST_VERSION.major}.${
-      //   PARSED_AST_VERSION.minor
-      // }.${PARSED_AST_VERSION.patch}${
-      //   PARSED_AST_VERSION.label ? '-' + PARSED_AST_VERSION.label : ''
-      // }`;
-      // throw new UnexpectedError(
-      //   `Parsed profile is not valid. This can be caused by not matching versions of package @superfaceai/ast.\nVersion of AST in Parser used to parse profile: ${parserAstVersion}.\nVersion of AST used to validation: ${AstVersion}`
-      // );
+      const parserAstVersion = `${PARSED_AST_VERSION.major}.${
+        PARSED_AST_VERSION.minor
+      }.${PARSED_AST_VERSION.patch}${
+        PARSED_AST_VERSION.label ? '-' + PARSED_AST_VERSION.label : ''
+      }`;
+      throw new UnexpectedError(
+        `Parsed profile is not valid. This can be caused by not matching versions of package @superfaceai/ast.\nVersion of AST in Parser used to parse profile: ${parserAstVersion}.\nVersion of AST used to validation: ${AstVersion}`
+      );
     }
     await this.writeFileCache(
       parsedProfile,

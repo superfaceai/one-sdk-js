@@ -48,7 +48,7 @@
     "typescript": "4.3.5"
   },
   "dependencies": {
-    "@superfaceai/ast": "1.1.0",
+    "@superfaceai/ast": "^1.1.0",
     "@superfaceai/parser": "^1.1.0",
     "abort-controller": "^3.0.0",
     "cross-fetch": "^3.1.5",
