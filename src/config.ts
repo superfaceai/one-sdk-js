@@ -13,6 +13,7 @@ const METRIC_DEBOUNCE_TIME = {
 };
 const DISABLE_REPORTING = 'SUPERFACE_DISABLE_METRIC_REPORTING';
 const SANDBOX_TIMEOUT_ENV_NAME = 'SUPERFACE_SANDBOX_TIMEOUT';
+const BOUND_PROVIDER_CACHE_TIMEOUT = 'SUPERFACE_CACHE_TIMEOUT';
 
 // Defaults
 export const DEFAULT_API_URL = 'https://superface.ai';
@@ -31,6 +32,8 @@ export const DEFAULT_CACHE_PATH = joinPath(
   '.cache'
 );
 export const DEFAULT_SANDBOX_TIMEOUT = 100;
+//1 hour
+export const DEFAULT_BOUND_PROVIDER_TIMEOUT = 60 * 60;
 
 // Extraction functions
 function getSuperfaceApiUrl(): string {
@@ -57,6 +60,28 @@ function getSdkAuthToken(): string | undefined {
   }
 
   return token;
+}
+
+function getBoundCacheTimeout(): number {
+  const envValue = process.env[BOUND_PROVIDER_CACHE_TIMEOUT];
+  if (envValue === undefined) {
+    return DEFAULT_BOUND_PROVIDER_TIMEOUT;
+  }
+
+  try {
+    const result = parseInt(envValue);
+    if (result <= 0) {
+      throw undefined;
+    }
+
+    return result;
+  } catch (e) {
+    configDebug(
+      `Invalid value: ${envValue} for ${BOUND_PROVIDER_CACHE_TIMEOUT}, expected positive number`
+    );
+
+    return DEFAULT_BOUND_PROVIDER_TIMEOUT;
+  }
 }
 
 function getMetricDebounceTime(which: 'min' | 'max'): number {
@@ -123,6 +148,7 @@ export class Config {
   public superfaceApiUrl: string;
   public sdkAuthToken?: string;
   public superfacePath: string;
+  public superfaceCacheTimeout: number;
   public metricDebounceTimeMin: number;
   public metricDebounceTimeMax: number;
   public disableReporting: boolean;
@@ -134,6 +160,7 @@ export class Config {
       superfaceApiUrl: getSuperfaceApiUrl(),
       sdkAuthToken: getSdkAuthToken(),
       superfacePath: process.env[SUPERFACE_PATH_NAME] ?? DEFAULT_SUPERFACE_PATH,
+      superfaceCacheTimeout: getBoundCacheTimeout(),
       metricDebounceTimeMin: getMetricDebounceTime('min'),
       metricDebounceTimeMax: getMetricDebounceTime('max'),
       disableReporting:
@@ -148,6 +175,7 @@ export class Config {
   private constructor() {
     const env = Config.loadEnv();
     this.superfaceApiUrl = env.superfaceApiUrl;
+    this.superfaceCacheTimeout = env.superfaceCacheTimeout;
     this.sdkAuthToken = env.sdkAuthToken;
     this.superfacePath = env.superfacePath;
     this.metricDebounceTimeMin = env.metricDebounceTimeMin;
