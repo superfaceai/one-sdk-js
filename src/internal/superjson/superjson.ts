@@ -111,7 +111,6 @@ export class SuperJson {
   }
 
   static loadSync(path?: string): Result<SuperJson, SDKExecutionError> {
-    console.log('CALLL');
     const superfile = path ?? Config.instance().superfacePath;
 
     try {
