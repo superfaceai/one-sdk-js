@@ -6,14 +6,12 @@ import {
 import createDebug from 'debug';
 import { inspect } from 'util';
 
-import { AuthCache } from '../../../client';
-import { USER_AGENT } from '../../../index';
 import { recursiveKeyList } from '../../../lib/object';
+import { pipe } from '../../../lib/pipe/pipe';
 import { UnexpectedError } from '../../errors';
 import {
   missingPathReplacementError,
   missingSecurityValuesError,
-  unsupportedContentType,
 } from '../../errors.helpers';
 import {
   getValue,
@@ -22,23 +20,22 @@ import {
   variablesToStrings,
 } from '../variables';
 import {
-  BINARY_CONTENT_REGEXP,
-  BINARY_CONTENT_TYPES,
-  binaryBody,
-  FetchInstance,
-  FetchParameters,
-  FORMDATA_CONTENT,
-  formDataBody,
-  JSON_CONTENT,
-  stringBody,
-  URLENCODED_CONTENT,
-  urlSearchParamsBody,
-} from './interfaces';
+  authenticateFilter,
+  fetchFilter,
+  handleResponseFilter,
+  prepareRequestFilter,
+  withRequest,
+  withResponse,
+} from './filters';
+import { FetchInstance } from './interfaces';
 import {
   ApiKeyHandler,
+  AuthCache,
   DigestHandler,
   HttpHandler,
+  HttpRequest,
   ISecurityHandler,
+  RequestParameters,
   SecurityConfiguration,
 } from './security';
 
@@ -130,60 +127,64 @@ export const createUrl = (
   return baseUrl.replace(/\/+$/, '') + url;
 };
 
+export async function fetchRequest(
+  fetchInstance: FetchInstance,
+  request: HttpRequest
+): Promise<HttpResponse> {
+  debug('Executing HTTP Call');
+  // secrets might appear in headers, url path, query parameters or body
+  if (debugSensitive.enabled) {
+    const hasSearchParams =
+      Object.keys(request.queryParameters || {}).length > 0;
+    const searchParams = new URLSearchParams(request.queryParameters);
+    debugSensitive(
+      '\t%s %s%s HTTP/1.1',
+      request.method || 'UNKNOWN METHOD',
+      request.url,
+      hasSearchParams ? '?' + searchParams.toString() : ''
+    );
+    Object.entries(request.headers || {}).forEach(([headerName, value]) =>
+      debugSensitive(
+        `\t${headerName}: ${Array.isArray(value) ? value.join(', ') : value}`
+      )
+    );
+    if (request.body !== undefined) {
+      debugSensitive(`\n${inspect(request.body, true, 5)}`);
+    }
+  }
+
+  const response = await fetchInstance.fetch(request.url, request);
+
+  debug('Received response');
+  if (debugSensitive.enabled) {
+    debugSensitive(`\tHTTP/1.1 ${response.status} ${response.statusText}`);
+    Object.entries(response.headers).forEach(([headerName, value]) =>
+      debugSensitive(`\t${headerName}: ${value}`)
+    );
+    debugSensitive('\n\t%j', response.body);
+  }
+
+  const headers: Record<string, string> = {};
+  Object.entries(request.headers ?? {}).forEach(([key, value]) => {
+    headers[key] = Array.isArray(value) ? value.join(' ') : value;
+  });
+
+  return {
+    statusCode: response.status,
+    body: response.body,
+    headers: response.headers,
+    debug: {
+      request: {
+        url: request.url,
+        headers,
+        body: request.body,
+      },
+    },
+  };
+}
+
 export class HttpClient {
   constructor(private fetchInstance: FetchInstance & AuthCache) {}
-
-  private async makeRequest(options: {
-    url: string;
-    headers: Record<string, string>;
-    requestBody: Variables | undefined;
-    request: FetchParameters;
-  }): Promise<HttpResponse> {
-    const { url, headers, request, requestBody } = options;
-    debug('Executing HTTP Call');
-    // secrets might appear in headers, url path, query parameters or body
-    if (debugSensitive.enabled) {
-      const hasSearchParams =
-        Object.keys(request.queryParameters ?? {}).length > 0;
-      const searchParams = new URLSearchParams(request.queryParameters);
-      debugSensitive(
-        '\t%s %s%s HTTP/1.1',
-        request.method || 'UNKNOWN METHOD',
-        url,
-        hasSearchParams ? '?' + searchParams.toString() : ''
-      );
-
-      Object.entries(headers).forEach(([headerName, value]) =>
-        debugSensitive(`\t${headerName}: ${value}`)
-      );
-      if (requestBody !== undefined) {
-        debugSensitive(`\n${inspect(requestBody, true, 5)}`);
-      }
-    }
-    const response = await this.fetchInstance.fetch(url, request);
-
-    debug('Received response');
-    if (debugSensitive.enabled) {
-      debugSensitive(`\tHTTP/1.1 ${response.status} ${response.statusText}`);
-      Object.entries(response.headers).forEach(([headerName, value]) =>
-        debugSensitive(`\t${headerName}: ${value}`)
-      );
-      debugSensitive('\n\t%j', response.body);
-    }
-
-    return {
-      statusCode: response.status,
-      body: response.body,
-      headers: response.headers,
-      debug: {
-        request: {
-          url: url,
-          headers,
-          body: requestBody,
-        },
-      },
-    };
-  }
 
   public async request(
     url: string,
@@ -201,128 +202,57 @@ export class HttpClient {
       integrationParameters?: Record<string, string>;
     }
   ): Promise<HttpResponse> {
-    const securityHandlers: ISecurityHandler[] = [];
-    let retry = true;
-    const headers = variablesToStrings(parameters?.headers);
-    headers['accept'] = parameters.accept || '*/*';
-
-    const request: FetchParameters = {
-      headers,
-      method: parameters.method,
-    };
-
-    const queryAuth: Record<string, string> = {};
-    const requestBody = parameters.body;
-    const pathParameters = { ...parameters.pathParameters };
-
-    const securityConfiguration = parameters.securityConfiguration ?? [];
-    const contextForSecurity = {
+    const requestParameters: RequestParameters = {
       url,
-      headers,
-      queryAuth,
-      pathParameters,
-      requestBody,
+      ...parameters,
+      headers: variablesToStrings(parameters?.headers),
     };
-    //Prepare security
-    for (const requirement of parameters.securityRequirements ?? []) {
-      const configuration = securityConfiguration.find(
-        configuration => configuration.id === requirement.id
-      );
-      if (configuration === undefined) {
-        throw missingSecurityValuesError(requirement.id);
-      }
 
-      if (configuration.type === SecurityType.APIKEY) {
-        const handler = new ApiKeyHandler(configuration);
-        handler.prepare(contextForSecurity);
-        securityHandlers.push(handler);
-      } else if (configuration.scheme === HttpScheme.DIGEST) {
-        const handler = new DigestHandler(configuration);
-        handler.prepare(contextForSecurity, this.fetchInstance);
-        securityHandlers.push(handler);
-      } else {
-        const handler = new HttpHandler(configuration);
-        handler.prepare(contextForSecurity);
-        securityHandlers.push(handler);
-      }
+    const handler = createSecurityHandler(
+      this.fetchInstance,
+      requestParameters.securityConfiguration,
+      requestParameters.securityRequirements
+    );
+
+    const result = await pipe(
+      {
+        parameters: requestParameters,
+      },
+      authenticateFilter(handler),
+      prepareRequestFilter,
+      withRequest(fetchFilter(this.fetchInstance)),
+      withResponse(handleResponseFilter(this.fetchInstance, handler))
+    );
+
+    if (result.response === undefined) {
+      throw new UnexpectedError('Response is undefined');
     }
-    //Prepare the actual call
-    let response: HttpResponse;
 
-    do {
-      if (
-        parameters.body &&
-        ['post', 'put', 'patch'].includes(parameters.method.toLowerCase())
-      ) {
-        if (parameters.contentType === JSON_CONTENT) {
-          headers['Content-Type'] ??= JSON_CONTENT;
-          request.body = stringBody(JSON.stringify(requestBody));
-        } else if (parameters.contentType === URLENCODED_CONTENT) {
-          headers['Content-Type'] ??= URLENCODED_CONTENT;
-          request.body = urlSearchParamsBody(variablesToStrings(requestBody));
-        } else if (parameters.contentType === FORMDATA_CONTENT) {
-          headers['Content-Type'] ??= FORMDATA_CONTENT;
-          request.body = formDataBody(variablesToStrings(requestBody));
-        } else if (
-          parameters.contentType &&
-          BINARY_CONTENT_REGEXP.test(parameters.contentType)
-        ) {
-          headers['Content-Type'] ??= parameters.contentType;
-          let buffer: Buffer;
-          if (Buffer.isBuffer(requestBody)) {
-            buffer = requestBody;
-          } else {
-            //coerce to string then buffer
-            buffer = Buffer.from(String(requestBody));
-          }
-          request.body = binaryBody(buffer);
-        } else {
-          const contentType = parameters.contentType ?? '';
-          const supportedTypes = [
-            JSON_CONTENT,
-            URLENCODED_CONTENT,
-            FORMDATA_CONTENT,
-            ...BINARY_CONTENT_TYPES,
-          ];
-
-          throw unsupportedContentType(contentType, supportedTypes);
-        }
-      }
-      headers['user-agent'] ??= USER_AGENT;
-
-      const finalUrl = createUrl(url, {
-        baseUrl: parameters.baseUrl,
-        pathParameters,
-        integrationParameters: parameters.integrationParameters,
-      });
-
-      request.queryParameters = {
-        ...variablesToStrings(parameters.queryParameters),
-        ...queryAuth,
-      };
-      response = await this.makeRequest({
-        url: finalUrl,
-        headers,
-        requestBody,
-        request,
-      });
-      //TODO: or call handle on all the handers (with defined handle)?
-      const handler = securityHandlers.find(h => h.handle !== undefined);
-      //If we have handle we use it to get new values for api call and new retry value
-      if (handler && handler.handle) {
-        retry = handler.handle(
-          response,
-          finalUrl,
-          request.method,
-          contextForSecurity,
-          this.fetchInstance
-        );
-      } else {
-        retry = false;
-      }
-      //TODO: maybe some numeric limit to avoid inf. loop?
-    } while (retry);
-
-    return response;
+    return result.response;
   }
+}
+
+function createSecurityHandler(
+  fetchInstance: FetchInstance & AuthCache,
+  securityConfiguration: SecurityConfiguration[] = [],
+  securityRequirements: HttpSecurityRequirement[] = []
+): ISecurityHandler | undefined {
+  let handler: ISecurityHandler | undefined = undefined;
+  for (const requirement of securityRequirements) {
+    const configuration = securityConfiguration.find(
+      configuration => configuration.id === requirement.id
+    );
+    if (configuration === undefined) {
+      throw missingSecurityValuesError(requirement.id);
+    }
+    if (configuration.type === SecurityType.APIKEY) {
+      handler = new ApiKeyHandler(configuration);
+    } else if (configuration.scheme === HttpScheme.DIGEST) {
+      handler = new DigestHandler(configuration, fetchInstance);
+    } else {
+      handler = new HttpHandler(configuration);
+    }
+  }
+
+  return handler;
 }

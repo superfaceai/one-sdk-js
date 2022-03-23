@@ -1,51 +1,70 @@
 import { HttpScheme, SecurityType } from '@superfaceai/ast';
+import createDebug from 'debug';
 
 import {
   DEFAULT_AUTHORIZATION_HEADER_NAME,
   ISecurityHandler,
-  RequestContext,
   SecurityConfiguration,
 } from '../../security';
+import { AuthenticateRequestAsync, RequestParameters } from '../interfaces';
+
+const debug = createDebug('superface:http:security:http-handler');
 
 export class HttpHandler implements ISecurityHandler {
   constructor(
     readonly configuration: SecurityConfiguration & { type: SecurityType.HTTP }
-  ) {}
+  ) {
+    debug('Initialized http authentization handler');
+  }
 
-  prepare(context: RequestContext): void {
+  authenticate: AuthenticateRequestAsync = async (
+    parameters: RequestParameters
+  ) => {
+    const headers: Record<string, string> = parameters.headers || {};
+
     switch (this.configuration.scheme) {
       case HttpScheme.BASIC:
-        applyBasicAuth(context, this.configuration);
+        debug('Setting basic http auhentization');
+
+        headers[DEFAULT_AUTHORIZATION_HEADER_NAME] = applyBasicAuth(
+          this.configuration
+        );
         break;
       case HttpScheme.BEARER:
-        applyBearerToken(context, this.configuration);
+        debug('Setting bearer http auhentization');
+
+        headers[DEFAULT_AUTHORIZATION_HEADER_NAME] = applyBearerToken(
+          this.configuration
+        );
         break;
     }
-  }
+
+    return {
+      ...parameters,
+      headers,
+    };
+  };
 }
 
 function applyBasicAuth(
-  context: RequestContext,
   configuration: SecurityConfiguration & {
     type: SecurityType.HTTP;
     scheme: HttpScheme.BASIC;
   }
-): void {
-  context.headers[DEFAULT_AUTHORIZATION_HEADER_NAME] =
+): string {
+  return (
     'Basic ' +
     Buffer.from(`${configuration.username}:${configuration.password}`).toString(
       'base64'
-    );
+    )
+  );
 }
 
 function applyBearerToken(
-  context: RequestContext,
   configuration: SecurityConfiguration & {
     type: SecurityType.HTTP;
     scheme: HttpScheme.BEARER;
   }
-): void {
-  context.headers[
-    DEFAULT_AUTHORIZATION_HEADER_NAME
-  ] = `Bearer ${configuration.token}`;
+): string {
+  return `Bearer ${configuration.token}`;
 }

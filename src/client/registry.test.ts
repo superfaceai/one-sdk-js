@@ -3,7 +3,6 @@ import { AstMetadata, MapDocumentNode, ProviderJson } from '@superfaceai/ast';
 import { Config } from '../config';
 import {
   bindResponseError,
-  invalidProviderResponseError,
   unknownBindResponseError,
   unknownProviderInfoError,
 } from '../internal/errors.helpers';
@@ -363,7 +362,7 @@ describe('registry', () => {
           mapVariant: 'test-map-variant',
           mapRevision: 'test-map-revision',
         })
-      ).rejects.toThrow(invalidProviderResponseError({ path: ['input'] }));
+      ).rejects.toThrowError('Bind call responded with invalid provider body');
 
       expect(request).toHaveBeenCalledTimes(1);
     });

@@ -7,13 +7,34 @@ import {
   BearerTokenSecurityValues,
   DigestSecurityScheme,
   DigestSecurityValues,
+  HttpSecurityRequirement,
 } from '@superfaceai/ast';
 
-import { AuthCache } from '../../../../client';
 import { NonPrimitive, Variables } from '../../variables';
 import { HttpResponse } from '../http';
+import { FetchParameters } from '../interfaces';
 
 export const DEFAULT_AUTHORIZATION_HEADER_NAME = 'Authorization';
+
+export type AuthCache = {
+  digest?: string;
+};
+
+/**
+ * This type defines function used for authentization with more complex auth. methods (oauth, diges), we useFetchInstance to fetch auth. response and to set credentials to cache
+ */
+export type AuthenticateRequestAsync = (
+  parameters: RequestParameters
+) => Promise<RequestParameters>;
+
+/**
+ * This type defines function used for handling response with complex auth methods.
+ * It returns undefined (when there is no need to retry request) or úarameters used in new request
+ */
+export type HandleResponseAsync = (
+  response: HttpResponse,
+  resourceRequestParameters: RequestParameters
+) => Promise<HttpRequest | undefined> | undefined;
 
 /**
  * Represents class that is able to prepare (set headers, path etc.) and handle (challange responses for eg. digest) authentication
@@ -23,28 +44,10 @@ export interface ISecurityHandler {
    * Hold SecurityConfiguration context for handling more complex authentizations
    */
   readonly configuration: SecurityConfiguration;
-  /**
-   * Prepares request context for making the api call.
-   * @param context context for making request this can be changed during preparation (eg. authorize header will be added)
-   * @param cache this cache can hold credentials for some of the authentication methods eg. digest
-   */
-  prepare(context: RequestContext, cache: AuthCache): void;
-  /**
-   * Handles responses for more complex authentization methods (eg. digest)
-   * @param response response from http call - can contain challange
-   * @param url url of (possibly next) http call
-   * @param method method of (possibly next) http call
-   * @param context context for making (possibly next) request - this can be changed during preparation (eg. authorize header will be added)
-   * @param cache this cache can hold credentials for some of the authentication methods eg. digest
-   * @returns flag if we need to retry http request (with new settings applied)
-   */
-  handle?(
-    response: HttpResponse,
-    url: string,
-    method: string,
-    context: RequestContext,
-    cache: AuthCache
-  ): boolean;
+
+  authenticate: AuthenticateRequestAsync;
+
+  handleResponse?: HandleResponseAsync;
 }
 
 export type SecurityConfiguration =
@@ -53,10 +56,19 @@ export type SecurityConfiguration =
   | (BearerTokenSecurityScheme & BearerTokenSecurityValues)
   | (DigestSecurityScheme & DigestSecurityValues);
 
-export type RequestContext = {
+export type RequestParameters = {
   url: string;
-  pathParameters: NonPrimitive;
-  queryAuth: Record<string, string>;
-  headers: Record<string, string>;
-  requestBody: Variables | undefined;
+  method: string;
+  headers?: Record<string, string>;
+  queryParameters?: Variables;
+  body?: Variables;
+  contentType?: string;
+  accept?: string;
+  securityRequirements?: HttpSecurityRequirement[];
+  securityConfiguration?: SecurityConfiguration[];
+  baseUrl: string;
+  pathParameters?: NonPrimitive;
+  integrationParameters?: Record<string, string>;
 };
+
+export type HttpRequest = FetchParameters & { url: string };

@@ -31,6 +31,13 @@ export class ProfileBase {
     public readonly client: SuperfaceClientBase,
     public readonly configuration: ProfileConfiguration
   ) {}
+
+  getConfiguredProviders(): string[] {
+    return Object.keys(
+      this.client.superJson.normalized.profiles[this.configuration.id]
+        ?.providers ?? {}
+    );
+  }
 }
 
 export class Profile extends ProfileBase {
