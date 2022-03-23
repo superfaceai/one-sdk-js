@@ -1,6 +1,7 @@
 import {
   assertMapDocumentNode,
   assertProfileDocumentNode,
+  assertProviderJson,
   FILE_URI_PROTOCOL,
   HttpScheme,
   isApiKeySecurityValues,
@@ -23,6 +24,8 @@ import createDebug from 'debug';
 import { promises as fsp } from 'fs';
 import { join as joinPath } from 'path';
 
+import { Config } from '../config';
+import { UnexpectedError } from '../internal';
 import {
   invalidProfileError,
   invalidSecurityValuesError,
@@ -70,6 +73,7 @@ function profileAstId(ast: ProfileDocumentNode): string {
 const boundProfileProviderDebug = createDebug(
   'superface:bound-profile-provider'
 );
+const cachePath = joinPath(Config.instance().cachePath, 'providers');
 
 export class BoundProfileProvider {
   private profileValidator: ProfileParameterValidator;
@@ -217,6 +221,7 @@ export class ProfileProvider {
   private profileId: string;
   private scope: string | undefined;
   private profileName: string;
+  private providerJson?: ProviderJson;
 
   constructor(
     /** Preloaded superJson instance */
@@ -306,6 +311,8 @@ export class ProfileProvider {
       });
 
       providerInfo ??= fetchResponse.provider;
+      await this.writeProviderCache(providerInfo);
+      this.providerJson = providerInfo;
       mapAst = fetchResponse.mapAst;
       //If we don't have a map (probably due to validation issue) we try to get map source and parse it on our own
       if (!mapAst) {
@@ -323,7 +330,7 @@ export class ProfileProvider {
       }
     } else if (providerInfo === undefined) {
       // resolve only provider info if map is specified locally
-      providerInfo = await fetchProviderInfo(providerName);
+      providerInfo = await this.cacheProviderInfo(providerName);
     }
 
     if (providerName !== mapAst.header.provider) {
@@ -416,6 +423,66 @@ export class ProfileProvider {
     }
 
     return result;
+  }
+
+  private async cacheProviderInfo(providerName: string): Promise<ProviderJson> {
+    const errors: Error[] = [];
+    if (this.providerJson === undefined) {
+      const providerCachePath = joinPath(cachePath, providerName);
+      // If we don't have provider info, we first try to fetch it from the registry
+      try {
+        this.providerJson = await fetchProviderInfo(providerName);
+        await this.writeProviderCache(this.providerJson);
+      } catch (error) {
+        profileProviderDebug(
+          `Failed to fetch provider.json for ${providerName}: %O`,
+          error
+        );
+        errors.push(error);
+      }
+
+      // If we can't fetch provider info from registry, we try to read it from cache
+      if (this.providerJson === undefined) {
+        try {
+          const providerJsonFile = await fsp.readFile(
+            providerCachePath,
+            'utf8'
+          );
+          this.providerJson = assertProviderJson(JSON.parse(providerJsonFile));
+        } catch (error) {
+          profileProviderDebug(
+            `Failed to read cached provider.json for ${providerName}: %O`,
+            error
+          );
+          errors.push(error);
+        }
+      }
+    }
+
+    if (this.providerJson === undefined) {
+      throw new UnexpectedError(
+        'Failed to fetch provider.json or load it from cache.',
+        errors
+      );
+    }
+
+    return this.providerJson;
+  }
+
+  private async writeProviderCache(providerJson: ProviderJson): Promise<void> {
+    const providerCachePath = joinPath(cachePath, `${providerJson.name}.json`);
+    try {
+      await fsp.mkdir(cachePath, { recursive: true });
+      await fsp.writeFile(
+        providerCachePath,
+        JSON.stringify(providerJson, undefined, 2)
+      );
+    } catch (error) {
+      profileProviderDebug(
+        `Failed to cache provider.json for ${providerJson.name}: %O`,
+        error
+      );
+    }
   }
 
   private async resolveProfileAst(): Promise<ProfileDocumentNode | undefined> {
