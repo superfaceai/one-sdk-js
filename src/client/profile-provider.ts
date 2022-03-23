@@ -38,7 +38,10 @@ import {
   ProfileParameterValidator,
 } from '../internal/interpreter';
 import { FetchInstance } from '../internal/interpreter/http/interfaces';
-import { SecurityConfiguration } from '../internal/interpreter/http/security';
+import {
+  AuthCache,
+  SecurityConfiguration,
+} from '../internal/interpreter/http/security';
 import {
   castToNonPrimitive,
   mergeVariables,
@@ -67,10 +70,8 @@ function profileAstId(ast: ProfileDocumentNode): string {
 const boundProfileProviderDebug = createDebug(
   'superface:bound-profile-provider'
 );
-export type AuthCache = { digest?: Record<string, string> };
 
 export class BoundProfileProvider {
-  // TODO: Interceptable and set metadata
   private profileValidator: ProfileParameterValidator;
   private fetchInstance: FetchInstance & Interceptable & AuthCache;
 

@@ -26,12 +26,16 @@ import {
 } from '@superfaceai/ast';
 import createDebug from 'debug';
 
-import { AuthCache } from '../..';
 import { err, ok, Result } from '../../lib';
 import { IServiceSelector } from '../../lib/services';
 import { UnexpectedError } from '../errors';
 import { MapInterpreterExternalHandler } from './external-handler';
-import { HttpClient, HttpResponse, SecurityConfiguration } from './http';
+import {
+  AuthCache,
+  HttpClient,
+  HttpResponse,
+  SecurityConfiguration,
+} from './http';
 import { FetchInstance } from './http/interfaces';
 import {
   HTTPError,
