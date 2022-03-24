@@ -29,7 +29,9 @@ describe('Provider', () => {
   });
 
   it('configures provider correctly and merges configuration', async () => {
-    const mockSecurity = [{ id: 'first-id', digest: 'first-digest' }];
+    const mockSecurity = [
+      { id: 'first-id', username: 'digest-user', password: 'digest-password' },
+    ];
     const mockProviderConfiguration = new ProviderConfiguration(
       'test',
       mockSecurity
@@ -49,7 +51,11 @@ describe('Provider', () => {
     ).resolves.toEqual(
       new Provider(
         new ProviderConfiguration('test', [
-          { id: 'first-id', digest: 'first-digest' },
+          {
+            id: 'first-id',
+            username: 'digest-user',
+            password: 'digest-password',
+          },
           {
             username: 'second',
             password: 'seconds',

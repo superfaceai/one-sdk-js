@@ -8,6 +8,7 @@ export interface IConfig {
   disableReporting: boolean;
   metricDebounceTimeMax: number;
   metricDebounceTimeMin: number;
+  sandboxTimeout: number;
   sdkAuthToken?: string;
   superfaceApiUrl: string;
   superfacePath: string;
@@ -22,6 +23,7 @@ const METRIC_DEBOUNCE_TIME = {
   max: 'SUPERFACE_METRIC_DEBOUNCE_TIME_MAX',
 };
 const DISABLE_REPORTING = 'SUPERFACE_DISABLE_METRIC_REPORTING';
+const SANDBOX_TIMEOUT_ENV_NAME = 'SUPERFACE_SANDBOX_TIMEOUT';
 
 // Defaults
 export const DEFAULT_API_URL = new URL('https://superface.ai').href;
@@ -39,6 +41,7 @@ export const DEFAULT_CACHE_PATH = joinPath(
   'superface',
   '.cache'
 );
+export const DEFAULT_SANDBOX_TIMEOUT = 100;
 export const DEFAULT_DISABLE_REPORTING = false;
 
 const defaults: IConfig = {
@@ -46,6 +49,7 @@ const defaults: IConfig = {
   disableReporting: DEFAULT_DISABLE_REPORTING,
   metricDebounceTimeMax: DEFAULT_METRIC_DEBOUNCE_TIME.max,
   metricDebounceTimeMin: DEFAULT_METRIC_DEBOUNCE_TIME.min,
+  sandboxTimeout: DEFAULT_SANDBOX_TIMEOUT,
   sdkAuthToken: undefined,
   superfaceApiUrl: DEFAULT_API_URL,
   superfacePath: DEFAULT_SUPERFACE_PATH,
@@ -100,11 +104,34 @@ function getMetricDebounceTime(which: 'min' | 'max'): number | undefined {
   }
 }
 
+function getSandboxTimeout(): number {
+  const envValue = process.env[SANDBOX_TIMEOUT_ENV_NAME];
+  if (envValue === undefined) {
+    return DEFAULT_SANDBOX_TIMEOUT;
+  }
+
+  try {
+    const result = parseInt(envValue);
+    if (result <= 0) {
+      throw undefined;
+    }
+
+    return result;
+  } catch (e) {
+    configDebug(
+      `Invalid value: ${envValue} for ${SANDBOX_TIMEOUT_ENV_NAME}, expected positive number`
+    );
+
+    return DEFAULT_SANDBOX_TIMEOUT;
+  }
+}
+
 export class Config implements IConfig {
   public cachePath: string;
   public disableReporting: boolean;
   public metricDebounceTimeMax: number;
   public metricDebounceTimeMin: number;
+  public sandboxTimeout: number;
   public sdkAuthToken?: string;
   public superfaceApiUrl: string;
   public superfacePath: string;
@@ -117,6 +144,7 @@ export class Config implements IConfig {
       config?.metricDebounceTimeMax ?? defaults.metricDebounceTimeMax;
     this.metricDebounceTimeMin =
       config?.metricDebounceTimeMin ?? defaults.metricDebounceTimeMin;
+    this.sandboxTimeout = config?.sandboxTimeout ?? defaults.sandboxTimeout;
     this.sdkAuthToken = config?.sdkAuthToken ?? defaults.sdkAuthToken;
     this.superfaceApiUrl = config?.superfaceApiUrl ?? defaults.superfaceApiUrl;
     this.superfacePath = config?.superfacePath ?? defaults.superfacePath;
@@ -145,6 +173,7 @@ export class Config implements IConfig {
           ? true
           : undefined,
       cachePath: undefined,
+      sandboxTimeout: getSandboxTimeout(),
     };
   }
 }

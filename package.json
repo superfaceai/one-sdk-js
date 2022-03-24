@@ -1,6 +1,6 @@
 {
   "name": "@superfaceai/one-sdk",
-  "version": "1.0.1",
+  "version": "1.3.0",
   "description": "Level 5 autonomous, self-driving API client, https://superface.ai",
   "main": "dist/index.js",
   "source": "src/index.ts",
@@ -26,7 +26,8 @@
     "lint:fix": "yarn lint --fix",
     "format": "prettier -c ./src",
     "format:fix": "prettier --write ./src",
-    "prepush": "yarn build && yarn test:clean && yarn lint && yarn format"
+    "prepush": "yarn build && yarn test:clean && yarn lint && yarn format",
+    "check_dependencies": "node scripts/check_dependencies.js"
   },
   "devDependencies": {
     "@types/debug": "^4.1.7",
@@ -47,12 +48,12 @@
     "typescript": "4.3.5"
   },
   "dependencies": {
-    "@superfaceai/ast": "1.0.0",
-    "@superfaceai/parser": "1.0.0",
+    "@superfaceai/ast": "^1.1.0",
+    "@superfaceai/parser": "^1.1.0",
     "abort-controller": "^3.0.0",
-    "cross-fetch": "^3.0.5",
+    "cross-fetch": "^3.1.5",
     "debug": "^4.3.2",
     "isomorphic-form-data": "^2.0.0",
-    "vm2": "^3.9.2"
+    "vm2": "^3.9.7"
   }
 }

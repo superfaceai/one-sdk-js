@@ -22,7 +22,7 @@ import {
 import createDebug from 'debug';
 import { join as joinPath } from 'path';
 
-import { Config } from '../config';
+import { Config, IConfig } from '../config';
 import {
   invalidProfileError,
   invalidSecurityValuesError,
@@ -30,7 +30,6 @@ import {
   providersDoNotMatchError,
   referencedFileNotFoundError,
   securityNotFoundError,
-  serviceNotFoundError,
 } from '../internal/errors.helpers';
 import {
   MapInterpreter,
@@ -52,6 +51,7 @@ import { err, ok, Result } from '../lib';
 import { Events, Interceptable } from '../lib/events';
 import { CrossFetch } from '../lib/fetch';
 import { IFileSystem } from '../lib/io';
+import { IServiceSelector, ServiceSelector } from '../lib/services';
 import { MapInterpreterEventAdapter } from './failure/map-interpreter-adapter';
 import { ProfileConfiguration } from './profile';
 import { ProviderConfiguration } from './provider';
@@ -68,6 +68,7 @@ function profileAstId(ast: ProfileDocumentNode): string {
 const boundProfileProviderDebug = createDebug(
   'superface:bound-profile-provider'
 );
+export type AuthCache = { digest?: Record<string, string> };
 
 export async function bindProfileProvider(
   profileConfig: ProfileConfiguration,
@@ -97,20 +98,22 @@ export interface IBoundProfileProvider {
     TResult = any
   >(
     usecase: string,
-    input?: TInput
+    input?: TInput,
+    parameters?: Record<string, string>
   ): Promise<Result<TResult, ProfileParameterError | MapInterpreterError>>;
 }
 
 export class BoundProfileProvider implements IBoundProfileProvider {
   private profileValidator: ProfileParameterValidator;
-  private fetchInstance: FetchInstance & Interceptable;
+  private fetchInstance: FetchInstance & Interceptable & AuthCache;
 
   constructor(
     private readonly profileAst: ProfileDocumentNode,
     private readonly mapAst: MapDocumentNode,
     private readonly providerName: string,
+    private readonly config: IConfig,
     readonly configuration: {
-      baseUrl: string;
+      services: IServiceSelector;
       profileProviderSettings?: NormalizedProfileProviderSettings;
       security: SecurityConfiguration[];
       parameters?: Record<string, string>;
@@ -139,7 +142,8 @@ export class BoundProfileProvider implements IBoundProfileProvider {
     TResult = any
   >(
     usecase: string,
-    input?: TInput
+    input?: TInput,
+    parameters?: Record<string, string>
   ): Promise<Result<TResult, ProfileParameterError | MapInterpreterError>> {
     this.fetchInstance.metadata = {
       profile: profileAstId(this.profileAst),
@@ -164,11 +168,15 @@ export class BoundProfileProvider implements IBoundProfileProvider {
       {
         input: composedInput,
         usecase,
-        serviceBaseUrl: this.configuration.baseUrl,
+        services: this.configuration.services,
         security: this.configuration.security,
-        parameters: this.configuration.parameters,
+        parameters: this.mergeParameters(
+          parameters,
+          this.configuration.parameters
+        ),
       },
       {
+        config: this.config,
         fetchInstance: this.fetchInstance,
         externalHandler: new MapInterpreterEventAdapter(
           this.fetchInstance.metadata,
@@ -212,6 +220,24 @@ export class BoundProfileProvider implements IBoundProfileProvider {
     }
 
     return composed;
+  }
+
+  private mergeParameters(
+    parameters?: Record<string, string>,
+    providerParameters?: Record<string, string>
+  ): Record<string, string> | undefined {
+    if (parameters === undefined) {
+      return providerParameters;
+    }
+
+    if (providerParameters === undefined) {
+      return parameters;
+    }
+
+    return {
+      ...providerParameters,
+      ...parameters,
+    };
   }
 }
 
@@ -353,19 +379,6 @@ export class ProfileProvider {
       );
     }
 
-    // prepare service info
-    const serviceId = providerInfo.defaultService;
-    const baseUrl = providerInfo.services.find(
-      s => s.id === serviceId
-    )?.baseUrl;
-    if (baseUrl === undefined) {
-      throw serviceNotFoundError(
-        serviceId,
-        providerName,
-        serviceId === providerInfo.defaultService
-      );
-    }
-
     const securityConfiguration = this.resolveSecurityConfiguration(
       providerInfo.securitySchemes ?? [],
       securityValues,
@@ -376,16 +389,20 @@ export class ProfileProvider {
       profileAst,
       mapAst,
       providerInfo.name,
+      this.config,
       {
-        baseUrl,
+        services: new ServiceSelector(
+          providerInfo.services,
+          providerInfo.defaultService
+        ),
         profileProviderSettings:
           this.superJson.normalized.profiles[profileId]?.providers[
             providerInfo.name
           ],
         security: securityConfiguration,
         parameters: this.resolveIntegrationParameters(
-          this.superJson.normalized.providers[providerInfo.name]?.parameters,
-          providerInfo
+          providerInfo,
+          this.superJson.normalized.providers[providerInfo.name]?.parameters
         ),
       },
       this.events
@@ -393,8 +410,8 @@ export class ProfileProvider {
   }
 
   private resolveIntegrationParameters(
-    superJsonParameters: { [key: string]: string } | undefined,
-    providerJson: ProviderJson
+    providerJson: ProviderJson,
+    superJsonParameters?: Record<string, string>
   ): Record<string, string> | undefined {
     if (superJsonParameters === undefined) {
       return undefined;
@@ -406,7 +423,7 @@ export class ProfileProvider {
       providerJsonParameters.length === 0
     ) {
       console.warn(
-        `Warning: Super.json defines integration parameters but provider.json does not`
+        'Warning: Super.json defines integration parameters but provider.json does not'
       );
     }
     const result: Record<string, string> = {};
@@ -415,6 +432,7 @@ export class ProfileProvider {
       providerJson.name,
       providerJsonParameters
     );
+
     // Resolve parameters defined in super.json
     for (const [key, value] of Object.entries(superJsonParameters)) {
       const providerJsonParameter = providerJsonParameters.find(

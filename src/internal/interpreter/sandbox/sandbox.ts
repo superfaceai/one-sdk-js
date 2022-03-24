@@ -1,24 +1,26 @@
 import createDebug from 'debug';
 import { VM } from 'vm2';
 
-import { NonPrimitive } from '../../internal/interpreter/variables';
+import { IConfig } from '../../../config';
+import { NonPrimitive } from '../../../internal/interpreter/variables';
+import { getStdlib } from './stdlib';
 
 const debug = createDebug('superface:sandbox');
 
-export const SCRIPT_TIMEOUT = 100;
-
 export function evalScript(
+  config: IConfig,
   js: string,
   variableDefinitions?: NonPrimitive
 ): unknown {
   const vm = new VM({
     sandbox: {
+      std: getStdlib(),
       ...variableDefinitions,
     },
     compiler: 'javascript',
     wasm: false,
     eval: false,
-    timeout: SCRIPT_TIMEOUT,
+    timeout: config.sandboxTimeout,
     fixAsync: true,
   });
 

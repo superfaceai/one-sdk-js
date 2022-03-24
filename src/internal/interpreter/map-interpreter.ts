@@ -26,7 +26,10 @@ import {
 } from '@superfaceai/ast';
 import createDebug from 'debug';
 
+import { AuthCache } from '../..';
+import { IConfig } from '../../config';
 import { err, ok, Result } from '../../lib';
+import { IServiceSelector } from '../../lib/services';
 import { UnexpectedError } from '../errors';
 import { MapInterpreterExternalHandler } from './external-handler';
 import { HttpClient, HttpResponse, SecurityConfiguration } from './http';
@@ -73,7 +76,7 @@ export interface MapParameters<
   usecase?: string;
   input?: TInput;
   parameters?: Record<string, string>;
-  serviceBaseUrl?: string;
+  services: IServiceSelector;
   security: SecurityConfiguration[];
 }
 
@@ -134,19 +137,23 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
 
   private readonly http: HttpClient;
   private readonly externalHandler: MapInterpreterExternalHandler;
+  private readonly config: IConfig;
 
   constructor(
     private readonly parameters: MapParameters<TInput>,
     {
       fetchInstance,
       externalHandler,
+      config,
     }: {
-      fetchInstance: FetchInstance;
+      fetchInstance: FetchInstance & AuthCache;
       externalHandler?: MapInterpreterExternalHandler;
+      config: IConfig;
     }
   ) {
     this.http = new HttpClient(fetchInstance);
     this.externalHandler = externalHandler ?? {};
+    this.config = config;
   }
 
   async perform(
@@ -287,7 +294,9 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
   }
 
   async visitHttpCallStatementNode(node: HttpCallStatementNode): Promise<void> {
-    if (this.parameters.serviceBaseUrl === undefined) {
+    // if node.serviceId is undefined returns the default service, or undefined if no default service is defined
+    const serviceUrl = this.parameters.services.getUrl(node.serviceId);
+    if (serviceUrl === undefined) {
       throw new UnexpectedError(
         'Base url for a service not provided for HTTP call.'
       );
@@ -317,7 +326,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
         headers: request?.headers,
         contentType: request?.contentType ?? 'application/json',
         accept,
-        baseUrl: this.parameters.serviceBaseUrl,
+        baseUrl: serviceUrl,
         queryParameters: request?.queryParameters,
         pathParameters: this.variables,
         body: request?.body,
@@ -486,7 +495,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
 
   visitJessieExpressionNode(node: JessieExpressionNode): Variables | undefined {
     try {
-      const result = evalScript(node.expression, this.variables);
+      const result = evalScript(this.config, node.expression, this.variables);
 
       return castToVariables(result);
     } catch (e) {
@@ -542,7 +551,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
           } else {
             this.stackTop().result = outcome?.result ?? this.stackTop().result;
           }
-          debug('Setting result', this.stackTop());
+          debug('Setting result: %O', this.stackTop());
 
           if (outcome?.terminateFlow) {
             this.stackTop().terminate = true;
@@ -690,7 +699,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
       variables
     );
 
-    debug('Updated stack:', this.stackTop());
+    debug('Updated stack: %O', this.stackTop());
   }
 
   private constructObject(keys: string[], value: Variables): NonPrimitive {
@@ -726,13 +735,13 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
             terminate: false,
           };
     this.stack.push(stack);
-    debug('New stack:', this.stackTop());
+    debug('New stack: %O', this.stackTop());
   }
 
   private popStack(): void {
     const last = this.stack.pop();
 
-    debug('Popped stack:', last);
+    debug('Popped stack: %O', last);
   }
 
   private stackTop(assertType: 'operation'): OperationStack;
@@ -790,9 +799,9 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
   ): Promise<void> {
     const iterationParams = await this.visit(node.iteration);
     for (const variable of iterationParams.iterable) {
-      this.addVariableToStack({
-        [iterationParams.iterationVariable]: variable,
-      });
+      // overwrite the iteration variable instead of merging
+      this.stackTop().variables[iterationParams.iterationVariable] = variable;
+
       if (node.condition) {
         const condition = await this.visit(node.condition);
         if (condition === false) {

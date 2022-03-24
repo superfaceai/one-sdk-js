@@ -7,7 +7,9 @@ import {
 import { parseMap, Source } from '@superfaceai/parser';
 import { getLocal } from 'mockttp';
 
+import { Config } from '../../config';
 import { CrossFetch } from '../../lib/fetch';
+import { ServiceSelector } from '../../lib/services';
 import { UnexpectedError } from '../errors';
 import { MapInterpreter } from './map-interpreter';
 import {
@@ -18,6 +20,7 @@ import {
   MappedHTTPError,
 } from './map-interpreter.errors';
 
+const config = new Config();
 const mockServer = getLocal();
 const fetchInstance = new CrossFetch();
 const header: MapHeaderNode = {
@@ -208,10 +211,10 @@ AST Path: definitions[0].statements[0].assignments[0].value`
   });
 
   describe('MapInterpreter', () => {
-    let serviceBaseUrl: string;
+    let mockServicesSelector: ServiceSelector;
     beforeEach(async () => {
       await mockServer.start();
-      serviceBaseUrl = mockServer.url;
+      mockServicesSelector = ServiceSelector.withDefaultUrl(mockServer.url);
     });
 
     afterEach(async () => {
@@ -222,8 +225,9 @@ AST Path: definitions[0].statements[0].assignments[0].value`
       const interpreter = new MapInterpreter(
         {
           security: [],
+          services: ServiceSelector.empty(),
         },
-        { fetchInstance }
+        { fetchInstance, config }
       );
       const result = await interpreter.perform({
         kind: 'Invalid',
@@ -238,8 +242,9 @@ AST Path: definitions[0].statements[0].assignments[0].value`
         {
           usecase: 'nonexistent',
           security: [],
+          services: ServiceSelector.empty(),
         },
-        { fetchInstance }
+        { fetchInstance, config }
       );
       const result = await interpreter.perform({
         astMetadata,
@@ -255,8 +260,9 @@ AST Path: definitions[0].statements[0].assignments[0].value`
         {
           usecase: 'Test',
           security: [],
+          services: ServiceSelector.empty(),
         },
-        { fetchInstance }
+        { fetchInstance, config }
       );
       const result = await interpreter.perform(
         parseMapFromSource(`
@@ -277,8 +283,9 @@ AST Path: definitions[0].statements[0].assignments[0].value`
         {
           usecase: 'Test',
           security: [],
+          services: ServiceSelector.empty(),
         },
-        { fetchInstance }
+        { fetchInstance, config }
       );
       const ast = parseMapFromSource(`
         map Test {
@@ -306,9 +313,9 @@ AST Path: definitions[0].statements[0].assignments[0].value`
         {
           usecase: 'Test',
           security: [],
-          serviceBaseUrl,
+          services: mockServicesSelector,
         },
-        { fetchInstance }
+        { fetchInstance, config }
       );
 
       const ast = parseMapFromSource(`
@@ -340,9 +347,9 @@ AST Path: definitions[0].statements[0].assignments[0].value`
         {
           usecase: 'testCase',
           security: [],
-          serviceBaseUrl,
+          services: mockServicesSelector,
         },
-        { fetchInstance }
+        { fetchInstance, config }
       );
       const ast = parseMapFromSource(`
           map testCase {
@@ -370,9 +377,9 @@ AST Path: definitions[0].statements[0].assignments[0].value`
         {
           usecase: 'Test',
           security: [],
-          serviceBaseUrl,
+          services: mockServicesSelector,
         },
-        { fetchInstance }
+        { fetchInstance, config }
       );
       const ast = parseMapFromSource(`
         map Test {
@@ -409,9 +416,9 @@ AST Path: definitions[0].statements[0].assignments[0].value`
         {
           usecase: 'Test',
           security: [],
-          serviceBaseUrl,
+          services: mockServicesSelector,
         },
-        { fetchInstance }
+        { fetchInstance, config }
       );
       const ast = parseMapFromSource(`
         map Test {
@@ -440,8 +447,9 @@ AST Path: definitions[0].statements[0].assignments[0].value`
         {
           usecase: 'Test',
           security: [],
+          services: ServiceSelector.empty(),
         },
-        { fetchInstance }
+        { fetchInstance, config }
       );
       const ast = parseMapFromSource(`
         map Test {
@@ -458,9 +466,9 @@ AST Path: definitions[0].statements[0].assignments[0].value`
         {
           usecase: 'Test',
           security: [],
-          serviceBaseUrl,
+          services: mockServicesSelector,
         },
-        { fetchInstance }
+        { fetchInstance, config }
       );
       const ast = parseMapFromSource(`
         map Test {
@@ -482,9 +490,9 @@ AST Path: definitions[0].statements[0].assignments[0].value`
         {
           usecase: 'Test',
           security: [],
-          serviceBaseUrl,
+          services: mockServicesSelector,
         },
-        { fetchInstance }
+        { fetchInstance, config }
       );
       const ast = parseMapFromSource(`
         map Test {
@@ -522,9 +530,11 @@ AST Path: definitions[0].statements[0].assignments[0].value`
         {
           usecase: 'Test',
           security: [],
-          serviceBaseUrl: `${serviceBaseUrl}/{path}`,
+          services: ServiceSelector.withDefaultUrl(
+            `${mockServicesSelector.getUrl()!}/{path}`
+          ),
         },
-        { fetchInstance }
+        { fetchInstance, config }
       );
       const result = await interpreter.perform(ast);
       expect(result.isErr() && result.error.toString()).toMatch(
@@ -557,8 +567,9 @@ AST Path: definitions[0].statements[0].assignments[0].value`
       {
         usecase: 'Test',
         security: [],
+        services: ServiceSelector.empty(),
       },
-      { fetchInstance }
+      { fetchInstance, config }
     );
 
     const result = await interpreter.perform(ast);
@@ -592,8 +603,9 @@ AST Path: definitions[0].statements[0].assignments[0].value`
       {
         usecase: 'Test',
         security: [],
+        services: ServiceSelector.empty(),
       },
-      { fetchInstance }
+      { fetchInstance, config }
     );
 
     const result = await interpreter.perform(ast);
@@ -627,8 +639,9 @@ AST Path: definitions[0].statements[0].assignments[0].value`
       {
         usecase: 'Test',
         security: [],
+        services: ServiceSelector.empty(),
       },
-      { fetchInstance }
+      { fetchInstance, config }
     );
 
     const result = await interpreter.perform(ast);

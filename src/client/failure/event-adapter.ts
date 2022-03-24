@@ -1,6 +1,6 @@
 import createDebug from 'debug';
 
-import { UnexpectedError } from '../../internal/errors';
+import { SDKBindError, UnexpectedError } from '../../internal/errors';
 import { clone, sleep } from '../../lib';
 import { Events } from '../../lib/events';
 import { isCrossFetchError } from '../../lib/fetch.errors';
@@ -140,7 +140,6 @@ export function registerHooks(events: Events): void {
       }
 
       const queuedAction = performContext.queuedAction;
-
       // if there is no queued action, check result, possibly emitting a new queued action
       if (queuedAction === undefined) {
         let error;
@@ -183,6 +182,20 @@ export function registerHooks(events: Events): void {
             provider: context.provider,
           },
         ]);
+
+        // Handle bind-level failure here
+        if (error instanceof SDKBindError) {
+          const resolution = performContext.router.afterFailure({
+            kind: 'bind',
+            originalError: error,
+            time: context.time.getTime(),
+            registryCacheAge: 0, // TODO
+          });
+          // Try to switch providers
+          if (resolution.kind === 'switch-provider') {
+            performContext.queuedAction = resolution;
+          }
+        }
 
         // TODO: Perform-level failure here (when another failure is defined in ExecutionFailure)
         // This might emit another queued action, which he'd handle below

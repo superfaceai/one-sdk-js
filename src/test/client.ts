@@ -21,8 +21,9 @@ import {
 } from '../internal/superjson/utils';
 import { Events } from '../lib/events';
 import { IFileSystem } from '../lib/io';
-import { NodeFileSystem } from '../lib/io/filesystem.node';
 import { hookMetrics, MetricReporter } from '../lib/reporter';
+import { ServiceSelector } from '../lib/services';
+import { MockFileSystem } from './filesystem';
 
 export class MockClient implements ISuperfaceClient {
   public config: Config;
@@ -35,7 +36,7 @@ export class MockClient implements ISuperfaceClient {
     public superJson: SuperJson,
     parameters?: {
       configOverride?: Partial<IConfig>;
-      fileSysteOverride?: Partial<IFileSystem>;
+      fileSystemOverride?: Partial<IFileSystem>;
     }
   ) {
     this.config = new Config(parameters?.configOverride);
@@ -49,12 +50,12 @@ export class MockClient implements ISuperfaceClient {
 
     this.cache = new SuperCache<BoundProfileProvider>();
 
-    let fileSystem: IFileSystem = NodeFileSystem;
+    let fileSystem: IFileSystem = MockFileSystem;
 
-    if (parameters?.fileSysteOverride !== undefined) {
+    if (parameters?.fileSystemOverride !== undefined) {
       fileSystem = {
         ...fileSystem,
-        ...parameters.fileSysteOverride,
+        ...parameters.fileSystemOverride,
       };
     }
 
@@ -83,7 +84,11 @@ export class MockClient implements ISuperfaceClient {
       profile,
       map,
       providerConfiguration.name,
-      { baseUrl, security: securityValues },
+      this.config,
+      {
+        services: ServiceSelector.withDefaultUrl(baseUrl),
+        security: securityValues,
+      },
       this.events
     );
 

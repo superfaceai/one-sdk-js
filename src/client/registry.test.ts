@@ -2,9 +2,15 @@ import { AstMetadata, MapDocumentNode, ProviderJson } from '@superfaceai/ast';
 
 import { Config } from '../config';
 import {
+  bindResponseError,
+  unknownBindResponseError,
+  unknownProviderInfoError,
+} from '../internal/errors.helpers';
+import {
   assertIsRegistryProviderInfo,
   fetchBind,
   fetchMapSource,
+  fetchProviderInfo,
 } from './registry';
 
 const request = jest.fn();
@@ -106,6 +112,104 @@ describe('registry', () => {
       expect(() => assertIsRegistryProviderInfo(record)).toThrowError(
         'Invalid response from registry'
       );
+    });
+  });
+
+  describe('when fetching provider info', () => {
+    const TEST_REGISTRY_URL = 'https://example.com/test-registry';
+    const TEST_SDK_TOKEN =
+      'sfs_bb064dd57c302911602dd097bc29bedaea6a021c25a66992d475ed959aa526c7_37bce8b5';
+    const config = new Config({
+      superfaceApiUrl: TEST_REGISTRY_URL,
+      sdkAuthToken: TEST_SDK_TOKEN,
+    });
+
+    it('fetches provider info', async () => {
+      const mockBody = {
+        definition: mockProviderJson,
+      };
+      const mockResponse = {
+        statusCode: 200,
+        body: mockBody,
+        debug: {
+          request: {
+            url: 'test',
+            body: {},
+          },
+        },
+      };
+
+      request.mockResolvedValue(mockResponse);
+
+      await expect(fetchProviderInfo('test', config)).resolves.toEqual(
+        mockProviderJson
+      );
+
+      expect(request).toHaveBeenCalledTimes(1);
+      expect(request).toHaveBeenCalledWith('/providers/test', {
+        method: 'GET',
+        headers: [`Authorization: SUPERFACE-SDK-TOKEN ${TEST_SDK_TOKEN}`],
+        baseUrl: TEST_REGISTRY_URL,
+        accept: 'application/json',
+        contentType: 'application/json',
+        body: undefined,
+      });
+    });
+
+    it('throws on invalid body', async () => {
+      const mockBody = {};
+      const mockResponse = {
+        statusCode: 200,
+        body: mockBody,
+        debug: {
+          request: {
+            url: 'test',
+            body: {},
+          },
+        },
+      };
+
+      request.mockResolvedValue(mockResponse);
+
+      await expect(fetchProviderInfo('test', config)).rejects.toEqual(
+        unknownProviderInfoError({
+          message: 'Registry responded with invalid body',
+          body: mockBody,
+          provider: 'test',
+          statusCode: 200,
+        })
+      );
+
+      expect(request).toHaveBeenCalledTimes(1);
+    });
+
+    it('throws on invalid provider json', async () => {
+      const mockBody = {
+        definition: {},
+      };
+      const mockResponse = {
+        statusCode: 200,
+        body: mockBody,
+        debug: {
+          request: {
+            url: 'test',
+            body: {},
+          },
+        },
+      };
+
+      request.mockResolvedValue(mockResponse);
+
+      await expect(fetchProviderInfo('test', config)).rejects.toEqual(
+        unknownProviderInfoError({
+          message: 'Registry responded with invalid ProviderJson definition',
+          body: {},
+          provider: 'test',
+          statusCode: 200,
+        })
+      );
+
+      expect(request).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -250,22 +354,139 @@ describe('registry', () => {
           },
           config
         )
-      ).rejects.toThrow('validation failed');
+      ).rejects.toThrow('Bind call responded with invalid provider body');
 
       expect(request).toHaveBeenCalledTimes(1);
-      expect(request).toHaveBeenCalledWith('/registry/bind', {
-        method: 'POST',
-        baseUrl: TEST_REGISTRY_URL,
-        accept: 'application/json',
-        headers: [`Authorization: SUPERFACE-SDK-TOKEN ${MOCK_TOKEN}`],
-        contentType: 'application/json',
-        body: {
-          profile_id: 'test-profile-id',
-          provider: 'test-provider',
-          map_variant: 'test-map-variant',
-          map_revision: 'test-map-revision',
+    });
+
+    it('throws error on invalid response body', async () => {
+      const mockBody = {};
+      const mockResponse = {
+        statusCode: 200,
+        body: mockBody,
+        headers: { test: 'test' },
+        debug: {
+          request: {
+            headers: { test: 'test' },
+            url: 'test',
+            body: {},
+          },
         },
-      });
+      };
+
+      request.mockResolvedValue(mockResponse);
+
+      await expect(
+        fetchBind(
+          {
+            profileId: 'test-profile-id',
+            provider: 'test-provider',
+            mapVariant: 'test-map-variant',
+            mapRevision: 'test-map-revision',
+          },
+          config
+        )
+      ).rejects.toEqual(
+        unknownBindResponseError({
+          profileId: 'test-profile-id',
+          provider: 'test-provider',
+          mapVariant: 'test-map-variant',
+          mapRevision: 'test-map-revision',
+          statusCode: 200,
+          body: mockBody,
+          apiUrl: TEST_REGISTRY_URL,
+        })
+      );
+
+      expect(request).toHaveBeenCalledTimes(1);
+    });
+
+    it('throws error on invalid status code and empty response body', async () => {
+      const mockBody = {};
+      const mockResponse = {
+        statusCode: 400,
+        body: mockBody,
+        headers: { test: 'test' },
+        debug: {
+          request: {
+            headers: { test: 'test' },
+            url: 'test',
+            body: {},
+          },
+        },
+      };
+
+      request.mockResolvedValue(mockResponse);
+
+      await expect(
+        fetchBind(
+          {
+            profileId: 'test-profile-id',
+            provider: 'test-provider',
+            mapVariant: 'test-map-variant',
+            mapRevision: 'test-map-revision',
+          },
+          config
+        )
+      ).rejects.toEqual(
+        unknownBindResponseError({
+          profileId: 'test-profile-id',
+          provider: 'test-provider',
+          mapVariant: 'test-map-variant',
+          mapRevision: 'test-map-revision',
+          statusCode: 400,
+          body: mockBody,
+          apiUrl: TEST_REGISTRY_URL,
+        })
+      );
+
+      expect(request).toHaveBeenCalledTimes(1);
+    });
+
+    it('throws error on invalid status code and response body with detail', async () => {
+      const mockBody = {
+        detail: 'Test',
+        title: 'Title',
+      };
+      const mockResponse = {
+        statusCode: 400,
+        body: mockBody,
+        headers: { test: 'test' },
+        debug: {
+          request: {
+            headers: { test: 'test' },
+            url: 'test',
+            body: {},
+          },
+        },
+      };
+
+      request.mockResolvedValue(mockResponse);
+
+      await expect(
+        fetchBind(
+          {
+            profileId: 'test-profile-id',
+            provider: 'test-provider',
+            mapVariant: 'test-map-variant',
+            mapRevision: 'test-map-revision',
+          },
+          config
+        )
+      ).rejects.toEqual(
+        bindResponseError({
+          profileId: 'test-profile-id',
+          provider: 'test-provider',
+          mapVariant: 'test-map-variant',
+          mapRevision: 'test-map-revision',
+          statusCode: 400,
+          detail: 'Test',
+          title: 'Title',
+          apiUrl: TEST_REGISTRY_URL,
+        })
+      );
+
+      expect(request).toHaveBeenCalledTimes(1);
     });
 
     it('returns undefined on invalid map document', async () => {
@@ -304,19 +525,6 @@ describe('registry', () => {
       });
 
       expect(request).toHaveBeenCalledTimes(1);
-      expect(request).toHaveBeenCalledWith('/registry/bind', {
-        method: 'POST',
-        baseUrl: TEST_REGISTRY_URL,
-        accept: 'application/json',
-        headers: [`Authorization: SUPERFACE-SDK-TOKEN ${MOCK_TOKEN}`],
-        contentType: 'application/json',
-        body: {
-          profile_id: 'test-profile-id',
-          provider: 'test-provider',
-          map_variant: 'test-map-variant',
-          map_revision: 'test-map-revision',
-        },
-      });
     });
   });
 

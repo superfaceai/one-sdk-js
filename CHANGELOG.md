@@ -6,6 +6,33 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+### Added
+- Sandbox stdlib - `std.unstable.time.{isoDateToUnixTimestamp, unixTimestampToIsoDate}, std.unstable.debug.log`
+
+### Fixed
+- Fixed iterated variable in `foreach` being merged instead of overwritten, breaking iteration of objects
+- Fixed Buffer (`Buffer.isBuffer(x) == true`) being considered a composite structure and being merged as an object
+
+## [1.3.0] - 2022-02-15
+### Added
+- Added support for service selection in http calls
+- Added support for digest authentication in http calls
+
+## [1.2.2] - 2022-02-11
+### Added
+- Make sandbox timeout configurable through environment variable `SUPERFACE_SANDBOX_TIMEOUT`
+
+## [1.2.1] - 2022-01-19
+This is a recovery release after introduction of compatibility-breaking changes in version 1.2.0.
+
+### Changed
+- No changes since 1.1.0
+
+## [1.1.0] - 2021-12-22
+### Added
+- Pass integration parameters in `perform`
+
 ### Fixed
 - Display query parameters in URL with `DEBUG=superface:http:sensitive`
 
@@ -272,7 +299,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Profile parameter validator
 - CI/CD workflows
 
-[Unreleased]: https://github.com/superfaceai/one-sdk-js/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/superfaceai/one-sdk-js/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/superfaceai/one-sdk-js/compare/v1.2.2...v1.3.0
+[1.2.2]: https://github.com/superfaceai/one-sdk-js/compare/v1.2.1...v1.2.2
+[1.2.1]: https://github.com/superfaceai/one-sdk-js/compare/v1.1.0...v1.2.1
+[1.1.0]: https://github.com/superfaceai/one-sdk-js/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/superfaceai/one-sdk-js/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.40...v1.0.0
 [0.0.40]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.39...v0.0.40

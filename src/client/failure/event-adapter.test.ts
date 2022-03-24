@@ -8,6 +8,7 @@ import {
 import { getLocal } from 'mockttp';
 
 import { SuperJson } from '../../internal';
+import { bindResponseError } from '../../internal/errors.helpers';
 import { getProvider } from '../../internal/superjson/utils';
 import { sleep } from '../../lib';
 import { MockClient } from '../../test/client';
@@ -416,6 +417,84 @@ const thirdMockMapDocument: MapDocumentNode = {
 const mockServer = getLocal();
 
 describe('event-adapter', () => {
+  // function mockSuperJson(document: SuperJsonDocument) {
+  //   const mockLoadSync = jest.fn();
+  //   mockLoadSync.mockReturnValue(ok(new SuperJson(document)));
+  //   SuperJson.loadSync = mockLoadSync;
+  // }
+
+  // function spyOnCacheBoundProfileProvider(client: SuperfaceClientBase) {
+  //   const firstMockBoundProfileProvider = new BoundProfileProvider(
+  //     firstMockProfileDocument,
+  //     firstMockMapDocument,
+  //     'provider',
+  //     { services: ServiceSelector.withDefaultUrl(mockServer.url), security: [] },
+  //     client
+  //   );
+  //   const secondMockBoundProfileProvider = new BoundProfileProvider(
+  //     firstMockProfileDocument,
+  //     secondMockMapDocument,
+  //     'second',
+  //     { services: ServiceSelector.withDefaultUrl(mockServer.url), security: [] },
+  //     client
+  //   );
+  //   const thirdMockBoundProfileProvider = new BoundProfileProvider(
+  //     secondMockProfiledDocument,
+  //     thirdMockMapDocument,
+  //     'third',
+  //     { services: ServiceSelector.withDefaultUrl(mockServer.url), security: [] },
+  //     client
+  //   );
+  //   const cacheBoundProfileProviderSpy = jest
+  //     .spyOn(client, 'cacheBoundProfileProvider')
+  //     .mockImplementation((_, providerConfig) => {
+  //       switch (providerConfig.name) {
+  //         case 'provider':
+  //           return Promise.resolve(firstMockBoundProfileProvider);
+
+  //         case 'second':
+  //           return Promise.resolve(secondMockBoundProfileProvider);
+
+  //         case 'third':
+  //           return Promise.resolve(thirdMockBoundProfileProvider);
+
+  //         case 'invalid':
+  //           return Promise.reject(
+  //             bindResponseError({
+  //               statusCode: 400,
+  //               profileId: 'profileId',
+  //               title: 'test',
+  //             })
+  //           );
+
+  //         default:
+  //           throw 'unreachable';
+  //       }
+  //     });
+
+  //   return cacheBoundProfileProviderSpy;
+  // }
+
+  // describe.each([
+  //   { name: 'untyped', clientFactory: () => new SuperfaceClient() },
+  //   {
+  //     name: 'typed',
+  //     clientFactory: () => {
+  //       const TypedClient = createTypedClient({
+  //         ['starwars/character-information']: {
+  //           Test: [undefined, { message: '' }],
+  //           SecondUseCase: [undefined, { message: '' }],
+  //         },
+  //         ['startrek/character-information']: {
+  //           Test: [undefined, { message: '' }],
+  //         },
+  //       });
+
+  //       return new TypedClient();
+  //     },
+  //   },
+  // ])('event-adapter $name', ({ name: _name, clientFactory }) => {
+
   beforeEach(async () => {
     await mockServer.start();
   });
@@ -1388,6 +1467,341 @@ describe('event-adapter', () => {
     // We send request twice
     expect((await endpoint.getSeenRequests()).length).toEqual(1);
     expect((await secondEndpoint.getSeenRequests()).length).toEqual(1);
+  }, 20000);
+
+  /**
+   * Bind
+   */
+  it('use abort policy - switch providers after error in bind', async () => {
+    const endpoint = await mockServer.get('/first').thenJson(200, {});
+    const bindEndpoint = await mockServer.post('/registry/bind').thenJson(400, {
+      detail: 'Invalid request',
+      title: 'test',
+    });
+
+    const superJson = new SuperJson({
+      profiles: {
+        ['starwars/character-information']: {
+          version: '1.0.0',
+          defaults: {
+            Test: {
+              providerFailover: true,
+            },
+          },
+          priority: ['invalid', 'provider'],
+          providers: {
+            provider: {
+              defaults: {
+                Test: {
+                  input: {},
+                  retryPolicy: OnFail.NONE,
+                },
+              },
+            },
+            invalid: {
+              defaults: {
+                Test: {
+                  input: {},
+                  retryPolicy: OnFail.NONE,
+                },
+              },
+            },
+          },
+        },
+      },
+      providers: {
+        provider: {
+          security: [],
+        },
+        invalid: {
+          security: [],
+        },
+      },
+    });
+
+    const client = new MockClient(superJson, {
+      fileSystemOverride: {
+        readFile: async path => {
+          if (
+            path.includes('starwars/character-information@1.0.0.supr.ast.json')
+          ) {
+            return JSON.stringify(firstMockProfileDocument);
+          }
+
+          throw new Error('File not found');
+        },
+      },
+      configOverride: {
+        superfaceApiUrl: mockServer.url,
+      },
+    });
+    client.addBoundProfileProvider(
+      firstMockProfileDocument,
+      firstMockMapDocument,
+      'provider',
+      mockServer.url
+    );
+
+    const profile = await client.getProfile('starwars/character-information');
+    const useCase = profile.getUseCase('Test');
+    const result = await useCase.perform(undefined);
+
+    expect(result.isOk() && result.value).toEqual({
+      message: 'hello',
+    });
+    expect((await endpoint.getSeenRequests()).length).toEqual(1);
+    expect((await bindEndpoint.getSeenRequests()).length).toEqual(1);
+  }, 20000);
+
+  it('use default policy - switch providers after error in bind', async () => {
+    const endpoint = await mockServer.get('/first').thenJson(200, {});
+    const bindEndpoint = await mockServer.post('/registry/bind').thenJson(400, {
+      detail: 'Invalid request',
+      title: 'test',
+    });
+
+    const superJson = new SuperJson({
+      profiles: {
+        ['starwars/character-information']: {
+          version: '1.0.0',
+          defaults: {
+            Test: {
+              providerFailover: true,
+            },
+          },
+          priority: ['invalid', 'provider'],
+          providers: {
+            provider: {
+              defaults: {
+                Test: {
+                  input: {},
+                },
+              },
+            },
+            invalid: {
+              defaults: {
+                Test: {
+                  input: {},
+                },
+              },
+            },
+          },
+        },
+      },
+      providers: {
+        provider: {
+          security: [],
+        },
+        invalid: {
+          security: [],
+        },
+      },
+    });
+
+    const client = new MockClient(superJson, {
+      fileSystemOverride: {
+        readFile: async path => {
+          if (
+            path.includes('starwars/character-information@1.0.0.supr.ast.json')
+          ) {
+            return JSON.stringify(firstMockProfileDocument);
+          }
+
+          throw new Error('File not found');
+        },
+      },
+      configOverride: {
+        superfaceApiUrl: mockServer.url,
+      },
+    });
+
+    client.addBoundProfileProvider(
+      firstMockProfileDocument,
+      firstMockMapDocument,
+      'provider',
+      mockServer.url
+    );
+
+    const profile = await client.getProfile('starwars/character-information');
+    const useCase = profile.getUseCase('Test');
+    const result = await useCase.perform(undefined);
+
+    expect(result.isOk() && result.value).toEqual({
+      message: 'hello',
+    });
+    expect((await endpoint.getSeenRequests()).length).toEqual(1);
+    expect((await bindEndpoint.getSeenRequests()).length).toEqual(1);
+  }, 20000);
+
+  it('use default policy - fail after error in bind', async () => {
+    const endpoint = await mockServer.get('/first').thenJson(200, {});
+    const bindEndpoint = await mockServer.post('/registry/bind').thenJson(400, {
+      detail: 'Invalid request',
+      title: 'test',
+    });
+
+    const superJson = new SuperJson({
+      profiles: {
+        ['starwars/character-information']: {
+          version: '1.0.0',
+          defaults: {
+            Test: {
+              providerFailover: false,
+            },
+          },
+          priority: ['invalid', 'provider'],
+          providers: {
+            provider: {
+              defaults: {
+                Test: {
+                  input: {},
+                },
+              },
+            },
+            invalid: {
+              defaults: {
+                Test: {
+                  input: {},
+                },
+              },
+            },
+          },
+        },
+      },
+      providers: {
+        provider: {
+          security: [],
+        },
+        invalid: {
+          security: [],
+        },
+      },
+    });
+
+    const client = new MockClient(superJson, {
+      fileSystemOverride: {
+        readFile: async path => {
+          if (
+            path.includes('starwars/character-information@1.0.0.supr.ast.json')
+          ) {
+            return JSON.stringify(firstMockProfileDocument);
+          }
+
+          throw new Error('File not found');
+        },
+      },
+      configOverride: {
+        superfaceApiUrl: mockServer.url,
+      },
+    });
+
+    const profile = await client.getProfile('starwars/character-information');
+    const useCase = profile.getUseCase('Test');
+    const result = useCase.perform(undefined);
+
+    await expect(result).rejects.toThrow(
+      bindResponseError({
+        statusCode: 400,
+        profileId: 'starwars/character-information@1.0.0',
+        provider: 'invalid',
+        title: 'test',
+        detail: 'Invalid request',
+        apiUrl: mockServer.url,
+      })
+    );
+
+    expect((await endpoint.getSeenRequests()).length).toEqual(0);
+    expect((await bindEndpoint.getSeenRequests()).length).toEqual(1);
+  }, 20000);
+
+  it('use circuit breaker policy - switch providers after error in bind', async () => {
+    const endpoint = await mockServer.get('/first').thenJson(200, {});
+    const bindEndpoint = await mockServer.post('/registry/bind').thenJson(400, {
+      detail: 'Invalid request',
+      title: 'test',
+    });
+
+    const superJson = new SuperJson({
+      profiles: {
+        ['starwars/character-information']: {
+          version: '1.0.0',
+          defaults: {
+            Test: {
+              providerFailover: true,
+            },
+          },
+          priority: ['invalid', 'provider'],
+          providers: {
+            provider: {
+              defaults: {
+                Test: {
+                  input: {},
+                  retryPolicy: {
+                    kind: OnFail.CIRCUIT_BREAKER,
+                    maxContiguousRetries: 2,
+                    requestTimeout: 1000,
+                  },
+                },
+              },
+            },
+            invalid: {
+              defaults: {
+                Test: {
+                  input: {},
+                  retryPolicy: {
+                    kind: OnFail.CIRCUIT_BREAKER,
+                    maxContiguousRetries: 2,
+                    requestTimeout: 1000,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      providers: {
+        provider: {
+          security: [],
+        },
+        invalid: {
+          security: [],
+        },
+      },
+    });
+
+    const client = new MockClient(superJson, {
+      fileSystemOverride: {
+        readFile: async path => {
+          if (
+            path.includes('starwars/character-information@1.0.0.supr.ast.json')
+          ) {
+            return JSON.stringify(firstMockProfileDocument);
+          }
+
+          throw new Error('File not found');
+        },
+      },
+      configOverride: {
+        superfaceApiUrl: mockServer.url,
+      },
+    });
+    client.addBoundProfileProvider(
+      firstMockProfileDocument,
+      firstMockMapDocument,
+      'provider',
+      mockServer.url
+    );
+
+    const profile = await client.getProfile('starwars/character-information');
+    const useCase = profile.getUseCase('Test');
+    const result = await useCase.perform(undefined);
+
+    expect(result.isOk() && result.value).toEqual({
+      message: 'hello',
+    });
+
+    expect((await endpoint.getSeenRequests()).length).toEqual(1);
+    expect((await bindEndpoint.getSeenRequests()).length).toEqual(1);
   }, 20000);
 
   it('preserves hook context within one client', async () => {

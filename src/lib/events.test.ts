@@ -6,8 +6,10 @@ import {
 import { getLocal } from 'mockttp';
 
 import { BoundProfileProvider } from '../client';
+import { Config } from '../config';
 import { Events } from './events';
 import { err } from './result/result';
+import { ServiceSelector } from './services';
 
 const astMetadata: AstMetadata = {
   sourceChecksum: 'checksum',
@@ -129,6 +131,7 @@ const mockMapDocument: MapDocumentNode = {
 };
 
 const mockServer = getLocal();
+const config = new Config();
 
 describe('events', () => {
   beforeEach(async () => {
@@ -147,7 +150,11 @@ describe('events', () => {
       mockProfileDocument,
       mockMapDocument,
       'provider',
-      { baseUrl: mockServer.url, security: [] },
+      config,
+      {
+        services: ServiceSelector.withDefaultUrl(mockServer.url),
+        security: [],
+      },
       events
     );
 
@@ -184,7 +191,13 @@ describe('events', () => {
       mockProfileDocument,
       mockMapDocument,
       'someprovider',
-      { baseUrl: 'https://unreachable.localhost', security: [] },
+      config,
+      {
+        services: ServiceSelector.withDefaultUrl(
+          'https://unreachable.localhost'
+        ),
+        security: [],
+      },
       events
     );
 
@@ -217,7 +230,11 @@ describe('events', () => {
       mockProfileDocument,
       mockMapDocument,
       'provider',
-      { baseUrl: mockServer.url, security: [] },
+      config,
+      {
+        services: ServiceSelector.withDefaultUrl(mockServer.url),
+        security: [],
+      },
       events
     );
 
@@ -244,7 +261,11 @@ describe('events', () => {
       mockProfileDocument,
       mockMapDocument,
       'provider',
-      { baseUrl: mockServer.url, security: [] },
+      config,
+      {
+        services: ServiceSelector.withDefaultUrl(mockServer.url),
+        security: [],
+      },
       events
     );
 
@@ -271,7 +292,11 @@ describe('events', () => {
       mockProfileDocument,
       mockMapDocument,
       'provider',
-      { baseUrl: mockServer.url, security: [] },
+      config,
+      {
+        services: ServiceSelector.withDefaultUrl(mockServer.url),
+        security: [],
+      },
       events
     );
 

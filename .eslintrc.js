@@ -33,6 +33,7 @@ module.exports = {
     '@typescript-eslint/no-empty-function': 'off',
     '@typescript-eslint/require-await': 'off',
     'spaced-comment': ['error', 'always'],
+    'quotes': ['error', 'single', { avoidEscape: true, allowTemplateLiterals: false }]
   },
   settings: {
     'import/parsers': {

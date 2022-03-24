@@ -53,12 +53,18 @@ export type UnknownFailure = {
   originalError: Error;
 } & BaseEvent;
 
+export type BindFailure = {
+  kind: 'bind';
+  originalError: Error;
+} & BaseEvent;
+
 /** Information about execution failure */
 export type ExecutionFailure =
   | NetworkFailure
   | RequestFailure
   | HTTPFailure
-  | UnknownFailure;
+  | UnknownFailure
+  | BindFailure;
 
 export type ExecutionSuccess = BaseEvent;
 

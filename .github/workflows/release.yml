@@ -9,6 +9,10 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
+      - name: Branch check
+        if: startsWith(github.event.inputs.release-level, 'pre') != true && github.ref_name != 'main'
+        run: exit 1
+
       # Checkout project main and setup environment
       - name: Checkout
         uses: actions/checkout@v2.3.4
@@ -110,3 +114,12 @@ jobs:
           prerelease: ${{ startsWith(github.event.inputs.release-level, 'pre') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Trigger Daily test for released version (excluding pre and rc)
+      - name: Trigger Daily Test
+        if: startsWith(github.event.inputs.release-level, 'pre') != true
+        uses: peter-evans/repository-dispatch@v1
+        with:
+          token: ${{ secrets.GH_BOT_PAT }}
+          repository: superfaceai/superface-daily
+          event-type: on-demand-test

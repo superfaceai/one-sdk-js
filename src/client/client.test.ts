@@ -43,7 +43,7 @@ describe('superface client', () => {
 
     it('rejects when profile points to a non-existent path', async () => {
       const client = new MockClient(mockSuperJson, {
-        fileSysteOverride: {
+        fileSystemOverride: {
           exists: jest.fn(async (path: string) => {
             expect(path).toMatch('foo.supr');
 
@@ -60,7 +60,7 @@ but this path does not exist or is not accessible`
 
     it('returns a valid profile when it points to existing path', async () => {
       const client = new MockClient(mockSuperJson, {
-        fileSysteOverride: {
+        fileSystemOverride: {
           exists: jest.fn(async (path: string) => {
             expect(path).toMatch('foo.supr');
 
