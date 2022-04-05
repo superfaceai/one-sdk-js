@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fixed iterated variable in `foreach` being merged instead of overwritten, breaking iteration of objects
 - Fixed Buffer (`Buffer.isBuffer(x) == true`) being considered a composite structure and being merged as an object
+- Fixed authentication clearing query parameters
 
 ## [1.3.0] - 2022-02-15
 ### Added

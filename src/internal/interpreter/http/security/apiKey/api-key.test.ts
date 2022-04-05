@@ -197,6 +197,19 @@ describe('ApiKeyHandler', () => {
       );
     });
 
+    it('keep content of existing query parameters', async () => {
+      parameters.queryParameters = { d: 'existing' };
+      configuration.in = ApiKeyPlacement.QUERY;
+      configuration.name = 'test';
+
+      expect(
+        (await apiKeyHandler.authenticate(parameters)).queryParameters
+      ).toMatchObject({
+        d: 'existing',
+        test: 'secret',
+      });
+    });
+
     it('throws exception if request body is array', async () => {
       parameters.body = [];
       parameters.contentType = JSON_CONTENT;

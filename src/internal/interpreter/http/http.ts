@@ -191,7 +191,7 @@ export class HttpClient {
     parameters: {
       method: string;
       headers?: Variables;
-      queryParameters?: Variables;
+      queryParameters?: NonPrimitive;
       body?: Variables;
       contentType?: string;
       accept?: string;

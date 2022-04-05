@@ -60,7 +60,7 @@ export type RequestParameters = {
   url: string;
   method: string;
   headers?: Record<string, string>;
-  queryParameters?: Variables;
+  queryParameters?: NonPrimitive;
   body?: Variables;
   contentType?: string;
   accept?: string;
