@@ -28,7 +28,7 @@ export class ApiKeyHandler implements ISecurityHandler {
     let body: Variables | undefined = parameters.body;
     const headers: Record<string, string> = parameters.headers ?? {};
     const pathParameters = parameters.pathParameters ?? {};
-    const queryParameters: Record<string, string> = {};
+    const queryParameters = parameters.queryParameters ?? {};
 
     const name = this.configuration.name || DEFAULT_AUTHORIZATION_HEADER_NAME;
 

@@ -100,7 +100,7 @@ interface HttpRequest {
   contentType?: string;
   contentLanguage?: string;
   headers?: Variables;
-  queryParameters?: Variables;
+  queryParameters?: NonPrimitive;
   body?: Variables;
   security: HttpSecurityRequirement[];
 }
@@ -173,6 +173,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
   }
 
   visit(node: PrimitiveLiteralNode): Primitive;
+  async visit(node: ObjectLiteralNode): Promise<NonPrimitive>;
   async visit(node: SetStatementNode): Promise<void>;
   async visit(
     node: OutcomeStatementNode
@@ -608,7 +609,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
     throw new UnexpectedError('Method not implemented.');
   }
 
-  async visitObjectLiteralNode(node: ObjectLiteralNode): Promise<Variables> {
+  async visitObjectLiteralNode(node: ObjectLiteralNode): Promise<NonPrimitive> {
     let result: NonPrimitive = {};
 
     for (const field of node.fields) {
