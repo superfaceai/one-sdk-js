@@ -1,6 +1,7 @@
 import {
   assertMapDocumentNode,
   assertProfileDocumentNode,
+  assertProviderJson,
   FILE_URI_PROTOCOL,
   HttpScheme,
   isApiKeySecurityValues,
@@ -20,9 +21,9 @@ import {
   SecurityValues,
 } from '@superfaceai/ast';
 import createDebug from 'debug';
-import { join as joinPath } from 'path';
 
-import { Config, IConfig } from '../config';
+import { IConfig } from '../config';
+import { UnexpectedError } from '../internal';
 import {
   invalidProfileError,
   invalidSecurityValuesError,
@@ -38,7 +39,10 @@ import {
   ProfileParameterValidator,
 } from '../internal/interpreter';
 import { FetchInstance } from '../internal/interpreter/http/interfaces';
-import { SecurityConfiguration } from '../internal/interpreter/http/security';
+import {
+  AuthCache,
+  SecurityConfiguration,
+} from '../internal/interpreter/http/security';
 import {
   castToNonPrimitive,
   mergeVariables,
@@ -68,16 +72,15 @@ function profileAstId(ast: ProfileDocumentNode): string {
 const boundProfileProviderDebug = createDebug(
   'superface:bound-profile-provider'
 );
-export type AuthCache = { digest?: Record<string, string> };
 
 export async function bindProfileProvider(
   profileConfig: ProfileConfiguration,
   providerConfig: ProviderConfiguration,
   superJson: SuperJson,
-  config: Config,
+  config: IConfig,
   events: Events,
   fileSystem: IFileSystem
-): Promise<BoundProfileProvider> {
+): Promise<{ provider: IBoundProfileProvider; expiresAt: number }> {
   const profileProvider = new ProfileProvider(
     superJson,
     profileConfig,
@@ -87,8 +90,10 @@ export async function bindProfileProvider(
     fileSystem
   );
   const boundProfileProvider = await profileProvider.bind();
+  const expiresAt =
+    Math.floor(Date.now() / 1000) + config.superfaceCacheTimeout;
 
-  return boundProfileProvider;
+  return { provider: boundProfileProvider, expiresAt };
 }
 
 export interface IBoundProfileProvider {
@@ -251,6 +256,8 @@ export class ProfileProvider {
   private profileId: string;
   private scope: string | undefined;
   private profileName: string;
+  private providerJson?: ProviderJson;
+  private readonly providersCachePath: string;
 
   constructor(
     /** Preloaded superJson instance */
@@ -260,7 +267,7 @@ export class ProfileProvider {
     private profile: string | ProfileDocumentNode | ProfileConfiguration,
     /** provider name, url or configuration instance */
     private provider: string | ProviderJson | ProviderConfiguration,
-    private config: Config,
+    private config: IConfig,
     private events: Events,
     private readonly fileSystem: IFileSystem,
     /** url or ast node */
@@ -280,6 +287,10 @@ export class ProfileProvider {
       this.scope = scopeOrProfileName;
       this.profileName = profileName;
     }
+    this.providersCachePath = fileSystem.joinPath(
+      config.cachePath,
+      'providers'
+    );
   }
 
   /**
@@ -345,6 +356,8 @@ export class ProfileProvider {
       );
 
       providerInfo ??= fetchResponse.provider;
+      await this.writeProviderCache(providerInfo);
+      this.providerJson = providerInfo;
       mapAst = fetchResponse.mapAst;
       // If we don't have a map (probably due to validation issue) we try to get map source and parse it on our own
       if (!mapAst) {
@@ -368,7 +381,7 @@ export class ProfileProvider {
       }
     } else if (providerInfo === undefined) {
       // resolve only provider info if map is specified locally
-      providerInfo = await fetchProviderInfo(providerName, this.config);
+      providerInfo = await this.cacheProviderInfo(providerName);
     }
 
     if (providerName !== mapAst.header.provider) {
@@ -464,6 +477,71 @@ export class ProfileProvider {
     return result;
   }
 
+  private async cacheProviderInfo(providerName: string): Promise<ProviderJson> {
+    const errors: Error[] = [];
+    if (this.providerJson === undefined) {
+      const providerCachePath = this.fileSystem.joinPath(
+        this.providersCachePath,
+        providerName
+      );
+      // If we don't have provider info, we first try to fetch it from the registry
+      try {
+        this.providerJson = await fetchProviderInfo(providerName, this.config);
+        await this.writeProviderCache(this.providerJson);
+      } catch (error) {
+        profileProviderDebug(
+          `Failed to fetch provider.json for ${providerName}: %O`,
+          error
+        );
+        errors.push(error);
+      }
+
+      // If we can't fetch provider info from registry, we try to read it from cache
+      if (this.providerJson === undefined) {
+        try {
+          const providerJsonFile = await this.fileSystem.readFile(
+            providerCachePath
+          );
+          this.providerJson = assertProviderJson(JSON.parse(providerJsonFile));
+        } catch (error) {
+          profileProviderDebug(
+            `Failed to read cached provider.json for ${providerName}: %O`,
+            error
+          );
+          errors.push(error);
+        }
+      }
+    }
+
+    if (this.providerJson === undefined) {
+      throw new UnexpectedError(
+        'Failed to fetch provider.json or load it from cache.',
+        errors
+      );
+    }
+
+    return this.providerJson;
+  }
+
+  private async writeProviderCache(providerJson: ProviderJson): Promise<void> {
+    const providerCachePath = this.fileSystem.joinPath(
+      this.providersCachePath,
+      `${providerJson.name}.json`
+    );
+    try {
+      await this.fileSystem.mkdir(this.providersCachePath, { recursive: true });
+      await this.fileSystem.writeFile(
+        providerCachePath,
+        JSON.stringify(providerJson, undefined, 2)
+      );
+    } catch (error) {
+      profileProviderDebug(
+        `Failed to cache provider.json for ${providerJson.name}: %O`,
+        error
+      );
+    }
+  }
+
   private async resolveProfileAst(): Promise<ProfileDocumentNode | undefined> {
     let resolveInput = this.profile;
     if (resolveInput instanceof ProfileConfiguration) {
@@ -505,7 +583,10 @@ export class ProfileProvider {
           return (
             FILE_URI_PROTOCOL +
             this.superJson.resolvePath(
-              joinPath('grid', `${profileId}@${profileSettings.version}.supr`)
+              this.fileSystem.joinPath(
+                'grid',
+                `${profileId}@${profileSettings.version}.supr`
+              )
             )
           );
         }

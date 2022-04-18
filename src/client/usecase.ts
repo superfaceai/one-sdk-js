@@ -60,7 +60,10 @@ class UseCaseBase implements Interceptable {
     private readonly config: Config,
     private readonly superJson: SuperJson,
     private readonly fileSystem: IFileSystem,
-    private readonly boundProfileProviderCache: SuperCache<IBoundProfileProvider>
+    private readonly boundProfileProviderCache: SuperCache<{
+      provider: IBoundProfileProvider;
+      expiresAt: number;
+    }>
   ) {
     this.metadata = {
       usecase: name,
@@ -94,10 +97,18 @@ class UseCaseBase implements Interceptable {
     this.metadata.provider = providerConfig.name;
     hookRouter.setCurrentProvider(providerConfig.name);
 
-    // In this instance we can set metadata for events
-    this.boundProfileProvider = await this.boundProfileProviderCache.getCached(
+    this.boundProfileProvider = await this.rebind(
       this.profileConfiguration.cacheKey + providerConfig.cacheKey,
-      () =>
+      providerConfig
+    );
+  }
+
+  private async rebind(
+    cacheKey: string,
+    providerConfig: ProviderConfiguration
+  ): Promise<IBoundProfileProvider> {
+    const { provider, expiresAt } =
+      await this.boundProfileProviderCache.getCached(cacheKey, () =>
         bindProfileProvider(
           this.profileConfiguration,
           providerConfig,
@@ -106,7 +117,14 @@ class UseCaseBase implements Interceptable {
           this.events,
           this.fileSystem
         )
-    );
+      );
+    const now = Math.floor(Date.now() / 1000);
+    if (expiresAt < now) {
+      this.boundProfileProviderCache.invalidate(cacheKey);
+      void this.rebind(cacheKey, providerConfig);
+    }
+
+    return provider;
   }
 
   @eventInterceptor({ eventName: 'perform', placement: 'around' })

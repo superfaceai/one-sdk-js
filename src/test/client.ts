@@ -11,7 +11,10 @@ import { SuperCache } from '../client/cache';
 import { ISuperfaceClient } from '../client/client';
 import { InternalClient } from '../client/client.internal';
 import { registerHooks } from '../client/failure/event-adapter';
-import { BoundProfileProvider } from '../client/profile-provider';
+import {
+  BoundProfileProvider,
+  IBoundProfileProvider,
+} from '../client/profile-provider';
 import { Config, IConfig } from '../config';
 import { SecurityConfiguration } from '../internal/interpreter/http';
 import { SuperJson } from '../internal/superjson';
@@ -28,7 +31,11 @@ import { MockFileSystem } from './filesystem';
 export class MockClient implements ISuperfaceClient {
   public config: Config;
   public events: Events;
-  public cache: SuperCache<BoundProfileProvider>;
+  public cache: SuperCache<{
+    provider: IBoundProfileProvider;
+    expiresAt: number;
+  }>;
+
   public internalClient: InternalClient;
   public metricReporter?: MetricReporter;
 
@@ -48,9 +55,12 @@ export class MockClient implements ISuperfaceClient {
       hookMetrics(this.events, this.metricReporter);
     }
 
-    this.cache = new SuperCache<BoundProfileProvider>();
+    this.cache = new SuperCache<{
+      provider: IBoundProfileProvider;
+      expiresAt: number;
+    }>();
 
-    let fileSystem: IFileSystem = MockFileSystem;
+    let fileSystem: IFileSystem = MockFileSystem();
 
     if (parameters?.fileSystemOverride !== undefined) {
       fileSystem = {
@@ -106,7 +116,7 @@ export class MockClient implements ISuperfaceClient {
 
     this.cache.getCached(
       profileConfiguration.cacheKey + providerConfiguration.cacheKey,
-      () => boundProfileProvider
+      () => ({ provider: boundProfileProvider, expiresAt: Infinity })
     );
   }
 

@@ -35,7 +35,7 @@ describe('SuperJson', () => {
   };
 
   beforeEach(() => {
-    fileSystem = { ...MockFileSystem };
+    fileSystem = MockFileSystem();
     superjson = new SuperJson({}, undefined, fileSystem);
   });
 

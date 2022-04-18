@@ -22,33 +22,47 @@ const mockSuperJson = new SuperJson({
   },
 });
 
+const mockBoundProfileProvider = {
+  perform: jest.fn(),
+};
+
+jest.mock('./profile-provider', () => ({
+  bindProfileProvider: jest.fn(() => mockBoundProfileProvider),
+}));
+
 describe('UseCase', () => {
-  function createUseCase() {
+  function createUseCase(cacheExpire?: number) {
     const events = new Events();
     registerHooks(events);
 
     const mockProfileConfiguration = new ProfileConfiguration('test', '1.0.0');
 
-    const mockBoundProfileProvider = {
-      perform: jest.fn(),
-    };
     const mockBoundProfileProvider2 = {
       perform: jest.fn(),
     };
 
-    const cache = new SuperCache<IBoundProfileProvider>();
+    const cache = new SuperCache<{
+      provider: IBoundProfileProvider;
+      expiresAt: number;
+    }>();
     cache.getCached(
       mockProfileConfiguration.cacheKey +
         new ProviderConfiguration('test-provider', []).cacheKey,
-      () => mockBoundProfileProvider
+      () => ({
+        provider: mockBoundProfileProvider,
+        expiresAt: cacheExpire ?? Infinity,
+      })
     );
     cache.getCached(
       mockProfileConfiguration.cacheKey +
         new ProviderConfiguration('test-provider2', []).cacheKey,
-      () => mockBoundProfileProvider2
+      () => ({
+        provider: mockBoundProfileProvider2,
+        expiresAt: cacheExpire ?? Infinity,
+      })
     );
 
-    const filesystem = { ...MockFileSystem };
+    const filesystem = MockFileSystem();
 
     const config = new Config();
 
@@ -66,6 +80,7 @@ describe('UseCase', () => {
       performSpy: mockBoundProfileProvider.perform,
       performSpy2: mockBoundProfileProvider2.perform,
       usecase,
+      cache,
     };
   }
 
@@ -136,5 +151,22 @@ describe('UseCase', () => {
         undefined
       );
     });
+  });
+
+  it('rebinds profile provider when timeout expires', async () => {
+    jest.useFakeTimers();
+    const expiry = Math.floor(Date.now() / 1000) + 1000 * 60 * 60;
+    const { usecase, cache } = createUseCase(expiry);
+    const invalidateSpy = jest.spyOn(cache, 'invalidate');
+
+    await usecase.perform();
+    expect(invalidateSpy).not.toHaveBeenCalled();
+
+    jest.advanceTimersByTime((1000 + 1000 * 60 * 60) * 1000);
+
+    await usecase.perform();
+    expect(invalidateSpy).toHaveBeenCalled();
+
+    jest.useRealTimers();
   });
 });

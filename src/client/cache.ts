@@ -9,7 +9,7 @@ export class SuperCache<T> {
   ): T | Promise<T> {
     const cached = this.cache[cacheKey];
     if (cached !== undefined) {
-      return this.cache[cacheKey];
+      return cached;
     }
 
     const initialized = initializer();
@@ -26,6 +26,12 @@ export class SuperCache<T> {
       this.cache[cacheKey] = initialized;
 
       return initialized;
+    }
+  }
+
+  invalidate(cacheKey: string): void {
+    if (this.cache[cacheKey] !== undefined) {
+      delete this.cache[cacheKey];
     }
   }
 }

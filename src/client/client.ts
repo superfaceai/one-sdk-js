@@ -11,7 +11,7 @@ import { SuperCache } from './cache';
 import { InternalClient } from './client.internal';
 import { registerHooks as registerFailoverHooks } from './failure/event-adapter';
 import { Profile } from './profile';
-import { BoundProfileProvider } from './profile-provider';
+import { IBoundProfileProvider } from './profile-provider';
 import { Provider } from './provider';
 
 export interface ISuperfaceClient {
@@ -23,7 +23,6 @@ export interface ISuperfaceClient {
 
 export abstract class SuperfaceClientBase {
   public readonly superJson: SuperJson;
-
   protected readonly events: Events;
   protected readonly internal: InternalClient;
 
@@ -32,7 +31,10 @@ export abstract class SuperfaceClientBase {
     const config = Config.loadFromEnv();
     const superCacheKey = config.superfacePath;
 
-    const boundProfileProviderCache = new SuperCache<BoundProfileProvider>();
+    const boundProfileProviderCache = new SuperCache<{
+      provider: IBoundProfileProvider;
+      expiresAt: number;
+    }>();
     this.superJson = SuperJson.loadSync(superCacheKey).unwrap();
 
     let metricReporter: MetricReporter | undefined;

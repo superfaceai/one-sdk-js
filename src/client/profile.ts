@@ -36,8 +36,17 @@ export class ProfileBase {
     protected readonly superJson: SuperJson,
     protected readonly config: Config,
     protected readonly fileSystem: IFileSystem,
-    protected readonly boundProfileProviderCache: SuperCache<IBoundProfileProvider>
+    protected readonly boundProfileProviderCache: SuperCache<{
+      provider: IBoundProfileProvider;
+      expiresAt: number;
+    }>
   ) {}
+
+  getConfiguredProviders(): string[] {
+    return Object.keys(
+      this.superJson.normalized.profiles[this.configuration.id]?.providers ?? {}
+    );
+  }
 }
 
 export class Profile extends ProfileBase {

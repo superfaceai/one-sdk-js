@@ -36,6 +36,9 @@ jest.mock('./registry');
 
 const mockConfig = new Config();
 
+// Mock parser
+jest.mock('../internal/parser');
+
 describe('profile provider', () => {
   const astMetadata: AstMetadata = {
     sourceChecksum: 'checksum',
@@ -140,11 +143,11 @@ describe('profile provider', () => {
   let fileSystem: IFileSystem;
 
   beforeEach(() => {
-    fileSystem = { ...MockFileSystem };
+    fileSystem = MockFileSystem();
   });
 
   afterEach(() => {
-    jest.resetAllMocks();
+    jest.clearAllMocks();
   });
 
   describe('BoundProfileProvider', () => {
@@ -320,7 +323,7 @@ describe('profile provider', () => {
           providers: {},
         },
         undefined,
-        MockFileSystem
+        fileSystem
       );
       const expectedBoundProfileProvider = {
         profileAst: mockProfileDocument,
@@ -467,6 +470,8 @@ describe('profile provider', () => {
         const result = await mockProfileProvider.bind();
 
         expect(result).toMatchObject(expectedBoundProfileProvider);
+        // It should cache the provider
+        expect(fileSystem.writeFile).toHaveBeenCalled();
       });
 
       it('returns new BoundProfileProvider use profile id', async () => {
@@ -655,6 +660,95 @@ describe('profile provider', () => {
         const result = await mockProfileProvider.bind();
 
         expect(result).toMatchObject(expectedBoundProfileProvider);
+        // It should cache the provider
+        expect(fileSystem.writeFile).toHaveBeenCalled();
+      });
+
+      it('loads provider from cache when fetch fails', async () => {
+        mocked(fetchBind).mockResolvedValue(mockFetchResponse);
+        const superJson = new SuperJson({
+          profiles: {
+            ['test-profile']: {
+              version: '1.0.0',
+              defaults: {},
+              providers: {
+                test: {
+                  file: 'file://some/file',
+                },
+              },
+            },
+          },
+          providers: {},
+        });
+
+        fileSystem.resolvePath = jest
+          .fn()
+          .mockReturnValue('file://some/path/to');
+
+        fileSystem.readFile = jest
+          .fn()
+          .mockResolvedValueOnce(JSON.stringify(mockProfileDocument))
+          .mockResolvedValueOnce(JSON.stringify(mockMapDocument))
+          .mockResolvedValueOnce(JSON.stringify(mockProviderJson));
+
+        mocked(fetchProviderInfo).mockRejectedValue('denied!');
+
+        const mockProfileProvider = new ProfileProvider(
+          superJson,
+          'test-profile',
+          mockProviderConfiguration,
+          mockConfig,
+          new Events(),
+          fileSystem
+        );
+        const result = await mockProfileProvider.bind();
+
+        expect(result).toMatchObject(expectedBoundProfileProvider);
+        expect(fileSystem.readFile).toHaveBeenCalledTimes(3);
+      });
+
+      it('throws when both fetch and cache read fails', async () => {
+        mocked(fetchBind).mockResolvedValue(mockFetchResponse);
+        const superJson = new SuperJson({
+          profiles: {
+            ['test-profile']: {
+              version: '1.0.0',
+              defaults: {},
+              providers: {
+                test: {
+                  file: 'file://some/file',
+                },
+              },
+            },
+          },
+          providers: {},
+        });
+
+        fileSystem.resolvePath = jest
+          .fn()
+          .mockReturnValue('file://some/path/to');
+
+        fileSystem.readFile = jest
+          .fn()
+          .mockResolvedValueOnce(JSON.stringify(mockProfileDocument))
+          .mockResolvedValueOnce(JSON.stringify(mockMapDocument))
+          .mockRejectedValueOnce('denied!');
+
+        mocked(fetchProviderInfo).mockRejectedValue('denied!');
+
+        const mockProfileProvider = new ProfileProvider(
+          superJson,
+          'test-profile',
+          mockProviderConfiguration,
+          mockConfig,
+          new Events(),
+          fileSystem
+        );
+
+        await expect(() => mockProfileProvider.bind()).rejects.toMatchObject({
+          additionalContext: ['denied!', 'denied!'],
+        });
+        expect(fileSystem.readFile).toHaveBeenCalledTimes(3);
       });
 
       it('throws error when provider is provided locally but map is not', async () => {

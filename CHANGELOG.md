@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Sandbox stdlib - `std.unstable.time.{isoDateToUnixTimestamp, unixTimestampToIsoDate}, std.unstable.debug.log`
+- `provider.json` caching
 
 ### Fixed
 - Fixed iterated variable in `foreach` being merged instead of overwritten, breaking iteration of objects

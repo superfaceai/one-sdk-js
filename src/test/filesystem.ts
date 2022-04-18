@@ -1,6 +1,6 @@
 import { IFileSystem } from '../lib/io/filesystem';
 
-export const MockFileSystem: IFileSystem = {
+export const MockFileSystem: () => IFileSystem = () => ({
   dirname: jest.fn(() => ''),
   exists: jest.fn(async () => true),
   existsSync: jest.fn(() => true),
@@ -24,4 +24,4 @@ export const MockFileSystem: IFileSystem = {
   rmSync: jest.fn(() => {}),
   writeFile: jest.fn(async () => {}),
   writeFileSync: jest.fn(() => {}),
-};
+});

@@ -42,10 +42,10 @@ usecase Test safe {
 const cachePath = 'test';
 
 describe('Parser', () => {
-  let filesystem: typeof MockFileSystem;
+  let filesystem: ReturnType<typeof MockFileSystem>;
 
   beforeEach(() => {
-    filesystem = { ...MockFileSystem };
+    filesystem = MockFileSystem();
   });
 
   afterEach(() => {

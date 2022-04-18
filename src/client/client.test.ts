@@ -31,6 +31,12 @@ const mockSuperJsonCustomPath = new SuperJson({
   },
 });
 
+afterEach(() => {
+  jest.useRealTimers();
+});
+
+jest.mock('./failure/event-adapter');
+
 describe('superface client', () => {
   describe('getProfile', () => {
     it('rejects when profile does not exists', async () => {

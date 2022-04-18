@@ -9,7 +9,7 @@ import { Events } from '../lib/events';
 import { IFileSystem } from '../lib/io';
 import { SuperCache } from './cache';
 import { Profile, ProfileConfiguration } from './profile';
-import { BoundProfileProvider } from './profile-provider';
+import { IBoundProfileProvider } from './profile-provider';
 
 export class InternalClient {
   constructor(
@@ -17,7 +17,10 @@ export class InternalClient {
     private readonly superJson: SuperJson,
     private readonly config: Config,
     private readonly fileSystem: IFileSystem,
-    private readonly boundProfileProviderCache: SuperCache<BoundProfileProvider>
+    private readonly boundProfileProviderCache: SuperCache<{
+      provider: IBoundProfileProvider;
+      expiresAt: number;
+    }>
   ) {}
 
   async getProfile(profileId: string): Promise<Profile> {

@@ -1,3 +1,5 @@
+import { SuperJsonDocument } from '@superfaceai/ast';
+
 import { Config } from '../config';
 import { SuperJson } from '../internal';
 import { Events } from '../lib/events';
@@ -6,24 +8,19 @@ import { SuperCache } from './cache';
 import { Profile, ProfileConfiguration } from './profile';
 import { IBoundProfileProvider } from './profile-provider';
 
-function createProfile(): Profile {
+function createProfile(superJson: SuperJsonDocument): Profile {
   const events = new Events();
-  const cache = new SuperCache<IBoundProfileProvider>();
+  const cache = new SuperCache<{
+    provider: IBoundProfileProvider;
+    expiresAt: number;
+  }>();
   const config = new Config();
   const configuration = new ProfileConfiguration('test', '1.0.0');
-  const superJson = new SuperJson({
-    profiles: {
-      test: {
-        version: '1.0.0',
-      },
-    },
-    providers: {},
-  });
 
   return new Profile(
     configuration,
     events,
-    superJson,
+    new SuperJson(superJson),
     config,
     NodeFileSystem,
     cache
@@ -32,11 +29,100 @@ function createProfile(): Profile {
 
 describe('Profile', () => {
   it('should call getUseCases correctly', async () => {
-    const profile = createProfile();
+    const superJson = {
+      profiles: {
+        test: {
+          version: '1.0.0',
+        },
+      },
+      providers: {},
+    };
+    const profile = createProfile(superJson);
 
     expect(profile.getUseCase('sayHello')).toMatchObject({
       name: 'sayHello',
       profileConfiguration: profile.configuration,
     });
   });
+
+  it('should call getConfiguredProviders correctly', async () => {
+    const superJson = {
+      profiles: {
+        test: {
+          version: '1.0.0',
+          providers: {
+            first: {
+              file: '../some.suma',
+            },
+            second: {
+              file: '../some.suma',
+            },
+          },
+        },
+      },
+      providers: {
+        first: {
+          file: '../provider.json',
+        },
+      },
+    };
+    const profile = createProfile(superJson);
+
+    expect(profile.getConfiguredProviders()).toEqual(['first', 'second']);
+  });
 });
+
+// describe('TypedProfile', () => {
+//   const mockSuperJson = new SuperJson({
+//     profiles: {
+//       test: {
+//         version: '1.0.0',
+//       },
+//     },
+//     providers: {},
+//   });
+//   afterEach(() => {
+//     jest.resetAllMocks();
+//   });
+//   beforeEach(() => {
+//     mockLoadSync.mockReturnValue(ok(mockSuperJson));
+//     SuperJson.loadSync = mockLoadSync;
+//   });
+//   describe('getUseCases', () => {
+//     it('should get usecase correctly', async () => {
+//       const mockClient = new SuperfaceClient();
+//       const mockProfileConfiguration = new ProfileConfiguration(
+//         'test',
+//         '1.0.0'
+//       );
+
+//       const typedProfile = new TypedProfile(
+//         mockClient,
+//         mockProfileConfiguration,
+//         ['sayHello']
+//       );
+
+//       expect(typedProfile.getUseCase('sayHello')).toEqual(
+//         new UseCase(typedProfile, 'sayHello')
+//       );
+//     });
+
+//     it('should throw when usecase is not found', async () => {
+//       const mockClient = new SuperfaceClient();
+//       const mockProfileConfiguration = new ProfileConfiguration(
+//         'test',
+//         '1.0.0'
+//       );
+
+//       const typedProfile = new TypedProfile(
+//         mockClient,
+//         mockProfileConfiguration,
+//         ['sayHello']
+//       );
+
+//       expect(() => typedProfile.getUseCase('nope')).toThrow(
+//         new RegExp('Usecase not found: "nope"')
+//       );
+//     });
+//   });
+// });

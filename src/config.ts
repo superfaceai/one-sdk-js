@@ -11,6 +11,7 @@ export interface IConfig {
   sandboxTimeout: number;
   sdkAuthToken?: string;
   superfaceApiUrl: string;
+  superfaceCacheTimeout: number;
   superfacePath: string;
 }
 
@@ -24,6 +25,7 @@ const METRIC_DEBOUNCE_TIME = {
 };
 const DISABLE_REPORTING = 'SUPERFACE_DISABLE_METRIC_REPORTING';
 const SANDBOX_TIMEOUT_ENV_NAME = 'SUPERFACE_SANDBOX_TIMEOUT';
+const BOUND_PROVIDER_CACHE_TIMEOUT = 'SUPERFACE_CACHE_TIMEOUT';
 
 // Defaults
 export const DEFAULT_API_URL = new URL('https://superface.ai').href;
@@ -43,6 +45,8 @@ export const DEFAULT_CACHE_PATH = joinPath(
 );
 export const DEFAULT_SANDBOX_TIMEOUT = 100;
 export const DEFAULT_DISABLE_REPORTING = false;
+// 1 hour
+export const DEFAULT_BOUND_PROVIDER_TIMEOUT = 60 * 60;
 
 const defaults: IConfig = {
   cachePath: DEFAULT_CACHE_PATH,
@@ -52,6 +56,7 @@ const defaults: IConfig = {
   sandboxTimeout: DEFAULT_SANDBOX_TIMEOUT,
   sdkAuthToken: undefined,
   superfaceApiUrl: DEFAULT_API_URL,
+  superfaceCacheTimeout: DEFAULT_BOUND_PROVIDER_TIMEOUT,
   superfacePath: DEFAULT_SUPERFACE_PATH,
 };
 
@@ -80,6 +85,28 @@ function getSdkAuthToken(): string | undefined {
   }
 
   return token;
+}
+
+function getBoundCacheTimeout(): number {
+  const envValue = process.env[BOUND_PROVIDER_CACHE_TIMEOUT];
+  if (envValue === undefined) {
+    return DEFAULT_BOUND_PROVIDER_TIMEOUT;
+  }
+
+  try {
+    const result = parseInt(envValue);
+    if (result <= 0) {
+      throw undefined;
+    }
+
+    return result;
+  } catch (e) {
+    configDebug(
+      `Invalid value: ${envValue} for ${BOUND_PROVIDER_CACHE_TIMEOUT}, expected positive number`
+    );
+
+    return DEFAULT_BOUND_PROVIDER_TIMEOUT;
+  }
 }
 
 function getMetricDebounceTime(which: 'min' | 'max'): number | undefined {
@@ -134,6 +161,7 @@ export class Config implements IConfig {
   public sandboxTimeout: number;
   public sdkAuthToken?: string;
   public superfaceApiUrl: string;
+  public superfaceCacheTimeout: number;
   public superfacePath: string;
 
   public constructor(config?: Partial<IConfig>) {
@@ -147,6 +175,8 @@ export class Config implements IConfig {
     this.sandboxTimeout = config?.sandboxTimeout ?? defaults.sandboxTimeout;
     this.sdkAuthToken = config?.sdkAuthToken ?? defaults.sdkAuthToken;
     this.superfaceApiUrl = config?.superfaceApiUrl ?? defaults.superfaceApiUrl;
+    this.superfaceCacheTimeout =
+      config?.superfaceCacheTimeout ?? defaults.superfaceCacheTimeout;
     this.superfacePath = config?.superfacePath ?? defaults.superfacePath;
   }
 
@@ -164,7 +194,8 @@ export class Config implements IConfig {
     return {
       superfaceApiUrl: getSuperfaceApiUrl(),
       sdkAuthToken: getSdkAuthToken(),
-      superfacePath: process.env[SUPERFACE_PATH_NAME],
+      superfacePath: process.env[SUPERFACE_PATH_NAME] ?? DEFAULT_SUPERFACE_PATH,
+      superfaceCacheTimeout: getBoundCacheTimeout(),
       metricDebounceTimeMin: getMetricDebounceTime('min'),
       metricDebounceTimeMax: getMetricDebounceTime('max'),
       disableReporting:
