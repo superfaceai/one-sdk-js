@@ -269,7 +269,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
   async visitConditionAtomNode(node: ConditionAtomNode): Promise<boolean> {
     const result = await this.visit(node.expression);
 
-    return result ? true : false;
+    return result === true;
   }
 
   async visitCallStatementNode(node: CallStatementNode): Promise<void> {
@@ -388,12 +388,15 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
     node: HttpResponseHandlerNode
   ): HttpResponseHandlerDefinition {
     const handler: HttpResponseHandler = async (response: HttpResponse) => {
-      if (node.statusCode && node.statusCode !== response.statusCode) {
+      if (
+        node.statusCode !== undefined &&
+        node.statusCode !== response.statusCode
+      ) {
         return false;
       }
 
       if (
-        node.contentType &&
+        node.contentType !== undefined &&
         response.headers['content-type'] &&
         !response.headers['content-type'].includes(node.contentType)
       ) {
@@ -401,7 +404,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
       }
 
       if (
-        node.contentLanguage &&
+        node.contentLanguage !== undefined &&
         response.headers['content-language'] &&
         !response.headers['content-language'].includes(node.contentLanguage)
       ) {
@@ -423,13 +426,13 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
 
       if (debug.enabled) {
         let debugString = 'Running http handler:';
-        if (node.contentType) {
+        if (node.contentType !== undefined) {
           debugString += ` content-type: "${node.contentType}"`;
         }
-        if (node.contentLanguage) {
+        if (node.contentLanguage !== undefined) {
           debugString += ` content-language: "${node.contentLanguage}"`;
         }
-        if (node.statusCode) {
+        if (node.statusCode !== undefined) {
           debugString += ` code: "${node.statusCode}"`;
         }
         debug(debugString);
@@ -529,7 +532,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
 
         case 'OutcomeStatement': {
           const outcome = await this.visit(statement);
-          if (outcome?.error) {
+          if (outcome?.error !== undefined) {
             const stackTop = this.stackTop();
             if (stackTop.type === 'map') {
               let error: MapInterpreterError;
@@ -558,7 +561,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
           }
           debug('Setting result: %O', this.stackTop());
 
-          if (outcome?.terminateFlow) {
+          if (outcome?.terminateFlow === true) {
             this.stackTop().terminate = true;
 
             return;
@@ -576,7 +579,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
     this.newStack('map');
     await this.processStatements(node.statements);
 
-    if (this.stackTop().error) {
+    if (this.stackTop().error !== undefined) {
       throw this.stackTop().error;
     }
 

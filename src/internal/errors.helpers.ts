@@ -451,25 +451,25 @@ export function bindResponseError({
 }): SDKBindError {
   const longLines = [];
 
-  if (detail) {
+  if (detail !== undefined) {
     longLines.push(detail);
   }
 
-  if (mapVariant) {
+  if (mapVariant !== undefined) {
     longLines.push(`Looking for map variant "${mapVariant}"`);
   }
 
-  if (mapRevision) {
+  if (mapRevision !== undefined) {
     longLines.push(`Looking for map revision "${mapRevision}"`);
   }
 
   return new SDKBindError(
     `Registry responded with status code ${statusCode}${
-      title ? ` - ${title}.` : '.'
+      title !== undefined ? ` - ${title}.` : '.'
     }`,
     longLines,
     [
-      provider
+      provider !== undefined
         ? `Check if profile "${profileId}" can be used with provider "${provider}"`
         : `Check if profile "${profileId}" can be used with selected provider.`,
       `If you are using remote profile you can check informations about profile at "${
@@ -499,16 +499,16 @@ export function unknownBindResponseError({
   apiUrl: string;
 }): SDKBindError {
   const longLines = [
-    provider
+    provider !== undefined
       ? `Error occured when binding profile "${profileId}" with provider "${provider}"`
       : `Error occured when binding profile "${profileId}" with selected provider`,
   ];
 
-  if (mapVariant) {
+  if (mapVariant !== undefined) {
     longLines.push(`Looking for map variant "${mapVariant}"`);
   }
 
-  if (mapRevision) {
+  if (mapRevision !== undefined) {
     longLines.push(`Looking for map revision "${mapRevision}"`);
   }
 
@@ -518,7 +518,7 @@ export function unknownBindResponseError({
     )}`,
     longLines,
     [
-      provider
+      provider !== undefined
         ? `Check if profile "${profileId}" can be used with provider "${provider}"`
         : `Check if profile "${profileId}" can be used with selected provider`,
       `If you are using remote profile you can check informations about profile at "${

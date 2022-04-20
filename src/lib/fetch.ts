@@ -212,7 +212,10 @@ export class CrossFetch implements FetchInstance, Interceptable {
       return true;
     }
 
-    if (requestHeaders && requestHeaders['accept']) {
+    if (
+      requestHeaders !== undefined &&
+      requestHeaders['accept'] !== undefined
+    ) {
       if (typeof requestHeaders['accept'] === 'string') {
         return BINARY_CONTENT_REGEXP.test(requestHeaders['accept']);
       } else {

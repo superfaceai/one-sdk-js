@@ -77,7 +77,12 @@ export const mergeVariables = (
   for (const key of Object.keys(right)) {
     const l = left[key];
     const r = right[key];
-    if (r && l && isNonPrimitive(r) && isNonPrimitive(l)) {
+    if (
+      r !== undefined &&
+      l !== undefined &&
+      isNonPrimitive(r) &&
+      isNonPrimitive(l)
+    ) {
       result[key] = mergeVariables(l, r);
     } else {
       result[key] = right[key];
@@ -117,7 +122,7 @@ export const variablesToStrings = (
 ): Record<string, string> => {
   const result: Record<string, string> = {};
 
-  if (variables) {
+  if (variables !== undefined) {
     for (const [key, value] of Object.entries(variables)) {
       if (value !== undefined) {
         result[key] = typeof value === 'string' ? value : JSON.stringify(value);

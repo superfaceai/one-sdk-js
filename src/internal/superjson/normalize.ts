@@ -99,7 +99,7 @@ export function normalizeRetryPolicy(
   const baseOnFail = base?.kind === OnFail.NONE ? undefined : base;
 
   const normalizeBackoff = () => {
-    if (!retryPolicy.backoff) {
+    if (retryPolicy.backoff === undefined) {
       return;
     }
     if (retryPolicy.backoff === BackoffKind.EXPONENTIAL) {

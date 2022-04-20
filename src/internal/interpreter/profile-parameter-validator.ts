@@ -262,7 +262,7 @@ export class ProfileParameterValidator implements ProfileVisitor {
         : undefined;
 
       if (!node.type) {
-        if (this.namedFieldDefinitions[node.fieldName]) {
+        if (this.namedFieldDefinitions[node.fieldName] !== undefined) {
           return this.namedFieldDefinitions[node.fieldName](field);
         }
 
@@ -324,7 +324,7 @@ export class ProfileParameterValidator implements ProfileVisitor {
     _kind: ProfileParameterKind,
     _usecase: string
   ): ValidationFunction {
-    if (this.namedModelDefinitions[node.name]) {
+    if (this.namedModelDefinitions[node.name] !== undefined) {
       return this.namedModelDefinitions[node.name];
     }
 

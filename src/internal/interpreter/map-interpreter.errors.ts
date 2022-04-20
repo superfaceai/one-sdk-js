@@ -170,7 +170,7 @@ export class MappedError<T> extends MapInterpreterErrorBase {
         ? `Original Map Location: Line ${this.metadata.node.location.start.line}, column ${this.metadata.node.location.start.column}`
         : undefined,
     ]
-      .filter(line => !!line)
+      .filter(line => Boolean(line))
       .join('\n');
   }
 }

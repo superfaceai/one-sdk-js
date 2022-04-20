@@ -71,7 +71,9 @@ export class Parser {
       const parserAstVersion = `${PARSED_AST_VERSION.major}.${
         PARSED_AST_VERSION.minor
       }.${PARSED_AST_VERSION.patch}${
-        PARSED_AST_VERSION.label ? '-' + PARSED_AST_VERSION.label : ''
+        PARSED_AST_VERSION.label !== undefined
+          ? '-' + PARSED_AST_VERSION.label
+          : ''
       }`;
       throw new UnexpectedError(
         `Parsed map is not valid. This can be caused by not matching versions of package @superfaceai/ast.\nVersion of AST in Parser used to parse map: ${parserAstVersion}.\nVersion of AST used to validation: ${AstVersion}`
@@ -139,7 +141,9 @@ export class Parser {
       const parserAstVersion = `${PARSED_AST_VERSION.major}.${
         PARSED_AST_VERSION.minor
       }.${PARSED_AST_VERSION.patch}${
-        PARSED_AST_VERSION.label ? '-' + PARSED_AST_VERSION.label : ''
+        PARSED_AST_VERSION.label !== undefined
+          ? '-' + PARSED_AST_VERSION.label
+          : ''
       }`;
       throw new UnexpectedError(
         `Parsed profile is not valid. This can be caused by not matching versions of package @superfaceai/ast.\nVersion of AST in Parser used to parse profile: ${parserAstVersion}.\nVersion of AST used to validation: ${AstVersion}`

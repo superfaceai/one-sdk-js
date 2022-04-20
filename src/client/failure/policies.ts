@@ -75,7 +75,7 @@ export class FailurePolicyRouter {
     info: ExecutionInfo,
     reason: FailurePolicyReason
   ): SwitchProviderResolution | undefined {
-    if (!this.currentProvider) {
+    if (this.currentProvider === undefined) {
       throw new UnexpectedError(
         'Property currentProvider is not set in Router instance'
       );
@@ -95,7 +95,7 @@ export class FailurePolicyRouter {
   private attemptFailoverRestore(
     info: ExecutionInfo
   ): SwitchProviderResolution | undefined {
-    if (!this.currentProvider) {
+    if (this.currentProvider === undefined) {
       throw new UnexpectedError(
         'Property currentProvider is not set in Router instance'
       );
@@ -150,7 +150,7 @@ export class FailurePolicyRouter {
   }
 
   public beforeExecution(info: ExecutionInfo): ExecutionResolution {
-    if (!this.currentProvider) {
+    if (this.currentProvider === undefined) {
       throw new UnexpectedError(
         'Property currentProvider is not set in Router instance'
       );
@@ -168,7 +168,7 @@ export class FailurePolicyRouter {
   }
 
   public afterFailure(info: ExecutionFailure): FailureResolution {
-    if (!this.currentProvider) {
+    if (this.currentProvider === undefined) {
       throw new UnexpectedError(
         'Property currentProvider is not set in Router instance'
       );
@@ -184,7 +184,7 @@ export class FailurePolicyRouter {
   }
 
   public afterSuccess(info: ExecutionSuccess): SuccessResolution {
-    if (!this.currentProvider) {
+    if (this.currentProvider === undefined) {
       throw new UnexpectedError(
         'Property currentProvider is not set in Router instance'
       );

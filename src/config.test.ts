@@ -9,7 +9,7 @@ describe('Config', () => {
     });
 
     afterAll(() => {
-      if (originalToken) {
+      if (originalToken !== undefined) {
         process.env.SUPERFACE_SDK_TOKEN = originalToken;
       }
     });

@@ -64,12 +64,12 @@ const defaults: IConfig = {
 function getSuperfaceApiUrl(): string | undefined {
   const envUrl = process.env[API_URL_ENV_NAME];
 
-  return envUrl ? new URL(envUrl).href : undefined;
+  return envUrl !== undefined ? new URL(envUrl).href : undefined;
 }
 
 function getSdkAuthToken(): string | undefined {
   const loadedToken = process.env[TOKEN_ENV_NAME];
-  if (!loadedToken) {
+  if (loadedToken === undefined) {
     configDebug(`Environment variable ${TOKEN_ENV_NAME} not found`);
 
     return;

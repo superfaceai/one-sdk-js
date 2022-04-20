@@ -113,7 +113,7 @@ export type RecursiveReadonly<T> = {
 export function deepFreeze<T>(o: T): RecursiveReadonly<T> {
   for (const name of Object.getOwnPropertyNames(o)) {
     const value = (o as Record<string, unknown>)[name];
-    if (value && typeof value === 'object') {
+    if (value !== undefined && typeof value === 'object') {
       deepFreeze(value);
     }
   }

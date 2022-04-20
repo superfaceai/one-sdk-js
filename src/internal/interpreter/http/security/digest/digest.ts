@@ -72,8 +72,8 @@ export class DigestHandler implements ISecurityHandler {
     private readonly fetchInstance: FetchInstance & AuthCache
   ) {
     debug('Initialized DigestHandler');
-    this.statusCode = configuration.statusCode || 401;
-    this.challengeHeader = configuration.challengeHeader || 'www-authenticate';
+    this.statusCode = configuration.statusCode ?? 401;
+    this.challengeHeader = configuration.challengeHeader ?? 'www-authenticate';
     this.authorizationHeader =
       configuration.authorizationHeader ?? DEFAULT_AUTHORIZATION_HEADER_NAME;
 
@@ -88,10 +88,10 @@ export class DigestHandler implements ISecurityHandler {
     const headers: Record<string, string> = parameters.headers || {};
 
     // If we have cached credentials we use them
-    if (this.fetchInstance?.digest) {
+    if (this.fetchInstance?.digest !== undefined) {
       debugSensitive('Using cached digest credentials');
       headers[
-        this.configuration.authorizationHeader ||
+        this.configuration.authorizationHeader ??
           DEFAULT_AUTHORIZATION_HEADER_NAME
       ] = this.fetchInstance.digest;
 
@@ -239,7 +239,8 @@ export class DigestHandler implements ISecurityHandler {
     const hashedResponse = computeHash(digest.algorithm, response);
 
     // Build final auth header
-    const opaqueString = digest.opaque ? `opaque="${digest.opaque}"` : '';
+    const opaqueString =
+      digest.opaque !== undefined ? `opaque="${digest.opaque}"` : '';
     const qopString = digest.qop ? `qop="${digest.qop}"` : '';
 
     return [
@@ -266,14 +267,14 @@ export class DigestHandler implements ISecurityHandler {
       throw missingPartOfDigestHeader(this.challengeHeader, header, 'scheme');
     }
     const nonce = extract(header, 'nonce');
-    if (!nonce) {
+    if (nonce === undefined) {
       throw missingPartOfDigestHeader(this.challengeHeader, header, 'nonce');
     }
 
     return {
       scheme,
       algorithm: extractAlgorithm(header),
-      realm: (extract(header, 'realm', false) || '').replace(/["]/g, ''),
+      realm: (extract(header, 'realm', false) ?? '').replace(/["]/g, ''),
       opaque: extract(header, 'opaque'),
       qop: extractQop(header),
       nonce,

@@ -95,7 +95,10 @@ export function mergeProfile(
   payload: ProfileEntry
 ): boolean {
   // if specified profile is not found
-  if (!document.profiles || !document.profiles[profileName]) {
+  if (
+    document.profiles === undefined ||
+    document.profiles[profileName] === undefined
+  ) {
     document.profiles = {
       ...document.profiles,
       [profileName]: payload,
@@ -303,7 +306,10 @@ export function mergeProfileProvider(
   const profileProvider = targetProfile.providers?.[providerName];
 
   // if specified profile provider is not found
-  if (!profileProvider || !targetProfile.providers?.[providerName]) {
+  if (
+    profileProvider === undefined ||
+    targetProfile.providers?.[providerName] === undefined
+  ) {
     targetProfile.providers = {
       ...targetProfile.providers,
       [providerName]: payload,
@@ -416,10 +422,10 @@ export function mergeProfileProvider(
       Extract<ProfileProviderSettings, { mapVariant?: string }>
     > = 'file' in profileProvider ? {} : profileProvider;
 
-    if (payload.mapVariant) {
+    if (payload.mapVariant !== undefined) {
       mapProperties.mapVariant = payload.mapVariant;
     }
-    if (payload.mapRevision) {
+    if (payload.mapRevision !== undefined) {
       mapProperties.mapRevision = payload.mapRevision;
     }
 

@@ -30,7 +30,7 @@ export class ApiKeyHandler implements ISecurityHandler {
     const pathParameters = parameters.pathParameters ?? {};
     const queryParameters = parameters.queryParameters ?? {};
 
-    const name = this.configuration.name || DEFAULT_AUTHORIZATION_HEADER_NAME;
+    const name = this.configuration.name ?? DEFAULT_AUTHORIZATION_HEADER_NAME;
 
     switch (this.configuration.in) {
       case ApiKeyPlacement.HEADER:
@@ -41,7 +41,7 @@ export class ApiKeyHandler implements ISecurityHandler {
       case ApiKeyPlacement.BODY:
         debug('Setting api key to body');
         body = applyApiKeyAuthInBody(
-          body || {},
+          body ?? {},
           name.startsWith('/') ? name.slice(1).split('/') : [name],
           this.configuration.apikey
         );

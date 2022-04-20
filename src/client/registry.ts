@@ -78,9 +78,10 @@ export async function fetchProviderInfo(
     `/providers/${providerName}`,
     {
       method: 'GET',
-      headers: sdkToken
-        ? [`Authorization: SUPERFACE-SDK-TOKEN ${sdkToken}`]
-        : undefined,
+      headers:
+        sdkToken !== undefined
+          ? [`Authorization: SUPERFACE-SDK-TOKEN ${sdkToken}`]
+          : undefined,
       baseUrl: config.superfaceApiUrl,
       accept: 'application/json',
       contentType: 'application/json',
@@ -217,9 +218,10 @@ export async function fetchBind(
 
   const fetchResponse = await http.request('/registry/bind', {
     method: 'POST',
-    headers: sdkToken
-      ? [`Authorization: SUPERFACE-SDK-TOKEN ${sdkToken}`]
-      : undefined,
+    headers:
+      sdkToken !== undefined
+        ? [`Authorization: SUPERFACE-SDK-TOKEN ${sdkToken}`]
+        : undefined,
     baseUrl: config.superfaceApiUrl,
     accept: 'application/json',
     contentType: 'application/json',
@@ -248,9 +250,10 @@ export async function fetchMapSource(
 
   const { body } = await http.request(`/${mapId}`, {
     method: 'GET',
-    headers: sdkToken
-      ? [`Authorization: SUPERFACE-SDK-TOKEN ${sdkToken}`]
-      : undefined,
+    headers:
+      sdkToken !== undefined
+        ? [`Authorization: SUPERFACE-SDK-TOKEN ${sdkToken}`]
+        : undefined,
     baseUrl: config.superfaceApiUrl,
     accept: 'application/vnd.superface.map',
   });

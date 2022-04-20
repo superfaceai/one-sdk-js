@@ -496,7 +496,7 @@ describe('MapInterpreter', () => {
     await mockServer.post(url).thenCallback(async request => {
       const text = await request.body.getText();
       if (
-        text &&
+        text !== undefined &&
         text.includes('formData') &&
         text.includes('myFormData') &&
         text.includes('is') &&

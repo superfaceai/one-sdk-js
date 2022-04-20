@@ -153,7 +153,7 @@ async function rm(
   path: string,
   options?: { recursive?: boolean }
 ): Promise<void> {
-  if (options?.recursive) {
+  if (options?.recursive === true) {
     await fsp.rmdir(path, { recursive: true });
   } else {
     await fsp.unlink(path);
@@ -161,7 +161,7 @@ async function rm(
 }
 
 function rmSync(path: string, options?: { recursive?: boolean }): void {
-  if (options?.recursive) {
+  if (options?.recursive === true) {
     fs.rmdirSync(path, { recursive: true });
   } else {
     fs.unlinkSync(path);

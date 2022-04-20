@@ -171,7 +171,7 @@ export const bodyFilter: Filter = ({
   response,
 }: FilterInputOutput) => {
   let finalBody: FetchBody | undefined;
-  if (parameters.body) {
+  if (parameters.body !== undefined) {
     if (parameters.contentType === JSON_CONTENT) {
       finalBody = stringBody(JSON.stringify(parameters.body));
     } else if (parameters.contentType === URLENCODED_CONTENT) {
@@ -179,7 +179,7 @@ export const bodyFilter: Filter = ({
     } else if (parameters.contentType === FORMDATA_CONTENT) {
       finalBody = formDataBody(variablesToStrings(parameters.body));
     } else if (
-      parameters.contentType &&
+      parameters.contentType !== undefined &&
       BINARY_CONTENT_REGEXP.test(parameters.contentType)
     ) {
       let buffer: Buffer;
@@ -258,7 +258,7 @@ export const headersFilter: Filter = ({
   response,
 }: FilterInputOutput) => {
   const headers: Record<string, string> = parameters.headers || {};
-  headers['accept'] = parameters.accept || '*/*';
+  headers['accept'] = parameters.accept ?? '*/*';
   headers['user-agent'] ??= USER_AGENT;
   if (parameters.contentType === JSON_CONTENT) {
     headers['content-type'] ??= JSON_CONTENT;

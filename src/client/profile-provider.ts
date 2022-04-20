@@ -354,9 +354,10 @@ export class ProfileProvider {
       // If we don't have a map (probably due to validation issue) we try to get map source and parse it on our own
       if (!mapAst) {
         const version = `${profileAst.header.version.major}.${profileAst.header.version.minor}.${profileAst.header.version.patch}`;
-        const mapId = mapVariant
-          ? `${profileId}.${providerName}.${mapVariant}@${version}`
-          : `${profileId}.${providerName}@${version}`;
+        const mapId =
+          mapVariant !== undefined
+            ? `${profileId}.${providerName}.${mapVariant}@${version}`
+            : `${profileId}.${providerName}@${version}`;
         const mapSource = await fetchMapSource(mapId, this.config);
 
         mapAst = await Parser.parseMap(
@@ -448,7 +449,7 @@ export class ProfileProvider {
         providerJsonParameter &&
         preparedParameters[providerJsonParameter.name] === value
       ) {
-        if (providerJsonParameter.default) {
+        if (providerJsonParameter.default !== undefined) {
           result[key] = providerJsonParameter.default;
         }
       }
@@ -461,7 +462,10 @@ export class ProfileProvider {
 
     // Resolve parameters which are missing in super.json and have default value
     for (const parameter of providerJsonParameters) {
-      if (result[parameter.name] === undefined && parameter.default) {
+      if (
+        result[parameter.name] === undefined &&
+        parameter.default !== undefined
+      ) {
         result[parameter.name] = parameter.default;
       }
     }

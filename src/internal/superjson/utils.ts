@@ -25,7 +25,7 @@ export function getProviderForProfile(
   profileId: string
 ): Provider {
   const priorityProviders =
-    superJson.normalized.profiles[profileId]?.priority || [];
+    superJson.normalized.profiles[profileId]?.priority ?? [];
   if (priorityProviders.length > 0) {
     const name = priorityProviders[0];
 
