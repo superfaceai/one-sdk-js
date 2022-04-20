@@ -46,7 +46,10 @@ export class MockClient implements ISuperfaceClient {
       fileSystemOverride?: Partial<IFileSystem>;
     }
   ) {
-    this.config = new Config(parameters?.configOverride);
+    this.config = new Config({
+      disableReporting: true,
+      ...parameters?.configOverride,
+    });
     this.events = new Events();
     registerHooks(this.events);
 
