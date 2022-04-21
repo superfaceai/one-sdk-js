@@ -1,4 +1,5 @@
 import {
+  BackoffKind,
   OnFail,
   ProfileEntry,
   ProfileProviderEntry,
@@ -663,6 +664,7 @@ describe('superjson mutate', () => {
                   kind: OnFail.CIRCUIT_BREAKER,
                   maxContiguousRetries: 10,
                   requestTimeout: 60_000,
+                  backoff: { kind: BackoffKind.EXPONENTIAL },
                 },
               },
             },

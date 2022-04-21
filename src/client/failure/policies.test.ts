@@ -1,3 +1,4 @@
+import { ExponentialBackoff } from '../../lib/backoff';
 import {
   AbortPolicy,
   CircuitBreakerPolicy,
@@ -62,7 +63,12 @@ describe('failure policies', () => {
     } as const;
 
     it('aborts after configured number of retries', () => {
-      const policy = new RetryPolicy(usecaseInfo, 3);
+      const policy = new RetryPolicy(
+        usecaseInfo,
+        3,
+        30_000,
+        new ExponentialBackoff(50, 2.0)
+      );
       const event = { time: 0, registryCacheAge: 0 };
 
       expect(policy.afterFailure(failure)).toStrictEqual({
@@ -101,7 +107,12 @@ describe('failure policies', () => {
     });
 
     it('continues without failures', () => {
-      const policy = new RetryPolicy(usecaseInfo, 3);
+      const policy = new RetryPolicy(
+        usecaseInfo,
+        3,
+        30_000,
+        new ExponentialBackoff(50, 2.0)
+      );
       const event = { time: 0, registryCacheAge: 0 };
 
       expect(policy.afterSuccess(event)).toStrictEqual({ kind: 'continue' });
@@ -110,7 +121,12 @@ describe('failure policies', () => {
     });
 
     it('backs down after failures', () => {
-      const policy = new RetryPolicy(usecaseInfo, 3);
+      const policy = new RetryPolicy(
+        usecaseInfo,
+        3,
+        30_000,
+        new ExponentialBackoff(50, 2.0)
+      );
       const event = { time: 0, registryCacheAge: 0 };
 
       expect(policy.afterFailure(failure)).toStrictEqual({
@@ -162,7 +178,12 @@ describe('failure policies', () => {
     });
 
     it('backsoff after successes', () => {
-      const policy = new RetryPolicy(usecaseInfo, 3);
+      const policy = new RetryPolicy(
+        usecaseInfo,
+        3,
+        30_000,
+        new ExponentialBackoff(50, 2.0)
+      );
       const event = { time: 0, registryCacheAge: 0 };
 
       expect(policy.afterSuccess(event)).toStrictEqual({ kind: 'continue' });
@@ -231,7 +252,12 @@ describe('failure policies', () => {
     });
 
     it('resets correctly', () => {
-      const policy = new RetryPolicy(usecaseInfo, 3);
+      const policy = new RetryPolicy(
+        usecaseInfo,
+        3,
+        30_000,
+        new ExponentialBackoff(50, 2.0)
+      );
       const event = { time: 0, registryCacheAge: 0 };
 
       expect(policy.afterFailure(failure)).toStrictEqual({
@@ -349,7 +375,13 @@ describe('failure policies', () => {
     } as const;
 
     it('starts closed', () => {
-      const policy = new CircuitBreakerPolicy(usecaseInfo, 4, 1000, 30_000);
+      const policy = new CircuitBreakerPolicy(
+        usecaseInfo,
+        4,
+        1000,
+        30_000,
+        new ExponentialBackoff(50, 2.0)
+      );
       const event = { time: 0, registryCacheAge: 0 };
 
       expect(policy.beforeExecution(event)).toStrictEqual({
@@ -367,7 +399,13 @@ describe('failure policies', () => {
     });
 
     it('stays closed when not enough contiguous failures happen', () => {
-      const policy = new CircuitBreakerPolicy(usecaseInfo, 4, 1000, 30_000);
+      const policy = new CircuitBreakerPolicy(
+        usecaseInfo,
+        4,
+        1000,
+        30_000,
+        new ExponentialBackoff(50, 2.0)
+      );
       const event = { time: 0, registryCacheAge: 0 };
 
       expect(policy.beforeExecution(event)).toStrictEqual({
@@ -424,7 +462,13 @@ describe('failure policies', () => {
     });
 
     it('closes when enough contiguous failures happen', () => {
-      const policy = new CircuitBreakerPolicy(usecaseInfo, 4, 1000, 30_000);
+      const policy = new CircuitBreakerPolicy(
+        usecaseInfo,
+        4,
+        1000,
+        30_000,
+        new ExponentialBackoff(50, 2.0)
+      );
       const event = { time: 0, registryCacheAge: 0 };
 
       expect(policy.afterFailure(failure)).toStrictEqual({
@@ -469,7 +513,13 @@ describe('failure policies', () => {
     });
 
     it('half-closes when the reset timeout passes', () => {
-      const policy = new CircuitBreakerPolicy(usecaseInfo, 4, 1000, 40);
+      const policy = new CircuitBreakerPolicy(
+        usecaseInfo,
+        4,
+        1000,
+        40,
+        new ExponentialBackoff(50, 2.0)
+      );
       const event = { time: 0, registryCacheAge: 0 };
 
       expect(policy.afterFailure(failure)).toStrictEqual({
@@ -512,7 +562,13 @@ describe('failure policies', () => {
     });
 
     it('opens again from half-closed state when it fails', () => {
-      const policy = new CircuitBreakerPolicy(usecaseInfo, 4, 1000, 40);
+      const policy = new CircuitBreakerPolicy(
+        usecaseInfo,
+        4,
+        1000,
+        40,
+        new ExponentialBackoff(50, 2.0)
+      );
       const event = { time: 0, registryCacheAge: 0 };
 
       expect(policy.afterFailure(failure)).toStrictEqual({
@@ -568,7 +624,13 @@ describe('failure policies', () => {
     });
 
     it('closes fully from half-open state when enough requests succeed', () => {
-      const policy = new CircuitBreakerPolicy(usecaseInfo, 4, 1000, 40);
+      const policy = new CircuitBreakerPolicy(
+        usecaseInfo,
+        4,
+        1000,
+        40,
+        new ExponentialBackoff(50, 2.0)
+      );
       const event = { time: 0, registryCacheAge: 0 };
 
       expect(policy.afterFailure(failure)).toStrictEqual({
@@ -646,7 +708,13 @@ describe('failure policies', () => {
     });
 
     it('resets correctly', () => {
-      const policy = new CircuitBreakerPolicy(usecaseInfo, 4, 1000, 30_000);
+      const policy = new CircuitBreakerPolicy(
+        usecaseInfo,
+        4,
+        1000,
+        30_000,
+        new ExponentialBackoff(50, 2.0)
+      );
       const event = { time: 0, registryCacheAge: 0 };
 
       expect(policy.afterFailure(failure)).toStrictEqual({
@@ -832,21 +900,31 @@ describe('failure policies', () => {
       });
 
       it('does not switch back - failover is not allowed', () => {
-        const retryPolicy = new RetryPolicy({
-          profileId,
-          usecaseSafety,
-          usecaseName,
-        });
+        const retryPolicy = new RetryPolicy(
+          {
+            profileId,
+            usecaseSafety,
+            usecaseName,
+          },
+          5,
+          30_000,
+          new ExponentialBackoff(50, 2.0)
+        );
         const router = new FailurePolicyRouter(
           provider => {
             if (provider === 'first') {
               return retryPolicy;
             } else if (provider === 'second') {
-              return new RetryPolicy({
-                profileId,
-                usecaseSafety,
-                usecaseName,
-              });
+              return new RetryPolicy(
+                {
+                  profileId,
+                  usecaseSafety,
+                  usecaseName,
+                },
+                5,
+                30_000,
+                new ExponentialBackoff(50, 2.0)
+              );
             } else {
               return new AbortPolicy({ profileId, usecaseSafety, usecaseName });
             }
@@ -873,21 +951,31 @@ describe('failure policies', () => {
         ).toEqual({ kind: 'continue', timeout: 30_000 });
       });
       it('switches back to first functional provider with higher priority', () => {
-        const retryPolicy = new RetryPolicy({
-          profileId,
-          usecaseSafety,
-          usecaseName,
-        });
+        const retryPolicy = new RetryPolicy(
+          {
+            profileId,
+            usecaseSafety,
+            usecaseName,
+          },
+          5,
+          30_000,
+          new ExponentialBackoff(50, 2.0)
+        );
         const router = new FailurePolicyRouter(
           provider => {
             if (provider === 'first') {
               return retryPolicy;
             } else if (provider === 'second') {
-              return new RetryPolicy({
-                profileId,
-                usecaseSafety,
-                usecaseName,
-              });
+              return new RetryPolicy(
+                {
+                  profileId,
+                  usecaseSafety,
+                  usecaseName,
+                },
+                5,
+                30_000,
+                new ExponentialBackoff(50, 2.0)
+              );
             } else {
               return new AbortPolicy({ profileId, usecaseSafety, usecaseName });
             }
@@ -923,17 +1011,27 @@ describe('failure policies', () => {
         const router = new FailurePolicyRouter(
           provider => {
             if (provider === 'first') {
-              return new RetryPolicy({
-                profileId,
-                usecaseSafety,
-                usecaseName,
-              });
+              return new RetryPolicy(
+                {
+                  profileId,
+                  usecaseSafety,
+                  usecaseName,
+                },
+                5,
+                30_000,
+                new ExponentialBackoff(50, 2.0)
+              );
             } else if (provider === 'second') {
-              return new RetryPolicy({
-                profileId,
-                usecaseSafety,
-                usecaseName,
-              });
+              return new RetryPolicy(
+                {
+                  profileId,
+                  usecaseSafety,
+                  usecaseName,
+                },
+                5,
+                30_000,
+                new ExponentialBackoff(50, 2.0)
+              );
             } else {
               return new AbortPolicy({ profileId, usecaseSafety, usecaseName });
             }
@@ -965,7 +1063,9 @@ describe('failure policies', () => {
             usecaseName,
           },
           1,
-          30_000
+          30_000,
+          30_000,
+          new ExponentialBackoff(50, 2.0)
         );
         const router = new FailurePolicyRouter(
           provider => {
@@ -1014,7 +1114,13 @@ describe('failure policies', () => {
 
       it('returns inner resolution', () => {
         const router = new FailurePolicyRouter(
-          () => new RetryPolicy({ profileId, usecaseSafety, usecaseName }),
+          () =>
+            new RetryPolicy(
+              { profileId, usecaseSafety, usecaseName },
+              5,
+              30_000,
+              new ExponentialBackoff(50, 2.0)
+            ),
           ['first']
         );
         router.setCurrentProvider('first');
@@ -1093,7 +1199,8 @@ describe('failure policies', () => {
             usecaseName,
           },
           1,
-          60_000
+          60_000,
+          new ExponentialBackoff(50, 2.0)
         );
 
         const router = new FailurePolicyRouter(

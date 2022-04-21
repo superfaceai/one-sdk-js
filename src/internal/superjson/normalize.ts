@@ -1,8 +1,10 @@
 import {
   BackoffKind,
+  BackoffPolicy,
   FILE_URI_PROTOCOL,
   isFileURIString,
   isVersionString,
+  NormalizedBackoffPolicy,
   NormalizedProfileProviderDefaults,
   NormalizedProfileProviderSettings,
   NormalizedProfileSettings,
@@ -23,10 +25,7 @@ import {
 import { resolveEnvRecord } from '../../lib/env';
 import { clone } from '../../lib/object';
 import { UnexpectedError } from '../errors';
-import {
-  invalidBackoffEntryError,
-  invalidProfileProviderError,
-} from '../errors.helpers';
+import { invalidProfileProviderError } from '../errors.helpers';
 import { castToNonPrimitive, mergeVariables } from '../interpreter/variables';
 
 export function normalizeProfileProviderSettings(
@@ -71,8 +70,35 @@ export function normalizeProfileProviderSettings(
   return normalizedSettings;
 }
 
+export function normalizeBackoff(
+  backoff?: BackoffPolicy,
+  base?: NormalizedBackoffPolicy
+): NormalizedBackoffPolicy {
+  if (backoff === undefined) {
+    if (base === undefined) {
+      return { kind: BackoffKind.EXPONENTIAL };
+    } else {
+      return normalizeBackoff(base);
+    }
+  }
+
+  // string-to-object expansion
+  let objectBackoff: Exclude<BackoffPolicy, BackoffKind>;
+  if (backoff === BackoffKind.EXPONENTIAL) {
+    objectBackoff = { kind: BackoffKind.EXPONENTIAL };
+  } else {
+    objectBackoff = backoff;
+  }
+
+  return {
+    kind: BackoffKind.EXPONENTIAL,
+    start: objectBackoff.start ?? base?.start,
+    factor: objectBackoff.factor ?? base?.factor,
+  };
+}
+
 export function normalizeRetryPolicy(
-  retryPolicy?: RetryPolicy | undefined,
+  retryPolicy?: RetryPolicy,
   base?: NormalizedRetryPolicy
 ): NormalizedRetryPolicy {
   if (retryPolicy === undefined) {
@@ -83,48 +109,48 @@ export function normalizeRetryPolicy(
     }
   }
 
+  // string-to-object expansion - always fully override base
+  let objectRetryPolicy: Exclude<RetryPolicy, OnFail>;
   if (retryPolicy === OnFail.CIRCUIT_BREAKER) {
+    objectRetryPolicy = { kind: OnFail.CIRCUIT_BREAKER };
+  } else if (retryPolicy === OnFail.SIMPLE) {
+    objectRetryPolicy = { kind: OnFail.SIMPLE };
+  } else if (retryPolicy === OnFail.NONE) {
+    objectRetryPolicy = { kind: OnFail.NONE };
+  } else {
+    objectRetryPolicy = retryPolicy;
+  }
+
+  if (objectRetryPolicy.kind === OnFail.SIMPLE) {
+    if (base?.kind === OnFail.SIMPLE) {
+      objectRetryPolicy.maxContiguousRetries ??= base.maxContiguousRetries;
+      objectRetryPolicy.requestTimeout ??= base.requestTimeout;
+    }
+
+    return objectRetryPolicy;
+  }
+
+  if (objectRetryPolicy.kind === OnFail.CIRCUIT_BREAKER) {
+    let normalizedBackoff: NormalizedBackoffPolicy;
+    if (base?.kind === OnFail.CIRCUIT_BREAKER) {
+      objectRetryPolicy.maxContiguousRetries ??= base.maxContiguousRetries;
+      objectRetryPolicy.requestTimeout ??= base.requestTimeout;
+      objectRetryPolicy.openTime ??= base.openTime;
+      normalizedBackoff = normalizeBackoff(
+        objectRetryPolicy.backoff,
+        base.backoff
+      );
+    } else {
+      normalizedBackoff = normalizeBackoff(objectRetryPolicy.backoff);
+    }
+
     return {
-      kind: OnFail.CIRCUIT_BREAKER,
+      ...objectRetryPolicy,
+      backoff: normalizedBackoff,
     };
   }
 
-  if (
-    retryPolicy === OnFail.NONE ||
-    ('kind' in retryPolicy && retryPolicy.kind === OnFail.NONE)
-  ) {
-    return { kind: OnFail.NONE };
-  }
-
-  const baseOnFail = base?.kind === OnFail.NONE ? undefined : base;
-
-  const normalizeBackoff = () => {
-    if (retryPolicy.backoff === undefined) {
-      return;
-    }
-    if (retryPolicy.backoff === BackoffKind.EXPONENTIAL) {
-      return { kind: BackoffKind.EXPONENTIAL };
-    }
-    if (
-      'kind' in retryPolicy.backoff &&
-      retryPolicy.backoff.kind === BackoffKind.EXPONENTIAL
-    ) {
-      return {
-        kind: BackoffKind.EXPONENTIAL,
-        start: retryPolicy.backoff?.start ?? baseOnFail?.backoff?.start,
-        factor: retryPolicy.backoff?.factor ?? baseOnFail?.backoff?.factor,
-      };
-    }
-    throw invalidBackoffEntryError(retryPolicy.backoff.kind);
-  };
-
-  return {
-    kind: OnFail.CIRCUIT_BREAKER,
-    maxContiguousRetries:
-      retryPolicy.maxContiguousRetries ?? baseOnFail?.maxContiguousRetries,
-    requestTimeout: retryPolicy.requestTimeout ?? baseOnFail?.requestTimeout,
-    backoff: normalizeBackoff(),
-  };
+  return objectRetryPolicy;
 }
 
 export function normalizeUsecaseDefaults(

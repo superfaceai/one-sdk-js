@@ -1,8 +1,14 @@
-import { AstMetadata, MapDocumentNode, ProviderJson } from '@superfaceai/ast';
+import {
+  AssertionError,
+  AstMetadata,
+  MapDocumentNode,
+  ProviderJson,
+} from '@superfaceai/ast';
 
 import { Config } from '../config';
 import {
   bindResponseError,
+  invalidProviderResponseError,
   unknownBindResponseError,
   unknownProviderInfoError,
 } from '../internal/errors.helpers';
@@ -354,7 +360,14 @@ describe('registry', () => {
           },
           config
         )
-      ).rejects.toThrow('Bind call responded with invalid provider body');
+      ).rejects.toThrow(
+        invalidProviderResponseError(
+          new AssertionError(
+            [['must have required property "defaultService"', []]],
+            mockBody.provider
+          )
+        )
+      );
 
       expect(request).toHaveBeenCalledTimes(1);
     });

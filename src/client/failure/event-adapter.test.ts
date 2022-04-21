@@ -1914,6 +1914,10 @@ describe('event-adapter', () => {
                     kind: OnFail.CIRCUIT_BREAKER,
                     maxContiguousRetries: 2,
                     requestTimeout: 1000,
+                    backoff: {
+                      kind: BackoffKind.EXPONENTIAL,
+                      start: 50
+                    }
                   },
                 },
               },
@@ -1926,6 +1930,10 @@ describe('event-adapter', () => {
                     kind: OnFail.CIRCUIT_BREAKER,
                     maxContiguousRetries: 2,
                     requestTimeout: 1000,
+                    backoff: {
+                      kind: BackoffKind.EXPONENTIAL,
+                      start: 50
+                    }
                   },
                 },
               },
