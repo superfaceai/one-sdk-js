@@ -244,6 +244,7 @@ const mockServer = getLocal();
 
 describe('MetricReporter', () => {
   let eventEndpoint: MockedEndpoint;
+
   beforeEach(async () => {
     await mockServer.start();
     eventEndpoint = await mockServer

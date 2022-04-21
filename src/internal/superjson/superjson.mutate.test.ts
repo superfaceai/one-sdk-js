@@ -13,6 +13,7 @@ import { SuperJson } from '.';
 
 describe('superjson mutate', () => {
   let superjson: SuperJson;
+
   beforeEach(() => {
     superjson = new SuperJson({});
   });
@@ -690,6 +691,7 @@ describe('superjson mutate', () => {
     };
 
     const TEST_PROFILE_NAME = 'testprofile';
+
     it.each<TestData>([
       {
         from: {
@@ -1249,6 +1251,7 @@ describe('superjson mutate', () => {
 
     const TEST_PROFILE_NAME = 'testprofile';
     const TEST_PROFILE_PROVIDER = 'testprovider';
+
     it.each<TestData>([
       {
         from: {
@@ -1436,6 +1439,7 @@ describe('superjson mutate', () => {
 
   describe('when swapping profile provider variant', () => {
     const PROFILE = 'profile';
+
     beforeEach(() => {
       superjson = new SuperJson({
         profiles: {
@@ -1796,6 +1800,7 @@ describe('superjson mutate', () => {
     };
 
     const TEST_PROVIDER_NAME = 'testprovider';
+
     it.each<TestData>([
       {
         from: {

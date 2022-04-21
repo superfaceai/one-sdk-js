@@ -10,6 +10,7 @@ const http = new HttpClient(fetchInstance);
 
 describe('HttpClient', () => {
   let baseUrl: string;
+
   beforeEach(async () => {
     await mockServer.start();
     baseUrl = mockServer.url;

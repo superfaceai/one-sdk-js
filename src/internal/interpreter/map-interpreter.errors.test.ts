@@ -212,6 +212,7 @@ AST Path: definitions[0].statements[0].assignments[0].value`
 
   describe('MapInterpreter', () => {
     let mockServicesSelector: ServiceSelector;
+
     beforeEach(async () => {
       await mockServer.start();
       mockServicesSelector = ServiceSelector.withDefaultUrl(mockServer.url);

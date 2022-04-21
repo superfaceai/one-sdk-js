@@ -610,6 +610,7 @@ describe('SuperJson', () => {
       expect(isVersionString('hippopotamus')).toBe(false);
     });
   });
+
   describe('when checking file URI string validity', () => {
     it('checks file URI string validity', () => {
       expect(isFileURIString('file://../superface.suma')).toBe(true);

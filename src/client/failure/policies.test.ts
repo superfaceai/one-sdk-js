@@ -950,6 +950,7 @@ describe('failure policies', () => {
           router.beforeExecution({ time: 0, registryCacheAge: 0 })
         ).toEqual({ kind: 'continue', timeout: 30_000 });
       });
+
       it('switches back to first functional provider with higher priority', () => {
         const retryPolicy = new RetryPolicy(
           {
@@ -1094,6 +1095,7 @@ describe('failure policies', () => {
         ).toMatchObject({ kind: 'switch-provider', provider: 'second' });
       });
     });
+
     describe('afterFailure', () => {
       it('throws if current provider is undefined', () => {
         const router = new FailurePolicyRouter(
@@ -1234,6 +1236,7 @@ describe('failure policies', () => {
         ).toMatchObject({ kind: 'switch-provider', provider: 'third' });
       });
     });
+
     describe('afterSuccess', () => {
       it('throws if current provider is undefined', () => {
         const router = new FailurePolicyRouter(

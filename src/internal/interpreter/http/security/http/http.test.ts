@@ -8,6 +8,7 @@ describe('HttpHandler', () => {
   let httpHandler: HttpHandler;
   let parameters: RequestParameters;
   let configuration: SecurityConfiguration & { type: SecurityType.HTTP };
+
   describe('prepare', () => {
     it('sets header to correct value', async () => {
       parameters = {

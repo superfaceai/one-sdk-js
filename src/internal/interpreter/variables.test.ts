@@ -150,6 +150,7 @@ describe('Variables', () => {
       expect(getValue(undefined, ['some', 'stuff'])).toBeUndefined();
     });
   });
+
   describe('valuesToStrings', () => {
     it('should correctly stringify values', () => {
       const variables: NonPrimitive = {

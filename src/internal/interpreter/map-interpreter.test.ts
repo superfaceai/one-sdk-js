@@ -23,6 +23,7 @@ const parseMapFromSource = (source: string) =>
 
 describe('MapInterpreter', () => {
   let mockServicesSelector: ServiceSelector;
+
   beforeEach(async () => {
     await mockServer.start();
     mockServicesSelector = ServiceSelector.withDefaultUrl(mockServer.url);

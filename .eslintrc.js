@@ -9,6 +9,7 @@ module.exports = {
     '@typescript-eslint',
     'jest',
     'simple-import-sort',
+    'jest-formatting',
   ],
   extends: [
     'eslint:recommended',
@@ -18,6 +19,7 @@ module.exports = {
     'plugin:import/errors',
     'plugin:import/warnings',
     'plugin:jest/recommended',
+    'plugin:jest-formatting/recommended',
   ],
   rules: {
     'newline-before-return': 'error',
