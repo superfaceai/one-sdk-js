@@ -269,7 +269,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
   async visitConditionAtomNode(node: ConditionAtomNode): Promise<boolean> {
     const result = await this.visit(node.expression);
 
-    return result === true;
+    return Boolean(result);
   }
 
   async visitCallStatementNode(node: CallStatementNode): Promise<void> {
@@ -532,7 +532,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
 
         case 'OutcomeStatement': {
           const outcome = await this.visit(statement);
-          if (outcome?.error !== undefined) {
+          if (outcome !== undefined && outcome.error) {
             const stackTop = this.stackTop();
             if (stackTop.type === 'map') {
               let error: MapInterpreterError;
