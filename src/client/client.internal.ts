@@ -36,7 +36,7 @@ export class InternalClient {
     );
   }
 
-  private async getProfileConfiguration(
+  public async getProfileConfiguration(
     profileId: string
   ): Promise<ProfileConfiguration> {
     const profileSettings = this.superJson.normalized.profiles[profileId];

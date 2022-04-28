@@ -417,84 +417,6 @@ const thirdMockMapDocument: MapDocumentNode = {
 const mockServer = getLocal();
 
 describe('event-adapter', () => {
-  // function mockSuperJson(document: SuperJsonDocument) {
-  //   const mockLoadSync = jest.fn();
-  //   mockLoadSync.mockReturnValue(ok(new SuperJson(document)));
-  //   SuperJson.loadSync = mockLoadSync;
-  // }
-
-  // function spyOnCacheBoundProfileProvider(client: SuperfaceClientBase) {
-  //   const firstMockBoundProfileProvider = new BoundProfileProvider(
-  //     firstMockProfileDocument,
-  //     firstMockMapDocument,
-  //     'provider',
-  //     { services: ServiceSelector.withDefaultUrl(mockServer.url), security: [] },
-  //     client
-  //   );
-  //   const secondMockBoundProfileProvider = new BoundProfileProvider(
-  //     firstMockProfileDocument,
-  //     secondMockMapDocument,
-  //     'second',
-  //     { services: ServiceSelector.withDefaultUrl(mockServer.url), security: [] },
-  //     client
-  //   );
-  //   const thirdMockBoundProfileProvider = new BoundProfileProvider(
-  //     secondMockProfiledDocument,
-  //     thirdMockMapDocument,
-  //     'third',
-  //     { services: ServiceSelector.withDefaultUrl(mockServer.url), security: [] },
-  //     client
-  //   );
-  //   const cacheBoundProfileProviderSpy = jest
-  //     .spyOn(client, 'cacheBoundProfileProvider')
-  //     .mockImplementation((_, providerConfig) => {
-  //       switch (providerConfig.name) {
-  //         case 'provider':
-  //           return Promise.resolve(firstMockBoundProfileProvider);
-
-  //         case 'second':
-  //           return Promise.resolve(secondMockBoundProfileProvider);
-
-  //         case 'third':
-  //           return Promise.resolve(thirdMockBoundProfileProvider);
-
-  //         case 'invalid':
-  //           return Promise.reject(
-  //             bindResponseError({
-  //               statusCode: 400,
-  //               profileId: 'profileId',
-  //               title: 'test',
-  //             })
-  //           );
-
-  //         default:
-  //           throw 'unreachable';
-  //       }
-  //     });
-
-  //   return cacheBoundProfileProviderSpy;
-  // }
-
-  // describe.each([
-  //   { name: 'untyped', clientFactory: () => new SuperfaceClient() },
-  //   {
-  //     name: 'typed',
-  //     clientFactory: () => {
-  //       const TypedClient = createTypedClient({
-  //         ['starwars/character-information']: {
-  //           Test: [undefined, { message: '' }],
-  //           SecondUseCase: [undefined, { message: '' }],
-  //         },
-  //         ['startrek/character-information']: {
-  //           Test: [undefined, { message: '' }],
-  //         },
-  //       });
-
-  //       return new TypedClient();
-  //     },
-  //   },
-  // ])('event-adapter $name', ({ name: _name, clientFactory }) => {
-
   beforeEach(async () => {
     await mockServer.start();
   });
@@ -1916,8 +1838,8 @@ describe('event-adapter', () => {
                     requestTimeout: 1000,
                     backoff: {
                       kind: BackoffKind.EXPONENTIAL,
-                      start: 50
-                    }
+                      start: 50,
+                    },
                   },
                 },
               },
@@ -1932,8 +1854,8 @@ describe('event-adapter', () => {
                     requestTimeout: 1000,
                     backoff: {
                       kind: BackoffKind.EXPONENTIAL,
-                      start: 50
-                    }
+                      start: 50,
+                    },
                   },
                 },
               },

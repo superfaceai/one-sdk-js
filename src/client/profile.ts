@@ -1,5 +1,6 @@
 import { Config } from '../config';
-import { SuperJson } from '../internal';
+import { SuperJson, UnexpectedError } from '../internal';
+import { usecaseNotFoundError } from '../internal/errors.helpers';
 import { NonPrimitive } from '../internal/interpreter/variables';
 import { Events } from '../lib/events';
 import { IFileSystem } from '../lib/io';
@@ -65,59 +66,73 @@ export class Profile extends ProfileBase {
   }
 }
 
-// export class TypedProfile<
-//   // TKnownUsecases extends KnownUsecase<string, NonPrimitive, unknown>
-//   TUsecaseTypes extends UsecaseType
-// > extends ProfileBase {
-//   private readonly knownUsecases: KnownUsecase<TUsecaseTypes>;
+export class TypedProfile<
+  // TKnownUsecases extends KnownUsecase<string, NonPrimitive, unknown>
+  TUsecaseTypes extends UsecaseType
+> extends ProfileBase {
+  private readonly knownUsecases: KnownUsecase<TUsecaseTypes>;
 
-//   constructor(
-//     public override readonly configuration: ProfileConfiguration,
-//     protected override readonly events: Events,
-//     protected override readonly superJson: SuperJson,
-//     protected override readonly boundProfileProviderCache: SuperCache<BoundProfileProvider>,
-//     usecases: (keyof TUsecaseTypes)[]
-//   ) {
-//     super(configuration, events, superJson, boundProfileProviderCache);
-//     this.knownUsecases = usecases.reduce(
-//       (acc, usecase) => ({
-//         ...acc,
-//         [usecase]: new TypedUseCase<
-//           TUsecaseTypes[typeof usecase][0],
-//           TUsecaseTypes[typeof usecase][1]
-//         >(
-//           configuration,
-//           usecase as string,
-//           events,
-//           superJson,
-//           boundProfileProviderCache
-//         ),
-//       }),
-//       {} as KnownUsecase<TUsecaseTypes>
-//     );
-//   }
+  constructor(
+    public override readonly configuration: ProfileConfiguration,
+    protected override readonly events: Events,
+    protected override readonly superJson: SuperJson,
+    protected override readonly boundProfileProviderCache: SuperCache<{
+      provider: IBoundProfileProvider;
+      expiresAt: number;
+    }>,
+    protected override readonly config: Config,
+    protected override readonly fileSystem: IFileSystem,
+    usecases: (keyof TUsecaseTypes)[]
+  ) {
+    super(
+      configuration,
+      events,
+      superJson,
+      config,
+      fileSystem,
+      boundProfileProviderCache
+    );
+    this.knownUsecases = usecases.reduce(
+      (acc, usecase) => ({
+        ...acc,
+        [usecase]: new TypedUseCase<
+          TUsecaseTypes[typeof usecase][0],
+          TUsecaseTypes[typeof usecase][1]
+        >(
+          configuration,
+          usecase as string,
+          events,
+          config,
+          superJson,
+          fileSystem,
+          boundProfileProviderCache
+        ),
+      }),
+      {} as KnownUsecase<TUsecaseTypes>
+    );
+  }
 
-//   get useCases(): KnownUsecase<TUsecaseTypes> {
-//     if (this.knownUsecases === undefined) {
-//       throw new UnexpectedError(
-//         'Thou shall not access the typed interface from untyped Profile'
-//       );
-//     } else {
-//       return this.knownUsecases;
-//     }
-//   }
+  get useCases(): KnownUsecase<TUsecaseTypes> {
+    if (this.knownUsecases === undefined) {
+      throw new UnexpectedError(
+        'Thou shall not access the typed interface from untyped Profile'
+      );
+    } else {
+      return this.knownUsecases;
+    }
+  }
 
-//   getUseCase<TName extends keyof KnownUsecase<TUsecaseTypes>>(
-//     name: TName
-//   ): KnownUsecase<TUsecaseTypes>[TName] {
-//     const usecase = this.knownUsecases?.[name];
-//     if (!usecase) {
-//       throw usecaseNotFoundError(
-//         name.toString(),
-//         Object.keys(this.knownUsecases)
-//       );
-//     }
+  getUseCase<TName extends keyof KnownUsecase<TUsecaseTypes>>(
+    name: TName
+  ): KnownUsecase<TUsecaseTypes>[TName] {
+    const usecase = this.knownUsecases?.[name];
+    if (!usecase) {
+      throw usecaseNotFoundError(
+        name.toString(),
+        Object.keys(this.knownUsecases)
+      );
+    }
 
-//     return usecase;
-//   }
-// }
+    return usecase;
+  }
+}

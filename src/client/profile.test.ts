@@ -4,9 +4,11 @@ import { Config } from '../config';
 import { SuperJson } from '../internal';
 import { Events } from '../lib/events';
 import { NodeFileSystem } from '../lib/io/filesystem.node';
+import { MockFileSystem } from '../test/filesystem';
 import { SuperCache } from './cache';
-import { Profile, ProfileConfiguration } from './profile';
+import { Profile, ProfileConfiguration, TypedProfile } from './profile';
 import { IBoundProfileProvider } from './profile-provider';
+import { UseCase } from './usecase';
 
 function createProfile(superJson: SuperJsonDocument): Profile {
   const events = new Events();
@@ -72,57 +74,64 @@ describe('Profile', () => {
   });
 });
 
-// describe('TypedProfile', () => {
-//   const mockSuperJson = new SuperJson({
-//     profiles: {
-//       test: {
-//         version: '1.0.0',
-//       },
-//     },
-//     providers: {},
-//   });
-//   afterEach(() => {
-//     jest.resetAllMocks();
-//   });
-//   beforeEach(() => {
-//     mockLoadSync.mockReturnValue(ok(mockSuperJson));
-//     SuperJson.loadSync = mockLoadSync;
-//   });
-//   describe('getUseCases', () => {
-//     it('should get usecase correctly', async () => {
-//       const mockClient = new SuperfaceClient();
-//       const mockProfileConfiguration = new ProfileConfiguration(
-//         'test',
-//         '1.0.0'
-//       );
+describe('TypedProfile', () => {
+  const mockSuperJson = new SuperJson({
+    profiles: {
+      test: {
+        version: '1.0.0',
+      },
+    },
+    providers: {},
+  });
+  const mockProfileConfiguration = new ProfileConfiguration('test', '1.0.0');
 
-//       const typedProfile = new TypedProfile(
-//         mockClient,
-//         mockProfileConfiguration,
-//         ['sayHello']
-//       );
+  const events = new Events();
+  const cache = new SuperCache<{
+    provider: IBoundProfileProvider;
+    expiresAt: number;
+  }>();
+  const config = new Config();
+  const fileSystem = MockFileSystem();
 
-//       expect(typedProfile.getUseCase('sayHello')).toEqual(
-//         new UseCase(typedProfile, 'sayHello')
-//       );
-//     });
+  describe('getUseCases', () => {
+    it('should get usecase correctly', async () => {
+      const typedProfile = new TypedProfile(
+        mockProfileConfiguration,
+        events,
+        mockSuperJson,
+        cache,
+        config,
+        fileSystem,
+        ['sayHello']
+      );
 
-//     it('should throw when usecase is not found', async () => {
-//       const mockClient = new SuperfaceClient();
-//       const mockProfileConfiguration = new ProfileConfiguration(
-//         'test',
-//         '1.0.0'
-//       );
+      expect(typedProfile.getUseCase('sayHello')).toEqual(
+        new UseCase(
+          mockProfileConfiguration,
+          'sayHello',
+          events,
+          config,
+          mockSuperJson,
+          fileSystem,
+          cache
+        )
+      );
+    });
 
-//       const typedProfile = new TypedProfile(
-//         mockClient,
-//         mockProfileConfiguration,
-//         ['sayHello']
-//       );
+    it('should throw when usecase is not found', async () => {
+      const typedProfile = new TypedProfile(
+        mockProfileConfiguration,
+        events,
+        mockSuperJson,
+        cache,
+        config,
+        fileSystem,
+        ['sayHello']
+      );
 
-//       expect(() => typedProfile.getUseCase('nope')).toThrow(
-//         new RegExp('Usecase not found: "nope"')
-//       );
-//     });
-//   });
-// });
+      expect(() => typedProfile.getUseCase('nope')).toThrow(
+        new RegExp('Usecase not found: "nope"')
+      );
+    });
+  });
+});

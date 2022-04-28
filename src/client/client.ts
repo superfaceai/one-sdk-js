@@ -1,5 +1,6 @@
 import { Config } from '../config';
 import { SuperJson } from '../internal';
+import { NonPrimitive } from '../internal/interpreter/variables';
 import {
   getProvider,
   getProviderForProfile,
@@ -10,7 +11,7 @@ import { hookMetrics, MetricReporter } from '../lib/reporter';
 import { SuperCache } from './cache';
 import { InternalClient } from './client.internal';
 import { registerHooks as registerFailoverHooks } from './failure/event-adapter';
-import { Profile } from './profile';
+import { Profile, TypedProfile, UsecaseType } from './profile';
 import { IBoundProfileProvider } from './profile-provider';
 import { Provider } from './provider';
 
@@ -25,21 +26,27 @@ export abstract class SuperfaceClientBase {
   public readonly superJson: SuperJson;
   protected readonly events: Events;
   protected readonly internal: InternalClient;
+  protected readonly boundProfileProviderCache: SuperCache<{
+    provider: IBoundProfileProvider;
+    expiresAt: number;
+  }>;
+
+  protected readonly config: Config;
 
   constructor() {
     this.events = new Events();
-    const config = Config.loadFromEnv();
-    const superCacheKey = config.superfacePath;
+    this.config = Config.loadFromEnv();
+    const superCacheKey = this.config.superfacePath;
 
-    const boundProfileProviderCache = new SuperCache<{
+    this.boundProfileProviderCache = new SuperCache<{
       provider: IBoundProfileProvider;
       expiresAt: number;
     }>();
     this.superJson = SuperJson.loadSync(superCacheKey).unwrap();
 
     let metricReporter: MetricReporter | undefined;
-    if (!config.disableReporting) {
-      metricReporter = new MetricReporter(this.superJson, config);
+    if (!this.config.disableReporting) {
+      metricReporter = new MetricReporter(this.superJson, this.config);
       hookMetrics(this.events, metricReporter);
       metricReporter.reportEvent({
         eventType: 'SDKInit',
@@ -52,9 +59,9 @@ export abstract class SuperfaceClientBase {
     this.internal = new InternalClient(
       this.events,
       this.superJson,
-      config,
+      this.config,
       NodeFileSystem,
-      boundProfileProviderCache
+      this.boundProfileProviderCache
     );
   }
 
@@ -83,43 +90,47 @@ export class SuperfaceClient
   }
 }
 
-// type ProfileUseCases<TInput extends NonPrimitive | undefined, TOutput> = {
-//   [profile: string]: UsecaseType<TInput, TOutput>;
-// };
+type ProfileUseCases<TInput extends NonPrimitive | undefined, TOutput> = {
+  [profile: string]: UsecaseType<TInput, TOutput>;
+};
 
-// export type TypedSuperfaceClient<
-//   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-//   TProfiles extends ProfileUseCases<any, any>
-// > = SuperfaceClientBase & {
-//   getProfile<TProfile extends keyof TProfiles>(
-//     profileId: TProfile
-//   ): Promise<TypedProfile<TProfiles[TProfile]>>;
-// };
+export type TypedSuperfaceClient<
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  TProfiles extends ProfileUseCases<any, any>
+> = SuperfaceClientBase & {
+  getProfile<TProfile extends keyof TProfiles>(
+    profileId: TProfile
+  ): Promise<TypedProfile<TProfiles[TProfile]>>;
+};
 
-// // eslint-disable-next-line @typescript-eslint/no-explicit-any
-// export function createTypedClient<TProfiles extends ProfileUseCases<any, any>>(
-//   profileDefinitions: TProfiles
-// ): { new (): TypedSuperfaceClient<TProfiles> } {
-//   return class TypedSuperfaceClientClass
-//     extends SuperfaceClientBase
-//     implements TypedSuperfaceClient<TProfiles>
-//   {
-//     async getProfile<TProfile extends keyof TProfiles>(
-//       profileId: TProfile
-//     ): Promise<TypedProfile<TProfiles[TProfile]>> {
-//       const profileConfiguration = await this.getProfileConfiguration(
-//         profileId as string
-//       );
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function createTypedClient<TProfiles extends ProfileUseCases<any, any>>(
+  profileDefinitions: TProfiles
+): { new (): TypedSuperfaceClient<TProfiles> } {
+  return class TypedSuperfaceClientClass
+    extends SuperfaceClientBase
+    implements TypedSuperfaceClient<TProfiles>
+  {
+    async getProfile<TProfile extends keyof TProfiles>(
+      profileId: TProfile
+    ): Promise<TypedProfile<TProfiles[TProfile]>> {
+      const profileConfiguration = await this.internal.getProfileConfiguration(
+        profileId as string
+      );
 
-//       return new TypedProfile(
-//         this,
-//         profileConfiguration,
-//         Object.keys(profileDefinitions[profileId])
-//       );
-//     }
-//   };
-// }
+      return new TypedProfile(
+        profileConfiguration,
+        this.events,
+        this.superJson,
+        this.boundProfileProviderCache,
+        this.config,
+        NodeFileSystem,
+        Object.keys(profileDefinitions[profileId])
+      );
+    }
+  };
+}
 
-// export const typeHelper = <TInput, TOutput>(): [TInput, TOutput] => {
-//   return [undefined as unknown, undefined as unknown] as [TInput, TOutput];
-// };
+export const typeHelper = <TInput, TOutput>(): [TInput, TOutput] => {
+  return [undefined as unknown, undefined as unknown] as [TInput, TOutput];
+};
