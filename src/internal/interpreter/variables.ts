@@ -110,7 +110,7 @@ export const getValue = (
 };
 
 /**
- * Stringifies a primitive variable.
+ * Turns a variable (both primitive and non-primitive) into a string.
 */
 export const variableToString = (
 	variable: Variables

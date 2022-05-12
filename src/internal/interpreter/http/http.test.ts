@@ -55,6 +55,18 @@ describe('HttpClient', () => {
     expect(url).toEqual('https://example.com/test/hello');
   });
 
+  it('should correctly interpolate parameters with whitespaces in interpolation key', () => {
+    const baseUrl = 'https://example.com/';
+    const inputUrl = '/test/{ parameter.value   }';
+
+    const url = createUrl(inputUrl, {
+      baseUrl,
+      pathParameters: { parameter: { value: 'hello' } },
+    });
+
+    expect(url).toEqual('https://example.com/test/hello');
+  });
+
   it('should correctly interpolate multiple parameters', () => {
     const inputUrl = '/test/{parameter.value}/another/{parameter.another}';
 
