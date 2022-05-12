@@ -18,6 +18,7 @@ import {
   NonPrimitive,
   Variables,
   variablesToStrings,
+  variableToString,
 } from '../variables';
 import {
   authenticateFilter,
@@ -67,38 +68,43 @@ export enum NetworkErrors {
 }
 
 function replaceParameters(url: string, parameters: NonPrimitive) {
-  const replacements: string[] = [];
+  let result = '';
+
+  let lastIndex = 0;
+  const allKeys: string[] = [];
+  const missingKeys: string[] = [];
 
   const regex = RegExp('{([^}]*)}', 'g');
-  let replacement: RegExpExecArray | null;
-  while ((replacement = regex.exec(url)) !== null) {
-    replacements.push(replacement[1]);
-  }
+  for (const match of url.matchAll(regex)) {
+    const start = match.index;
+    // Why can this be undefined?
+    if (start === undefined) {
+      throw new UnexpectedError('Invalid regex match state - missing start index');
+    }
 
-  const entries = replacements.map<[string, Variables | undefined]>(key => [
-    key,
-    getValue(parameters, key.split('.')),
-  ]);
-  const values = Object.fromEntries(entries);
-  const missingKeys = replacements.filter(key => values[key] === undefined);
+    const end = start + match[0].length;
+    const key = match[1].trim();
+    const value = getValue(parameters, key.split('.'));
+
+    allKeys.push(key);
+    if (value === undefined) {
+      missingKeys.push(key);
+      continue;
+    }
+
+    result += url.slice(lastIndex, start);
+    result += variableToString(value);
+    lastIndex = end;
+  }
+  result += url.slice(lastIndex);
 
   if (missingKeys.length > 0) {
-    const missing = missingKeys;
-    const all = replacements;
     const available = recursiveKeyList(parameters ?? {});
 
-    throw missingPathReplacementError(missing, url, all, available);
+    throw missingPathReplacementError(missingKeys, url, allKeys, available);
   }
 
-  const stringifiedValues = variablesToStrings(values);
-
-  for (const param of Object.keys(values)) {
-    const replacement = stringifiedValues[param];
-
-    url = url.replace(`{${param}}`, replacement);
-  }
-
-  return url;
+  return result;
 }
 
 export const createUrl = (

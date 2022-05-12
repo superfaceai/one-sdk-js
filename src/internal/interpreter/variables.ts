@@ -110,6 +110,19 @@ export const getValue = (
 };
 
 /**
+ * Turns a variable (both primitive and non-primitive) into a string.
+*/
+export const variableToString = (
+	variable: Variables
+): string => {
+	if (typeof variable === 'string') {
+		return variable;
+	}
+
+	return JSON.stringify(variable);
+}
+
+/**
  * Stringifies a Record of variables. `undefined` values are removed.
  */
 export const variablesToStrings = (
@@ -120,7 +133,7 @@ export const variablesToStrings = (
   if (variables) {
     for (const [key, value] of Object.entries(variables)) {
       if (value !== undefined) {
-        result[key] = typeof value === 'string' ? value : JSON.stringify(value);
+        result[key] = variableToString(value);
       }
     }
   }
