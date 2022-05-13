@@ -115,6 +115,14 @@ describe('sandbox', () => {
     expect(Array.isArray(v)).toBe(true);
   });
 
+  it('correctly evaluates array literal inside object literal', () => {
+    const v = evalScript('{ a: 1, b: [1, 2, 3, { x: Buffer.from("hello"), y: [1, 2, 3] }] }');
+    expect(v).toStrictEqual(
+      { a: 1, b: [1, 2, 3, { x: Buffer.from('hello'), y: [1, 2, 3] }] }
+    );
+    expect(Array.isArray((v as { b: unknown }).b)).toBe(true);
+  });
+
   describe('stdlib', () => {
     it('provides unstable stdlib', () => {
       expect(
