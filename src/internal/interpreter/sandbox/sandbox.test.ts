@@ -116,10 +116,13 @@ describe('sandbox', () => {
   });
 
   it('correctly evaluates array literal inside object literal', () => {
-    const v = evalScript('{ a: 1, b: [1, 2, 3, { x: Buffer.from("hello"), y: [1, 2, 3] }] }');
-    expect(v).toStrictEqual(
-      { a: 1, b: [1, 2, 3, { x: Buffer.from('hello'), y: [1, 2, 3] }] }
+    const v = evalScript(
+      '{ a: 1, b: [1, 2, 3, { x: Buffer.from("hello"), y: [1, 2, 3] }] }'
     );
+    expect(v).toStrictEqual({
+      a: 1,
+      b: [1, 2, 3, { x: Buffer.from('hello'), y: [1, 2, 3] }],
+    });
     expect(Array.isArray((v as { b: unknown }).b)).toBe(true);
   });
 

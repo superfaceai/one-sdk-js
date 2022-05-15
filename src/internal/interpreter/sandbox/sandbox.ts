@@ -19,7 +19,7 @@ function vm2ExtraArrayKeysFixup<T>(value: T): T {
   if (Buffer.isBuffer(value)) {
     return value;
   }
-  
+
   if (Array.isArray(value)) {
     const newArray: unknown[] = [];
     for (let i = 0; i < value.length; i += 1) {
