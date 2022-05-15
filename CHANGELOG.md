@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed Buffer (`Buffer.isBuffer(x) == true`) being considered a composite structure and being merged as an object
 - Fixed authentication clearing query parameters
 - Fixed url path parameter replacement not working with whitespace around replacement keys
+- Fixup of arrays coming from vm2 sandbox
 
 ## [1.3.0] - 2022-02-15
 ### Added

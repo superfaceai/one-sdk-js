@@ -12,6 +12,10 @@ function vm2ExtraArrayKeysFixup<T>(value: T): T {
     return value;
   }
 
+  if (value === null) {
+    return value;
+  }
+
   if (Buffer.isBuffer(value)) {
     return value;
   }
@@ -92,10 +96,9 @@ export function evalScript(
   const result = vm.run(
     `'use strict';const vmResult = ${js};vmResult`
   ) as unknown;
+  const resultVm2Fixed = vm2ExtraArrayKeysFixup(result);
 
-  if (debug.enabled) {
-    debug('Result:', vm2ExtraArrayKeysFixup(result));
-  }
+  debug('Result:', resultVm2Fixed);
 
-  return result;
+  return resultVm2Fixed;
 }
