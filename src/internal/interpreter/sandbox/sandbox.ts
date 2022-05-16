@@ -16,7 +16,7 @@ function vm2ExtraArrayKeysFixup<T>(value: T): T {
     return value;
   }
 
-  if (Buffer.isBuffer(value)) {
+  if (Buffer.isBuffer(value) || value instanceof ArrayBuffer) {
     return value;
   }
 
