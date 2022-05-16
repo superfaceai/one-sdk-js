@@ -13,7 +13,7 @@ import {
 } from '@superfaceai/ast';
 
 import { IFileSystem } from '../../lib/io';
-import { ok } from '../../lib/result/result';
+import { err, ok } from '../../lib/result/result';
 import { MockFileSystem } from '../../test/filesystem';
 import { mergeSecurity } from './mutate';
 import * as normalize from './normalize';
@@ -144,7 +144,7 @@ describe('SuperJson', () => {
     const mockError = new Error('test');
 
     it('returns err when unable to find super.json', () => {
-      fileSystem.isAccessibleSync = () => false;
+      fileSystem.sync.isAccessible = () => false;
       const result = SuperJson.loadSync('test', fileSystem);
       expect(result.isErr()).toBe(true);
       expect(result.isErr() && result.error.message).toMatch(
@@ -153,7 +153,7 @@ describe('SuperJson', () => {
     });
 
     it('returns err when super.json is not file', () => {
-      fileSystem.isFileSync = () => false;
+      fileSystem.sync.isFile = () => false;
       const result = SuperJson.loadSync('test', fileSystem);
       expect(result.isErr()).toBe(true);
       expect(result.isErr() && result.error.message).toMatch(
@@ -162,9 +162,7 @@ describe('SuperJson', () => {
     });
 
     it('returns err when unable to read super.json', () => {
-      fileSystem.readFileSync = () => {
-        throw mockError;
-      };
+      fileSystem.sync.readFile = () => err(mockError);
       const result = SuperJson.loadSync('test', fileSystem);
       expect(result.isErr()).toBe(true);
       expect(result.isErr() && result.error.message).toMatch(
@@ -173,7 +171,8 @@ describe('SuperJson', () => {
     });
 
     it('returns err when there is an error during parsing super.json', () => {
-      fileSystem.readFileSync = () => `{
+      fileSystem.sync.readFile = () =>
+        ok(`{
         "profiles": {
           "send-message": {
             "version": "1.0.Z",
@@ -195,14 +194,15 @@ describe('SuperJson', () => {
             ]
           }
         }
-      }`;
+      }`);
       expect(SuperJson.loadSync('test', fileSystem).isErr()).toEqual(true);
     });
 
     // // TODO: Skipped for now, broken because of typescript-is bug
     // // https://github.com/woutervh-/typescript-is/issues/111
     it.skip('returns err when there is an error during parsing super.json - usecase not nested under defaults', () => {
-      fileSystem.readFileSync = () => `{
+      fileSystem.sync.readFile = () =>
+        ok(`{
         "profiles": {
           "send-message": {
             "version": "1.0.0",
@@ -227,12 +227,13 @@ describe('SuperJson', () => {
             ]
           }
         }
-      }`;
+      }`);
       expect(SuperJson.loadSync('test', fileSystem).isErr()).toEqual(true);
     });
 
     it('returns new super.json', () => {
-      fileSystem.readFileSync = () => JSON.stringify(mockSuperJsonDocument);
+      fileSystem.sync.readFile = () =>
+        ok(JSON.stringify(mockSuperJsonDocument));
 
       expect(SuperJson.loadSync('test', fileSystem)).toEqual(
         ok(new SuperJson(mockSuperJsonDocument, 'test', fileSystem))
@@ -262,9 +263,7 @@ describe('SuperJson', () => {
     });
 
     it('returns err when unable to read super.json', async () => {
-      fileSystem.readFile = async () => {
-        throw mockError;
-      };
+      fileSystem.readFile = async () => err(mockError);
       const result = await SuperJson.load('test', fileSystem);
       expect(result.isErr()).toBe(true);
       expect(result.isErr() && result.error.message).toMatch(
@@ -273,7 +272,8 @@ describe('SuperJson', () => {
     });
 
     it('returns err when there is an error during parsing super.json', async () => {
-      fileSystem.readFile = async () => `{
+      fileSystem.readFile = async () =>
+        ok(`{
         "profiles": {
           "send-message": {
             "version": "1.0.Z",
@@ -295,12 +295,13 @@ describe('SuperJson', () => {
             ]
           }
         }
-      }`;
+      }`);
       expect((await SuperJson.load('test', fileSystem)).isErr()).toEqual(true);
     });
 
     it('returns new super.json', async () => {
-      fileSystem.readFile = async () => JSON.stringify(mockSuperJsonDocument);
+      fileSystem.readFile = async () =>
+        ok(JSON.stringify(mockSuperJsonDocument));
 
       await expect(SuperJson.load('test', fileSystem)).resolves.toEqual(
         ok(new SuperJson(mockSuperJsonDocument, 'test', fileSystem))
@@ -1185,7 +1186,7 @@ describe('SuperJson', () => {
   describe('when calling relative path', () => {
     it('returns path correctly', () => {
       const mockPath = '/mock/final/path';
-      fileSystem.relativePath = () => mockPath;
+      fileSystem.path.relative = () => mockPath;
       expect(superjson.relativePath('path')).toEqual(mockPath);
     });
   });
@@ -1193,7 +1194,7 @@ describe('SuperJson', () => {
   describe('when resolving path', () => {
     it('resolves path correctly', () => {
       const mockPath = '/mock/final/path';
-      fileSystem.resolvePath = () => mockPath;
+      fileSystem.path.resolve = () => mockPath;
       expect(superjson.resolvePath('path')).toEqual(mockPath);
     });
   });
@@ -1267,7 +1268,7 @@ describe('SuperJson', () => {
     it('detects super.json in cwd', async () => {
       const mockCwd = 'path/to/';
 
-      fileSystem.relativePath = () => mockCwd;
+      fileSystem.path.relative = () => mockCwd;
       expect(
         await SuperJson.detectSuperJson(mockCwd, undefined, fileSystem)
       ).toEqual(mockCwd);
@@ -1280,7 +1281,7 @@ describe('SuperJson', () => {
         .fn()
         .mockResolvedValueOnce(false)
         .mockResolvedValue(true);
-      fileSystem.relativePath = () => mockCwd;
+      fileSystem.path.relative = () => mockCwd;
 
       expect(
         await SuperJson.detectSuperJson(process.cwd(), undefined, fileSystem)
@@ -1291,7 +1292,7 @@ describe('SuperJson', () => {
       const mockCwd = 'path/to/';
 
       fileSystem.isAccessible = async () => false;
-      fileSystem.relativePath = () => mockCwd;
+      fileSystem.path.relative = () => mockCwd;
 
       expect(
         await SuperJson.detectSuperJson(mockCwd, undefined, fileSystem)
@@ -1300,7 +1301,7 @@ describe('SuperJson', () => {
 
     it('detects super.json from 1 level below', async () => {
       const mockCwd = 'path/to/';
-      fileSystem.relativePath = () => mockCwd;
+      fileSystem.path.relative = () => mockCwd;
       fileSystem.isAccessible = jest
         .fn()
         .mockResolvedValueOnce(false)
@@ -1315,7 +1316,7 @@ describe('SuperJson', () => {
 
     it('detects super.json from 2 levels below', async () => {
       const mockCwd = 'path/to/';
-      fileSystem.relativePath = () => mockCwd;
+      fileSystem.path.relative = () => mockCwd;
 
       fileSystem.isAccessible = jest
         .fn()

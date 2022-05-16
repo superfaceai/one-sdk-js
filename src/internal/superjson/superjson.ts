@@ -67,20 +67,22 @@ export class SuperJson {
     fileSystem: IFileSystem = NodeFileSystem
   ): Promise<string | undefined> {
     // check whether super.json is accessible in cwd
-    if (await fileSystem.isAccessible(fileSystem.joinPath(cwd, META_FILE))) {
-      return fileSystem.normalize(fileSystem.relativePath(process.cwd(), cwd));
+    if (await fileSystem.isAccessible(fileSystem.path.join(cwd, META_FILE))) {
+      return fileSystem.path.normalize(
+        fileSystem.path.relative(process.cwd(), cwd)
+      );
     }
 
     // check whether super.json is accessible in cwd/superface
     if (
       await fileSystem.isAccessible(
-        fileSystem.joinPath(cwd, SUPERFACE_DIR, META_FILE)
+        fileSystem.path.join(cwd, SUPERFACE_DIR, META_FILE)
       )
     ) {
-      return fileSystem.normalize(
-        fileSystem.relativePath(
+      return fileSystem.path.normalize(
+        fileSystem.path.relative(
           process.cwd(),
-          fileSystem.joinPath(cwd, SUPERFACE_DIR)
+          fileSystem.path.join(cwd, SUPERFACE_DIR)
         )
       );
     }
@@ -91,7 +93,7 @@ export class SuperJson {
     }
 
     // check if user has permissions outside cwd
-    cwd = fileSystem.joinPath(cwd, '..');
+    cwd = fileSystem.path.join(cwd, '..');
     if (!(await fileSystem.isAccessible(cwd))) {
       return undefined;
     }
@@ -114,11 +116,11 @@ export class SuperJson {
     fileSystem: IFileSystem = NodeFileSystem
   ): Result<SuperJson, SDKExecutionError> {
     try {
-      if (!fileSystem.isAccessibleSync(path)) {
+      if (!fileSystem.sync.isAccessible(path)) {
         return err(superJsonNotFoundError(path));
       }
 
-      if (!fileSystem.isFileSync(path)) {
+      if (!fileSystem.sync.isFile(path)) {
         return err(superJsonNotAFileError(path));
       }
     } catch (e: unknown) {
@@ -126,11 +128,11 @@ export class SuperJson {
     }
 
     let superjson: unknown;
-    try {
-      const superraw = fileSystem.readFileSync(path);
-      superjson = JSON.parse(superraw);
-    } catch (e: unknown) {
-      return err(superJsonReadError(ensureErrorSubclass(e)));
+    const superraw = fileSystem.sync.readFile(path);
+    if (superraw.isOk()) {
+      superjson = JSON.parse(superraw.value);
+    } else {
+      return err(superJsonReadError(ensureErrorSubclass(superraw.error)));
     }
 
     const superdocument = SuperJson.parse(superjson);
@@ -163,11 +165,11 @@ export class SuperJson {
     }
 
     let superjson: unknown;
-    try {
-      const superraw = await fileSystem.readFile(path);
-      superjson = JSON.parse(superraw);
-    } catch (e: unknown) {
-      return err(superJsonReadError(ensureErrorSubclass(e)));
+    const superraw = await fileSystem.readFile(path);
+    if (superraw.isOk()) {
+      superjson = JSON.parse(superraw.value);
+    } else {
+      return err(superJsonReadError(ensureErrorSubclass(superraw.error)));
     }
 
     const superdocument = SuperJson.parse(superjson);
@@ -362,8 +364,8 @@ export class SuperJson {
    * Returns a relative path relative to `path` from `dirname(this.path)`.
    */
   relativePath(path: string): string {
-    return this.fileSystem.relativePath(
-      this.fileSystem.dirname(this.path),
+    return this.fileSystem.path.relative(
+      this.fileSystem.path.dirname(this.path),
       path
     );
   }
@@ -372,8 +374,8 @@ export class SuperJson {
    * Resolves relative paths as relative to `dirname(this.path)`.
    */
   resolvePath(path: string): string {
-    return this.fileSystem.resolvePath(
-      this.fileSystem.dirname(this.path),
+    return this.fileSystem.path.resolve(
+      this.fileSystem.path.dirname(this.path),
       path
     );
   }

@@ -1,27 +1,43 @@
 import { IFileSystem } from '../lib/io/filesystem';
+import { FileSystemError } from '../lib/io/filesystem.errors';
+import { ok, Result } from '../lib/result/result';
 
 export const MockFileSystem: () => IFileSystem = () => ({
-  dirname: jest.fn(() => ''),
+  sync: {
+    exists: jest.fn(() => true),
+    isAccessible: jest.fn(() => true),
+    isDirectory: jest.fn(() => false),
+    isFile: jest.fn(() => true),
+    mkdir: jest.fn(() => ok(undefined)),
+    readFile: jest.fn(() => ok('')),
+    readdir: jest.fn(() => ok([])),
+    rm: jest.fn(() => ok(undefined)),
+    writeFile: jest.fn(() => ok(undefined)),
+  },
+  path: {
+    dirname: jest.fn(() => ''),
+    join: jest.fn((...strings: string[]) => strings.join('/')),
+    normalize: jest.fn((path: string) => path),
+    resolve: jest.fn(() => ''),
+    relative: jest.fn(() => ''),
+  },
   exists: jest.fn(async () => true),
-  existsSync: jest.fn(() => true),
   isAccessible: jest.fn(async () => true),
-  isAccessibleSync: jest.fn(() => true),
   isDirectory: jest.fn(async () => true),
-  isDirectorySync: jest.fn(() => false),
   isFile: jest.fn(async () => true),
-  isFileSync: jest.fn(() => true),
-  joinPath: jest.fn((...strings: string[]) => strings.join('/')),
-  mkdir: jest.fn(async () => {}),
-  mkdirSync: jest.fn(() => {}),
-  normalize: jest.fn((path: string) => path),
-  readFile: jest.fn(async () => ''),
-  readFileSync: jest.fn(() => ''),
-  readdir: jest.fn(async () => []),
-  readdirSync: jest.fn(() => []),
-  resolvePath: jest.fn(() => ''),
-  relativePath: jest.fn(() => ''),
-  rm: jest.fn(async () => {}),
-  rmSync: jest.fn(() => {}),
-  writeFile: jest.fn(async () => {}),
-  writeFileSync: jest.fn(() => {}),
+  mkdir: jest.fn(
+    async (): Promise<Result<void, FileSystemError>> => ok(undefined)
+  ),
+  readFile: jest.fn(
+    async (): Promise<Result<string, FileSystemError>> => ok('')
+  ),
+  readdir: jest.fn(
+    async (): Promise<Result<string[], FileSystemError>> => ok([])
+  ),
+  rm: jest.fn(
+    async (): Promise<Result<void, FileSystemError>> => ok(undefined)
+  ),
+  writeFile: jest.fn(
+    async (): Promise<Result<void, FileSystemError>> => ok(undefined)
+  ),
 });

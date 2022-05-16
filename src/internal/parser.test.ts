@@ -1,4 +1,5 @@
 import { parseMap, parseProfile, Source } from '@superfaceai/parser';
+import { ok } from '../lib/result/result';
 
 import { MockFileSystem } from '../test/filesystem';
 import { Parser } from './parser';
@@ -112,8 +113,8 @@ describe('Parser', () => {
 
     it('should not load from in-memory cache when already present - missing ast metadata', async () => {
       filesystem.exists = jest.fn().mockResolvedValue(true);
-      filesystem.readFile = jest.fn().mockResolvedValueOnce(mapASTFixture);
-      const path = filesystem.joinPath(
+      filesystem.readFile = jest.fn().mockResolvedValueOnce(ok(mapASTFixture));
+      const path = filesystem.path.join(
         cachePath,
         'test',
         'profile',
@@ -140,7 +141,7 @@ describe('Parser', () => {
 
     it('should load from in-memory cache when already present', async () => {
       filesystem.exists = jest.fn().mockResolvedValue(true);
-      filesystem.readFile = jest.fn().mockResolvedValueOnce(mapASTFixture);
+      filesystem.readFile = jest.fn().mockResolvedValueOnce(ok(mapASTFixture));
       const result1 = await Parser.parseMap(
         mapFixture,
         'profile.supr',
@@ -173,12 +174,14 @@ describe('Parser', () => {
       filesystem.exists = jest.fn().mockResolvedValue(true);
       filesystem.readdir = jest
         .fn()
-        .mockResolvedValueOnce(['test-provider.suma.ast.json']);
+        .mockResolvedValueOnce(ok(['test-provider.suma.ast.json']));
       filesystem.readFile = jest.fn().mockResolvedValueOnce(
-        JSON.stringify({
-          ...parseMap(new Source(mapFixture)),
-          astMetadata: undefined,
-        })
+        ok(
+          JSON.stringify({
+            ...parseMap(new Source(mapFixture)),
+            astMetadata: undefined,
+          })
+        )
       );
       await Parser.parseMap(
         mapFixture,
@@ -200,14 +203,16 @@ describe('Parser', () => {
     it('should not load from cache file when source checksum does not match', async () => {
       filesystem.readdir = jest
         .fn()
-        .mockResolvedValueOnce(['test-provider.suma.ast.json']);
+        .mockResolvedValueOnce(ok(['test-provider.suma.ast.json']));
       const ast = parseMap(new Source(mapFixture));
       filesystem.exists = jest.fn().mockResolvedValue(true);
       filesystem.readFile = jest.fn().mockResolvedValueOnce(
-        JSON.stringify({
-          ...ast,
-          astMetadata: { ...ast.astMetadata, sourceChecksum: '' },
-        })
+        ok(
+          JSON.stringify({
+            ...ast,
+            astMetadata: { ...ast.astMetadata, sourceChecksum: '' },
+          })
+        )
       );
       await Parser.parseMap(
         mapFixture,
@@ -228,7 +233,7 @@ describe('Parser', () => {
 
     it('should load from cache file when already present', async () => {
       filesystem.exists = jest.fn().mockResolvedValue(true);
-      filesystem.readFile = jest.fn().mockResolvedValueOnce(mapASTFixture);
+      filesystem.readFile = jest.fn().mockResolvedValueOnce(ok(mapASTFixture));
       await Parser.parseMap(
         mapFixture,
         'map.suma',
@@ -246,11 +251,11 @@ describe('Parser', () => {
 
     it('should recache and delete old files on change', async () => {
       filesystem.exists = jest.fn().mockResolvedValue(false);
-      filesystem.readFile = jest.fn().mockResolvedValueOnce(mapASTFixture);
+      filesystem.readFile = jest.fn().mockResolvedValueOnce(ok(mapASTFixture));
       filesystem.readdir = jest
         .fn()
-        .mockResolvedValueOnce([])
-        .mockResolvedValueOnce(['test-provider.suma.ast.json']);
+        .mockResolvedValueOnce(ok([]))
+        .mockResolvedValueOnce(ok(['test-provider.suma.ast.json']));
 
       await Parser.parseMap(
         mapFixture,
@@ -311,8 +316,10 @@ describe('Parser', () => {
 
     it('should not load from in-memory cache when already present - missing ast metadata', async () => {
       filesystem.exists = jest.fn().mockResolvedValueOnce(true);
-      filesystem.readFile = jest.fn().mockResolvedValueOnce(profileASTFixture);
-      const path = filesystem.joinPath(
+      filesystem.readFile = jest
+        .fn()
+        .mockResolvedValueOnce(ok(profileASTFixture));
+      const path = filesystem.path.join(
         cachePath,
         'test',
         'profile.supr.ast.json'
@@ -338,7 +345,9 @@ describe('Parser', () => {
 
     it('should load from in-memory cache when already present', async () => {
       filesystem.exists = jest.fn().mockResolvedValueOnce(true);
-      filesystem.readFile = jest.fn().mockResolvedValueOnce(profileASTFixture);
+      filesystem.readFile = jest
+        .fn()
+        .mockResolvedValueOnce(ok(profileASTFixture));
       const result1 = await Parser.parseProfile(
         profileFixture,
         'profile.supr',
@@ -371,13 +380,15 @@ describe('Parser', () => {
       filesystem.exists = jest.fn().mockResolvedValueOnce(true);
       filesystem.readdir = jest
         .fn()
-        .mockResolvedValueOnce(['profile.supr.ast.json']);
+        .mockResolvedValueOnce(ok(['profile.supr.ast.json']));
 
       filesystem.readFile = jest.fn().mockResolvedValueOnce(
-        JSON.stringify({
-          ...parseProfile(new Source(profileFixture)),
-          astMetadata: undefined,
-        })
+        ok(
+          JSON.stringify({
+            ...parseProfile(new Source(profileFixture)),
+            astMetadata: undefined,
+          })
+        )
       );
       await Parser.parseProfile(
         profileFixture,
@@ -399,13 +410,15 @@ describe('Parser', () => {
       filesystem.exists = jest.fn().mockResolvedValueOnce(true);
       filesystem.readdir = jest
         .fn()
-        .mockResolvedValueOnce(['profile.supr.ast.json']);
+        .mockResolvedValueOnce(ok(['profile.supr.ast.json']));
       const ast = parseProfile(new Source(profileFixture));
       filesystem.readFile = jest.fn().mockResolvedValueOnce(
-        JSON.stringify({
-          ...ast,
-          astMetadata: { ...ast.astMetadata, sourceChecksum: '' },
-        })
+        ok(
+          JSON.stringify({
+            ...ast,
+            astMetadata: { ...ast.astMetadata, sourceChecksum: '' },
+          })
+        )
       );
       await Parser.parseProfile(
         profileFixture,
@@ -425,7 +438,9 @@ describe('Parser', () => {
 
     it('should load from cache file when already present', async () => {
       filesystem.exists = jest.fn().mockResolvedValueOnce(true);
-      filesystem.readFile = jest.fn().mockResolvedValueOnce(profileASTFixture);
+      filesystem.readFile = jest
+        .fn()
+        .mockResolvedValueOnce(ok(profileASTFixture));
       await Parser.parseProfile(
         profileFixture,
         'profile.supr',
@@ -444,8 +459,8 @@ describe('Parser', () => {
       filesystem.exists = jest.fn().mockResolvedValue(false);
       filesystem.readdir = jest
         .fn()
-        .mockResolvedValueOnce([])
-        .mockResolvedValueOnce(['profile.supr.ast.json']);
+        .mockResolvedValueOnce(ok([]))
+        .mockResolvedValueOnce(ok(['profile.supr.ast.json']));
 
       await Parser.parseProfile(
         profileFixture,

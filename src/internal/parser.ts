@@ -32,11 +32,11 @@ export class Parser {
     fileSystem: IFileSystem
   ): Promise<MapDocumentNode> {
     const sourceChecksum = new Source(input, fileName).checksum();
-    const profileCachePath = fileSystem.joinPath(
+    const profileCachePath = fileSystem.path.join(
       cachePath,
       ...[...(info.scope !== undefined ? [info.scope] : []), info.profileName]
     );
-    const path = fileSystem.joinPath(
+    const path = fileSystem.path.join(
       profileCachePath,
       `${info.providerName}${EXTENSIONS.map.build}`
     );
@@ -101,11 +101,11 @@ export class Parser {
     fileSystem: IFileSystem
   ): Promise<ProfileDocumentNode> {
     const sourceChecksum = new Source(input, fileName).checksum();
-    const scopeCachePath = fileSystem.joinPath(
+    const scopeCachePath = fileSystem.path.join(
       cachePath,
       ...[...(info.scope !== undefined ? [info.scope] : [])]
     );
-    const path = fileSystem.joinPath(
+    const path = fileSystem.path.join(
       scopeCachePath,
       `${info.profileName}${EXTENSIONS.profile.build}`
     );
@@ -184,7 +184,9 @@ export class Parser {
     if (!(await fileSystem.exists(path))) {
       return undefined;
     }
-    const loaded = JSON.parse(await fileSystem.readFile(path)) as unknown;
+    const loaded = JSON.parse(
+      (await fileSystem.readFile(path)).unwrap()
+    ) as unknown;
     // Check if valid type
     if (!guard(loaded)) {
       return undefined;
@@ -202,9 +204,14 @@ export class Parser {
     path: string,
     fileSystem: IFileSystem
   ): Promise<void> {
+    const files = await fileSystem.readdir(path);
+    if (files.isErr()) {
+      return;
+    }
+
     try {
-      for (const file of await fileSystem.readdir(path)) {
-        await fileSystem.rm(fileSystem.joinPath(path, file));
+      for (const file of files.value) {
+        await fileSystem.rm(fileSystem.path.join(path, file));
       }
     } catch (e) {
       void e;

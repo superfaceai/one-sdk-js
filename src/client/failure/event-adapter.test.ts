@@ -10,7 +10,8 @@ import { getLocal } from 'mockttp';
 import { SuperJson } from '../../internal';
 import { bindResponseError } from '../../internal/errors.helpers';
 import { getProvider } from '../../internal/superjson/utils';
-import { sleep } from '../../lib';
+import { err, ok, sleep } from '../../lib';
+import { NotFoundError } from '../../lib/io/filesystem.errors';
 import { MockClient } from '../../test/client';
 
 const astMetadata: AstMetadata = {
@@ -1447,10 +1448,10 @@ describe('event-adapter', () => {
           if (
             path.includes('starwars/character-information@1.0.0.supr.ast.json')
           ) {
-            return JSON.stringify(firstMockProfileDocument);
+            return ok(JSON.stringify(firstMockProfileDocument));
           }
 
-          throw new Error('File not found');
+          return err(new NotFoundError('File not found'));
         },
       },
       configOverride: {
@@ -1526,10 +1527,10 @@ describe('event-adapter', () => {
           if (
             path.includes('starwars/character-information@1.0.0.supr.ast.json')
           ) {
-            return JSON.stringify(firstMockProfileDocument);
+            return ok(JSON.stringify(firstMockProfileDocument));
           }
 
-          throw new Error('File not found');
+          return err(new NotFoundError('File not found'));
         },
       },
       configOverride: {
@@ -1606,10 +1607,10 @@ describe('event-adapter', () => {
           if (
             path.includes('starwars/character-information@1.0.0.supr.ast.json')
           ) {
-            return JSON.stringify(firstMockProfileDocument);
+            return ok(JSON.stringify(firstMockProfileDocument));
           }
 
-          throw new Error('File not found');
+          return err(new NotFoundError('File not found'));
         },
       },
       configOverride: {
@@ -1697,10 +1698,10 @@ describe('event-adapter', () => {
           if (
             path.includes('starwars/character-information@1.0.0.supr.ast.json')
           ) {
-            return JSON.stringify(firstMockProfileDocument);
+            return ok(JSON.stringify(firstMockProfileDocument));
           }
 
-          throw new Error('File not found');
+          return err(new NotFoundError('File not found'));
         },
       },
       configOverride: {

@@ -279,7 +279,7 @@ export class ProfileProvider {
       this.scope = scopeOrProfileName;
       this.profileName = profileName;
     }
-    this.providersCachePath = fileSystem.joinPath(
+    this.providersCachePath = fileSystem.path.join(
       config.cachePath,
       'providers'
     );
@@ -476,7 +476,7 @@ export class ProfileProvider {
   private async cacheProviderInfo(providerName: string): Promise<ProviderJson> {
     const errors: Error[] = [];
     if (this.providerJson === undefined) {
-      const providerCachePath = this.fileSystem.joinPath(
+      const providerCachePath = this.fileSystem.path.join(
         this.providersCachePath,
         providerName
       );
@@ -494,17 +494,19 @@ export class ProfileProvider {
 
       // If we can't fetch provider info from registry, we try to read it from cache
       if (this.providerJson === undefined) {
-        try {
-          const providerJsonFile = await this.fileSystem.readFile(
-            providerCachePath
-          );
-          this.providerJson = assertProviderJson(JSON.parse(providerJsonFile));
-        } catch (error) {
+        const providerJsonFile = await this.fileSystem.readFile(
+          providerCachePath
+        );
+        if (providerJsonFile.isErr()) {
           profileProviderDebug(
-            `Failed to read cached provider.json for ${providerName}: %O`,
-            error
+            `Failed to read cached provider.json for ${providerName}`,
+            providerJsonFile.error
           );
-          errors.push(error);
+          errors.push(providerJsonFile.error);
+        } else {
+          this.providerJson = assertProviderJson(
+            JSON.parse(providerJsonFile.value)
+          );
         }
       }
     }
@@ -520,7 +522,7 @@ export class ProfileProvider {
   }
 
   private async writeProviderCache(providerJson: ProviderJson): Promise<void> {
-    const providerCachePath = this.fileSystem.joinPath(
+    const providerCachePath = this.fileSystem.path.join(
       this.providersCachePath,
       `${providerJson.name}.json`
     );
@@ -579,7 +581,7 @@ export class ProfileProvider {
           return (
             FILE_URI_PROTOCOL +
             this.superJson.resolvePath(
-              this.fileSystem.joinPath(
+              this.fileSystem.path.join(
                 'grid',
                 `${profileId}@${profileSettings.version}.supr`
               )
@@ -718,19 +720,17 @@ export class ProfileProvider {
         let contents, fileNameWithExtension;
         for (const extension of extensions) {
           fileNameWithExtension = fileName + extension;
-          try {
-            contents = await fileSystem.readFile(fileNameWithExtension);
+          contents = await fileSystem.readFile(fileNameWithExtension);
+          if (contents.isOk()) {
             break;
-          } catch (e) {
-            void e;
           }
         }
 
-        if (contents === undefined) {
+        if (contents === undefined || contents.isErr()) {
           throw referencedFileNotFoundError(fileName, extensions);
         }
 
-        return parseFile(contents, fileNameWithExtension);
+        return parseFile(contents.value, fileNameWithExtension);
       } else {
         // TODO: detect remote url and fetch it, or call a callback?
         profileProviderDebug('Resolving input as nested value:', input);

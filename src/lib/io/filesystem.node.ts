@@ -1,8 +1,20 @@
 import * as fs from 'fs';
 import { promises as fsp } from 'fs';
-import { dirname, join, normalize, relative, resolve } from 'path';
+import {
+  dirname,
+  join as joinPath,
+  normalize,
+  relative as relativePath,
+  resolve as resolvePath,
+} from 'path';
 
+import { err, ok, Result } from '../result/result';
 import { IFileSystem } from './filesystem';
+import {
+  FileExistsError,
+  FileSystemError,
+  handleNodeError,
+} from './filesystem.errors';
 
 async function exists(path: string): Promise<boolean> {
   try {
@@ -87,117 +99,221 @@ function isAccessibleSync(path: string): boolean {
 }
 
 async function isDirectory(path: string): Promise<boolean> {
-  const stat = await fsp.stat(path);
+  try {
+    const stat = await fsp.stat(path);
 
-  return stat.isDirectory();
+    return stat.isDirectory();
+  } catch (e) {
+    return false;
+  }
 }
 
 function isDirectorySync(path: string): boolean {
-  const stat = fs.statSync(path);
+  try {
+    const stat = fs.statSync(path);
 
-  return stat.isDirectory();
+    return stat.isDirectory();
+  } catch (e) {
+    return false;
+  }
 }
 
 async function isFile(path: string): Promise<boolean> {
-  const stat = await fsp.stat(path);
+  try {
+    const stat = await fsp.stat(path);
 
-  return stat.isFile();
+    return stat.isFile();
+  } catch (e) {
+    return false;
+  }
 }
 
 function isFileSync(path: string): boolean {
-  const stat = fs.statSync(path);
+  try {
+    const stat = fs.statSync(path);
 
-  return stat.isFile();
+    return stat.isFile();
+  } catch (e) {
+    return false;
+  }
 }
 
-function joinPath(...path: string[]): string {
-  return join(...path);
+function join(...path: string[]): string {
+  return joinPath(...path);
 }
 
 async function mkdir(
   path: string,
   options?: { recursive?: boolean }
-): Promise<void> {
-  await fsp.mkdir(path, { recursive: options?.recursive === true });
+): Promise<Result<void, FileSystemError>> {
+  try {
+    await fsp.mkdir(path, { recursive: options?.recursive === true });
+  } catch (e) {
+    const error = handleNodeError(e);
+
+    // If the directory already exists, our job here is done
+    if (error instanceof FileExistsError) {
+      return ok(undefined);
+    }
+
+    return err(error);
+  }
+
+  return ok(undefined);
 }
 
-function mkdirSync(path: string, options?: { recursive?: boolean }): void {
-  fs.mkdirSync(path, { recursive: options?.recursive === true });
+function mkdirSync(
+  path: string,
+  options?: { recursive?: boolean }
+): Result<void, FileSystemError> {
+  try {
+    fs.mkdirSync(path, { recursive: options?.recursive === true });
+  } catch (e) {
+    const error = handleNodeError(e);
+
+    // If the directory already exists, our job here is done
+    if (error instanceof FileExistsError) {
+      return ok(undefined);
+    }
+
+    return err(error);
+  }
+
+  return ok(undefined);
 }
 
-async function readFile(path: string): Promise<string> {
-  return fsp.readFile(path, 'utf8');
+async function readFile(
+  path: string
+): Promise<Result<string, FileSystemError>> {
+  try {
+    return ok(await fsp.readFile(path, 'utf8'));
+  } catch (e) {
+    return err(handleNodeError(e));
+  }
 }
 
-function readFileSync(path: string): string {
-  return fs.readFileSync(path, 'utf8');
+function readFileSync(path: string): Result<string, FileSystemError> {
+  try {
+    return ok(fs.readFileSync(path, 'utf8'));
+  } catch (e) {
+    return err(handleNodeError(e));
+  }
 }
 
-async function readdir(path: string): Promise<string[]> {
-  return fsp.readdir(path);
+async function readdir(
+  path: string
+): Promise<Result<string[], FileSystemError>> {
+  try {
+    return ok(await fsp.readdir(path));
+  } catch (e) {
+    return err(handleNodeError(e));
+  }
 }
 
-function readdirSync(path: string): string[] {
-  return fs.readdirSync(path);
+function readdirSync(path: string): Result<string[], FileSystemError> {
+  try {
+    return ok(fs.readdirSync(path));
+  } catch (e) {
+    return err(handleNodeError(e));
+  }
 }
 
-function resolvePath(...pathSegments: string[]): string {
-  return resolve(...pathSegments);
+function resolve(...pathSegments: string[]): string {
+  return resolvePath(...pathSegments);
 }
 
-function relativePath(from: string, to: string): string {
-  return relative(from, to);
+function relative(from: string, to: string): string {
+  return relativePath(from, to);
 }
 
 async function rm(
   path: string,
   options?: { recursive?: boolean }
-): Promise<void> {
-  if (options?.recursive === true) {
-    await fsp.rmdir(path, { recursive: true });
-  } else {
-    await fsp.unlink(path);
+): Promise<Result<void, FileSystemError>> {
+  const isDir = isDirectorySync(path);
+  try {
+    if (options?.recursive === true || isDir) {
+      await fsp.rmdir(path, { recursive: options?.recursive === true });
+    } else {
+      await fsp.unlink(path);
+    }
+  } catch (e) {
+    return err(handleNodeError(e));
   }
+
+  return ok(undefined);
 }
 
-function rmSync(path: string, options?: { recursive?: boolean }): void {
-  if (options?.recursive === true) {
-    fs.rmdirSync(path, { recursive: true });
-  } else {
-    fs.unlinkSync(path);
+function rmSync(
+  path: string,
+  options?: { recursive?: boolean }
+): Result<void, FileSystemError> {
+  const isDir = isDirectorySync(path);
+  try {
+    if (options?.recursive === true || isDir) {
+      fs.rmdirSync(path, { recursive: options?.recursive === true });
+    } else {
+      fs.unlinkSync(path);
+    }
+  } catch (e) {
+    return err(handleNodeError(e));
   }
+
+  return ok(undefined);
 }
 
-async function writeFile(path: string, data: string): Promise<void> {
-  await fsp.writeFile(path, data, 'utf8');
+async function writeFile(
+  path: string,
+  data: string
+): Promise<Result<void, FileSystemError>> {
+  try {
+    await fsp.writeFile(path, data, 'utf8');
+  } catch (e) {
+    return err(handleNodeError(e));
+  }
+
+  return ok(undefined);
 }
 
-function writeFileSync(path: string, data: string): void {
-  fs.writeFileSync(path, data, 'utf8');
+function writeFileSync(
+  path: string,
+  data: string
+): Result<void, FileSystemError> {
+  try {
+    fs.writeFileSync(path, data, 'utf8');
+  } catch (e) {
+    return err(handleNodeError(e));
+  }
+
+  return ok(undefined);
 }
 
 export const NodeFileSystem: IFileSystem = {
-  dirname,
+  path: {
+    dirname,
+    join,
+    normalize,
+    resolve,
+    relative,
+  },
+  sync: {
+    exists: existsSync,
+    isAccessible: isAccessibleSync,
+    isDirectory: isDirectorySync,
+    isFile: isFileSync,
+    mkdir: mkdirSync,
+    readFile: readFileSync,
+    readdir: readdirSync,
+    rm: rmSync,
+    writeFile: writeFileSync,
+  },
   exists,
-  existsSync,
   isAccessible,
-  isAccessibleSync,
   isDirectory,
-  isDirectorySync,
   isFile,
-  isFileSync,
-  joinPath,
   mkdir,
-  mkdirSync,
-  normalize,
   readFile,
-  readFileSync,
   readdir,
-  readdirSync,
-  resolvePath,
-  relativePath,
   rm,
-  rmSync,
   writeFile,
-  writeFileSync,
 };

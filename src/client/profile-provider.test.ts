@@ -478,7 +478,7 @@ describe('profile provider', () => {
         mocked(fetchBind).mockResolvedValue(mockFetchResponse);
 
         fileSystem.readFile = () =>
-          Promise.resolve(JSON.stringify(mockProfileDocument));
+          Promise.resolve(ok(JSON.stringify(mockProfileDocument)));
 
         const mockProfileProvider = new ProfileProvider(
           mockSuperJson,
@@ -498,7 +498,7 @@ describe('profile provider', () => {
         mocked(fetchBind).mockResolvedValue(mockFetchResponse);
 
         fileSystem.readFile = () =>
-          Promise.resolve(JSON.stringify(mockProfileDocument));
+          Promise.resolve(ok(JSON.stringify(mockProfileDocument)));
 
         const mockProfileProvider = new ProfileProvider(
           mockSuperJson,
@@ -528,7 +528,7 @@ describe('profile provider', () => {
           .mockResolvedValue(mockFetchResponse.mapAst);
 
         fileSystem.readFile = () =>
-          Promise.resolve(JSON.stringify(mockProfileDocument));
+          Promise.resolve(ok(JSON.stringify(mockProfileDocument)));
 
         const mockProfileProvider = new ProfileProvider(
           mockSuperJson,
@@ -549,9 +549,9 @@ describe('profile provider', () => {
 
         fileSystem.readFile = jest
           .fn()
-          .mockResolvedValueOnce(JSON.stringify(mockProfileDocument))
-          .mockResolvedValueOnce(JSON.stringify(mockProviderJson))
-          .mockResolvedValueOnce(JSON.stringify(mockMapDocument));
+          .mockResolvedValueOnce(ok(JSON.stringify(mockProfileDocument)))
+          .mockResolvedValueOnce(ok(JSON.stringify(mockProviderJson)))
+          .mockResolvedValueOnce(ok(JSON.stringify(mockMapDocument)));
 
         const mockProfileProvider = new ProfileProvider(
           mockSuperJson,
@@ -571,9 +571,9 @@ describe('profile provider', () => {
         mocked(fetchBind).mockResolvedValue(mockFetchResponse);
         fileSystem.readFile = jest
           .fn()
-          .mockResolvedValueOnce(JSON.stringify(mockProfileDocument))
-          .mockResolvedValueOnce(JSON.stringify(mockProviderJson))
-          .mockResolvedValueOnce(JSON.stringify(mockMapDocument));
+          .mockResolvedValueOnce(ok(JSON.stringify(mockProfileDocument)))
+          .mockResolvedValueOnce(ok(JSON.stringify(mockProviderJson)))
+          .mockResolvedValueOnce(ok(JSON.stringify(mockMapDocument)));
 
         const mockProfileProvider = new ProfileProvider(
           mockSuperJson,
@@ -603,9 +603,9 @@ describe('profile provider', () => {
 
         fileSystem.readFile = jest
           .fn()
-          .mockResolvedValueOnce(JSON.stringify(mockProfileDocument))
-          .mockResolvedValueOnce(JSON.stringify(mockProviderJson))
-          .mockResolvedValueOnce(JSON.stringify(mockMapDocument));
+          .mockResolvedValueOnce(ok(JSON.stringify(mockProfileDocument)))
+          .mockResolvedValueOnce(ok(JSON.stringify(mockProviderJson)))
+          .mockResolvedValueOnce(ok(JSON.stringify(mockMapDocument)));
 
         const mockProfileProvider = new ProfileProvider(
           superJson,
@@ -622,30 +622,11 @@ describe('profile provider', () => {
 
       it('returns new BoundProfileProvider when map is provided locally but provider is not', async () => {
         mocked(fetchBind).mockResolvedValue(mockFetchResponse);
-        // normalized is getter on SuperJson - unable to mock or spy on
-        // Object.assign(mockSuperJson, {
-        //   normalized: {
-        //     profiles: {
-        //       ['test-profile']: {
-        //         version: '1.0.0',
-        //         defaults: {},
-        //         providers: {
-        //           test: {
-        //             file: 'file://some/file',
-        //           },
-        //         },
-        //       },
-        //     },
-        //     providers: {},
-        //   },
-        // });
-
-        // mocked(mockResolvePath).mockReturnValue('file://some/path/to');
 
         fileSystem.readFile = jest
           .fn()
-          .mockResolvedValueOnce(JSON.stringify(mockProfileDocument))
-          .mockResolvedValueOnce(JSON.stringify(mockMapDocument));
+          .mockResolvedValueOnce(ok(JSON.stringify(mockProfileDocument)))
+          .mockResolvedValueOnce(ok(JSON.stringify(mockMapDocument)));
 
         mocked(fetchProviderInfo).mockResolvedValue(mockProviderJson);
 
@@ -681,15 +662,15 @@ describe('profile provider', () => {
           providers: {},
         });
 
-        fileSystem.resolvePath = jest
+        fileSystem.path.resolve = jest
           .fn()
           .mockReturnValue('file://some/path/to');
 
         fileSystem.readFile = jest
           .fn()
-          .mockResolvedValueOnce(JSON.stringify(mockProfileDocument))
-          .mockResolvedValueOnce(JSON.stringify(mockMapDocument))
-          .mockResolvedValueOnce(JSON.stringify(mockProviderJson));
+          .mockResolvedValueOnce(ok(JSON.stringify(mockProfileDocument)))
+          .mockResolvedValueOnce(ok(JSON.stringify(mockMapDocument)))
+          .mockResolvedValueOnce(ok(JSON.stringify(mockProviderJson)));
 
         mocked(fetchProviderInfo).mockRejectedValue('denied!');
 
@@ -724,15 +705,15 @@ describe('profile provider', () => {
           providers: {},
         });
 
-        fileSystem.resolvePath = jest
+        fileSystem.path.resolve = jest
           .fn()
           .mockReturnValue('file://some/path/to');
 
         fileSystem.readFile = jest
           .fn()
-          .mockResolvedValueOnce(JSON.stringify(mockProfileDocument))
-          .mockResolvedValueOnce(JSON.stringify(mockMapDocument))
-          .mockRejectedValueOnce('denied!');
+          .mockResolvedValueOnce(ok(JSON.stringify(mockProfileDocument)))
+          .mockResolvedValueOnce(ok(JSON.stringify(mockMapDocument)))
+          .mockRejectedValueOnce(err('denied!'));
 
         mocked(fetchProviderInfo).mockRejectedValue('denied!');
 
@@ -746,7 +727,7 @@ describe('profile provider', () => {
         );
 
         await expect(() => mockProfileProvider.bind()).rejects.toMatchObject({
-          additionalContext: ['denied!', 'denied!'],
+          error: 'denied!',
         });
         expect(fileSystem.readFile).toHaveBeenCalledTimes(3);
       });
@@ -771,8 +752,8 @@ describe('profile provider', () => {
 
         fileSystem.readFile = jest
           .fn()
-          .mockResolvedValueOnce(JSON.stringify(mockProfileDocument))
-          .mockResolvedValueOnce(JSON.stringify(mockProviderJson));
+          .mockResolvedValueOnce(ok(JSON.stringify(mockProfileDocument)))
+          .mockResolvedValueOnce(ok(JSON.stringify(mockProviderJson)));
 
         mocked(fetchProviderInfo).mockResolvedValue(mockProviderJson);
 
@@ -814,9 +795,9 @@ describe('profile provider', () => {
         // mocked(mockResolvePath).mockReturnValue('file://some/path/to');
 
         mocked(fileSystem.readFile)
-          .mockResolvedValueOnce(JSON.stringify(mockProfileDocument))
-          .mockResolvedValueOnce(JSON.stringify(mockProviderJson))
-          .mockResolvedValueOnce(JSON.stringify(mockMapDocument));
+          .mockResolvedValueOnce(ok(JSON.stringify(mockProfileDocument)))
+          .mockResolvedValueOnce(ok(JSON.stringify(mockProviderJson)))
+          .mockResolvedValueOnce(ok(JSON.stringify(mockMapDocument)));
 
         const mockProfileProvider = new ProfileProvider(
           superJson,
@@ -1108,9 +1089,9 @@ but http scheme requires: digest`
         });
 
         mocked(fileSystem.readFile)
-          .mockResolvedValueOnce(JSON.stringify(mockProfileDocument))
-          .mockResolvedValueOnce(JSON.stringify(mockProviderJson))
-          .mockResolvedValueOnce(JSON.stringify(mockMapDocument));
+          .mockResolvedValueOnce(ok(JSON.stringify(mockProfileDocument)))
+          .mockResolvedValueOnce(ok(JSON.stringify(mockProviderJson)))
+          .mockResolvedValueOnce(ok(JSON.stringify(mockMapDocument)));
 
         const providerConfiguration = new ProviderConfiguration(
           'test-boop',
@@ -1176,9 +1157,9 @@ but http scheme requires: digest`
 
         fileSystem.readFile = jest
           .fn()
-          .mockResolvedValueOnce(JSON.stringify(mockProfileDocument))
-          .mockResolvedValueOnce(JSON.stringify(mockProviderJson))
-          .mockResolvedValueOnce(JSON.stringify(mockMapDocumentBoop));
+          .mockResolvedValueOnce(ok(JSON.stringify(mockProfileDocument)))
+          .mockResolvedValueOnce(ok(JSON.stringify(mockProviderJson)))
+          .mockResolvedValueOnce(ok(JSON.stringify(mockMapDocumentBoop)));
 
         const mockProfileProvider = new ProfileProvider(
           superJson,
