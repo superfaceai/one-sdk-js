@@ -1,4 +1,9 @@
-import { AssertionError, AstMetadata, MapDocumentNode, ProviderJson } from '@superfaceai/ast';
+import {
+  AssertionError,
+  AstMetadata,
+  MapDocumentNode,
+  ProviderJson,
+} from '@superfaceai/ast';
 
 import { Config } from '../config';
 import {
@@ -366,9 +371,7 @@ describe('registry', () => {
       ).rejects.toThrow(
         invalidProviderResponseError(
           new AssertionError(
-            [
-              ['must have required property "defaultService"', []]
-            ],
+            [['must have required property "defaultService"', []]],
             mockBody.provider
           )
         )

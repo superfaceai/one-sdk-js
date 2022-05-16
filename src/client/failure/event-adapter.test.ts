@@ -1730,8 +1730,8 @@ describe.each([
                     requestTimeout: 1000,
                     backoff: {
                       kind: BackoffKind.EXPONENTIAL,
-                      start: 50
-                    }
+                      start: 50,
+                    },
                   },
                 },
               },
@@ -1746,8 +1746,8 @@ describe.each([
                     requestTimeout: 1000,
                     backoff: {
                       kind: BackoffKind.EXPONENTIAL,
-                      start: 50
-                    }
+                      start: 50,
+                    },
                   },
                 },
               },

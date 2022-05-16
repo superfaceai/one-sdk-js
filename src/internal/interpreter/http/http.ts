@@ -79,7 +79,9 @@ function replaceParameters(url: string, parameters: NonPrimitive) {
     const start = match.index;
     // Why can this be undefined?
     if (start === undefined) {
-      throw new UnexpectedError('Invalid regex match state - missing start index');
+      throw new UnexpectedError(
+        'Invalid regex match state - missing start index'
+      );
     }
 
     const end = start + match[0].length;
