@@ -44,7 +44,9 @@ describe('class SuperJson integration tests', () => {
     });
 
     it('correctly parses super.json when it is present', async () => {
-      const result = await SuperJson.load(DEFAULT_SUPERFACE_PATH);
+      const result = await SuperJson.load(
+        DEFAULT_SUPERFACE_PATH({ path: { join: joinPath } })
+      );
       expect(result.isOk()).toBe(true);
     });
   });

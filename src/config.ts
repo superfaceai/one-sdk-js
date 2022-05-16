@@ -1,6 +1,9 @@
 import createDebug from 'debug';
-import { join as joinPath } from 'path';
 
+import { IFileSystem } from './lib/io';
+import { NodeFileSystem } from './lib/io/filesystem.node';
+
+type JoinPath = { path: { join: IFileSystem['path']['join'] } };
 const configDebug = createDebug('superface:config');
 
 export interface IConfig {
@@ -29,27 +32,21 @@ const BOUND_PROVIDER_CACHE_TIMEOUT = 'SUPERFACE_CACHE_TIMEOUT';
 
 // Defaults
 export const DEFAULT_API_URL = new URL('https://superface.ai').href;
-export const DEFAULT_SUPERFACE_PATH = joinPath(
-  process.cwd(),
-  'superface',
-  'super.json'
-);
+export const DEFAULT_SUPERFACE_PATH = (fileSystem: JoinPath): string =>
+  fileSystem.path.join(process.cwd(), 'superface', 'super.json');
 export const DEFAULT_METRIC_DEBOUNCE_TIME = {
   min: 1000,
   max: 60000,
 };
-export const DEFAULT_CACHE_PATH = joinPath(
-  process.cwd(),
-  'superface',
-  '.cache'
-);
+export const DEFAULT_CACHE_PATH = (fileSystem: JoinPath): string =>
+  fileSystem.path.join(process.cwd(), 'superface', '.cache');
 export const DEFAULT_SANDBOX_TIMEOUT = 100;
 export const DEFAULT_DISABLE_REPORTING = false;
 // 1 hour
 export const DEFAULT_BOUND_PROVIDER_TIMEOUT = 60 * 60;
 
-const defaults: IConfig = {
-  cachePath: DEFAULT_CACHE_PATH,
+const DEFAULTS = (fileSystem: JoinPath): IConfig => ({
+  cachePath: DEFAULT_CACHE_PATH(fileSystem),
   disableReporting: DEFAULT_DISABLE_REPORTING,
   metricDebounceTimeMax: DEFAULT_METRIC_DEBOUNCE_TIME.max,
   metricDebounceTimeMin: DEFAULT_METRIC_DEBOUNCE_TIME.min,
@@ -57,8 +54,8 @@ const defaults: IConfig = {
   sdkAuthToken: undefined,
   superfaceApiUrl: DEFAULT_API_URL,
   superfaceCacheTimeout: DEFAULT_BOUND_PROVIDER_TIMEOUT,
-  superfacePath: DEFAULT_SUPERFACE_PATH,
-};
+  superfacePath: DEFAULT_SUPERFACE_PATH(fileSystem),
+});
 
 // Extraction functions
 function getSuperfaceApiUrl(): string | undefined {
@@ -164,7 +161,11 @@ export class Config implements IConfig {
   public superfaceCacheTimeout: number;
   public superfacePath: string;
 
-  public constructor(config?: Partial<IConfig>) {
+  public constructor(
+    config?: Partial<IConfig>,
+    private fileSystem: JoinPath = NodeFileSystem
+  ) {
+    const defaults = DEFAULTS(fileSystem);
     this.cachePath = config?.cachePath ?? defaults.cachePath;
     this.disableReporting =
       config?.disableReporting ?? defaults.disableReporting;
@@ -194,7 +195,9 @@ export class Config implements IConfig {
     return {
       superfaceApiUrl: getSuperfaceApiUrl(),
       sdkAuthToken: getSdkAuthToken(),
-      superfacePath: process.env[SUPERFACE_PATH_NAME] ?? DEFAULT_SUPERFACE_PATH,
+      superfacePath:
+        process.env[SUPERFACE_PATH_NAME] ??
+        DEFAULT_SUPERFACE_PATH(this.fileSystem),
       superfaceCacheTimeout: getBoundCacheTimeout(),
       metricDebounceTimeMin: getMetricDebounceTime('min'),
       metricDebounceTimeMax: getMetricDebounceTime('max'),
