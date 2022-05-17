@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Sandbox stdlib - `std.unstable.time.{isoDateToUnixTimestamp, unixTimestampToIsoDate}, std.unstable.debug.log`
+- `provider.json` caching
+- Superjson simple retry policy configuration is now supported
+- Superjson circuit breaker configuration accepts `openTime` (default 30s, previously hardcoded)
+
+### Changed
+- Default backoff start value changed from 50ms to 500ms
+
+### Fixed
+- Fixed iterated variable in `foreach` being merged instead of overwritten, breaking iteration of objects
+- Fixed Buffer (`Buffer.isBuffer(x) == true`) being considered a composite structure and being merged as an object
+- Fixed authentication clearing query parameters
+- Fixed url path parameter replacement not working with whitespace around replacement keys
+- Fixup of arrays coming from vm2 sandbox
+
 ## [1.3.0] - 2022-02-15
 ### Added
 - Added support for service selection in http calls

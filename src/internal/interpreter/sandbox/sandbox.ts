@@ -1,10 +1,42 @@
 import createDebug from 'debug';
 import { VM } from 'vm2';
 
-import { Config } from '../../config';
-import { NonPrimitive } from '../../internal/interpreter/variables';
+import { Config } from '../../../config';
+import { NonPrimitive } from '../../../internal/interpreter/variables';
+import { getStdlib } from './stdlib';
 
 const debug = createDebug('superface:sandbox');
+
+function vm2ExtraArrayKeysFixup<T>(value: T): T {
+  if (typeof value !== 'object') {
+    return value;
+  }
+
+  if (value === null) {
+    return value;
+  }
+
+  if (Buffer.isBuffer(value) || value instanceof ArrayBuffer) {
+    return value;
+  }
+
+  if (Array.isArray(value)) {
+    const newArray: unknown[] = [];
+    for (let i = 0; i < value.length; i += 1) {
+      newArray[i] = vm2ExtraArrayKeysFixup(value[i]);
+    }
+
+    return newArray as unknown as T;
+  }
+
+  const newObject: Record<string, unknown> = {};
+  const currentObject = value as Record<string, unknown>;
+  for (const key of Object.keys(value)) {
+    newObject[key] = vm2ExtraArrayKeysFixup(currentObject[key]);
+  }
+
+  return newObject as T;
+}
 
 export function evalScript(
   js: string,
@@ -12,6 +44,7 @@ export function evalScript(
 ): unknown {
   const vm = new VM({
     sandbox: {
+      std: getStdlib(),
       ...variableDefinitions,
     },
     compiler: 'javascript',
@@ -63,7 +96,9 @@ export function evalScript(
   const result = vm.run(
     `'use strict';const vmResult = ${js};vmResult`
   ) as unknown;
-  debug('Result:', result);
+  const resultVm2Fixed = vm2ExtraArrayKeysFixup(result);
 
-  return result;
+  debug('Result:', resultVm2Fixed);
+
+  return resultVm2Fixed;
 }

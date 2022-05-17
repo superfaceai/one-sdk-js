@@ -26,12 +26,16 @@ import {
 } from '@superfaceai/ast';
 import createDebug from 'debug';
 
-import { AuthCache } from '../..';
 import { err, ok, Result } from '../../lib';
 import { IServiceSelector } from '../../lib/services';
 import { UnexpectedError } from '../errors';
 import { MapInterpreterExternalHandler } from './external-handler';
-import { HttpClient, HttpResponse, SecurityConfiguration } from './http';
+import {
+  AuthCache,
+  HttpClient,
+  HttpResponse,
+  SecurityConfiguration,
+} from './http';
 import { FetchInstance } from './http/interfaces';
 import {
   HTTPError,
@@ -96,7 +100,7 @@ interface HttpRequest {
   contentType?: string;
   contentLanguage?: string;
   headers?: Variables;
-  queryParameters?: Variables;
+  queryParameters?: NonPrimitive;
   body?: Variables;
   security: HttpSecurityRequirement[];
 }
@@ -169,6 +173,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
   }
 
   visit(node: PrimitiveLiteralNode): Primitive;
+  async visit(node: ObjectLiteralNode): Promise<NonPrimitive>;
   async visit(node: SetStatementNode): Promise<void>;
   async visit(
     node: OutcomeStatementNode
@@ -546,7 +551,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
           } else {
             this.stackTop().result = outcome?.result ?? this.stackTop().result;
           }
-          debug('Setting result', this.stackTop());
+          debug('Setting result: %O', this.stackTop());
 
           if (outcome?.terminateFlow) {
             this.stackTop().terminate = true;
@@ -604,7 +609,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
     throw new UnexpectedError('Method not implemented.');
   }
 
-  async visitObjectLiteralNode(node: ObjectLiteralNode): Promise<Variables> {
+  async visitObjectLiteralNode(node: ObjectLiteralNode): Promise<NonPrimitive> {
     let result: NonPrimitive = {};
 
     for (const field of node.fields) {
@@ -694,7 +699,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
       variables
     );
 
-    debug('Updated stack:', this.stackTop());
+    debug('Updated stack: %O', this.stackTop());
   }
 
   private constructObject(keys: string[], value: Variables): NonPrimitive {
@@ -730,13 +735,13 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
             terminate: false,
           };
     this.stack.push(stack);
-    debug('New stack:', this.stackTop());
+    debug('New stack: %O', this.stackTop());
   }
 
   private popStack(): void {
     const last = this.stack.pop();
 
-    debug('Popped stack:', last);
+    debug('Popped stack: %O', last);
   }
 
   private stackTop(assertType: 'operation'): OperationStack;
@@ -794,9 +799,9 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
   ): Promise<void> {
     const iterationParams = await this.visit(node.iteration);
     for (const variable of iterationParams.iterable) {
-      this.addVariableToStack({
-        [iterationParams.iterationVariable]: variable,
-      });
+      // overwrite the iteration variable instead of merging
+      this.stackTop().variables[iterationParams.iterationVariable] = variable;
+
       if (node.condition) {
         const condition = await this.visit(node.condition);
         if (condition === false) {
