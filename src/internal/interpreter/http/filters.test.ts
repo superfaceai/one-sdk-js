@@ -335,5 +335,28 @@ describe('HTTP Filters', () => {
         'content-type': JSON_CONTENT,
       });
     });
+
+    it("doesn't set content-type for multipart/form-data", async () => {
+      const result = await headersFilter({
+        parameters: {
+          url: '/test',
+          method: '',
+          baseUrl: 'https://example.com',
+          headers: {
+            test: 'test',
+          },
+          contentType: FORMDATA_CONTENT,
+        },
+      });
+
+      expect(result.request?.headers).toMatchObject({
+        test: 'test',
+      });
+      expect(result.request?.headers).toEqual(
+        expect.not.objectContaining({
+          'content-type': expect.anything(),
+        })
+      );
+    });
   });
 });
