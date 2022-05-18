@@ -242,7 +242,7 @@ describe('MapInterpreter', () => {
         security: [],
         services: mockServicesSelector,
       },
-      { fetchInstance }
+      { fetchInstance, config }
     );
     const ast = parseMapFromSource(`
       map Test {

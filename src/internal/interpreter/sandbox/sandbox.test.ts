@@ -128,6 +128,7 @@ describe('sandbox', () => {
 
   it('correctly evaluates array literal inside object literal', () => {
     const v = evalScript(
+      config,
       '{ a: 1, b: [1, 2, 3, { x: Buffer.from("hello"), y: [1, 2, 3] }] }'
     );
     expect(v).toStrictEqual({
