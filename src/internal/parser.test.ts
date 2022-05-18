@@ -1,6 +1,6 @@
 import { parseMap, parseProfile, Source } from '@superfaceai/parser';
-import { ok } from '../lib/result/result';
 
+import { ok } from '../lib/result/result';
 import { MockFileSystem } from '../test/filesystem';
 import { Parser } from './parser';
 
