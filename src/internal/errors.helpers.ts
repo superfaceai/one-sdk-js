@@ -432,7 +432,9 @@ export function invalidProviderResponseError(
   }
 
   return new SDKBindError(
-    `Bind call response validation failed with unexpected error: ${JSON.stringify(error)}`,
+    `Bind call response validation failed with unexpected error: ${JSON.stringify(
+      error
+    )}`,
     [],
     []
   );

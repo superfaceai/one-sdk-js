@@ -265,7 +265,7 @@ export const headersFilter: Filter = ({
   } else if (parameters.contentType === URLENCODED_CONTENT) {
     headers['content-type'] ??= URLENCODED_CONTENT;
   } else if (parameters.contentType === FORMDATA_CONTENT) {
-    headers['content-type'] ??= FORMDATA_CONTENT;
+    // NOTE: Do not set content-type explicitly, it will be read from FormData along with boundary
   } else if (
     parameters.contentType !== undefined &&
     BINARY_CONTENT_REGEXP.test(parameters.contentType)
