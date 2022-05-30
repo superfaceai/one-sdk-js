@@ -38,7 +38,7 @@ export abstract class SuperfaceClientBase extends Events {
   public readonly superJson: SuperJson;
   private readonly metricReporter: MetricReporter | undefined;
   private boundCache: {
-    [key: string]: BoundProfileProvider;
+    [key: string]: { profileProvider: BoundProfileProvider; expiresAt: number };
   } = {};
 
   public hookContext: HooksContext = {};
@@ -78,20 +78,43 @@ export abstract class SuperfaceClientBase extends Events {
     const cacheKey = profileConfig.cacheKey + providerConfig.cacheKey;
 
     const bound = this.boundCache[cacheKey];
+
+    const now = Math.floor(Date.now() / 1000);
+    //If we don't have anything in cache we must bind
     if (bound === undefined) {
-      const profileProvider = new ProfileProvider(
-        this.superJson,
-        profileConfig,
-        providerConfig,
-        this
+      await this.rebind(profileConfig, providerConfig);
+      //If we do but timeout is expired we schedule rebind
+    } else if (bound.expiresAt < now) {
+      void Promise.resolve().then(() =>
+        this.rebind(profileConfig, providerConfig)
       );
-      const boundProfileProvider = await profileProvider.bind({
-        security: providerConfig.security,
-      });
-      this.boundCache[cacheKey] = boundProfileProvider;
     }
 
-    return this.boundCache[cacheKey];
+    return this.boundCache[cacheKey].profileProvider;
+  }
+
+  private async rebind(
+    profileConfig: ProfileConfiguration,
+    providerConfig: ProviderConfiguration
+  ): Promise<void> {
+    const cacheKey = profileConfig.cacheKey + providerConfig.cacheKey;
+
+    const now = Math.floor(Date.now() / 1000);
+
+    const profileProvider = new ProfileProvider(
+      this.superJson,
+      profileConfig,
+      providerConfig,
+      this
+    );
+
+    const boundProfileProvider = await profileProvider.bind({
+      security: providerConfig.security,
+    });
+    this.boundCache[cacheKey] = {
+      profileProvider: boundProfileProvider,
+      expiresAt: now + Config.instance().superfaceCacheTimeout,
+    };
   }
 
   /** Gets a provider from super.json based on `providerName`. */

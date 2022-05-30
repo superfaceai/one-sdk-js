@@ -1,21 +1,30 @@
 import { ApiKeyPlacement, SecurityType } from '@superfaceai/ast';
 
 import { SDKExecutionError } from '../../../../errors';
-import { RequestContext, SecurityConfiguration } from '../../security';
+import {
+  FORMDATA_CONTENT,
+  JSON_CONTENT,
+  URLENCODED_CONTENT,
+} from '../../interfaces';
+import { RequestParameters, SecurityConfiguration } from '../../security';
 import { ApiKeyHandler } from './api-key';
 
 describe('ApiKeyHandler', () => {
   let apiKeyHandler: ApiKeyHandler;
-  let context: RequestContext;
+  let parameters: RequestParameters;
   let configuration: SecurityConfiguration & { type: SecurityType.APIKEY };
+
   describe('in header', () => {
     beforeEach(() => {
-      context = {
+      parameters = {
         url: '',
+        baseUrl: '',
+        method: 'get',
         headers: {},
         pathParameters: {},
-        queryAuth: {},
-        requestBody: undefined,
+        queryParameters: {},
+        body: undefined,
+        contentType: JSON_CONTENT,
       };
       configuration = {
         id: 'test',
@@ -26,28 +35,35 @@ describe('ApiKeyHandler', () => {
       };
       apiKeyHandler = new ApiKeyHandler(configuration);
     });
-    it('sets header to correct value', () => {
-      apiKeyHandler.prepare(context);
 
-      expect(context.headers).toEqual({ Authorization: 'secret' });
+    it('sets header to correct value', async () => {
+      expect(
+        (await apiKeyHandler.authenticate(parameters)).headers?.[
+          'Authorization'
+        ]
+      ).toEqual('secret');
     });
 
-    it('sets custom header to correct value', () => {
+    it('sets custom header to correct value', async () => {
       configuration.name = 'test';
-      apiKeyHandler.prepare(context);
 
-      expect(context.headers).toEqual({ test: 'secret' });
+      expect(
+        (await apiKeyHandler.authenticate(parameters)).headers?.test
+      ).toEqual('secret');
     });
   });
 
   describe('in path', () => {
     beforeEach(() => {
-      context = {
-        url: '',
+      parameters = {
+        url: '/api/{Authorization}/',
+        baseUrl: 'https://test.com/',
+        method: 'get',
         headers: {},
         pathParameters: {},
-        queryAuth: {},
-        requestBody: undefined,
+        queryParameters: {},
+        body: undefined,
+        contentType: URLENCODED_CONTENT,
       };
       configuration = {
         id: 'test',
@@ -58,28 +74,43 @@ describe('ApiKeyHandler', () => {
       };
       apiKeyHandler = new ApiKeyHandler(configuration);
     });
-    it('sets pathParameters to correct value', () => {
-      apiKeyHandler.prepare(context);
 
-      expect(context.pathParameters).toEqual({ Authorization: 'secret' });
+    it('sets pathParameters to correct value', async () => {
+      expect(
+        (await apiKeyHandler.authenticate(parameters)).pathParameters
+      ).toMatchObject({ Authorization: 'secret' });
     });
 
-    it('sets pathParameters header to correct value', () => {
+    it('sets pathParameters header to correct value', async () => {
+      parameters = {
+        url: '/api/{test}/',
+        baseUrl: 'https://test.com/',
+        method: 'get',
+        headers: {},
+        pathParameters: {},
+        queryParameters: {},
+        body: undefined,
+        contentType: URLENCODED_CONTENT,
+      };
       configuration.name = 'test';
-      apiKeyHandler.prepare(context);
 
-      expect(context.pathParameters).toEqual({ test: 'secret' });
+      expect(
+        (await apiKeyHandler.authenticate(parameters)).pathParameters
+      ).toMatchObject({ test: 'secret' });
     });
   });
 
   describe('in query', () => {
     beforeEach(() => {
-      context = {
-        url: '',
+      parameters = {
+        url: '/api',
+        baseUrl: 'https://test.com',
+        method: 'get',
         headers: {},
         pathParameters: {},
-        queryAuth: {},
-        requestBody: undefined,
+        queryParameters: {},
+        body: undefined,
+        contentType: FORMDATA_CONTENT,
       };
       configuration = {
         id: 'test',
@@ -90,27 +121,33 @@ describe('ApiKeyHandler', () => {
       };
       apiKeyHandler = new ApiKeyHandler(configuration);
     });
-    it('sets query to correct value', () => {
-      apiKeyHandler.prepare(context);
 
-      expect(context.queryAuth).toEqual({ Authorization: 'secret' });
+    it('sets query to correct value', async () => {
+      expect(
+        (await apiKeyHandler.authenticate(parameters)).queryParameters
+      ).toMatchObject({ Authorization: 'secret' });
     });
 
-    it('sets query header to correct value', () => {
+    it('sets query header to correct value', async () => {
       configuration.name = 'test';
-      apiKeyHandler.prepare(context);
 
-      expect(context.queryAuth).toEqual({ test: 'secret' });
+      expect(
+        (await apiKeyHandler.authenticate(parameters)).queryParameters
+      ).toMatchObject({ test: 'secret' });
     });
   });
+
   describe('in body', () => {
     beforeEach(() => {
-      context = {
+      parameters = {
         url: '',
+        baseUrl: '',
+        method: 'get',
         headers: {},
         pathParameters: {},
-        queryAuth: {},
-        requestBody: undefined,
+        queryParameters: {},
+        body: undefined,
+        contentType: JSON_CONTENT,
       };
       configuration = {
         id: 'test',
@@ -122,44 +159,63 @@ describe('ApiKeyHandler', () => {
       apiKeyHandler = new ApiKeyHandler(configuration);
     });
 
-    it('sets name with Primitive type', () => {
+    it('sets name with Primitive type', async () => {
       configuration.name = 'token';
-      apiKeyHandler.prepare(context);
 
-      expect(context.requestBody).toEqual({ token: 'secret' });
+      expect((await apiKeyHandler.authenticate(parameters)).body).toMatchObject(
+        { token: 'secret' }
+      );
     });
 
-    it('creates new nested sctructure', () => {
+    it('creates new nested sctructure', async () => {
       configuration.name = '/a/b/c';
-      apiKeyHandler.prepare(context);
 
-      expect(context.requestBody).toEqual({
-        a: {
-          b: {
-            c: 'secret',
+      expect((await apiKeyHandler.authenticate(parameters)).body).toMatchObject(
+        {
+          a: {
+            b: {
+              c: 'secret',
+            },
           },
-        },
-      });
+        }
+      );
     });
 
-    it('keep content of existing objects', () => {
-      context.requestBody = { d: 'existing' };
+    it('keep content of existing objects', async () => {
+      parameters.body = { d: 'existing' };
       configuration.name = '/a/b/c';
-      apiKeyHandler.prepare(context);
 
-      expect(context.requestBody).toEqual({
-        a: {
-          b: {
-            c: 'secret',
+      expect((await apiKeyHandler.authenticate(parameters)).body).toMatchObject(
+        {
+          d: 'existing',
+          a: {
+            b: {
+              c: 'secret',
+            },
           },
-        },
+        }
+      );
+    });
+
+    it('keep content of existing query parameters', async () => {
+      parameters.queryParameters = { d: 'existing' };
+      configuration.in = ApiKeyPlacement.QUERY;
+      configuration.name = 'test';
+
+      expect(
+        (await apiKeyHandler.authenticate(parameters)).queryParameters
+      ).toMatchObject({
         d: 'existing',
+        test: 'secret',
       });
     });
 
-    it('throws exception if request body is array', () => {
-      context.requestBody = [];
-      expect(() => apiKeyHandler.prepare(context)).toThrowError(
+    it('throws exception if request body is array', async () => {
+      parameters.body = [];
+      parameters.contentType = JSON_CONTENT;
+      await expect(async () =>
+        apiKeyHandler.authenticate(parameters)
+      ).rejects.toThrowError(
         new SDKExecutionError(
           'ApiKey in body can be used only on object.',
           ['Actual body is Array'],
@@ -168,10 +224,13 @@ describe('ApiKeyHandler', () => {
       );
     });
 
-    it('throws exception if in body path is array', () => {
-      context.requestBody = { a: { b: [] } };
+    it('throws exception if in body path is array', async () => {
+      parameters.body = { a: { b: [] } };
+      parameters.contentType = JSON_CONTENT;
       configuration.name = '/a/b/c';
-      expect(() => apiKeyHandler.prepare(context)).toThrowError(
+      await expect(async () =>
+        apiKeyHandler.authenticate(parameters)
+      ).rejects.toThrowError(
         new SDKExecutionError(
           'ApiKey in body can be used only on object.',
           ['Actual value at /a/b is Array'],
@@ -180,10 +239,13 @@ describe('ApiKeyHandler', () => {
       );
     });
 
-    it('throws exception if Primitive value is in body path', () => {
-      context.requestBody = { a: { b: { c: 'xxx' } } };
+    it('throws exception if Primitive value is in body path', async () => {
+      parameters.body = { a: { b: { c: 'xxx' } } };
+      parameters.contentType = JSON_CONTENT;
       configuration.name = '/a/b/c';
-      expect(() => apiKeyHandler.prepare(context)).toThrowError(
+      await expect(async () =>
+        apiKeyHandler.authenticate(parameters)
+      ).rejects.toThrowError(
         new SDKExecutionError(
           'ApiKey in body can be used only on object.',
           ['Actual value at /a/b/c is string'],

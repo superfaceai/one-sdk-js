@@ -3,46 +3,69 @@ import {
   ApiKeySecurityScheme,
   ApiKeySecurityValues,
 } from '@superfaceai/ast';
+import createDebug from 'debug';
 
 import { apiKeyInBodyError } from '../../../../errors.helpers';
 import { Variables } from '../../../variables';
 import {
   DEFAULT_AUTHORIZATION_HEADER_NAME,
   ISecurityHandler,
-  RequestContext,
 } from '../../security';
+import { AuthenticateRequestAsync, RequestParameters } from '../interfaces';
+
+const debug = createDebug('superface:http:api-key-handler');
 
 export class ApiKeyHandler implements ISecurityHandler {
   constructor(
     readonly configuration: ApiKeySecurityScheme & ApiKeySecurityValues
-  ) {}
+  ) {
+    debug('Initialized api key authentization handler');
+  }
 
-  prepare(context: RequestContext): void {
+  authenticate: AuthenticateRequestAsync = async (
+    parameters: RequestParameters
+  ) => {
+    let body: Variables | undefined = parameters.body;
+    const headers: Record<string, string> = parameters.headers ?? {};
+    const pathParameters = parameters.pathParameters ?? {};
+    const queryParameters = parameters.queryParameters ?? {};
+
     const name = this.configuration.name || DEFAULT_AUTHORIZATION_HEADER_NAME;
 
     switch (this.configuration.in) {
       case ApiKeyPlacement.HEADER:
-        context.headers[name] = this.configuration.apikey;
+        debug('Setting api key to header');
+        headers[name] = this.configuration.apikey;
         break;
 
       case ApiKeyPlacement.BODY:
-        context.requestBody = applyApiKeyAuthInBody(
-          context.requestBody ?? {},
+        debug('Setting api key to body');
+        body = applyApiKeyAuthInBody(
+          body || {},
           name.startsWith('/') ? name.slice(1).split('/') : [name],
           this.configuration.apikey
         );
         break;
 
       case ApiKeyPlacement.PATH:
-        context.pathParameters[name] = this.configuration.apikey;
+        debug('Setting api key to path');
+        pathParameters[name] = this.configuration.apikey;
         break;
 
       case ApiKeyPlacement.QUERY:
-        context.queryAuth[name] = this.configuration.apikey;
-
+        debug('Setting api key to query');
+        queryParameters[name] = this.configuration.apikey;
         break;
     }
-  }
+
+    return {
+      ...parameters,
+      headers,
+      pathParameters,
+      queryParameters,
+      body,
+    };
+  };
 }
 
 function applyApiKeyAuthInBody(

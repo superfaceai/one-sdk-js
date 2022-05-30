@@ -4,8 +4,8 @@ import {
   ProviderEntry,
   SuperJsonDocument,
 } from '@superfaceai/ast';
-import { Config } from '../config';
 
+import { Config } from '../config';
 import { SuperJson } from '../internal';
 
 export class SuperfaceConfigurator {

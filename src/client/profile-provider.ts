@@ -1,12 +1,8 @@
 import {
   assertMapDocumentNode,
   assertProfileDocumentNode,
+  assertProviderJson,
   FILE_URI_PROTOCOL,
-  HttpScheme,
-  isApiKeySecurityValues,
-  isBasicAuthSecurityValues,
-  isBearerTokenSecurityValues,
-  isDigestSecurityValues,
   isFileURIString,
   isMapFile,
   isProfileFile,
@@ -15,21 +11,19 @@ import {
   prepareProviderParameters,
   ProfileDocumentNode,
   ProviderJson,
-  SecurityScheme,
-  SecurityType,
   SecurityValues,
 } from '@superfaceai/ast';
 import createDebug from 'debug';
 import { promises as fsp } from 'fs';
 import { join as joinPath } from 'path';
 
+import { Config } from '../config';
+import { UnexpectedError } from '../internal';
 import {
   invalidProfileError,
-  invalidSecurityValuesError,
   localProviderAndRemoteMapError,
   providersDoNotMatchError,
   referencedFileNotFoundError,
-  securityNotFoundError,
 } from '../internal/errors.helpers';
 import {
   MapInterpreter,
@@ -38,7 +32,10 @@ import {
   ProfileParameterValidator,
 } from '../internal/interpreter';
 import { FetchInstance } from '../internal/interpreter/http/interfaces';
-import { SecurityConfiguration } from '../internal/interpreter/http/security';
+import {
+  AuthCache,
+  SecurityConfiguration,
+} from '../internal/interpreter/http/security';
 import {
   castToNonPrimitive,
   mergeVariables,
@@ -55,6 +52,7 @@ import { MapInterpreterEventAdapter } from './failure/map-interpreter-adapter';
 import { ProfileConfiguration } from './profile';
 import { ProviderConfiguration } from './provider';
 import { fetchBind, fetchMapSource, fetchProviderInfo } from './registry';
+import { resolveSecurityConfiguration } from './security';
 
 function forceCast<T>(_: unknown): asserts _ is T {}
 
@@ -67,10 +65,9 @@ function profileAstId(ast: ProfileDocumentNode): string {
 const boundProfileProviderDebug = createDebug(
   'superface:bound-profile-provider'
 );
-export type AuthCache = { digest?: Record<string, string> };
+const cachePath = joinPath(Config.instance().cachePath, 'providers');
 
 export class BoundProfileProvider {
-  // TODO: Interceptable and set metadata
   private profileValidator: ProfileParameterValidator;
   private fetchInstance: FetchInstance & Interceptable & AuthCache;
 
@@ -216,6 +213,7 @@ export class ProfileProvider {
   private profileId: string;
   private scope: string | undefined;
   private profileName: string;
+  private providerJson?: ProviderJson;
 
   constructor(
     /** Preloaded superJson instance */
@@ -305,6 +303,8 @@ export class ProfileProvider {
       });
 
       providerInfo ??= fetchResponse.provider;
+      await this.writeProviderCache(providerInfo);
+      this.providerJson = providerInfo;
       mapAst = fetchResponse.mapAst;
       //If we don't have a map (probably due to validation issue) we try to get map source and parse it on our own
       if (!mapAst) {
@@ -322,7 +322,7 @@ export class ProfileProvider {
       }
     } else if (providerInfo === undefined) {
       // resolve only provider info if map is specified locally
-      providerInfo = await fetchProviderInfo(providerName);
+      providerInfo = await this.cacheProviderInfo(providerName);
     }
 
     if (providerName !== mapAst.header.provider) {
@@ -333,7 +333,7 @@ export class ProfileProvider {
       );
     }
 
-    const securityConfiguration = this.resolveSecurityConfiguration(
+    const securityConfiguration = resolveSecurityConfiguration(
       providerInfo.securitySchemes ?? [],
       securityValues,
       providerName
@@ -415,6 +415,66 @@ export class ProfileProvider {
     }
 
     return result;
+  }
+
+  private async cacheProviderInfo(providerName: string): Promise<ProviderJson> {
+    const errors: Error[] = [];
+    if (this.providerJson === undefined) {
+      const providerCachePath = joinPath(cachePath, providerName);
+      // If we don't have provider info, we first try to fetch it from the registry
+      try {
+        this.providerJson = await fetchProviderInfo(providerName);
+        await this.writeProviderCache(this.providerJson);
+      } catch (error) {
+        profileProviderDebug(
+          `Failed to fetch provider.json for ${providerName}: %O`,
+          error
+        );
+        errors.push(error);
+      }
+
+      // If we can't fetch provider info from registry, we try to read it from cache
+      if (this.providerJson === undefined) {
+        try {
+          const providerJsonFile = await fsp.readFile(
+            providerCachePath,
+            'utf8'
+          );
+          this.providerJson = assertProviderJson(JSON.parse(providerJsonFile));
+        } catch (error) {
+          profileProviderDebug(
+            `Failed to read cached provider.json for ${providerName}: %O`,
+            error
+          );
+          errors.push(error);
+        }
+      }
+    }
+
+    if (this.providerJson === undefined) {
+      throw new UnexpectedError(
+        'Failed to fetch provider.json or load it from cache.',
+        errors
+      );
+    }
+
+    return this.providerJson;
+  }
+
+  private async writeProviderCache(providerJson: ProviderJson): Promise<void> {
+    const providerCachePath = joinPath(cachePath, `${providerJson.name}.json`);
+    try {
+      await fsp.mkdir(cachePath, { recursive: true });
+      await fsp.writeFile(
+        providerCachePath,
+        JSON.stringify(providerJson, undefined, 2)
+      );
+    } catch (error) {
+      profileProviderDebug(
+        `Failed to cache provider.json for ${providerJson.name}: %O`,
+        error
+      );
+    }
   }
 
   private async resolveProfileAst(): Promise<ProfileDocumentNode | undefined> {
@@ -629,88 +689,5 @@ export class ProfileProvider {
     }
 
     return resolved;
-  }
-
-  private resolveSecurityConfiguration(
-    schemes: SecurityScheme[],
-    values: SecurityValues[],
-    providerName: string
-  ): SecurityConfiguration[] {
-    const result: SecurityConfiguration[] = [];
-
-    for (const vals of values) {
-      const scheme = schemes.find(scheme => scheme.id === vals.id);
-      if (scheme === undefined) {
-        const definedSchemes = schemes.map(s => s.id);
-        throw securityNotFoundError(providerName, definedSchemes, vals);
-      }
-
-      const invalidSchemeValuesErrorBuilder = (
-        scheme: SecurityScheme,
-        values: SecurityValues,
-        requiredKeys: [string, ...string[]]
-      ) => {
-        const valueKeys = Object.keys(values).filter(k => k !== 'id');
-
-        return invalidSecurityValuesError(
-          providerName,
-          scheme.type,
-          scheme.id,
-          valueKeys,
-          requiredKeys
-        );
-      };
-
-      if (scheme.type === SecurityType.APIKEY) {
-        if (!isApiKeySecurityValues(vals)) {
-          throw invalidSchemeValuesErrorBuilder(scheme, vals, ['apikey']);
-        }
-
-        result.push({
-          ...scheme,
-          ...vals,
-        });
-      } else {
-        switch (scheme.scheme) {
-          case HttpScheme.BASIC:
-            if (!isBasicAuthSecurityValues(vals)) {
-              throw invalidSchemeValuesErrorBuilder(scheme, vals, [
-                'username',
-                'password',
-              ]);
-            }
-
-            result.push({
-              ...scheme,
-              ...vals,
-            });
-            break;
-
-          case HttpScheme.BEARER:
-            if (!isBearerTokenSecurityValues(vals)) {
-              throw invalidSchemeValuesErrorBuilder(scheme, vals, ['token']);
-            }
-
-            result.push({
-              ...scheme,
-              ...vals,
-            });
-            break;
-
-          case HttpScheme.DIGEST:
-            if (!isDigestSecurityValues(vals)) {
-              throw invalidSchemeValuesErrorBuilder(scheme, vals, ['digest']);
-            }
-
-            result.push({
-              ...scheme,
-              ...vals,
-            });
-            break;
-        }
-      }
-    }
-
-    return result;
   }
 }

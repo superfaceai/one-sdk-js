@@ -55,6 +55,18 @@ describe('HttpClient', () => {
     expect(url).toEqual('https://example.com/test/hello');
   });
 
+  it('should correctly interpolate parameters with whitespaces in interpolation key', () => {
+    const baseUrl = 'https://example.com/';
+    const inputUrl = '/test/{ parameter.value   }';
+
+    const url = createUrl(inputUrl, {
+      baseUrl,
+      pathParameters: { parameter: { value: 'hello' } },
+    });
+
+    expect(url).toEqual('https://example.com/test/hello');
+  });
+
   it('should correctly interpolate multiple parameters', () => {
     const inputUrl = '/test/{parameter.value}/another/{parameter.another}';
 
@@ -137,5 +149,33 @@ describe('HttpClient', () => {
         });
       });
     }
+  });
+
+  describe('multipart/form-data', () => {
+    it('encodes multipart boundary correctly', async () => {
+      await mockServer.post('/data').thenCallback(async req => {
+        return {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            contentType: req.headers['content-type'],
+            body: await req.body.getText(),
+          }),
+        };
+      });
+
+      const response = await http.request('/data', {
+        method: 'post',
+        contentType: 'multipart/form-data',
+        body: {
+          foo: 1,
+          bar: 'baz',
+        },
+        baseUrl,
+      });
+      expect(response.statusCode).toBe(200);
+      const body = response.body as any;
+      expect(body.contentType).toMatch(/^multipart\/form-data;boundary=/);
+    });
   });
 });
