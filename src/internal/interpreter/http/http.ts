@@ -3,9 +3,8 @@ import {
   HttpSecurityRequirement,
   SecurityType,
 } from '@superfaceai/ast';
-import createDebug from 'debug';
-import { inspect } from 'util';
 
+import { ILogger } from '../../../lib/logger/logger';
 import { recursiveKeyList } from '../../../lib/object';
 import { pipe } from '../../../lib/pipe/pipe';
 import { UnexpectedError } from '../../errors';
@@ -40,15 +39,8 @@ import {
   SecurityConfiguration,
 } from './security';
 
-const debug = createDebug('superface:http');
-const debugSensitive = createDebug('superface:http:sensitive');
-debugSensitive(
-  `
-WARNING: YOU HAVE ALLOWED LOGGING SENSITIVE INFORMATION.
-THIS LOGGING LEVEL DOES NOT PREVENT LEAKING SECRETS AND SHOULD NOT BE USED IF THE LOGS ARE GOING TO BE SHARED.
-CONSIDER DISABLING SENSITIVE INFORMATION LOGGING BY APPENDING THE DEBUG ENVIRONMENT VARIABLE WITH ",-*:sensitive".
-`
-);
+const DEBUG_NAMESPACE = 'http';
+const DEBUG_NAMESPACE_SENSITIVE = 'http:sensitive';
 
 export interface HttpResponse {
   statusCode: number;
@@ -137,39 +129,42 @@ export const createUrl = (
 
 export async function fetchRequest(
   fetchInstance: FetchInstance,
-  request: HttpRequest
+  request: HttpRequest,
+  logger?: ILogger
 ): Promise<HttpResponse> {
-  debug('Executing HTTP Call');
+  const log = logger?.log(DEBUG_NAMESPACE);
+  const logSensitive = logger?.log(DEBUG_NAMESPACE_SENSITIVE);
+  log?.('Executing HTTP Call');
   // secrets might appear in headers, url path, query parameters or body
-  if (debugSensitive.enabled) {
+  if (logSensitive?.enabled === true) {
     const hasSearchParams =
       Object.keys(request.queryParameters || {}).length > 0;
     const searchParams = new URLSearchParams(request.queryParameters);
-    debugSensitive(
+    logSensitive(
       '\t%s %s%s HTTP/1.1',
       request.method || 'UNKNOWN METHOD',
       request.url,
       hasSearchParams ? '?' + searchParams.toString() : ''
     );
     Object.entries(request.headers || {}).forEach(([headerName, value]) =>
-      debugSensitive(
+      logSensitive(
         `\t${headerName}: ${Array.isArray(value) ? value.join(', ') : value}`
       )
     );
     if (request.body !== undefined) {
-      debugSensitive(`\n${inspect(request.body, true, 5)}`);
+      logSensitive('\n%O', request.body);
     }
   }
 
   const response = await fetchInstance.fetch(request.url, request);
 
-  debug('Received response');
-  if (debugSensitive.enabled) {
-    debugSensitive(`\tHTTP/1.1 ${response.status} ${response.statusText}`);
+  log?.('Received response');
+  if (logSensitive?.enabled === true) {
+    logSensitive(`\tHTTP/1.1 ${response.status} ${response.statusText}`);
     Object.entries(response.headers).forEach(([headerName, value]) =>
-      debugSensitive(`\t${headerName}: ${value}`)
+      logSensitive(`\t${headerName}: ${value}`)
     );
-    debugSensitive('\n\t%j', response.body);
+    logSensitive('\n\t%j', response.body);
   }
 
   const headers: Record<string, string> = {};
@@ -192,7 +187,10 @@ export async function fetchRequest(
 }
 
 export class HttpClient {
-  constructor(private fetchInstance: FetchInstance & AuthCache) {}
+  constructor(
+    private fetchInstance: FetchInstance & AuthCache,
+    private readonly logger?: ILogger
+  ) {}
 
   public async request(
     url: string,
@@ -219,7 +217,8 @@ export class HttpClient {
     const handler = createSecurityHandler(
       this.fetchInstance,
       requestParameters.securityConfiguration,
-      requestParameters.securityRequirements
+      requestParameters.securityRequirements,
+      this.logger
     );
 
     const result = await pipe(
@@ -228,8 +227,10 @@ export class HttpClient {
       },
       authenticateFilter(handler),
       prepareRequestFilter,
-      withRequest(fetchFilter(this.fetchInstance)),
-      withResponse(handleResponseFilter(this.fetchInstance, handler))
+      withRequest(fetchFilter(this.fetchInstance, this.logger)),
+      withResponse(
+        handleResponseFilter(this.fetchInstance, this.logger, handler)
+      )
     );
 
     if (result.response === undefined) {
@@ -243,7 +244,8 @@ export class HttpClient {
 function createSecurityHandler(
   fetchInstance: FetchInstance & AuthCache,
   securityConfiguration: SecurityConfiguration[] = [],
-  securityRequirements: HttpSecurityRequirement[] = []
+  securityRequirements: HttpSecurityRequirement[] = [],
+  logger?: ILogger
 ): ISecurityHandler | undefined {
   let handler: ISecurityHandler | undefined = undefined;
   for (const requirement of securityRequirements) {
@@ -254,11 +256,11 @@ function createSecurityHandler(
       throw missingSecurityValuesError(requirement.id);
     }
     if (configuration.type === SecurityType.APIKEY) {
-      handler = new ApiKeyHandler(configuration);
+      handler = new ApiKeyHandler(configuration, logger);
     } else if (configuration.scheme === HttpScheme.DIGEST) {
-      handler = new DigestHandler(configuration, fetchInstance);
+      handler = new DigestHandler(configuration, fetchInstance, logger);
     } else {
-      handler = new HttpHandler(configuration);
+      handler = new HttpHandler(configuration, logger);
     }
   }
 

@@ -1,10 +1,10 @@
-import createDebug from 'debug';
-
 import { IFileSystem } from './lib/io';
 import { NodeFileSystem } from './lib/io/filesystem.node';
+import { ILogger, LogFunction } from './lib/logger/logger';
+
+const DEBUG_NAMESPACE = 'config';
 
 type JoinPath = { path: { join: IFileSystem['path']['join'] } };
-const configDebug = createDebug('superface:config');
 
 export interface IConfig {
   cachePath: string;
@@ -64,17 +64,17 @@ function getSuperfaceApiUrl(): string | undefined {
   return envUrl !== undefined ? new URL(envUrl).href : undefined;
 }
 
-function getSdkAuthToken(): string | undefined {
+function getSdkAuthToken(log?: LogFunction): string | undefined {
   const loadedToken = process.env[TOKEN_ENV_NAME];
   if (loadedToken === undefined) {
-    configDebug(`Environment variable ${TOKEN_ENV_NAME} not found`);
+    log?.(`Environment variable ${TOKEN_ENV_NAME} not found`);
 
     return;
   }
   const token = loadedToken.trim();
   const tokenRegexp = /^(sfs)_([^_]+)_([0-9A-F]{8})$/i;
   if (!tokenRegexp.test(token)) {
-    configDebug(
+    log?.(
       `Value in environment variable ${TOKEN_ENV_NAME} is not valid SDK authentization token`
     );
 
@@ -84,7 +84,7 @@ function getSdkAuthToken(): string | undefined {
   return token;
 }
 
-function getBoundCacheTimeout(): number {
+function getBoundCacheTimeout(logger?: LogFunction): number {
   const envValue = process.env[BOUND_PROVIDER_CACHE_TIMEOUT];
   if (envValue === undefined) {
     return DEFAULT_BOUND_PROVIDER_TIMEOUT;
@@ -98,7 +98,7 @@ function getBoundCacheTimeout(): number {
 
     return result;
   } catch (e) {
-    configDebug(
+    logger?.(
       `Invalid value: ${envValue} for ${BOUND_PROVIDER_CACHE_TIMEOUT}, expected positive number`
     );
 
@@ -106,7 +106,10 @@ function getBoundCacheTimeout(): number {
   }
 }
 
-function getMetricDebounceTime(which: 'min' | 'max'): number | undefined {
+function getMetricDebounceTime(
+  which: 'min' | 'max',
+  log?: LogFunction
+): number | undefined {
   const envValue = process.env[METRIC_DEBOUNCE_TIME[which]];
   if (envValue === undefined) {
     return undefined;
@@ -120,7 +123,7 @@ function getMetricDebounceTime(which: 'min' | 'max'): number | undefined {
 
     return result;
   } catch (e) {
-    configDebug(
+    log?.(
       `Invalid value: ${envValue} for ${METRIC_DEBOUNCE_TIME[which]}, expected positive number`
     );
 
@@ -128,7 +131,7 @@ function getMetricDebounceTime(which: 'min' | 'max'): number | undefined {
   }
 }
 
-function getSandboxTimeout(): number {
+function getSandboxTimeout(logger?: LogFunction): number {
   const envValue = process.env[SANDBOX_TIMEOUT_ENV_NAME];
   if (envValue === undefined) {
     return DEFAULT_SANDBOX_TIMEOUT;
@@ -142,7 +145,7 @@ function getSandboxTimeout(): number {
 
     return result;
   } catch (e) {
-    configDebug(
+    logger?.(
       `Invalid value: ${envValue} for ${SANDBOX_TIMEOUT_ENV_NAME}, expected positive number`
     );
 
@@ -161,7 +164,10 @@ export class Config implements IConfig {
   public superfaceCacheTimeout: number;
   public superfacePath: string;
 
+  private readonly log: LogFunction | undefined;
+
   public constructor(
+    logger?: ILogger,
     config?: Partial<IConfig>,
     private fileSystem: JoinPath = NodeFileSystem
   ) {
@@ -179,20 +185,18 @@ export class Config implements IConfig {
     this.superfaceCacheTimeout =
       config?.superfaceCacheTimeout ?? defaults.superfaceCacheTimeout;
     this.superfacePath = config?.superfacePath ?? defaults.superfacePath;
+
+    this.log = logger?.log(DEBUG_NAMESPACE);
   }
 
-  static loadFromEnv(): Config {
-    const env = new Config().loadEnv();
+  static loadFromEnv(logger?: ILogger): Config {
+    const env = new Config(logger).loadEnv();
 
-    configDebug(
-      `Loaded config from environment variables: ${JSON.stringify(env)}`
-    );
-
-    return new Config(env);
+    return new Config(logger, env);
   }
 
   private loadEnv() {
-    return {
+    const env = {
       superfaceApiUrl: getSuperfaceApiUrl(),
       sdkAuthToken: getSdkAuthToken(),
       superfacePath:
@@ -209,5 +213,9 @@ export class Config implements IConfig {
       cachePath: undefined,
       sandboxTimeout: getSandboxTimeout(),
     };
+
+    this.log?.('Loaded config from environment variables: %O', env);
+
+    return env;
   }
 }

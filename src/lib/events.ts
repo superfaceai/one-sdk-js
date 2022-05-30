@@ -3,7 +3,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import createDebug from 'debug';
 
 import { UseCase } from '../client';
 import { HooksContext } from '../client/failure/event-adapter';
@@ -12,8 +11,9 @@ import { FailurePolicyReason } from '../client/failure/policy';
 import { UnexpectedError } from '../internal/errors';
 import { HttpResponse, RequestParameters } from '../internal/interpreter/http';
 import { FetchInstance } from '../internal/interpreter/http/interfaces';
+import { ILogger, LogFunction } from './logger/logger';
 
-const debug = createDebug('superface:events');
+const DEBUG_NAMESPACE = 'events';
 
 type AnyFunction = (...args: any[]) => any;
 type AsyncFunction = (...args: any[]) => Promise<any>;
@@ -177,6 +177,11 @@ export class Events {
   public hookContext: HooksContext = {};
 
   private listeners: EventListeners = {};
+  public log: LogFunction | undefined;
+
+  constructor(logger?: ILogger) {
+    this.log = logger?.log(DEBUG_NAMESPACE);
+  }
 
   public on<E extends keyof EventParams>(
     event: E,
@@ -186,7 +191,7 @@ export class Events {
     },
     callback: EventParams[E]
   ): void {
-    debug(
+    this.log?.(
       `Attaching listener for event "${event}" with priority ${options.priority}`
     );
 
@@ -200,7 +205,7 @@ export class Events {
     event: E,
     parameters: Parameters<EventParams[E]>
   ): Promise<ResolvedPromise<ReturnType<EventParams[E]>>> {
-    debug(`Emitting event "${event}"`);
+    this.log?.(`Emitting event "${event}"`);
 
     const listeners = this.listeners[event];
     const [context] = parameters;
@@ -222,7 +227,7 @@ export class Events {
           continue;
         }
         const hookResult = await callback(...params);
-        debug(
+        this.log?.(
           `Event "${event}" listener ${i} result: ${
             (hookResult?.kind ?? 'continue') as string
           }`
@@ -260,7 +265,7 @@ function replacementFunction<E extends keyof EventTypes>(
     this: Interceptable,
     ...args: Parameters<EventTypes[E][0]>
   ) {
-    if (debug.enabled) {
+    if (this.events?.log?.enabled === true) {
       let metadataString = 'undefined';
       if (this.metadata !== undefined) {
         metadataString = `{ profile: ${
@@ -275,7 +280,7 @@ function replacementFunction<E extends keyof EventTypes>(
         eventsString = 'defined';
       }
 
-      debug(
+      this.events?.log?.(
         `Intercepted function for "${metadata.eventName}" (placement: ${
           metadata.placement ?? ''
         }) with context: { metadata: ${metadataString}, events: ${eventsString} }`
@@ -383,7 +388,7 @@ export function eventInterceptor<E extends keyof EventTypes>(
       ...eventInterceptorMetadataDefaults,
       ...eventMetadata,
     };
-    debug(
+    target.events?.log?.(
       `Attaching interceptor for event "${metadata.eventName}" (placement: ${metadata.placement}) onto ${target.constructor.name}::${propertyKey}`
     );
 

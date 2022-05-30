@@ -1,5 +1,4 @@
 import { AnonymizedSuperJsonDocument } from '@superfaceai/ast';
-import createDebug from 'debug';
 
 import { FailurePolicyReason } from '../client/failure/policy';
 import { IConfig } from '../config';
@@ -11,8 +10,9 @@ import {
 import { SuperJson } from '../internal/superjson';
 import { Events, FailureContext, SuccessContext } from './events';
 import { CrossFetch } from './fetch';
+import { ILogger, LogFunction } from './logger/logger';
 
-const debug = createDebug('superface:metric-reporter');
+const DEBUG_NAMESPACE = 'metric-reporter';
 
 type EventBase = {
   event_type: 'SDKInit' | 'Metrics' | 'ProviderChange';
@@ -187,12 +187,18 @@ export class MetricReporter {
   private performMetrics: Omit<PerformMetricsInput, 'eventType'>[] = [];
   private configHash: string;
   private anonymizedSuperJson: AnonymizedSuperJsonDocument;
+  private readonly log: LogFunction | undefined;
 
-  constructor(superJson: SuperJson, private readonly config: IConfig) {
+  constructor(
+    superJson: SuperJson,
+    private readonly config: IConfig,
+    logger?: ILogger
+  ) {
     this.fetchInstance = new CrossFetch();
     this.sdkToken = config.sdkAuthToken;
     this.configHash = superJson.configHash;
     this.anonymizedSuperJson = superJson.anonymized;
+    this.log = logger?.log(DEBUG_NAMESPACE);
   }
 
   public reportEvent(event: EventInput): void {
@@ -358,15 +364,15 @@ export class MetricReporter {
         },
       })
       .then(result => {
-        debug(
-          'Succesfully sent metrics. Sent: ',
+        this.log?.(
+          'Succesfully sent metrics. Sent: %O',
           payload.data,
-          'Response: ',
+          'Response: %O',
           result
         );
       })
       .catch(error => {
-        debug('Unsuccesfully tried to send metrics: ', error);
+        this.log?.('Unsuccesfully tried to send metrics: %O', error);
       });
   }
 }

@@ -1,5 +1,4 @@
 import { BackoffKind, OnFail } from '@superfaceai/ast';
-import createDebug from 'debug';
 
 import { Config } from '../config';
 import {
@@ -22,6 +21,7 @@ import {
   InterceptableMetadata,
 } from '../lib/events';
 import { IFileSystem } from '../lib/io';
+import { ILogger, LogFunction } from '../lib/logger/logger';
 import { SuperCache } from './cache';
 import {
   AbortPolicy,
@@ -34,7 +34,7 @@ import { ProfileConfiguration } from './profile';
 import { bindProfileProvider, IBoundProfileProvider } from './profile-provider';
 import { Provider, ProviderConfiguration } from './provider';
 
-const debug = createDebug('superface:usecase');
+const DEBUG_NAMESPACE = 'usecase';
 
 export type PerformOptions = {
   provider?: Provider | string;
@@ -53,6 +53,7 @@ class UseCaseBase implements Interceptable {
   public metadata: InterceptableMetadata;
 
   private boundProfileProvider: IBoundProfileProvider | undefined;
+  private readonly log: LogFunction | undefined;
 
   constructor(
     public readonly profileConfiguration: ProfileConfiguration,
@@ -64,12 +65,14 @@ class UseCaseBase implements Interceptable {
     private readonly boundProfileProviderCache: SuperCache<{
       provider: IBoundProfileProvider;
       expiresAt: number;
-    }>
+    }>,
+    private readonly logger?: ILogger
   ) {
     this.metadata = {
       usecase: name,
       profile: this.profileConfiguration.id,
     };
+    this.log = logger?.log(DEBUG_NAMESPACE);
 
     this.configureHookContext();
   }
@@ -116,7 +119,8 @@ class UseCaseBase implements Interceptable {
           this.superJson,
           this.config,
           this.events,
-          this.fileSystem
+          this.fileSystem,
+          this.logger
         )
       );
     const now = Math.floor(Date.now() / 1000);
@@ -166,7 +170,7 @@ class UseCaseBase implements Interceptable {
   ): Promise<Result<TOutput, PerformError>> {
     await this.bind(options);
 
-    debug('bound provider', this.boundProfileProvider);
+    this.log?.('Bound provider: %O', this.boundProfileProvider);
 
     return this.performBoundUsecase(input, options?.parameters);
   }

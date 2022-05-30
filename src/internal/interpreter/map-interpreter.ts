@@ -24,10 +24,10 @@ import {
   SetStatementNode,
   Substatement,
 } from '@superfaceai/ast';
-import createDebug from 'debug';
 
 import { IConfig } from '../../config';
 import { err, ok, Result } from '../../lib';
+import { ILogger, LogFunction } from '../../lib/logger/logger';
 import { IServiceSelector } from '../../lib/services';
 import { UnexpectedError } from '../errors';
 import { MapInterpreterExternalHandler } from './external-handler';
@@ -55,7 +55,7 @@ import {
   Variables,
 } from './variables';
 
-const debug = createDebug('superface:map-interpreter');
+const DEBUG_NAMESPACE = 'map-interpreter';
 
 function assertUnreachable(node: never): never;
 function assertUnreachable(node: MapASTNode): never {
@@ -142,6 +142,8 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
   private readonly http: HttpClient;
   private readonly externalHandler: MapInterpreterExternalHandler;
   private readonly config: IConfig;
+  private readonly logger?: ILogger;
+  private readonly log: LogFunction | undefined;
 
   constructor(
     private readonly parameters: MapParameters<TInput>,
@@ -149,15 +151,19 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
       fetchInstance,
       externalHandler,
       config,
+      logger,
     }: {
       fetchInstance: FetchInstance & AuthCache;
       externalHandler?: MapInterpreterExternalHandler;
       config: IConfig;
+      logger?: ILogger;
     }
   ) {
-    this.http = new HttpClient(fetchInstance);
+    this.http = new HttpClient(fetchInstance, logger);
     this.externalHandler = externalHandler ?? {};
     this.config = config;
+    this.logger = logger;
+    this.log = logger?.log(DEBUG_NAMESPACE);
   }
 
   async perform(
@@ -212,7 +218,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
     | Variables
     | HttpResponseHandlerDefinition
     | undefined {
-    debug(
+    this.log?.(
       'Visiting node:',
       node.kind,
       node.location
@@ -325,7 +331,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
 
     let retry = true;
     while (retry) {
-      debug('Performing http request:', node.url);
+      this.log?.('Performing http request:', node.url);
       const response = await this.http.request(node.url, {
         method: node.method,
         headers: request?.headers,
@@ -424,7 +430,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
         statusCode: response.statusCode,
       });
 
-      if (debug.enabled) {
+      if (this.log?.enabled === true) {
         let debugString = 'Running http handler:';
         if (node.contentType !== undefined) {
           debugString += ` content-type: "${node.contentType}"`;
@@ -435,7 +441,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
         if (node.statusCode !== undefined) {
           debugString += ` code: "${node.statusCode}"`;
         }
-        debug(debugString);
+        this.log(debugString);
       }
 
       await this.processStatements(node.statements);
@@ -503,7 +509,12 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
 
   visitJessieExpressionNode(node: JessieExpressionNode): Variables | undefined {
     try {
-      const result = evalScript(this.config, node.expression, this.variables);
+      const result = evalScript(
+        this.config,
+        node.expression,
+        this.logger,
+        this.variables
+      );
 
       return castToVariables(result);
     } catch (e) {
@@ -559,7 +570,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
           } else {
             this.stackTop().result = outcome?.result ?? this.stackTop().result;
           }
-          debug('Setting result: %O', this.stackTop());
+          this.log?.('Setting result: %O', this.stackTop());
 
           if (outcome?.terminateFlow === true) {
             this.stackTop().terminate = true;
@@ -707,7 +718,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
       variables
     );
 
-    debug('Updated stack: %O', this.stackTop());
+    this.log?.('Updated stack: %O', this.stackTop());
   }
 
   private constructObject(keys: string[], value: Variables): NonPrimitive {
@@ -721,7 +732,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
         current = current[key] = {};
       }
     }
-    debug('Constructing object:', keys.join('.'), '=', value);
+    this.log?.('Constructing object:', keys.join('.'), '=', value);
 
     return result;
   }
@@ -743,13 +754,13 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
             terminate: false,
           };
     this.stack.push(stack);
-    debug('New stack: %O', this.stackTop());
+    this.log?.('New stack: %O', this.stackTop());
   }
 
   private popStack(): void {
     const last = this.stack.pop();
 
-    debug('Popped stack: %O', last);
+    this.log?.('Popped stack: %O', last);
   }
 
   private stackTop(assertType: 'operation'): OperationStack;
@@ -781,7 +792,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
       });
     }
 
-    debug('Calling operation:', operation.name);
+    this.log?.('Calling operation:', operation.name);
 
     let args: Variables = {};
     for (const assignment of node.arguments) {

@@ -14,6 +14,7 @@ import {
 } from '@superfaceai/ast';
 
 import { err, ok, Result } from '../../lib';
+import { ILogger } from '../../lib/logger/logger';
 import { SDKExecutionError, UnexpectedError } from '../errors';
 import { profileNotFoundError, providersNotSetError } from '../errors.helpers';
 import {
@@ -92,7 +93,8 @@ export function mergeProfileDefaults(
 export function mergeProfile(
   document: SuperJsonDocument,
   profileName: string,
-  payload: ProfileEntry
+  payload: ProfileEntry,
+  logger?: ILogger
 ): boolean {
   // if specified profile is not found
   if (
@@ -188,7 +190,7 @@ export function mergeProfile(
     providers = payload.providers;
   } else if (targetedProfile.providers) {
     Object.entries(payload.providers ?? {}).forEach(([providerName, entry]) =>
-      mergeProfileProvider(document, profileName, providerName, entry)
+      mergeProfileProvider(document, profileName, providerName, entry, logger)
     );
     providers = targetedProfile.providers;
   }
@@ -220,7 +222,8 @@ function resolvePriorityAddition(
 export function setProfile(
   document: SuperJsonDocument,
   profileName: string,
-  payload: ProfileEntry | undefined
+  payload: ProfileEntry | undefined,
+  logger?: ILogger
 ): boolean {
   let changed = false;
 
@@ -236,7 +239,7 @@ export function setProfile(
 
   // if payload is undefined we already deleted it (or it wasn't present)
   if (payload !== undefined) {
-    const mergeChanged = mergeProfile(document, profileName, payload);
+    const mergeChanged = mergeProfile(document, profileName, payload, logger);
     changed = changed || mergeChanged;
   }
 
@@ -248,7 +251,8 @@ export function setProfile(
  */
 function ensureProfileWithProviders(
   document: SuperJsonDocument,
-  profileName: string
+  profileName: string,
+  logger?: ILogger
 ): [
   boolean,
   Exclude<ProfileEntry, string> & {
@@ -275,7 +279,8 @@ function ensureProfileWithProviders(
   if (typeof profile === 'string') {
     document.profiles[profileName] = normalizeProfileSettings(
       document.profiles[profileName],
-      []
+      [],
+      logger
     );
 
     changed = true;
@@ -298,9 +303,14 @@ export function mergeProfileProvider(
   document: SuperJsonDocument,
   profileName: string,
   providerName: string,
-  payload: ProfileProviderEntry
+  payload: ProfileProviderEntry,
+  logger?: ILogger
 ): boolean {
-  const [_, targetProfile] = ensureProfileWithProviders(document, profileName);
+  const [_, targetProfile] = ensureProfileWithProviders(
+    document,
+    profileName,
+    logger
+  );
   void _;
 
   const profileProvider = targetProfile.providers?.[providerName];
@@ -449,7 +459,8 @@ export function setProfileProvider(
   document: SuperJsonDocument,
   profileName: string,
   providerName: string,
-  payload: ProfileProviderEntry | undefined
+  payload: ProfileProviderEntry | undefined,
+  logger?: ILogger
 ): boolean {
   let changed = false;
 
@@ -491,7 +502,8 @@ export function setProfileProvider(
       document,
       profileName,
       providerName,
-      payload
+      payload,
+      logger
     );
     changed = changed || mergeChanged;
   }
@@ -505,9 +517,14 @@ export function swapProfileProviderVariant(
   providerName: string,
   variant:
     | { kind: 'local'; file: string }
-    | { kind: 'remote'; mapVariant?: string; mapRevision?: string }
+    | { kind: 'remote'; mapVariant?: string; mapRevision?: string },
+  logger?: ILogger
 ): boolean {
-  const [_, targetProfile] = ensureProfileWithProviders(document, profileName);
+  const [_, targetProfile] = ensureProfileWithProviders(
+    document,
+    profileName,
+    logger
+  );
   void _;
 
   let changed = false;
@@ -751,7 +768,8 @@ export function mergeSecurity(
 export function setPriority(
   document: SuperJsonDocument,
   profileName: string,
-  providersSortedByPriority: string[]
+  providersSortedByPriority: string[],
+  logger?: ILogger
 ): Result<boolean, SDKExecutionError> {
   if (document.profiles === undefined) {
     document.profiles = {};
@@ -766,7 +784,8 @@ export function setPriority(
   if (typeof targetedProfile === 'string') {
     document.profiles[profileName] = targetedProfile = normalizeProfileSettings(
       targetedProfile,
-      Object.keys(document.providers ?? {})
+      Object.keys(document.providers ?? {}),
+      logger
     );
   }
 

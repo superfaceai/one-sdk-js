@@ -129,7 +129,7 @@ describe('HTTP Filters', () => {
         authenticate: jest.fn(),
         handleResponse: jest.fn(),
       };
-      const filter = handleResponseFilter(fetchInstance, handler);
+      const filter = handleResponseFilter(fetchInstance, undefined, handler);
 
       await filter({
         parameters: { url: '', method: '', baseUrl: '' },
@@ -146,7 +146,7 @@ describe('HTTP Filters', () => {
         authenticate: jest.fn(),
         handleResponse: jest.fn().mockResolvedValue({ url: '', method: '' }),
       };
-      const filter = handleResponseFilter(fetchInstance, handler);
+      const filter = handleResponseFilter(fetchInstance, undefined, handler);
 
       await filter({
         parameters: { url: '', method: '', baseUrl: '' },
@@ -174,7 +174,7 @@ describe('HTTP Filters', () => {
         configuration: {} as any,
         authenticate: jest.fn(),
       };
-      const filter = handleResponseFilter(fetchInstance, handler);
+      const filter = handleResponseFilter(fetchInstance, undefined, handler);
 
       const parameters = {
         parameters: { url: '', method: '', baseUrl: '' },

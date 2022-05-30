@@ -7,6 +7,8 @@ import {
 } from '../internal/superjson/utils';
 import { Events } from '../lib/events';
 import { NodeFileSystem } from '../lib/io/filesystem.node';
+import { ILogger } from '../lib/logger/logger';
+import { NodeLogger } from '../lib/logger/logger.node';
 import { hookMetrics, MetricReporter } from '../lib/reporter';
 import { SuperCache } from './cache';
 import { InternalClient } from './client.internal';
@@ -32,21 +34,31 @@ export abstract class SuperfaceClientBase {
   }>;
 
   protected readonly config: Config;
+  protected readonly logger?: ILogger;
 
   constructor() {
-    this.events = new Events();
-    this.config = Config.loadFromEnv();
+    this.logger = new NodeLogger();
+    this.events = new Events(this.logger);
+    this.config = Config.loadFromEnv(this.logger);
     const superCacheKey = this.config.superfacePath;
 
     this.boundProfileProviderCache = new SuperCache<{
       provider: IBoundProfileProvider;
       expiresAt: number;
     }>();
-    this.superJson = SuperJson.loadSync(superCacheKey).unwrap();
+    this.superJson = SuperJson.loadSync(
+      superCacheKey,
+      NodeFileSystem,
+      this.logger
+    ).unwrap();
 
     let metricReporter: MetricReporter | undefined;
     if (!this.config.disableReporting) {
-      metricReporter = new MetricReporter(this.superJson, this.config);
+      metricReporter = new MetricReporter(
+        this.superJson,
+        this.config,
+        this.logger
+      );
       hookMetrics(this.events, metricReporter);
       metricReporter.reportEvent({
         eventType: 'SDKInit',
@@ -54,14 +66,15 @@ export abstract class SuperfaceClientBase {
       });
     }
 
-    registerFailoverHooks(this.events);
+    registerFailoverHooks(this.events, this.logger);
 
     this.internal = new InternalClient(
       this.events,
       this.superJson,
       this.config,
       NodeFileSystem,
-      this.boundProfileProviderCache
+      this.boundProfileProviderCache,
+      this.logger
     );
   }
 
@@ -125,7 +138,8 @@ export function createTypedClient<TProfiles extends ProfileUseCases<any, any>>(
         this.boundProfileProviderCache,
         this.config,
         NodeFileSystem,
-        Object.keys(profileDefinitions[profileId])
+        Object.keys(profileDefinitions[profileId]),
+        this.logger
       );
     }
   };

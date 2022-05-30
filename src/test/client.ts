@@ -24,6 +24,8 @@ import {
 } from '../internal/superjson/utils';
 import { Events } from '../lib/events';
 import { IFileSystem } from '../lib/io';
+import { ILogger } from '../lib/logger/logger';
+import { NodeLogger } from '../lib/logger/logger.node';
 import { hookMetrics, MetricReporter } from '../lib/reporter';
 import { ServiceSelector } from '../lib/services';
 import { MockFileSystem } from './filesystem';
@@ -38,6 +40,7 @@ export class MockClient implements ISuperfaceClient {
 
   public internalClient: InternalClient;
   public metricReporter?: MetricReporter;
+  public logger?: ILogger;
 
   constructor(
     public superJson: SuperJson,
@@ -46,15 +49,22 @@ export class MockClient implements ISuperfaceClient {
       fileSystemOverride?: Partial<IFileSystem>;
     }
   ) {
-    this.config = new Config({
+    // TODO: test logger?
+    this.logger = new NodeLogger();
+
+    this.config = new Config(this.logger, {
       disableReporting: true,
       ...parameters?.configOverride,
     });
-    this.events = new Events();
-    registerHooks(this.events);
+    this.events = new Events(this.logger);
+    registerHooks(this.events, this.logger);
 
     if (this.config.disableReporting === false) {
-      this.metricReporter = new MetricReporter(this.superJson, this.config);
+      this.metricReporter = new MetricReporter(
+        this.superJson,
+        this.config,
+        this.logger
+      );
       hookMetrics(this.events, this.metricReporter);
     }
 
@@ -77,7 +87,8 @@ export class MockClient implements ISuperfaceClient {
       superJson,
       this.config,
       fileSystem,
-      this.cache
+      this.cache,
+      this.logger
     );
   }
 
@@ -102,6 +113,7 @@ export class MockClient implements ISuperfaceClient {
         services: ServiceSelector.withDefaultUrl(baseUrl),
         security: securityValues,
       },
+      this.logger,
       this.events
     );
 

@@ -23,6 +23,7 @@ import {
 } from '@superfaceai/ast';
 
 import { resolveEnvRecord } from '../../lib/env';
+import { ILogger } from '../../lib/logger/logger';
 import { clone } from '../../lib/object';
 import { UnexpectedError } from '../errors';
 import { invalidProfileProviderError } from '../errors.helpers';
@@ -30,7 +31,8 @@ import { castToNonPrimitive, mergeVariables } from '../interpreter/variables';
 
 export function normalizeProfileProviderSettings(
   profileProviderSettings: ProfileProviderEntry | undefined,
-  baseDefaults: NormalizedUsecaseDefaults
+  baseDefaults: NormalizedUsecaseDefaults,
+  logger?: ILogger
 ): NormalizedProfileProviderSettings {
   if (profileProviderSettings === undefined) {
     return {
@@ -63,6 +65,7 @@ export function normalizeProfileProviderSettings(
     };
   }
   normalizedSettings.defaults = normalizeProfileProviderDefaults(
+    logger,
     profileProviderSettings.defaults,
     baseDefaults
   );
@@ -154,6 +157,7 @@ export function normalizeRetryPolicy(
 }
 
 export function normalizeUsecaseDefaults(
+  logger?: ILogger,
   defaults?: UsecaseDefaults,
   base?: NormalizedUsecaseDefaults
 ): NormalizedUsecaseDefaults {
@@ -161,7 +165,7 @@ export function normalizeUsecaseDefaults(
     if (base == undefined) {
       return {};
     } else {
-      return normalizeUsecaseDefaults(base);
+      return normalizeUsecaseDefaults(logger, base);
     }
   }
 
@@ -184,10 +188,11 @@ export function normalizeUsecaseDefaults(
     };
   }
 
-  return resolveEnvRecord(normalized);
+  return resolveEnvRecord(normalized, logger);
 }
 
 export function normalizeProfileProviderDefaults(
+  logger?: ILogger,
   defaults?: ProfileProviderDefaults,
   base?: NormalizedUsecaseDefaults
 ): NormalizedProfileProviderDefaults {
@@ -195,7 +200,7 @@ export function normalizeProfileProviderDefaults(
     if (base == undefined) {
       return {};
     } else {
-      return normalizeProfileProviderDefaults(base);
+      return normalizeProfileProviderDefaults(logger, base);
     }
   }
 
@@ -212,12 +217,13 @@ export function normalizeProfileProviderDefaults(
     };
   }
 
-  return resolveEnvRecord(normalized);
+  return resolveEnvRecord(normalized, logger);
 }
 
 export function normalizeProfileSettings(
   profileEntry: ProfileEntry,
-  topProviderOrder: string[]
+  topProviderOrder: string[],
+  logger?: ILogger
 ): NormalizedProfileSettings {
   if (typeof profileEntry === 'string') {
     if (isVersionString(profileEntry)) {
@@ -258,14 +264,18 @@ export function normalizeProfileSettings(
     };
   }
 
-  normalizedSettings.defaults = normalizeUsecaseDefaults(profileEntry.defaults);
+  normalizedSettings.defaults = normalizeUsecaseDefaults(
+    logger,
+    profileEntry.defaults
+  );
   for (const [providerName, profileProviderSettings] of Object.entries(
     profileEntry.providers ?? {}
   )) {
     normalizedSettings.providers[providerName] =
       normalizeProfileProviderSettings(
         profileProviderSettings,
-        normalizedSettings.defaults
+        normalizedSettings.defaults,
+        logger
       );
   }
   if (normalizedSettings.priority.length === 0) {
@@ -284,7 +294,8 @@ export function normalizeProfileSettings(
 }
 
 export function normalizeProviderSettings(
-  providerEntry: ProviderEntry
+  providerEntry: ProviderEntry,
+  logger?: ILogger
 ): NormalizedProviderSettings {
   if (typeof providerEntry === 'string') {
     if (isFileURIString(providerEntry)) {
@@ -303,16 +314,18 @@ export function normalizeProviderSettings(
   return {
     file: providerEntry.file,
     security:
-      providerEntry.security?.map(entry => resolveEnvRecord(entry)) ?? [],
+      providerEntry.security?.map(entry => resolveEnvRecord(entry, logger)) ??
+      [],
     parameters: providerEntry.parameters
-      ? resolveEnvRecord(providerEntry.parameters)
+      ? resolveEnvRecord(providerEntry.parameters, logger)
       : {},
   };
 }
 
 /** Returns a cached normalized clone of the document. */
 export function normalizeSuperJsonDocument(
-  originalDocument: SuperJsonDocument
+  originalDocument: SuperJsonDocument,
+  logger?: ILogger
 ): NormalizedSuperJsonDocument {
   // clone
   const document: SuperJsonDocument = clone(originalDocument);
@@ -323,15 +336,18 @@ export function normalizeSuperJsonDocument(
   for (const [profileId, profileEntry] of Object.entries(profiles)) {
     normalizedProfiles[profileId] = normalizeProfileSettings(
       profileEntry,
-      topProviderOrder
+      topProviderOrder,
+      logger
     );
   }
 
   const providers = document.providers ?? {};
   const normalizedProviders: Record<string, NormalizedProviderSettings> = {};
   for (const [providerName, providerEntry] of Object.entries(providers)) {
-    normalizedProviders[providerName] =
-      normalizeProviderSettings(providerEntry);
+    normalizedProviders[providerName] = normalizeProviderSettings(
+      providerEntry,
+      logger
+    );
   }
 
   return {

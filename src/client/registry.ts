@@ -5,7 +5,6 @@ import {
   MapDocumentNode,
   ProviderJson,
 } from '@superfaceai/ast';
-import createDebug from 'debug';
 
 import { IConfig } from '../config';
 import { UnexpectedError } from '../internal/errors';
@@ -17,8 +16,9 @@ import {
 } from '../internal/errors.helpers';
 import { HttpClient, HttpResponse } from '../internal/interpreter/http';
 import { CrossFetch } from '../lib/fetch';
+import { ILogger } from '../lib/logger/logger';
 
-const registryDebug = createDebug('superface:registry');
+const DEBUG_NAMESPACE = 'registry';
 
 export interface RegistryProviderInfo {
   url: string;
@@ -29,7 +29,8 @@ export interface RegistryProviderInfo {
 }
 
 export function assertIsRegistryProviderInfo(
-  input: unknown
+  input: unknown,
+  logger?: ILogger
 ): asserts input is { disco: RegistryProviderInfo[] } {
   function isRecord(
     inp: unknown
@@ -59,21 +60,26 @@ export function assertIsRegistryProviderInfo(
     !Array.isArray(input.disco) ||
     !input.disco.every<RegistryProviderInfo>(isRegistryProviderInfo)
   ) {
-    registryDebug('Invalid response from registry.');
-    registryDebug(`Received: ${JSON.stringify(input, undefined, 2)}`);
+    logger?.log(DEBUG_NAMESPACE, 'Invalid response from registry.');
+    logger?.log(DEBUG_NAMESPACE, 'Received: %O', input);
+
     throw new UnexpectedError('Invalid response from registry');
   }
 }
 
 export async function fetchProviderInfo(
   providerName: string,
-  config: IConfig
+  config: IConfig,
+  logger?: ILogger
 ): Promise<ProviderJson> {
   const fetchInstance = new CrossFetch();
-  const http = new HttpClient(fetchInstance);
+  const http = new HttpClient(fetchInstance, logger);
   const sdkToken = config.sdkAuthToken;
 
-  registryDebug(`Fetching provider ${providerName} from registry`);
+  logger?.log(
+    DEBUG_NAMESPACE,
+    `Fetching provider ${providerName} from registry`
+  );
   const { body, statusCode } = await http.request(
     `/providers/${providerName}`,
     {
@@ -206,15 +212,16 @@ export async function fetchBind(
     mapVariant?: string;
     mapRevision?: string;
   },
-  config: IConfig
+  config: IConfig,
+  logger?: ILogger
 ): Promise<{
   provider: ProviderJson;
   mapAst?: MapDocumentNode;
 }> {
   const fetchInstance = new CrossFetch();
-  const http = new HttpClient(fetchInstance);
+  const http = new HttpClient(fetchInstance, logger);
   const sdkToken = config.sdkAuthToken;
-  registryDebug('Binding SDK to registry');
+  logger?.log(DEBUG_NAMESPACE, 'Binding SDK to registry');
 
   const fetchResponse = await http.request('/registry/bind', {
     method: 'POST',
@@ -241,12 +248,13 @@ export async function fetchBind(
 
 export async function fetchMapSource(
   mapId: string,
-  config: IConfig
+  config: IConfig,
+  logger?: ILogger
 ): Promise<string> {
   const fetchInstance = new CrossFetch();
-  const http = new HttpClient(fetchInstance);
+  const http = new HttpClient(fetchInstance, logger);
   const sdkToken = config.sdkAuthToken;
-  registryDebug(`Getting source of map: "${mapId}"`);
+  logger?.log(DEBUG_NAMESPACE, `Getting source of map: "${mapId}"`);
 
   const { body } = await http.request(`/${mapId}`, {
     method: 'GET',

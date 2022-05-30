@@ -13,7 +13,6 @@ import {
   ProviderJson,
   SecurityValues,
 } from '@superfaceai/ast';
-import createDebug from 'debug';
 
 import { IConfig } from '../config';
 import { UnexpectedError } from '../internal';
@@ -46,6 +45,7 @@ import { err, ok, Result } from '../lib';
 import { Events, Interceptable } from '../lib/events';
 import { CrossFetch } from '../lib/fetch';
 import { IFileSystem } from '../lib/io';
+import { ILogger, LogFunction } from '../lib/logger/logger';
 import { IServiceSelector, ServiceSelector } from '../lib/services';
 import { MapInterpreterEventAdapter } from './failure/map-interpreter-adapter';
 import { ProfileConfiguration } from './profile';
@@ -60,10 +60,8 @@ function profileAstId(ast: ProfileDocumentNode): string {
     ? ast.header.scope + '/' + ast.header.name
     : ast.header.name;
 }
-
-const boundProfileProviderDebug = createDebug(
-  'superface:bound-profile-provider'
-);
+const BOUND_DEBUG_NAMESPACE = 'bound-profile-provider';
+const DEBUG_NAMESPACE = 'profile-provider';
 
 export async function bindProfileProvider(
   profileConfig: ProfileConfiguration,
@@ -71,7 +69,8 @@ export async function bindProfileProvider(
   superJson: SuperJson,
   config: IConfig,
   events: Events,
-  fileSystem: IFileSystem
+  fileSystem: IFileSystem,
+  logger?: ILogger
 ): Promise<{ provider: IBoundProfileProvider; expiresAt: number }> {
   const profileProvider = new ProfileProvider(
     superJson,
@@ -79,7 +78,8 @@ export async function bindProfileProvider(
     providerConfig,
     config,
     events,
-    fileSystem
+    fileSystem,
+    logger
   );
   const boundProfileProvider = await profileProvider.bind();
   const expiresAt =
@@ -103,6 +103,7 @@ export interface IBoundProfileProvider {
 export class BoundProfileProvider implements IBoundProfileProvider {
   private profileValidator: ProfileParameterValidator;
   private fetchInstance: FetchInstance & Interceptable & AuthCache;
+  private readonly log: LogFunction | undefined;
 
   constructor(
     private readonly profileAst: ProfileDocumentNode,
@@ -115,9 +116,13 @@ export class BoundProfileProvider implements IBoundProfileProvider {
       security: SecurityConfiguration[];
       parameters?: Record<string, string>;
     },
+    private readonly logger?: ILogger,
     events?: Events
   ) {
-    this.profileValidator = new ProfileParameterValidator(this.profileAst);
+    this.profileValidator = new ProfileParameterValidator(
+      this.profileAst,
+      this.logger
+    );
 
     this.fetchInstance = new CrossFetch();
     this.fetchInstance.metadata = {
@@ -125,6 +130,7 @@ export class BoundProfileProvider implements IBoundProfileProvider {
       provider: providerName,
     };
     this.fetchInstance.events = events;
+    this.log = logger?.log(BOUND_DEBUG_NAMESPACE);
   }
 
   /**
@@ -179,6 +185,7 @@ export class BoundProfileProvider implements IBoundProfileProvider {
           this.fetchInstance.metadata,
           this.fetchInstance.events
         ),
+        logger: this.logger,
       }
     );
 
@@ -213,7 +220,7 @@ export class BoundProfileProvider implements IBoundProfileProvider {
     );
     if (defaultInput !== undefined) {
       composed = mergeVariables(defaultInput, input ?? {});
-      boundProfileProviderDebug('Composed input with defaults:', composed);
+      this.log?.('Composed input with defaults: %O', composed);
     }
 
     return composed;
@@ -242,14 +249,13 @@ export type BindConfiguration = {
   security?: SecurityValues[];
 };
 
-const profileProviderDebug = createDebug('superface:profile-provider');
-
 export class ProfileProvider {
   private profileId: string;
   private scope: string | undefined;
   private profileName: string;
   private providerJson?: ProviderJson;
   private readonly providersCachePath: string;
+  private readonly log: LogFunction | undefined;
 
   constructor(
     /** Preloaded superJson instance */
@@ -262,6 +268,7 @@ export class ProfileProvider {
     private config: IConfig,
     private events: Events,
     private readonly fileSystem: IFileSystem,
+    private readonly logger?: ILogger,
     /** url or ast node */
     private map?: string | MapDocumentNode
   ) {
@@ -283,6 +290,7 @@ export class ProfileProvider {
       config.cachePath,
       'providers'
     );
+    this.log = logger?.log(DEBUG_NAMESPACE);
   }
 
   /**
@@ -330,7 +338,7 @@ export class ProfileProvider {
 
     // resolve map ast using bind and fill in provider info if not specified
     if (mapAst === undefined) {
-      profileProviderDebug('Fetching map from store');
+      this.log?.('Fetching map from store');
       // throw error when we have remote map and local provider
       if (providerInfo) {
         throw localProviderAndRemoteMapError(providerName, this.profileId);
@@ -344,7 +352,8 @@ export class ProfileProvider {
           mapVariant,
           mapRevision,
         },
-        this.config
+        this.config,
+        this.logger
       );
 
       providerInfo ??= fetchResponse.provider;
@@ -358,7 +367,7 @@ export class ProfileProvider {
           mapVariant !== undefined
             ? `${profileId}.${providerName}.${mapVariant}@${version}`
             : `${profileId}.${providerName}@${version}`;
-        const mapSource = await fetchMapSource(mapId, this.config);
+        const mapSource = await fetchMapSource(mapId, this.config, this.logger);
 
         mapAst = await Parser.parseMap(
           mapSource,
@@ -411,6 +420,7 @@ export class ProfileProvider {
           this.superJson.normalized.providers[providerInfo.name]?.parameters
         ),
       },
+      this.logger,
       this.events
     );
   }
@@ -482,10 +492,14 @@ export class ProfileProvider {
       );
       // If we don't have provider info, we first try to fetch it from the registry
       try {
-        this.providerJson = await fetchProviderInfo(providerName, this.config);
+        this.providerJson = await fetchProviderInfo(
+          providerName,
+          this.config,
+          this.logger
+        );
         await this.writeProviderCache(this.providerJson);
       } catch (error) {
-        profileProviderDebug(
+        this.log?.(
           `Failed to fetch provider.json for ${providerName}: %O`,
           error
         );
@@ -498,7 +512,7 @@ export class ProfileProvider {
           providerCachePath
         );
         if (providerJsonFile.isErr()) {
-          profileProviderDebug(
+          this.log?.(
             `Failed to read cached provider.json for ${providerName}`,
             providerJsonFile.error
           );
@@ -533,7 +547,7 @@ export class ProfileProvider {
         JSON.stringify(providerJson, undefined, 2)
       );
     } catch (error) {
-      profileProviderDebug(
+      this.log?.(
         `Failed to cache provider.json for ${providerJson.name}: %O`,
         error
       );
@@ -709,12 +723,13 @@ export class ProfileProvider {
     parseFile: (contents: string, fileName?: string) => Promise<T>,
     unpackNested: (input: string) => T | string | undefined,
     fileSystem: IFileSystem,
-    extensions: string[] = ['']
+    extensions: string[] = [''],
+    log?: LogFunction
   ): Promise<T | undefined> {
     if (typeof input === 'string') {
       if (isFileURIString(input)) {
         const fileName = input.slice(FILE_URI_PROTOCOL.length);
-        profileProviderDebug('Resolving input as file:', fileName);
+        log?.('Resolving input as file:', fileName);
 
         // read in files
         let contents, fileNameWithExtension;
@@ -733,7 +748,7 @@ export class ProfileProvider {
         return parseFile(contents.value, fileNameWithExtension);
       } else {
         // TODO: detect remote url and fetch it, or call a callback?
-        profileProviderDebug('Resolving input as nested value:', input);
+        log?.('Resolving input as nested value: %O', input);
         // unpack nested and recursively process them
         const nested = unpackNested(input);
 

@@ -1,10 +1,9 @@
-import createDebug from 'debug';
-
+import { ILogger, LogFunction } from '../../../lib/logger/logger';
 import { deepFreeze } from '../../../lib/object';
 
-const debugLog = createDebug('superface:debug-log');
+const DEBUG_NAMESPACE = 'debug-log';
 
-const STDLIB_UNSTABLE = {
+const STDLIB_UNSTABLE = (debugLog?: LogFunction) => ({
   time: {
     isoDateToUnixTimestamp(iso: string): number {
       return new Date(iso).getTime();
@@ -14,17 +13,20 @@ const STDLIB_UNSTABLE = {
     },
   },
   debug: {
-    log(formatter: unknown, ...args: unknown[]): void {
-      return debugLog(formatter, ...args);
+    log(formatter: string, ...args: unknown[]): void {
+      return debugLog?.(formatter, ...args);
     },
   },
-};
-
-const STDLIB = deepFreeze({
-  unstable: STDLIB_UNSTABLE,
 });
 
-export function getStdlib(): typeof STDLIB {
+const STDLIB = (debugLog?: LogFunction) =>
+  deepFreeze({
+    unstable: STDLIB_UNSTABLE(debugLog),
+  });
+
+export function getStdlib(logger?: ILogger): ReturnType<typeof STDLIB> {
+  const debugLog = logger?.log(DEBUG_NAMESPACE);
+
   // TODO: This should later decide whether to return debug functions or just their stubs
-  return STDLIB;
+  return STDLIB(debugLog);
 }

@@ -155,6 +155,7 @@ describe('events', () => {
         services: ServiceSelector.withDefaultUrl(mockServer.url),
         security: [],
       },
+      undefined,
       events
     );
 
@@ -198,6 +199,7 @@ describe('events', () => {
         ),
         security: [],
       },
+      undefined,
       events
     );
 
@@ -235,6 +237,7 @@ describe('events', () => {
         services: ServiceSelector.withDefaultUrl(mockServer.url),
         security: [],
       },
+      undefined,
       events
     );
 
@@ -266,6 +269,7 @@ describe('events', () => {
         services: ServiceSelector.withDefaultUrl(mockServer.url),
         security: [],
       },
+      undefined,
       events
     );
 
@@ -297,6 +301,7 @@ describe('events', () => {
         services: ServiceSelector.withDefaultUrl(mockServer.url),
         security: [],
       },
+      undefined,
       events
     );
 

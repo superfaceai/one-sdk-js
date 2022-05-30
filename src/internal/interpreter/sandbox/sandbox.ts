@@ -1,11 +1,11 @@
-import createDebug from 'debug';
 import { VM } from 'vm2';
 
 import { IConfig } from '../../../config';
 import { NonPrimitive } from '../../../internal/interpreter/variables';
+import { ILogger } from '../../../lib/logger/logger';
 import { getStdlib } from './stdlib';
 
-const debug = createDebug('superface:sandbox');
+const DEBUG_NAMESPACE = 'sandbox';
 
 function vm2ExtraArrayKeysFixup<T>(value: T): T {
   if (typeof value !== 'object') {
@@ -41,11 +41,12 @@ function vm2ExtraArrayKeysFixup<T>(value: T): T {
 export function evalScript(
   config: IConfig,
   js: string,
+  logger?: ILogger,
   variableDefinitions?: NonPrimitive
 ): unknown {
   const vm = new VM({
     sandbox: {
-      std: getStdlib(),
+      std: getStdlib(logger),
       ...variableDefinitions,
     },
     compiler: 'javascript',
@@ -54,6 +55,8 @@ export function evalScript(
     timeout: config.sandboxTimeout,
     fixAsync: true,
   });
+
+  const log = logger?.log(DEBUG_NAMESPACE);
 
   // Defensively delete global objects
   // These deletions mostly don't protect, but produce "nicer" errors for the user
@@ -93,13 +96,13 @@ export function evalScript(
     `
   );
 
-  debug('Evaluating:', js);
+  log?.('Evaluating:', js);
   const result = vm.run(
     `'use strict';const vmResult = ${js};vmResult`
   ) as unknown;
   const resultVm2Fixed = vm2ExtraArrayKeysFixup(result);
 
-  debug('Result:', resultVm2Fixed);
+  log?.('Result: %O', resultVm2Fixed);
 
   return resultVm2Fixed;
 }

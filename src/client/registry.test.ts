@@ -125,7 +125,7 @@ describe('registry', () => {
     const TEST_REGISTRY_URL = 'https://example.com/test-registry';
     const TEST_SDK_TOKEN =
       'sfs_bb064dd57c302911602dd097bc29bedaea6a021c25a66992d475ed959aa526c7_37bce8b5';
-    const config = new Config({
+    const config = new Config(undefined, {
       superfaceApiUrl: TEST_REGISTRY_URL,
       sdkAuthToken: TEST_SDK_TOKEN,
     });
@@ -223,7 +223,7 @@ describe('registry', () => {
     const TEST_REGISTRY_URL = 'https://example.com/test-registry';
     const TEST_SDK_TOKEN =
       'sfs_bb064dd57c302911602dd097bc29bedaea6a021c25a66992d475ed959aa526c7_37bce8b5';
-    const config = new Config({
+    const config = new Config(undefined, {
       superfaceApiUrl: TEST_REGISTRY_URL,
       sdkAuthToken: TEST_SDK_TOKEN,
     });
@@ -545,7 +545,7 @@ describe('registry', () => {
     const TEST_REGISTRY_URL = 'https://example.com/test-registry';
     const TEST_SDK_TOKEN =
       'sfs_bb064dd57c302911602dd097bc29bedaea6a021c25a66992d475ed959aa526c7_37bce8b5';
-    const config = new Config({
+    const config = new Config(undefined, {
       superfaceApiUrl: TEST_REGISTRY_URL,
       sdkAuthToken: TEST_SDK_TOKEN,
     });

@@ -1,7 +1,7 @@
 import { DigestSecurityScheme, DigestSecurityValues } from '@superfaceai/ast';
 import { createHash, randomInt } from 'crypto';
-import createDebug from 'debug';
 
+import { ILogger, LogFunction } from '../../../../../lib/logger/logger';
 import { pipe } from '../../../../../lib/pipe/pipe';
 import {
   digestHeaderNotFound,
@@ -25,17 +25,8 @@ import {
   RequestParameters,
 } from '../interfaces';
 
-const debug = createDebug('superface:http:security:digest-handler');
-const debugSensitive = createDebug(
-  'superface:http:security:digest-handler:sensitive'
-);
-debugSensitive(
-  `
-WARNING: YOU HAVE ALLOWED LOGGING SENSITIVE INFORMATION.
-THIS LOGGING LEVEL DOES NOT PREVENT LEAKING SECRETS AND SHOULD NOT BE USED IF THE LOGS ARE GOING TO BE SHARED.
-CONSIDER DISABLING SENSITIVE INFORMATION LOGGING BY APPENDING THE DEBUG ENVIRONMENT VARIABLE WITH ",-*:sensitive".
-`
-);
+const DEBUG_NAMESPACE = 'http:security:digest-handler';
+const DEBUG_NAMESPACE_SENSITIVE = 'http:security:digest-handler:sensitive';
 
 /**
  * Represents algorithm used in Digest auth.
@@ -57,6 +48,8 @@ export type DigestAuthValues = {
  * Helper for digest authentication
  */
 export class DigestHandler implements ISecurityHandler {
+  private readonly log?: LogFunction;
+  private readonly logSensitive?: LogFunction;
   // 407 can be also used when communicating thru proxy https://datatracker.ietf.org/doc/html/rfc2617#section-1.2
   private readonly statusCode: number;
   // "Proxy-Authenticate" can be also used when communicating thru proxy https://datatracker.ietf.org/doc/html/rfc2617#section-1.2
@@ -69,15 +62,18 @@ export class DigestHandler implements ISecurityHandler {
 
   constructor(
     readonly configuration: DigestSecurityScheme & DigestSecurityValues,
-    private readonly fetchInstance: FetchInstance & AuthCache
+    private readonly fetchInstance: FetchInstance & AuthCache,
+    private readonly logger?: ILogger
   ) {
-    debug('Initialized DigestHandler');
+    this.log = logger?.log(DEBUG_NAMESPACE);
+    this.logSensitive = logger?.log(DEBUG_NAMESPACE_SENSITIVE);
+    this.log?.('Initialized DigestHandler');
     this.statusCode = configuration.statusCode ?? 401;
     this.challengeHeader = configuration.challengeHeader ?? 'www-authenticate';
     this.authorizationHeader =
       configuration.authorizationHeader ?? DEFAULT_AUTHORIZATION_HEADER_NAME;
 
-    debugSensitive(
+    this.logSensitive?.(
       `Initialized with: username="${this.configuration.username}", password="${this.configuration.password}", status code=${this.statusCode}, challenge header="${this.challengeHeader}", authorization header="${this.authorizationHeader}"`
     );
   }
@@ -89,7 +85,7 @@ export class DigestHandler implements ISecurityHandler {
 
     // If we have cached credentials we use them
     if (this.fetchInstance?.digest !== undefined) {
-      debugSensitive('Using cached digest credentials');
+      this.logSensitive?.('Using cached digest credentials');
       headers[
         this.configuration.authorizationHeader ??
           DEFAULT_AUTHORIZATION_HEADER_NAME
@@ -110,7 +106,7 @@ export class DigestHandler implements ISecurityHandler {
         },
       },
       prepareRequestFilter,
-      withRequest(fetchFilter(this.fetchInstance))
+      withRequest(fetchFilter(this.fetchInstance, this.logger))
     );
 
     if (response === undefined) {
@@ -127,7 +123,7 @@ export class DigestHandler implements ISecurityHandler {
       );
     }
 
-    debugSensitive('Getting new digest values');
+    this.logSensitive?.('Getting new digest values');
     const credentials = this.buildDigestAuth(
       // We need actual resolved url
       response.debug.request.url,
@@ -157,7 +153,7 @@ export class DigestHandler implements ISecurityHandler {
           Object.keys(response.headers)
         );
       }
-      debugSensitive('Getting new digest values');
+      this.logSensitive?.('Getting new digest values');
       const credentials = this.buildDigestAuth(
         // We need actual resolved url
         response.debug.request.url,
@@ -202,7 +198,7 @@ export class DigestHandler implements ISecurityHandler {
     method: string,
     digest: DigestAuthValues
   ): string {
-    debugSensitive(
+    this.logSensitive?.(
       `Preparing digest authentication for: ${url} and method: ${method}`
     );
     const uri = new URL(url).pathname;
@@ -260,7 +256,9 @@ export class DigestHandler implements ISecurityHandler {
   }
 
   private extractDigestValues(header: string): DigestAuthValues {
-    debugSensitive(`Extracting digest authentication values from: ${header}`);
+    this.logSensitive?.(
+      `Extracting digest authentication values from: ${header}`
+    );
 
     const scheme = header.split(/\s/)[0];
     if (!scheme) {

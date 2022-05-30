@@ -1,6 +1,6 @@
 import { HttpScheme, SecurityType } from '@superfaceai/ast';
-import createDebug from 'debug';
 
+import { ILogger, LogFunction } from '../../../../../lib/logger/logger';
 import {
   DEFAULT_AUTHORIZATION_HEADER_NAME,
   ISecurityHandler,
@@ -8,13 +8,16 @@ import {
 } from '../../security';
 import { AuthenticateRequestAsync, RequestParameters } from '../interfaces';
 
-const debug = createDebug('superface:http:security:http-handler');
+const DEBUG_NAMESPACE = 'http:security:http-handler';
 
 export class HttpHandler implements ISecurityHandler {
+  private log?: LogFunction | undefined;
   constructor(
-    readonly configuration: SecurityConfiguration & { type: SecurityType.HTTP }
+    readonly configuration: SecurityConfiguration & { type: SecurityType.HTTP },
+    logger?: ILogger
   ) {
-    debug('Initialized http authentization handler');
+    this.log = logger?.log(DEBUG_NAMESPACE);
+    this.log?.('Initialized http authentization handler');
   }
 
   authenticate: AuthenticateRequestAsync = async (
@@ -24,14 +27,14 @@ export class HttpHandler implements ISecurityHandler {
 
     switch (this.configuration.scheme) {
       case HttpScheme.BASIC:
-        debug('Setting basic http auhentization');
+        this.log?.('Setting basic http auhentization');
 
         headers[DEFAULT_AUTHORIZATION_HEADER_NAME] = applyBasicAuth(
           this.configuration
         );
         break;
       case HttpScheme.BEARER:
-        debug('Setting bearer http auhentization');
+        this.log?.('Setting bearer http auhentization');
 
         headers[DEFAULT_AUTHORIZATION_HEADER_NAME] = applyBearerToken(
           this.configuration

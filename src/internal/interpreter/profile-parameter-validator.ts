@@ -24,9 +24,9 @@ import {
   UseCaseExampleNode,
   UseCaseSlotDefinitionNode,
 } from '@superfaceai/ast';
-import createDebug from 'debug';
 
 import { err, ok, Result } from '../../lib';
+import { ILogger, LogFunction } from '../../lib/logger/logger';
 import { UnexpectedError } from '../errors';
 import { ProfileVisitor } from './interfaces';
 import {
@@ -39,7 +39,7 @@ import {
   ValidationError,
 } from './profile-parameter-validator.errors';
 
-const debug = createDebug('superface:profile-parameter-validator');
+const DEBUG_NAMESPACE = 'profile-parameter-validator';
 
 function assertUnreachable(node: never): never;
 function assertUnreachable(node: ProfileASTNode): never {
@@ -98,8 +98,11 @@ export class ProfileParameterValidator implements ProfileVisitor {
   private namedFieldDefinitions: Record<string, ValidationFunction> = {};
   private namedModelDefinitions: Record<string, ValidationFunction> = {};
   private namedDefinitionsInitialized = false;
+  private log?: LogFunction;
 
-  constructor(private readonly ast: ProfileASTNode) {}
+  constructor(private readonly ast: ProfileASTNode, logger?: ILogger) {
+    this.log = logger?.log(DEBUG_NAMESPACE);
+  }
 
   validate(
     input: unknown,
@@ -111,7 +114,7 @@ export class ProfileParameterValidator implements ProfileVisitor {
       const [result, errors] = validator(input);
 
       if (result !== true) {
-        debug(
+        this.log?.(
           `Validation of ${kind} failed with error(s):\n` + formatErrors(errors)
         );
 
@@ -121,7 +124,7 @@ export class ProfileParameterValidator implements ProfileVisitor {
         return err(new error(errors));
       }
 
-      debug(`Validation of ${kind} succeeded.`);
+      this.log?.(`Validation of ${kind} succeeded.`);
 
       return ok(undefined);
     } catch (e) {
@@ -134,7 +137,7 @@ export class ProfileParameterValidator implements ProfileVisitor {
     kind: ProfileParameterKind,
     usecase: string
   ): ValidationFunction {
-    debug('Visiting node:', node.kind);
+    this.log?.('Visiting node:', node.kind);
     switch (node.kind) {
       case 'ComlinkListLiteral':
         return this.visitComlinkListLiteralNode(node, kind, usecase);

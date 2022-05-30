@@ -1,4 +1,5 @@
 import { USER_AGENT } from '../../../index';
+import { ILogger } from '../../../lib/logger/logger';
 import { pipe } from '../../../lib/pipe/pipe';
 import { MaybePromise } from '../../../lib/types';
 import { UnexpectedError } from '../..';
@@ -96,14 +97,15 @@ export const withResponse = (filter: FilterWithResponse): Filter => {
 };
 
 export const fetchFilter: (
-  fetchInstance: FetchInstance & AuthCache
+  fetchInstance: FetchInstance & AuthCache,
+  logger?: ILogger
 ) => FilterWithRequest =
-  fetchInstance =>
+  (fetchInstance, logger) =>
   async ({ parameters, request }: FilterInputWithRequest) => {
     return {
       parameters,
       request,
-      response: await fetchRequest(fetchInstance, request),
+      response: await fetchRequest(fetchInstance, request, logger),
     };
   };
 
@@ -128,16 +130,17 @@ export const authenticateFilter: (handler?: ISecurityHandler) => Filter =
 // This is handling the cases when we are authenticated but eg. digest credentials expired or OAuth access token is no longer valid
 export const handleResponseFilter: (
   fetchInstance: FetchInstance & AuthCache,
+  logger?: ILogger,
   handler?: ISecurityHandler
 ) => FilterWithResponse =
-  (fetchInstance, handler) =>
+  (fetchInstance, logger, handler) =>
   async ({ parameters, request, response }: FilterInputWithResponse) => {
     if (handler?.handleResponse !== undefined) {
       // We get new parameters (with updated auth, also updated cache)
       const authRequest = await handler.handleResponse(response, parameters);
       // We retry the request
       if (authRequest !== undefined) {
-        response = await fetchRequest(fetchInstance, authRequest);
+        response = await fetchRequest(fetchInstance, authRequest, logger);
       }
     }
 

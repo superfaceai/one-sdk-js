@@ -4,6 +4,7 @@ import { usecaseNotFoundError } from '../internal/errors.helpers';
 import { NonPrimitive } from '../internal/interpreter/variables';
 import { Events } from '../lib/events';
 import { IFileSystem } from '../lib/io';
+import { ILogger } from '../lib/logger/logger';
 import { SuperCache } from './cache';
 import { IBoundProfileProvider } from './profile-provider';
 import { TypedUseCase, UseCase } from './usecase';
@@ -40,7 +41,8 @@ export class ProfileBase {
     protected readonly boundProfileProviderCache: SuperCache<{
       provider: IBoundProfileProvider;
       expiresAt: number;
-    }>
+    }>,
+    protected readonly logger?: ILogger
   ) {}
 
   getConfiguredProviders(): string[] {
@@ -61,7 +63,8 @@ export class Profile extends ProfileBase {
       this.config,
       this.superJson,
       this.fileSystem,
-      this.boundProfileProviderCache
+      this.boundProfileProviderCache,
+      this.logger
     );
   }
 }
@@ -82,7 +85,8 @@ export class TypedProfile<
     }>,
     protected override readonly config: Config,
     protected override readonly fileSystem: IFileSystem,
-    usecases: (keyof TUsecaseTypes)[]
+    usecases: (keyof TUsecaseTypes)[],
+    protected override readonly logger?: ILogger
   ) {
     super(
       configuration,
@@ -90,7 +94,8 @@ export class TypedProfile<
       superJson,
       config,
       fileSystem,
-      boundProfileProviderCache
+      boundProfileProviderCache,
+      logger
     );
     this.knownUsecases = usecases.reduce(
       (acc, usecase) => ({
@@ -105,7 +110,8 @@ export class TypedProfile<
           config,
           superJson,
           fileSystem,
-          boundProfileProviderCache
+          boundProfileProviderCache,
+          logger
         ),
       }),
       {} as KnownUsecase<TUsecaseTypes>

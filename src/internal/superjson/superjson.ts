@@ -8,12 +8,12 @@ import {
   SuperJsonDocument,
   UsecaseDefaults,
 } from '@superfaceai/ast';
-import createDebug from 'debug';
 
 import { err, ok, Result } from '../../lib';
 import { configHash } from '../../lib/config-hash';
 import { IFileSystem } from '../../lib/io';
 import { NodeFileSystem } from '../../lib/io/filesystem.node';
+import { ILogger } from '../../lib/logger/logger';
 import { SDKExecutionError } from '../errors';
 import {
   ensureErrorSubclass,
@@ -36,7 +36,7 @@ import {
 } from './mutate';
 import { normalizeSuperJsonDocument } from './normalize';
 
-const debug = createDebug('superface:superjson');
+const DEBUG_NAMESPACE = 'superjson';
 
 export const SUPERFACE_DIR = 'superface';
 export const META_FILE = 'super.json';
@@ -48,7 +48,8 @@ export class SuperJson {
   constructor(
     public document: SuperJsonDocument = {},
     public readonly path = '',
-    private readonly fileSystem: IFileSystem = NodeFileSystem
+    private readonly fileSystem: IFileSystem = NodeFileSystem,
+    private readonly logger?: ILogger
   ) {}
 
   // loading and parsing //
@@ -113,7 +114,8 @@ export class SuperJson {
 
   static loadSync(
     path: string,
-    fileSystem: IFileSystem = NodeFileSystem
+    fileSystem: IFileSystem = NodeFileSystem,
+    logger?: ILogger
   ): Result<SuperJson, SDKExecutionError> {
     try {
       if (!fileSystem.sync.isAccessible(path)) {
@@ -140,9 +142,9 @@ export class SuperJson {
       return err(superdocument.error);
     }
 
-    debug(`loaded super.json from ${path}`);
+    logger?.log(DEBUG_NAMESPACE, `loaded super.json from ${path}`);
 
-    return ok(new SuperJson(superdocument.value, path, fileSystem));
+    return ok(new SuperJson(superdocument.value, path, fileSystem, logger));
   }
 
   /**
@@ -150,7 +152,8 @@ export class SuperJson {
    */
   static async load(
     path: string,
-    fileSystem: IFileSystem = NodeFileSystem
+    fileSystem: IFileSystem = NodeFileSystem,
+    logger?: ILogger
   ): Promise<Result<SuperJson, SDKExecutionError>> {
     try {
       if (!(await fileSystem.isAccessible(path))) {
@@ -177,9 +180,9 @@ export class SuperJson {
       return err(superdocument.error);
     }
 
-    debug(`loaded super.json from ${path}`);
+    logger?.log(DEBUG_NAMESPACE, `loaded super.json from ${path}`);
 
-    return ok(new SuperJson(superdocument.value, path, fileSystem));
+    return ok(new SuperJson(superdocument.value, path, fileSystem, logger));
   }
 
   // mutation //
@@ -202,8 +205,12 @@ export class SuperJson {
    *
    * Creates the profile if it doesn't exist.
    */
-  mergeProfile(profileName: string, payload: ProfileEntry): boolean {
-    const changed = mergeProfile(this.document, profileName, payload);
+  mergeProfile(
+    profileName: string,
+    payload: ProfileEntry,
+    logger?: ILogger
+  ): boolean {
+    const changed = mergeProfile(this.document, profileName, payload, logger);
     if (changed) {
       this.normalizedCache = undefined;
     }
@@ -217,7 +224,12 @@ export class SuperJson {
    * `payload === undefined` deletes the profile.
    */
   setProfile(profileName: string, payload: ProfileEntry | undefined): boolean {
-    const changed = setProfile(this.document, profileName, payload);
+    const changed = setProfile(
+      this.document,
+      profileName,
+      payload,
+      this.logger
+    );
     if (changed) {
       this.normalizedCache = undefined;
     }
@@ -239,7 +251,8 @@ export class SuperJson {
       this.document,
       profileName,
       providerName,
-      payload
+      payload,
+      this.logger
     );
     if (changed) {
       this.normalizedCache = undefined;
@@ -262,7 +275,8 @@ export class SuperJson {
       this.document,
       profileName,
       providerName,
-      payload
+      payload,
+      this.logger
     );
     if (changed) {
       this.normalizedCache = undefined;
@@ -285,7 +299,8 @@ export class SuperJson {
       this.document,
       profileName,
       providerName,
-      variant
+      variant,
+      this.logger
     );
     if (changed) {
       this.normalizedCache = undefined;
@@ -349,7 +364,8 @@ export class SuperJson {
     const result = setPriority(
       this.document,
       profileName,
-      providersSortedByPriority
+      providersSortedByPriority,
+      this.logger
     );
     if (result.isOk()) {
       this.normalizedCache = undefined;
@@ -391,7 +407,10 @@ export class SuperJson {
       return this.normalizedCache;
     }
 
-    this.normalizedCache = normalizeSuperJsonDocument(this.document);
+    this.normalizedCache = normalizeSuperJsonDocument(
+      this.document,
+      this.logger
+    );
 
     return this.normalizedCache;
   }

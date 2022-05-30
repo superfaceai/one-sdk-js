@@ -3,8 +3,8 @@ import {
   ApiKeySecurityScheme,
   ApiKeySecurityValues,
 } from '@superfaceai/ast';
-import createDebug from 'debug';
 
+import { ILogger, LogFunction } from '../../../../../lib/logger/logger';
 import { apiKeyInBodyError } from '../../../../errors.helpers';
 import { Variables } from '../../../variables';
 import {
@@ -13,13 +13,17 @@ import {
 } from '../../security';
 import { AuthenticateRequestAsync, RequestParameters } from '../interfaces';
 
-const debug = createDebug('superface:http:api-key-handler');
+const DEBUG_NAMESPACE = 'http:api-key-handler';
 
 export class ApiKeyHandler implements ISecurityHandler {
+  private log?: LogFunction;
+
   constructor(
-    readonly configuration: ApiKeySecurityScheme & ApiKeySecurityValues
+    readonly configuration: ApiKeySecurityScheme & ApiKeySecurityValues,
+    logger?: ILogger
   ) {
-    debug('Initialized api key authentization handler');
+    this.log = logger?.log(DEBUG_NAMESPACE);
+    this.log?.('Initialized api key authentization handler');
   }
 
   authenticate: AuthenticateRequestAsync = async (
@@ -34,12 +38,12 @@ export class ApiKeyHandler implements ISecurityHandler {
 
     switch (this.configuration.in) {
       case ApiKeyPlacement.HEADER:
-        debug('Setting api key to header');
+        this.log?.('Setting api key to header');
         headers[name] = this.configuration.apikey;
         break;
 
       case ApiKeyPlacement.BODY:
-        debug('Setting api key to body');
+        this.log?.('Setting api key to body');
         body = applyApiKeyAuthInBody(
           body ?? {},
           name.startsWith('/') ? name.slice(1).split('/') : [name],
@@ -48,12 +52,12 @@ export class ApiKeyHandler implements ISecurityHandler {
         break;
 
       case ApiKeyPlacement.PATH:
-        debug('Setting api key to path');
+        this.log?.('Setting api key to path');
         pathParameters[name] = this.configuration.apikey;
         break;
 
       case ApiKeyPlacement.QUERY:
-        debug('Setting api key to query');
+        this.log?.('Setting api key to query');
         queryParameters[name] = this.configuration.apikey;
         break;
     }

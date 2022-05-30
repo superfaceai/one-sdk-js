@@ -1,9 +1,8 @@
-import createDebug from 'debug';
-
 import { SDKBindError, UnexpectedError } from '../../internal/errors';
 import { clone, sleep } from '../../lib';
 import { Events } from '../../lib/events';
 import { isCrossFetchError } from '../../lib/fetch.errors';
+import { ILogger } from '../../lib/logger/logger';
 import { FailurePolicyRouter } from './policies';
 import { ExecutionFailure, FailurePolicyReason } from './policy';
 import {
@@ -12,16 +11,8 @@ import {
   SwitchProviderResolution,
 } from './resolution';
 
-const debug = createDebug('superface:failover');
-const debugSensitive = createDebug('superface:failover:sensitive');
-debugSensitive(
-  `
-WARNING: YOU HAVE ALLOWED LOGGING SENSITIVE INFORMATION.
-THIS LOGGING LEVEL DOES NOT PREVENT LEAKING SECRETS AND SHOULD NOT BE USED IF THE LOGS ARE GOING TO BE SHARED.
-CONSIDER DISABLING SENSITIVE INFORMATION LOGGING BY APPENDING THE DEBUG ENVIRONMENT VARIABLE WITH ",-*:sensitive".
-`
-);
-
+const DEBUG_NAMESPACE = 'failover';
+const DEBUG_NAMESPACE_SENSITIVE = 'failover:sensitive';
 export type QueuedAction =
   | undefined
   // full abort, retry policy has been notified and now we are propagating the error
@@ -75,12 +66,14 @@ function handleCommonResolution(
   }
 }
 
-export function registerHooks(events: Events): void {
-  registerNetworkHooks(events);
+export function registerHooks(events: Events, logger?: ILogger): void {
+  registerNetworkHooks(events, logger);
+  const log = logger?.log(DEBUG_NAMESPACE);
+  const logSensitive = logger?.log(DEBUG_NAMESPACE_SENSITIVE);
 
   events.on('pre-bind-and-perform', { priority: 1 }, async (context, args) => {
-    debug('Handling event pre-bind-and-perform with context:', context);
-    debugSensitive('\targs:', args);
+    log?.('Handling event pre-bind-and-perform with context: %O', context);
+    logSensitive?.('\targs: %O', args);
 
     // only check failover restore when the provider is not manually set
     if (args[1]?.provider !== undefined) {
@@ -123,9 +116,9 @@ export function registerHooks(events: Events): void {
     'post-bind-and-perform',
     { priority: 1 },
     async (context, args, res) => {
-      debug('Handling event post-bind-and-perform with context:', context);
-      debugSensitive('\targs:', args);
-      debugSensitive('\tresult:', res);
+      log?.('Handling event post-bind-and-perform with context:', context);
+      logSensitive?.('\targs: %O', args);
+      logSensitive?.('\tresult: %O', res);
 
       if (context.provider === undefined) {
         throw new UnexpectedError('Invalid event context');
@@ -215,7 +208,7 @@ export function registerHooks(events: Events): void {
 
         switch (action.kind) {
           case 'switch-provider': {
-            debug('Switching to provider', action.provider);
+            log?.('Switching to provider', action.provider);
             void events.emit('provider-switch', [
               {
                 time: new Date(),
@@ -260,10 +253,12 @@ export function registerHooks(events: Events): void {
   );
 }
 
-function registerNetworkHooks(events: Events): void {
+function registerNetworkHooks(events: Events, logger?: ILogger): void {
+  const log = logger?.log(DEBUG_NAMESPACE);
+  const logSensitive = logger?.log(DEBUG_NAMESPACE_SENSITIVE);
   events.on('pre-fetch', { priority: 1 }, async (context, args) => {
-    debug('Handling event pre-fetch with context:', context);
-    debugSensitive('\targs:', args);
+    log?.('Handling event pre-fetch with context: %O', context);
+    logSensitive?.('\targs: %O', args);
     // only listen to fetch events in perform context
     if (
       context.profile === undefined ||
@@ -316,9 +311,9 @@ function registerNetworkHooks(events: Events): void {
   });
 
   events.on('post-fetch', { priority: 1 }, async (context, args, res) => {
-    debug('Handling event post-fetch with context:', context);
-    debugSensitive('\targs:', args);
-    debugSensitive('\tresult:', res);
+    log?.('Handling event post-fetch with context: %O', context);
+    logSensitive?.('\targs: %O', args);
+    logSensitive?.('\tresult: %O', res);
     // only listen to fetch events in perform context
     if (
       context.profile === undefined ||
@@ -393,8 +388,8 @@ function registerNetworkHooks(events: Events): void {
   });
 
   events.on('pre-unhandled-http', { priority: 1 }, async (context, args) => {
-    debug('Handling event pre-unhandled-http with context:', context);
-    debugSensitive('\targs:', args);
+    log?.('Handling event pre-unhandled-http with context: %O', context);
+    logSensitive?.('\targs: %O', args);
     // common handling
     if (
       context.profile === undefined ||
