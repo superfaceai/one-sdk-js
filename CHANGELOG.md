@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
-SuperfaceClient supports passing SuperJson as constructor parameter
+- SuperfaceClient supports passing SuperJson as constructor parameter
 
 ## [1.4.1] - 2022-05-17
 ### Fixed

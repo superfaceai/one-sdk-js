@@ -287,6 +287,6 @@ const resolveSuperJson = (
   if (superJson instanceof SuperJson) {
     return superJson;
   }
-  
-return new SuperJson(superJson);
+
+  return new SuperJson(superJson);
 };
