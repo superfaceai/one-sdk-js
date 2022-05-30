@@ -5,17 +5,13 @@ import {
   SuperJsonDocument,
 } from '@superfaceai/ast';
 
-import { Config } from '../config';
 import { SuperJson } from '../internal';
 
 export class SuperfaceConfigurator {
   private configuration: SuperJson;
 
   constructor(path?: string) {
-    this.configuration = new SuperJson(
-      {},
-      path ?? Config.instance().superfacePath
-    );
+    this.configuration = new SuperJson({}, path);
   }
 
   public addProfile(profileName: string, payload: ProfileEntry) {
