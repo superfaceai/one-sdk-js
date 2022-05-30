@@ -1,5 +1,3 @@
-import { inspect } from 'util';
-
 import { Config } from '../config';
 import { SuperJson } from '../internal';
 import {
@@ -54,7 +52,6 @@ export abstract class SuperfaceClientBase extends Events {
 
     this.superJson = SUPER_CACHE[superCacheKey];
 
-    console.log('used super json', inspect(this.superJson.document));
     if (!Config.instance().disableReporting) {
       this.hookMetrics();
       this.metricReporter = new MetricReporter(this.superJson);
