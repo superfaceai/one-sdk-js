@@ -77,7 +77,7 @@ class UseCaseBase implements Interceptable {
     this.metadata.provider = providerConfig.name;
     hookRouter.setCurrentProvider(providerConfig.name);
 
-    //If we have security values pass directly to perform we use them
+    //If we have security values pass them directly to perform
     if (options?.security) {
       providerConfig = new ProviderConfiguration(
         providerConfig.name,
