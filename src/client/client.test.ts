@@ -111,7 +111,7 @@ describe('superface client', () => {
     jest.resetAllMocks();
     invalidateSuperfaceClientCache();
   });
-  it('caches super.json passed as parameter correctly', () => {
+  it('does not cache super.json passed as parameter', () => {
     const statCalls = statSyncMock.mock.calls.length;
     const readFileCalls = readFileSyncMock.mock.calls.length;
 
@@ -121,33 +121,35 @@ describe('superface client', () => {
     expect(client.superJson).toEqual(
       new SuperJson(MOCK_SUPERJSON, 'custom/path')
     );
-    // no more calls than before
-    expect(statSyncMock).toHaveBeenCalledTimes(statCalls);
-    expect(readFileSyncMock).toHaveBeenCalledTimes(readFileCalls);
 
     const clientCached = new SuperfaceClient({
-      superJson: new SuperJson(MOCK_SUPERJSON, 'custom/path'),
+      superJson: new SuperJson(MOCK_SUPERJSON, 'new/custom/path'),
     });
     expect(clientCached.superJson).toEqual(
-      new SuperJson(MOCK_SUPERJSON, 'custom/path')
+      new SuperJson(MOCK_SUPERJSON, 'new/custom/path')
     );
     // no more calls than before
     expect(statSyncMock).toHaveBeenCalledTimes(statCalls);
     expect(readFileSyncMock).toHaveBeenCalledTimes(readFileCalls);
   });
 
-  it('caches SuperJsonDocument passed as parameter correctly', () => {
+  it('does not cache SuperJsonDocument passed as parameter', () => {
     const statCalls = statSyncMock.mock.calls.length;
     const readFileCalls = readFileSyncMock.mock.calls.length;
 
     const client = new SuperfaceClient({ superJson: MOCK_SUPERJSON });
     expect(client.superJson).toEqual(new SuperJson(MOCK_SUPERJSON));
-    // no more calls than before
-    expect(statSyncMock).toHaveBeenCalledTimes(statCalls);
-    expect(readFileSyncMock).toHaveBeenCalledTimes(readFileCalls);
 
-    const clientCached = new SuperfaceClient({ superJson: MOCK_SUPERJSON });
-    expect(clientCached.superJson).toEqual(new SuperJson(MOCK_SUPERJSON));
+    const newMockSuperJson = {
+      ...MOCK_SUPERJSON,
+      providers: {
+        mock: {},
+      },
+    };
+
+    const clientCached = new SuperfaceClient({ superJson: newMockSuperJson });
+    expect(clientCached.superJson).toEqual(new SuperJson(newMockSuperJson));
+
     // no more calls than before
     expect(statSyncMock).toHaveBeenCalledTimes(statCalls);
     expect(readFileSyncMock).toHaveBeenCalledTimes(readFileCalls);

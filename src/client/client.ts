@@ -45,21 +45,8 @@ export abstract class SuperfaceClientBase extends Events {
 
   constructor(options?: { superJson?: SuperJson | SuperJsonDocument }) {
     super();
-    let passedSuperJson: SuperJson | undefined;
-    if (options?.superJson) {
-      passedSuperJson =
-        options.superJson instanceof SuperJson
-          ? options.superJson
-          : new SuperJson(options.superJson);
-    }
-    const superCacheKey = Config.instance().superfacePath;
 
-    if (SUPER_CACHE[superCacheKey] === undefined) {
-      SUPER_CACHE[superCacheKey] =
-        passedSuperJson ?? SuperJson.loadSync(superCacheKey).unwrap();
-    }
-
-    this.superJson = SUPER_CACHE[superCacheKey];
+    this.superJson = resolveSuperJson(options?.superJson);
 
     if (!Config.instance().disableReporting) {
       this.hookMetrics();
@@ -283,4 +270,23 @@ export function createTypedClient<TProfiles extends ProfileUseCases<any, any>>(
 
 export const typeHelper = <TInput, TOutput>(): [TInput, TOutput] => {
   return [undefined as unknown, undefined as unknown] as [TInput, TOutput];
+};
+
+const resolveSuperJson = (
+  superJson?: SuperJson | SuperJsonDocument
+): SuperJson => {
+  if (!superJson) {
+    const cacheKey = Config.instance().superfacePath;
+
+    if (SUPER_CACHE[cacheKey] === undefined) {
+      SUPER_CACHE[cacheKey] = SuperJson.loadSync(cacheKey).unwrap();
+    }
+
+    return SUPER_CACHE[cacheKey];
+  }
+  if (superJson instanceof SuperJson) {
+    return superJson;
+  }
+  
+return new SuperJson(superJson);
 };
