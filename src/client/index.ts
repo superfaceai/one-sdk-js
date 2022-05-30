@@ -4,4 +4,3 @@ export { Provider, ProviderConfiguration } from './provider';
 export { PerformError, UseCase } from './usecase';
 export * from './query';
 export * from './profile-provider';
-export { SuperfaceConfigurator } from './configurator';

@@ -1,3 +1,5 @@
+import { SuperJsonDocument } from '@superfaceai/ast';
+
 import { Config } from '../config';
 import { SuperJson } from '../internal';
 import {
@@ -41,13 +43,20 @@ export abstract class SuperfaceClientBase extends Events {
 
   public hookContext: HooksContext = {};
 
-  constructor(superJson?: SuperJson) {
+  constructor(options?: { superJson?: SuperJson | SuperJsonDocument }) {
     super();
+    let passedSuperJson: SuperJson | undefined;
+    if (options?.superJson) {
+      passedSuperJson =
+        options.superJson instanceof SuperJson
+          ? options.superJson
+          : new SuperJson(options.superJson);
+    }
     const superCacheKey = Config.instance().superfacePath;
 
     if (SUPER_CACHE[superCacheKey] === undefined) {
       SUPER_CACHE[superCacheKey] =
-        superJson ?? SuperJson.loadSync(superCacheKey).unwrap();
+        passedSuperJson ?? SuperJson.loadSync(superCacheKey).unwrap();
     }
 
     this.superJson = SUPER_CACHE[superCacheKey];
