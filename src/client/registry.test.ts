@@ -1,4 +1,9 @@
-import { AstMetadata, MapDocumentNode, ProviderJson } from '@superfaceai/ast';
+import {
+  AssertionError,
+  AstMetadata,
+  MapDocumentNode,
+  ProviderJson,
+} from '@superfaceai/ast';
 
 import { Config } from '../config';
 import {
@@ -363,7 +368,14 @@ describe('registry', () => {
           mapVariant: 'test-map-variant',
           mapRevision: 'test-map-revision',
         })
-      ).rejects.toThrow(invalidProviderResponseError({ path: ['input'] }));
+      ).rejects.toThrow(
+        invalidProviderResponseError(
+          new AssertionError(
+            [['must have required property "defaultService"', []]],
+            mockBody.provider
+          )
+        )
+      );
 
       expect(request).toHaveBeenCalledTimes(1);
     });

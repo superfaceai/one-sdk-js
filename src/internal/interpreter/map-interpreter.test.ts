@@ -228,6 +228,40 @@ describe('MapInterpreter', () => {
     expect(result.isOk() && result.value).toEqual(144);
   });
 
+  it('should correctly trim and parse path parameters in http call', async () => {
+    const url = '/thirteen';
+    await mockServer.get(url + '/2/get/now').thenJson(200, { data: 169 });
+
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        input: { page: '2', cmd: 'get', when: 'now' },
+        security: [],
+        services: mockServicesSelector,
+      },
+      { fetchInstance }
+    );
+    const ast = parseMapFromSource(`
+      map Test {
+        page = input.page
+        http GET "${url}/{ page     	  }/{input.cmd }/{ input.when}" {
+          request {
+            headers {
+              "content-type" = "application/json"
+            }
+          }
+
+          response 200 "application/json" "en-US" {
+            map result body.data
+          }
+        }
+      }`);
+    const result = await interpreter.perform(ast);
+
+    result.unwrap();
+    expect(result.isOk() && result.value).toEqual(169);
+  });
+
   it('should call an API with parameters', async () => {
     const url = '/twelve';
     await mockServer

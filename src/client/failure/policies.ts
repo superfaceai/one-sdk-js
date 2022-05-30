@@ -1,5 +1,5 @@
 import { UnexpectedError } from '../../internal/errors';
-import { Backoff, ExponentialBackoff } from '../../lib/backoff';
+import { Backoff } from '../../lib/backoff';
 import {
   ExecutionFailure,
   ExecutionInfo,
@@ -227,6 +227,9 @@ export class AbortPolicy extends FailurePolicy {
 
 /** Simple retry policy with exponential backoff */
 export class RetryPolicy extends FailurePolicy {
+  public static DEFAULT_MAX_CONTIGUOUS_RETRIES = 5;
+  public static DEFAULT_REQUEST_TIMEOUT = 30_000;
+
   /**
    * Counts the length of the current streak of actions
    *
@@ -239,9 +242,9 @@ export class RetryPolicy extends FailurePolicy {
 
   constructor(
     usecaseInfo: UsecaseInfo,
-    public readonly maxContiguousRetries: number = 5,
-    public readonly requestTimeout: number = 30_000,
-    private readonly backoff: Backoff = new ExponentialBackoff(50, 2.0)
+    public readonly maxContiguousRetries: number,
+    public readonly requestTimeout: number,
+    private readonly backoff: Backoff
   ) {
     super(usecaseInfo);
 
@@ -326,6 +329,8 @@ export class RetryPolicy extends FailurePolicy {
  * If a successful execution is detected from half-open state, the breaker closes again and is in the same state as at the beginning.
  */
 export class CircuitBreakerPolicy extends FailurePolicy {
+  public static DEFAULT_OPEN_TIME = 30_000;
+
   private readonly inner: RetryPolicy;
   private state: 'closed' | 'open' | 'half-open';
   private openTime: number;
@@ -336,8 +341,8 @@ export class CircuitBreakerPolicy extends FailurePolicy {
     failureThreshold: number,
     /** Reset timeout in milliseconds */
     private readonly resetTimeout: number,
-    requestTimeout?: number,
-    backoff?: Backoff
+    requestTimeout: number,
+    backoff: Backoff
   ) {
     super(usecaseInfo);
 

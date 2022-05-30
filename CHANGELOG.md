@@ -7,12 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.1] - 2022-05-17
+### Fixed
+- Send multipart boundary in content-type header for `multipart/form-data`
+
+## [1.4.0] - 2022-05-17
 ### Added
 - Sandbox stdlib - `std.unstable.time.{isoDateToUnixTimestamp, unixTimestampToIsoDate}, std.unstable.debug.log`
+- `provider.json` caching
+- Superjson simple retry policy configuration is now supported
+- Superjson circuit breaker configuration accepts `openTime` (default 30s, previously hardcoded)
+
+### Changed
+- Default backoff start value changed from 50ms to 500ms
 
 ### Fixed
 - Fixed iterated variable in `foreach` being merged instead of overwritten, breaking iteration of objects
 - Fixed Buffer (`Buffer.isBuffer(x) == true`) being considered a composite structure and being merged as an object
+- Fixed authentication clearing query parameters
+- Fixed url path parameter replacement not working with whitespace around replacement keys
+- Fixup of arrays coming from vm2 sandbox
 
 ## [1.3.0] - 2022-02-15
 ### Added
@@ -299,7 +313,9 @@ This is a recovery release after introduction of compatibility-breaking changes 
 - Profile parameter validator
 - CI/CD workflows
 
-[Unreleased]: https://github.com/superfaceai/one-sdk-js/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/superfaceai/one-sdk-js/compare/v1.4.1...HEAD
+[1.4.1]: https://github.com/superfaceai/one-sdk-js/compare/v1.4.0...v1.4.1
+[1.4.0]: https://github.com/superfaceai/one-sdk-js/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/superfaceai/one-sdk-js/compare/v1.2.2...v1.3.0
 [1.2.2]: https://github.com/superfaceai/one-sdk-js/compare/v1.2.1...v1.2.2
 [1.2.1]: https://github.com/superfaceai/one-sdk-js/compare/v1.1.0...v1.2.1

@@ -26,12 +26,16 @@ import {
 } from '@superfaceai/ast';
 import createDebug from 'debug';
 
-import { AuthCache } from '../..';
 import { err, ok, Result } from '../../lib';
 import { IServiceSelector } from '../../lib/services';
 import { UnexpectedError } from '../errors';
 import { MapInterpreterExternalHandler } from './external-handler';
-import { HttpClient, HttpResponse, SecurityConfiguration } from './http';
+import {
+  AuthCache,
+  HttpClient,
+  HttpResponse,
+  SecurityConfiguration,
+} from './http';
 import { FetchInstance } from './http/interfaces';
 import {
   HTTPError,
@@ -96,7 +100,7 @@ interface HttpRequest {
   contentType?: string;
   contentLanguage?: string;
   headers?: Variables;
-  queryParameters?: Variables;
+  queryParameters?: NonPrimitive;
   body?: Variables;
   security: HttpSecurityRequirement[];
 }
@@ -169,6 +173,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
   }
 
   visit(node: PrimitiveLiteralNode): Primitive;
+  async visit(node: ObjectLiteralNode): Promise<NonPrimitive>;
   async visit(node: SetStatementNode): Promise<void>;
   async visit(
     node: OutcomeStatementNode
@@ -604,7 +609,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
     throw new UnexpectedError('Method not implemented.');
   }
 
-  async visitObjectLiteralNode(node: ObjectLiteralNode): Promise<Variables> {
+  async visitObjectLiteralNode(node: ObjectLiteralNode): Promise<NonPrimitive> {
     let result: NonPrimitive = {};
 
     for (const field of node.fields) {
