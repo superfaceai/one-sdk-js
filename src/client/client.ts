@@ -1,3 +1,5 @@
+import { SuperJsonDocument } from '@superfaceai/ast';
+
 import { Config } from '../config';
 import { SuperJson } from '../internal';
 import {
@@ -41,15 +43,11 @@ export abstract class SuperfaceClientBase extends Events {
 
   public hookContext: HooksContext = {};
 
-  constructor() {
+  constructor(options?: { superJson?: SuperJson | SuperJsonDocument }) {
     super();
-    const superCacheKey = Config.instance().superfacePath;
 
-    if (SUPER_CACHE[superCacheKey] === undefined) {
-      SUPER_CACHE[superCacheKey] = SuperJson.loadSync(superCacheKey).unwrap();
-    }
+    this.superJson = resolveSuperJson(options?.superJson);
 
-    this.superJson = SUPER_CACHE[superCacheKey];
     if (!Config.instance().disableReporting) {
       this.hookMetrics();
       this.metricReporter = new MetricReporter(this.superJson);
@@ -272,4 +270,23 @@ export function createTypedClient<TProfiles extends ProfileUseCases<any, any>>(
 
 export const typeHelper = <TInput, TOutput>(): [TInput, TOutput] => {
   return [undefined as unknown, undefined as unknown] as [TInput, TOutput];
+};
+
+const resolveSuperJson = (
+  superJson?: SuperJson | SuperJsonDocument
+): SuperJson => {
+  if (!superJson) {
+    const cacheKey = Config.instance().superfacePath;
+
+    if (SUPER_CACHE[cacheKey] === undefined) {
+      SUPER_CACHE[cacheKey] = SuperJson.loadSync(cacheKey).unwrap();
+    }
+
+    return SUPER_CACHE[cacheKey];
+  }
+  if (superJson instanceof SuperJson) {
+    return superJson;
+  }
+
+  return new SuperJson(superJson);
 };
