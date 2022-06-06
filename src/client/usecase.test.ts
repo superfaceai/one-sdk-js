@@ -2,6 +2,7 @@ import { Config } from '../config';
 import { SuperJson } from '../internal';
 import * as utils from '../internal/superjson/utils';
 import { Events } from '../lib/events';
+import { MockEnvironment } from '../test/environment';
 import { MockFileSystem } from '../test/filesystem';
 import { SuperCache } from './cache';
 import { registerHooks } from './failure/event-adapter';
@@ -64,7 +65,8 @@ describe('UseCase', () => {
 
     const filesystem = MockFileSystem();
 
-    const config = new Config();
+    const environment = new MockEnvironment();
+    const config = new Config(environment);
 
     const usecase = new UseCase(
       mockProfileConfiguration,

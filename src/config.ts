@@ -1,3 +1,4 @@
+import { IEnvironment } from './lib/environment';
 import { IFileSystem } from './lib/io';
 import { NodeFileSystem } from './lib/io/filesystem.node';
 import { ILogger, LogFunction } from './lib/logger/logger';
@@ -58,20 +59,24 @@ const DEFAULTS = (fileSystem: JoinPath): IConfig => ({
 });
 
 // Extraction functions
-function getSuperfaceApiUrl(): string | undefined {
-  const envUrl = process.env[API_URL_ENV_NAME];
+function getSuperfaceApiUrl(environment: IEnvironment): string | undefined {
+  const envUrl = environment.getString(API_URL_ENV_NAME);
 
   return envUrl !== undefined ? new URL(envUrl).href : undefined;
 }
 
-function getSdkAuthToken(log?: LogFunction): string | undefined {
-  const loadedToken = process.env[TOKEN_ENV_NAME];
-  if (loadedToken === undefined) {
+function getSdkAuthToken(
+  environment: IEnvironment,
+  log?: LogFunction
+): string | undefined {
+  const token = environment.getString(TOKEN_ENV_NAME);
+
+  if (token === undefined) {
     log?.(`Environment variable ${TOKEN_ENV_NAME} not found`);
 
     return;
   }
-  const token = loadedToken.trim();
+
   const tokenRegexp = /^(sfs)_([^_]+)_([0-9A-F]{8})$/i;
   if (!tokenRegexp.test(token)) {
     log?.(
@@ -84,73 +89,64 @@ function getSdkAuthToken(log?: LogFunction): string | undefined {
   return token;
 }
 
-function getBoundCacheTimeout(logger?: LogFunction): number {
-  const envValue = process.env[BOUND_PROVIDER_CACHE_TIMEOUT];
-  if (envValue === undefined) {
-    return DEFAULT_BOUND_PROVIDER_TIMEOUT;
+function ensurePositiveInteger(
+  value: number | undefined,
+  variableName: string,
+  log?: LogFunction
+): number | undefined {
+  if (value === undefined) {
+    return undefined;
   }
 
-  try {
-    const result = parseInt(envValue);
-    if (result <= 0) {
-      throw undefined;
-    }
-
-    return result;
-  } catch (e) {
-    logger?.(
-      `Invalid value: ${envValue} for ${BOUND_PROVIDER_CACHE_TIMEOUT}, expected positive number`
+  if (isNaN(value) || value <= 0) {
+    log?.(
+      `Invalid value: ${value} for ${variableName}, expected positive number`
     );
 
-    return DEFAULT_BOUND_PROVIDER_TIMEOUT;
+    return undefined;
   }
+
+  return value;
+}
+
+function getBoundCacheTimeout(
+  environment: IEnvironment,
+  log?: LogFunction
+): number {
+  const value = ensurePositiveInteger(
+    environment.getNumber(BOUND_PROVIDER_CACHE_TIMEOUT),
+    BOUND_PROVIDER_CACHE_TIMEOUT,
+    log
+  );
+
+  return value ?? DEFAULT_BOUND_PROVIDER_TIMEOUT;
 }
 
 function getMetricDebounceTime(
   which: 'min' | 'max',
+  environment: IEnvironment,
   log?: LogFunction
 ): number | undefined {
-  const envValue = process.env[METRIC_DEBOUNCE_TIME[which]];
-  if (envValue === undefined) {
-    return undefined;
-  }
+  const value = ensurePositiveInteger(
+    environment.getNumber(METRIC_DEBOUNCE_TIME[which]),
+    METRIC_DEBOUNCE_TIME[which],
+    log
+  );
 
-  try {
-    const result = parseInt(envValue);
-    if (result <= 0) {
-      throw undefined;
-    }
-
-    return result;
-  } catch (e) {
-    log?.(
-      `Invalid value: ${envValue} for ${METRIC_DEBOUNCE_TIME[which]}, expected positive number`
-    );
-
-    return undefined;
-  }
+  return value;
 }
 
-function getSandboxTimeout(logger?: LogFunction): number {
-  const envValue = process.env[SANDBOX_TIMEOUT_ENV_NAME];
-  if (envValue === undefined) {
-    return DEFAULT_SANDBOX_TIMEOUT;
-  }
+function getSandboxTimeout(
+  environment: IEnvironment,
+  log?: LogFunction
+): number {
+  const value = ensurePositiveInteger(
+    environment.getNumber(SANDBOX_TIMEOUT_ENV_NAME),
+    SANDBOX_TIMEOUT_ENV_NAME,
+    log
+  );
 
-  try {
-    const result = parseInt(envValue);
-    if (result <= 0) {
-      throw undefined;
-    }
-
-    return result;
-  } catch (e) {
-    logger?.(
-      `Invalid value: ${envValue} for ${SANDBOX_TIMEOUT_ENV_NAME}, expected positive number`
-    );
-
-    return DEFAULT_SANDBOX_TIMEOUT;
-  }
+  return value ?? DEFAULT_SANDBOX_TIMEOUT;
 }
 
 export class Config implements IConfig {
@@ -167,6 +163,7 @@ export class Config implements IConfig {
   private readonly log: LogFunction | undefined;
 
   public constructor(
+    private environment: IEnvironment,
     logger?: ILogger,
     config?: Partial<IConfig>,
     private fileSystem: JoinPath = NodeFileSystem
@@ -189,29 +186,29 @@ export class Config implements IConfig {
     this.log = logger?.log(DEBUG_NAMESPACE);
   }
 
-  static loadFromEnv(logger?: ILogger): Config {
-    const env = new Config(logger).loadEnv();
+  static loadFromEnv(environment: IEnvironment, logger?: ILogger): Config {
+    const env = new Config(environment, logger).loadEnv();
 
-    return new Config(logger, env);
+    return new Config(environment, logger, env);
   }
 
   private loadEnv() {
     const env = {
-      superfaceApiUrl: getSuperfaceApiUrl(),
-      sdkAuthToken: getSdkAuthToken(),
+      superfaceApiUrl: getSuperfaceApiUrl(this.environment),
+      sdkAuthToken: getSdkAuthToken(this.environment),
       superfacePath:
-        process.env[SUPERFACE_PATH_NAME] ??
+        this.environment.getString(SUPERFACE_PATH_NAME) ??
         DEFAULT_SUPERFACE_PATH(this.fileSystem),
-      superfaceCacheTimeout: getBoundCacheTimeout(),
-      metricDebounceTimeMin: getMetricDebounceTime('min'),
-      metricDebounceTimeMax: getMetricDebounceTime('max'),
+      superfaceCacheTimeout: getBoundCacheTimeout(this.environment),
+      metricDebounceTimeMin: getMetricDebounceTime('min', this.environment),
+      metricDebounceTimeMax: getMetricDebounceTime('max', this.environment),
       disableReporting:
-        process.env.NODE_ENV === 'test' ||
-        process.env[DISABLE_REPORTING] === 'true'
+        this.environment.getString('NODE_ENV') === 'test' ||
+        this.environment.getBoolean(DISABLE_REPORTING) === true
           ? true
           : undefined,
       cachePath: undefined,
-      sandboxTimeout: getSandboxTimeout(),
+      sandboxTimeout: getSandboxTimeout(this.environment),
     };
 
     this.log?.('Loaded config from environment variables: %O', env);

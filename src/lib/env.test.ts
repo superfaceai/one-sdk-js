@@ -1,67 +1,62 @@
+import { MockEnvironment } from '../test/environment';
 import { resolveEnv, resolveEnvRecord } from './env';
 
+const mockEnvVariable = 'superJsonTest';
+const environment = new MockEnvironment();
+
 describe('lib/env', () => {
+  beforeEach(() => {
+    environment.clear();
+  });
+
   it('resolves env correctly when it is found', () => {
-    const mockEnvVariable = 'superJsonTest';
-    const originalEnvValue = process.env[mockEnvVariable];
-    process.env[mockEnvVariable] = 'test';
-    expect(resolveEnv(`$${mockEnvVariable}`)).toEqual('test');
-    process.env[mockEnvVariable] = originalEnvValue;
+    environment.addValue(mockEnvVariable, 'test');
+    expect(resolveEnv(`$${mockEnvVariable}`, environment)).toEqual('test');
   });
 
   it('resolves env correctly when it is not found', () => {
-    const mockEnvVariable = 'superJsonTest';
-    const originalEnvValue = process.env[mockEnvVariable];
-    delete process.env[mockEnvVariable];
-    expect(resolveEnv(`$${mockEnvVariable}`)).toEqual(`$${mockEnvVariable}`);
-    process.env[mockEnvVariable] = originalEnvValue;
+    expect(resolveEnv(`$${mockEnvVariable}`, environment)).toEqual(
+      `$${mockEnvVariable}`
+    );
   });
 });
 
 describe('when resolving env record', () => {
+  beforeEach(() => {
+    environment.clear();
+  });
+
   it('resolves env correctly when value is string', () => {
-    const mockEnvVariable = 'superJsonTest';
-    const originalEnvValue = process.env[mockEnvVariable];
-    process.env[mockEnvVariable] = 'test';
+    environment.addValue(mockEnvVariable, 'test');
     const mockRecord = { testKey: `$${mockEnvVariable}` };
 
-    expect(resolveEnvRecord(mockRecord)).toEqual({
+    expect(resolveEnvRecord(mockRecord, environment)).toEqual({
       testKey: 'test',
     });
-
-    process.env[mockEnvVariable] = originalEnvValue;
   });
 
   it('resolves env correctly when value is object', () => {
-    const mockEnvVariable = 'superJsonTest';
-    const originalEnvValue = process.env[mockEnvVariable];
-    process.env[mockEnvVariable] = 'test';
+    environment.addValue(mockEnvVariable, 'test');
     const mockRecord = {
       testWrapperKey: { testKey: `$${mockEnvVariable}` },
       nullKey: null,
     };
 
-    expect(resolveEnvRecord(mockRecord)).toEqual({
+    expect(resolveEnvRecord(mockRecord, environment)).toEqual({
       testWrapperKey: { testKey: 'test' },
       nullKey: null,
     });
-
-    process.env[mockEnvVariable] = originalEnvValue;
   });
 
   it('resolves env correctly when value is undefined', () => {
-    const mockEnvVariable = 'superJsonTest';
-    const originalEnvValue = process.env[mockEnvVariable];
-    process.env[mockEnvVariable] = 'test';
+    environment.addValue(mockEnvVariable, 'test');
     const mockRecord = {
       testKey: `$${mockEnvVariable}`,
       undefinedKey: undefined,
     };
 
-    expect(resolveEnvRecord(mockRecord)).toEqual({
+    expect(resolveEnvRecord(mockRecord, environment)).toEqual({
       testKey: 'test',
     });
-
-    process.env[mockEnvVariable] = originalEnvValue;
   });
 });

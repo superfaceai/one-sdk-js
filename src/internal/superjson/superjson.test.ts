@@ -14,11 +14,14 @@ import {
 
 import { IFileSystem } from '../../lib/io';
 import { err, ok } from '../../lib/result/result';
+import { MockEnvironment } from '../../test/environment';
 import { MockFileSystem } from '../../test/filesystem';
 import { mergeSecurity } from './mutate';
 import * as normalize from './normalize';
 import { composeFileURI, trimFileURI } from './schema';
 import { SuperJson } from './superjson';
+
+const environment = new MockEnvironment();
 
 describe('SuperJson', () => {
   let superjson: SuperJson;
@@ -37,6 +40,7 @@ describe('SuperJson', () => {
   beforeEach(() => {
     fileSystem = MockFileSystem();
     superjson = new SuperJson({}, undefined, fileSystem);
+    environment.clear();
   });
 
   describe('when checking if input is ApiKeySecurityValues', () => {
@@ -317,7 +321,8 @@ describe('SuperJson', () => {
       expect(
         normalize.normalizeProfileProviderSettings(
           mockProfileProviderEntry,
-          mockDefaults
+          mockDefaults,
+          environment
         )
       ).toEqual({
         defaults: {},
@@ -331,7 +336,8 @@ describe('SuperJson', () => {
       expect(
         normalize.normalizeProfileProviderSettings(
           mockProfileProviderEntry,
-          mockDefaults
+          mockDefaults,
+          environment
         )
       ).toEqual({
         file: 'some/path',
@@ -346,7 +352,8 @@ describe('SuperJson', () => {
       expect(() =>
         normalize.normalizeProfileProviderSettings(
           mockProfileProviderEntry,
-          mockDefaults
+          mockDefaults,
+          environment
         )
       ).toThrowError(
         new RegExp(
@@ -365,7 +372,8 @@ describe('SuperJson', () => {
       expect(
         normalize.normalizeProfileProviderSettings(
           mockProfileProviderEntry,
-          mockDefaults
+          mockDefaults,
+          environment
         )
       ).toEqual({
         file: 'some/file/path',
@@ -384,7 +392,8 @@ describe('SuperJson', () => {
       expect(
         normalize.normalizeProfileProviderSettings(
           mockProfileProviderEntry,
-          mockDefaults
+          mockDefaults,
+          environment
         )
       ).toEqual({
         mapRevision: 'test',
@@ -398,7 +407,9 @@ describe('SuperJson', () => {
     it('returns correct object when entry is uri', async () => {
       const mockProfileEntry = 'file://some/path';
 
-      expect(normalize.normalizeProfileSettings(mockProfileEntry, [])).toEqual({
+      expect(
+        normalize.normalizeProfileSettings(mockProfileEntry, [], environment)
+      ).toEqual({
         file: 'some/path',
         priority: [],
         defaults: {},
@@ -409,7 +420,9 @@ describe('SuperJson', () => {
     it('returns correct object when entry is version', async () => {
       const mockProfileEntry = '1.0.0';
 
-      expect(normalize.normalizeProfileSettings(mockProfileEntry, [])).toEqual({
+      expect(
+        normalize.normalizeProfileSettings(mockProfileEntry, [], environment)
+      ).toEqual({
         version: '1.0.0',
         priority: [],
         defaults: {},
@@ -420,7 +433,7 @@ describe('SuperJson', () => {
     it('throws error when entry is unknown string', async () => {
       const mockProfileEntry = 'madeup';
       expect(() =>
-        normalize.normalizeProfileSettings(mockProfileEntry, [])
+        normalize.normalizeProfileSettings(mockProfileEntry, [], environment)
       ).toThrowError(
         new Error('Invalid profile entry format: ' + mockProfileEntry)
       );
@@ -431,7 +444,9 @@ describe('SuperJson', () => {
         file: 'some/path',
       };
 
-      expect(normalize.normalizeProfileSettings(mockProfileEntry, [])).toEqual({
+      expect(
+        normalize.normalizeProfileSettings(mockProfileEntry, [], environment)
+      ).toEqual({
         file: 'some/path',
         priority: [],
         defaults: {},
@@ -444,7 +459,9 @@ describe('SuperJson', () => {
     it('returns correct object when entry is uri', async () => {
       const mockProviderEntry = 'file://some/path';
 
-      expect(normalize.normalizeProviderSettings(mockProviderEntry)).toEqual({
+      expect(
+        normalize.normalizeProviderSettings(mockProviderEntry, environment)
+      ).toEqual({
         file: 'some/path',
         security: [],
         parameters: {},
@@ -454,16 +471,15 @@ describe('SuperJson', () => {
     it('throws error when entry is unknown string', async () => {
       const mockProviderEntry = 'madeup';
       expect(() =>
-        normalize.normalizeProviderSettings(mockProviderEntry)
+        normalize.normalizeProviderSettings(mockProviderEntry, environment)
       ).toThrowError(
         new RegExp('Invalid provider entry format: ' + mockProviderEntry)
       );
     });
 
     it('returns correct object when entry is a object', async () => {
-      const evnVariable = 'INTEGRATION_PARAMETER_TEST_VARIABLE';
-      const originalEnv = process.env[evnVariable];
-      process.env[evnVariable] = 'test-value';
+      const envVariable = 'INTEGRATION_PARAMETER_TEST_VARIABLE';
+      environment.addValue(envVariable, 'test-value');
 
       const mockProviderEntry = {
         file: 'some/path',
@@ -471,11 +487,13 @@ describe('SuperJson', () => {
         parameters: {
           first: 'test',
           second: 'second',
-          third: `$${evnVariable}`,
+          third: `$${envVariable}`,
         },
       };
 
-      expect(normalize.normalizeProviderSettings(mockProviderEntry)).toEqual({
+      expect(
+        normalize.normalizeProviderSettings(mockProviderEntry, environment)
+      ).toEqual({
         file: 'some/path',
         security: [],
         parameters: {
@@ -484,7 +502,6 @@ describe('SuperJson', () => {
           third: 'test-value',
         },
       });
-      process.env[evnVariable] = originalEnv;
     });
 
     it('returns correct object when entry is a object with empty security and parameters', async () => {
@@ -494,7 +511,9 @@ describe('SuperJson', () => {
         parameters: {},
       };
 
-      expect(normalize.normalizeProviderSettings(mockProviderEntry)).toEqual({
+      expect(
+        normalize.normalizeProviderSettings(mockProviderEntry, environment)
+      ).toEqual({
         file: 'some/path',
         security: [],
         parameters: {},

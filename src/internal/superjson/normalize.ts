@@ -23,6 +23,7 @@ import {
 } from '@superfaceai/ast';
 
 import { resolveEnvRecord } from '../../lib/env';
+import { IEnvironment } from '../../lib/environment';
 import { ILogger } from '../../lib/logger/logger';
 import { clone } from '../../lib/object';
 import { UnexpectedError } from '../errors';
@@ -32,6 +33,7 @@ import { castToNonPrimitive, mergeVariables } from '../interpreter/variables';
 export function normalizeProfileProviderSettings(
   profileProviderSettings: ProfileProviderEntry | undefined,
   baseDefaults: NormalizedUsecaseDefaults,
+  environment: IEnvironment,
   logger?: ILogger
 ): NormalizedProfileProviderSettings {
   if (profileProviderSettings === undefined) {
@@ -65,6 +67,7 @@ export function normalizeProfileProviderSettings(
     };
   }
   normalizedSettings.defaults = normalizeProfileProviderDefaults(
+    environment,
     logger,
     profileProviderSettings.defaults,
     baseDefaults
@@ -157,6 +160,7 @@ export function normalizeRetryPolicy(
 }
 
 export function normalizeUsecaseDefaults(
+  environment: IEnvironment,
   logger?: ILogger,
   defaults?: UsecaseDefaults,
   base?: NormalizedUsecaseDefaults
@@ -165,7 +169,7 @@ export function normalizeUsecaseDefaults(
     if (base == undefined) {
       return {};
     } else {
-      return normalizeUsecaseDefaults(logger, base);
+      return normalizeUsecaseDefaults(environment, logger, base);
     }
   }
 
@@ -188,10 +192,11 @@ export function normalizeUsecaseDefaults(
     };
   }
 
-  return resolveEnvRecord(normalized, logger);
+  return resolveEnvRecord(normalized, environment, logger);
 }
 
 export function normalizeProfileProviderDefaults(
+  environment: IEnvironment,
   logger?: ILogger,
   defaults?: ProfileProviderDefaults,
   base?: NormalizedUsecaseDefaults
@@ -200,7 +205,7 @@ export function normalizeProfileProviderDefaults(
     if (base == undefined) {
       return {};
     } else {
-      return normalizeProfileProviderDefaults(logger, base);
+      return normalizeProfileProviderDefaults(environment, logger, base);
     }
   }
 
@@ -217,12 +222,13 @@ export function normalizeProfileProviderDefaults(
     };
   }
 
-  return resolveEnvRecord(normalized, logger);
+  return resolveEnvRecord(normalized, environment, logger);
 }
 
 export function normalizeProfileSettings(
   profileEntry: ProfileEntry,
   topProviderOrder: string[],
+  environment: IEnvironment,
   logger?: ILogger
 ): NormalizedProfileSettings {
   if (typeof profileEntry === 'string') {
@@ -265,6 +271,7 @@ export function normalizeProfileSettings(
   }
 
   normalizedSettings.defaults = normalizeUsecaseDefaults(
+    environment,
     logger,
     profileEntry.defaults
   );
@@ -275,6 +282,7 @@ export function normalizeProfileSettings(
       normalizeProfileProviderSettings(
         profileProviderSettings,
         normalizedSettings.defaults,
+        environment,
         logger
       );
   }
@@ -295,6 +303,7 @@ export function normalizeProfileSettings(
 
 export function normalizeProviderSettings(
   providerEntry: ProviderEntry,
+  environment: IEnvironment,
   logger?: ILogger
 ): NormalizedProviderSettings {
   if (typeof providerEntry === 'string') {
@@ -314,10 +323,11 @@ export function normalizeProviderSettings(
   return {
     file: providerEntry.file,
     security:
-      providerEntry.security?.map(entry => resolveEnvRecord(entry, logger)) ??
-      [],
+      providerEntry.security?.map(entry =>
+        resolveEnvRecord(entry, environment, logger)
+      ) ?? [],
     parameters: providerEntry.parameters
-      ? resolveEnvRecord(providerEntry.parameters, logger)
+      ? resolveEnvRecord(providerEntry.parameters, environment, logger)
       : {},
   };
 }
@@ -325,6 +335,7 @@ export function normalizeProviderSettings(
 /** Returns a cached normalized clone of the document. */
 export function normalizeSuperJsonDocument(
   originalDocument: SuperJsonDocument,
+  environment: IEnvironment,
   logger?: ILogger
 ): NormalizedSuperJsonDocument {
   // clone
@@ -337,6 +348,7 @@ export function normalizeSuperJsonDocument(
     normalizedProfiles[profileId] = normalizeProfileSettings(
       profileEntry,
       topProviderOrder,
+      environment,
       logger
     );
   }
@@ -346,6 +358,7 @@ export function normalizeSuperJsonDocument(
   for (const [providerName, providerEntry] of Object.entries(providers)) {
     normalizedProviders[providerName] = normalizeProviderSettings(
       providerEntry,
+      environment,
       logger
     );
   }

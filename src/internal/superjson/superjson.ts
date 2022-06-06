@@ -11,6 +11,8 @@ import {
 
 import { err, ok, Result } from '../../lib';
 import { configHash } from '../../lib/config-hash';
+import { IEnvironment } from '../../lib/environment';
+import { NodeEnvironment } from '../../lib/environment/environment.node';
 import { IFileSystem } from '../../lib/io';
 import { NodeFileSystem } from '../../lib/io/filesystem.node';
 import { ILogger } from '../../lib/logger/logger';
@@ -49,6 +51,7 @@ export class SuperJson {
     public document: SuperJsonDocument = {},
     public readonly path = '',
     private readonly fileSystem: IFileSystem = NodeFileSystem,
+    private readonly environment: IEnvironment = new NodeEnvironment(),
     private readonly logger?: ILogger
   ) {}
 
@@ -115,6 +118,7 @@ export class SuperJson {
   static loadSync(
     path: string,
     fileSystem: IFileSystem = NodeFileSystem,
+    environment: IEnvironment = new NodeEnvironment(),
     logger?: ILogger
   ): Result<SuperJson, SDKExecutionError> {
     try {
@@ -144,7 +148,9 @@ export class SuperJson {
 
     logger?.log(DEBUG_NAMESPACE, `loaded super.json from ${path}`);
 
-    return ok(new SuperJson(superdocument.value, path, fileSystem, logger));
+    return ok(
+      new SuperJson(superdocument.value, path, fileSystem, environment, logger)
+    );
   }
 
   /**
@@ -153,6 +159,7 @@ export class SuperJson {
   static async load(
     path: string,
     fileSystem: IFileSystem = NodeFileSystem,
+    environment: IEnvironment = new NodeEnvironment(),
     logger?: ILogger
   ): Promise<Result<SuperJson, SDKExecutionError>> {
     try {
@@ -182,7 +189,9 @@ export class SuperJson {
 
     logger?.log(DEBUG_NAMESPACE, `loaded super.json from ${path}`);
 
-    return ok(new SuperJson(superdocument.value, path, fileSystem, logger));
+    return ok(
+      new SuperJson(superdocument.value, path, fileSystem, environment, logger)
+    );
   }
 
   // mutation //
@@ -210,7 +219,13 @@ export class SuperJson {
     payload: ProfileEntry,
     logger?: ILogger
   ): boolean {
-    const changed = mergeProfile(this.document, profileName, payload, logger);
+    const changed = mergeProfile(
+      this.document,
+      profileName,
+      payload,
+      this.environment,
+      logger
+    );
     if (changed) {
       this.normalizedCache = undefined;
     }
@@ -228,6 +243,7 @@ export class SuperJson {
       this.document,
       profileName,
       payload,
+      this.environment,
       this.logger
     );
     if (changed) {
@@ -252,6 +268,7 @@ export class SuperJson {
       profileName,
       providerName,
       payload,
+      this.environment,
       this.logger
     );
     if (changed) {
@@ -276,6 +293,7 @@ export class SuperJson {
       profileName,
       providerName,
       payload,
+      this.environment,
       this.logger
     );
     if (changed) {
@@ -300,6 +318,7 @@ export class SuperJson {
       profileName,
       providerName,
       variant,
+      this.environment,
       this.logger
     );
     if (changed) {
@@ -365,6 +384,7 @@ export class SuperJson {
       this.document,
       profileName,
       providersSortedByPriority,
+      this.environment,
       this.logger
     );
     if (result.isOk()) {
@@ -409,6 +429,7 @@ export class SuperJson {
 
     this.normalizedCache = normalizeSuperJsonDocument(
       this.document,
+      this.environment,
       this.logger
     );
 

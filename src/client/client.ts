@@ -5,6 +5,7 @@ import {
   getProvider,
   getProviderForProfile,
 } from '../internal/superjson/utils';
+import { NodeEnvironment } from '../lib/environment/environment.node';
 import { Events } from '../lib/events';
 import { NodeFileSystem } from '../lib/io/filesystem.node';
 import { ILogger } from '../lib/logger/logger';
@@ -37,9 +38,10 @@ export abstract class SuperfaceClientBase {
   protected readonly logger?: ILogger;
 
   constructor() {
+    const environment = new NodeEnvironment();
     this.logger = new NodeLogger();
     this.events = new Events(this.logger);
-    this.config = Config.loadFromEnv(this.logger);
+    this.config = Config.loadFromEnv(environment, this.logger);
     const superCacheKey = this.config.superfacePath;
 
     this.boundProfileProviderCache = new SuperCache<{
@@ -49,6 +51,7 @@ export abstract class SuperfaceClientBase {
     this.superJson = SuperJson.loadSync(
       superCacheKey,
       NodeFileSystem,
+      environment,
       this.logger
     ).unwrap();
 

@@ -7,6 +7,7 @@ import { getLocal } from 'mockttp';
 
 import { BoundProfileProvider } from '../client';
 import { Config } from '../config';
+import { MockEnvironment } from '../test/environment';
 import { Events } from './events';
 import { err } from './result/result';
 import { ServiceSelector } from './services';
@@ -131,7 +132,8 @@ const mockMapDocument: MapDocumentNode = {
 };
 
 const mockServer = getLocal();
-const config = new Config();
+const environment = new MockEnvironment();
+const config = new Config(environment);
 
 describe('events', () => {
   beforeEach(async () => {

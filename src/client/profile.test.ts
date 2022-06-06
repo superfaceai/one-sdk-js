@@ -4,6 +4,7 @@ import { Config } from '../config';
 import { SuperJson } from '../internal';
 import { Events } from '../lib/events';
 import { NodeFileSystem } from '../lib/io/filesystem.node';
+import { MockEnvironment } from '../test/environment';
 import { MockFileSystem } from '../test/filesystem';
 import { SuperCache } from './cache';
 import { Profile, ProfileConfiguration, TypedProfile } from './profile';
@@ -16,7 +17,8 @@ function createProfile(superJson: SuperJsonDocument): Profile {
     provider: IBoundProfileProvider;
     expiresAt: number;
   }>();
-  const config = new Config();
+  const environment = new MockEnvironment();
+  const config = new Config(environment);
   const configuration = new ProfileConfiguration('test', '1.0.0');
 
   return new Profile(
@@ -90,7 +92,8 @@ describe('TypedProfile', () => {
     provider: IBoundProfileProvider;
     expiresAt: number;
   }>();
-  const config = new Config();
+  const environment = new MockEnvironment();
+  const config = new Config(environment);
   const fileSystem = MockFileSystem();
 
   describe('getUseCases', () => {

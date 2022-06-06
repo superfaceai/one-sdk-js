@@ -10,6 +10,7 @@ import { getLocal } from 'mockttp';
 import { Config } from '../../config';
 import { CrossFetch } from '../../lib/fetch';
 import { ServiceSelector } from '../../lib/services';
+import { MockEnvironment } from '../../test/environment';
 import { UnexpectedError } from '../errors';
 import { MapInterpreter } from './map-interpreter';
 import {
@@ -20,7 +21,8 @@ import {
   MappedHTTPError,
 } from './map-interpreter.errors';
 
-const config = new Config();
+const environment = new MockEnvironment();
+const config = new Config(environment);
 const mockServer = getLocal();
 const fetchInstance = new CrossFetch();
 const header: MapHeaderNode = {

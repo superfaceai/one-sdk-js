@@ -1,7 +1,9 @@
 import { Config } from '../../../config';
+import { MockEnvironment } from '../../../test/environment';
 import { evalScript } from './sandbox';
 
-const config = new Config();
+const environment = new MockEnvironment();
+const config = new Config(environment);
 
 describe('sandbox', () => {
   it('prevents string masking attack', () => {

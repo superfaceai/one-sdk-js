@@ -22,6 +22,8 @@ import {
   getProvider,
   getProviderForProfile,
 } from '../internal/superjson/utils';
+import { IEnvironment } from '../lib/environment';
+import { NodeEnvironment } from '../lib/environment/environment.node';
 import { Events } from '../lib/events';
 import { IFileSystem } from '../lib/io';
 import { ILogger } from '../lib/logger/logger';
@@ -33,6 +35,7 @@ import { MockFileSystem } from './filesystem';
 export class MockClient implements ISuperfaceClient {
   public config: Config;
   public events: Events;
+  public environment: IEnvironment;
   public cache: SuperCache<{
     provider: IBoundProfileProvider;
     expiresAt: number;
@@ -51,8 +54,10 @@ export class MockClient implements ISuperfaceClient {
   ) {
     // TODO: test logger?
     this.logger = new NodeLogger();
+    // TODO: test environment!
+    this.environment = new NodeEnvironment();
 
-    this.config = new Config(this.logger, {
+    this.config = new Config(this.environment, this.logger, {
       disableReporting: true,
       ...parameters?.configOverride,
     });

@@ -24,6 +24,7 @@
     "test:base": "jest --testPathIgnorePatterns 'event-adapter.test.ts$'",
     "test:long": "jest --testPathPattern 'event-adapter.test.ts$'",
     "test:clean": "jest --clear-cache && yarn test",
+    "test:coverage": "jest --coverage",
     "lint": "eslint src/",
     "lint:fix": "yarn lint --fix",
     "format": "prettier -c ./src",

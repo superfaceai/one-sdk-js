@@ -5,11 +5,13 @@ import { getLocal } from 'mockttp';
 import { Config } from '../../config';
 import { CrossFetch } from '../../lib/fetch';
 import { ServiceSelector } from '../../lib/services';
+import { MockEnvironment } from '../../test/environment';
 import { MapInterpreter } from './map-interpreter';
 
 const mockServer = getLocal();
 const fetchInstance = new CrossFetch();
-const config = new Config();
+const environment = new MockEnvironment();
+const config = new Config(environment);
 
 const parseMapFromSource = (source: string) =>
   parseMap(

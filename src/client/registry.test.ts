@@ -12,6 +12,7 @@ import {
   unknownBindResponseError,
   unknownProviderInfoError,
 } from '../internal/errors.helpers';
+import { MockEnvironment } from '../test/environment';
 import {
   assertIsRegistryProviderInfo,
   fetchBind,
@@ -30,6 +31,7 @@ jest.mock('../internal/interpreter/http', () => {
 
 const MOCK_TOKEN =
   'sfs_bb064dd57c302911602dd097bc29bedaea6a021c25a66992d475ed959aa526c7_37bce8b5';
+const environment = new MockEnvironment();
 
 describe('registry', () => {
   const astMetadata: AstMetadata = {
@@ -125,7 +127,7 @@ describe('registry', () => {
     const TEST_REGISTRY_URL = 'https://example.com/test-registry';
     const TEST_SDK_TOKEN =
       'sfs_bb064dd57c302911602dd097bc29bedaea6a021c25a66992d475ed959aa526c7_37bce8b5';
-    const config = new Config(undefined, {
+    const config = new Config(environment, undefined, {
       superfaceApiUrl: TEST_REGISTRY_URL,
       sdkAuthToken: TEST_SDK_TOKEN,
     });
@@ -223,7 +225,7 @@ describe('registry', () => {
     const TEST_REGISTRY_URL = 'https://example.com/test-registry';
     const TEST_SDK_TOKEN =
       'sfs_bb064dd57c302911602dd097bc29bedaea6a021c25a66992d475ed959aa526c7_37bce8b5';
-    const config = new Config(undefined, {
+    const config = new Config(environment, undefined, {
       superfaceApiUrl: TEST_REGISTRY_URL,
       sdkAuthToken: TEST_SDK_TOKEN,
     });
@@ -545,7 +547,7 @@ describe('registry', () => {
     const TEST_REGISTRY_URL = 'https://example.com/test-registry';
     const TEST_SDK_TOKEN =
       'sfs_bb064dd57c302911602dd097bc29bedaea6a021c25a66992d475ed959aa526c7_37bce8b5';
-    const config = new Config(undefined, {
+    const config = new Config(environment, undefined, {
       superfaceApiUrl: TEST_REGISTRY_URL,
       sdkAuthToken: TEST_SDK_TOKEN,
     });

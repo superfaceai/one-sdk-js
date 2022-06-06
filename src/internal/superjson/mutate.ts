@@ -14,6 +14,7 @@ import {
 } from '@superfaceai/ast';
 
 import { err, ok, Result } from '../../lib';
+import { IEnvironment } from '../../lib/environment';
 import { ILogger } from '../../lib/logger/logger';
 import { SDKExecutionError, UnexpectedError } from '../errors';
 import { profileNotFoundError, providersNotSetError } from '../errors.helpers';
@@ -94,6 +95,7 @@ export function mergeProfile(
   document: SuperJsonDocument,
   profileName: string,
   payload: ProfileEntry,
+  environment: IEnvironment,
   logger?: ILogger
 ): boolean {
   // if specified profile is not found
@@ -190,7 +192,14 @@ export function mergeProfile(
     providers = payload.providers;
   } else if (targetedProfile.providers) {
     Object.entries(payload.providers ?? {}).forEach(([providerName, entry]) =>
-      mergeProfileProvider(document, profileName, providerName, entry, logger)
+      mergeProfileProvider(
+        document,
+        profileName,
+        providerName,
+        entry,
+        environment,
+        logger
+      )
     );
     providers = targetedProfile.providers;
   }
@@ -223,6 +232,7 @@ export function setProfile(
   document: SuperJsonDocument,
   profileName: string,
   payload: ProfileEntry | undefined,
+  environment: IEnvironment,
   logger?: ILogger
 ): boolean {
   let changed = false;
@@ -239,7 +249,13 @@ export function setProfile(
 
   // if payload is undefined we already deleted it (or it wasn't present)
   if (payload !== undefined) {
-    const mergeChanged = mergeProfile(document, profileName, payload, logger);
+    const mergeChanged = mergeProfile(
+      document,
+      profileName,
+      payload,
+      environment,
+      logger
+    );
     changed = changed || mergeChanged;
   }
 
@@ -252,6 +268,7 @@ export function setProfile(
 function ensureProfileWithProviders(
   document: SuperJsonDocument,
   profileName: string,
+  environment: IEnvironment,
   logger?: ILogger
 ): [
   boolean,
@@ -280,6 +297,7 @@ function ensureProfileWithProviders(
     document.profiles[profileName] = normalizeProfileSettings(
       document.profiles[profileName],
       [],
+      environment,
       logger
     );
 
@@ -304,11 +322,13 @@ export function mergeProfileProvider(
   profileName: string,
   providerName: string,
   payload: ProfileProviderEntry,
+  environment: IEnvironment,
   logger?: ILogger
 ): boolean {
   const [_, targetProfile] = ensureProfileWithProviders(
     document,
     profileName,
+    environment,
     logger
   );
   void _;
@@ -460,6 +480,7 @@ export function setProfileProvider(
   profileName: string,
   providerName: string,
   payload: ProfileProviderEntry | undefined,
+  environment: IEnvironment,
   logger?: ILogger
 ): boolean {
   let changed = false;
@@ -503,6 +524,7 @@ export function setProfileProvider(
       profileName,
       providerName,
       payload,
+      environment,
       logger
     );
     changed = changed || mergeChanged;
@@ -518,11 +540,13 @@ export function swapProfileProviderVariant(
   variant:
     | { kind: 'local'; file: string }
     | { kind: 'remote'; mapVariant?: string; mapRevision?: string },
+  environment: IEnvironment,
   logger?: ILogger
 ): boolean {
   const [_, targetProfile] = ensureProfileWithProviders(
     document,
     profileName,
+    environment,
     logger
   );
   void _;
@@ -769,6 +793,7 @@ export function setPriority(
   document: SuperJsonDocument,
   profileName: string,
   providersSortedByPriority: string[],
+  environment: IEnvironment,
   logger?: ILogger
 ): Result<boolean, SDKExecutionError> {
   if (document.profiles === undefined) {
@@ -785,6 +810,7 @@ export function setPriority(
     document.profiles[profileName] = targetedProfile = normalizeProfileSettings(
       targetedProfile,
       Object.keys(document.providers ?? {}),
+      environment,
       logger
     );
   }

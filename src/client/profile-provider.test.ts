@@ -26,6 +26,7 @@ import { err, ok } from '../lib';
 import { Events } from '../lib/events';
 import { IFileSystem } from '../lib/io';
 import { ServiceSelector } from '../lib/services';
+import { MockEnvironment } from '../test/environment';
 import { MockFileSystem } from '../test/filesystem';
 import { ProfileConfiguration } from './profile';
 import { BoundProfileProvider, ProfileProvider } from './profile-provider';
@@ -34,7 +35,8 @@ import { fetchBind, fetchMapSource, fetchProviderInfo } from './registry';
 
 jest.mock('./registry');
 
-const mockConfig = new Config();
+const environment = new MockEnvironment();
+const mockConfig = new Config(environment);
 
 // Mock parser
 jest.mock('../internal/parser');
