@@ -1,3 +1,5 @@
+import { ProfileDocumentNode } from '@superfaceai/ast';
+
 import { UnexpectedError } from '../internal/errors';
 import { usecaseNotFoundError } from '../internal/errors.helpers';
 import { NonPrimitive } from '../internal/interpreter/variables';
@@ -29,7 +31,8 @@ export type KnownUsecase<TUsecase extends UsecaseType> = {
 export class ProfileBase {
   constructor(
     public readonly client: SuperfaceClientBase,
-    public readonly configuration: ProfileConfiguration
+    public readonly configuration: ProfileConfiguration,
+    public readonly ast: ProfileDocumentNode
   ) {}
 
   getConfiguredProviders(): string[] {
@@ -55,9 +58,10 @@ export class TypedProfile<
   constructor(
     public override readonly client: SuperfaceClientBase,
     public override readonly configuration: ProfileConfiguration,
+    public override readonly ast: ProfileDocumentNode,
     usecases: (keyof TUsecaseTypes)[]
   ) {
-    super(client, configuration);
+    super(client, configuration, ast);
     this.knownUsecases = usecases.reduce(
       (acc, usecase) => ({
         ...acc,

@@ -79,7 +79,7 @@ class UseCaseBase implements Interceptable {
     //In this instance we can set metadata for events
     this.boundProfileProvider =
       await this.profile.client.cacheBoundProfileProvider(
-        this.profile.configuration,
+        this.profile,
         providerConfig
       );
   }

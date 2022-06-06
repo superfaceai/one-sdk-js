@@ -1,11 +1,12 @@
-import { SuperJsonDocument } from '@superfaceai/ast';
+import { ProfileDocumentNode, SuperJsonDocument } from '@superfaceai/ast';
+import { promises as fsp } from 'fs';
+import { join as joinPath } from 'path';
 
 import { Config } from '../config';
-import { SuperJson } from '../internal';
+import { Parser, SuperJson } from '../internal';
 import {
   noConfiguredProviderError,
   profileFileNotFoundError,
-  profileNotInstalledError,
   unconfiguredProviderError,
   unconfiguredProviderInPriorityError,
 } from '../internal/errors.helpers';
@@ -19,12 +20,14 @@ import {
 } from './failure/event-adapter';
 import {
   Profile,
+  ProfileBase,
   ProfileConfiguration,
   TypedProfile,
   UsecaseType,
 } from './profile';
 import { BoundProfileProvider, ProfileProvider } from './profile-provider';
 import { Provider, ProviderConfiguration } from './provider';
+import { fetchProfileSource } from './registry';
 
 /**
  * Cache for loaded super.json files so that they aren't reparsed each time a new superface client is created.
@@ -65,38 +68,36 @@ export abstract class SuperfaceClientBase extends Events {
    * Returns a BoundProfileProvider that is cached according to `profileConfig` and `providerConfig` cache keys.
    */
   async cacheBoundProfileProvider(
-    profileConfig: ProfileConfiguration,
+    profile: ProfileBase,
     providerConfig: ProviderConfiguration
   ): Promise<BoundProfileProvider> {
-    const cacheKey = profileConfig.cacheKey + providerConfig.cacheKey;
+    const cacheKey = profile.configuration.cacheKey + providerConfig.cacheKey;
 
     const bound = this.boundCache[cacheKey];
 
     const now = Math.floor(Date.now() / 1000);
     //If we don't have anything in cache we must bind
     if (bound === undefined) {
-      await this.rebind(profileConfig, providerConfig);
+      await this.rebind(profile, providerConfig);
       //If we do but timeout is expired we schedule rebind
     } else if (bound.expiresAt < now) {
-      void Promise.resolve().then(() =>
-        this.rebind(profileConfig, providerConfig)
-      );
+      void Promise.resolve().then(() => this.rebind(profile, providerConfig));
     }
 
     return this.boundCache[cacheKey].profileProvider;
   }
 
   private async rebind(
-    profileConfig: ProfileConfiguration,
+    profile: ProfileBase,
     providerConfig: ProviderConfiguration
   ): Promise<void> {
-    const cacheKey = profileConfig.cacheKey + providerConfig.cacheKey;
+    const cacheKey = profile.configuration.cacheKey + providerConfig.cacheKey;
 
     const now = Math.floor(Date.now() / 1000);
 
     const profileProvider = new ProfileProvider(
       this.superJson,
-      profileConfig,
+      profile.ast,
       providerConfig,
       this
     );
@@ -146,15 +147,73 @@ export abstract class SuperfaceClientBase extends Events {
     throw noConfiguredProviderError(profileId);
   }
 
+  protected async resolveProfileAst(
+    profileConfiguration: ProfileConfiguration
+  ): Promise<ProfileDocumentNode> {
+    const profileSettings =
+      this.superJson.normalized.profiles[profileConfiguration.id];
+    if (profileSettings !== undefined) {
+      let filepath: string;
+      if ('file' in profileSettings) {
+        // assumed right next to source file
+        filepath = this.superJson.resolvePath(profileSettings.file);
+      } else {
+        // assumed to be in grid folder
+        filepath = this.superJson.resolvePath(
+          joinPath(
+            'grid',
+            `${profileConfiguration.id}@${profileSettings.version}.supr`
+          )
+        );
+      }
+
+      let contents, fileNameWithExtension;
+      const extensions = ['.ast.json', ''];
+      for (const extension of extensions) {
+        fileNameWithExtension = filepath + extension;
+        try {
+          contents = await fsp.readFile(fileNameWithExtension, {
+            encoding: 'utf-8',
+          });
+          break;
+        } catch (e) {
+          void e;
+        }
+      }
+
+      if (contents !== undefined) {
+        return Parser.parseProfile(contents, filepath, {
+          profileName: profileConfiguration.id,
+          //TODO: use scope
+          scope: '',
+        });
+      }
+    }
+    //Fallback to remote
+    const profileSource = await fetchProfileSource(
+      `${profileConfiguration.id}@${profileConfiguration.version}`
+    );
+    
+return Parser.parseProfile(profileSource, profileConfiguration.id, {
+      profileName: profileConfiguration.id,
+      //TODO: use scope
+      scope: '',
+    });
+  }
+
   protected async getProfileConfiguration(
-    profileId: string
+    profileId: string,
+    version?: string
   ): Promise<ProfileConfiguration> {
     const profileSettings = this.superJson.normalized.profiles[profileId];
     if (profileSettings === undefined) {
-      throw profileNotInstalledError(profileId);
+      console.log('here we just pass');
+      // throw profileNotInstalledError(profileId);
+
+      return new ProfileConfiguration(profileId, version ?? 'unknown');
     }
 
-    let version;
+    let versionFromConfig;
     if ('file' in profileSettings) {
       const filePath = this.superJson.resolvePath(profileSettings.file);
       if (!(await exists(filePath))) {
@@ -162,9 +221,9 @@ export abstract class SuperfaceClientBase extends Events {
       }
 
       // TODO: read version from the ast?
-      version = 'unknown';
+      versionFromConfig = 'unknown';
     } else {
-      version = profileSettings.version;
+      versionFromConfig = profileSettings.version;
     }
 
     // TODO: load priority and add it to ProfileConfiguration?
@@ -177,7 +236,7 @@ export abstract class SuperfaceClientBase extends Events {
       );
     }
 
-    return new ProfileConfiguration(profileId, version);
+    return new ProfileConfiguration(profileId, versionFromConfig);
   }
 
   private hookMetrics(): void {
@@ -225,9 +284,15 @@ export abstract class SuperfaceClientBase extends Events {
 export class SuperfaceClient extends SuperfaceClientBase {
   /** Gets a profile from super.json based on `profileId` in format: `[scope/]name`. */
   async getProfile(profileId: string): Promise<Profile> {
-    const profileConfiguration = await this.getProfileConfiguration(profileId);
+    const profileConfiguration = await this.getProfileConfiguration(profileId); //, version);
 
-    return new Profile(this, profileConfiguration);
+    console.log('pc', profileConfiguration);
+
+    const ast = await this.resolveProfileAst(profileConfiguration);
+
+    console.log('ast', ast);
+
+    return new Profile(this, profileConfiguration, ast);
   }
 }
 
@@ -258,10 +323,12 @@ export function createTypedClient<TProfiles extends ProfileUseCases<any, any>>(
       const profileConfiguration = await this.getProfileConfiguration(
         profileId as string
       );
+      const ast = await this.resolveProfileAst(profileConfiguration);
 
       return new TypedProfile(
         this,
         profileConfiguration,
+        ast,
         Object.keys(profileDefinitions[profileId])
       );
     }
