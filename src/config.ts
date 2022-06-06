@@ -162,7 +162,7 @@ export class Config implements IConfig {
 
   private readonly log: LogFunction | undefined;
 
-  public constructor(
+  constructor(
     private environment: IEnvironment,
     logger?: ILogger,
     config?: Partial<IConfig>,
@@ -186,7 +186,10 @@ export class Config implements IConfig {
     this.log = logger?.log(DEBUG_NAMESPACE);
   }
 
-  static loadFromEnv(environment: IEnvironment, logger?: ILogger): Config {
+  public static loadFromEnv(
+    environment: IEnvironment,
+    logger?: ILogger
+  ): Config {
     const env = new Config(environment, logger).loadEnv();
 
     return new Config(environment, logger, env);

@@ -82,25 +82,27 @@ export class FailurePolicyReason {
 
   private constructor(public readonly data: FailurePolicyReasonData) {}
 
-  static fromExecutionFailure(failure: ExecutionFailure): FailurePolicyReason {
+  public static fromExecutionFailure(
+    failure: ExecutionFailure
+  ): FailurePolicyReason {
     return new FailurePolicyReason({ kind: 'failure', failure });
   }
 
-  static fromPolicyReason(reason: string): FailurePolicyReason {
+  public static fromPolicyReason(reason: string): FailurePolicyReason {
     return new FailurePolicyReason({ kind: 'policy', reason });
   }
 
-  addPrefixMessage(message: string): this {
+  public addPrefixMessage(message: string): this {
     this.prefixMessages.unshift(message);
 
     return this;
   }
 
-  get message(): string {
+  public get message(): string {
     return this.toString();
   }
 
-  toString(): string {
+  public toString(): string {
     const prefix = this.prefixMessages.join(': ');
 
     if (this.data.kind === 'failure') {
@@ -114,7 +116,7 @@ export class FailurePolicyReason {
     }
   }
 
-  toError(): Error {
+  public toError(): Error {
     switch (this.data.kind) {
       case 'failure':
         return new SDKExecutionError(

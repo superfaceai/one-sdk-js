@@ -13,14 +13,16 @@ const DEBUG_NAMESPACE = 'http:security:http-handler';
 export class HttpHandler implements ISecurityHandler {
   private log?: LogFunction | undefined;
   constructor(
-    readonly configuration: SecurityConfiguration & { type: SecurityType.HTTP },
+    public readonly configuration: SecurityConfiguration & {
+      type: SecurityType.HTTP;
+    },
     logger?: ILogger
   ) {
     this.log = logger?.log(DEBUG_NAMESPACE);
     this.log?.('Initialized http authentization handler');
   }
 
-  authenticate: AuthenticateRequestAsync = async (
+  public authenticate: AuthenticateRequestAsync = async (
     parameters: RequestParameters
   ) => {
     const headers: Record<string, string> = parameters.headers || {};

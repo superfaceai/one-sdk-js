@@ -6,9 +6,13 @@ import { ILogger, LogFunction } from './logger';
 export class NodeLogger implements ILogger {
   private cache: SuperCache<LogFunction> = new SuperCache();
 
-  log(name: string): LogFunction;
-  log(name: string, format: string, ...args: unknown[]): void;
-  log(name: string, format?: string, ...args: unknown[]): void | LogFunction {
+  public log(name: string): LogFunction;
+  public log(name: string, format: string, ...args: unknown[]): void;
+  public log(
+    name: string,
+    format?: string,
+    ...args: unknown[]
+  ): void | LogFunction {
     const instance = this.cache.getCached(name, () => {
       const debugLog = createDebug('superface:' + name);
       if (name.endsWith(':sensitive')) {

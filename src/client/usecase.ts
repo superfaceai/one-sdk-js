@@ -295,7 +295,7 @@ class UseCaseBase implements Interceptable {
 }
 
 export class UseCase extends UseCaseBase {
-  async perform<
+  public async perform<
     TInput extends NonPrimitive | undefined = Record<
       string,
       Variables | undefined
@@ -318,7 +318,7 @@ export class TypedUseCase<
   TInput extends NonPrimitive | undefined,
   TOutput
 > extends UseCaseBase {
-  async perform(
+  public async perform(
     input: TInput,
     options?: PerformOptions
   ): Promise<Result<TOutput, PerformError>> {

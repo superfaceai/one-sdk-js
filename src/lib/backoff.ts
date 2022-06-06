@@ -11,17 +11,17 @@ export class Backoff {
     this._current = initial;
   }
 
-  get current(): number {
+  public get current(): number {
     return this._current;
   }
 
-  up(): number {
+  public up(): number {
     this._current = this.successor(this._current);
 
     return this._current;
   }
 
-  down(): number {
+  public down(): number {
     this._current = this.inverseSuccessor(this._current);
 
     return this._current;

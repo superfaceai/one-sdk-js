@@ -60,7 +60,7 @@ export class MapInterpreterErrorBase extends ErrorBase {
     return this.path;
   }
 
-  override toString(): string {
+  public override toString(): string {
     return [
       `${this.kind}: ${this.message}`,
       this.astPath ? `AST Path: ${this.astPath.join('.')}` : undefined,
@@ -111,7 +111,7 @@ export class MappedHTTPError<T> extends HTTPError {
     super(message, metadata, statusCode);
   }
 
-  override toString(): string {
+  public override toString(): string {
     return [
       `${this.kind}: ${this.message}`,
       this.properties
@@ -159,7 +159,7 @@ export class MappedError<T> extends MapInterpreterErrorBase {
     super('MappedError', message, metadata);
   }
 
-  override toString(): string {
+  public override toString(): string {
     return [
       `${this.kind}: ${this.message}`,
       this.properties

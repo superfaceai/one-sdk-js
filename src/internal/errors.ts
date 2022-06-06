@@ -1,11 +1,11 @@
 export class ErrorBase {
   constructor(public kind: string, public message: string) {}
 
-  get [Symbol.toStringTag](): string {
+  public get [Symbol.toStringTag](): string {
     return this.kind;
   }
 
-  toString(): string {
+  public toString(): string {
     return `${this.kind}: ${this.message}`;
   }
 }
@@ -42,14 +42,14 @@ export class SDKExecutionError extends Error {
   /**
    * Formats this error into a one-line string
    */
-  formatShort(): string {
+  public formatShort(): string {
     return this.shortMessage;
   }
 
   /**
    * Formats this error into a possible multi-line string with more context, details and hints
    */
-  formatLong(): string {
+  public formatLong(): string {
     let result = this.shortMessage;
 
     if (this.longLines.length > 0) {
@@ -69,11 +69,11 @@ export class SDKExecutionError extends Error {
     return result + '\n';
   }
 
-  get [Symbol.toStringTag](): string {
+  public get [Symbol.toStringTag](): string {
     return this.name;
   }
 
-  override toString(): string {
+  public override toString(): string {
     return this.formatLong();
   }
 }

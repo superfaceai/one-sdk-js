@@ -82,12 +82,12 @@ export abstract class SuperfaceClientBase {
   }
 
   /** Gets a provider from super.json based on `providerName`. */
-  async getProvider(providerName: string): Promise<Provider> {
+  public async getProvider(providerName: string): Promise<Provider> {
     return getProvider(this.superJson, providerName);
   }
 
   /** Returns a provider configuration for when no provider is passed to untyped `.perform`. */
-  async getProviderForProfile(profileId: string): Promise<Provider> {
+  public async getProviderForProfile(profileId: string): Promise<Provider> {
     return getProviderForProfile(this.superJson, profileId);
   }
 
@@ -101,7 +101,7 @@ export class SuperfaceClient
   implements ISuperfaceClient
 {
   /** Gets a profile from super.json based on `profileId` in format: `[scope/]name`. */
-  async getProfile(profileId: string): Promise<Profile> {
+  public async getProfile(profileId: string): Promise<Profile> {
     return this.internal.getProfile(profileId);
   }
 }
@@ -127,7 +127,7 @@ export function createTypedClient<TProfiles extends ProfileUseCases<any, any>>(
     extends SuperfaceClientBase
     implements TypedSuperfaceClient<TProfiles>
   {
-    async getProfile<TProfile extends keyof TProfiles>(
+    public async getProfile<TProfile extends keyof TProfiles>(
       profileId: TProfile
     ): Promise<TypedProfile<TProfiles[TProfile]>> {
       const profileConfiguration = await this.internal.getProfileConfiguration(

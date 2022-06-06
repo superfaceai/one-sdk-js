@@ -61,7 +61,7 @@ export class DigestHandler implements ISecurityHandler {
   private nc = 0;
 
   constructor(
-    readonly configuration: DigestSecurityScheme & DigestSecurityValues,
+    public readonly configuration: DigestSecurityScheme & DigestSecurityValues,
     private readonly fetchInstance: FetchInstance & AuthCache,
     private readonly logger?: ILogger
   ) {
@@ -78,7 +78,7 @@ export class DigestHandler implements ISecurityHandler {
     );
   }
 
-  authenticate: AuthenticateRequestAsync = async (
+  public authenticate: AuthenticateRequestAsync = async (
     parameters: RequestParameters
   ) => {
     const headers: Record<string, string> = parameters.headers || {};
@@ -142,7 +142,7 @@ export class DigestHandler implements ISecurityHandler {
     };
   };
 
-  handleResponse: HandleResponseAsync = async (
+  public handleResponse: HandleResponseAsync = async (
     response: HttpResponse,
     resourceRequestParameters: RequestParameters
   ) => {

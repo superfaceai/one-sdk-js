@@ -25,7 +25,7 @@ export class InternalClient {
     private readonly logger?: ILogger
   ) {}
 
-  async getProfile(profileId: string): Promise<Profile> {
+  public async getProfile(profileId: string): Promise<Profile> {
     const profileConfiguration = await this.getProfileConfiguration(profileId);
 
     return new Profile(

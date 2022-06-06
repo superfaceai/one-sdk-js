@@ -12,7 +12,7 @@ import { TypedUseCase, UseCase } from './usecase';
 export class ProfileConfiguration {
   constructor(public readonly id: string, public readonly version: string) {}
 
-  get cacheKey(): string {
+  public get cacheKey(): string {
     // TODO: Research a better way?
     return JSON.stringify(this);
   }
@@ -45,7 +45,7 @@ export class ProfileBase {
     protected readonly logger?: ILogger
   ) {}
 
-  getConfiguredProviders(): string[] {
+  public getConfiguredProviders(): string[] {
     return Object.keys(
       this.superJson.normalized.profiles[this.configuration.id]?.providers ?? {}
     );
@@ -53,7 +53,7 @@ export class ProfileBase {
 }
 
 export class Profile extends ProfileBase {
-  getUseCase(name: string): UseCase {
+  public getUseCase(name: string): UseCase {
     // TODO: Check if usecase exists
 
     return new UseCase(
@@ -118,7 +118,7 @@ export class TypedProfile<
     );
   }
 
-  get useCases(): KnownUsecase<TUsecaseTypes> {
+  public get useCases(): KnownUsecase<TUsecaseTypes> {
     if (this.knownUsecases === undefined) {
       throw new UnexpectedError(
         'Thou shall not access the typed interface from untyped Profile'
@@ -128,7 +128,7 @@ export class TypedProfile<
     }
   }
 
-  getUseCase<TName extends keyof KnownUsecase<TUsecaseTypes>>(
+  public getUseCase<TName extends keyof KnownUsecase<TUsecaseTypes>>(
     name: TName
   ): KnownUsecase<TUsecaseTypes>[TName] {
     const usecase = this.knownUsecases?.[name];

@@ -166,7 +166,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
     this.log = logger?.log(DEBUG_NAMESPACE);
   }
 
-  async perform(
+  public async perform(
     ast: MapDocumentNode
   ): Promise<Result<Variables | undefined, MapInterpreterError>> {
     this.ast = ast;
@@ -183,25 +183,25 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
     }
   }
 
-  visit(node: PrimitiveLiteralNode): Primitive;
-  async visit(node: ObjectLiteralNode): Promise<NonPrimitive>;
-  async visit(node: SetStatementNode): Promise<void>;
-  async visit(
+  public visit(node: PrimitiveLiteralNode): Primitive;
+  public async visit(node: ObjectLiteralNode): Promise<NonPrimitive>;
+  public async visit(node: SetStatementNode): Promise<void>;
+  public async visit(
     node: OutcomeStatementNode
   ): Promise<OutcomeDefinition | undefined>;
-  async visit(node: AssignmentNode): Promise<NonPrimitive>;
-  async visit(node: LiteralNode): Promise<Variables>;
-  async visit(node: ConditionAtomNode): Promise<boolean>;
-  async visit(node: HttpRequestNode): Promise<HttpRequest>;
-  async visit(node: InlineCallNode): Promise<Variables | undefined>;
-  async visit(node: IterationAtomNode): Promise<IterationDefinition>;
-  visit(node: HttpResponseHandlerNode): HttpResponseHandlerDefinition;
-  visit(node: JessieExpressionNode): Variables | Primitive | undefined;
-  async visit(
+  public async visit(node: AssignmentNode): Promise<NonPrimitive>;
+  public async visit(node: LiteralNode): Promise<Variables>;
+  public async visit(node: ConditionAtomNode): Promise<boolean>;
+  public async visit(node: HttpRequestNode): Promise<HttpRequest>;
+  public async visit(node: InlineCallNode): Promise<Variables | undefined>;
+  public async visit(node: IterationAtomNode): Promise<IterationDefinition>;
+  public visit(node: HttpResponseHandlerNode): HttpResponseHandlerDefinition;
+  public visit(node: JessieExpressionNode): Variables | Primitive | undefined;
+  public async visit(
     node: MapDocumentNode
   ): Promise<{ result?: Variables; error?: MapInterpreterError }>;
-  async visit(node: MapASTNode): Promise<Variables | undefined>;
-  visit(
+  public async visit(node: MapASTNode): Promise<Variables | undefined>;
+  public visit(
     node: MapASTNode
   ):
     | Promise<
@@ -266,19 +266,23 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
     }
   }
 
-  async visitAssignmentNode(node: AssignmentNode): Promise<NonPrimitive> {
+  public async visitAssignmentNode(
+    node: AssignmentNode
+  ): Promise<NonPrimitive> {
     const result = await this.visit(node.value);
 
     return this.constructObject(node.key, result);
   }
 
-  async visitConditionAtomNode(node: ConditionAtomNode): Promise<boolean> {
+  public async visitConditionAtomNode(
+    node: ConditionAtomNode
+  ): Promise<boolean> {
     const result = await this.visit(node.expression);
 
     return Boolean(result);
   }
 
-  async visitCallStatementNode(node: CallStatementNode): Promise<void> {
+  public async visitCallStatementNode(node: CallStatementNode): Promise<void> {
     if (hasIteration(node)) {
       const processResults = async (result?: Variables, error?: Variables) => {
         if (error !== undefined) {
@@ -304,7 +308,9 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
     }
   }
 
-  async visitHttpCallStatementNode(node: HttpCallStatementNode): Promise<void> {
+  public async visitHttpCallStatementNode(
+    node: HttpCallStatementNode
+  ): Promise<void> {
     // if node.serviceId is undefined returns the default service, or undefined if no default service is defined
     const serviceUrl = this.parameters.services.getUrl(node.serviceId);
     if (serviceUrl === undefined) {
@@ -379,7 +385,9 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
     }
   }
 
-  async visitHttpRequestNode(node: HttpRequestNode): Promise<HttpRequest> {
+  public async visitHttpRequestNode(
+    node: HttpRequestNode
+  ): Promise<HttpRequest> {
     return {
       contentType: node.contentType,
       contentLanguage: node.contentLanguage,
@@ -390,7 +398,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
     };
   }
 
-  visitHttpResponseHandlerNode(
+  public visitHttpResponseHandlerNode(
     node: HttpResponseHandlerNode
   ): HttpResponseHandlerDefinition {
     const handler: HttpResponseHandler = async (response: HttpResponse) => {
@@ -458,7 +466,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
     return [handler, node.contentType];
   }
 
-  async visitInlineCallNode(
+  public async visitInlineCallNode(
     node: InlineCallNode
   ): Promise<Variables | undefined> {
     if (hasIteration(node)) {
@@ -490,7 +498,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
     return result.data;
   }
 
-  async visitIterationAtomNode(
+  public async visitIterationAtomNode(
     node: IterationAtomNode
   ): Promise<IterationDefinition> {
     const iterable = await this.visit(node.iterable);
@@ -507,7 +515,9 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
     }
   }
 
-  visitJessieExpressionNode(node: JessieExpressionNode): Variables | undefined {
+  public visitJessieExpressionNode(
+    node: JessieExpressionNode
+  ): Variables | undefined {
     try {
       const result = evalScript(
         this.config,
@@ -525,7 +535,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
     }
   }
 
-  visitPrimitiveLiteralNode(node: PrimitiveLiteralNode): Primitive {
+  public visitPrimitiveLiteralNode(node: PrimitiveLiteralNode): Primitive {
     return node.value;
   }
 
@@ -584,7 +594,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
     }
   }
 
-  async visitMapDefinitionNode(
+  public async visitMapDefinitionNode(
     node: MapDefinitionNode
   ): Promise<Variables | undefined> {
     this.newStack('map');
@@ -599,7 +609,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
     };
   }
 
-  async visitMapDocumentNode(
+  public async visitMapDocumentNode(
     node: MapDocumentNode
   ): Promise<Variables | undefined> {
     for (const operation of node.definitions.filter(
@@ -624,11 +634,13 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
     return await this.visit(operation);
   }
 
-  visitMapHeaderNode(_node: MapHeaderNode): never {
+  public visitMapHeaderNode(_node: MapHeaderNode): never {
     throw new UnexpectedError('Method not implemented.');
   }
 
-  async visitObjectLiteralNode(node: ObjectLiteralNode): Promise<NonPrimitive> {
+  public async visitObjectLiteralNode(
+    node: ObjectLiteralNode
+  ): Promise<NonPrimitive> {
     let result: NonPrimitive = {};
 
     for (const field of node.fields) {
@@ -641,13 +653,13 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
     return result;
   }
 
-  async visitOperationDefinitionNode(
+  public async visitOperationDefinitionNode(
     node: OperationDefinitionNode
   ): Promise<void> {
     await this.processStatements(node.statements);
   }
 
-  async visitOutcomeStatementNode(
+  public async visitOutcomeStatementNode(
     node: OutcomeStatementNode
   ): Promise<OutcomeDefinition | undefined> {
     if (node.condition) {
@@ -667,7 +679,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
     };
   }
 
-  async visitSetStatementNode(node: SetStatementNode): Promise<void> {
+  public async visitSetStatementNode(node: SetStatementNode): Promise<void> {
     if (node.condition) {
       const condition = await this.visit(node.condition);
 

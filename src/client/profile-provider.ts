@@ -110,7 +110,7 @@ export class BoundProfileProvider implements IBoundProfileProvider {
     private readonly mapAst: MapDocumentNode,
     private readonly providerName: string,
     private readonly config: IConfig,
-    readonly configuration: {
+    public readonly configuration: {
       services: IServiceSelector;
       profileProviderSettings?: NormalizedProfileProviderSettings;
       security: SecurityConfiguration[];
@@ -139,7 +139,7 @@ export class BoundProfileProvider implements IBoundProfileProvider {
    * Note that the `TInput` and `TResult` types cannot be checked for compatibility with the profile definition, so the caller
    * is responsible for ensuring that the cast is safe.
    */
-  async perform<
+  public async perform<
     TInput extends NonPrimitive | undefined = undefined,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     TResult = any

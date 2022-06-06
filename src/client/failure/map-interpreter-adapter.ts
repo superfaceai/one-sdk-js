@@ -22,7 +22,7 @@ export class MapInterpreterEventAdapter
     eventName: 'unhandled-http',
     placement: 'before',
   })
-  async unhandledHttp(
+  public async unhandledHttp(
     ast: MapDocumentNode | undefined,
     node: HttpCallStatementNode,
     response: HttpResponse

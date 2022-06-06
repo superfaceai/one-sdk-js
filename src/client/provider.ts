@@ -8,7 +8,7 @@ export class ProviderConfiguration {
     public readonly security: SecurityValues[]
   ) {}
 
-  get cacheKey(): string {
+  public get cacheKey(): string {
     // TODO: Research a better way?
     return JSON.stringify(this);
   }
@@ -17,7 +17,7 @@ export class ProviderConfiguration {
 export class Provider {
   constructor(public readonly configuration: ProviderConfiguration) {}
 
-  async configure(configuration: {
+  public async configure(configuration: {
     security?: SecurityValues[];
   }): Promise<Provider> {
     const newConfiguration = new ProviderConfiguration(

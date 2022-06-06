@@ -23,7 +23,7 @@ export class NetworkFetchError extends FetchError {
     super('NetworkError', issue);
   }
 
-  get normalized(): NetworkError {
+  public get normalized(): NetworkError {
     return { kind: 'network', issue: this.issue };
   }
 }
@@ -33,7 +33,7 @@ export class RequestFetchError extends FetchError {
     super('RequestError', issue);
   }
 
-  get normalized(): RequestError {
+  public get normalized(): RequestError {
     return { kind: 'request', issue: this.issue };
   }
 }

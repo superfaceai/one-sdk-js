@@ -36,7 +36,7 @@ export class CrossFetch implements FetchInstance, Interceptable {
     eventName: 'fetch',
     placement: 'around',
   })
-  async fetch(
+  public async fetch(
     url: string,
     parameters: FetchParameters
   ): Promise<FetchResponse> {

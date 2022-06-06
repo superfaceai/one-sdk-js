@@ -20,7 +20,7 @@ export class Parser {
   private static mapCache: Record<string, MapDocumentNode> = {};
   private static profileCache: Record<string, ProfileDocumentNode> = {};
 
-  static async parseMap(
+  public static async parseMap(
     input: string,
     fileName: string,
     info: {
@@ -90,7 +90,7 @@ export class Parser {
     return parsedMap;
   }
 
-  static async parseProfile(
+  public static async parseProfile(
     input: string,
     fileName: string,
     info: {
@@ -160,7 +160,7 @@ export class Parser {
     return parsedProfile;
   }
 
-  static async clearCache(
+  public static async clearCache(
     cachePath: string,
     fileSystem: IFileSystem
   ): Promise<void> {

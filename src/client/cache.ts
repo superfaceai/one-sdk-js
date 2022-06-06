@@ -1,9 +1,9 @@
 export class SuperCache<T> {
   private cache: Record<string, T> = {};
 
-  getCached(cacheKey: string, initializer: () => T): T;
-  getCached(cacheKey: string, initializer: () => Promise<T>): Promise<T>;
-  getCached(
+  public getCached(cacheKey: string, initializer: () => T): T;
+  public getCached(cacheKey: string, initializer: () => Promise<T>): Promise<T>;
+  public getCached(
     cacheKey: string,
     initializer: () => T | Promise<T>
   ): T | Promise<T> {
@@ -29,7 +29,7 @@ export class SuperCache<T> {
     }
   }
 
-  invalidate(cacheKey: string): void {
+  public invalidate(cacheKey: string): void {
     if (this.cache[cacheKey] !== undefined) {
       delete this.cache[cacheKey];
     }

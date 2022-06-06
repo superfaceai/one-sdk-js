@@ -65,7 +65,7 @@ export class SuperJson {
    *
    * Returns relative path to a directory where `super.json` is detected.
    */
-  static async detectSuperJson(
+  public static async detectSuperJson(
     cwd: string,
     level?: number,
     fileSystem: IFileSystem = NodeFileSystem
@@ -105,7 +105,9 @@ export class SuperJson {
     return await SuperJson.detectSuperJson(cwd, --level, fileSystem);
   }
 
-  static parse(input: unknown): Result<SuperJsonDocument, SDKExecutionError> {
+  public static parse(
+    input: unknown
+  ): Result<SuperJsonDocument, SDKExecutionError> {
     try {
       const superdocument = assertSuperJsonDocument(input);
 
@@ -115,7 +117,7 @@ export class SuperJson {
     }
   }
 
-  static loadSync(
+  public static loadSync(
     path: string,
     fileSystem: IFileSystem = NodeFileSystem,
     environment: IEnvironment = new NodeEnvironment(),
@@ -156,7 +158,7 @@ export class SuperJson {
   /**
    * Attempts to load super.json file from expected location `cwd/superface/super.json`
    */
-  static async load(
+  public static async load(
     path: string,
     fileSystem: IFileSystem = NodeFileSystem,
     environment: IEnvironment = new NodeEnvironment(),
@@ -200,7 +202,10 @@ export class SuperJson {
    *
    * Creates the profile if it doesn't exist.
    */
-  mergeProfileDefaults(profileName: string, payload: UsecaseDefaults): boolean {
+  public mergeProfileDefaults(
+    profileName: string,
+    payload: UsecaseDefaults
+  ): boolean {
     const changed = mergeProfileDefaults(this.document, profileName, payload);
     if (changed) {
       this.normalizedCache = undefined;
@@ -214,7 +219,7 @@ export class SuperJson {
    *
    * Creates the profile if it doesn't exist.
    */
-  mergeProfile(
+  public mergeProfile(
     profileName: string,
     payload: ProfileEntry,
     logger?: ILogger
@@ -238,7 +243,10 @@ export class SuperJson {
    *
    * `payload === undefined` deletes the profile.
    */
-  setProfile(profileName: string, payload: ProfileEntry | undefined): boolean {
+  public setProfile(
+    profileName: string,
+    payload: ProfileEntry | undefined
+  ): boolean {
     const changed = setProfile(
       this.document,
       profileName,
@@ -258,7 +266,7 @@ export class SuperJson {
    *
    * Creates the profile and the profile provider if it doesn't exist.
    */
-  mergeProfileProvider(
+  public mergeProfileProvider(
     profileName: string,
     providerName: string,
     payload: ProfileProviderEntry
@@ -283,7 +291,7 @@ export class SuperJson {
    *
    * `payload === undefined` deletes the entry.
    */
-  setProfileProvider(
+  public setProfileProvider(
     profileName: string,
     providerName: string,
     payload: ProfileProviderEntry | undefined
@@ -306,7 +314,7 @@ export class SuperJson {
   /**
    * Swaps profile provider variant.
    */
-  swapProfileProviderVariant(
+  public swapProfileProviderVariant(
     profileName: string,
     providerName: string,
     variant:
@@ -333,7 +341,7 @@ export class SuperJson {
    *
    * Creates the provider if it doesn't exist.
    */
-  mergeProvider(providerName: string, payload: ProviderEntry): boolean {
+  public mergeProvider(providerName: string, payload: ProviderEntry): boolean {
     const changed = mergeProvider(this.document, providerName, payload);
     if (changed) {
       this.normalizedCache = undefined;
@@ -347,7 +355,7 @@ export class SuperJson {
    *
    * `payload === undefined` deletes the provider.
    */
-  setProvider(
+  public setProvider(
     providerName: string,
     payload: ProviderEntry | undefined
   ): boolean {
@@ -359,7 +367,7 @@ export class SuperJson {
     return changed;
   }
 
-  swapProviderVariant(
+  public swapProviderVariant(
     providerName: string,
     variant: { kind: 'local'; file: string } | { kind: 'remote' }
   ): boolean {
@@ -376,7 +384,7 @@ export class SuperJson {
    *
    * Throws if the profile does not exist or of the providers don't exist.
    */
-  setPriority(
+  public setPriority(
     profileName: string,
     providersSortedByPriority: string[]
   ): boolean {
@@ -399,7 +407,7 @@ export class SuperJson {
   /**
    * Returns a relative path relative to `path` from `dirname(this.path)`.
    */
-  relativePath(path: string): string {
+  public relativePath(path: string): string {
     return this.fileSystem.path.relative(
       this.fileSystem.path.dirname(this.path),
       path
@@ -409,7 +417,7 @@ export class SuperJson {
   /**
    * Resolves relative paths as relative to `dirname(this.path)`.
    */
-  resolvePath(path: string): string {
+  public resolvePath(path: string): string {
     return this.fileSystem.path.resolve(
       this.fileSystem.path.dirname(this.path),
       path
@@ -418,11 +426,11 @@ export class SuperJson {
 
   // other representations //
 
-  get stringified(): string {
+  public get stringified(): string {
     return JSON.stringify(this.document, undefined, 2);
   }
 
-  get normalized(): NormalizedSuperJsonDocument {
+  public get normalized(): NormalizedSuperJsonDocument {
     if (this.normalizedCache !== undefined) {
       return this.normalizedCache;
     }
@@ -436,7 +444,7 @@ export class SuperJson {
     return this.normalizedCache;
   }
 
-  get anonymized(): AnonymizedSuperJsonDocument {
+  public get anonymized(): AnonymizedSuperJsonDocument {
     const profiles: AnonymizedSuperJsonDocument['profiles'] = {};
     for (const [profile, profileEntry] of Object.entries(
       this.normalized.profiles
@@ -481,7 +489,7 @@ export class SuperJson {
     };
   }
 
-  get configHash(): string {
+  public get configHash(): string {
     // <profile>:<version>,<provider>:<priority>:[<version | file>],<provider>:<path>
     const profileValues: string[] = [];
     for (const [profile, profileEntry] of Object.entries(

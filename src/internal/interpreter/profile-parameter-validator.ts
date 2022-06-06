@@ -104,7 +104,7 @@ export class ProfileParameterValidator implements ProfileVisitor {
     this.log = logger?.log(DEBUG_NAMESPACE);
   }
 
-  validate(
+  public validate(
     input: unknown,
     kind: ProfileParameterKind,
     usecase: string
@@ -132,7 +132,7 @@ export class ProfileParameterValidator implements ProfileVisitor {
     }
   }
 
-  visit(
+  public visit(
     node: ProfileASTNode,
     kind: ProfileParameterKind,
     usecase: string
@@ -185,7 +185,7 @@ export class ProfileParameterValidator implements ProfileVisitor {
     }
   }
 
-  visitComlinkListLiteralNode(
+  public visitComlinkListLiteralNode(
     _node: ComlinkListLiteralNode,
     _kind: ProfileParameterKind,
     _usecase: string
@@ -193,7 +193,7 @@ export class ProfileParameterValidator implements ProfileVisitor {
     throw new UnexpectedError('Method not implemented.');
   }
 
-  visitComlinkObjectLiteralNode(
+  public visitComlinkObjectLiteralNode(
     _node: ComlinkObjectLiteralNode,
     _kind: ProfileParameterKind,
     _usecase: string
@@ -201,7 +201,7 @@ export class ProfileParameterValidator implements ProfileVisitor {
     throw new UnexpectedError('Method not implemented.');
   }
 
-  visitComlinkPrimitiveLiteralNode(
+  public visitComlinkPrimitiveLiteralNode(
     _node: ComlinkPrimitiveLiteralNode,
     _kind: ProfileParameterKind,
     _usecase: string
@@ -209,7 +209,7 @@ export class ProfileParameterValidator implements ProfileVisitor {
     throw new UnexpectedError('Method not implemented.');
   }
 
-  visitComlinkAssignmentNode(
+  public visitComlinkAssignmentNode(
     _node: ComlinkAssignmentNode,
     _kind: ProfileParameterKind,
     _usecase: string
@@ -217,7 +217,7 @@ export class ProfileParameterValidator implements ProfileVisitor {
     throw new UnexpectedError('Method not implemented.');
   }
 
-  visitEnumDefinitionNode(
+  public visitEnumDefinitionNode(
     node: EnumDefinitionNode,
     kind: ProfileParameterKind,
     usecase: string
@@ -240,7 +240,7 @@ export class ProfileParameterValidator implements ProfileVisitor {
     };
   }
 
-  visitEnumValueNode(
+  public visitEnumValueNode(
     node: EnumValueNode,
     _kind: ProfileParameterKind,
     _usecase: string
@@ -254,7 +254,7 @@ export class ProfileParameterValidator implements ProfileVisitor {
     };
   }
 
-  visitFieldDefinitionNode(
+  public visitFieldDefinitionNode(
     node: FieldDefinitionNode,
     kind: ProfileParameterKind,
     usecase: string
@@ -280,7 +280,7 @@ export class ProfileParameterValidator implements ProfileVisitor {
     };
   }
 
-  visitListDefinitionNode(
+  public visitListDefinitionNode(
     node: ListDefinitionNode,
     kind: ProfileParameterKind,
     usecase: string
@@ -322,7 +322,7 @@ export class ProfileParameterValidator implements ProfileVisitor {
     };
   }
 
-  visitModelTypeNameNode(
+  public visitModelTypeNameNode(
     node: ModelTypeNameNode,
     _kind: ProfileParameterKind,
     _usecase: string
@@ -334,7 +334,7 @@ export class ProfileParameterValidator implements ProfileVisitor {
     throw new UnexpectedError(`Invalid model name: ${node.name}`);
   }
 
-  visitNamedFieldDefinitionNode(
+  public visitNamedFieldDefinitionNode(
     node: NamedFieldDefinitionNode,
     kind: ProfileParameterKind,
     usecase: string
@@ -346,7 +346,7 @@ export class ProfileParameterValidator implements ProfileVisitor {
     }
   }
 
-  visitNamedModelDefinitionNode(
+  public visitNamedModelDefinitionNode(
     node: NamedModelDefinitionNode,
     kind: ProfileParameterKind,
     usecase: string
@@ -358,7 +358,7 @@ export class ProfileParameterValidator implements ProfileVisitor {
     }
   }
 
-  visitNonNullDefinitionNode(
+  public visitNonNullDefinitionNode(
     node: NonNullDefinitionNode,
     kind: ProfileParameterKind,
     usecase: string
@@ -372,7 +372,7 @@ export class ProfileParameterValidator implements ProfileVisitor {
     };
   }
 
-  visitObjectDefinitionNode(
+  public visitObjectDefinitionNode(
     node: ObjectDefinitionNode,
     kind: ProfileParameterKind,
     usecase: string
@@ -422,7 +422,7 @@ export class ProfileParameterValidator implements ProfileVisitor {
     };
   }
 
-  visitPrimitiveTypeNameNode(
+  public visitPrimitiveTypeNameNode(
     node: PrimitiveTypeNameNode,
     _kind: ProfileParameterKind,
     _usecase: string
@@ -481,7 +481,7 @@ export class ProfileParameterValidator implements ProfileVisitor {
     };
   }
 
-  visitProfileDocumentNode(
+  public visitProfileDocumentNode(
     node: ProfileDocumentNode,
     kind: ProfileParameterKind,
     usecase: string
@@ -523,7 +523,7 @@ export class ProfileParameterValidator implements ProfileVisitor {
     return this.visit(usecaseNode, kind, usecase);
   }
 
-  visitProfileHeaderNode(
+  public visitProfileHeaderNode(
     _node: ProfileHeaderNode,
     _kind: ProfileParameterKind,
     _usecase: string
@@ -531,7 +531,7 @@ export class ProfileParameterValidator implements ProfileVisitor {
     throw new UnexpectedError('Method not implemented.');
   }
 
-  visitUnionDefinitionNode(
+  public visitUnionDefinitionNode(
     node: UnionDefinitionNode,
     kind: ProfileParameterKind,
     usecase: string
@@ -556,7 +556,7 @@ export class ProfileParameterValidator implements ProfileVisitor {
     };
   }
 
-  visitUseCaseDefinitionNode(
+  public visitUseCaseDefinitionNode(
     node: UseCaseDefinitionNode,
     kind: ProfileParameterKind,
     usecase: string
@@ -580,7 +580,7 @@ export class ProfileParameterValidator implements ProfileVisitor {
     };
   }
 
-  visitUseCaseExampleNode(
+  public visitUseCaseExampleNode(
     _node: UseCaseExampleNode,
     _kind: ProfileParameterKind,
     _usecase: string
@@ -588,7 +588,7 @@ export class ProfileParameterValidator implements ProfileVisitor {
     throw new UnexpectedError('Method not implemented.');
   }
 
-  visitUseCaseSlotDefinitionNode(
+  public visitUseCaseSlotDefinitionNode(
     _node: UseCaseSlotDefinitionNode<Type>,
     _kind: ProfileParameterKind,
     _usecase: string

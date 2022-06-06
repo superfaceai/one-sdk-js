@@ -13,18 +13,18 @@ export class ServiceSelector implements IServiceSelector {
     this.defaultService = defaultService;
   }
 
-  static empty(): ServiceSelector {
+  public static empty(): ServiceSelector {
     return new ServiceSelector([]);
   }
 
-  static withDefaultUrl(baseUrl: string): ServiceSelector {
+  public static withDefaultUrl(baseUrl: string): ServiceSelector {
     return new ServiceSelector([{ id: 'default', baseUrl }], 'default');
   }
 
   /**
    * Gets the url of `serviceId`. If `serviceId` is undefined returns url of the default service, or undefined if default service is also undefined.
    */
-  getUrl(serviceId?: string): string | undefined {
+  public getUrl(serviceId?: string): string | undefined {
     const service = serviceId ?? this.defaultService;
     if (service === undefined) {
       return undefined;

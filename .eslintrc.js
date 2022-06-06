@@ -31,13 +31,25 @@ module.exports = {
     'import/no-duplicates': 'error',
     'no-multiple-empty-lines': 'error',
     'lines-between-class-members': 'off',
-    '@typescript-eslint/lines-between-class-members': ['error', 'always', { exceptAfterSingleLine: true, exceptAfterOverload: true }],
+    '@typescript-eslint/lines-between-class-members': [
+      'error',
+      'always',
+      { exceptAfterSingleLine: true, exceptAfterOverload: true },
+    ],
     '@typescript-eslint/no-empty-function': 'off',
     '@typescript-eslint/require-await': 'off',
     'spaced-comment': ['error', 'always'],
-    'quotes': ['error', 'single', {avoidEscape: true, allowTemplateLiterals: false}],
+    quotes: [
+      'error',
+      'single',
+      { avoidEscape: true, allowTemplateLiterals: false },
+    ],
     'no-implicit-coercion': 'error',
-    '@typescript-eslint/strict-boolean-expressions': 'error'
+    '@typescript-eslint/strict-boolean-expressions': 'error',
+    '@typescript-eslint/explicit-member-accessibility': [
+      'error',
+      { accessibility: 'explicit', overrides: { constructors: 'no-public' } },
+    ],
   },
   settings: {
     'import/parsers': {
@@ -49,13 +61,15 @@ module.exports = {
       },
     },
   },
-  overrides: [{
-    files: '*.test.ts',
-    rules: {
-      '@typescript-eslint/no-explicit-any': 'off',
-      '@typescript-eslint/no-unsafe-assignment': 'off',
-      '@typescript-eslint/no-unsafe-member-access': 'off',
-      '@typescript-eslint/no-non-null-assertion': 'off',
-    }
-  }],
+  overrides: [
+    {
+      files: '*.test.ts',
+      rules: {
+        '@typescript-eslint/no-explicit-any': 'off',
+        '@typescript-eslint/no-unsafe-assignment': 'off',
+        '@typescript-eslint/no-unsafe-member-access': 'off',
+        '@typescript-eslint/no-non-null-assertion': 'off',
+      },
+    },
+  ],
 };

@@ -19,14 +19,14 @@ export class ApiKeyHandler implements ISecurityHandler {
   private log?: LogFunction;
 
   constructor(
-    readonly configuration: ApiKeySecurityScheme & ApiKeySecurityValues,
+    public readonly configuration: ApiKeySecurityScheme & ApiKeySecurityValues,
     logger?: ILogger
   ) {
     this.log = logger?.log(DEBUG_NAMESPACE);
     this.log?.('Initialized api key authentization handler');
   }
 
-  authenticate: AuthenticateRequestAsync = async (
+  public authenticate: AuthenticateRequestAsync = async (
     parameters: RequestParameters
   ) => {
     let body: Variables | undefined = parameters.body;
