@@ -150,6 +150,14 @@ export abstract class SuperfaceClientBase extends Events {
   protected async resolveProfileAst(
     profileConfiguration: ProfileConfiguration
   ): Promise<ProfileDocumentNode> {
+    let scope: string | undefined;
+    let [scopeOrProfileName, profileName] = profileConfiguration.id.split('/');
+    if (profileName === undefined) {
+      profileName = scopeOrProfileName;
+    } else {
+      scope = scopeOrProfileName;
+    }
+
     const profileSettings =
       this.superJson.normalized.profiles[profileConfiguration.id];
     if (profileSettings !== undefined) {
@@ -183,9 +191,8 @@ export abstract class SuperfaceClientBase extends Events {
 
       if (contents !== undefined) {
         return Parser.parseProfile(contents, filepath, {
-          profileName: profileConfiguration.id,
-          //TODO: use scope
-          scope: '',
+          profileName,
+          scope,
         });
       }
     }
@@ -193,11 +200,10 @@ export abstract class SuperfaceClientBase extends Events {
     const profileSource = await fetchProfileSource(
       `${profileConfiguration.id}@${profileConfiguration.version}`
     );
-    
-return Parser.parseProfile(profileSource, profileConfiguration.id, {
-      profileName: profileConfiguration.id,
-      //TODO: use scope
-      scope: '',
+
+    return Parser.parseProfile(profileSource, profileConfiguration.id, {
+      profileName,
+      scope,
     });
   }
 
@@ -207,7 +213,6 @@ return Parser.parseProfile(profileSource, profileConfiguration.id, {
   ): Promise<ProfileConfiguration> {
     const profileSettings = this.superJson.normalized.profiles[profileId];
     if (profileSettings === undefined) {
-      console.log('here we just pass');
       // throw profileNotInstalledError(profileId);
 
       return new ProfileConfiguration(profileId, version ?? 'unknown');
@@ -284,15 +289,13 @@ return Parser.parseProfile(profileSource, profileConfiguration.id, {
 export class SuperfaceClient extends SuperfaceClientBase {
   /** Gets a profile from super.json based on `profileId` in format: `[scope/]name`. */
   async getProfile(profileId: string): Promise<Profile> {
-    const profileConfiguration = await this.getProfileConfiguration(profileId); //, version);
+    const profileConfiguration = await this.getProfileConfiguration(profileId); //, version)
 
-    console.log('pc', profileConfiguration);
-
-    const ast = await this.resolveProfileAst(profileConfiguration);
-
-    console.log('ast', ast);
-
-    return new Profile(this, profileConfiguration, ast);
+    return new Profile(
+      this,
+      profileConfiguration,
+      await this.resolveProfileAst(profileConfiguration)
+    );
   }
 }
 
@@ -323,12 +326,11 @@ export function createTypedClient<TProfiles extends ProfileUseCases<any, any>>(
       const profileConfiguration = await this.getProfileConfiguration(
         profileId as string
       );
-      const ast = await this.resolveProfileAst(profileConfiguration);
 
       return new TypedProfile(
         this,
         profileConfiguration,
-        ast,
+        await this.resolveProfileAst(profileConfiguration),
         Object.keys(profileDefinitions[profileId])
       );
     }
