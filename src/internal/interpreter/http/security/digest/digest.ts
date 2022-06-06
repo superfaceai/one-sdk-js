@@ -32,6 +32,7 @@ const DEBUG_NAMESPACE_SENSITIVE = 'http:security:digest-handler:sensitive';
  * Represents algorithm used in Digest auth.
  */
 type DigestAlgorithm = 'MD5' | 'MD5-sess' | 'SHA-256' | 'SHA-256-sess';
+
 /**
  * Represents values extracted from initial digest call
  */
@@ -44,6 +45,7 @@ export type DigestAuthValues = {
   nonce: string;
   cnonce: string;
 };
+
 /**
  * Helper for digest authentication
  */
@@ -85,7 +87,7 @@ export class DigestHandler implements ISecurityHandler {
 
     // If we have cached credentials we use them
     if (this.fetchInstance?.digest !== undefined) {
-      this.logSensitive?.('Using cached digest credentials');
+      this.log?.('Using cached digest credentials');
       headers[
         this.configuration.authorizationHeader ??
           DEFAULT_AUTHORIZATION_HEADER_NAME
@@ -123,7 +125,7 @@ export class DigestHandler implements ISecurityHandler {
       );
     }
 
-    this.logSensitive?.('Getting new digest values');
+    this.log?.('Getting new digest values');
     const credentials = this.buildDigestAuth(
       // We need actual resolved url
       response.debug.request.url,
@@ -153,7 +155,7 @@ export class DigestHandler implements ISecurityHandler {
           Object.keys(response.headers)
         );
       }
-      this.logSensitive?.('Getting new digest values');
+      this.log?.('Getting new digest values');
       const credentials = this.buildDigestAuth(
         // We need actual resolved url
         response.debug.request.url,
@@ -198,7 +200,7 @@ export class DigestHandler implements ISecurityHandler {
     method: string,
     digest: DigestAuthValues
   ): string {
-    this.logSensitive?.(
+    this.log?.(
       `Preparing digest authentication for: ${url} and method: ${method}`
     );
     const uri = new URL(url).pathname;

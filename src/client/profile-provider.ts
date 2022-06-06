@@ -60,7 +60,8 @@ function profileAstId(ast: ProfileDocumentNode): string {
     ? ast.header.scope + '/' + ast.header.name
     : ast.header.name;
 }
-const BOUND_DEBUG_NAMESPACE = 'bound-profile-provider';
+
+const BOUND_DEBUG_NAMESPACE_SENSITIVE = 'bound-profile-provider:sensitive';
 const DEBUG_NAMESPACE = 'profile-provider';
 
 export async function bindProfileProvider(
@@ -103,7 +104,7 @@ export interface IBoundProfileProvider {
 export class BoundProfileProvider implements IBoundProfileProvider {
   private profileValidator: ProfileParameterValidator;
   private fetchInstance: FetchInstance & Interceptable & AuthCache;
-  private readonly log: LogFunction | undefined;
+  private readonly logSensitive: LogFunction | undefined;
 
   constructor(
     private readonly profileAst: ProfileDocumentNode,
@@ -130,7 +131,7 @@ export class BoundProfileProvider implements IBoundProfileProvider {
       provider: providerName,
     };
     this.fetchInstance.events = events;
-    this.log = logger?.log(BOUND_DEBUG_NAMESPACE);
+    this.logSensitive = logger?.log(BOUND_DEBUG_NAMESPACE_SENSITIVE);
   }
 
   /**
@@ -220,7 +221,7 @@ export class BoundProfileProvider implements IBoundProfileProvider {
     );
     if (defaultInput !== undefined) {
       composed = mergeVariables(defaultInput, input ?? {});
-      this.log?.('Composed input with defaults: %O', composed);
+      this.logSensitive?.('Composed input with defaults: %O', composed);
     }
 
     return composed;
