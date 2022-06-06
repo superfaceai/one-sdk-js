@@ -14,13 +14,10 @@ export class SuperCache<T> {
 
     const initialized = initializer();
     if (initialized instanceof Promise) {
-      return new Promise((resolve, reject) => {
-        initialized
-          .then(value => {
-            this.cache[cacheKey] = value;
-            resolve(value);
-          })
-          .catch(reject);
+      return initialized.then(value => {
+        this.cache[cacheKey] = value;
+
+        return value;
       });
     } else {
       this.cache[cacheKey] = initialized;
