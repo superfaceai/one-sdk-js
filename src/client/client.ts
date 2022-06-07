@@ -1,3 +1,5 @@
+import { SuperJsonDocument } from '@superfaceai/ast';
+
 import { Config } from '../config';
 import { SuperJson } from '../internal';
 import { NonPrimitive } from '../internal/interpreter/variables';
@@ -5,6 +7,7 @@ import {
   getProvider,
   getProviderForProfile,
 } from '../internal/superjson/utils';
+import { IEnvironment } from '../lib/environment';
 import { NodeEnvironment } from '../lib/environment/environment.node';
 import { Events } from '../lib/events';
 import { NodeFileSystem } from '../lib/io/filesystem.node';
@@ -25,6 +28,28 @@ export interface ISuperfaceClient {
   on(...args: Parameters<Events['on']>): void;
 }
 
+const resolveSuperJson = (
+  path: string,
+  environment: IEnvironment,
+  superJson?: SuperJson | SuperJsonDocument,
+  logger?: ILogger
+): SuperJson => {
+  if (superJson === undefined) {
+    return SuperJson.loadSync(
+      path,
+      NodeFileSystem,
+      environment,
+      logger
+    ).unwrap();
+  }
+
+  if (superJson instanceof SuperJson) {
+    return superJson;
+  }
+
+  return new SuperJson(superJson);
+};
+
 export abstract class SuperfaceClientBase {
   public readonly superJson: SuperJson;
   protected readonly events: Events;
@@ -37,23 +62,22 @@ export abstract class SuperfaceClientBase {
   protected readonly config: Config;
   protected readonly logger?: ILogger;
 
-  constructor() {
+  constructor(options?: { superJson?: SuperJson | SuperJsonDocument }) {
     const environment = new NodeEnvironment();
     this.logger = new NodeLogger();
     this.events = new Events(this.logger);
     this.config = Config.loadFromEnv(environment, this.logger);
-    const superCacheKey = this.config.superfacePath;
 
     this.boundProfileProviderCache = new SuperCache<{
       provider: IBoundProfileProvider;
       expiresAt: number;
     }>();
-    this.superJson = SuperJson.loadSync(
-      superCacheKey,
-      NodeFileSystem,
+    this.superJson = resolveSuperJson(
+      this.config.superfacePath,
       environment,
+      options?.superJson,
       this.logger
-    ).unwrap();
+    );
 
     let metricReporter: MetricReporter | undefined;
     if (!this.config.disableReporting) {
