@@ -59,6 +59,18 @@ class UseCaseBase implements Interceptable {
         `${this.profile.configuration.id}/${this.name}`
       ].router;
 
+    //In this instance we can set metadata for events
+    this.boundProfileProvider =
+      await this.profile.client.cacheBoundProfileProvider(
+        this.profile.configuration,
+        await this.getProviderConfiguration(hookRouter, options)
+      );
+  }
+
+  private async getProviderConfiguration(
+    hookRouter: FailurePolicyRouter,
+    options?: PerformOptions
+  ): Promise<ProviderConfiguration> {
     let providerConfig: ProviderConfiguration;
 
     const chosenProvider = options?.provider ?? hookRouter.getCurrentProvider();
@@ -84,12 +96,8 @@ class UseCaseBase implements Interceptable {
         options.security
       );
     }
-    //In this instance we can set metadata for events
-    this.boundProfileProvider =
-      await this.profile.client.cacheBoundProfileProvider(
-        this.profile.configuration,
-        providerConfig
-      );
+
+    return providerConfig;
   }
 
   @eventInterceptor({ eventName: 'perform', placement: 'around' })
