@@ -89,6 +89,64 @@ describe('UseCase', () => {
   });
 
   describe('when calling perform', () => {
+    it('passes security values', async () => {
+      const mockBoundProfileProvider = new BoundProfileProvider(
+        mockProfileDocument,
+        mockMapDocument,
+        'test',
+        { services: ServiceSelector.withDefaultUrl(''), security: [] }
+      );
+      const mockClient = new SuperfaceClient();
+
+      const mockProfileConfiguration = new ProfileConfiguration(
+        'test',
+        '1.0.0'
+      );
+      const mockProfile = new Profile(mockClient, mockProfileConfiguration);
+
+      const mockProviderConfiguration = new ProviderConfiguration(
+        'test-provider',
+        []
+      );
+      const mockProvider = new Provider(mockClient, mockProviderConfiguration);
+
+      const getProviderForProfileSpy = jest
+        .spyOn(mockClient, 'getProviderForProfile')
+        .mockResolvedValue(mockProvider);
+      const cacheBoundProfileProviderSpy = jest
+        .spyOn(mockClient, 'cacheBoundProfileProvider')
+        .mockResolvedValue(mockBoundProfileProvider);
+
+      const usecase = new UseCase(mockProfile, 'test-usecase');
+      await expect(
+        usecase.perform(
+          { x: 7 },
+          {
+            security: [
+              {
+                id: 'test',
+                apikey: 'key',
+              },
+            ],
+          }
+        )
+      ).resolves.toBeUndefined();
+
+      expect(getProviderForProfileSpy).toHaveBeenCalledTimes(1);
+      expect(getProviderForProfileSpy).toHaveBeenCalledWith('test');
+
+      expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(1);
+      expect(cacheBoundProfileProviderSpy).toHaveBeenCalledWith(
+        mockProfileConfiguration,
+        new ProviderConfiguration('test-provider', [
+          {
+            id: 'test',
+            apikey: 'key',
+          },
+        ])
+      );
+    });
+
     it('calls getProviderForProfile when there is no provider config', async () => {
       const mockBoundProfileProvider = new BoundProfileProvider(
         mockProfileDocument,

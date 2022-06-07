@@ -1,4 +1,4 @@
-import { BackoffKind, OnFail } from '@superfaceai/ast';
+import { BackoffKind, OnFail, SecurityValues } from '@superfaceai/ast';
 import createDebug from 'debug';
 
 import { MapInterpreterError, ProfileParameterError } from '../internal';
@@ -28,6 +28,7 @@ const debug = createDebug('superface:usecase');
 export type PerformOptions = {
   provider?: Provider | string;
   parameters?: Record<string, string>;
+  security?: SecurityValues[];
 };
 
 // TODO
@@ -58,6 +59,18 @@ class UseCaseBase implements Interceptable {
         `${this.profile.configuration.id}/${this.name}`
       ].router;
 
+    //In this instance we can set metadata for events
+    this.boundProfileProvider =
+      await this.profile.client.cacheBoundProfileProvider(
+        this.profile.configuration,
+        await this.getProviderConfiguration(hookRouter, options)
+      );
+  }
+
+  private async getProviderConfiguration(
+    hookRouter: FailurePolicyRouter,
+    options?: PerformOptions
+  ): Promise<ProviderConfiguration> {
     let providerConfig: ProviderConfiguration;
 
     const chosenProvider = options?.provider ?? hookRouter.getCurrentProvider();
@@ -76,12 +89,15 @@ class UseCaseBase implements Interceptable {
     this.metadata.provider = providerConfig.name;
     hookRouter.setCurrentProvider(providerConfig.name);
 
-    //In this instance we can set metadata for events
-    this.boundProfileProvider =
-      await this.profile.client.cacheBoundProfileProvider(
-        this.profile.configuration,
-        providerConfig
+    //If we have security values pass them directly to perform
+    if (options?.security) {
+      providerConfig = new ProviderConfiguration(
+        providerConfig.name,
+        options.security
       );
+    }
+
+    return providerConfig;
   }
 
   @eventInterceptor({ eventName: 'perform', placement: 'around' })
