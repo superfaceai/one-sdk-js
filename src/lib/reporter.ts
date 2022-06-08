@@ -140,14 +140,14 @@ export function hookMetrics(
   events: Events,
   metricReporter: MetricReporter
 ): void {
-  process.on('beforeExit', () => metricReporter?.flush());
+  process.on('beforeExit', () => metricReporter.flush());
   process.on('uncaughtExceptionMonitor', () => {
     console.warn(
       'Warning: you do not handle all exceptions. This can prevent failure report to be sent.'
     );
   });
   events.on('success', { priority: 0 }, (context: SuccessContext) => {
-    metricReporter?.reportEvent({
+    metricReporter.reportEvent({
       eventType: 'PerformMetrics',
       profile: context.profile,
       success: true,
@@ -158,7 +158,7 @@ export function hookMetrics(
     return { kind: 'continue' };
   });
   events.on('failure', { priority: 0 }, (context: FailureContext) => {
-    metricReporter?.reportEvent({
+    metricReporter.reportEvent({
       eventType: 'PerformMetrics',
       profile: context.profile,
       success: false,
@@ -169,7 +169,7 @@ export function hookMetrics(
     return { kind: 'continue' };
   });
   events.on('provider-switch', { priority: 1000 }, context => {
-    metricReporter?.reportEvent({
+    metricReporter.reportEvent({
       eventType: 'ProviderChange',
       profile: context.profile,
       from: context.provider,
