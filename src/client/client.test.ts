@@ -110,7 +110,20 @@ describe('superface client', () => {
   afterEach(() => {
     jest.resetAllMocks();
     invalidateSuperfaceClientCache();
+    Config.reloadFromEnv();
   });
+  it('sets sdk token to custom value', () => {
+    Config.instance().disableReporting = false;
+    const superfaceToken =
+      'sfs_f68eb7a8f8f0399fdd69854b716ab2c176a87d1b3a8bdbb65b4155550c17518982783a98bd0e7225eb22065ebb30ae09d13c0c4e22b6368087681d6e588eea41_d1011fdc';
+
+    new SuperfaceClient({
+      superfaceToken,
+    });
+
+    expect(Config.instance().sdkAuthToken).toEqual(superfaceToken);
+  });
+
   it('does not cache super.json passed as parameter', () => {
     const statCalls = statSyncMock.mock.calls.length;
     const readFileCalls = readFileSyncMock.mock.calls.length;

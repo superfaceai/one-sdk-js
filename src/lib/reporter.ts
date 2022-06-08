@@ -143,8 +143,12 @@ export class MetricReporter {
   private configHash: string;
   private anonymizedSuperJson: AnonymizedSuperJsonDocument;
 
-  constructor(superJson: SuperJson) {
+  constructor(superJson: SuperJson, superfaceToken?: string) {
     this.fetchInstance = new CrossFetch();
+
+    if (superfaceToken !== undefined) {
+      Config.setSdkAuthToken(superfaceToken);
+    }
     this.sdkToken = Config.instance().sdkAuthToken;
     this.configHash = superJson.configHash;
     this.anonymizedSuperJson = superJson.anonymized;

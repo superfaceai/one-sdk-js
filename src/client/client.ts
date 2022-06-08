@@ -43,14 +43,20 @@ export abstract class SuperfaceClientBase extends Events {
 
   public hookContext: HooksContext = {};
 
-  constructor(options?: { superJson?: SuperJson | SuperJsonDocument }) {
+  constructor(options?: {
+    superJson?: SuperJson | SuperJsonDocument;
+    superfaceToken?: string;
+  }) {
     super();
 
     this.superJson = resolveSuperJson(options?.superJson);
 
     if (!Config.instance().disableReporting) {
       this.hookMetrics();
-      this.metricReporter = new MetricReporter(this.superJson);
+      this.metricReporter = new MetricReporter(
+        this.superJson,
+        options?.superfaceToken
+      );
       this.metricReporter.reportEvent({
         eventType: 'SDKInit',
         occurredAt: new Date(),

@@ -131,6 +131,18 @@ function getSandboxTimeout(): number {
 export class Config {
   private static _instance?: Config;
 
+  public static setSdkAuthToken(passedToken: string): void {
+    const token = passedToken.trim();
+    const tokenRegexp = /^(sfs)_([^_]+)_([0-9A-F]{8})$/i;
+    if (!tokenRegexp.test(token)) {
+      throw new Error(
+        `${passedToken} is not valid Superface authentication token.`
+      );
+    }
+
+    Config.instance().sdkAuthToken = token;
+  }
+
   static instance(): Config {
     if (Config._instance === undefined) {
       Config._instance = new Config();
