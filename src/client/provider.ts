@@ -15,6 +15,27 @@ export class ProviderConfiguration {
     // TODO: Research a better way?
     return JSON.stringify(this);
   }
+
+  public static mergeWithOptions({
+    configuration,
+    name,
+    security,
+    mapRevision,
+    mapVariant,
+  }: {
+    configuration: ProviderConfiguration;
+    name?: string;
+    security?: SecurityValues[];
+    mapRevision?: string;
+    mapVariant?: string;
+  }): ProviderConfiguration {
+    return new ProviderConfiguration(
+      name ?? configuration.name,
+      security ?? configuration.security,
+      mapRevision ?? configuration.mapRevision,
+      mapVariant ?? configuration.mapVariant
+    );
+  }
 }
 
 export class Provider {

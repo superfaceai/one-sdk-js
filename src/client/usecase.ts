@@ -84,17 +84,13 @@ class UseCaseBase implements Interceptable {
     const providerConfig = await this.getProviderConfiguration(
       options?.provider ?? currentProvider
     );
-    //If we have security values pass them directly to perform
-    if (options?.security) {
-      return new ProviderConfiguration(providerConfig.name, options.security);
-    }
 
-    //TODO: make this nice 
-    if (options?.mapRevision !== undefined || options?.mapVariant !== undefined) {
-      return new ProviderConfiguration(providerConfig.name, providerConfig.security, options.mapRevision, options.mapVariant);
-    }
-
-    return providerConfig;
+    return ProviderConfiguration.mergeWithOptions({
+      configuration: providerConfig,
+      security: options?.security,
+      mapRevision: options?.mapRevision,
+      mapVariant: options?.mapVariant,
+    });
   }
 
   private async getProviderConfiguration(
@@ -179,8 +175,10 @@ class UseCaseBase implements Interceptable {
       console.warn(
         `Super.json sets provider failover priority to: "${profileEntry.priority.join(
           ', '
-        )}" but provider failover is not allowed for usecase "${this.name
-        }".\nTo allow provider failover please set property "providerFailover" in "${profileId}.defaults[${this.name
+        )}" but provider failover is not allowed for usecase "${
+          this.name
+        }".\nTo allow provider failover please set property "providerFailover" in "${profileId}.defaults[${
+          this.name
         }]" to true`
       );
     }
@@ -257,7 +255,7 @@ class UseCaseBase implements Interceptable {
         usecaseInfo,
         //TODO are these defauts ok?
         retryPolicyConfig.maxContiguousRetries ??
-        RetryPolicy.DEFAULT_MAX_CONTIGUOUS_RETRIES,
+          RetryPolicy.DEFAULT_MAX_CONTIGUOUS_RETRIES,
         retryPolicyConfig.openTime ?? CircuitBreakerPolicy.DEFAULT_OPEN_TIME,
         retryPolicyConfig.requestTimeout ?? RetryPolicy.DEFAULT_REQUEST_TIMEOUT,
         backoff
@@ -266,7 +264,7 @@ class UseCaseBase implements Interceptable {
       policy = new RetryPolicy(
         usecaseInfo,
         retryPolicyConfig.maxContiguousRetries ??
-        RetryPolicy.DEFAULT_MAX_CONTIGUOUS_RETRIES,
+          RetryPolicy.DEFAULT_MAX_CONTIGUOUS_RETRIES,
         retryPolicyConfig.requestTimeout ?? RetryPolicy.DEFAULT_REQUEST_TIMEOUT,
         new ConstantBackoff(0)
       );
@@ -310,7 +308,7 @@ export class UseCase extends UseCaseBase {
 export class TypedUseCase<
   TInput extends NonPrimitive | undefined,
   TOutput
-  > extends UseCaseBase {
+> extends UseCaseBase {
   async perform(
     input: TInput,
     options?: PerformOptions
