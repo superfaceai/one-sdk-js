@@ -8,6 +8,7 @@ import { getLocal } from 'mockttp';
 import { BoundProfileProvider } from '../client';
 import { Config } from '../config';
 import { MockEnvironment } from '../test/environment';
+import { MockTimers } from '../test/timers';
 import { Events } from './events';
 import { err } from './result/result';
 import { ServiceSelector } from './services';
@@ -134,6 +135,7 @@ const mockMapDocument: MapDocumentNode = {
 const mockServer = getLocal();
 const environment = new MockEnvironment();
 const config = new Config(environment);
+const timers = new MockTimers();
 
 describe('events', () => {
   beforeEach(async () => {
@@ -146,13 +148,14 @@ describe('events', () => {
 
   it('handles retry', async () => {
     const endpoint = await mockServer.get('/test').thenJson(200, {});
-    const events = new Events();
+    const events = new Events(timers);
 
     const profile = new BoundProfileProvider(
       mockProfileDocument,
       mockMapDocument,
       'provider',
       config,
+      timers,
       {
         services: ServiceSelector.withDefaultUrl(mockServer.url),
         security: [],
@@ -189,12 +192,13 @@ describe('events', () => {
   });
 
   it('handles rejection', async () => {
-    const events = new Events();
+    const events = new Events(timers);
     const profile = new BoundProfileProvider(
       mockProfileDocument,
       mockMapDocument,
       'someprovider',
       config,
+      timers,
       {
         services: ServiceSelector.withDefaultUrl(
           'https://unreachable.localhost'
@@ -229,12 +233,13 @@ describe('events', () => {
   it('passes unhandled http responses to unhandled-http (201)', async () => {
     const endpoint = await mockServer.get('/test').thenJson(201, {});
 
-    const events = new Events();
+    const events = new Events(timers);
     const profile = new BoundProfileProvider(
       mockProfileDocument,
       mockMapDocument,
       'provider',
       config,
+      timers,
       {
         services: ServiceSelector.withDefaultUrl(mockServer.url),
         security: [],
@@ -261,12 +266,13 @@ describe('events', () => {
   it('passes unhandled http responses to unhandled-http (400)', async () => {
     const endpoint = await mockServer.get('/test').thenJson(400, {});
 
-    const events = new Events();
+    const events = new Events(timers);
     const profile = new BoundProfileProvider(
       mockProfileDocument,
       mockMapDocument,
       'provider',
       config,
+      timers,
       {
         services: ServiceSelector.withDefaultUrl(mockServer.url),
         security: [],
@@ -293,12 +299,13 @@ describe('events', () => {
   it('does not pass handled http response to unhandled-http (200)', async () => {
     const endpoint = await mockServer.get('/test').thenJson(200, {});
 
-    const events = new Events();
+    const events = new Events(timers);
     const profile = new BoundProfileProvider(
       mockProfileDocument,
       mockMapDocument,
       'provider',
       config,
+      timers,
       {
         services: ServiceSelector.withDefaultUrl(mockServer.url),
         security: [],

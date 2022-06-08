@@ -17,6 +17,7 @@ import {
 import { HttpClient, HttpResponse } from '../internal/interpreter/http';
 import { CrossFetch } from '../lib/fetch';
 import { ILogger } from '../lib/logger/logger';
+import { ITimers } from '../lib/timers';
 
 const DEBUG_NAMESPACE = 'registry';
 
@@ -70,9 +71,10 @@ export function assertIsRegistryProviderInfo(
 export async function fetchProviderInfo(
   providerName: string,
   config: IConfig,
+  timers: ITimers,
   logger?: ILogger
 ): Promise<ProviderJson> {
-  const fetchInstance = new CrossFetch();
+  const fetchInstance = new CrossFetch(timers);
   const http = new HttpClient(fetchInstance, logger);
   const sdkToken = config.sdkAuthToken;
 
@@ -213,12 +215,13 @@ export async function fetchBind(
     mapRevision?: string;
   },
   config: IConfig,
+  timers: ITimers,
   logger?: ILogger
 ): Promise<{
   provider: ProviderJson;
   mapAst?: MapDocumentNode;
 }> {
-  const fetchInstance = new CrossFetch();
+  const fetchInstance = new CrossFetch(timers);
   const http = new HttpClient(fetchInstance, logger);
   const sdkToken = config.sdkAuthToken;
   logger?.log(DEBUG_NAMESPACE, 'Binding SDK to registry');
@@ -249,9 +252,10 @@ export async function fetchBind(
 export async function fetchMapSource(
   mapId: string,
   config: IConfig,
+  timers: ITimers,
   logger?: ILogger
 ): Promise<string> {
-  const fetchInstance = new CrossFetch();
+  const fetchInstance = new CrossFetch(timers);
   const http = new HttpClient(fetchInstance, logger);
   const sdkToken = config.sdkAuthToken;
   logger?.log(DEBUG_NAMESPACE, `Getting source of map: "${mapId}"`);

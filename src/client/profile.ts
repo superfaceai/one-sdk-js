@@ -5,6 +5,7 @@ import { NonPrimitive } from '../internal/interpreter/variables';
 import { Events } from '../lib/events';
 import { IFileSystem } from '../lib/io';
 import { ILogger } from '../lib/logger/logger';
+import { ITimers } from '../lib/timers';
 import { SuperCache } from './cache';
 import { IBoundProfileProvider } from './profile-provider';
 import { TypedUseCase, UseCase } from './usecase';
@@ -37,6 +38,7 @@ export class ProfileBase {
     protected readonly events: Events,
     protected readonly superJson: SuperJson,
     protected readonly config: Config,
+    protected readonly timers: ITimers,
     protected readonly fileSystem: IFileSystem,
     protected readonly boundProfileProviderCache: SuperCache<{
       provider: IBoundProfileProvider;
@@ -62,6 +64,7 @@ export class Profile extends ProfileBase {
       this.events,
       this.config,
       this.superJson,
+      this.timers,
       this.fileSystem,
       this.boundProfileProviderCache,
       this.logger
@@ -84,6 +87,7 @@ export class TypedProfile<
       expiresAt: number;
     }>,
     protected override readonly config: Config,
+    protected override readonly timers: ITimers,
     protected override readonly fileSystem: IFileSystem,
     usecases: (keyof TUsecaseTypes)[],
     protected override readonly logger?: ILogger
@@ -93,6 +97,7 @@ export class TypedProfile<
       events,
       superJson,
       config,
+      timers,
       fileSystem,
       boundProfileProviderCache,
       logger
@@ -109,6 +114,7 @@ export class TypedProfile<
           events,
           config,
           superJson,
+          timers,
           fileSystem,
           boundProfileProviderCache,
           logger

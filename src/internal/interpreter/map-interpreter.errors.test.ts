@@ -11,6 +11,7 @@ import { Config } from '../../config';
 import { CrossFetch } from '../../lib/fetch';
 import { ServiceSelector } from '../../lib/services';
 import { MockEnvironment } from '../../test/environment';
+import { MockTimers } from '../../test/timers';
 import { UnexpectedError } from '../errors';
 import { MapInterpreter } from './map-interpreter';
 import {
@@ -24,7 +25,8 @@ import {
 const environment = new MockEnvironment();
 const config = new Config(environment);
 const mockServer = getLocal();
-const fetchInstance = new CrossFetch();
+const timers = new MockTimers();
+const fetchInstance = new CrossFetch(timers);
 const header: MapHeaderNode = {
   kind: 'MapHeader',
   profile: {

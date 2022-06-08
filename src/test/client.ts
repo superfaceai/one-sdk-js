@@ -23,14 +23,15 @@ import {
   getProviderForProfile,
 } from '../internal/superjson/utils';
 import { IEnvironment } from '../lib/environment';
-import { NodeEnvironment } from '../lib/environment/environment.node';
 import { Events } from '../lib/events';
 import { IFileSystem } from '../lib/io';
 import { ILogger } from '../lib/logger/logger';
 import { NodeLogger } from '../lib/logger/logger.node';
 import { hookMetrics, MetricReporter } from '../lib/reporter';
 import { ServiceSelector } from '../lib/services';
+import { MockEnvironment } from './environment';
 import { MockFileSystem } from './filesystem';
+import { MockTimers } from './timers';
 
 export class MockClient implements ISuperfaceClient {
   public config: Config;
@@ -44,6 +45,7 @@ export class MockClient implements ISuperfaceClient {
   public internalClient: InternalClient;
   public metricReporter?: MetricReporter;
   public logger?: ILogger;
+  public timers: MockTimers;
 
   constructor(
     public superJson: SuperJson,
@@ -54,20 +56,21 @@ export class MockClient implements ISuperfaceClient {
   ) {
     // TODO: test logger?
     this.logger = new NodeLogger();
-    // TODO: test environment!
-    this.environment = new NodeEnvironment();
+    this.environment = new MockEnvironment();
+    this.timers = new MockTimers();
 
     this.config = new Config(this.environment, this.logger, {
       disableReporting: true,
       ...parameters?.configOverride,
     });
-    this.events = new Events(this.logger);
-    registerHooks(this.events, this.logger);
+    this.events = new Events(this.timers, this.logger);
+    registerHooks(this.events, this.timers, this.logger);
 
     if (this.config.disableReporting === false) {
       this.metricReporter = new MetricReporter(
         this.superJson,
         this.config,
+        this.timers,
         this.logger
       );
       hookMetrics(this.events, this.metricReporter);
@@ -91,6 +94,7 @@ export class MockClient implements ISuperfaceClient {
       this.events,
       superJson,
       this.config,
+      this.timers,
       fileSystem,
       this.cache,
       this.logger
@@ -114,6 +118,7 @@ export class MockClient implements ISuperfaceClient {
       map,
       providerConfiguration.name,
       this.config,
+      this.timers,
       {
         services: ServiceSelector.withDefaultUrl(baseUrl),
         security: securityValues,

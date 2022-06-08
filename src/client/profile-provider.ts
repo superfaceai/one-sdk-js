@@ -47,6 +47,7 @@ import { CrossFetch } from '../lib/fetch';
 import { IFileSystem } from '../lib/io';
 import { ILogger, LogFunction } from '../lib/logger/logger';
 import { IServiceSelector, ServiceSelector } from '../lib/services';
+import { ITimers } from '../lib/timers';
 import { MapInterpreterEventAdapter } from './failure/map-interpreter-adapter';
 import { ProfileConfiguration } from './profile';
 import { ProviderConfiguration } from './provider';
@@ -70,6 +71,7 @@ export async function bindProfileProvider(
   superJson: SuperJson,
   config: IConfig,
   events: Events,
+  timers: ITimers,
   fileSystem: IFileSystem,
   logger?: ILogger
 ): Promise<{ provider: IBoundProfileProvider; expiresAt: number }> {
@@ -80,11 +82,12 @@ export async function bindProfileProvider(
     config,
     events,
     fileSystem,
+    timers,
     logger
   );
   const boundProfileProvider = await profileProvider.bind();
   const expiresAt =
-    Math.floor(Date.now() / 1000) + config.superfaceCacheTimeout;
+    Math.floor(timers.now() / 1000) + config.superfaceCacheTimeout;
 
   return { provider: boundProfileProvider, expiresAt };
 }
@@ -111,6 +114,7 @@ export class BoundProfileProvider implements IBoundProfileProvider {
     private readonly mapAst: MapDocumentNode,
     private readonly providerName: string,
     private readonly config: IConfig,
+    timers: ITimers,
     public readonly configuration: {
       services: IServiceSelector;
       profileProviderSettings?: NormalizedProfileProviderSettings;
@@ -125,7 +129,7 @@ export class BoundProfileProvider implements IBoundProfileProvider {
       this.logger
     );
 
-    this.fetchInstance = new CrossFetch();
+    this.fetchInstance = new CrossFetch(timers);
     this.fetchInstance.metadata = {
       profile: profileAstId(profileAst),
       provider: providerName,
@@ -269,6 +273,7 @@ export class ProfileProvider {
     private config: IConfig,
     private events: Events,
     private readonly fileSystem: IFileSystem,
+    private readonly timers: ITimers,
     private readonly logger?: ILogger,
     /** url or ast node */
     private map?: string | MapDocumentNode
@@ -354,6 +359,7 @@ export class ProfileProvider {
           mapRevision,
         },
         this.config,
+        this.timers,
         this.logger
       );
 
@@ -368,7 +374,12 @@ export class ProfileProvider {
           mapVariant !== undefined
             ? `${profileId}.${providerName}.${mapVariant}@${version}`
             : `${profileId}.${providerName}@${version}`;
-        const mapSource = await fetchMapSource(mapId, this.config, this.logger);
+        const mapSource = await fetchMapSource(
+          mapId,
+          this.config,
+          this.timers,
+          this.logger
+        );
 
         mapAst = await Parser.parseMap(
           mapSource,
@@ -406,6 +417,7 @@ export class ProfileProvider {
       mapAst,
       providerInfo.name,
       this.config,
+      this.timers,
       {
         services: new ServiceSelector(
           providerInfo.services,
@@ -496,6 +508,7 @@ export class ProfileProvider {
         this.providerJson = await fetchProviderInfo(
           providerName,
           this.config,
+          this.timers,
           this.logger
         );
         await this.writeProviderCache(this.providerJson);

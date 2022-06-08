@@ -6,10 +6,12 @@ import { Config } from '../../config';
 import { CrossFetch } from '../../lib/fetch';
 import { ServiceSelector } from '../../lib/services';
 import { MockEnvironment } from '../../test/environment';
+import { MockTimers } from '../../test/timers';
 import { MapInterpreter } from './map-interpreter';
 
 const mockServer = getLocal();
-const fetchInstance = new CrossFetch();
+const timers = new MockTimers();
+const fetchInstance = new CrossFetch(timers);
 const environment = new MockEnvironment();
 const config = new Config(environment);
 

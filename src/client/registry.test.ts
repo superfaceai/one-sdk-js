@@ -13,6 +13,7 @@ import {
   unknownProviderInfoError,
 } from '../internal/errors.helpers';
 import { MockEnvironment } from '../test/environment';
+import { MockTimers } from '../test/timers';
 import {
   assertIsRegistryProviderInfo,
   fetchBind,
@@ -32,6 +33,7 @@ jest.mock('../internal/interpreter/http', () => {
 const MOCK_TOKEN =
   'sfs_bb064dd57c302911602dd097bc29bedaea6a021c25a66992d475ed959aa526c7_37bce8b5';
 const environment = new MockEnvironment();
+const timers = new MockTimers();
 
 describe('registry', () => {
   const astMetadata: AstMetadata = {
@@ -149,7 +151,7 @@ describe('registry', () => {
 
       request.mockResolvedValue(mockResponse);
 
-      await expect(fetchProviderInfo('test', config)).resolves.toEqual(
+      await expect(fetchProviderInfo('test', config, timers)).resolves.toEqual(
         mockProviderJson
       );
 
@@ -179,7 +181,7 @@ describe('registry', () => {
 
       request.mockResolvedValue(mockResponse);
 
-      await expect(fetchProviderInfo('test', config)).rejects.toEqual(
+      await expect(fetchProviderInfo('test', config, timers)).rejects.toEqual(
         unknownProviderInfoError({
           message: 'Registry responded with invalid body',
           body: mockBody,
@@ -208,7 +210,7 @@ describe('registry', () => {
 
       request.mockResolvedValue(mockResponse);
 
-      await expect(fetchProviderInfo('test', config)).rejects.toEqual(
+      await expect(fetchProviderInfo('test', config, timers)).rejects.toEqual(
         unknownProviderInfoError({
           message: 'Registry responded with invalid ProviderJson definition',
           body: {},
@@ -258,7 +260,8 @@ describe('registry', () => {
             mapVariant: 'test-map-variant',
             mapRevision: 'test-map-revision',
           },
-          config
+          config,
+          timers
         )
       ).resolves.toEqual({
         provider: mockProviderJson,
@@ -309,7 +312,8 @@ describe('registry', () => {
             mapVariant: 'test-map-variant',
             mapRevision: 'test-map-revision',
           },
-          config
+          config,
+          timers
         )
       ).resolves.toEqual({
         provider: mockProviderJson,
@@ -360,7 +364,8 @@ describe('registry', () => {
             mapVariant: 'test-map-variant',
             mapRevision: 'test-map-revision',
           },
-          config
+          config,
+          timers
         )
       ).rejects.toThrow(
         invalidProviderResponseError(
@@ -399,7 +404,8 @@ describe('registry', () => {
             mapVariant: 'test-map-variant',
             mapRevision: 'test-map-revision',
           },
-          config
+          config,
+          timers
         )
       ).rejects.toEqual(
         unknownBindResponseError({
@@ -441,7 +447,8 @@ describe('registry', () => {
             mapVariant: 'test-map-variant',
             mapRevision: 'test-map-revision',
           },
-          config
+          config,
+          timers
         )
       ).rejects.toEqual(
         unknownBindResponseError({
@@ -486,7 +493,8 @@ describe('registry', () => {
             mapVariant: 'test-map-variant',
             mapRevision: 'test-map-revision',
           },
-          config
+          config,
+          timers
         )
       ).rejects.toEqual(
         bindResponseError({
@@ -532,7 +540,8 @@ describe('registry', () => {
             mapVariant: 'test-map-variant',
             mapRevision: 'test-map-revision',
           },
-          config
+          config,
+          timers
         )
       ).resolves.toEqual({
         provider: mockProviderJson,
@@ -569,7 +578,7 @@ describe('registry', () => {
       request.mockResolvedValue(mockResponse);
 
       const mapId = 'test-profile-id.test-provider.test-map-variant@1.0.0';
-      await expect(fetchMapSource(mapId, config)).resolves.toEqual(
+      await expect(fetchMapSource(mapId, config, timers)).resolves.toEqual(
         mockMapSOurce
       );
 
@@ -583,10 +592,10 @@ describe('registry', () => {
     });
 
     it('fetches map source without map variant', async () => {
-      const mockMapSOurce = 'source';
+      const mockMapSource = 'source';
       const mockResponse = {
         statusCode: 200,
-        body: mockMapSOurce,
+        body: mockMapSource,
         headers: { test: 'test' },
         debug: {
           request: {
@@ -599,8 +608,8 @@ describe('registry', () => {
       request.mockResolvedValue(mockResponse);
 
       const mapId = 'test-profile-id.test-provider@1.0.0';
-      await expect(fetchMapSource(mapId, config)).resolves.toEqual(
-        mockMapSOurce
+      await expect(fetchMapSource(mapId, config, timers)).resolves.toEqual(
+        mockMapSource
       );
 
       expect(request).toHaveBeenCalledTimes(1);

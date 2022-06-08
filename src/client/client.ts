@@ -14,6 +14,8 @@ import { NodeFileSystem } from '../lib/io/filesystem.node';
 import { ILogger } from '../lib/logger/logger';
 import { NodeLogger } from '../lib/logger/logger.node';
 import { hookMetrics, MetricReporter } from '../lib/reporter';
+import { ITimers } from '../lib/timers';
+import { NodeTimers } from '../lib/timers/timers.node';
 import { SuperCache } from './cache';
 import { InternalClient } from './client.internal';
 import { registerHooks as registerFailoverHooks } from './failure/event-adapter';
@@ -60,12 +62,14 @@ export abstract class SuperfaceClientBase {
   }>;
 
   protected readonly config: Config;
+  protected readonly timers: ITimers;
   protected readonly logger?: ILogger;
 
   constructor(options?: { superJson?: SuperJson | SuperJsonDocument }) {
     const environment = new NodeEnvironment();
+    this.timers = new NodeTimers();
     this.logger = new NodeLogger();
-    this.events = new Events(this.logger);
+    this.events = new Events(this.timers, this.logger);
     this.config = Config.loadFromEnv(environment, this.logger);
 
     this.boundProfileProviderCache = new SuperCache<{
@@ -84,21 +88,23 @@ export abstract class SuperfaceClientBase {
       metricReporter = new MetricReporter(
         this.superJson,
         this.config,
+        this.timers,
         this.logger
       );
       hookMetrics(this.events, metricReporter);
       metricReporter.reportEvent({
         eventType: 'SDKInit',
-        occurredAt: new Date(),
+        occurredAt: new Date(this.timers.now()),
       });
     }
 
-    registerFailoverHooks(this.events, this.logger);
+    registerFailoverHooks(this.events, this.timers, this.logger);
 
     this.internal = new InternalClient(
       this.events,
       this.superJson,
       this.config,
+      this.timers,
       NodeFileSystem,
       this.boundProfileProviderCache,
       this.logger
@@ -164,6 +170,7 @@ export function createTypedClient<TProfiles extends ProfileUseCases<any, any>>(
         this.superJson,
         this.boundProfileProviderCache,
         this.config,
+        this.timers,
         NodeFileSystem,
         Object.keys(profileDefinitions[profileId]),
         this.logger

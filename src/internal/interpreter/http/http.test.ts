@@ -1,11 +1,13 @@
 import { getLocal } from 'mockttp';
 
 import { CrossFetch } from '../../../lib/fetch';
+import { MockTimers } from '../../../test/timers';
 import { Primitive } from '../variables';
 import { createUrl, HttpClient } from './http';
 
 const mockServer = getLocal();
-const fetchInstance = new CrossFetch();
+const timers = new MockTimers();
+const fetchInstance = new CrossFetch(timers);
 const http = new HttpClient(fetchInstance);
 
 describe('HttpClient', () => {

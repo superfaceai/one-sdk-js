@@ -27,10 +27,13 @@ import {
   NetworkFetchError,
   RequestFetchError,
 } from './fetch.errors';
+import { ITimers } from './timers';
 
 export class CrossFetch implements FetchInstance, Interceptable {
   public metadata: InterceptableMetadata | undefined;
   public events: Events | undefined;
+
+  constructor(private readonly timers: ITimers) {}
 
   @eventInterceptor({
     eventName: 'fetch',
@@ -52,7 +55,7 @@ export class CrossFetch implements FetchInstance, Interceptable {
       body: this.body(parameters.body),
     };
 
-    const response = await CrossFetch.fetchWithTimeout(
+    const response = await this.fetchWithTimeout(
       url + this.queryParameters(parameters.queryParameters),
       request,
       parameters.timeout
@@ -87,7 +90,7 @@ export class CrossFetch implements FetchInstance, Interceptable {
     };
   }
 
-  private static async fetchWithTimeout(
+  private async fetchWithTimeout(
     url: string,
     options: RequestInit,
     timeout?: number
@@ -96,7 +99,7 @@ export class CrossFetch implements FetchInstance, Interceptable {
 
     let timeoutHandle = undefined;
     if (timeout !== undefined) {
-      timeoutHandle = setTimeout(() => abort.abort(), timeout);
+      timeoutHandle = this.timers.setTimeout(() => abort.abort(), timeout);
     }
     options.signal = abort.signal;
 
@@ -106,7 +109,7 @@ export class CrossFetch implements FetchInstance, Interceptable {
       throw CrossFetch.normalizeError(err);
     } finally {
       if (timeoutHandle !== undefined) {
-        clearTimeout(timeoutHandle);
+        this.timers.clearTimeout(timeoutHandle);
       }
     }
   }

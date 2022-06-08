@@ -11,8 +11,6 @@ import { SuperJson } from '../internal/superjson';
 import { MockClient } from '../test/client';
 import { FailoverReason } from './reporter';
 
-jest.useFakeTimers('legacy');
-
 const mockSuperJsonSingle = new SuperJson({
   profiles: {
     ['test-profile']: {
@@ -254,7 +252,6 @@ describe('MetricReporter', () => {
 
   afterEach(async () => {
     await mockServer.stop();
-    jest.clearAllTimers();
   });
 
   it('should report SDK Init', async () => {
@@ -307,7 +304,7 @@ describe('MetricReporter', () => {
     const profile = await client.getProfile('test-profile');
 
     await profile.getUseCase('Test').perform({});
-    jest.advanceTimersByTime(2000);
+    client.timers.tick(2000);
     while (await eventEndpoint.isPending()) {
       await new Promise(setImmediate);
     }
@@ -349,7 +346,7 @@ describe('MetricReporter', () => {
     const profile = await client.getProfile('test-profile');
 
     await expect(profile.getUseCase('Test').perform({})).rejects.toThrow();
-    jest.advanceTimersByTime(2000);
+    client.timers.tick(2000);
     let requests = await eventEndpoint.getSeenRequests();
     while (requests.length < 2) {
       await new Promise(setImmediate);
@@ -423,14 +420,14 @@ describe('MetricReporter', () => {
     const profile = await client.getProfile('test-profile');
 
     await profile.getUseCase('Test').perform({});
-    jest.advanceTimersByTime(800);
+    client.timers.tick(800);
     while (await eventEndpoint.isPending()) {
       await new Promise(setImmediate);
     }
     let requests = await eventEndpoint.getSeenRequests();
 
     expect(requests).toHaveLength(1);
-    jest.advanceTimersByTime(300);
+    client.timers.tick(300);
     requests = await eventEndpoint.getSeenRequests();
     while (requests.length < 2) {
       await new Promise(setImmediate);
@@ -456,7 +453,7 @@ describe('MetricReporter', () => {
 
     await profile.getUseCase('Test').perform({});
     await profile.getUseCase('Test').perform({});
-    jest.advanceTimersByTime(2000);
+    client.timers.tick(2000);
     let requests = await eventEndpoint.getSeenRequests();
 
     while (requests.length < 1) {
@@ -499,14 +496,14 @@ describe('MetricReporter', () => {
     const profile = await client.getProfile('test-profile');
 
     await profile.getUseCase('Test').perform({});
-    jest.advanceTimersByTime(2000);
+    client.timers.tick(2000);
     let requests = await eventEndpoint.getSeenRequests();
     while (requests.length < 1) {
       await new Promise(setImmediate);
       requests = await eventEndpoint.getSeenRequests();
     }
     await profile.getUseCase('Test').perform({});
-    jest.advanceTimersByTime(1000);
+    client.timers.tick(1000);
     while (requests.length < 2) {
       await new Promise(setImmediate);
       requests = await eventEndpoint.getSeenRequests();
@@ -569,10 +566,10 @@ describe('MetricReporter', () => {
 
     for (let i = 0; i < 100; i++) {
       await profile.getUseCase('Test').perform({});
-      jest.advanceTimersByTime(900);
+      client.timers.tick(900);
       currentTime = currentTime.valueOf() + 900;
     }
-    jest.advanceTimersByTime(1000);
+    client.timers.tick(1000);
     currentTime += 1000;
     let requests = await eventEndpoint.getSeenRequests();
     while (requests.length < 2) {
@@ -646,7 +643,7 @@ describe('MetricReporter', () => {
     let requests = await eventEndpoint.getSeenRequests();
     while (requests.length < 2) {
       currentTime += 0.1;
-      jest.advanceTimersByTime(0.1);
+      client.timers.tick(0.1);
       await new Promise(setImmediate);
       requests = await eventEndpoint.getSeenRequests();
     }

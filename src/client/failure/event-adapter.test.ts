@@ -10,7 +10,7 @@ import { getLocal } from 'mockttp';
 import { SuperJson } from '../../internal';
 import { bindResponseError } from '../../internal/errors.helpers';
 import { getProvider } from '../../internal/superjson/utils';
-import { err, ok, sleep } from '../../lib';
+import { err, ok } from '../../lib';
 import { NotFoundError } from '../../lib/io/filesystem.errors';
 import { MockClient } from '../../test/client';
 
@@ -461,7 +461,7 @@ describe('event-adapter', () => {
 
     expect(result.isOk() && result.value).toEqual({ message: 'hello' });
     expect((await endpoint.getSeenRequests()).length).toEqual(1);
-  }, 20000);
+  });
 
   it('does not use retry policy - aborts after HTTP 500', async () => {
     const endpoint = await mockServer.get('/first').thenJson(500, {});
@@ -558,14 +558,14 @@ describe('event-adapter', () => {
       'provider',
       mockServer.url
     );
-
     const profile = await client.getProfile('starwars/character-information');
     const useCase = profile.getUseCase('Test');
     const provider = getProvider(superJson, 'provider');
     const result = useCase.perform(undefined, { provider });
+    setImmediate(() => client.timers.tick(300000));
 
     await expect(result).rejects.toThrow(/timeout/);
-  }, 35000);
+  });
 
   // Circuit breaker
   it('use circuit-breaker policy - aborts after HTTP 500', async () => {
@@ -614,7 +614,7 @@ describe('event-adapter', () => {
 
     // We send request twice
     expect((await endpoint.getSeenRequests()).length).toEqual(2);
-  }, 20000);
+  });
 
   it('use circuit-breaker policy with backoff - aborts after HTTP 500', async () => {
     const backoffTime = 5000;
@@ -625,14 +625,14 @@ describe('event-adapter', () => {
     const endpoint = await mockServer.get('/first').thenCallback(() => {
       if (retry) {
         retry = false;
-        firstRequestTime = Date.now();
+        firstRequestTime = client.timers.now();
 
         return {
           statusCode: 500,
           json: {},
         };
       }
-      secondRequestTime = Date.now();
+      secondRequestTime = client.timers.now();
 
       return {
         statusCode: 200,
@@ -695,7 +695,7 @@ describe('event-adapter', () => {
     );
     // We send request twice
     expect((await endpoint.getSeenRequests()).length).toEqual(2);
-  }, 20000);
+  });
 
   it('use circuit-breaker policy - switch providers after HTTP 500, using default provider', async () => {
     const endpoint = await mockServer.get('/first').thenJson(500, {});
@@ -761,7 +761,7 @@ describe('event-adapter', () => {
     // We send request twice
     expect((await endpoint.getSeenRequests()).length).toEqual(2);
     expect((await secondEndpoint.getSeenRequests()).length).toEqual(1);
-  }, 20000);
+  });
 
   it('use circuit-breaker policy - do not switch providers after HTTP 500 - using provider from user', async () => {
     const endpoint = await mockServer.get('/first').thenJson(500, {});
@@ -957,7 +957,7 @@ describe('event-adapter', () => {
     // We send request twice - to the first provider url
     expect((await endpoint.getSeenRequests()).length).toEqual(2);
     expect((await secondEndpoint.getSeenRequests()).length).toEqual(1);
-  }, 20000);
+  });
 
   it('use two circuit-breaker policies - switch providers after HTTP 500', async () => {
     const endpoint = await mockServer.get('/first').thenJson(500, {});
@@ -1039,7 +1039,7 @@ describe('event-adapter', () => {
     // We send request twice - to the first provider url
     expect((await endpoint.getSeenRequests()).length).toEqual(2);
     expect((await secondEndpoint.getSeenRequests()).length).toEqual(2);
-  }, 20000);
+  });
 
   it('use circuit-breaker policy - switch providers after HTTP 500 and switch back - default provider', async () => {
     let endpointCalls = 0;
@@ -1114,7 +1114,7 @@ describe('event-adapter', () => {
       message: 'hello from second provider',
     });
 
-    await sleep(30000);
+    client.timers.tick(30000);
 
     // Try first provider and return value
     result = await useCase.perform(undefined);
@@ -1123,7 +1123,7 @@ describe('event-adapter', () => {
     // We send request twice
     expect((await endpoint.getSeenRequests()).length).toEqual(3);
     expect((await secondEndpoint.getSeenRequests()).length).toEqual(1);
-  }, 40000);
+  });
 
   it('use circuit-breaker policy - switch providers after HTTP 500 and perform another usecase', async () => {
     let endpointCalls = 0;
@@ -1208,7 +1208,7 @@ describe('event-adapter', () => {
     // We send request twice
     expect((await endpoint.getSeenRequests()).length).toEqual(3);
     expect((await secondEndpoint.getSeenRequests()).length).toEqual(1);
-  }, 20000);
+  });
 
   it('use circuit-breaker policy - switch providers after HTTP 500, perform another usecase and switch profile', async () => {
     let endpointCalls = 0;
@@ -1316,7 +1316,7 @@ describe('event-adapter', () => {
     expect((await endpoint.getSeenRequests()).length).toEqual(3);
     expect((await secondEndpoint.getSeenRequests()).length).toEqual(1);
     expect((await thirdEndpoint.getSeenRequests()).length).toEqual(1);
-  }, 60000);
+  });
 
   it('use circuit-breaker policy - switch providers after HTTP 500, using provider from user and abort policy', async () => {
     const endpoint = await mockServer.get('/first').thenJson(500, {});
@@ -1390,7 +1390,7 @@ describe('event-adapter', () => {
     // We send request twice
     expect((await endpoint.getSeenRequests()).length).toEqual(1);
     expect((await secondEndpoint.getSeenRequests()).length).toEqual(1);
-  }, 20000);
+  });
 
   /**
    * Bind
@@ -1474,7 +1474,7 @@ describe('event-adapter', () => {
     });
     expect((await endpoint.getSeenRequests()).length).toEqual(1);
     expect((await bindEndpoint.getSeenRequests()).length).toEqual(1);
-  }, 20000);
+  });
 
   it('use default policy - switch providers after error in bind', async () => {
     const endpoint = await mockServer.get('/first').thenJson(200, {});
@@ -1554,7 +1554,7 @@ describe('event-adapter', () => {
     });
     expect((await endpoint.getSeenRequests()).length).toEqual(1);
     expect((await bindEndpoint.getSeenRequests()).length).toEqual(1);
-  }, 20000);
+  });
 
   it('use default policy - fail after error in bind', async () => {
     const endpoint = await mockServer.get('/first').thenJson(200, {});
@@ -1635,7 +1635,7 @@ describe('event-adapter', () => {
 
     expect((await endpoint.getSeenRequests()).length).toEqual(0);
     expect((await bindEndpoint.getSeenRequests()).length).toEqual(1);
-  }, 20000);
+  });
 
   it('use circuit breaker policy - switch providers after error in bind', async () => {
     const endpoint = await mockServer.get('/first').thenJson(200, {});
@@ -1725,7 +1725,7 @@ describe('event-adapter', () => {
 
     expect((await endpoint.getSeenRequests()).length).toEqual(1);
     expect((await bindEndpoint.getSeenRequests()).length).toEqual(1);
-  }, 20000);
+  });
 
   it('preserves hook context within one client', async () => {
     const endpoint = await mockServer.get('/first').thenJson(500, {});

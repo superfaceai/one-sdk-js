@@ -11,6 +11,7 @@ import { SuperJson } from '../internal/superjson';
 import { Events, FailureContext, SuccessContext } from './events';
 import { CrossFetch } from './fetch';
 import { ILogger, LogFunction } from './logger/logger';
+import { ITimeout, ITimers } from './timers/timers';
 
 const DEBUG_NAMESPACE = 'metric-reporter';
 
@@ -180,7 +181,7 @@ export function hookMetrics(
 }
 
 export class MetricReporter {
-  private timer: NodeJS.Timeout | undefined;
+  private timer: ITimeout | undefined;
   private startTime: number | undefined;
   private fetchInstance: FetchInstance;
   private readonly sdkToken: string | undefined;
@@ -192,9 +193,10 @@ export class MetricReporter {
   constructor(
     superJson: SuperJson,
     private readonly config: IConfig,
+    private readonly timers: ITimers,
     logger?: ILogger
   ) {
-    this.fetchInstance = new CrossFetch();
+    this.fetchInstance = new CrossFetch(timers);
     this.sdkToken = config.sdkAuthToken;
     this.configHash = superJson.configHash;
     this.anonymizedSuperJson = superJson.anonymized;
@@ -225,7 +227,7 @@ export class MetricReporter {
     this.performMetrics = [];
     this.startTime = undefined;
     if (this.timer !== undefined) {
-      clearTimeout(this.timer);
+      this.timers.clearTimeout(this.timer);
     }
     this.timer = undefined;
     this.sendEvent(metrics);
@@ -233,7 +235,7 @@ export class MetricReporter {
 
   // Sets debounce timer, unless maximum debounce time elapsed
   private setTimer(): void {
-    const now = Date.now();
+    const now = this.timers.now();
     const timeHasElapsed =
       this.startTime !== undefined &&
       now - this.startTime >= this.config.metricDebounceTimeMax;
@@ -247,10 +249,10 @@ export class MetricReporter {
     }
     // If the debounce time did not elapse, remove previous set timer
     if (this.timer !== undefined) {
-      clearTimeout(this.timer);
+      this.timers.clearTimeout(this.timer);
     }
     // Set the timer for min debounce time - it will execute unless another metric request comes
-    this.timer = setTimeout(() => {
+    this.timer = this.timers.setTimeout(() => {
       this.flush();
     }, this.config.metricDebounceTimeMin);
   }
@@ -338,7 +340,7 @@ export class MetricReporter {
 
     return {
       event_type: 'Metrics',
-      occurred_at: new Date().toISOString(),
+      occurred_at: new Date(this.timers.now()).toISOString(),
       configuration_hash: this.configHash,
       data: {
         from,

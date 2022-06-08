@@ -6,13 +6,15 @@ import { Events } from '../lib/events';
 import { NodeFileSystem } from '../lib/io/filesystem.node';
 import { MockEnvironment } from '../test/environment';
 import { MockFileSystem } from '../test/filesystem';
+import { MockTimers } from '../test/timers';
 import { SuperCache } from './cache';
 import { Profile, ProfileConfiguration, TypedProfile } from './profile';
 import { IBoundProfileProvider } from './profile-provider';
 import { UseCase } from './usecase';
 
 function createProfile(superJson: SuperJsonDocument): Profile {
-  const events = new Events();
+  const timers = new MockTimers();
+  const events = new Events(timers);
   const cache = new SuperCache<{
     provider: IBoundProfileProvider;
     expiresAt: number;
@@ -26,6 +28,7 @@ function createProfile(superJson: SuperJsonDocument): Profile {
     events,
     new SuperJson(superJson),
     config,
+    timers,
     NodeFileSystem,
     cache
   );
@@ -87,7 +90,8 @@ describe('TypedProfile', () => {
   });
   const mockProfileConfiguration = new ProfileConfiguration('test', '1.0.0');
 
-  const events = new Events();
+  const timers = new MockTimers();
+  const events = new Events(timers);
   const cache = new SuperCache<{
     provider: IBoundProfileProvider;
     expiresAt: number;
@@ -104,6 +108,7 @@ describe('TypedProfile', () => {
         mockSuperJson,
         cache,
         config,
+        timers,
         fileSystem,
         ['sayHello']
       );
@@ -115,6 +120,7 @@ describe('TypedProfile', () => {
           events,
           config,
           mockSuperJson,
+          timers,
           fileSystem,
           cache
         )
@@ -128,6 +134,7 @@ describe('TypedProfile', () => {
         mockSuperJson,
         cache,
         config,
+        timers,
         fileSystem,
         ['sayHello']
       );

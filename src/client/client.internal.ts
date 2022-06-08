@@ -8,6 +8,7 @@ import { SuperJson } from '../internal/superjson';
 import { Events } from '../lib/events';
 import { IFileSystem } from '../lib/io';
 import { ILogger } from '../lib/logger/logger';
+import { ITimers } from '../lib/timers';
 import { SuperCache } from './cache';
 import { Profile, ProfileConfiguration } from './profile';
 import { IBoundProfileProvider } from './profile-provider';
@@ -17,6 +18,7 @@ export class InternalClient {
     private readonly events: Events,
     private readonly superJson: SuperJson,
     private readonly config: Config,
+    private readonly timers: ITimers,
     private readonly fileSystem: IFileSystem,
     private readonly boundProfileProviderCache: SuperCache<{
       provider: IBoundProfileProvider;
@@ -33,6 +35,7 @@ export class InternalClient {
       this.events,
       this.superJson,
       this.config,
+      this.timers,
       this.fileSystem,
       this.boundProfileProviderCache,
       this.logger

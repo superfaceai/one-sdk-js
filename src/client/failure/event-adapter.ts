@@ -1,8 +1,9 @@
 import { SDKBindError, UnexpectedError } from '../../internal/errors';
-import { clone, sleep } from '../../lib';
+import { clone } from '../../lib';
 import { Events } from '../../lib/events';
 import { isCrossFetchError } from '../../lib/fetch.errors';
 import { ILogger } from '../../lib/logger/logger';
+import { ITimers } from '../../lib/timers';
 import { FailurePolicyRouter } from './policies';
 import { ExecutionFailure, FailurePolicyReason } from './policy';
 import {
@@ -66,8 +67,12 @@ function handleCommonResolution(
   }
 }
 
-export function registerHooks(events: Events, logger?: ILogger): void {
-  registerNetworkHooks(events, logger);
+export function registerHooks(
+  events: Events,
+  timers: ITimers,
+  logger?: ILogger
+): void {
+  registerNetworkHooks(events, timers, logger);
   const log = logger?.log(DEBUG_NAMESPACE);
   const logSensitive = logger?.log(DEBUG_NAMESPACE_SENSITIVE);
 
@@ -149,7 +154,7 @@ export function registerHooks(events: Events, logger?: ILogger): void {
         if (error === undefined) {
           void events.emit('success', [
             {
-              time: new Date(),
+              time: new Date(timers.now()),
               usecase: context.usecase,
               profile: context.profile,
               provider: context.provider,
@@ -169,7 +174,7 @@ export function registerHooks(events: Events, logger?: ILogger): void {
         // error is defined, handle it
         void events.emit('failure', [
           {
-            time: new Date(),
+            time: new Date(timers.now()),
             usecase: context.usecase,
             profile: context.profile,
             provider: context.provider,
@@ -211,7 +216,7 @@ export function registerHooks(events: Events, logger?: ILogger): void {
             log?.('Switching to provider', action.provider);
             void events.emit('provider-switch', [
               {
-                time: new Date(),
+                time: new Date(timers.now()),
                 toProvider: action.provider,
                 provider: context.provider,
                 usecase: context.usecase,
@@ -233,7 +238,7 @@ export function registerHooks(events: Events, logger?: ILogger): void {
             // missing `toProvider` means that provider-switch **could not** happen
             void events.emit('provider-switch', [
               {
-                time: new Date(),
+                time: new Date(timers.now()),
                 provider: context.provider,
                 usecase: context.usecase,
                 profile: context.profile,
@@ -253,7 +258,11 @@ export function registerHooks(events: Events, logger?: ILogger): void {
   );
 }
 
-function registerNetworkHooks(events: Events, logger?: ILogger): void {
+function registerNetworkHooks(
+  events: Events,
+  timers: ITimers,
+  logger?: ILogger
+): void {
   const log = logger?.log(DEBUG_NAMESPACE);
   const logSensitive = logger?.log(DEBUG_NAMESPACE_SENSITIVE);
   events.on('pre-fetch', { priority: 1 }, async (context, args) => {
@@ -291,7 +300,7 @@ function registerNetworkHooks(events: Events, logger?: ILogger): void {
         break;
 
       case 'backoff':
-        await sleep(resolution.backoff);
+        await timers.sleep(resolution.backoff);
         if (resolution.timeout > 0) {
           const newArgs = clone(args);
           newArgs[1].timeout = resolution.timeout;
@@ -346,7 +355,7 @@ function registerNetworkHooks(events: Events, logger?: ILogger): void {
 
     void events.emit('failure', [
       {
-        time: new Date(),
+        time: new Date(timers.now()),
         usecase: context.usecase,
         profile: context.profile,
         provider: context.provider,

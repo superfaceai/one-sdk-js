@@ -4,6 +4,7 @@ import * as utils from '../internal/superjson/utils';
 import { Events } from '../lib/events';
 import { MockEnvironment } from '../test/environment';
 import { MockFileSystem } from '../test/filesystem';
+import { MockTimers } from '../test/timers';
 import { SuperCache } from './cache';
 import { registerHooks } from './failure/event-adapter';
 import { ProfileConfiguration } from './profile';
@@ -33,8 +34,9 @@ jest.mock('./profile-provider', () => ({
 
 describe('UseCase', () => {
   function createUseCase(cacheExpire?: number) {
-    const events = new Events();
-    registerHooks(events);
+    const timers = new MockTimers();
+    const events = new Events(timers);
+    registerHooks(events, timers);
 
     const mockProfileConfiguration = new ProfileConfiguration('test', '1.0.0');
 
@@ -74,6 +76,7 @@ describe('UseCase', () => {
       events,
       config,
       mockSuperJson,
+      timers,
       filesystem,
       cache
     );
@@ -83,6 +86,7 @@ describe('UseCase', () => {
       performSpy2: mockBoundProfileProvider2.perform,
       usecase,
       cache,
+      timers,
     };
   }
 
@@ -156,19 +160,16 @@ describe('UseCase', () => {
   });
 
   it('rebinds profile provider when timeout expires', async () => {
-    jest.useFakeTimers();
     const expiry = Math.floor(Date.now() / 1000) + 1000 * 60 * 60;
-    const { usecase, cache } = createUseCase(expiry);
+    const { usecase, cache, timers } = createUseCase(expiry);
     const invalidateSpy = jest.spyOn(cache, 'invalidate');
 
     await usecase.perform();
     expect(invalidateSpy).not.toHaveBeenCalled();
 
-    jest.advanceTimersByTime((1000 + 1000 * 60 * 60) * 1000);
+    timers.tick((1000 + 1000 * 60 * 60) * 1000);
 
     await usecase.perform();
     expect(invalidateSpy).toHaveBeenCalled();
-
-    jest.useRealTimers();
   });
 });

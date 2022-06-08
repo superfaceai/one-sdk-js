@@ -22,6 +22,7 @@ import {
 } from '../lib/events';
 import { IFileSystem } from '../lib/io';
 import { ILogger, LogFunction } from '../lib/logger/logger';
+import { ITimers } from '../lib/timers';
 import { SuperCache } from './cache';
 import {
   AbortPolicy,
@@ -61,6 +62,7 @@ class UseCaseBase implements Interceptable {
     public readonly events: Events,
     private readonly config: Config,
     private readonly superJson: SuperJson,
+    private readonly timers: ITimers,
     private readonly fileSystem: IFileSystem,
     private readonly boundProfileProviderCache: SuperCache<{
       provider: IBoundProfileProvider;
@@ -119,11 +121,12 @@ class UseCaseBase implements Interceptable {
           this.superJson,
           this.config,
           this.events,
+          this.timers,
           this.fileSystem,
           this.logger
         )
       );
-    const now = Math.floor(Date.now() / 1000);
+    const now = Math.floor(this.timers.now() / 1000);
     if (expiresAt < now) {
       this.boundProfileProviderCache.invalidate(cacheKey);
       void this.rebind(cacheKey, providerConfig);

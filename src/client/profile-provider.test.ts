@@ -28,6 +28,7 @@ import { IFileSystem } from '../lib/io';
 import { ServiceSelector } from '../lib/services';
 import { MockEnvironment } from '../test/environment';
 import { MockFileSystem } from '../test/filesystem';
+import { MockTimers } from '../test/timers';
 import { ProfileConfiguration } from './profile';
 import { BoundProfileProvider, ProfileProvider } from './profile-provider';
 import { ProviderConfiguration } from './provider';
@@ -42,6 +43,7 @@ const mockConfig = new Config(environment);
 jest.mock('../internal/parser');
 
 describe('profile provider', () => {
+  const timers = new MockTimers();
   const astMetadata: AstMetadata = {
     sourceChecksum: 'checksum',
     astVersion: {
@@ -167,6 +169,7 @@ describe('profile provider', () => {
           mockMapDocument,
           'test',
           mockConfig,
+          timers,
           {
             services: ServiceSelector.withDefaultUrl('test/url'),
             security: [],
@@ -206,6 +209,7 @@ describe('profile provider', () => {
           mockMapDocument,
           'test',
           mockConfig,
+          timers,
           {
             services: ServiceSelector.withDefaultUrl('test/url'),
             security: [],
@@ -240,6 +244,7 @@ describe('profile provider', () => {
           mockMapDocument,
           'test',
           mockConfig,
+          timers,
           {
             services: ServiceSelector.withDefaultUrl('test/url'),
             security: [],
@@ -281,6 +286,7 @@ describe('profile provider', () => {
           mockMapDocument,
           'test',
           mockConfig,
+          timers,
           {
             services: ServiceSelector.withDefaultUrl('test/url'),
             security: [],
@@ -442,8 +448,9 @@ describe('profile provider', () => {
           mockProfileDocument,
           mockProviderConfiguration,
           mockConfig,
-          new Events(),
-          fileSystem
+          new Events(timers),
+          fileSystem,
+          timers
         );
 
         const result = await mockProfileProvider.bind();
@@ -465,8 +472,9 @@ describe('profile provider', () => {
           mockProfileDocument,
           mockProviderConfiguration,
           mockConfig,
-          new Events(),
-          fileSystem
+          new Events(timers),
+          fileSystem,
+          timers
         );
 
         const result = await mockProfileProvider.bind();
@@ -487,8 +495,9 @@ describe('profile provider', () => {
           'test-profile',
           mockProviderConfiguration,
           mockConfig,
-          new Events(),
-          fileSystem
+          new Events(timers),
+          fileSystem,
+          timers
         );
 
         const result = await mockProfileProvider.bind();
@@ -507,8 +516,9 @@ describe('profile provider', () => {
           new ProfileConfiguration('test-profile', '1.0.0'),
           mockProviderConfiguration,
           mockConfig,
-          new Events(),
-          fileSystem
+          new Events(timers),
+          fileSystem,
+          timers
         );
 
         const result = await mockProfileProvider.bind();
@@ -537,8 +547,9 @@ describe('profile provider', () => {
           new ProfileConfiguration('test-profile', '1.0.0'),
           mockProviderConfiguration,
           mockConfig,
-          new Events(),
-          fileSystem
+          new Events(timers),
+          fileSystem,
+          timers
         );
 
         const result = await mockProfileProvider.bind();
@@ -560,8 +571,9 @@ describe('profile provider', () => {
           'test-profile',
           mockProviderConfiguration,
           mockConfig,
-          new Events(),
-          fileSystem
+          new Events(timers),
+          fileSystem,
+          timers
         );
 
         const result = await mockProfileProvider.bind();
@@ -582,8 +594,9 @@ describe('profile provider', () => {
           'test-profile',
           mockProviderConfiguration,
           mockConfig,
-          new Events(),
-          fileSystem
+          new Events(timers),
+          fileSystem,
+          timers
         );
 
         const result = await mockProfileProvider.bind();
@@ -614,8 +627,9 @@ describe('profile provider', () => {
           'test-profile',
           'test',
           mockConfig,
-          new Events(),
-          fileSystem
+          new Events(timers),
+          fileSystem,
+          timers
         );
         await expect(mockProfileProvider.bind()).rejects.toThrow(
           'Hint: Profiles can be installed using the superface cli tool: `superface install --help` for more info'
@@ -637,8 +651,9 @@ describe('profile provider', () => {
           'test-profile',
           mockProviderConfiguration,
           mockConfig,
-          new Events(),
-          fileSystem
+          new Events(timers),
+          fileSystem,
+          timers
         );
         const result = await mockProfileProvider.bind();
 
@@ -681,8 +696,9 @@ describe('profile provider', () => {
           'test-profile',
           mockProviderConfiguration,
           mockConfig,
-          new Events(),
-          fileSystem
+          new Events(timers),
+          fileSystem,
+          timers
         );
         const result = await mockProfileProvider.bind();
 
@@ -724,8 +740,9 @@ describe('profile provider', () => {
           'test-profile',
           mockProviderConfiguration,
           mockConfig,
-          new Events(),
-          fileSystem
+          new Events(timers),
+          fileSystem,
+          timers
         );
 
         await expect(() => mockProfileProvider.bind()).rejects.toMatchObject({
@@ -764,8 +781,9 @@ describe('profile provider', () => {
           'test-profile',
           mockProviderConfiguration,
           mockConfig,
-          new Events(),
-          fileSystem
+          new Events(timers),
+          fileSystem,
+          timers
         );
 
         await expect(() => mockProfileProvider.bind()).rejects.toThrow(
@@ -806,8 +824,9 @@ describe('profile provider', () => {
           'test-profile',
           mockProviderConfiguration,
           mockConfig,
-          new Events(),
-          fileSystem
+          new Events(timers),
+          fileSystem,
+          timers
         );
         const result = await mockProfileProvider.bind();
 
@@ -857,8 +876,9 @@ describe('profile provider', () => {
           mockProfileDocument,
           mockProviderConfiguration,
           mockConfig,
-          new Events(),
-          fileSystem
+          new Events(timers),
+          fileSystem,
+          timers
         );
 
         const result = await mockProfileProvider.bind({ security: [] });
@@ -897,8 +917,9 @@ describe('profile provider', () => {
           mockProfileDocument,
           'test',
           mockConfig,
-          new Events(),
-          fileSystem
+          new Events(timers),
+          fileSystem,
+          timers
         );
 
         await expect(mockProfileProvider.bind()).rejects.toThrow(
@@ -937,8 +958,9 @@ but a secret value was provided for security scheme: made-up-id`
           mockProfileDocument,
           'test',
           mockConfig,
-          new Events(),
-          fileSystem
+          new Events(timers),
+          fileSystem,
+          timers
         );
 
         await expect(mockProfileProvider.bind()).rejects.toThrow(
@@ -977,8 +999,9 @@ but apiKey scheme requires: apikey`
           mockProfileDocument,
           'test',
           mockConfig,
-          new Events(),
-          fileSystem
+          new Events(timers),
+          fileSystem,
+          timers
         );
 
         await expect(mockProfileProvider.bind()).rejects.toThrow(
@@ -1017,8 +1040,9 @@ but http scheme requires: username, password`
           mockProfileDocument,
           'test',
           mockConfig,
-          new Events(),
-          fileSystem
+          new Events(timers),
+          fileSystem,
+          timers
         );
 
         await expect(mockProfileProvider.bind()).rejects.toThrow(
@@ -1057,8 +1081,9 @@ but http scheme requires: token`
           mockProfileDocument,
           'test',
           mockConfig,
-          new Events(),
-          fileSystem
+          new Events(timers),
+          fileSystem,
+          timers
         );
 
         await expect(mockProfileProvider.bind()).rejects.toThrow(
@@ -1105,8 +1130,9 @@ but http scheme requires: digest`
           'test-profile',
           providerConfiguration,
           mockConfig,
-          new Events(),
-          fileSystem
+          new Events(timers),
+          fileSystem,
+          timers
         );
 
         await expect(mockProfileProvider.bind()).rejects.toThrow(
@@ -1168,8 +1194,9 @@ but http scheme requires: digest`
           'test-profile',
           mockProviderConfiguration,
           mockConfig,
-          new Events(),
-          fileSystem
+          new Events(timers),
+          fileSystem,
+          timers
         );
 
         await expect(mockProfileProvider.bind()).rejects.toThrow(

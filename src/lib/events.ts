@@ -12,6 +12,7 @@ import { UnexpectedError } from '../internal/errors';
 import { HttpResponse, RequestParameters } from '../internal/interpreter/http';
 import { FetchInstance } from '../internal/interpreter/http/interfaces';
 import { ILogger, LogFunction } from './logger/logger';
+import { ITimers } from './timers';
 
 const DEBUG_NAMESPACE = 'events';
 
@@ -179,7 +180,7 @@ export class Events {
   private listeners: EventListeners = {};
   public log: LogFunction | undefined;
 
-  constructor(logger?: ILogger) {
+  constructor(public timers: ITimers, logger?: ILogger) {
     this.log = logger?.log(DEBUG_NAMESPACE);
   }
 
@@ -301,7 +302,7 @@ function replacementFunction<E extends keyof EventTypes>(
       if (metadata.placement === 'before' || metadata.placement === 'around') {
         const hookResult = await events.emit(`pre-${metadata.eventName}`, [
           {
-            time: new Date(),
+            time: new Date(events.timers.now()),
             profile: this.metadata?.profile,
             usecase: this.metadata?.usecase,
             provider: this.metadata?.provider,
@@ -338,7 +339,7 @@ function replacementFunction<E extends keyof EventTypes>(
       if (metadata.placement === 'after' || metadata.placement === 'around') {
         const hookResult = await events.emit(`post-${metadata.eventName}`, [
           {
-            time: new Date(),
+            time: new Date(events.timers.now()),
             profile: this.metadata?.profile,
             usecase: this.metadata?.usecase,
             provider: this.metadata?.provider,
