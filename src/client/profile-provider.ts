@@ -54,7 +54,7 @@ import { ProviderConfiguration } from './provider';
 import { fetchBind, fetchMapSource, fetchProviderInfo } from './registry';
 import { resolveSecurityConfiguration } from './security';
 
-function forceCast<T>(_: unknown): asserts _ is T {}
+function forceCast<T>(_: unknown): asserts _ is T { }
 
 function profileAstId(ast: ProfileDocumentNode): string {
   return ast.header.scope !== undefined
@@ -205,6 +205,8 @@ export class BoundProfileProvider {
 
 export type BindConfiguration = {
   security?: SecurityValues[];
+  mapRevision?: string;
+  mapVarinat?: string;
 };
 
 const profileProviderDebug = createDebug('superface:profile-provider');
@@ -283,8 +285,9 @@ export class ProfileProvider {
       `${profileId}.${providerName}`
     );
     let mapAst = resolvedMapAst.mapAst;
-    const mapVariant = resolvedMapAst.mapVariant;
-    const mapRevision = resolvedMapAst.mapRevision;
+    const mapVariant = configuration?.mapVarinat ?? resolvedMapAst.mapVariant;
+    const mapRevision =
+      configuration?.mapRevision ?? resolvedMapAst.mapRevision;
 
     // resolve map ast using bind and fill in provider info if not specified
     if (mapAst === undefined) {
@@ -350,7 +353,7 @@ export class ProfileProvider {
         ),
         profileProviderSettings:
           this.superJson.normalized.profiles[profileId]?.providers[
-            providerInfo.name
+          providerInfo.name
           ],
         security: securityConfiguration,
         parameters: this.resolveIntegrationParameters(

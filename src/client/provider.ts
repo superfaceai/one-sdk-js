@@ -6,7 +6,9 @@ import { SuperfaceClientBase } from './client';
 export class ProviderConfiguration {
   constructor(
     public readonly name: string,
-    public readonly security: SecurityValues[]
+    public readonly security: SecurityValues[],
+    public readonly mapRevision?: string,
+    public readonly mapVariant?: string
   ) {}
 
   get cacheKey(): string {
@@ -26,7 +28,9 @@ export class Provider {
   }): Promise<Provider> {
     const newConfiguration = new ProviderConfiguration(
       this.configuration.name,
-      mergeSecurity(this.configuration.security, configuration.security ?? [])
+      mergeSecurity(this.configuration.security, configuration.security ?? []),
+      this.configuration.mapRevision,
+      this.configuration.mapVariant
     );
 
     return new Provider(this.client, newConfiguration);

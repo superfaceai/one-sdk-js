@@ -103,6 +103,8 @@ export abstract class SuperfaceClientBase extends Events {
 
     const boundProfileProvider = await profileProvider.bind({
       security: providerConfig.security,
+      mapRevision: providerConfig.mapRevision,
+      mapVarinat: providerConfig.mapVariant,
     });
     this.boundCache[cacheKey] = {
       profileProvider: boundProfileProvider,
