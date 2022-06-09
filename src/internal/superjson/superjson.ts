@@ -73,7 +73,7 @@ export class SuperJson {
     // check whether super.json is accessible in cwd
     if (await fileSystem.isAccessible(fileSystem.path.join(cwd, META_FILE))) {
       return fileSystem.path.normalize(
-        fileSystem.path.relative(process.cwd(), cwd)
+        fileSystem.path.relative(fileSystem.path.cwd(), cwd)
       );
     }
 
@@ -85,7 +85,7 @@ export class SuperJson {
     ) {
       return fileSystem.path.normalize(
         fileSystem.path.relative(
-          process.cwd(),
+          fileSystem.path.cwd(),
           fileSystem.path.join(cwd, SUPERFACE_DIR)
         )
       );

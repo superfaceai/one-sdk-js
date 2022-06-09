@@ -16,6 +16,10 @@ import {
   handleNodeError,
 } from './filesystem.errors';
 
+function cwd(): string {
+  return process.cwd();
+}
+
 async function exists(path: string): Promise<boolean> {
   try {
     await fsp.access(path);
@@ -290,6 +294,7 @@ function writeFileSync(
 
 export const NodeFileSystem: IFileSystem = {
   path: {
+    cwd,
     dirname,
     join,
     normalize,

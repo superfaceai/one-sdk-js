@@ -7,6 +7,11 @@ export interface IFileSystem {
    */
   path: {
     /**
+     * Returns the path to the current working directory
+     */
+    cwd(): string;
+
+    /**
      * Returns the directory name of the given path.
      */
     dirname: (path: string) => string;

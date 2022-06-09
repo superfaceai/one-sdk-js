@@ -15,6 +15,7 @@ export const MockFileSystem: () => IFileSystem = () => ({
     writeFile: jest.fn(() => ok(undefined)),
   },
   path: {
+    cwd: jest.fn(() => '.'),
     dirname: jest.fn(() => ''),
     join: jest.fn((...strings: string[]) => strings.join('/')),
     normalize: jest.fn((path: string) => path),

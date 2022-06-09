@@ -5,7 +5,9 @@ import { ILogger, LogFunction } from './lib/logger/logger';
 
 const DEBUG_NAMESPACE = 'config';
 
-type JoinPath = { path: { join: IFileSystem['path']['join'] } };
+type FSPath = {
+  path: { join: IFileSystem['path']['join']; cwd: () => string };
+};
 
 export interface IConfig {
   cachePath: string;
@@ -33,20 +35,20 @@ const BOUND_PROVIDER_CACHE_TIMEOUT = 'SUPERFACE_CACHE_TIMEOUT';
 
 // Defaults
 export const DEFAULT_API_URL = new URL('https://superface.ai').href;
-export const DEFAULT_SUPERFACE_PATH = (fileSystem: JoinPath): string =>
-  fileSystem.path.join(process.cwd(), 'superface', 'super.json');
+export const DEFAULT_SUPERFACE_PATH = (fileSystem: FSPath): string =>
+  fileSystem.path.join(fileSystem.path.cwd(), 'superface', 'super.json');
 export const DEFAULT_METRIC_DEBOUNCE_TIME = {
   min: 1000,
   max: 60000,
 };
-export const DEFAULT_CACHE_PATH = (fileSystem: JoinPath): string =>
-  fileSystem.path.join(process.cwd(), 'superface', '.cache');
+export const DEFAULT_CACHE_PATH = (fileSystem: FSPath): string =>
+  fileSystem.path.join(fileSystem.path.cwd(), 'superface', '.cache');
 export const DEFAULT_SANDBOX_TIMEOUT = 100;
 export const DEFAULT_DISABLE_REPORTING = false;
 // 1 hour
 export const DEFAULT_BOUND_PROVIDER_TIMEOUT = 60 * 60;
 
-const DEFAULTS = (fileSystem: JoinPath): IConfig => ({
+const DEFAULTS = (fileSystem: FSPath): IConfig => ({
   cachePath: DEFAULT_CACHE_PATH(fileSystem),
   disableReporting: DEFAULT_DISABLE_REPORTING,
   metricDebounceTimeMax: DEFAULT_METRIC_DEBOUNCE_TIME.max,
@@ -166,7 +168,7 @@ export class Config implements IConfig {
     private environment: IEnvironment,
     logger?: ILogger,
     config?: Partial<IConfig>,
-    private fileSystem: JoinPath = NodeFileSystem
+    private fileSystem: FSPath = NodeFileSystem
   ) {
     const defaults = DEFAULTS(fileSystem);
     this.cachePath = config?.cachePath ?? defaults.cachePath;
