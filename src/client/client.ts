@@ -1,6 +1,6 @@
 import { SuperJsonDocument } from '@superfaceai/ast';
 
-import { Config } from '../config';
+import { Config, IConfig } from '../config';
 import { SuperJson } from '../internal';
 import { NonPrimitive } from '../internal/interpreter/variables';
 import {
@@ -52,6 +52,27 @@ const resolveSuperJson = (
   return new SuperJson(superJson);
 };
 
+const setupMetricReporter = (
+  superJson: SuperJson,
+  config: IConfig,
+  timers: ITimers,
+  events: Events,
+  logger?: ILogger
+) => {
+  const metricReporter = new MetricReporter(superJson, config, timers, logger);
+  hookMetrics(events, metricReporter);
+  metricReporter.reportEvent({
+    eventType: 'SDKInit',
+    occurredAt: new Date(timers.now()),
+  });
+  process.on('beforeExit', () => metricReporter.flush());
+  process.on('uncaughtExceptionMonitor', () => {
+    console.warn(
+      'Warning: you do not handle all exceptions. This can prevent failure report to be sent.'
+    );
+  });
+};
+
 export abstract class SuperfaceClientBase {
   public readonly superJson: SuperJson;
   protected readonly events: Events;
@@ -83,19 +104,14 @@ export abstract class SuperfaceClientBase {
       this.logger
     );
 
-    let metricReporter: MetricReporter | undefined;
     if (!this.config.disableReporting) {
-      metricReporter = new MetricReporter(
+      setupMetricReporter(
         this.superJson,
         this.config,
         this.timers,
+        this.events,
         this.logger
       );
-      hookMetrics(this.events, metricReporter);
-      metricReporter.reportEvent({
-        eventType: 'SDKInit',
-        occurredAt: new Date(this.timers.now()),
-      });
     }
 
     registerFailoverHooks(this.events, this.timers, this.logger);

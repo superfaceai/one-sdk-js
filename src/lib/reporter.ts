@@ -140,12 +140,6 @@ export function hookMetrics(
   events: Events,
   metricReporter: MetricReporter
 ): void {
-  process.on('beforeExit', () => metricReporter.flush());
-  process.on('uncaughtExceptionMonitor', () => {
-    console.warn(
-      'Warning: you do not handle all exceptions. This can prevent failure report to be sent.'
-    );
-  });
   events.on('success', { priority: 0 }, (context: SuccessContext) => {
     metricReporter.reportEvent({
       eventType: 'PerformMetrics',
