@@ -15,6 +15,7 @@ import {
 
 import { err, ok, Result } from '../../lib';
 import { IEnvironment } from '../../lib/environment';
+import { IFileSystem } from '../../lib/io';
 import { ILogger } from '../../lib/logger/logger';
 import { SDKExecutionError, UnexpectedError } from '../errors';
 import { profileNotFoundError, providersNotSetError } from '../errors.helpers';
@@ -96,6 +97,7 @@ export function mergeProfile(
   profileName: string,
   payload: ProfileEntry,
   environment: IEnvironment,
+  filesystem: IFileSystem,
   logger?: ILogger
 ): boolean {
   // if specified profile is not found
@@ -139,7 +141,7 @@ export function mergeProfile(
       }
 
       document.profiles[profileName] = {
-        file: trimFileURI(payload),
+        file: filesystem.path.normalize(trimFileURI(payload)),
         ...commonProperties,
       };
 
@@ -198,6 +200,7 @@ export function mergeProfile(
         providerName,
         entry,
         environment,
+        filesystem,
         logger
       )
     );
@@ -233,6 +236,7 @@ export function setProfile(
   profileName: string,
   payload: ProfileEntry | undefined,
   environment: IEnvironment,
+  filesystem: IFileSystem,
   logger?: ILogger
 ): boolean {
   let changed = false;
@@ -254,6 +258,7 @@ export function setProfile(
       profileName,
       payload,
       environment,
+      filesystem,
       logger
     );
     changed = changed || mergeChanged;
@@ -323,6 +328,7 @@ export function mergeProfileProvider(
   providerName: string,
   payload: ProfileProviderEntry,
   environment: IEnvironment,
+  fileSystem: IFileSystem,
   logger?: ILogger
 ): boolean {
   const [_, targetProfile] = ensureProfileWithProviders(
@@ -370,7 +376,7 @@ export function mergeProfileProvider(
     }
 
     targetProfile.providers[providerName] = {
-      file: trimFileURI(payload),
+      file: fileSystem.path.normalize(trimFileURI(payload)),
       defaults: profileProvider.defaults,
     };
     targetProfile.priority = resolvePriorityAddition(
@@ -481,6 +487,7 @@ export function setProfileProvider(
   providerName: string,
   payload: ProfileProviderEntry | undefined,
   environment: IEnvironment,
+  filesystem: IFileSystem,
   logger?: ILogger
 ): boolean {
   let changed = false;
@@ -525,6 +532,7 @@ export function setProfileProvider(
       providerName,
       payload,
       environment,
+      filesystem,
       logger
     );
     changed = changed || mergeChanged;
@@ -623,7 +631,8 @@ export function swapProfileProviderVariant(
 export function mergeProvider(
   document: SuperJsonDocument,
   providerName: string,
-  payload: ProviderEntry
+  payload: ProviderEntry,
+  filesystem: IFileSystem
 ): boolean {
   if (document.providers === undefined) {
     document.providers = {};
@@ -643,7 +652,7 @@ export function mergeProvider(
         document.providers[providerName] = composeFileURI(payload);
       } else {
         document.providers[providerName] = {
-          file: trimFileURI(payload),
+          file: filesystem.path.normalize(trimFileURI(payload)),
           // has to be an object because isShorthandAvailable is false
           security: (targetProvider as ProviderSettings).security,
           parameters: (targetProvider as ProviderSettings).parameters,
@@ -698,7 +707,8 @@ export function mergeProvider(
 export function setProvider(
   document: SuperJsonDocument,
   providerName: string,
-  payload: ProviderEntry | undefined
+  payload: ProviderEntry | undefined,
+  filesystem: IFileSystem
 ): boolean {
   let changed = false;
 
@@ -714,7 +724,12 @@ export function setProvider(
 
   // if payload is undefined we already deleted it (or it wasn't present)
   if (payload !== undefined) {
-    const mergeChanged = mergeProvider(document, providerName, payload);
+    const mergeChanged = mergeProvider(
+      document,
+      providerName,
+      payload,
+      filesystem
+    );
     changed = changed || mergeChanged;
   }
 

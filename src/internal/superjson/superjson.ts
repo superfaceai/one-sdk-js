@@ -43,7 +43,6 @@ const DEBUG_NAMESPACE = 'superjson';
 
 export const SUPERFACE_DIR = 'superface';
 export const META_FILE = 'super.json';
-// export const SUPER_PATH = joinPath(SUPERFACE_DIR, META_FILE);
 
 export class SuperJson {
   private normalizedCache?: NormalizedSuperJsonDocument;
@@ -247,6 +246,7 @@ export class SuperJson {
       profileName,
       payload,
       this.environment,
+      this.fileSystem,
       logger
     );
     if (changed) {
@@ -270,6 +270,7 @@ export class SuperJson {
       profileName,
       payload,
       this.environment,
+      this.fileSystem,
       this.logger
     );
     if (changed) {
@@ -295,6 +296,7 @@ export class SuperJson {
       providerName,
       payload,
       this.environment,
+      this.fileSystem,
       this.logger
     );
     if (changed) {
@@ -320,6 +322,7 @@ export class SuperJson {
       providerName,
       payload,
       this.environment,
+      this.fileSystem,
       this.logger
     );
     if (changed) {
@@ -360,7 +363,12 @@ export class SuperJson {
    * Creates the provider if it doesn't exist.
    */
   public mergeProvider(providerName: string, payload: ProviderEntry): boolean {
-    const changed = mergeProvider(this.document, providerName, payload);
+    const changed = mergeProvider(
+      this.document,
+      providerName,
+      payload,
+      this.fileSystem
+    );
     if (changed) {
       this.normalizedCache = undefined;
     }
@@ -377,7 +385,12 @@ export class SuperJson {
     providerName: string,
     payload: ProviderEntry | undefined
   ): boolean {
-    const changed = setProvider(this.document, providerName, payload);
+    const changed = setProvider(
+      this.document,
+      providerName,
+      payload,
+      this.fileSystem
+    );
     if (changed) {
       this.normalizedCache = undefined;
     }
