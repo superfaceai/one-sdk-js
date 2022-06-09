@@ -42,6 +42,7 @@ import { Parser } from '../internal/parser';
 import { SuperJson } from '../internal/superjson';
 import { mergeSecurity } from '../internal/superjson/mutate';
 import { err, ok, Result } from '../lib';
+import { ICrypto } from '../lib/crypto';
 import { Events, Interceptable } from '../lib/events';
 import { CrossFetch } from '../lib/fetch';
 import { IFileSystem } from '../lib/io';
@@ -73,6 +74,7 @@ export async function bindProfileProvider(
   events: Events,
   timers: ITimers,
   fileSystem: IFileSystem,
+  crypto: ICrypto,
   logger?: ILogger
 ): Promise<{ provider: IBoundProfileProvider; expiresAt: number }> {
   const profileProvider = new ProfileProvider(
@@ -83,6 +85,7 @@ export async function bindProfileProvider(
     events,
     fileSystem,
     timers,
+    crypto,
     logger
   );
   const boundProfileProvider = await profileProvider.bind();
@@ -121,6 +124,7 @@ export class BoundProfileProvider implements IBoundProfileProvider {
       security: SecurityConfiguration[];
       parameters?: Record<string, string>;
     },
+    private readonly crypto: ICrypto,
     private readonly logger?: ILogger,
     events?: Events
   ) {
@@ -191,6 +195,7 @@ export class BoundProfileProvider implements IBoundProfileProvider {
           this.fetchInstance.events
         ),
         logger: this.logger,
+        crypto: this.crypto,
       }
     );
 
@@ -274,6 +279,7 @@ export class ProfileProvider {
     private events: Events,
     private readonly fileSystem: IFileSystem,
     private readonly timers: ITimers,
+    private readonly crypto: ICrypto,
     private readonly logger?: ILogger,
     /** url or ast node */
     private map?: string | MapDocumentNode
@@ -360,6 +366,7 @@ export class ProfileProvider {
         },
         this.config,
         this.timers,
+        this.crypto,
         this.logger
       );
 
@@ -378,6 +385,7 @@ export class ProfileProvider {
           mapId,
           this.config,
           this.timers,
+          this.crypto,
           this.logger
         );
 
@@ -433,6 +441,7 @@ export class ProfileProvider {
           this.superJson.normalized.providers[providerInfo.name]?.parameters
         ),
       },
+      this.crypto,
       this.logger,
       this.events
     );
@@ -509,6 +518,7 @@ export class ProfileProvider {
           providerName,
           this.config,
           this.timers,
+          this.crypto,
           this.logger
         );
         await this.writeProviderCache(this.providerJson);

@@ -7,6 +7,7 @@ import {
   getProvider,
   getProviderForProfile,
 } from '../internal/superjson/utils';
+import { ICrypto, NodeCrypto } from '../lib/crypto';
 import { IEnvironment } from '../lib/environment';
 import { NodeEnvironment } from '../lib/environment/environment.node';
 import { Events } from '../lib/events';
@@ -33,6 +34,7 @@ export interface ISuperfaceClient {
 const resolveSuperJson = (
   path: string,
   environment: IEnvironment,
+  crypto: ICrypto,
   superJson?: SuperJson | SuperJsonDocument,
   logger?: ILogger
 ): SuperJson => {
@@ -41,6 +43,7 @@ const resolveSuperJson = (
       path,
       NodeFileSystem,
       environment,
+      crypto,
       logger
     ).unwrap();
   }
@@ -84,10 +87,12 @@ export abstract class SuperfaceClientBase {
 
   protected readonly config: Config;
   protected readonly timers: ITimers;
+  protected readonly crypto: ICrypto;
   protected readonly logger?: ILogger;
 
   constructor(options?: { superJson?: SuperJson | SuperJsonDocument }) {
     const environment = new NodeEnvironment();
+    this.crypto = new NodeCrypto();
     this.timers = new NodeTimers();
     this.logger = new NodeLogger();
     this.events = new Events(this.timers, this.logger);
@@ -100,6 +105,7 @@ export abstract class SuperfaceClientBase {
     this.superJson = resolveSuperJson(
       this.config.superfacePath,
       environment,
+      this.crypto,
       options?.superJson,
       this.logger
     );
@@ -123,6 +129,7 @@ export abstract class SuperfaceClientBase {
       this.timers,
       NodeFileSystem,
       this.boundProfileProviderCache,
+      this.crypto,
       this.logger
     );
   }
@@ -188,6 +195,7 @@ export function createTypedClient<TProfiles extends ProfileUseCases<any, any>>(
         this.config,
         this.timers,
         NodeFileSystem,
+        this.crypto,
         Object.keys(profileDefinitions[profileId]),
         this.logger
       );

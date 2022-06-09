@@ -15,6 +15,7 @@ import {
   unknownProviderInfoError,
 } from '../internal/errors.helpers';
 import { HttpClient, HttpResponse } from '../internal/interpreter/http';
+import { ICrypto } from '../lib/crypto';
 import { CrossFetch } from '../lib/fetch';
 import { ILogger } from '../lib/logger/logger';
 import { ITimers } from '../lib/timers';
@@ -72,10 +73,11 @@ export async function fetchProviderInfo(
   providerName: string,
   config: IConfig,
   timers: ITimers,
+  crypto: ICrypto,
   logger?: ILogger
 ): Promise<ProviderJson> {
   const fetchInstance = new CrossFetch(timers);
-  const http = new HttpClient(fetchInstance, logger);
+  const http = new HttpClient(fetchInstance, crypto, logger);
   const sdkToken = config.sdkAuthToken;
 
   logger?.log(
@@ -216,13 +218,14 @@ export async function fetchBind(
   },
   config: IConfig,
   timers: ITimers,
+  crypto: ICrypto,
   logger?: ILogger
 ): Promise<{
   provider: ProviderJson;
   mapAst?: MapDocumentNode;
 }> {
   const fetchInstance = new CrossFetch(timers);
-  const http = new HttpClient(fetchInstance, logger);
+  const http = new HttpClient(fetchInstance, crypto, logger);
   const sdkToken = config.sdkAuthToken;
   logger?.log(DEBUG_NAMESPACE, 'Binding SDK to registry');
 
@@ -253,10 +256,11 @@ export async function fetchMapSource(
   mapId: string,
   config: IConfig,
   timers: ITimers,
+  crypto: ICrypto,
   logger?: ILogger
 ): Promise<string> {
   const fetchInstance = new CrossFetch(timers);
-  const http = new HttpClient(fetchInstance, logger);
+  const http = new HttpClient(fetchInstance, crypto, logger);
   const sdkToken = config.sdkAuthToken;
   logger?.log(DEBUG_NAMESPACE, `Getting source of map: "${mapId}"`);
 

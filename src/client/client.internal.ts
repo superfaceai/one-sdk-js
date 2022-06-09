@@ -5,6 +5,7 @@ import {
   unconfiguredProviderInPriorityError,
 } from '../internal/errors.helpers';
 import { SuperJson } from '../internal/superjson';
+import { ICrypto } from '../lib/crypto';
 import { Events } from '../lib/events';
 import { IFileSystem } from '../lib/io';
 import { ILogger } from '../lib/logger/logger';
@@ -24,6 +25,7 @@ export class InternalClient {
       provider: IBoundProfileProvider;
       expiresAt: number;
     }>,
+    private readonly crypto: ICrypto,
     private readonly logger?: ILogger
   ) {}
 
@@ -38,6 +40,7 @@ export class InternalClient {
       this.timers,
       this.fileSystem,
       this.boundProfileProviderCache,
+      this.crypto,
       this.logger
     );
   }

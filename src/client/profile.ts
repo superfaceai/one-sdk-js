@@ -2,6 +2,7 @@ import { Config } from '../config';
 import { SuperJson, UnexpectedError } from '../internal';
 import { usecaseNotFoundError } from '../internal/errors.helpers';
 import { NonPrimitive } from '../internal/interpreter/variables';
+import { ICrypto } from '../lib/crypto';
 import { Events } from '../lib/events';
 import { IFileSystem } from '../lib/io';
 import { ILogger } from '../lib/logger/logger';
@@ -32,7 +33,7 @@ export type KnownUsecase<TUsecase extends UsecaseType> = {
   [name in keyof TUsecase]: TypedUseCase<TUsecase[name][0], TUsecase[name][1]>;
 };
 
-export class ProfileBase {
+export abstract class ProfileBase {
   constructor(
     public readonly configuration: ProfileConfiguration,
     protected readonly events: Events,
@@ -44,6 +45,7 @@ export class ProfileBase {
       provider: IBoundProfileProvider;
       expiresAt: number;
     }>,
+    protected readonly crypto: ICrypto,
     protected readonly logger?: ILogger
   ) {}
 
@@ -66,6 +68,7 @@ export class Profile extends ProfileBase {
       this.superJson,
       this.timers,
       this.fileSystem,
+      this.crypto,
       this.boundProfileProviderCache,
       this.logger
     );
@@ -89,6 +92,7 @@ export class TypedProfile<
     protected override readonly config: Config,
     protected override readonly timers: ITimers,
     protected override readonly fileSystem: IFileSystem,
+    protected override readonly crypto: ICrypto,
     usecases: (keyof TUsecaseTypes)[],
     protected override readonly logger?: ILogger
   ) {
@@ -100,6 +104,7 @@ export class TypedProfile<
       timers,
       fileSystem,
       boundProfileProviderCache,
+      crypto,
       logger
     );
     this.knownUsecases = usecases.reduce(
@@ -116,6 +121,7 @@ export class TypedProfile<
           superJson,
           timers,
           fileSystem,
+          crypto,
           boundProfileProviderCache,
           logger
         ),

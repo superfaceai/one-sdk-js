@@ -1,6 +1,7 @@
 import { Config } from '../config';
 import { SuperJson } from '../internal';
 import * as utils from '../internal/superjson/utils';
+import { NodeCrypto } from '../lib/crypto';
 import { Events } from '../lib/events';
 import { MockEnvironment } from '../test/environment';
 import { MockFileSystem } from '../test/filesystem';
@@ -34,6 +35,7 @@ jest.mock('./profile-provider', () => ({
 
 describe('UseCase', () => {
   function createUseCase(cacheExpire?: number) {
+    const crypto = new NodeCrypto();
     const timers = new MockTimers();
     const events = new Events(timers);
     registerHooks(events, timers);
@@ -78,6 +80,7 @@ describe('UseCase', () => {
       mockSuperJson,
       timers,
       filesystem,
+      crypto,
       cache
     );
 

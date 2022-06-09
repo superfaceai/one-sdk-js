@@ -27,6 +27,7 @@ import {
 
 import { IConfig } from '../../config';
 import { err, ok, Result } from '../../lib';
+import { ICrypto } from '../../lib/crypto';
 import { ILogger, LogFunction } from '../../lib/logger/logger';
 import { IServiceSelector } from '../../lib/services';
 import { UnexpectedError } from '../errors';
@@ -152,14 +153,16 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
       externalHandler,
       config,
       logger,
+      crypto,
     }: {
       fetchInstance: FetchInstance & AuthCache;
       externalHandler?: MapInterpreterExternalHandler;
       config: IConfig;
+      crypto: ICrypto;
       logger?: ILogger;
     }
   ) {
-    this.http = new HttpClient(fetchInstance, logger);
+    this.http = new HttpClient(fetchInstance, crypto, logger);
     this.externalHandler = externalHandler ?? {};
     this.config = config;
     this.logger = logger;

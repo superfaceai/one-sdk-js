@@ -6,6 +6,7 @@ import {
 } from '@superfaceai/ast';
 import { createHash } from 'crypto';
 
+import { NodeCrypto } from '../../../../../lib/crypto';
 import {
   digestHeaderNotFound,
   missingPartOfDigestHeader,
@@ -22,6 +23,7 @@ import {
 import { DigestHandler } from './digest';
 
 const mockFetch = jest.fn();
+const crypto = new NodeCrypto();
 
 describe('DigestHandler', () => {
   const id = 'digest';
@@ -104,7 +106,7 @@ describe('DigestHandler', () => {
         },
       }));
 
-      mockInstance = new DigestHandler(configuration, fetchInstance);
+      mockInstance = new DigestHandler(configuration, fetchInstance, crypto);
       (mockInstance as any).makeNonce = () => mockCnonce;
 
       expect(
@@ -117,10 +119,14 @@ describe('DigestHandler', () => {
     });
 
     it('changes default authorization header when cache is not empty', async () => {
-      mockInstance = new DigestHandler(configuration, {
-        ...fetchInstance,
-        digest: 'secret',
-      });
+      mockInstance = new DigestHandler(
+        configuration,
+        {
+          ...fetchInstance,
+          digest: 'secret',
+        },
+        crypto
+      );
 
       expect(
         (await mockInstance.authenticate(parameters)).headers?.[
@@ -132,10 +138,14 @@ describe('DigestHandler', () => {
     it('changes custom authorization header when cache is not empty', async () => {
       configuration.authorizationHeader = 'custom';
 
-      mockInstance = new DigestHandler(configuration, {
-        ...fetchInstance,
-        digest: 'secret',
-      });
+      mockInstance = new DigestHandler(
+        configuration,
+        {
+          ...fetchInstance,
+          digest: 'secret',
+        },
+        crypto
+      );
       expect(
         (await mockInstance.authenticate(parameters)).headers?.custom
       ).toEqual('secret');
@@ -163,7 +173,8 @@ describe('DigestHandler', () => {
       };
       retryRequest = await new DigestHandler(
         configuration,
-        fetchInstance
+        fetchInstance,
+        crypto
       ).handleResponse(response, parameters);
 
       expect(retryRequest).toBeUndefined();
@@ -184,7 +195,7 @@ describe('DigestHandler', () => {
       };
 
       await expect(async () =>
-        new DigestHandler(configuration, fetchInstance).handleResponse(
+        new DigestHandler(configuration, fetchInstance, crypto).handleResponse(
           response,
           parameters
         )
@@ -212,7 +223,7 @@ describe('DigestHandler', () => {
       };
 
       await expect(async () =>
-        new DigestHandler(configuration, fetchInstance).handleResponse(
+        new DigestHandler(configuration, fetchInstance, crypto).handleResponse(
           response,
           parameters
         )
@@ -242,7 +253,7 @@ describe('DigestHandler', () => {
       };
 
       await expect(async () =>
-        new DigestHandler(configuration, fetchInstance).handleResponse(
+        new DigestHandler(configuration, fetchInstance, crypto).handleResponse(
           response,
           parameters
         )
@@ -271,7 +282,7 @@ describe('DigestHandler', () => {
       };
 
       await expect(async () =>
-        new DigestHandler(configuration, fetchInstance).handleResponse(
+        new DigestHandler(configuration, fetchInstance, crypto).handleResponse(
           response,
           parameters
         )
@@ -305,7 +316,7 @@ describe('DigestHandler', () => {
       };
 
       await expect(async () =>
-        new DigestHandler(configuration, fetchInstance).handleResponse(
+        new DigestHandler(configuration, fetchInstance, crypto).handleResponse(
           response,
           parameters
         )
@@ -348,7 +359,7 @@ describe('DigestHandler', () => {
       const cacheAndFetch: FetchInstance & AuthCache = {
         ...fetchInstance,
       };
-      mockInstance = new DigestHandler(configuration, cacheAndFetch);
+      mockInstance = new DigestHandler(configuration, cacheAndFetch, crypto);
 
       (mockInstance as any).makeNonce = () => mockCnonce;
       retryRequest = await mockInstance.handleResponse(response, parameters);
@@ -390,7 +401,7 @@ describe('DigestHandler', () => {
       const cacheAndFetch: FetchInstance & AuthCache = {
         ...fetchInstance,
       };
-      mockInstance = new DigestHandler(configuration, cacheAndFetch);
+      mockInstance = new DigestHandler(configuration, cacheAndFetch, crypto);
 
       (mockInstance as any).makeNonce = () => mockCnonce;
       retryRequest = await mockInstance.handleResponse(response, parameters);
@@ -430,7 +441,7 @@ describe('DigestHandler', () => {
       const cacheAndFetch: FetchInstance & AuthCache = {
         ...fetchInstance,
       };
-      mockInstance = new DigestHandler(configuration, cacheAndFetch);
+      mockInstance = new DigestHandler(configuration, cacheAndFetch, crypto);
 
       (mockInstance as any).makeNonce = () => mockCnonce;
       retryRequest = await mockInstance.handleResponse(response, parameters);
@@ -474,7 +485,7 @@ describe('DigestHandler', () => {
       const cacheAndFetch: FetchInstance & AuthCache = {
         ...fetchInstance,
       };
-      mockInstance = new DigestHandler(configuration, cacheAndFetch);
+      mockInstance = new DigestHandler(configuration, cacheAndFetch, crypto);
 
       (mockInstance as any).makeNonce = () => mockCnonce;
       retryRequest = await mockInstance.handleResponse(response, parameters);
@@ -521,7 +532,7 @@ describe('DigestHandler', () => {
       const cacheAndFetch: FetchInstance & AuthCache = {
         ...fetchInstance,
       };
-      mockInstance = new DigestHandler(configuration, cacheAndFetch);
+      mockInstance = new DigestHandler(configuration, cacheAndFetch, crypto);
       (mockInstance as any).makeNonce = () => mockCnonce;
       retryRequest = await mockInstance.handleResponse(response, parameters);
 
@@ -565,7 +576,7 @@ describe('DigestHandler', () => {
       const cacheAndFetch: FetchInstance & AuthCache = {
         ...fetchInstance,
       };
-      mockInstance = new DigestHandler(configuration, cacheAndFetch);
+      mockInstance = new DigestHandler(configuration, cacheAndFetch, crypto);
 
       (mockInstance as any).makeNonce = () => mockCnonce;
 
@@ -610,7 +621,7 @@ describe('DigestHandler', () => {
       const cacheAndFetch: FetchInstance & AuthCache = {
         ...fetchInstance,
       };
-      mockInstance = new DigestHandler(configuration, cacheAndFetch);
+      mockInstance = new DigestHandler(configuration, cacheAndFetch, crypto);
       (mockInstance as any).makeNonce = () => mockCnonce;
 
       retryRequest = await mockInstance.handleResponse(response, parameters);
@@ -657,7 +668,7 @@ describe('DigestHandler', () => {
       const cacheAndFetch: FetchInstance & AuthCache = {
         ...fetchInstance,
       };
-      mockInstance = new DigestHandler(configuration, cacheAndFetch);
+      mockInstance = new DigestHandler(configuration, cacheAndFetch, crypto);
 
       (mockInstance as any).makeNonce = () => mockCnonce;
 

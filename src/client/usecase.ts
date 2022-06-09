@@ -14,6 +14,7 @@ import {
 } from '../internal/superjson/utils';
 import { Result } from '../lib';
 import { Backoff, ConstantBackoff, ExponentialBackoff } from '../lib/backoff';
+import { ICrypto } from '../lib/crypto';
 import {
   eventInterceptor,
   Events,
@@ -64,6 +65,7 @@ class UseCaseBase implements Interceptable {
     private readonly superJson: SuperJson,
     private readonly timers: ITimers,
     private readonly fileSystem: IFileSystem,
+    private readonly crypto: ICrypto,
     private readonly boundProfileProviderCache: SuperCache<{
       provider: IBoundProfileProvider;
       expiresAt: number;
@@ -123,6 +125,7 @@ class UseCaseBase implements Interceptable {
           this.events,
           this.timers,
           this.fileSystem,
+          this.crypto,
           this.logger
         )
       );

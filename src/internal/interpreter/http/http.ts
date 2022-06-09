@@ -4,6 +4,7 @@ import {
   SecurityType,
 } from '@superfaceai/ast';
 
+import { ICrypto } from '../../../lib/crypto';
 import { ILogger } from '../../../lib/logger/logger';
 import { recursiveKeyList } from '../../../lib/object';
 import { pipe } from '../../../lib/pipe/pipe';
@@ -189,6 +190,7 @@ export async function fetchRequest(
 export class HttpClient {
   constructor(
     private fetchInstance: FetchInstance & AuthCache,
+    private readonly crypto: ICrypto,
     private readonly logger?: ILogger
   ) {}
 
@@ -218,6 +220,7 @@ export class HttpClient {
       this.fetchInstance,
       requestParameters.securityConfiguration,
       requestParameters.securityRequirements,
+      this.crypto,
       this.logger
     );
 
@@ -245,6 +248,7 @@ function createSecurityHandler(
   fetchInstance: FetchInstance & AuthCache,
   securityConfiguration: SecurityConfiguration[] = [],
   securityRequirements: HttpSecurityRequirement[] = [],
+  crypto: ICrypto,
   logger?: ILogger
 ): ISecurityHandler | undefined {
   let handler: ISecurityHandler | undefined = undefined;
@@ -258,7 +262,7 @@ function createSecurityHandler(
     if (configuration.type === SecurityType.APIKEY) {
       handler = new ApiKeyHandler(configuration, logger);
     } else if (configuration.scheme === HttpScheme.DIGEST) {
-      handler = new DigestHandler(configuration, fetchInstance, logger);
+      handler = new DigestHandler(configuration, fetchInstance, crypto, logger);
     } else {
       handler = new HttpHandler(configuration, logger);
     }

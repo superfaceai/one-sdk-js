@@ -22,6 +22,7 @@ import {
   getProvider,
   getProviderForProfile,
 } from '../internal/superjson/utils';
+import { ICrypto, NodeCrypto } from '../lib/crypto';
 import { IEnvironment } from '../lib/environment';
 import { Events } from '../lib/events';
 import { IFileSystem } from '../lib/io';
@@ -46,6 +47,7 @@ export class MockClient implements ISuperfaceClient {
   public metricReporter?: MetricReporter;
   public logger?: ILogger;
   public timers: MockTimers;
+  public crypto: ICrypto;
 
   constructor(
     public superJson: SuperJson,
@@ -56,6 +58,8 @@ export class MockClient implements ISuperfaceClient {
   ) {
     // TODO: test logger?
     this.logger = new NodeLogger();
+    // TODO: test crytpo?
+    this.crypto = new NodeCrypto();
     this.environment = new MockEnvironment();
     this.timers = new MockTimers();
 
@@ -97,6 +101,7 @@ export class MockClient implements ISuperfaceClient {
       this.timers,
       fileSystem,
       this.cache,
+      this.crypto,
       this.logger
     );
   }
@@ -123,6 +128,7 @@ export class MockClient implements ISuperfaceClient {
         services: ServiceSelector.withDefaultUrl(baseUrl),
         security: securityValues,
       },
+      this.crypto,
       this.logger,
       this.events
     );

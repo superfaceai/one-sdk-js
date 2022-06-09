@@ -1,6 +1,6 @@
 import { DigestSecurityScheme, DigestSecurityValues } from '@superfaceai/ast';
-import { createHash, randomInt } from 'crypto';
 
+import { ICrypto } from '../../../../../lib/crypto';
 import { ILogger, LogFunction } from '../../../../../lib/logger/logger';
 import { pipe } from '../../../../../lib/pipe/pipe';
 import {
@@ -65,6 +65,7 @@ export class DigestHandler implements ISecurityHandler {
   constructor(
     public readonly configuration: DigestSecurityScheme & DigestSecurityValues,
     private readonly fetchInstance: FetchInstance & AuthCache,
+    private readonly crypto: ICrypto,
     private readonly logger?: ILogger
   ) {
     this.log = logger?.log(DEBUG_NAMESPACE);
@@ -208,19 +209,21 @@ export class DigestHandler implements ISecurityHandler {
     // Default H1
     let ha1 = computeHash(
       digest.algorithm,
-      `${this.configuration.username}:${digest.realm}:${this.configuration.password}`
+      `${this.configuration.username}:${digest.realm}:${this.configuration.password}`,
+      this.crypto
     );
 
     // sess H1 contains original H1 and also nonce and cnonce
     if (digest.algorithm.endsWith('-sess')) {
       ha1 = computeHash(
         digest.algorithm,
-        `${ha1}:${digest.nonce}:${digest.cnonce}`
+        `${ha1}:${digest.nonce}:${digest.cnonce}`,
+        this.crypto
       );
     }
 
     // H2 is same for default and sess
-    const ha2 = computeHash(digest.algorithm, `${method}:${uri}`);
+    const ha2 = computeHash(digest.algorithm, `${method}:${uri}`, this.crypto);
     this.nc++;
     const ncString = String(this.nc).padStart(8, '0');
 
@@ -234,7 +237,7 @@ export class DigestHandler implements ISecurityHandler {
     }
 
     // Hash response
-    const hashedResponse = computeHash(digest.algorithm, response);
+    const hashedResponse = computeHash(digest.algorithm, response, this.crypto);
 
     // Build final auth header
     const opaqueString =
@@ -285,7 +288,7 @@ export class DigestHandler implements ISecurityHandler {
   private makeNonce(): string {
     let uid = '';
     for (let i = 0; i < this.cnonceSize; ++i) {
-      uid += this.nonceRaw[randomInt(this.nonceRaw.length)];
+      uid += this.nonceRaw[this.crypto.randomInt(this.nonceRaw.length)];
     }
 
     return uid;
@@ -368,13 +371,12 @@ function extract(raw: string, field: string, trim = true): string | undefined {
  * @param data data to be hashed
  * @returns hashed data
  */
-export function computeHash(algorithm: DigestAlgorithm, data: string): string {
-  let usedAlgorithm;
-  if (algorithm.startsWith('MD5')) {
-    usedAlgorithm = 'MD5';
-  } else {
-    usedAlgorithm = 'sha256';
-  }
+export function computeHash(
+  algorithm: DigestAlgorithm,
+  data: string,
+  crypto: ICrypto
+): string {
+  const usedAlgorithm = algorithm.startsWith('MD5') ? 'MD5' : 'sha256';
 
-  return createHash(usedAlgorithm).update(data).digest('hex');
+  return crypto.hashString(data, usedAlgorithm);
 }

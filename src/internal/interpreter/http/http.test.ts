@@ -1,5 +1,6 @@
 import { getLocal } from 'mockttp';
 
+import { NodeCrypto } from '../../../lib/crypto';
 import { CrossFetch } from '../../../lib/fetch';
 import { MockTimers } from '../../../test/timers';
 import { Primitive } from '../variables';
@@ -8,7 +9,8 @@ import { createUrl, HttpClient } from './http';
 const mockServer = getLocal();
 const timers = new MockTimers();
 const fetchInstance = new CrossFetch(timers);
-const http = new HttpClient(fetchInstance);
+const crypto = new NodeCrypto();
+const http = new HttpClient(fetchInstance, crypto);
 
 describe('HttpClient', () => {
   let baseUrl: string;
@@ -125,9 +127,12 @@ describe('HttpClient', () => {
             headers: [],
           });
 
-          httpClient = new HttpClient({
-            fetch: fetchMock,
-          });
+          httpClient = new HttpClient(
+            {
+              fetch: fetchMock,
+            },
+            crypto
+          );
 
           await httpClient.request('/data', {
             method: 'post',

@@ -23,6 +23,7 @@ import { Parser } from '../internal/parser';
 import { SuperJson } from '../internal/superjson';
 import * as SuperJsonMutate from '../internal/superjson/mutate';
 import { err, ok } from '../lib';
+import { NodeCrypto } from '../lib/crypto';
 import { Events } from '../lib/events';
 import { IFileSystem } from '../lib/io';
 import { ServiceSelector } from '../lib/services';
@@ -38,6 +39,7 @@ jest.mock('./registry');
 
 const environment = new MockEnvironment();
 const mockConfig = new Config(environment);
+const crypto = new NodeCrypto();
 
 // Mock parser
 jest.mock('../internal/parser');
@@ -173,7 +175,8 @@ describe('profile provider', () => {
           {
             services: ServiceSelector.withDefaultUrl('test/url'),
             security: [],
-          }
+          },
+          crypto
         );
 
         await expect(
@@ -213,7 +216,8 @@ describe('profile provider', () => {
           {
             services: ServiceSelector.withDefaultUrl('test/url'),
             security: [],
-          }
+          },
+          crypto
         );
 
         await expect(
@@ -248,7 +252,8 @@ describe('profile provider', () => {
           {
             services: ServiceSelector.withDefaultUrl('test/url'),
             security: [],
-          }
+          },
+          crypto
         );
 
         await expect(
@@ -298,7 +303,8 @@ describe('profile provider', () => {
                 },
               },
             },
-          }
+          },
+          crypto
         );
         await expect(
           mockBoundProfileProvider.perform<undefined, string>('test')
@@ -450,7 +456,8 @@ describe('profile provider', () => {
           mockConfig,
           new Events(timers),
           fileSystem,
-          timers
+          timers,
+          crypto
         );
 
         const result = await mockProfileProvider.bind();
@@ -474,7 +481,8 @@ describe('profile provider', () => {
           mockConfig,
           new Events(timers),
           fileSystem,
-          timers
+          timers,
+          crypto
         );
 
         const result = await mockProfileProvider.bind();
@@ -497,7 +505,8 @@ describe('profile provider', () => {
           mockConfig,
           new Events(timers),
           fileSystem,
-          timers
+          timers,
+          crypto
         );
 
         const result = await mockProfileProvider.bind();
@@ -518,7 +527,8 @@ describe('profile provider', () => {
           mockConfig,
           new Events(timers),
           fileSystem,
-          timers
+          timers,
+          crypto
         );
 
         const result = await mockProfileProvider.bind();
@@ -549,7 +559,8 @@ describe('profile provider', () => {
           mockConfig,
           new Events(timers),
           fileSystem,
-          timers
+          timers,
+          crypto
         );
 
         const result = await mockProfileProvider.bind();
@@ -573,7 +584,8 @@ describe('profile provider', () => {
           mockConfig,
           new Events(timers),
           fileSystem,
-          timers
+          timers,
+          crypto
         );
 
         const result = await mockProfileProvider.bind();
@@ -596,7 +608,8 @@ describe('profile provider', () => {
           mockConfig,
           new Events(timers),
           fileSystem,
-          timers
+          timers,
+          crypto
         );
 
         const result = await mockProfileProvider.bind();
@@ -629,7 +642,8 @@ describe('profile provider', () => {
           mockConfig,
           new Events(timers),
           fileSystem,
-          timers
+          timers,
+          crypto
         );
         await expect(mockProfileProvider.bind()).rejects.toThrow(
           'Hint: Profiles can be installed using the superface cli tool: `superface install --help` for more info'
@@ -653,7 +667,8 @@ describe('profile provider', () => {
           mockConfig,
           new Events(timers),
           fileSystem,
-          timers
+          timers,
+          crypto
         );
         const result = await mockProfileProvider.bind();
 
@@ -698,7 +713,8 @@ describe('profile provider', () => {
           mockConfig,
           new Events(timers),
           fileSystem,
-          timers
+          timers,
+          crypto
         );
         const result = await mockProfileProvider.bind();
 
@@ -742,7 +758,8 @@ describe('profile provider', () => {
           mockConfig,
           new Events(timers),
           fileSystem,
-          timers
+          timers,
+          crypto
         );
 
         await expect(() => mockProfileProvider.bind()).rejects.toMatchObject({
@@ -783,7 +800,8 @@ describe('profile provider', () => {
           mockConfig,
           new Events(timers),
           fileSystem,
-          timers
+          timers,
+          crypto
         );
 
         await expect(() => mockProfileProvider.bind()).rejects.toThrow(
@@ -826,7 +844,8 @@ describe('profile provider', () => {
           mockConfig,
           new Events(timers),
           fileSystem,
-          timers
+          timers,
+          crypto
         );
         const result = await mockProfileProvider.bind();
 
@@ -878,7 +897,8 @@ describe('profile provider', () => {
           mockConfig,
           new Events(timers),
           fileSystem,
-          timers
+          timers,
+          crypto
         );
 
         const result = await mockProfileProvider.bind({ security: [] });
@@ -919,7 +939,8 @@ describe('profile provider', () => {
           mockConfig,
           new Events(timers),
           fileSystem,
-          timers
+          timers,
+          crypto
         );
 
         await expect(mockProfileProvider.bind()).rejects.toThrow(
@@ -960,7 +981,8 @@ but a secret value was provided for security scheme: made-up-id`
           mockConfig,
           new Events(timers),
           fileSystem,
-          timers
+          timers,
+          crypto
         );
 
         await expect(mockProfileProvider.bind()).rejects.toThrow(
@@ -1001,7 +1023,8 @@ but apiKey scheme requires: apikey`
           mockConfig,
           new Events(timers),
           fileSystem,
-          timers
+          timers,
+          crypto
         );
 
         await expect(mockProfileProvider.bind()).rejects.toThrow(
@@ -1042,7 +1065,8 @@ but http scheme requires: username, password`
           mockConfig,
           new Events(timers),
           fileSystem,
-          timers
+          timers,
+          crypto
         );
 
         await expect(mockProfileProvider.bind()).rejects.toThrow(
@@ -1083,7 +1107,8 @@ but http scheme requires: token`
           mockConfig,
           new Events(timers),
           fileSystem,
-          timers
+          timers,
+          crypto
         );
 
         await expect(mockProfileProvider.bind()).rejects.toThrow(
@@ -1132,7 +1157,8 @@ but http scheme requires: digest`
           mockConfig,
           new Events(timers),
           fileSystem,
-          timers
+          timers,
+          crypto
         );
 
         await expect(mockProfileProvider.bind()).rejects.toThrow(
@@ -1196,7 +1222,8 @@ but http scheme requires: digest`
           mockConfig,
           new Events(timers),
           fileSystem,
-          timers
+          timers,
+          crypto
         );
 
         await expect(mockProfileProvider.bind()).rejects.toThrow(

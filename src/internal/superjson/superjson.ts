@@ -11,6 +11,7 @@ import {
 
 import { err, ok, Result } from '../../lib';
 import { configHash } from '../../lib/config-hash';
+import { ICrypto, NodeCrypto } from '../../lib/crypto';
 import { IEnvironment } from '../../lib/environment';
 import { NodeEnvironment } from '../../lib/environment/environment.node';
 import { IFileSystem } from '../../lib/io';
@@ -52,6 +53,7 @@ export class SuperJson {
     public readonly path = '',
     private readonly fileSystem: IFileSystem = NodeFileSystem,
     private readonly environment: IEnvironment = new NodeEnvironment(),
+    private readonly crypto: ICrypto = new NodeCrypto(),
     private readonly logger?: ILogger
   ) {}
 
@@ -121,6 +123,7 @@ export class SuperJson {
     path: string,
     fileSystem: IFileSystem = NodeFileSystem,
     environment: IEnvironment = new NodeEnvironment(),
+    crypto: ICrypto = new NodeCrypto(),
     logger?: ILogger
   ): Result<SuperJson, SDKExecutionError> {
     try {
@@ -151,7 +154,14 @@ export class SuperJson {
     logger?.log(DEBUG_NAMESPACE, `loaded super.json from ${path}`);
 
     return ok(
-      new SuperJson(superdocument.value, path, fileSystem, environment, logger)
+      new SuperJson(
+        superdocument.value,
+        path,
+        fileSystem,
+        environment,
+        crypto,
+        logger
+      )
     );
   }
 
@@ -162,6 +172,7 @@ export class SuperJson {
     path: string,
     fileSystem: IFileSystem = NodeFileSystem,
     environment: IEnvironment = new NodeEnvironment(),
+    crypto: ICrypto = new NodeCrypto(),
     logger?: ILogger
   ): Promise<Result<SuperJson, SDKExecutionError>> {
     try {
@@ -192,7 +203,14 @@ export class SuperJson {
     logger?.log(DEBUG_NAMESPACE, `loaded super.json from ${path}`);
 
     return ok(
-      new SuperJson(superdocument.value, path, fileSystem, environment, logger)
+      new SuperJson(
+        superdocument.value,
+        path,
+        fileSystem,
+        environment,
+        crypto,
+        logger
+      )
     );
   }
 
@@ -520,6 +538,6 @@ export class SuperJson {
       .map(provider => provider)
       .sort();
 
-    return configHash([...profileValues, ...providerValues]);
+    return configHash([...profileValues, ...providerValues], this.crypto);
   }
 }

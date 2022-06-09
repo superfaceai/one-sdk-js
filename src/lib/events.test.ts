@@ -9,6 +9,7 @@ import { BoundProfileProvider } from '../client';
 import { Config } from '../config';
 import { MockEnvironment } from '../test/environment';
 import { MockTimers } from '../test/timers';
+import { NodeCrypto } from './crypto';
 import { Events } from './events';
 import { err } from './result/result';
 import { ServiceSelector } from './services';
@@ -136,6 +137,7 @@ const mockServer = getLocal();
 const environment = new MockEnvironment();
 const config = new Config(environment);
 const timers = new MockTimers();
+const crypto = new NodeCrypto();
 
 describe('events', () => {
   beforeEach(async () => {
@@ -160,6 +162,7 @@ describe('events', () => {
         services: ServiceSelector.withDefaultUrl(mockServer.url),
         security: [],
       },
+      crypto,
       undefined,
       events
     );
@@ -205,6 +208,7 @@ describe('events', () => {
         ),
         security: [],
       },
+      crypto,
       undefined,
       events
     );
@@ -244,6 +248,7 @@ describe('events', () => {
         services: ServiceSelector.withDefaultUrl(mockServer.url),
         security: [],
       },
+      crypto,
       undefined,
       events
     );
@@ -277,6 +282,7 @@ describe('events', () => {
         services: ServiceSelector.withDefaultUrl(mockServer.url),
         security: [],
       },
+      crypto,
       undefined,
       events
     );
@@ -310,6 +316,7 @@ describe('events', () => {
         services: ServiceSelector.withDefaultUrl(mockServer.url),
         security: [],
       },
+      crypto,
       undefined,
       events
     );

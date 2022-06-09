@@ -1,6 +1,6 @@
-import { createHash } from 'crypto';
+import { ICrypto } from './crypto';
 
-export function configHash(values: unknown[]): string {
+export function configHash(values: unknown[], crypto: ICrypto): string {
   // create the payload
   const data = values
     .map(value => {
@@ -13,8 +13,5 @@ export function configHash(values: unknown[]): string {
     .join(';');
 
   // then hash it
-  const hash = createHash('md5');
-  hash.update(data);
-
-  return hash.digest('hex');
+  return crypto.hashString(data, 'MD5');
 }

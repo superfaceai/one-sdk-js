@@ -5,6 +5,7 @@ import { DEFAULT_SUPERFACE_PATH } from '../../config';
 import { SuperJson } from './superjson';
 
 const { unlink, rmdir, mkdir, writeFile } = promises;
+const cwd = () => process.cwd();
 const basedir = process.cwd();
 
 describe('class SuperJson integration tests', () => {
@@ -45,7 +46,7 @@ describe('class SuperJson integration tests', () => {
 
     it('correctly parses super.json when it is present', async () => {
       const result = await SuperJson.load(
-        DEFAULT_SUPERFACE_PATH({ path: { join: joinPath } })
+        DEFAULT_SUPERFACE_PATH({ path: { join: joinPath, cwd } })
       );
       expect(result.isOk()).toBe(true);
     });

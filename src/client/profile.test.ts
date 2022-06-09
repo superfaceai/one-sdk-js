@@ -2,6 +2,7 @@ import { SuperJsonDocument } from '@superfaceai/ast';
 
 import { Config } from '../config';
 import { SuperJson } from '../internal';
+import { NodeCrypto } from '../lib/crypto';
 import { Events } from '../lib/events';
 import { NodeFileSystem } from '../lib/io/filesystem.node';
 import { MockEnvironment } from '../test/environment';
@@ -11,6 +12,8 @@ import { SuperCache } from './cache';
 import { Profile, ProfileConfiguration, TypedProfile } from './profile';
 import { IBoundProfileProvider } from './profile-provider';
 import { UseCase } from './usecase';
+
+const crypto = new NodeCrypto();
 
 function createProfile(superJson: SuperJsonDocument): Profile {
   const timers = new MockTimers();
@@ -30,7 +33,8 @@ function createProfile(superJson: SuperJsonDocument): Profile {
     config,
     timers,
     NodeFileSystem,
-    cache
+    cache,
+    crypto
   );
 }
 
@@ -110,6 +114,7 @@ describe('TypedProfile', () => {
         config,
         timers,
         fileSystem,
+        crypto,
         ['sayHello']
       );
 
@@ -122,6 +127,7 @@ describe('TypedProfile', () => {
           mockSuperJson,
           timers,
           fileSystem,
+          crypto,
           cache
         )
       );
@@ -136,6 +142,7 @@ describe('TypedProfile', () => {
         config,
         timers,
         fileSystem,
+        crypto,
         ['sayHello']
       );
 
