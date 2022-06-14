@@ -11,7 +11,7 @@ export class ProviderConfiguration {
 
   get cacheKey(): string {
     // TODO: Research a better way?
-    return JSON.stringify(this);
+    return JSON.stringify({ provider: this.name });
   }
 }
 
