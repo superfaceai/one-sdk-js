@@ -101,9 +101,7 @@ export abstract class SuperfaceClientBase extends Events {
       this
     );
 
-    const boundProfileProvider = await profileProvider.bind({
-      security: providerConfig.security,
-    });
+    const boundProfileProvider = await profileProvider.bind();
     this.boundCache[cacheKey] = {
       profileProvider: boundProfileProvider,
       expiresAt: now + Config.instance().superfaceCacheTimeout,
@@ -118,10 +116,7 @@ export abstract class SuperfaceClientBase extends Events {
       throw unconfiguredProviderError(providerName);
     }
 
-    return new Provider(
-      this,
-      new ProviderConfiguration(providerName, providerSettings.security)
-    );
+    return new Provider(this, new ProviderConfiguration(providerName));
   }
 
   /** Returns a provider configuration for when no provider is passed to untyped `.perform`. */

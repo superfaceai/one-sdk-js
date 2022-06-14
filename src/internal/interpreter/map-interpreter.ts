@@ -153,6 +153,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
   ) {
     this.http = new HttpClient(fetchInstance);
     this.externalHandler = externalHandler ?? {};
+    console.log('used', parameters.security);
   }
 
   async perform(
