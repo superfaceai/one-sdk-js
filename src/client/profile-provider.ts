@@ -65,7 +65,6 @@ function profileAstId(ast: ProfileDocumentNode): string {
 const boundProfileProviderDebug = createDebug(
   'superface:bound-profile-provider'
 );
-const cachePath = joinPath(Config.instance().cachePath, 'providers');
 
 export class BoundProfileProvider {
   private profileValidator: ProfileParameterValidator;
@@ -214,6 +213,7 @@ export class ProfileProvider {
   private scope: string | undefined;
   private profileName: string;
   private providerJson?: ProviderJson;
+  private readonly cachePath: string;
 
   constructor(
     /** Preloaded superJson instance */
@@ -241,6 +241,8 @@ export class ProfileProvider {
       this.scope = scopeOrProfileName;
       this.profileName = profileName;
     }
+
+    this.cachePath = joinPath(Config.instance().cachePath, 'providers');
   }
 
   /**
@@ -420,7 +422,7 @@ export class ProfileProvider {
   private async cacheProviderInfo(providerName: string): Promise<ProviderJson> {
     const errors: Error[] = [];
     if (this.providerJson === undefined) {
-      const providerCachePath = joinPath(cachePath, providerName);
+      const providerCachePath = joinPath(this.cachePath, providerName);
       // If we don't have provider info, we first try to fetch it from the registry
       try {
         this.providerJson = await fetchProviderInfo(providerName);
@@ -462,9 +464,9 @@ export class ProfileProvider {
   }
 
   private async writeProviderCache(providerJson: ProviderJson): Promise<void> {
-    const providerCachePath = joinPath(cachePath, `${providerJson.name}.json`);
+    const providerCachePath = joinPath(this.cachePath, `${providerJson.name}.json`);
     try {
-      await fsp.mkdir(cachePath, { recursive: true });
+      await fsp.mkdir(this.cachePath, { recursive: true });
       await fsp.writeFile(
         providerCachePath,
         JSON.stringify(providerJson, undefined, 2)

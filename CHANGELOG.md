@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Fixed
 - Do not recache ProviderConfiguration on security values change
+- Do not call `Config.instance()` in the global scope to defer reading of env variables
 
 ## [1.5.0] - 2022-06-09
 ### Added
