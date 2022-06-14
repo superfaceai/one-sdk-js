@@ -33,69 +33,132 @@ jest.mock('./profile-provider', () => ({
   bindProfileProvider: jest.fn(() => mockBoundProfileProvider),
 }));
 
+function createUseCase(cacheExpire?: number) {
+  const crypto = new NodeCrypto();
+  const timers = new MockTimers();
+  const events = new Events(timers);
+  registerHooks(events, timers);
+
+  const mockProfileConfiguration = new ProfileConfiguration('test', '1.0.0');
+
+  const mockBoundProfileProvider2 = {
+    perform: jest.fn(),
+  };
+
+  const cache = new SuperCache<{
+    provider: IBoundProfileProvider;
+    expiresAt: number;
+  }>();
+  cache.getCached(
+    mockProfileConfiguration.cacheKey +
+      new ProviderConfiguration('test-provider', []).cacheKey,
+    () => ({
+      provider: mockBoundProfileProvider,
+      expiresAt: cacheExpire ?? Infinity,
+    })
+  );
+  cache.getCached(
+    mockProfileConfiguration.cacheKey +
+      new ProviderConfiguration('test-provider2', []).cacheKey,
+    () => ({
+      provider: mockBoundProfileProvider2,
+      expiresAt: cacheExpire ?? Infinity,
+    })
+  );
+
+  const filesystem = MockFileSystem();
+
+  const environment = new MockEnvironment();
+  const config = new Config(environment);
+
+  const usecase = new UseCase(
+    mockProfileConfiguration,
+    'test-usecase',
+    events,
+    config,
+    mockSuperJson,
+    timers,
+    filesystem,
+    crypto,
+    cache
+  );
+
+  return {
+    performSpy: mockBoundProfileProvider.perform,
+    performSpy2: mockBoundProfileProvider2.perform,
+    usecase,
+    cache,
+    timers,
+  };
+}
+
 describe('UseCase', () => {
-  function createUseCase(cacheExpire?: number) {
-    const crypto = new NodeCrypto();
-    const timers = new MockTimers();
-    const events = new Events(timers);
-    registerHooks(events, timers);
-
-    const mockProfileConfiguration = new ProfileConfiguration('test', '1.0.0');
-
-    const mockBoundProfileProvider2 = {
-      perform: jest.fn(),
-    };
-
-    const cache = new SuperCache<{
-      provider: IBoundProfileProvider;
-      expiresAt: number;
-    }>();
-    cache.getCached(
-      mockProfileConfiguration.cacheKey +
-        new ProviderConfiguration('test-provider', []).cacheKey,
-      () => ({
-        provider: mockBoundProfileProvider,
-        expiresAt: cacheExpire ?? Infinity,
-      })
-    );
-    cache.getCached(
-      mockProfileConfiguration.cacheKey +
-        new ProviderConfiguration('test-provider2', []).cacheKey,
-      () => ({
-        provider: mockBoundProfileProvider2,
-        expiresAt: cacheExpire ?? Infinity,
-      })
-    );
-
-    const filesystem = MockFileSystem();
-
-    const environment = new MockEnvironment();
-    const config = new Config(environment);
-
-    const usecase = new UseCase(
-      mockProfileConfiguration,
-      'test-usecase',
-      events,
-      config,
-      mockSuperJson,
-      timers,
-      filesystem,
-      crypto,
-      cache
-    );
-
-    return {
-      performSpy: mockBoundProfileProvider.perform,
-      performSpy2: mockBoundProfileProvider2.perform,
-      usecase,
-      cache,
-      timers,
-    };
-  }
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
 
   describe('when calling perform', () => {
-    afterEach(() => {
-      jest.clearAllMocks();
+    it('passes security values', async () => {
+      // const mockBoundProfileProvider = new BoundProfileProvider(
+      //   mockProfileDocument,
+      //   mockMapDocument,
+      //   'test',
+      //   { services: ServiceSelector.withDefaultUrl(''), security: [] }
+      // );
+      // const mockClient = new SuperfaceClient();
+
+      // const mockProfileConfiguration = new ProfileConfiguration(
+      //   'test',
+      //   '1.0.0'
+      // );
+      // const mockProfile = new Profile(mockClient, mockProfileConfiguration);
+
+      // const mockProviderConfiguration = new ProviderConfiguration(
+      //   'test-provider',
+      //   []
+      // );
+      // const mockProvider = new Provider(mockClient, mockProviderConfiguration);
+
+      // const getProviderForProfileSpy = jest
+      //   .spyOn(mockClient, 'getProviderForProfile')
+      //   .mockResolvedValue(mockProvider);
+      // const cacheBoundProfileProviderSpy = jest
+      //   .spyOn(mockClient, 'cacheBoundProfileProvider')
+      //   .mockResolvedValue(mockBoundProfileProvider);
+
+      // const usecase = new UseCase(mockProfile, 'test-usecase');
+      const { usecase, performSpy } = createUseCase();
+      await expect(
+        usecase.perform(
+          { x: 7 },
+          {
+            security: [
+              {
+                id: 'test',
+                apikey: 'key',
+              },
+            ],
+          }
+        )
+      ).resolves.toBeUndefined();
+
+      // expect(getProviderForProfileSpy).toHaveBeenCalledTimes(1);
+      // expect(getProviderForProfileSpy).toHaveBeenCalledWith('test');
+
+      // expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(1);
+      expect(performSpy).toHaveBeenCalledWith(
+        { x: 7 },
+        { security: [{ id: 'test', apikey: 'key' }] }
+      );
+      // expect(cacheBoundProfileProviderSpy).toHaveBeenCalledWith(
+      //   mockProfileConfiguration,
+      //   new ProviderConfiguration('test-provider', [
+      //     {
+      //       id: 'test',
+      //       apikey: 'key',
+      //     },
+      //   ])
+      // );
     });
 
     it('calls perform on correct BoundProfileProvider', async () => {

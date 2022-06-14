@@ -1,4 +1,4 @@
-import { BackoffKind, OnFail } from '@superfaceai/ast';
+import { BackoffKind, OnFail, SecurityValues } from '@superfaceai/ast';
 
 import { Config } from '../config';
 import {
@@ -41,6 +41,7 @@ const DEBUG_NAMESPACE = 'usecase';
 export type PerformOptions = {
   provider?: Provider | string;
   parameters?: Record<string, string>;
+  security?: SecurityValues[];
 };
 
 // TODO
@@ -86,24 +87,13 @@ class UseCaseBase implements Interceptable {
       this.events.hookContext[`${this.profileConfiguration.id}/${this.name}`]
         .router;
 
-    let providerConfig: ProviderConfiguration;
+    const providerConfig = await this.resolveProviderConfiguration(
+      hookRouter.getCurrentProvider(),
+      options
+    );
 
-    const chosenProvider = options?.provider ?? hookRouter.getCurrentProvider();
-    if (chosenProvider === undefined) {
-      const provider = getProviderForProfile(
-        this.superJson,
-        this.profileConfiguration.id
-      );
-      providerConfig = provider.configuration;
-    } else if (typeof chosenProvider === 'string') {
-      const provider = getProvider(this.superJson, chosenProvider);
-      providerConfig = provider.configuration;
-    } else {
-      providerConfig = chosenProvider.configuration;
-    }
-
-    this.metadata.provider = providerConfig.name;
     hookRouter.setCurrentProvider(providerConfig.name);
+    this.metadata.provider = providerConfig.name;
 
     this.boundProfileProvider = await this.rebind(
       this.profileConfiguration.cacheKey + providerConfig.cacheKey,
@@ -115,6 +105,7 @@ class UseCaseBase implements Interceptable {
     cacheKey: string,
     providerConfig: ProviderConfiguration
   ): Promise<IBoundProfileProvider> {
+    console.log(cacheKey, providerConfig);
     const { provider, expiresAt } =
       await this.boundProfileProviderCache.getCached(cacheKey, () =>
         bindProfileProvider(
@@ -136,6 +127,41 @@ class UseCaseBase implements Interceptable {
     }
 
     return provider;
+  }
+
+  private async resolveProviderConfiguration(
+    currentProvider: string | undefined,
+    options?: PerformOptions
+  ) {
+    const providerConfig = await this.getProviderConfiguration(
+      options?.provider ?? currentProvider
+    );
+    // If we have security values pass them directly to perform
+    if (options?.security) {
+      return new ProviderConfiguration(providerConfig.name, options.security);
+    }
+
+    return providerConfig;
+  }
+
+  private async getProviderConfiguration(
+    currentProvider: string | Provider | undefined
+  ): Promise<ProviderConfiguration> {
+    if (currentProvider === undefined) {
+      const provider = getProviderForProfile(
+        this.superJson,
+        this.profileConfiguration.id
+      );
+
+      return provider.configuration;
+    }
+    if (typeof currentProvider === 'string') {
+      const provider = getProvider(this.superJson, currentProvider);
+
+      return provider.configuration;
+    }
+
+    return currentProvider.configuration;
   }
 
   @eventInterceptor({ eventName: 'perform', placement: 'around' })
