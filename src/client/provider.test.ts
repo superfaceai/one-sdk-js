@@ -7,9 +7,7 @@ jest.mock('./client');
 describe('Provider Configuration', () => {
   it('should cache key correctly', async () => {
     const mockProviderConfiguration = new ProviderConfiguration('test', []);
-    expect(mockProviderConfiguration.cacheKey).toEqual(
-      JSON.stringify(mockProviderConfiguration)
-    );
+    expect(mockProviderConfiguration.cacheKey).toEqual('{"provider":"test"}');
   });
 });
 describe('Provider', () => {
