@@ -1348,9 +1348,7 @@ but http scheme requires: digest`
           .mockResolvedValueOnce(JSON.stringify(mockProviderJson))
           .mockResolvedValueOnce(JSON.stringify(mockMapDocument));
 
-        const providerConfiguration = new ProviderConfiguration(
-          'test-boop'
-        );
+        const providerConfiguration = new ProviderConfiguration('test-boop');
 
         const mockProfileProvider = new ProfileProvider(
           mockSuperJson,
