@@ -74,7 +74,7 @@ export class BoundProfileProvider {
   constructor(
     private readonly profileAst: ProfileDocumentNode,
     private readonly mapAst: MapDocumentNode,
-    private readonly providerName: string,
+    private readonly provider: ProviderJson,
     readonly configuration: {
       services: IServiceSelector;
       profileProviderSettings?: NormalizedProfileProviderSettings;
@@ -88,7 +88,7 @@ export class BoundProfileProvider {
     this.fetchInstance = new CrossFetch();
     this.fetchInstance.metadata = {
       profile: profileAstId(profileAst),
-      provider: providerName,
+      provider: provider.name,
     };
     this.fetchInstance.events = events;
   }
@@ -123,12 +123,13 @@ export class BoundProfileProvider {
   >(
     usecase: string,
     input?: TInput,
-    parameters?: Record<string, string>
+    parameters?: Record<string, string>,
+    securityValues?: SecurityValues[]
   ): Promise<Result<TResult, ProfileParameterError | MapInterpreterError>> {
     this.fetchInstance.metadata = {
       profile: profileAstId(this.profileAst),
       usecase,
-      provider: this.providerName,
+      provider: this.provider.name,
     };
     // compose and validate the input
     const composedInput = this.composeInput(usecase, input);
@@ -143,13 +144,21 @@ export class BoundProfileProvider {
     }
     forceCast<TInput>(composedInput);
 
+    const security = securityValues
+      ? resolveSecurityConfiguration(
+          this.provider.securitySchemes ?? [],
+          securityValues,
+          this.provider.name
+        )
+      : this.configuration.security;
+
     // create and perform interpreter instance
     const interpreter = new MapInterpreter<TInput>(
       {
         input: composedInput,
         usecase,
         services: this.configuration.services,
-        security: this.configuration.security,
+        security,
         parameters: this.mergeParameters(
           parameters,
           this.configuration.parameters
@@ -342,7 +351,7 @@ export class ProfileProvider {
     return new BoundProfileProvider(
       profileAst,
       mapAst,
-      providerInfo.name,
+      providerInfo,
       {
         services: new ServiceSelector(
           providerInfo.services,
@@ -670,24 +679,19 @@ export class ProfileProvider {
   /**
    * Resolves auth variables by applying the provided overlay over the base variables.
    *
-   * The base variables either come from super.json or from `this.provider` if it is an instance of `ProviderConfiguration`
+   * The base variables come from super.json
    */
   private resolveSecurityValues(
     providerName: string,
     overlay?: SecurityValues[]
   ): SecurityValues[] {
-    let base: SecurityValues[];
-    if (this.provider instanceof ProviderConfiguration) {
-      base = this.provider.security;
-    } else {
-      base = this.superJson.normalized.providers[providerName]?.security;
-    }
+    const base: SecurityValues[] =
+      this.superJson.normalized.providers[providerName]?.security ?? [];
 
-    let resolved = base;
     if (overlay !== undefined) {
-      resolved = mergeSecurity(base, overlay);
+      return mergeSecurity(base, overlay);
     }
 
-    return resolved;
+    return base;
   }
 }

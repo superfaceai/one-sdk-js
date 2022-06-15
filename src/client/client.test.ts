@@ -234,7 +234,7 @@ but this path does not exist or is not accessible`
 
       const profileConfigA = new ProfileConfiguration('foo', '1.0.0');
       const profileConfigB = new ProfileConfiguration('foo', '2.0.0');
-      const providerConfig = new ProviderConfiguration('fooder', []);
+      const providerConfig = new ProviderConfiguration('fooder');
 
       const profileProviderBindMock = jest.fn(() => 'mocked bind result');
       const ProfileProviderMock = jest
@@ -267,7 +267,7 @@ but this path does not exist or is not accessible`
       const client = new SuperfaceClient();
 
       const profileConfig = new ProfileConfiguration('foo', '1.0.0');
-      const providerConfig = new ProviderConfiguration('fooder', []);
+      const providerConfig = new ProviderConfiguration('fooder');
 
       const profileProviderBindMock = jest
         .fn()

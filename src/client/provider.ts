@@ -1,13 +1,7 @@
-import { SecurityValues } from '@superfaceai/ast';
-
-import { mergeSecurity } from '../internal/superjson/mutate';
 import { SuperfaceClientBase } from './client';
 
 export class ProviderConfiguration {
-  constructor(
-    public readonly name: string,
-    public readonly security: SecurityValues[]
-  ) {}
+  constructor(public readonly name: string) {}
 
   get cacheKey(): string {
     // TODO: Research a better way?
@@ -21,13 +15,8 @@ export class Provider {
     public readonly configuration: ProviderConfiguration
   ) {}
 
-  async configure(configuration: {
-    security?: SecurityValues[];
-  }): Promise<Provider> {
-    const newConfiguration = new ProviderConfiguration(
-      this.configuration.name,
-      mergeSecurity(this.configuration.security, configuration.security ?? [])
-    );
+  async configure(): Promise<Provider> {
+    const newConfiguration = new ProviderConfiguration(this.configuration.name);
 
     return new Provider(this.client, newConfiguration);
   }
