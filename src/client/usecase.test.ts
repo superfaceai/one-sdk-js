@@ -1,8 +1,12 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import {
+  ApiKeyPlacement,
   AstMetadata,
+  HttpScheme,
   MapDocumentNode,
   ProfileDocumentNode,
+  ProviderJson,
+  SecurityType,
 } from '@superfaceai/ast';
 
 import { SuperJson } from '../internal';
@@ -79,6 +83,36 @@ describe('UseCase', () => {
     definitions: [],
   };
 
+  const mockProviderJson: ProviderJson = {
+    name: 'test',
+    services: [{ id: 'test-service', baseUrl: 'service/base/url' }],
+    securitySchemes: [
+      {
+        type: SecurityType.HTTP,
+        id: 'basic',
+        scheme: HttpScheme.BASIC,
+      },
+      {
+        id: 'api',
+        type: SecurityType.APIKEY,
+        in: ApiKeyPlacement.HEADER,
+        name: 'Authorization',
+      },
+      {
+        id: 'bearer',
+        type: SecurityType.HTTP,
+        scheme: HttpScheme.BEARER,
+        bearerFormat: 'some',
+      },
+      {
+        id: 'digest',
+        type: SecurityType.HTTP,
+        scheme: HttpScheme.DIGEST,
+      },
+    ],
+    defaultService: 'test-service',
+  };
+
   beforeEach(() => {
     mockLoadSync.mockReturnValue(ok(mockSuperJson));
     SuperJson.loadSync = mockLoadSync;
@@ -93,7 +127,7 @@ describe('UseCase', () => {
       const mockBoundProfileProvider = new BoundProfileProvider(
         mockProfileDocument,
         mockMapDocument,
-        'test',
+        mockProviderJson,
         { services: ServiceSelector.withDefaultUrl(''), security: [] }
       );
       const mockClient = new SuperfaceClient();
@@ -138,12 +172,7 @@ describe('UseCase', () => {
       expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(1);
       expect(cacheBoundProfileProviderSpy).toHaveBeenCalledWith(
         mockProfileConfiguration,
-        new ProviderConfiguration('test-provider', [
-          {
-            id: 'test',
-            apikey: 'key',
-          },
-        ])
+        new ProviderConfiguration('test-provider', [])
       );
     });
 
@@ -151,7 +180,7 @@ describe('UseCase', () => {
       const mockBoundProfileProvider = new BoundProfileProvider(
         mockProfileDocument,
         mockMapDocument,
-        'test',
+        mockProviderJson,
         { services: ServiceSelector.withDefaultUrl(''), security: [] }
       );
       const mockClient = new SuperfaceClient();
@@ -193,7 +222,7 @@ describe('UseCase', () => {
       const mockBoundProfileProvider = new BoundProfileProvider(
         mockProfileDocument,
         mockMapDocument,
-        'test',
+        mockProviderJson,
         { services: ServiceSelector.withDefaultUrl(''), security: [] }
       );
       const mockClient = new SuperfaceClient();
@@ -237,6 +266,7 @@ describe('UseCase', () => {
       expect(performSpy).toHaveBeenCalledTimes(1);
       expect(performSpy).toHaveBeenCalledWith(
         'test-usecase',
+        undefined,
         undefined,
         undefined
       );

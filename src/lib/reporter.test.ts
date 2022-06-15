@@ -1,9 +1,13 @@
 import {
+  ApiKeyPlacement,
   AstMetadata,
   BackoffKind,
+  HttpScheme,
   MapDocumentNode,
   OnFail,
   ProfileDocumentNode,
+  ProviderJson,
+  SecurityType,
 } from '@superfaceai/ast';
 import { getLocal, MockedEndpoint } from 'mockttp';
 
@@ -231,6 +235,36 @@ const mockMapDocumentFailure: (provider?: string) => MapDocumentNode = (
   ],
 });
 
+const mockProviderJson = (name: string): ProviderJson => ({
+  name,
+  services: [{ id: 'test-service', baseUrl: 'service/base/url' }],
+  securitySchemes: [
+    {
+      type: SecurityType.HTTP,
+      id: 'basic',
+      scheme: HttpScheme.BASIC,
+    },
+    {
+      id: 'api',
+      type: SecurityType.APIKEY,
+      in: ApiKeyPlacement.HEADER,
+      name: 'Authorization',
+    },
+    {
+      id: 'bearer',
+      type: SecurityType.HTTP,
+      scheme: HttpScheme.BEARER,
+      bearerFormat: 'some',
+    },
+    {
+      id: 'digest',
+      type: SecurityType.HTTP,
+      scheme: HttpScheme.DIGEST,
+    },
+  ],
+  defaultService: 'test-service',
+});
+
 const mockServer = getLocal();
 
 describe('MetricReporter', () => {
@@ -281,7 +315,7 @@ describe('MetricReporter', () => {
     const mockBoundProfileProvider = new BoundProfileProvider(
       mockProfileDocument,
       mockMapDocumentSuccess,
-      'provider',
+      mockProviderJson('provider'),
       {
         services: ServiceSelector.withDefaultUrl(mockServer.url),
         security: [],
@@ -339,7 +373,7 @@ describe('MetricReporter', () => {
     const mockBoundProfileProvider = new BoundProfileProvider(
       mockProfileDocument,
       mockMapDocumentFailure(),
-      'testprovider',
+      mockProviderJson('testprovider'),
       {
         services: ServiceSelector.withDefaultUrl('https://unavai.lable'),
         security: [],
@@ -426,7 +460,7 @@ describe('MetricReporter', () => {
     const mockBoundProfileProvider = new BoundProfileProvider(
       mockProfileDocument,
       mockMapDocumentSuccess,
-      'provider',
+      mockProviderJson('provider'),
       {
         services: ServiceSelector.withDefaultUrl(mockServer.url),
         security: [],
@@ -461,7 +495,7 @@ describe('MetricReporter', () => {
     const mockBoundProfileProvider = new BoundProfileProvider(
       mockProfileDocument,
       mockMapDocumentSuccess,
-      'provider',
+      mockProviderJson('provider'),
       {
         services: ServiceSelector.withDefaultUrl(mockServer.url),
         security: [],
@@ -508,7 +542,7 @@ describe('MetricReporter', () => {
     const mockBoundProfileProvider = new BoundProfileProvider(
       mockProfileDocument,
       mockMapDocumentSuccess,
-      'provider',
+      mockProviderJson('provider'),
       {
         services: ServiceSelector.withDefaultUrl(mockServer.url),
         security: [],
@@ -580,7 +614,7 @@ describe('MetricReporter', () => {
     const mockBoundProfileProvider = new BoundProfileProvider(
       mockProfileDocument,
       mockMapDocumentSuccess,
-      'provider',
+      mockProviderJson('provider'),
       {
         services: ServiceSelector.withDefaultUrl(mockServer.url),
         security: [],
@@ -654,7 +688,7 @@ describe('MetricReporter', () => {
     const mockBoundProfileProvider = new BoundProfileProvider(
       mockProfileDocument,
       mockMapDocumentSuccess,
-      'testprovider',
+      mockProviderJson('testprovider'),
       {
         services: ServiceSelector.withDefaultUrl('https://unavail.able'),
         security: [],
@@ -664,7 +698,7 @@ describe('MetricReporter', () => {
     const mockBoundProfileProvider2 = new BoundProfileProvider(
       mockProfileDocument,
       mockMapDocumentFailure('testprovider2'),
-      'testprovider2',
+      mockProviderJson('testprovider2'),
       {
         services: ServiceSelector.withDefaultUrl('https://unavail.able'),
         security: [],

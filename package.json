@@ -1,15 +1,28 @@
 {
   "name": "@superfaceai/one-sdk",
-  "version": "1.5.1",
-  "description": "Level 5 autonomous, self-driving API client, https://superface.ai",
+  "version": "1.5.2-rc.1",
+  "description": "OneSDK is a universal API client which provides an unparalleled developer experience for every HTTP API",
+  "author": "Superface Team <hello@superface.ai>",
+  "repository": "https://github.com/superfaceai/one-sdk-js.git",
+  "homepage": "https://superface.ai",
+  "bugs": {
+    "url": "https://github.com/superfaceai/one-sdk-js/issues",
+    "email": "support@superface.ai"
+  },
+  "keywords": [
+    "api",
+    "client",
+    "http",
+    "sdk",
+    "integration",
+    "superface"
+  ],
   "main": "dist/index.js",
   "source": "src/index.ts",
   "module": "dist/superface.modern.js",
   "unpkg": "dist/superface.umd.js",
   "browser": "dist/superface.umd.js",
   "types": "dist/index.d.ts",
-  "repository": "https://github.com/superfaceai/one-sdk-js.git",
-  "author": "Superface Team",
   "private": false,
   "files": [
     "dist/**/*"
@@ -17,19 +30,20 @@
   "scripts": {
     "build_bundle": "microbundle --tsconfig tsconfig.release.json",
     "build": "tsc -p tsconfig.release.json --outDir dist",
-    "watch": "yarn build --watch",
+    "check_dependencies": "node scripts/check_dependencies.js",
     "clean": "rimraf dist/",
-    "prebuild": "yarn clean",
-    "test": "yarn test:base && yarn test:long",
-    "test:base": "jest --testPathIgnorePatterns 'event-adapter.test.ts$'",
-    "test:long": "jest --testPathPattern 'event-adapter.test.ts$'",
-    "test:clean": "jest --clear-cache && yarn test",
-    "lint": "eslint src/",
-    "lint:fix": "yarn lint --fix",
-    "format": "prettier -c ./src",
     "format:fix": "prettier --write ./src",
+    "format": "prettier -c ./src",
+    "lint:fix": "yarn lint --fix",
+    "lint": "eslint src/",
+    "prebuild": "yarn clean",
+    "prepack": "yarn build",
     "prepush": "yarn build && yarn test:clean && yarn lint && yarn format",
-    "check_dependencies": "node scripts/check_dependencies.js"
+    "test:base": "jest --testPathIgnorePatterns 'event-adapter.test.ts$'",
+    "test:clean": "jest --clear-cache && yarn test",
+    "test:long": "jest --testPathPattern 'event-adapter.test.ts$'",
+    "test": "yarn test:base && yarn test:long",
+    "watch": "yarn build --watch"
   },
   "devDependencies": {
     "@types/debug": "^4.1.7",

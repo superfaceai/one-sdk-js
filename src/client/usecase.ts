@@ -53,7 +53,9 @@ class UseCaseBase implements Interceptable {
     this.configureHookContext();
   }
 
-  private async bind(options?: PerformOptions): Promise<void> {
+  private async bind(options?: {
+    provider?: string | Provider | undefined;
+  }): Promise<void> {
     const hookRouter =
       this.profile.client.hookContext[
         `${this.profile.configuration.id}/${this.name}`
@@ -79,15 +81,7 @@ class UseCaseBase implements Interceptable {
     currentProvider: string | undefined,
     options?: PerformOptions
   ) {
-    const providerConfig = await this.getProviderConfiguration(
-      options?.provider ?? currentProvider
-    );
-    //If we have security values pass them directly to perform
-    if (options?.security) {
-      return new ProviderConfiguration(providerConfig.name, options.security);
-    }
-
-    return providerConfig;
+    return this.getProviderConfiguration(options?.provider ?? currentProvider);
   }
 
   private async getProviderConfiguration(
@@ -118,7 +112,8 @@ class UseCaseBase implements Interceptable {
     TOutput = unknown
   >(
     input?: TInput,
-    parameters?: Record<string, string>
+    parameters?: Record<string, string>,
+    security?: SecurityValues[]
   ): Promise<Result<TOutput, PerformError>> {
     if (this.boundProfileProvider === undefined) {
       throw new UnexpectedError(
@@ -130,7 +125,8 @@ class UseCaseBase implements Interceptable {
     return this.boundProfileProvider.perform<TInput, TOutput>(
       this.name,
       input,
-      parameters
+      parameters,
+      security
     );
   }
 
@@ -149,7 +145,11 @@ class UseCaseBase implements Interceptable {
 
     debug('bound provider', this.boundProfileProvider);
 
-    return this.performBoundUsecase(input, options?.parameters);
+    return this.performBoundUsecase(
+      input,
+      options?.parameters,
+      options?.security
+    );
   }
 
   private checkWarnFailoverMisconfiguration() {

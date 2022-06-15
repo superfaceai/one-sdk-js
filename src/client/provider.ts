@@ -6,6 +6,7 @@ import { SuperfaceClientBase } from './client';
 export class ProviderConfiguration {
   constructor(
     public readonly name: string,
+    /** @deprecated only for use in testing library */
     public readonly security: SecurityValues[]
   ) {}
 
@@ -21,12 +22,13 @@ export class Provider {
     public readonly configuration: ProviderConfiguration
   ) {}
 
-  async configure(configuration: {
+  /** @deprecated */
+  async configure(configuration?: {
     security?: SecurityValues[];
   }): Promise<Provider> {
     const newConfiguration = new ProviderConfiguration(
       this.configuration.name,
-      mergeSecurity(this.configuration.security, configuration.security ?? [])
+      mergeSecurity(this.configuration.security, configuration?.security ?? [])
     );
 
     return new Provider(this.client, newConfiguration);

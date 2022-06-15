@@ -436,21 +436,50 @@ function spyOnCacheBoundProfileProvider(client: SuperfaceClientBase) {
   const firstMockBoundProfileProvider = new BoundProfileProvider(
     firstMockProfileDocument,
     firstMockMapDocument,
-    'provider',
+    {
+      name: 'provider',
+      services: [
+        {
+          id: 'default',
+          baseUrl: 'service/base/url',
+        },
+      ],
+      defaultService: 'default',
+    },
     { services: ServiceSelector.withDefaultUrl(mockServer.url), security: [] },
     client
   );
   const secondMockBoundProfileProvider = new BoundProfileProvider(
     firstMockProfileDocument,
     secondMockMapDocument,
-    'second',
+    {
+      name: 'second',
+      services: [
+        {
+          id: 'default',
+          baseUrl: 'service/base/url',
+        },
+      ],
+      defaultService: 'default',
+    },
+
     { services: ServiceSelector.withDefaultUrl(mockServer.url), security: [] },
     client
   );
   const thirdMockBoundProfileProvider = new BoundProfileProvider(
     secondMockProfiledDocument,
     thirdMockMapDocument,
-    'third',
+    {
+      name: 'third',
+      services: [
+        {
+          id: 'default',
+          baseUrl: 'service/base/url',
+        },
+      ],
+      defaultService: 'default',
+    },
+
     { services: ServiceSelector.withDefaultUrl(mockServer.url), security: [] },
     client
   );

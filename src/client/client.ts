@@ -101,9 +101,7 @@ export abstract class SuperfaceClientBase extends Events {
       this
     );
 
-    const boundProfileProvider = await profileProvider.bind({
-      security: providerConfig.security,
-    });
+    const boundProfileProvider = await profileProvider.bind();
     this.boundCache[cacheKey] = {
       profileProvider: boundProfileProvider,
       expiresAt: now + Config.instance().superfaceCacheTimeout,
