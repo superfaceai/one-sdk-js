@@ -139,7 +139,8 @@ describe('UseCase', () => {
       const mockProfile = new Profile(mockClient, mockProfileConfiguration);
 
       const mockProviderConfiguration = new ProviderConfiguration(
-        'test-provider'
+        'test-provider',
+        []
       );
       const mockProvider = new Provider(mockClient, mockProviderConfiguration);
 
@@ -171,7 +172,7 @@ describe('UseCase', () => {
       expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(1);
       expect(cacheBoundProfileProviderSpy).toHaveBeenCalledWith(
         mockProfileConfiguration,
-        new ProviderConfiguration('test-provider')
+        new ProviderConfiguration('test-provider', [])
       );
     });
 
@@ -191,7 +192,8 @@ describe('UseCase', () => {
       const mockProfile = new Profile(mockClient, mockProfileConfiguration);
 
       const mockProviderConfiguration = new ProviderConfiguration(
-        'test-provider'
+        'test-provider',
+        []
       );
       const mockProvider = new Provider(mockClient, mockProviderConfiguration);
 
@@ -232,7 +234,8 @@ describe('UseCase', () => {
       const mockProfile = new Profile(mockClient, mockProfileConfiguration);
 
       const mockProviderConfiguration = new ProviderConfiguration(
-        'test-provider'
+        'test-provider',
+        []
       );
       const mockProvider = new Provider(mockClient, mockProviderConfiguration);
 
