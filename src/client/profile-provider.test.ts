@@ -7,6 +7,7 @@ import {
   ProfileDocumentNode,
   ProviderJson,
   SecurityType,
+  SecurityValues,
 } from '@superfaceai/ast';
 import { mocked } from 'ts-jest/utils';
 
@@ -125,26 +126,28 @@ describe('profile provider', () => {
   };
 
   const mockProviderConfiguration: ProviderConfiguration =
-    new ProviderConfiguration('test', [
-      {
-        username: 'test-username',
-        id: 'basic',
-        password: 'test-password',
-      },
-      {
-        id: 'api',
-        apikey: 'test-api-key',
-      },
-      {
-        id: 'bearer',
-        token: 'test-token',
-      },
-      {
-        id: 'digest',
-        username: 'test-digest-user',
-        password: 'test-digest-password',
-      },
-    ]);
+    new ProviderConfiguration('test', []);
+
+  const mockSecurityValues: SecurityValues[] = [
+    {
+      username: 'test-username',
+      id: 'basic',
+      password: 'test-password',
+    },
+    {
+      id: 'api',
+      apikey: 'test-api-key',
+    },
+    {
+      id: 'bearer',
+      token: 'test-token',
+    },
+    {
+      id: 'digest',
+      username: 'test-digest-user',
+      password: 'test-digest-password',
+    },
+  ];
 
   let fileSystem: IFileSystem;
 
@@ -170,6 +173,7 @@ describe('profile provider', () => {
           mockProfileDocument,
           mockMapDocument,
           'test',
+          mockProviderJson,
           mockConfig,
           timers,
           {
@@ -201,6 +205,84 @@ describe('profile provider', () => {
         expect(performSpy).toHaveBeenCalledWith(mockMapDocument);
       });
 
+      it('overrides security from super.json with custom security', async () => {
+        const validateSpy = jest
+          .spyOn(ProfileParameterValidator.prototype, 'validate')
+          .mockReturnValue(ok(undefined));
+
+        const performSpy = jest
+          .spyOn(MapInterpreter.prototype, 'perform')
+          .mockResolvedValue(ok('test'));
+
+        const mockBoundProfileProvider = new BoundProfileProvider(
+          mockProfileDocument,
+          mockMapDocument,
+          mockProviderJson,
+          {
+            services: ServiceSelector.withDefaultUrl('test/url'),
+            security: [
+              {
+                apikey: 'original',
+                id: 'api',
+                type: SecurityType.APIKEY,
+                in: ApiKeyPlacement.HEADER,
+                name: 'Authorization',
+              },
+            ],
+          }
+        );
+
+        await expect(
+          mockBoundProfileProvider.perform<undefined, string>(
+            'test-usecase',
+            undefined,
+            undefined,
+            [
+              {
+                apikey: 'new',
+                id: 'api',
+              },
+            ]
+          )
+        ).resolves.toEqual(ok('test'));
+
+        expect(MapInterpreter).toBeCalledWith(
+          {
+            input: undefined,
+            parameters: undefined,
+            security: [
+              {
+                apikey: 'new',
+                id: 'api',
+                type: SecurityType.APIKEY,
+                in: ApiKeyPlacement.HEADER,
+                name: 'Authorization',
+              },
+            ],
+            services: expect.any(Object),
+            usecase: 'test-usecase',
+          },
+          expect.any(Object)
+        );
+
+        expect(validateSpy).toHaveBeenCalledTimes(2);
+        expect(validateSpy).toHaveBeenNthCalledWith(
+          1,
+          undefined,
+          'input',
+          'test-usecase'
+        );
+        expect(validateSpy).toHaveBeenNthCalledWith(
+          2,
+          'test',
+          'result',
+          'test-usecase'
+        );
+
+        expect(performSpy).toHaveBeenCalledTimes(1);
+        expect(performSpy).toHaveBeenCalledWith(mockMapDocument);
+      });
+
       it('returns error when input is not valid', async () => {
         const validateSpy = jest
           .spyOn(ProfileParameterValidator.prototype, 'validate')
@@ -211,6 +293,7 @@ describe('profile provider', () => {
           mockProfileDocument,
           mockMapDocument,
           'test',
+          mockProviderJson,
           mockConfig,
           timers,
           {
@@ -247,6 +330,7 @@ describe('profile provider', () => {
           mockProfileDocument,
           mockMapDocument,
           'test',
+          mockProviderJson,
           mockConfig,
           timers,
           {
@@ -290,6 +374,7 @@ describe('profile provider', () => {
           mockProfileDocument,
           mockMapDocument,
           'test',
+          mockProviderJson,
           mockConfig,
           timers,
           {
@@ -342,7 +427,7 @@ describe('profile provider', () => {
       const expectedBoundProfileProvider = {
         profileAst: mockProfileDocument,
         mapAst: mockMapDocument,
-        providerName: mockProviderJson.name,
+        provider: mockProviderJson,
         configuration: {
           services: new ServiceSelector(
             [{ id: 'test-service', baseUrl: 'service/base/url' }],
@@ -439,7 +524,7 @@ describe('profile provider', () => {
           },
           providers: {
             test: {
-              security: [],
+              security: mockSecurityValues,
               parameters: {
                 first: 'plain value',
                 second: '$TEST_SECOND', // unset env value without default
@@ -474,6 +559,23 @@ describe('profile provider', () => {
 
       it('returns new BoundProfileProvider', async () => {
         mocked(fetchBind).mockResolvedValue(mockFetchResponse);
+        // normalized is getter on SuperJson - unable to mock or spy on
+        Object.assign(mockSuperJson, {
+          normalized: {
+            profiles: {
+              ['test-profile']: {
+                version: '1.0.0',
+                defaults: {},
+                providers: {},
+              },
+            },
+            providers: {
+              test: {
+                security: mockSecurityValues,
+              },
+            },
+          },
+        });
         const mockProfileProvider = new ProfileProvider(
           mockSuperJson,
           mockProfileDocument,
@@ -494,6 +596,23 @@ describe('profile provider', () => {
 
       it('returns new BoundProfileProvider use profile id', async () => {
         mocked(fetchBind).mockResolvedValue(mockFetchResponse);
+        // normalized is getter on SuperJson - unable to mock or spy on
+        Object.assign(mockSuperJson, {
+          normalized: {
+            profiles: {
+              ['test-profile']: {
+                version: '1.0.0',
+                defaults: {},
+                providers: {},
+              },
+            },
+            providers: {
+              test: {
+                security: mockSecurityValues,
+              },
+            },
+          },
+        });
 
         fileSystem.readFile = () =>
           Promise.resolve(ok(JSON.stringify(mockProfileDocument)));
@@ -516,6 +635,23 @@ describe('profile provider', () => {
 
       it('returns new BoundProfileProvider use profile configuration', async () => {
         mocked(fetchBind).mockResolvedValue(mockFetchResponse);
+        // normalized is getter on SuperJson - unable to mock or spy on
+        Object.assign(mockSuperJson, {
+          normalized: {
+            profiles: {
+              ['test-profile']: {
+                version: '1.0.0',
+                defaults: {},
+                providers: {},
+              },
+            },
+            providers: {
+              test: {
+                security: mockSecurityValues,
+              },
+            },
+          },
+        });
 
         fileSystem.readFile = () =>
           Promise.resolve(ok(JSON.stringify(mockProfileDocument)));
@@ -541,6 +677,25 @@ describe('profile provider', () => {
         mocked(fetchBind).mockResolvedValue({
           provider: mockFetchResponse.provider,
           mapAst: undefined,
+        });
+        // normalized is getter on SuperJson - unable to mock or spy on
+        Object.assign(mockSuperJson, {
+          normalized: {
+            profiles: {
+              ['test-profile']: {
+                version: '1.0.0',
+                defaults: {},
+                providers: {
+                  test: {},
+                },
+              },
+            },
+            providers: {
+              test: {
+                security: mockSecurityValues,
+              },
+            },
+          },
         });
 
         mocked(fetchMapSource).mockResolvedValue(mockMapSource);
@@ -570,6 +725,29 @@ describe('profile provider', () => {
 
       it('returns new BoundProfileProvider load localy', async () => {
         mocked(fetchBind).mockResolvedValue(mockFetchResponse);
+        // normalized is getter on SuperJson - unable to mock or spy on
+        Object.assign(mockSuperJson, {
+          normalized: {
+            profiles: {
+              ['test-profile']: {
+                file: 'file://some/file',
+                version: '1.0.0',
+                defaults: {},
+                providers: {
+                  test: {
+                    file: 'file://some/file',
+                  },
+                },
+              },
+            },
+            providers: {
+              test: {
+                file: 'file://some/file',
+                security: mockSecurityValues,
+              },
+            },
+          },
+        });
 
         fileSystem.readFile = jest
           .fn()
@@ -600,6 +778,30 @@ describe('profile provider', () => {
           .mockResolvedValueOnce(ok(JSON.stringify(mockProfileDocument)))
           .mockResolvedValueOnce(ok(JSON.stringify(mockProviderJson)))
           .mockResolvedValueOnce(ok(JSON.stringify(mockMapDocument)));
+        // normalized is getter on SuperJson - unable to mock or spy on
+        Object.assign(mockSuperJson, {
+          normalized: {
+            profiles: {
+              ['test-profile']: {
+                version: '1.0.0',
+                defaults: {},
+                providers: {
+                  test: {
+                    file: 'file://some/file',
+                  },
+                },
+              },
+            },
+            providers: {
+              test: {
+                file: 'file://some/file',
+                security: mockSecurityValues,
+              },
+            },
+          },
+        });
+
+        mocked(mockResolvePath).mockReturnValue('file://some/path/to');
 
         const mockProfileProvider = new ProfileProvider(
           mockSuperJson,
@@ -652,6 +854,27 @@ describe('profile provider', () => {
 
       it('returns new BoundProfileProvider when map is provided locally but provider is not', async () => {
         mocked(fetchBind).mockResolvedValue(mockFetchResponse);
+        // normalized is getter on SuperJson - unable to mock or spy on
+        Object.assign(mockSuperJson, {
+          normalized: {
+            profiles: {
+              ['test-profile']: {
+                version: '1.0.0',
+                defaults: {},
+                providers: {
+                  test: {
+                    file: 'file://some/file',
+                  },
+                },
+              },
+            },
+            providers: {
+              test: {
+                security: mockSecurityValues,
+              },
+            },
+          },
+        });
 
         fileSystem.readFile = jest
           .fn()
@@ -691,7 +914,11 @@ describe('profile provider', () => {
               },
             },
           },
-          providers: {},
+          providers: {
+            test: {
+              security: mockSecurityValues,
+            },
+          },
         });
 
         fileSystem.path.resolve = jest
@@ -825,7 +1052,7 @@ describe('profile provider', () => {
           },
           providers: {
             test: {
-              security: [],
+              security: mockSecurityValues,
             },
           },
         });

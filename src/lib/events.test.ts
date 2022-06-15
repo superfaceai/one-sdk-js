@@ -1,7 +1,11 @@
 import {
+  ApiKeyPlacement,
   AstMetadata,
+  HttpScheme,
   MapDocumentNode,
   ProfileDocumentNode,
+  ProviderJson,
+  SecurityType,
 } from '@superfaceai/ast';
 import { getLocal } from 'mockttp';
 
@@ -133,6 +137,36 @@ const mockMapDocument: MapDocumentNode = {
   ],
 };
 
+const mockProviderJson = (name: string): ProviderJson => ({
+  name,
+  services: [{ id: 'test-service', baseUrl: 'service/base/url' }],
+  securitySchemes: [
+    {
+      type: SecurityType.HTTP,
+      id: 'basic',
+      scheme: HttpScheme.BASIC,
+    },
+    {
+      id: 'api',
+      type: SecurityType.APIKEY,
+      in: ApiKeyPlacement.HEADER,
+      name: 'Authorization',
+    },
+    {
+      id: 'bearer',
+      type: SecurityType.HTTP,
+      scheme: HttpScheme.BEARER,
+      bearerFormat: 'some',
+    },
+    {
+      id: 'digest',
+      type: SecurityType.HTTP,
+      scheme: HttpScheme.DIGEST,
+    },
+  ],
+  defaultService: 'test-service',
+});
+
 const mockServer = getLocal();
 const environment = new MockEnvironment();
 const config = new Config(environment);
@@ -156,6 +190,7 @@ describe('events', () => {
       mockProfileDocument,
       mockMapDocument,
       'provider',
+      mockProviderJson('provider'),
       config,
       timers,
       {
@@ -200,6 +235,7 @@ describe('events', () => {
       mockProfileDocument,
       mockMapDocument,
       'someprovider',
+      mockProviderJson('someprovider'),
       config,
       timers,
       {
@@ -242,6 +278,7 @@ describe('events', () => {
       mockProfileDocument,
       mockMapDocument,
       'provider',
+      mockProviderJson('provider'),
       config,
       timers,
       {
@@ -276,6 +313,7 @@ describe('events', () => {
       mockProfileDocument,
       mockMapDocument,
       'provider',
+      mockProviderJson('provider'),
       config,
       timers,
       {
@@ -310,6 +348,7 @@ describe('events', () => {
       mockProfileDocument,
       mockMapDocument,
       'provider',
+      mockProviderJson('provider'),
       config,
       timers,
       {

@@ -1,9 +1,13 @@
 import {
+  ApiKeyPlacement,
   AstMetadata,
   BackoffKind,
+  HttpScheme,
   MapDocumentNode,
   OnFail,
   ProfileDocumentNode,
+  ProviderJson,
+  SecurityType,
 } from '@superfaceai/ast';
 import { getLocal, MockedEndpoint } from 'mockttp';
 
@@ -238,6 +242,36 @@ const mockMapDocumentFailure: MapDocumentNode = {
   ],
 };
 
+const mockProviderJson = (name: string): ProviderJson => ({
+  name,
+  services: [{ id: 'test-service', baseUrl: 'service/base/url' }],
+  securitySchemes: [
+    {
+      type: SecurityType.HTTP,
+      id: 'basic',
+      scheme: HttpScheme.BASIC,
+    },
+    {
+      id: 'api',
+      type: SecurityType.APIKEY,
+      in: ApiKeyPlacement.HEADER,
+      name: 'Authorization',
+    },
+    {
+      id: 'bearer',
+      type: SecurityType.HTTP,
+      scheme: HttpScheme.BEARER,
+      bearerFormat: 'some',
+    },
+    {
+      id: 'digest',
+      type: SecurityType.HTTP,
+      scheme: HttpScheme.DIGEST,
+    },
+  ],
+  defaultService: 'test-service',
+});
+
 const mockServer = getLocal();
 
 describe('MetricReporter', () => {
@@ -298,7 +332,12 @@ describe('MetricReporter', () => {
       mockProfileDocument,
       mockMapDocumentSuccess,
       'testprovider',
-      mockServer.url
+      mockServer.url,
+      mockProviderJson('provider'),
+      {
+        services: ServiceSelector.withDefaultUrl(mockServer.url),
+        security: [],
+      },
     );
 
     const profile = await client.getProfile('test-profile');
@@ -334,13 +373,19 @@ describe('MetricReporter', () => {
       configOverride: {
         disableReporting: false,
         superfaceApiUrl: mockServer.url,
-      },
+      }
     });
+
     client.addBoundProfileProvider(
       mockProfileDocument,
       mockMapDocumentFailure,
       'testprovider2',
-      'https://uvavai.lable'
+      mockProviderJson('testprovider'),
+      'https://uvavai.lable',
+      {
+        services: ServiceSelector.withDefaultUrl('https://unavai.lable'),
+        security: [],
+      }
     );
 
     const profile = await client.getProfile('test-profile');
@@ -409,6 +454,11 @@ describe('MetricReporter', () => {
       mockMapDocumentSuccess,
       'testprovider',
       mockServer.url
+      mockProviderJson('provider'),
+      {
+        services: ServiceSelector.withDefaultUrl(mockServer.url),
+        security: [],
+      },
     );
 
     // Send init event to have a baseline number of requests
@@ -448,6 +498,11 @@ describe('MetricReporter', () => {
       mockMapDocumentSuccess,
       'testprovider',
       mockServer.url
+      mockProviderJson('provider'),
+      {
+        services: ServiceSelector.withDefaultUrl(mockServer.url),
+        security: [],
+      },
     );
     const profile = await client.getProfile('test-profile');
 
@@ -492,6 +547,11 @@ describe('MetricReporter', () => {
       mockMapDocumentSuccess,
       'testprovider',
       mockServer.url
+      mockProviderJson('provider'),
+      {
+        services: ServiceSelector.withDefaultUrl(mockServer.url),
+        security: [],
+      },
     );
     const profile = await client.getProfile('test-profile');
 
@@ -560,6 +620,11 @@ describe('MetricReporter', () => {
       mockMapDocumentSuccess,
       'testprovider',
       mockServer.url
+      mockProviderJson('provider'),
+      {
+        services: ServiceSelector.withDefaultUrl(mockServer.url),
+        security: [],
+      },
     );
 
     const profile = await client.getProfile('test-profile');
@@ -630,12 +695,23 @@ describe('MetricReporter', () => {
       mockMapDocumentSuccess,
       'testprovider',
       mockServer.url
+      mockProviderJson('testprovider'),
+      {
+        services: ServiceSelector.withDefaultUrl('https://unavail.able'),
+        security: [],
+      },
     );
     client.addBoundProfileProvider(
       mockProfileDocument,
       mockMapDocumentFailure,
       'testprovider2',
       'https://uvavai.lable'
+      mockMapDocumentFailure('testprovider2'),
+      mockProviderJson('testprovider2'),
+      {
+        services: ServiceSelector.withDefaultUrl('https://unavail.able'),
+        security: [],
+      },
     );
     const profile = await client.getProfile('test-profile');
 

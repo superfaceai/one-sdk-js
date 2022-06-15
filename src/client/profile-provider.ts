@@ -103,7 +103,8 @@ export interface IBoundProfileProvider {
   >(
     usecase: string,
     input?: TInput,
-    parameters?: Record<string, string>
+    parameters?: Record<string, string>,
+    securityValues?: SecurityValues[]
   ): Promise<Result<TResult, ProfileParameterError | MapInterpreterError>>;
 }
 
@@ -116,6 +117,7 @@ export class BoundProfileProvider implements IBoundProfileProvider {
     private readonly profileAst: ProfileDocumentNode,
     private readonly mapAst: MapDocumentNode,
     private readonly providerName: string,
+    private readonly provider: ProviderJson,
     private readonly config: IConfig,
     timers: ITimers,
     public readonly configuration: {
@@ -136,7 +138,7 @@ export class BoundProfileProvider implements IBoundProfileProvider {
     this.fetchInstance = new CrossFetch(timers);
     this.fetchInstance.metadata = {
       profile: profileAstId(profileAst),
-      provider: providerName,
+      provider: provider.name,
     };
     this.fetchInstance.events = events;
     this.logSensitive = logger?.log(BOUND_DEBUG_NAMESPACE_SENSITIVE);
@@ -155,12 +157,13 @@ export class BoundProfileProvider implements IBoundProfileProvider {
   >(
     usecase: string,
     input?: TInput,
-    parameters?: Record<string, string>
+    parameters?: Record<string, string>,
+    securityValues?: SecurityValues[]
   ): Promise<Result<TResult, ProfileParameterError | MapInterpreterError>> {
     this.fetchInstance.metadata = {
       profile: profileAstId(this.profileAst),
       usecase,
-      provider: this.providerName,
+      provider: this.provider.name,
     };
     // compose and validate the input
     const composedInput = this.composeInput(usecase, input);
@@ -175,13 +178,21 @@ export class BoundProfileProvider implements IBoundProfileProvider {
     }
     forceCast<TInput>(composedInput);
 
+    const security = securityValues
+      ? resolveSecurityConfiguration(
+          this.provider.securitySchemes ?? [],
+          securityValues,
+          this.provider.name
+        )
+      : this.configuration.security;
+
     // create and perform interpreter instance
     const interpreter = new MapInterpreter<TInput>(
       {
         input: composedInput,
         usecase,
         services: this.configuration.services,
-        security: this.configuration.security,
+        security,
         parameters: this.mergeParameters(
           parameters,
           this.configuration.parameters
@@ -424,6 +435,7 @@ export class ProfileProvider {
       profileAst,
       mapAst,
       providerInfo.name,
+      providerInfo,
       this.config,
       this.timers,
       {
@@ -793,24 +805,19 @@ export class ProfileProvider {
   /**
    * Resolves auth variables by applying the provided overlay over the base variables.
    *
-   * The base variables either come from super.json or from `this.provider` if it is an instance of `ProviderConfiguration`
+   * The base variables come from super.json
    */
   private resolveSecurityValues(
     providerName: string,
     overlay?: SecurityValues[]
   ): SecurityValues[] {
-    let base: SecurityValues[];
-    if (this.provider instanceof ProviderConfiguration) {
-      base = this.provider.security;
-    } else {
-      base = this.superJson.normalized.providers[providerName]?.security;
-    }
+    const base: SecurityValues[] =
+      this.superJson.normalized.providers[providerName]?.security ?? [];
 
-    let resolved = base;
     if (overlay !== undefined) {
-      resolved = mergeSecurity(base, overlay);
+      return mergeSecurity(base, overlay);
     }
 
-    return resolved;
+    return base;
   }
 }

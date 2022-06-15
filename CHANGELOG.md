@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.1] - 2022-06-14
+### Fixed
+- Do not recache ProviderConfiguration on security values change
+- Do not call `Config.instance()` in the global scope to defer reading of env variables
+- Refactor security values passing in `perform`
+
 ## [1.5.0] - 2022-06-09
 ### Added
 - SuperfaceClient supports passing SuperJson as constructor parameter
@@ -318,7 +324,8 @@ This is a recovery release after introduction of compatibility-breaking changes 
 - Profile parameter validator
 - CI/CD workflows
 
-[Unreleased]: https://github.com/superfaceai/one-sdk-js/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/superfaceai/one-sdk-js/compare/v1.5.1...HEAD
+[1.5.1]: https://github.com/superfaceai/one-sdk-js/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/superfaceai/one-sdk-js/compare/v1.4.1...v1.5.0
 [1.4.1]: https://github.com/superfaceai/one-sdk-js/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/superfaceai/one-sdk-js/compare/v1.3.0...v1.4.0
