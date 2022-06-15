@@ -140,7 +140,6 @@ describe('UseCase', () => {
 
       const mockProviderConfiguration = new ProviderConfiguration(
         'test-provider'
-        // []
       );
       const mockProvider = new Provider(mockClient, mockProviderConfiguration);
 

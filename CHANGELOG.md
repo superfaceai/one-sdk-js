@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Fixed
 - Do not recache ProviderConfiguration on security values change
+- Refactor security values passing in `perform`
 
 ## [1.5.0] - 2022-06-09
 ### Added
