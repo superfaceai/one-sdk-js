@@ -116,7 +116,10 @@ export abstract class SuperfaceClientBase extends Events {
       throw unconfiguredProviderError(providerName);
     }
 
-    return new Provider(this, new ProviderConfiguration(providerName));
+    return new Provider(
+      this,
+      new ProviderConfiguration(providerName, providerSettings.security)
+    );
   }
 
   /** Returns a provider configuration for when no provider is passed to untyped `.perform`. */
