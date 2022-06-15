@@ -1,15 +1,28 @@
 {
   "name": "@superfaceai/one-sdk",
   "version": "1.5.1-rc.0",
-  "description": "Level 5 autonomous, self-driving API client, https://superface.ai",
+  "description": "OneSDK is a universal API client which provides an unparalleled developer experience for every HTTP API",
+  "author": "Superface Team <hello@superface.ai>",
+  "repository": "https://github.com/superfaceai/one-sdk-js.git",
+  "homepage": "https://superface.ai",
+  "bugs": {
+    "url": "https://github.com/superfaceai/one-sdk-js/issues",
+    "email": "support@superface.ai"
+  },
+  "keywords": [
+    "api",
+    "client",
+    "http",
+    "sdk",
+    "integration",
+    "superface"
+  ],
   "main": "dist/index.js",
   "source": "src/index.ts",
   "module": "dist/superface.modern.js",
   "unpkg": "dist/superface.umd.js",
   "browser": "dist/superface.umd.js",
   "types": "dist/index.d.ts",
-  "repository": "https://github.com/superfaceai/one-sdk-js.git",
-  "author": "Superface Team",
   "private": false,
   "files": [
     "dist/**/*"
