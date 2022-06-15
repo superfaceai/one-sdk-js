@@ -7,6 +7,7 @@ import {
   ProfileDocumentNode,
   ProviderJson,
   SecurityType,
+  SecurityValues,
 } from '@superfaceai/ast';
 import { promises as fsp } from 'fs';
 import { mocked } from 'ts-jest/utils';
@@ -144,26 +145,28 @@ describe('profile provider', () => {
   };
 
   const mockProviderConfiguration: ProviderConfiguration =
-    new ProviderConfiguration('test', [
-      {
-        username: 'test-username',
-        id: 'basic',
-        password: 'test-password',
-      },
-      {
-        id: 'api',
-        apikey: 'test-api-key',
-      },
-      {
-        id: 'bearer',
-        token: 'test-token',
-      },
-      {
-        id: 'digest',
-        username: 'test-digest-user',
-        password: 'test-digest-password',
-      },
-    ]);
+    new ProviderConfiguration('test');
+
+  const mockSecurityValues: SecurityValues[] = [
+    {
+      username: 'test-username',
+      id: 'basic',
+      password: 'test-password',
+    },
+    {
+      id: 'api',
+      apikey: 'test-api-key',
+    },
+    {
+      id: 'bearer',
+      token: 'test-token',
+    },
+    {
+      id: 'digest',
+      username: 'test-digest-user',
+      password: 'test-digest-password',
+    },
+  ];
 
   afterEach(() => {
     jest.resetAllMocks();
@@ -182,7 +185,7 @@ describe('profile provider', () => {
         const mockBoundProfileProvider = new BoundProfileProvider(
           mockProfileDocument,
           mockMapDocument,
-          'test',
+          mockProviderJson,
           {
             services: ServiceSelector.withDefaultUrl('test/url'),
             security: [],
@@ -211,6 +214,84 @@ describe('profile provider', () => {
         expect(performSpy).toHaveBeenCalledWith(mockMapDocument);
       });
 
+      it('overrides security from super.json with custom security', async () => {
+        const validateSpy = jest
+          .spyOn(ProfileParameterValidator.prototype, 'validate')
+          .mockReturnValue(ok(undefined));
+
+        const performSpy = jest
+          .spyOn(MapInterpreter.prototype, 'perform')
+          .mockResolvedValue(ok('test'));
+
+        const mockBoundProfileProvider = new BoundProfileProvider(
+          mockProfileDocument,
+          mockMapDocument,
+          mockProviderJson,
+          {
+            services: ServiceSelector.withDefaultUrl('test/url'),
+            security: [
+              {
+                apikey: 'original',
+                id: 'api',
+                type: SecurityType.APIKEY,
+                in: ApiKeyPlacement.HEADER,
+                name: 'Authorization',
+              },
+            ],
+          }
+        );
+
+        await expect(
+          mockBoundProfileProvider.perform<undefined, string>(
+            'test-usecase',
+            undefined,
+            undefined,
+            [
+              {
+                apikey: 'new',
+                id: 'api',
+              },
+            ]
+          )
+        ).resolves.toEqual(ok('test'));
+
+        expect(MapInterpreter).toBeCalledWith(
+          {
+            input: undefined,
+            parameters: undefined,
+            security: [
+              {
+                apikey: 'new',
+                id: 'api',
+                type: SecurityType.APIKEY,
+                in: ApiKeyPlacement.HEADER,
+                name: 'Authorization',
+              },
+            ],
+            services: expect.any(Object),
+            usecase: 'test-usecase',
+          },
+          expect.any(Object)
+        );
+
+        expect(validateSpy).toHaveBeenCalledTimes(2);
+        expect(validateSpy).toHaveBeenNthCalledWith(
+          1,
+          undefined,
+          'input',
+          'test-usecase'
+        );
+        expect(validateSpy).toHaveBeenNthCalledWith(
+          2,
+          'test',
+          'result',
+          'test-usecase'
+        );
+
+        expect(performSpy).toHaveBeenCalledTimes(1);
+        expect(performSpy).toHaveBeenCalledWith(mockMapDocument);
+      });
+
       it('returns error when input is not valid', async () => {
         const validateSpy = jest
           .spyOn(ProfileParameterValidator.prototype, 'validate')
@@ -220,7 +301,7 @@ describe('profile provider', () => {
         const mockBoundProfileProvider = new BoundProfileProvider(
           mockProfileDocument,
           mockMapDocument,
-          'test',
+          mockProviderJson,
           {
             services: ServiceSelector.withDefaultUrl('test/url'),
             security: [],
@@ -253,7 +334,7 @@ describe('profile provider', () => {
         const mockBoundProfileProvider = new BoundProfileProvider(
           mockProfileDocument,
           mockMapDocument,
-          'test',
+          mockProviderJson,
           {
             services: ServiceSelector.withDefaultUrl('test/url'),
             security: [],
@@ -293,7 +374,7 @@ describe('profile provider', () => {
         const mockBoundProfileProvider = new BoundProfileProvider(
           mockProfileDocument,
           mockMapDocument,
-          'test',
+          mockProviderJson,
           {
             services: ServiceSelector.withDefaultUrl('test/url'),
             security: [],
@@ -340,7 +421,7 @@ describe('profile provider', () => {
       const expectedBoundProfileProvider = {
         profileAst: mockProfileDocument,
         mapAst: mockMapDocument,
-        providerName: mockProviderJson.name,
+        provider: mockProviderJson,
         configuration: {
           services: new ServiceSelector(
             [{ id: 'test-service', baseUrl: 'service/base/url' }],
@@ -439,7 +520,7 @@ describe('profile provider', () => {
             },
             providers: {
               test: {
-                security: [],
+                security: mockSecurityValues,
                 parameters: {
                   first: 'plain value',
                   second: '$TEST_SECOND', //unset env value without default
@@ -483,7 +564,7 @@ describe('profile provider', () => {
             },
             providers: {
               test: {
-                security: [],
+                security: mockSecurityValues,
               },
             },
           },
@@ -516,7 +597,7 @@ describe('profile provider', () => {
             },
             providers: {
               test: {
-                security: [],
+                security: mockSecurityValues,
               },
             },
           },
@@ -554,7 +635,7 @@ describe('profile provider', () => {
             },
             providers: {
               test: {
-                security: [],
+                security: mockSecurityValues,
               },
             },
           },
@@ -598,7 +679,7 @@ describe('profile provider', () => {
             },
             providers: {
               test: {
-                security: [],
+                security: mockSecurityValues,
               },
             },
           },
@@ -648,7 +729,7 @@ describe('profile provider', () => {
             providers: {
               test: {
                 file: 'file://some/file',
-                security: [],
+                security: mockSecurityValues,
               },
             },
           },
@@ -693,7 +774,7 @@ describe('profile provider', () => {
             providers: {
               test: {
                 file: 'file://some/file',
-                security: [],
+                security: mockSecurityValues,
               },
             },
           },
@@ -769,7 +850,11 @@ describe('profile provider', () => {
                 },
               },
             },
-            providers: {},
+            providers: {
+              test: {
+                security: mockSecurityValues,
+              },
+            },
           },
         });
 
@@ -811,7 +896,11 @@ describe('profile provider', () => {
                 },
               },
             },
-            providers: {},
+            providers: {
+              test: {
+                security: mockSecurityValues,
+              },
+            },
           },
         });
 
@@ -940,7 +1029,7 @@ describe('profile provider', () => {
             },
             providers: {
               test: {
-                security: [],
+                security: mockSecurityValues,
               },
             },
           },
@@ -1260,8 +1349,7 @@ but http scheme requires: digest`
           .mockResolvedValueOnce(JSON.stringify(mockMapDocument));
 
         const providerConfiguration = new ProviderConfiguration(
-          'test-boop',
-          []
+          'test-boop'
         );
 
         const mockProfileProvider = new ProfileProvider(

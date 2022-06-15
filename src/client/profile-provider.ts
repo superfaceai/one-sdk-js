@@ -679,14 +679,14 @@ export class ProfileProvider {
   /**
    * Resolves auth variables by applying the provided overlay over the base variables.
    *
-   * The base variables either come from super.json
+   * The base variables come from super.json
    */
   private resolveSecurityValues(
     providerName: string,
     overlay?: SecurityValues[]
   ): SecurityValues[] {
     const base: SecurityValues[] =
-      this.superJson.normalized.providers[providerName]?.security;
+      this.superJson.normalized.providers[providerName]?.security ?? [];
 
     if (overlay !== undefined) {
       return mergeSecurity(base, overlay);
