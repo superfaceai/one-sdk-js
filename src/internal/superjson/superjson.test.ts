@@ -202,9 +202,7 @@ describe('SuperJson', () => {
       expect(SuperJson.loadSync('test', fileSystem).isErr()).toEqual(true);
     });
 
-    // // TODO: Skipped for now, broken because of typescript-is bug
-    // // https://github.com/woutervh-/typescript-is/issues/111
-    it.skip('returns err when there is an error during parsing super.json - usecase not nested under defaults', () => {
+    it('returns err when there is an error during parsing super.json - usecase not nested under defaults', () => {
       fileSystem.sync.readFile = () =>
         ok(`{
         "profiles": {
