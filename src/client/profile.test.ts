@@ -8,9 +8,9 @@ import { NodeFileSystem } from '../lib/io/filesystem.node';
 import { MockEnvironment } from '../test/environment';
 import { MockFileSystem } from '../test/filesystem';
 import { MockTimers } from '../test/timers';
+import { IBoundProfileProvider } from './bound-profile-provider';
 import { SuperCache } from './cache';
 import { Profile, ProfileConfiguration, TypedProfile } from './profile';
-import { IBoundProfileProvider } from './profile-provider';
 import { UseCase } from './usecase';
 
 const crypto = new NodeCrypto();

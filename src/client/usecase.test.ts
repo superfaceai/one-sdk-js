@@ -6,10 +6,10 @@ import { Events } from '../lib/events';
 import { MockEnvironment } from '../test/environment';
 import { MockFileSystem } from '../test/filesystem';
 import { MockTimers } from '../test/timers';
+import { IBoundProfileProvider } from './bound-profile-provider';
 import { SuperCache } from './cache';
 import { registerHooks } from './failure/event-adapter';
 import { ProfileConfiguration } from './profile';
-import { IBoundProfileProvider } from './profile-provider';
 import { Provider, ProviderConfiguration } from './provider';
 import { UseCase } from './usecase';
 

@@ -7,7 +7,6 @@ import {
   isMapFile,
   isProfileFile,
   MapDocumentNode,
-  NormalizedProfileProviderSettings,
   prepareProviderParameters,
   ProfileDocumentNode,
   ProviderJson,
@@ -22,48 +21,25 @@ import {
   providersDoNotMatchError,
   referencedFileNotFoundError,
 } from '../internal/errors.helpers';
-import {
-  MapInterpreter,
-  MapInterpreterError,
-  ProfileParameterError,
-  ProfileParameterValidator,
-} from '../internal/interpreter';
-import { FetchInstance } from '../internal/interpreter/http/interfaces';
-import {
-  AuthCache,
-  SecurityConfiguration,
-} from '../internal/interpreter/http/security';
-import {
-  castToNonPrimitive,
-  mergeVariables,
-  NonPrimitive,
-} from '../internal/interpreter/variables';
 import { Parser } from '../internal/parser';
 import { SuperJson } from '../internal/superjson';
 import { mergeSecurity } from '../internal/superjson/mutate';
-import { err, ok, Result } from '../lib';
+import { forceCast, profileAstId } from '../lib';
 import { ICrypto } from '../lib/crypto';
-import { Events, Interceptable } from '../lib/events';
-import { CrossFetch } from '../lib/fetch';
+import { Events } from '../lib/events';
 import { IFileSystem } from '../lib/io';
 import { ILogger, LogFunction } from '../lib/logger/logger';
-import { IServiceSelector, ServiceSelector } from '../lib/services';
+import { ServiceSelector } from '../lib/services';
 import { ITimers } from '../lib/timers';
-import { MapInterpreterEventAdapter } from './failure/map-interpreter-adapter';
+import {
+  BoundProfileProvider,
+  IBoundProfileProvider,
+} from './bound-profile-provider';
 import { ProfileConfiguration } from './profile';
 import { ProviderConfiguration } from './provider';
 import { fetchBind, fetchMapSource, fetchProviderInfo } from './registry';
 import { resolveSecurityConfiguration } from './security';
 
-function forceCast<T>(_: unknown): asserts _ is T {}
-
-function profileAstId(ast: ProfileDocumentNode): string {
-  return ast.header.scope !== undefined
-    ? ast.header.scope + '/' + ast.header.name
-    : ast.header.name;
-}
-
-const BOUND_DEBUG_NAMESPACE_SENSITIVE = 'bound-profile-provider:sensitive';
 const DEBUG_NAMESPACE = 'profile-provider';
 
 export async function bindProfileProvider(
@@ -93,176 +69,6 @@ export async function bindProfileProvider(
     Math.floor(timers.now() / 1000) + config.superfaceCacheTimeout;
 
   return { provider: boundProfileProvider, expiresAt };
-}
-
-export interface IBoundProfileProvider {
-  perform<
-    TInput extends NonPrimitive | undefined = undefined,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    TResult = any
-  >(
-    usecase: string,
-    input?: TInput,
-    parameters?: Record<string, string>,
-    securityValues?: SecurityValues[]
-  ): Promise<Result<TResult, ProfileParameterError | MapInterpreterError>>;
-}
-
-export class BoundProfileProvider implements IBoundProfileProvider {
-  private profileValidator: ProfileParameterValidator;
-  private fetchInstance: FetchInstance & Interceptable & AuthCache;
-  private readonly logSensitive: LogFunction | undefined;
-
-  constructor(
-    private readonly profileAst: ProfileDocumentNode,
-    private readonly mapAst: MapDocumentNode,
-    private readonly provider: ProviderJson,
-    private readonly config: IConfig,
-    timers: ITimers,
-    public readonly configuration: {
-      services: IServiceSelector;
-      profileProviderSettings?: NormalizedProfileProviderSettings;
-      security: SecurityConfiguration[];
-      parameters?: Record<string, string>;
-    },
-    private readonly crypto: ICrypto,
-    private readonly logger?: ILogger,
-    events?: Events
-  ) {
-    this.profileValidator = new ProfileParameterValidator(
-      this.profileAst,
-      this.logger
-    );
-
-    this.fetchInstance = new CrossFetch(timers);
-    this.fetchInstance.metadata = {
-      profile: profileAstId(profileAst),
-      provider: provider.name,
-    };
-    this.fetchInstance.events = events;
-    this.logSensitive = logger?.log(BOUND_DEBUG_NAMESPACE_SENSITIVE);
-  }
-
-  /**
-   * Performs the usecase while validating input and output against the profile definition.
-   *
-   * Note that the `TInput` and `TResult` types cannot be checked for compatibility with the profile definition, so the caller
-   * is responsible for ensuring that the cast is safe.
-   */
-  public async perform<
-    TInput extends NonPrimitive | undefined = undefined,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    TResult = any
-  >(
-    usecase: string,
-    input?: TInput,
-    parameters?: Record<string, string>,
-    securityValues?: SecurityValues[]
-  ): Promise<Result<TResult, ProfileParameterError | MapInterpreterError>> {
-    this.fetchInstance.metadata = {
-      profile: profileAstId(this.profileAst),
-      usecase,
-      provider: this.provider.name,
-    };
-    // compose and validate the input
-    const composedInput = this.composeInput(usecase, input);
-
-    const inputValidation = this.profileValidator.validate(
-      composedInput,
-      'input',
-      usecase
-    );
-    if (inputValidation.isErr()) {
-      return err(inputValidation.error);
-    }
-    forceCast<TInput>(composedInput);
-
-    const security = securityValues
-      ? resolveSecurityConfiguration(
-          this.provider.securitySchemes ?? [],
-          securityValues,
-          this.provider.name
-        )
-      : this.configuration.security;
-
-    // create and perform interpreter instance
-    const interpreter = new MapInterpreter<TInput>(
-      {
-        input: composedInput,
-        usecase,
-        services: this.configuration.services,
-        security,
-        parameters: this.mergeParameters(
-          parameters,
-          this.configuration.parameters
-        ),
-      },
-      {
-        config: this.config,
-        fetchInstance: this.fetchInstance,
-        externalHandler: new MapInterpreterEventAdapter(
-          this.fetchInstance.metadata,
-          this.fetchInstance.events
-        ),
-        logger: this.logger,
-        crypto: this.crypto,
-      }
-    );
-
-    const result = await interpreter.perform(this.mapAst);
-    if (result.isErr()) {
-      return err(result.error);
-    }
-
-    // validate output
-    const resultValidation = this.profileValidator.validate(
-      result.value,
-      'result',
-      usecase
-    );
-
-    if (resultValidation.isErr()) {
-      return err(resultValidation.error);
-    }
-    forceCast<TResult>(result.value);
-
-    return ok(result.value);
-  }
-
-  private composeInput(
-    usecase: string,
-    input?: NonPrimitive | undefined
-  ): NonPrimitive | undefined {
-    let composed = input;
-
-    const defaultInput = castToNonPrimitive(
-      this.configuration.profileProviderSettings?.defaults[usecase]?.input
-    );
-    if (defaultInput !== undefined) {
-      composed = mergeVariables(defaultInput, input ?? {});
-      this.logSensitive?.('Composed input with defaults: %O', composed);
-    }
-
-    return composed;
-  }
-
-  private mergeParameters(
-    parameters?: Record<string, string>,
-    providerParameters?: Record<string, string>
-  ): Record<string, string> | undefined {
-    if (parameters === undefined) {
-      return providerParameters;
-    }
-
-    if (providerParameters === undefined) {
-      return parameters;
-    }
-
-    return {
-      ...providerParameters,
-      ...parameters,
-    };
-  }
 }
 
 export type BindConfiguration = {

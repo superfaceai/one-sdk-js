@@ -11,14 +11,14 @@ import {
   Provider,
   ProviderConfiguration,
 } from '../client';
+import {
+  BoundProfileProvider,
+  IBoundProfileProvider,
+} from '../client/bound-profile-provider';
 import { SuperCache } from '../client/cache';
 import { ISuperfaceClient } from '../client/client';
 import { InternalClient } from '../client/client.internal';
 import { registerHooks } from '../client/failure/event-adapter';
-import {
-  BoundProfileProvider,
-  IBoundProfileProvider,
-} from '../client/profile-provider';
 import { Config, IConfig } from '../config';
 import { SecurityConfiguration } from '../internal/interpreter/http';
 import { SuperJson } from '../internal/superjson';

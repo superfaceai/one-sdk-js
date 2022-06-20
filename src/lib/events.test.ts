@@ -9,7 +9,7 @@ import {
 } from '@superfaceai/ast';
 import { getLocal } from 'mockttp';
 
-import { BoundProfileProvider } from '../client';
+import { BoundProfileProvider } from '../client/bound-profile-provider';
 import { Config } from '../config';
 import { MockEnvironment } from '../test/environment';
 import { MockTimers } from '../test/timers';

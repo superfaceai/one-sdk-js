@@ -17,11 +17,11 @@ import { NodeLogger } from '../lib/logger/logger.node';
 import { hookMetrics, MetricReporter } from '../lib/reporter';
 import { ITimers } from '../lib/timers';
 import { NodeTimers } from '../lib/timers/timers.node';
+import { IBoundProfileProvider } from './bound-profile-provider';
 import { SuperCache } from './cache';
 import { InternalClient } from './client.internal';
 import { registerHooks as registerFailoverHooks } from './failure/event-adapter';
 import { Profile, TypedProfile, UsecaseType } from './profile';
-import { IBoundProfileProvider } from './profile-provider';
 import { Provider } from './provider';
 
 export interface ISuperfaceClient {

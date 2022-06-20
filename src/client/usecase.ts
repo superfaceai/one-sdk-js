@@ -24,6 +24,7 @@ import {
 import { IFileSystem } from '../lib/io';
 import { ILogger, LogFunction } from '../lib/logger/logger';
 import { ITimers } from '../lib/timers';
+import { IBoundProfileProvider } from './bound-profile-provider';
 import { SuperCache } from './cache';
 import {
   AbortPolicy,
@@ -33,7 +34,7 @@ import {
 } from './failure/policies';
 import { FailurePolicy, UsecaseInfo } from './failure/policy';
 import { ProfileConfiguration } from './profile';
-import { bindProfileProvider, IBoundProfileProvider } from './profile-provider';
+import { bindProfileProvider } from './profile-provider';
 import { Provider, ProviderConfiguration } from './provider';
 
 const DEBUG_NAMESPACE = 'usecase';

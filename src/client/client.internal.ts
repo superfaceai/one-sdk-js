@@ -10,9 +10,9 @@ import { Events } from '../lib/events';
 import { IFileSystem } from '../lib/io';
 import { ILogger } from '../lib/logger/logger';
 import { ITimers } from '../lib/timers';
+import { IBoundProfileProvider } from './bound-profile-provider';
 import { SuperCache } from './cache';
 import { Profile, ProfileConfiguration } from './profile';
-import { IBoundProfileProvider } from './profile-provider';
 
 export class InternalClient {
   constructor(
