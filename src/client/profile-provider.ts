@@ -116,7 +116,6 @@ export class BoundProfileProvider implements IBoundProfileProvider {
   constructor(
     private readonly profileAst: ProfileDocumentNode,
     private readonly mapAst: MapDocumentNode,
-    private readonly providerName: string,
     private readonly provider: ProviderJson,
     private readonly config: IConfig,
     timers: ITimers,
@@ -434,7 +433,6 @@ export class ProfileProvider {
     return new BoundProfileProvider(
       profileAst,
       mapAst,
-      providerInfo.name,
       providerInfo,
       this.config,
       this.timers,

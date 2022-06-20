@@ -107,7 +107,6 @@ class UseCaseBase implements Interceptable {
     cacheKey: string,
     providerConfig: ProviderConfiguration
   ): Promise<IBoundProfileProvider> {
-    console.log(cacheKey, providerConfig);
     const { provider, expiresAt } =
       await this.boundProfileProviderCache.getCached(cacheKey, () =>
         bindProfileProvider(

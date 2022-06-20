@@ -189,7 +189,6 @@ describe('events', () => {
     const profile = new BoundProfileProvider(
       mockProfileDocument,
       mockMapDocument,
-      'provider',
       mockProviderJson('provider'),
       config,
       timers,
@@ -234,7 +233,6 @@ describe('events', () => {
     const profile = new BoundProfileProvider(
       mockProfileDocument,
       mockMapDocument,
-      'someprovider',
       mockProviderJson('someprovider'),
       config,
       timers,
@@ -277,7 +275,6 @@ describe('events', () => {
     const profile = new BoundProfileProvider(
       mockProfileDocument,
       mockMapDocument,
-      'provider',
       mockProviderJson('provider'),
       config,
       timers,
@@ -312,7 +309,6 @@ describe('events', () => {
     const profile = new BoundProfileProvider(
       mockProfileDocument,
       mockMapDocument,
-      'provider',
       mockProviderJson('provider'),
       config,
       timers,
@@ -347,7 +343,6 @@ describe('events', () => {
     const profile = new BoundProfileProvider(
       mockProfileDocument,
       mockMapDocument,
-      'provider',
       mockProviderJson('provider'),
       config,
       timers,

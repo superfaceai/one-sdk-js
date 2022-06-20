@@ -1,4 +1,8 @@
-import { MapDocumentNode, ProfileDocumentNode } from '@superfaceai/ast';
+import {
+  MapDocumentNode,
+  ProfileDocumentNode,
+  ProviderJson,
+} from '@superfaceai/ast';
 import { ProfileId, ProfileVersion } from '@superfaceai/parser';
 
 import {
@@ -33,6 +37,17 @@ import { ServiceSelector } from '../lib/services';
 import { MockEnvironment } from './environment';
 import { MockFileSystem } from './filesystem';
 import { MockTimers } from './timers';
+
+const mockProviderJson = (name: string): ProviderJson => ({
+  name,
+  defaultService: 'default',
+  services: [
+    {
+      id: 'default',
+      baseUrl: 'http://localhost',
+    },
+  ],
+});
 
 export class MockClient implements ISuperfaceClient {
   public config: Config;
@@ -109,19 +124,21 @@ export class MockClient implements ISuperfaceClient {
   public addBoundProfileProvider(
     profile: ProfileDocumentNode,
     map: MapDocumentNode,
-    provider: string | ProviderConfiguration,
+    provider: string | ProviderJson,
     baseUrl: string,
     securityValues: SecurityConfiguration[] = [],
     profileConfigOverride?: ProfileConfiguration
   ): void {
-    const providerConfiguration =
-      typeof provider === 'string'
-        ? new ProviderConfiguration(provider, [])
-        : provider;
+    const providerJson =
+      typeof provider === 'string' ? mockProviderJson(provider) : provider;
+    const providerConfiguration = new ProviderConfiguration(
+      providerJson.name,
+      []
+    );
     const boundProfileProvider = new BoundProfileProvider(
       profile,
       map,
-      providerConfiguration.name,
+      providerJson,
       this.config,
       this.timers,
       {

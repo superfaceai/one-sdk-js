@@ -99,34 +99,6 @@ describe('UseCase', () => {
 
   describe('when calling perform', () => {
     it('passes security values', async () => {
-      // const mockBoundProfileProvider = new BoundProfileProvider(
-      //   mockProfileDocument,
-      //   mockMapDocument,
-      //   'test',
-      //   { services: ServiceSelector.withDefaultUrl(''), security: [] }
-      // );
-      // const mockClient = new SuperfaceClient();
-
-      // const mockProfileConfiguration = new ProfileConfiguration(
-      //   'test',
-      //   '1.0.0'
-      // );
-      // const mockProfile = new Profile(mockClient, mockProfileConfiguration);
-
-      // const mockProviderConfiguration = new ProviderConfiguration(
-      //   'test-provider',
-      //   []
-      // );
-      // const mockProvider = new Provider(mockClient, mockProviderConfiguration);
-
-      // const getProviderForProfileSpy = jest
-      //   .spyOn(mockClient, 'getProviderForProfile')
-      //   .mockResolvedValue(mockProvider);
-      // const cacheBoundProfileProviderSpy = jest
-      //   .spyOn(mockClient, 'cacheBoundProfileProvider')
-      //   .mockResolvedValue(mockBoundProfileProvider);
-
-      // const usecase = new UseCase(mockProfile, 'test-usecase');
       const { usecase, performSpy } = createUseCase();
       await expect(
         usecase.perform(
@@ -142,23 +114,12 @@ describe('UseCase', () => {
         )
       ).resolves.toBeUndefined();
 
-      // expect(getProviderForProfileSpy).toHaveBeenCalledTimes(1);
-      // expect(getProviderForProfileSpy).toHaveBeenCalledWith('test');
-
-      // expect(cacheBoundProfileProviderSpy).toHaveBeenCalledTimes(1);
       expect(performSpy).toHaveBeenCalledWith(
+        'test-usecase',
         { x: 7 },
-        { security: [{ id: 'test', apikey: 'key' }] }
+        undefined,
+        [{ id: 'test', apikey: 'key' }]
       );
-      // expect(cacheBoundProfileProviderSpy).toHaveBeenCalledWith(
-      //   mockProfileConfiguration,
-      //   new ProviderConfiguration('test-provider', [
-      //     {
-      //       id: 'test',
-      //       apikey: 'key',
-      //     },
-      //   ])
-      // );
     });
 
     it('calls perform on correct BoundProfileProvider', async () => {
@@ -167,6 +128,7 @@ describe('UseCase', () => {
       expect(performSpy).toHaveBeenCalledWith(
         'test-usecase',
         { x: 7 },
+        undefined,
         undefined
       );
     });
@@ -181,6 +143,7 @@ describe('UseCase', () => {
       expect(performSpy).toHaveBeenCalledWith(
         'test-usecase',
         { x: 7 },
+        undefined,
         undefined
       );
       expect(getProviderForProfileSpy).toHaveBeenCalledWith(
@@ -206,6 +169,7 @@ describe('UseCase', () => {
       expect(performSpy).toHaveBeenCalledWith(
         'test-usecase',
         { x: 7 },
+        undefined,
         undefined
       );
       expect(getProviderForProfileSpy).not.toHaveBeenCalled();
@@ -220,6 +184,7 @@ describe('UseCase', () => {
       expect(performSpy2).toHaveBeenCalledWith(
         'test-usecase',
         { x: 7 },
+        undefined,
         undefined
       );
     });
