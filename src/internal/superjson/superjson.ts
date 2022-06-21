@@ -348,6 +348,7 @@ export class SuperJson {
       providerName,
       variant,
       this.environment,
+      this.fileSystem,
       this.logger
     );
     if (changed) {
@@ -402,7 +403,12 @@ export class SuperJson {
     providerName: string,
     variant: { kind: 'local'; file: string } | { kind: 'remote' }
   ): boolean {
-    const changed = swapProviderVariant(this.document, providerName, variant);
+    const changed = swapProviderVariant(
+      this.document,
+      providerName,
+      variant,
+      this.fileSystem
+    );
     if (changed) {
       this.normalizedCache = undefined;
     }

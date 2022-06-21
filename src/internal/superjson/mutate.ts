@@ -135,7 +135,10 @@ export function mergeProfile(
     // when specified profile is file URI in shorthand notation
     if (isFileURIString(payload)) {
       if (isShorthandAvailable) {
-        document.profiles[profileName] = composeFileURI(payload);
+        document.profiles[profileName] = composeFileURI(
+          payload,
+          filesystem.path.normalize
+        );
 
         return true;
       }
@@ -366,7 +369,10 @@ export function mergeProfileProvider(
       typeof profileProvider === 'string' ||
       isEmptyRecord(profileProvider.defaults ?? {})
     ) {
-      targetProfile.providers[providerName] = composeFileURI(payload);
+      targetProfile.providers[providerName] = composeFileURI(
+        payload,
+        fileSystem.path.normalize
+      );
       targetProfile.priority = resolvePriorityAddition(
         targetProfile.priority,
         providerName
@@ -549,6 +555,7 @@ export function swapProfileProviderVariant(
     | { kind: 'local'; file: string }
     | { kind: 'remote'; mapVariant?: string; mapRevision?: string },
   environment: IEnvironment,
+  filesystem: IFileSystem,
   logger?: ILogger
 ): boolean {
   const [_, targetProfile] = ensureProfileWithProviders(
@@ -565,8 +572,13 @@ export function swapProfileProviderVariant(
   if (variant.kind === 'local') {
     if (typeof targetProfileProvider === 'string') {
       // "provider": "path/to/map"
-      changed = composeFileURI(variant.file) === targetProfileProvider;
-      targetProfileProvider = composeFileURI(variant.file);
+      changed =
+        composeFileURI(variant.file, filesystem.path.normalize) ===
+        targetProfileProvider;
+      targetProfileProvider = composeFileURI(
+        variant.file,
+        filesystem.path.normalize
+      );
     } else if (
       targetProfileProvider === undefined ||
       targetProfileProvider.defaults === undefined ||
@@ -579,7 +591,10 @@ export function swapProfileProviderVariant(
           'file' in targetProfileProvider &&
           targetProfileProvider.file === variant.file
         );
-      targetProfileProvider = composeFileURI(variant.file);
+      targetProfileProvider = composeFileURI(
+        variant.file,
+        filesystem.path.normalize
+      );
     } else {
       // "provider": { "file": "path/to/map", "defaults": <non-empty> } | { "defaults": <non-empty> }
       changed = !(
@@ -649,7 +664,10 @@ export function mergeProvider(
 
     if (isFileURIString(payload)) {
       if (isShorthandAvailable) {
-        document.providers[providerName] = composeFileURI(payload);
+        document.providers[providerName] = composeFileURI(
+          payload,
+          filesystem.path.normalize
+        );
       } else {
         document.providers[providerName] = {
           file: filesystem.path.normalize(trimFileURI(payload)),
@@ -739,7 +757,8 @@ export function setProvider(
 export function swapProviderVariant(
   document: SuperJsonDocument,
   providerName: string,
-  variant: { kind: 'local'; file: string } | { kind: 'remote' }
+  variant: { kind: 'local'; file: string } | { kind: 'remote' },
+  filesystem: IFileSystem
 ): boolean {
   if (document.providers === undefined) {
     document.providers = {};
@@ -750,15 +769,17 @@ export function swapProviderVariant(
 
   if (variant.kind === 'local') {
     if (typeof targetProvider === 'string') {
-      changed = composeFileURI(variant.file) !== targetProvider;
-      targetProvider = composeFileURI(variant.file);
+      changed =
+        composeFileURI(variant.file, filesystem.path.normalize) !==
+        targetProvider;
+      targetProvider = composeFileURI(variant.file, filesystem.path.normalize);
     } else if (
       targetProvider === undefined ||
       targetProvider.security === undefined ||
       targetProvider.security.length === 0
     ) {
       changed = true;
-      targetProvider = composeFileURI(variant.file);
+      targetProvider = composeFileURI(variant.file, filesystem.path.normalize);
     } else {
       changed = variant.file !== targetProvider.file;
       targetProvider.file = variant.file;

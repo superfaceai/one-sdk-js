@@ -13,6 +13,7 @@ import {
 } from '@superfaceai/ast';
 
 import { IFileSystem } from '../../lib/io';
+import { NodeFileSystem } from '../../lib/io/filesystem.node';
 import { err, ok } from '../../lib/result/result';
 import { MockEnvironment } from '../../test/environment';
 import { MockFileSystem } from '../../test/filesystem';
@@ -647,22 +648,27 @@ describe('SuperJson', () => {
   });
 
   describe('when composing file uri', () => {
+    const filesystem = NodeFileSystem;
+
     it('return path without change', () => {
-      expect(composeFileURI('file://test/path/to/super.json')).toEqual(
-        'file://test/path/to/super.json'
-      );
+      expect(
+        composeFileURI(
+          'file://test/path/to/super.json',
+          filesystem.path.normalize
+        )
+      ).toEqual('file://test/path/to/super.json');
     });
 
     it('return path with file://../', () => {
-      expect(composeFileURI('../test/path/to/super.json')).toEqual(
-        'file://../test/path/to/super.json'
-      );
+      expect(
+        composeFileURI('../test/path/to/super.json', filesystem.path.normalize)
+      ).toEqual('file://../test/path/to/super.json');
     });
 
     it('return path with file://', () => {
-      expect(composeFileURI('test/path/to/super.json')).toEqual(
-        'file://./test/path/to/super.json'
-      );
+      expect(
+        composeFileURI('test/path/to/super.json', filesystem.path.normalize)
+      ).toEqual('file://./test/path/to/super.json');
     });
   });
 

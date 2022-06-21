@@ -4,15 +4,22 @@ import {
   isFileURIString,
 } from '@superfaceai/ast';
 
+import { IFileSystem } from '../../lib/io';
+
 export const trimFileURI = (path: string): string =>
   path.replace(FILE_URI_REGEX, '');
 
-export const composeFileURI = (path: string): string => {
+export const composeFileURI = (
+  path: string,
+  normalize: IFileSystem['path']['normalize']
+): string => {
   if (isFileURIString(path)) {
     return path;
   }
 
+  const normalized = normalize(path);
+
   return path.startsWith('../')
-    ? `${FILE_URI_PROTOCOL}${path}`
-    : `${FILE_URI_PROTOCOL}./${path}`;
+    ? `${FILE_URI_PROTOCOL}${normalized}`
+    : `${FILE_URI_PROTOCOL}./${normalized}`;
 };

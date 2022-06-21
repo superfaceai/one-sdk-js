@@ -765,8 +765,6 @@ describe('profile provider', () => {
           },
         });
 
-        // mocked(mockResolvePath).mockReturnValue('file://some/path/to');
-
         mocked(fileSystem.readFile)
           .mockResolvedValueOnce(ok(JSON.stringify(mockProfileDocument)))
           .mockResolvedValueOnce(ok(JSON.stringify(mockProviderJson)))
