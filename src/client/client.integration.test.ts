@@ -5,7 +5,7 @@ import { ProfileProvider } from '..';
 import { SuperfaceClient } from '../client';
 import { SuperJson } from '../internal/superjson';
 import { ok } from '../lib/result/result';
-import { createTypedClient, typeHelper } from './client';
+import { createTypedClient, typeHelper } from './client.typed';
 
 const parseMapFromSource = (source: string) =>
   parseMap(

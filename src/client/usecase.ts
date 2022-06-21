@@ -53,7 +53,7 @@ export type ProviderProvider = {
   getProviderForProfile: (profileId: string) => Promise<Provider>;
 };
 
-class UseCaseBase implements Interceptable {
+export abstract class UseCaseBase implements Interceptable {
   public metadata: InterceptableMetadata;
 
   private boundProfileProvider: IBoundProfileProvider | undefined;
@@ -335,23 +335,6 @@ export class UseCase extends UseCaseBase {
     TOutput = unknown
   >(
     input?: TInput,
-    options?: PerformOptions
-  ): Promise<Result<TOutput, PerformError>> {
-    // Disable failover when user specified provider
-    // needs to happen here because bindAndPerform is subject to retry from event hooks
-    // including provider failover
-    this.toggleFailover(options?.provider === undefined);
-
-    return this.bindAndPerform(input, options);
-  }
-}
-
-export class TypedUseCase<
-  TInput extends NonPrimitive | undefined,
-  TOutput
-> extends UseCaseBase {
-  public async perform(
-    input: TInput,
     options?: PerformOptions
   ): Promise<Result<TOutput, PerformError>> {
     // Disable failover when user specified provider
