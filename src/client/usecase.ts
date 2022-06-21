@@ -264,7 +264,7 @@ export abstract class UseCaseBase implements Interceptable {
     }
   }
 
-  protected toggleFailover(enabled: boolean) {
+  protected toggleFailover(enabled: boolean): void {
     this.events.hookContext[
       `${this.profileConfiguration.id}/${this.name}`
     ].router.setAllowFailover(enabled);
