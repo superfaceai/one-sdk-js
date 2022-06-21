@@ -6,7 +6,7 @@ import { ILogger, LogFunction } from './lib/logger/logger';
 const DEBUG_NAMESPACE = 'config';
 
 type FSPath = {
-  path: { join: IFileSystem['path']['join']; cwd: () => string };
+  path: Pick<IFileSystem['path'], 'join' | 'cwd'>;
 };
 
 export interface IConfig {
