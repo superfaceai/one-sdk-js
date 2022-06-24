@@ -1,1 +1,0 @@
-export { IEnvironment } from './environment';

@@ -1,10 +1,10 @@
 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-var-requires
 const packageJson = require('../package.json');
 
-export * from './client';
-export * from './interfaces';
+export * from './core';
 export * from './lib';
-export * from './internal';
+export * from './node';
+export * from './schema-tools';
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
 export const VERSION: string = packageJson.version;
