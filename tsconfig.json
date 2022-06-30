@@ -29,6 +29,9 @@
     "noImplicitOverride": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
+    "plugins": [
+      { "transform": "typescript-transform-paths", "afterDeclarations": true }
+    ],
     "resolveJsonModule": true,
     "sourceMap": true,
     "strict": true,
