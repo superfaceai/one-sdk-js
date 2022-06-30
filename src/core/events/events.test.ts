@@ -11,7 +11,7 @@ import { getLocal } from 'mockttp';
 
 import { BoundProfileProvider, Events, ServiceSelector } from '~core';
 import { err } from '~lib';
-import { MockEnvironment, MockTimers } from '~mock';
+import { MockTimers } from '~mock';
 import { NodeCrypto } from '~node';
 
 import { Config } from '../config';
@@ -166,8 +166,7 @@ const mockProviderJson = (name: string): ProviderJson => ({
 });
 
 const mockServer = getLocal();
-const environment = new MockEnvironment();
-const config = new Config(environment);
+const config = new Config();
 const timers = new MockTimers();
 const crypto = new NodeCrypto();
 

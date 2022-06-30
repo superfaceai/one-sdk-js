@@ -12,6 +12,7 @@ import {
   InternalClient,
   ISuperfaceClient,
   ITimers,
+  loadConfigFromEnv,
   MetricReporter,
   Profile,
   Provider,
@@ -92,7 +93,7 @@ export abstract class SuperfaceClientBase {
     this.timers = new NodeTimers();
     this.logger = new NodeLogger();
     this.events = new Events(this.timers, this.logger);
-    this.config = Config.loadFromEnv(environment, this.logger);
+    this.config = loadConfigFromEnv(environment, this.logger);
 
     this.boundProfileProviderCache = new SuperCache<{
       provider: IBoundProfileProvider;

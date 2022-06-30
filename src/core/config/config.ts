@@ -106,14 +106,14 @@ function ensurePositiveInteger(
 function getBoundCacheTimeout(
   environment: IEnvironment,
   log?: LogFunction
-): number {
+): number | undefined {
   const value = ensurePositiveInteger(
     environment.getNumber(BOUND_PROVIDER_CACHE_TIMEOUT),
     BOUND_PROVIDER_CACHE_TIMEOUT,
     log
   );
 
-  return value ?? DEFAULT_BOUND_PROVIDER_TIMEOUT;
+  return value;
 }
 
 function getMetricDebounceTime(
@@ -133,14 +133,14 @@ function getMetricDebounceTime(
 function getSandboxTimeout(
   environment: IEnvironment,
   log?: LogFunction
-): number {
+): number | undefined {
   const value = ensurePositiveInteger(
     environment.getNumber(SANDBOX_TIMEOUT_ENV_NAME),
     SANDBOX_TIMEOUT_ENV_NAME,
     log
   );
 
-  return value ?? DEFAULT_SANDBOX_TIMEOUT;
+  return value;
 }
 
 export class Config implements IConfig {
@@ -154,14 +154,7 @@ export class Config implements IConfig {
   public superfaceCacheTimeout: number;
   public superfacePath: string;
 
-  private readonly log: LogFunction | undefined;
-
-  constructor(
-    private environment: IEnvironment,
-    logger?: ILogger,
-    config?: Partial<IConfig>,
-    private fileSystem: FSPath = NodeFileSystem
-  ) {
+  constructor(config?: Partial<IConfig>, fileSystem: FSPath = NodeFileSystem) {
     const defaults = DEFAULTS(fileSystem);
     this.cachePath = config?.cachePath ?? defaults.cachePath;
     this.disableReporting =
@@ -176,40 +169,37 @@ export class Config implements IConfig {
     this.superfaceCacheTimeout =
       config?.superfaceCacheTimeout ?? defaults.superfaceCacheTimeout;
     this.superfacePath = config?.superfacePath ?? defaults.superfacePath;
-
-    this.log = logger?.log(DEBUG_NAMESPACE);
   }
+}
 
-  public static loadFromEnv(
-    environment: IEnvironment,
-    logger?: ILogger
-  ): Config {
-    const env = new Config(environment, logger).loadEnv();
+export function loadConfigFromEnv(
+  environment: IEnvironment,
+  logger?: ILogger,
+  fileSystem: FSPath = NodeFileSystem
+): Config {
+  const env = {
+    superfaceApiUrl: getSuperfaceApiUrl(environment),
+    sdkAuthToken: getSdkAuthToken(environment),
+    superfacePath:
+      environment.getString(SUPERFACE_PATH_NAME) ??
+      DEFAULT_SUPERFACE_PATH(fileSystem),
+    superfaceCacheTimeout: getBoundCacheTimeout(environment),
+    metricDebounceTimeMin: getMetricDebounceTime('min', environment),
+    metricDebounceTimeMax: getMetricDebounceTime('max', environment),
+    disableReporting:
+      environment.getString('NODE_ENV') === 'test' ||
+      environment.getBoolean(DISABLE_REPORTING) === true
+        ? true
+        : undefined,
+    cachePath: undefined,
+    sandboxTimeout: getSandboxTimeout(environment),
+  };
 
-    return new Config(environment, logger, env);
-  }
+  logger?.log(
+    DEBUG_NAMESPACE,
+    'Loaded config from environment variables: %O',
+    env
+  );
 
-  private loadEnv() {
-    const env = {
-      superfaceApiUrl: getSuperfaceApiUrl(this.environment),
-      sdkAuthToken: getSdkAuthToken(this.environment),
-      superfacePath:
-        this.environment.getString(SUPERFACE_PATH_NAME) ??
-        DEFAULT_SUPERFACE_PATH(this.fileSystem),
-      superfaceCacheTimeout: getBoundCacheTimeout(this.environment),
-      metricDebounceTimeMin: getMetricDebounceTime('min', this.environment),
-      metricDebounceTimeMax: getMetricDebounceTime('max', this.environment),
-      disableReporting:
-        this.environment.getString('NODE_ENV') === 'test' ||
-        this.environment.getBoolean(DISABLE_REPORTING) === true
-          ? true
-          : undefined,
-      cachePath: undefined,
-      sandboxTimeout: getSandboxTimeout(this.environment),
-    };
-
-    this.log?.('Loaded config from environment variables: %O', env);
-
-    return env;
-  }
+  return new Config(env, fileSystem);
 }

@@ -24,7 +24,7 @@ import {
   ServiceSelector,
 } from '~core';
 import { err, ok } from '~lib';
-import { MockEnvironment, MockFileSystem, MockTimers } from '~mock';
+import { MockFileSystem, MockTimers } from '~mock';
 import { NodeCrypto } from '~node';
 import { SuperJson } from '~schema-tools';
 import * as SuperJsonMutate from '~schema-tools/superjson/mutate';
@@ -34,8 +34,7 @@ import { Config } from '../config';
 jest.mock('../registry/registry');
 jest.mock('../parser/parser');
 
-const environment = new MockEnvironment();
-const mockConfig = new Config(environment);
+const mockConfig = new Config();
 const crypto = new NodeCrypto();
 const timers = new MockTimers();
 

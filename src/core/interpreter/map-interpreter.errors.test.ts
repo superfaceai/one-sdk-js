@@ -8,7 +8,7 @@ import { parseMap, Source } from '@superfaceai/parser';
 import { getLocal } from 'mockttp';
 
 import { Config, ServiceSelector, UnexpectedError } from '~core';
-import { MockEnvironment, MockTimers } from '~mock';
+import { MockTimers } from '~mock';
 import { CrossFetch, NodeCrypto } from '~node';
 
 import { MapInterpreter } from './map-interpreter';
@@ -20,8 +20,7 @@ import {
   MappedHTTPError,
 } from './map-interpreter.errors';
 
-const environment = new MockEnvironment();
-const config = new Config(environment);
+const config = new Config();
 const mockServer = getLocal();
 const timers = new MockTimers();
 const crypto = new NodeCrypto();

@@ -3,7 +3,7 @@ import { parseMap, Source } from '@superfaceai/parser';
 import { getLocal } from 'mockttp';
 
 import { Config, ServiceSelector } from '~core';
-import { MockEnvironment, MockTimers } from '~mock';
+import { MockTimers } from '~mock';
 import { CrossFetch, NodeCrypto } from '~node';
 
 import { MapInterpreter } from './map-interpreter';
@@ -11,8 +11,7 @@ import { MapInterpreter } from './map-interpreter';
 const mockServer = getLocal();
 const timers = new MockTimers();
 const fetchInstance = new CrossFetch(timers);
-const environment = new MockEnvironment();
-const config = new Config(environment);
+const config = new Config();
 const crypto = new NodeCrypto();
 
 const parseMapFromSource = (source: string) =>

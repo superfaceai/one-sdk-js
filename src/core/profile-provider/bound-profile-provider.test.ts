@@ -18,7 +18,7 @@ import {
   ServiceSelector,
 } from '~core';
 import { err, ok } from '~lib';
-import { MockEnvironment, MockTimers } from '~mock';
+import { MockTimers } from '~mock';
 import { NodeCrypto } from '~node';
 
 import { Config } from '../config';
@@ -26,8 +26,7 @@ import { BoundProfileProvider } from './bound-profile-provider';
 
 jest.mock('../interpreter/map-interpreter');
 
-const environment = new MockEnvironment();
-const mockConfig = new Config(environment);
+const mockConfig = new Config();
 const crypto = new NodeCrypto();
 const timers = new MockTimers();
 

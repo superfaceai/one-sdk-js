@@ -7,7 +7,7 @@ import {
   registerHooks,
 } from '~core';
 import { SuperCache } from '~lib';
-import { MockEnvironment, MockFileSystem, MockTimers } from '~mock';
+import { MockFileSystem, MockTimers } from '~mock';
 import { NodeCrypto } from '~node';
 import { SuperJson } from '~schema-tools';
 import * as utils from '~schema-tools/superjson/utils';
@@ -70,8 +70,7 @@ function createUseCase(cacheExpire?: number) {
 
   const filesystem = MockFileSystem();
 
-  const environment = new MockEnvironment();
-  const config = new Config(environment);
+  const config = new Config();
 
   const usecase = new UseCase(
     mockProfileConfiguration,

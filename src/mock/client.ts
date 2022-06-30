@@ -75,7 +75,7 @@ export class MockClient implements ISuperfaceClient {
     this.environment = new MockEnvironment();
     this.timers = new MockTimers();
 
-    this.config = new Config(this.environment, this.logger, {
+    this.config = new Config({
       disableReporting: true,
       ...parameters?.configOverride,
     });

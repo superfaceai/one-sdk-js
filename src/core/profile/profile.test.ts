@@ -2,7 +2,7 @@ import { SuperJsonDocument } from '@superfaceai/ast';
 
 import { Events, IBoundProfileProvider } from '~core';
 import { SuperCache } from '~lib';
-import { MockEnvironment, MockTimers } from '~mock';
+import { MockTimers } from '~mock';
 import { NodeCrypto, NodeFileSystem } from '~node';
 import { SuperJson } from '~schema-tools';
 
@@ -18,8 +18,7 @@ function createProfile(superJson: SuperJsonDocument): Profile {
     provider: IBoundProfileProvider;
     expiresAt: number;
   }>();
-  const environment = new MockEnvironment();
-  const config = new Config(environment);
+  const config = new Config();
   const configuration = new ProfileConfiguration('test', '1.0.0');
 
   return new Profile(

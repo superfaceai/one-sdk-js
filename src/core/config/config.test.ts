@@ -1,6 +1,6 @@
 import { MockEnvironment } from '~mock';
 
-import { Config } from './config';
+import { loadConfigFromEnv } from './config';
 
 describe('Config', () => {
   describe('when loading sdk auth token', () => {
@@ -11,7 +11,7 @@ describe('Config', () => {
     });
 
     it('returns undefined - sdk token not set', async () => {
-      const { sdkAuthToken } = Config.loadFromEnv(environment);
+      const { sdkAuthToken } = loadConfigFromEnv(environment);
       expect(sdkAuthToken).toBeUndefined();
     });
 
@@ -20,7 +20,7 @@ describe('Config', () => {
         'SUPERFACE_SDK_TOKEN',
         'sfx_bb064dd57c302911602dd097bc29bedaea6a021c25a66992d475ed959aa526c7_37bce8b5'
       );
-      const { sdkAuthToken } = Config.loadFromEnv(environment);
+      const { sdkAuthToken } = loadConfigFromEnv(environment);
       expect(sdkAuthToken).toBeUndefined();
     });
 
@@ -29,7 +29,7 @@ describe('Config', () => {
         'SUPERFACE_SDK_TOKEN',
         'sfs_bb064dd57c302911602dd097bc29bedaea6a021c25a66992d475ed959aa526c7_37bXe8b5'
       );
-      const { sdkAuthToken } = Config.loadFromEnv(environment);
+      const { sdkAuthToken } = loadConfigFromEnv(environment);
       expect(sdkAuthToken).toBeUndefined();
     });
 
@@ -37,7 +37,7 @@ describe('Config', () => {
       const token =
         'sfs_bb064dd57c302911602dd097bc29bedaea6a021c25a66992d475ed959aa526c7_37bce8b5';
       environment.addValue('SUPERFACE_SDK_TOKEN', token);
-      const { sdkAuthToken } = Config.loadFromEnv(environment);
+      const { sdkAuthToken } = loadConfigFromEnv(environment);
       expect(sdkAuthToken).toEqual(token);
     });
   });

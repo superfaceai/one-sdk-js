@@ -1,6 +1,6 @@
 import { Events, IBoundProfileProvider, UseCase } from '~core';
 import { SuperCache } from '~lib';
-import { MockEnvironment, MockFileSystem, MockTimers } from '~mock';
+import { MockFileSystem, MockTimers } from '~mock';
 import { NodeCrypto } from '~node';
 import { SuperJson } from '~schema-tools';
 
@@ -27,8 +27,7 @@ describe('TypedProfile', () => {
     provider: IBoundProfileProvider;
     expiresAt: number;
   }>();
-  const environment = new MockEnvironment();
-  const config = new Config(environment);
+  const config = new Config();
   const fileSystem = MockFileSystem();
 
   describe('getUseCases', () => {
