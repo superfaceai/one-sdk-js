@@ -1,6 +1,5 @@
+import { FileSystemError } from '~core/errors';
 import { Result } from '~lib';
-
-import { FileSystemError } from './filesystem.errors';
 
 export interface IFileSystem {
   /**
