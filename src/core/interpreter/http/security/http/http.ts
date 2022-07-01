@@ -1,13 +1,13 @@
 import { HttpScheme, SecurityType } from '@superfaceai/ast';
 
-import { ILogger, LogFunction } from '~core';
-
+import { ILogger, LogFunction } from '../../../../interfaces';
 import {
+  AuthenticateRequestAsync,
   DEFAULT_AUTHORIZATION_HEADER_NAME,
   ISecurityHandler,
+  RequestParameters,
   SecurityConfiguration,
-} from '../../security';
-import { AuthenticateRequestAsync, RequestParameters } from '../interfaces';
+} from '../interfaces';
 
 const DEBUG_NAMESPACE = 'http:security:http-handler';
 

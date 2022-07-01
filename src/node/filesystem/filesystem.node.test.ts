@@ -2,8 +2,7 @@ import { promises as fsp } from 'fs';
 import { tmpdir } from 'os';
 import { join as joinPath, sep } from 'path';
 
-import { ok } from '~lib';
-
+import { ok } from '../../lib';
 import { NodeFileSystem } from './filesystem.node';
 
 describe('Node filesystem', () => {

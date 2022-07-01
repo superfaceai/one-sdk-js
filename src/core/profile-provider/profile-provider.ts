@@ -13,32 +13,34 @@ import {
   SecurityValues,
 } from '@superfaceai/ast';
 
+import { forceCast, profileAstId } from '../../lib';
+import { mergeSecurity, SuperJson } from '../../schema-tools';
 import {
-  BoundProfileProvider,
-  Events,
-  fetchBind,
-  fetchMapSource,
-  fetchProviderInfo,
-  IBoundProfileProvider,
+  invalidProfileError,
+  localProviderAndRemoteMapError,
+  providersDoNotMatchError,
+  referencedFileNotFoundError,
+  UnexpectedError,
+} from '../errors';
+import { Events, Interceptable } from '../events';
+import {
   IConfig,
   ICrypto,
   IFileSystem,
   ILogger,
-  invalidProfileError,
   ITimers,
-  localProviderAndRemoteMapError,
   LogFunction,
-  Parser,
-  ProfileConfiguration,
-  ProviderConfiguration,
-  providersDoNotMatchError,
-  referencedFileNotFoundError,
-  ServiceSelector,
-  UnexpectedError,
-} from '~core';
-import { forceCast, profileAstId } from '~lib';
-import { mergeSecurity, SuperJson } from '~schema-tools';
-
+} from '../interfaces';
+import { AuthCache, FetchInstance } from '../interpreter';
+import { Parser } from '../parser';
+import { ProfileConfiguration } from '../profile/profile-configuration';
+import { ProviderConfiguration } from '../provider';
+import { fetchBind, fetchMapSource, fetchProviderInfo } from '../registry';
+import { ServiceSelector } from '../services';
+import {
+  BoundProfileProvider,
+  IBoundProfileProvider,
+} from './bound-profile-provider';
 import { resolveSecurityConfiguration } from './security';
 
 const DEBUG_NAMESPACE = 'profile-provider';
@@ -52,6 +54,7 @@ export async function bindProfileProvider(
   timers: ITimers,
   fileSystem: IFileSystem,
   crypto: ICrypto,
+  fetchInstance: FetchInstance & Interceptable & AuthCache,
   logger?: ILogger
 ): Promise<{ provider: IBoundProfileProvider; expiresAt: number }> {
   const profileProvider = new ProfileProvider(
@@ -61,8 +64,8 @@ export async function bindProfileProvider(
     config,
     events,
     fileSystem,
-    timers,
     crypto,
+    fetchInstance,
     logger
   );
   const boundProfileProvider = await profileProvider.bind();
@@ -95,8 +98,8 @@ export class ProfileProvider {
     private config: IConfig,
     private events: Events,
     private readonly fileSystem: IFileSystem,
-    private readonly timers: ITimers,
     private readonly crypto: ICrypto,
+    private readonly fetchInstance: FetchInstance & Interceptable & AuthCache,
     private readonly logger?: ILogger,
     /** url or ast node */
     private map?: string | MapDocumentNode
@@ -182,8 +185,8 @@ export class ProfileProvider {
           mapRevision,
         },
         this.config,
-        this.timers,
         this.crypto,
+        this.fetchInstance,
         this.logger
       );
 
@@ -201,8 +204,8 @@ export class ProfileProvider {
         const mapSource = await fetchMapSource(
           mapId,
           this.config,
-          this.timers,
           this.crypto,
+          this.fetchInstance,
           this.logger
         );
 
@@ -242,7 +245,6 @@ export class ProfileProvider {
       mapAst,
       providerInfo,
       this.config,
-      this.timers,
       {
         services: new ServiceSelector(
           providerInfo.services,
@@ -259,6 +261,7 @@ export class ProfileProvider {
         ),
       },
       this.crypto,
+      this.fetchInstance,
       this.logger,
       this.events
     );
@@ -334,8 +337,8 @@ export class ProfileProvider {
         this.providerJson = await fetchProviderInfo(
           providerName,
           this.config,
-          this.timers,
           this.crypto,
+          this.fetchInstance,
           this.logger
         );
         await this.writeProviderCache(this.providerJson);

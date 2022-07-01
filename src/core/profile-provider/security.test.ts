@@ -6,8 +6,7 @@ import {
   SecurityValues,
 } from '@superfaceai/ast';
 
-import { invalidSecurityValuesError, securityNotFoundError } from '~core';
-
+import { invalidSecurityValuesError, securityNotFoundError } from '../errors';
 import { resolveSecurityConfiguration } from './security';
 
 describe('resolveSecurityConfiguration', () => {

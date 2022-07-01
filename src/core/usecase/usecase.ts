@@ -1,9 +1,15 @@
 import { BackoffKind, OnFail, SecurityValues } from '@superfaceai/ast';
 
+import { Result, SuperCache } from '../../lib';
+import {
+  getProvider,
+  getProviderForProfile,
+  SuperJson,
+} from '../../schema-tools';
+import { UnexpectedError } from '../errors';
 import {
   AbortPolicy,
   Backoff,
-  bindProfileProvider,
   CircuitBreakerPolicy,
   ConstantBackoff,
   eventInterceptor,
@@ -11,28 +17,33 @@ import {
   ExponentialBackoff,
   FailurePolicy,
   FailurePolicyRouter,
-  IBoundProfileProvider,
+  Interceptable,
+  InterceptableMetadata,
+  RetryPolicy,
+  UsecaseInfo,
+} from '../events';
+import {
   IConfig,
   ICrypto,
   IFileSystem,
   ILogger,
-  Interceptable,
-  InterceptableMetadata,
   ITimers,
   LogFunction,
+} from '../interfaces';
+import {
+  AuthCache,
+  FetchInstance,
   MapInterpreterError,
   NonPrimitive,
-  ProfileConfiguration,
   ProfileParameterError,
-  Provider,
-  ProviderConfiguration,
-  RetryPolicy,
-  UnexpectedError,
-  UsecaseInfo,
   Variables,
-} from '~core';
-import { Result, SuperCache } from '~lib';
-import { getProvider, getProviderForProfile, SuperJson } from '~schema-tools';
+} from '../interpreter';
+import { ProfileConfiguration } from '../profile';
+import {
+  bindProfileProvider,
+  IBoundProfileProvider,
+} from '../profile-provider';
+import { Provider, ProviderConfiguration } from '../provider';
 
 const DEBUG_NAMESPACE = 'usecase';
 
@@ -69,6 +80,7 @@ export abstract class UseCaseBase implements Interceptable {
       provider: IBoundProfileProvider;
       expiresAt: number;
     }>,
+    private readonly fetchInstance: FetchInstance & Interceptable & AuthCache,
     private readonly logger?: ILogger
   ) {
     this.metadata = {
@@ -116,6 +128,7 @@ export abstract class UseCaseBase implements Interceptable {
           this.timers,
           this.fileSystem,
           this.crypto,
+          this.fetchInstance,
           this.logger
         )
       );

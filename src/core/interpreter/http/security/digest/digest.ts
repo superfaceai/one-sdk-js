@@ -1,28 +1,25 @@
 import { DigestSecurityScheme, DigestSecurityValues } from '@superfaceai/ast';
 
+import { pipe } from '../../../../../lib';
 import {
   digestHeaderNotFound,
-  ICrypto,
-  ILogger,
-  LogFunction,
   missingPartOfDigestHeader,
   unexpectedDigestValue,
-} from '~core';
-
-import { pipe } from '../../../../../lib/pipe/pipe';
+} from '../../../../errors';
+import { ICrypto, ILogger, LogFunction } from '../../../../interfaces';
 import {
   fetchFilter,
   isCompleteHttpRequest,
   prepareRequestFilter,
   withRequest,
 } from '../../filters';
-import { HttpResponse } from '../../http';
 import { FetchInstance } from '../../interfaces';
-import { HandleResponseAsync } from '..';
+import { HttpResponse } from '../../types';
 import {
   AuthCache,
   AuthenticateRequestAsync,
   DEFAULT_AUTHORIZATION_HEADER_NAME,
+  HandleResponseAsync,
   ISecurityHandler,
   RequestParameters,
 } from '../interfaces';

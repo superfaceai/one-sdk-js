@@ -25,16 +25,10 @@ import {
   Substatement,
 } from '@superfaceai/ast';
 
-import {
-  IConfig,
-  ICrypto,
-  ILogger,
-  IServiceSelector,
-  LogFunction,
-} from '~core';
-import { err, ok, Result } from '~lib';
-
+import { err, ok, Result } from '../../lib';
 import { UnexpectedError } from '../errors';
+import { IConfig, ICrypto, ILogger, LogFunction } from '../interfaces';
+import { IServiceSelector } from '../services';
 import { MapInterpreterExternalHandler } from './external-handler';
 import {
   AuthCache,

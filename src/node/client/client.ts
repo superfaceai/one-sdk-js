@@ -1,14 +1,17 @@
 import { SuperJsonDocument } from '@superfaceai/ast';
 
 import {
+  AuthCache,
   Config,
   Events,
+  FetchInstance,
   hookMetrics,
   IBoundProfileProvider,
   IConfig,
   ICrypto,
   IEnvironment,
   ILogger,
+  Interceptable,
   InternalClient,
   ISuperfaceClient,
   ITimers,
@@ -17,16 +20,19 @@ import {
   Profile,
   Provider,
   registerHooks as registerFailoverHooks,
-} from '~core';
-import { SuperCache } from '~lib';
+} from '../../core';
+import { SuperCache } from '../../lib';
 import {
-  NodeCrypto,
-  NodeEnvironment,
-  NodeFileSystem,
-  NodeLogger,
-  NodeTimers,
-} from '~node';
-import { getProvider, getProviderForProfile, SuperJson } from '~schema-tools';
+  getProvider,
+  getProviderForProfile,
+  SuperJson,
+} from '../../schema-tools';
+import { NodeCrypto } from '../crypto';
+import { NodeEnvironment } from '../environment';
+import { CrossFetch } from '../fetch';
+import { NodeFileSystem } from '../filesystem';
+import { NodeLogger } from '../logger';
+import { NodeTimers } from '../timers';
 
 const resolveSuperJson = (
   path: string,
@@ -59,7 +65,13 @@ const setupMetricReporter = (
   events: Events,
   logger?: ILogger
 ) => {
-  const metricReporter = new MetricReporter(superJson, config, timers, logger);
+  const metricReporter = new MetricReporter(
+    superJson,
+    config,
+    timers,
+    new CrossFetch(timers),
+    logger
+  );
   hookMetrics(events, metricReporter);
   metricReporter.reportEvent({
     eventType: 'SDKInit',
@@ -85,6 +97,7 @@ export abstract class SuperfaceClientBase {
   protected readonly config: Config;
   protected readonly timers: ITimers;
   protected readonly crypto: ICrypto;
+  protected readonly fetchInstance: FetchInstance & Interceptable & AuthCache;
   protected readonly logger?: ILogger;
 
   constructor(options?: { superJson?: SuperJson | SuperJsonDocument }) {
@@ -93,7 +106,8 @@ export abstract class SuperfaceClientBase {
     this.timers = new NodeTimers();
     this.logger = new NodeLogger();
     this.events = new Events(this.timers, this.logger);
-    this.config = loadConfigFromEnv(environment, this.logger);
+    this.fetchInstance = new CrossFetch(this.timers);
+    this.config = loadConfigFromEnv(environment, NodeFileSystem, this.logger);
 
     this.boundProfileProviderCache = new SuperCache<{
       provider: IBoundProfileProvider;
@@ -127,6 +141,7 @@ export abstract class SuperfaceClientBase {
       NodeFileSystem,
       this.boundProfileProviderCache,
       this.crypto,
+      this.fetchInstance,
       this.logger
     );
   }

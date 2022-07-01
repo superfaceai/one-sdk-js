@@ -7,9 +7,8 @@ import {
 } from '@superfaceai/ast';
 import { getLocal, MockedEndpoint } from 'mockttp';
 
-import { MockClient } from '~mock';
-import { SuperJson } from '~schema-tools';
-
+import { MockClient } from '../../../mock';
+import { SuperJson } from '../../../schema-tools';
 import { FailoverReason } from './reporter';
 
 const mockSuperJsonSingle = new SuperJson({

@@ -20,11 +20,10 @@ import {
   superJsonNotAFileError,
   superJsonNotFoundError,
   superJsonReadError,
-} from '~core';
-import { NodeCrypto, NodeEnvironment, NodeFileSystem } from '~node';
-
+} from '../../core';
 import { err, ok, Result } from '../../lib';
 import { configHash } from '../../lib/config-hash';
+import { NodeCrypto, NodeEnvironment, NodeFileSystem } from '../../node';
 import {
   mergeProfile,
   mergeProfileDefaults,

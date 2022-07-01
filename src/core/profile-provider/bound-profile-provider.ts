@@ -6,30 +6,22 @@ import {
   SecurityValues,
 } from '@superfaceai/ast';
 
+import { err, forceCast, ok, profileAstId, Result } from '../../lib';
+import { Events, Interceptable, MapInterpreterEventAdapter } from '../events';
+import { IConfig, ICrypto, ILogger, LogFunction } from '../interfaces';
 import {
   AuthCache,
   castToNonPrimitive,
-  Events,
   FetchInstance,
-  IConfig,
-  ICrypto,
-  ILogger,
-  Interceptable,
-  IServiceSelector,
-  ITimers,
-  LogFunction,
   MapInterpreter,
   MapInterpreterError,
-  MapInterpreterEventAdapter,
   mergeVariables,
   NonPrimitive,
   ProfileParameterError,
   ProfileParameterValidator,
   SecurityConfiguration,
-} from '~core';
-import { err, forceCast, ok, profileAstId, Result } from '~lib';
-import { CrossFetch } from '~node';
-
+} from '../interpreter';
+import { IServiceSelector } from '../services';
 import { resolveSecurityConfiguration } from './security';
 
 const DEBUG_NAMESPACE_SENSITIVE = 'bound-profile-provider:sensitive';
@@ -49,7 +41,6 @@ export interface IBoundProfileProvider {
 
 export class BoundProfileProvider implements IBoundProfileProvider {
   private profileValidator: ProfileParameterValidator;
-  private fetchInstance: FetchInstance & Interceptable & AuthCache;
   private readonly logSensitive: LogFunction | undefined;
 
   constructor(
@@ -57,7 +48,6 @@ export class BoundProfileProvider implements IBoundProfileProvider {
     private readonly mapAst: MapDocumentNode,
     private readonly provider: ProviderJson,
     private readonly config: IConfig,
-    timers: ITimers,
     public readonly configuration: {
       services: IServiceSelector;
       profileProviderSettings?: NormalizedProfileProviderSettings;
@@ -65,6 +55,7 @@ export class BoundProfileProvider implements IBoundProfileProvider {
       parameters?: Record<string, string>;
     },
     private readonly crypto: ICrypto,
+    private readonly fetchInstance: FetchInstance & Interceptable & AuthCache,
     private readonly logger?: ILogger,
     events?: Events
   ) {
@@ -73,7 +64,6 @@ export class BoundProfileProvider implements IBoundProfileProvider {
       this.logger
     );
 
-    this.fetchInstance = new CrossFetch(timers);
     this.fetchInstance.metadata = {
       profile: profileAstId(profileAst),
       provider: provider.name,

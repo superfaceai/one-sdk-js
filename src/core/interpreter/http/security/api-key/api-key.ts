@@ -4,11 +4,15 @@ import {
   ApiKeySecurityValues,
 } from '@superfaceai/ast';
 
-import { apiKeyInBodyError, ILogger, LogFunction } from '~core';
-
+import { apiKeyInBodyError } from '../../../../errors';
+import { ILogger, LogFunction } from '../../../../interfaces';
 import { Variables } from '../../../variables';
-import { DEFAULT_AUTHORIZATION_HEADER_NAME, ISecurityHandler } from '..';
-import { AuthenticateRequestAsync, RequestParameters } from '../interfaces';
+import {
+  AuthenticateRequestAsync,
+  DEFAULT_AUTHORIZATION_HEADER_NAME,
+  ISecurityHandler,
+  RequestParameters,
+} from '../interfaces';
 
 const DEBUG_NAMESPACE = 'http:api-key-handler';
 

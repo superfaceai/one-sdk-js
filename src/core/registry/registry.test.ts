@@ -5,16 +5,15 @@ import {
   ProviderJson,
 } from '@superfaceai/ast';
 
+import { MockTimers } from '../../mock';
+import { CrossFetch, NodeCrypto, NodeFileSystem } from '../../node';
+import { Config } from '../config';
 import {
   bindResponseError,
   invalidProviderResponseError,
   unknownBindResponseError,
   unknownProviderInfoError,
-} from '~core';
-import { MockTimers } from '~mock';
-import { NodeCrypto } from '~node';
-
-import { Config } from '../config';
+} from '../errors';
 import {
   assertIsRegistryProviderInfo,
   fetchBind,
@@ -130,7 +129,7 @@ describe('registry', () => {
     const TEST_REGISTRY_URL = 'https://example.com/test-registry';
     const TEST_SDK_TOKEN =
       'sfs_bb064dd57c302911602dd097bc29bedaea6a021c25a66992d475ed959aa526c7_37bce8b5';
-    const config = new Config({
+    const config = new Config(NodeFileSystem, {
       superfaceApiUrl: TEST_REGISTRY_URL,
       sdkAuthToken: TEST_SDK_TOKEN,
     });
@@ -153,7 +152,7 @@ describe('registry', () => {
       request.mockResolvedValue(mockResponse);
 
       await expect(
-        fetchProviderInfo('test', config, timers, crypto)
+        fetchProviderInfo('test', config, crypto, new CrossFetch(timers))
       ).resolves.toEqual(mockProviderJson);
 
       expect(request).toHaveBeenCalledTimes(1);
@@ -183,7 +182,7 @@ describe('registry', () => {
       request.mockResolvedValue(mockResponse);
 
       await expect(
-        fetchProviderInfo('test', config, timers, crypto)
+        fetchProviderInfo('test', config, crypto, new CrossFetch(timers))
       ).rejects.toEqual(
         unknownProviderInfoError({
           message: 'Registry responded with invalid body',
@@ -214,7 +213,7 @@ describe('registry', () => {
       request.mockResolvedValue(mockResponse);
 
       await expect(
-        fetchProviderInfo('test', config, timers, crypto)
+        fetchProviderInfo('test', config, crypto, new CrossFetch(timers))
       ).rejects.toEqual(
         unknownProviderInfoError({
           message: 'Registry responded with invalid ProviderJson definition',
@@ -232,7 +231,7 @@ describe('registry', () => {
     const TEST_REGISTRY_URL = 'https://example.com/test-registry';
     const TEST_SDK_TOKEN =
       'sfs_bb064dd57c302911602dd097bc29bedaea6a021c25a66992d475ed959aa526c7_37bce8b5';
-    const config = new Config({
+    const config = new Config(NodeFileSystem, {
       superfaceApiUrl: TEST_REGISTRY_URL,
       sdkAuthToken: TEST_SDK_TOKEN,
     });
@@ -266,8 +265,8 @@ describe('registry', () => {
             mapRevision: 'test-map-revision',
           },
           config,
-          timers,
-          crypto
+          crypto,
+          new CrossFetch(timers)
         )
       ).resolves.toEqual({
         provider: mockProviderJson,
@@ -319,8 +318,8 @@ describe('registry', () => {
             mapRevision: 'test-map-revision',
           },
           config,
-          timers,
-          crypto
+          crypto,
+          new CrossFetch(timers)
         )
       ).resolves.toEqual({
         provider: mockProviderJson,
@@ -372,8 +371,8 @@ describe('registry', () => {
             mapRevision: 'test-map-revision',
           },
           config,
-          timers,
-          crypto
+          crypto,
+          new CrossFetch(timers)
         )
       ).rejects.toThrow(
         invalidProviderResponseError(
@@ -413,8 +412,8 @@ describe('registry', () => {
             mapRevision: 'test-map-revision',
           },
           config,
-          timers,
-          crypto
+          crypto,
+          new CrossFetch(timers)
         )
       ).rejects.toEqual(
         unknownBindResponseError({
@@ -457,8 +456,8 @@ describe('registry', () => {
             mapRevision: 'test-map-revision',
           },
           config,
-          timers,
-          crypto
+          crypto,
+          new CrossFetch(timers)
         )
       ).rejects.toEqual(
         unknownBindResponseError({
@@ -504,8 +503,8 @@ describe('registry', () => {
             mapRevision: 'test-map-revision',
           },
           config,
-          timers,
-          crypto
+          crypto,
+          new CrossFetch(timers)
         )
       ).rejects.toEqual(
         bindResponseError({
@@ -552,8 +551,8 @@ describe('registry', () => {
             mapRevision: 'test-map-revision',
           },
           config,
-          timers,
-          crypto
+          crypto,
+          new CrossFetch(timers)
         )
       ).resolves.toEqual({
         provider: mockProviderJson,
@@ -568,7 +567,7 @@ describe('registry', () => {
     const TEST_REGISTRY_URL = 'https://example.com/test-registry';
     const TEST_SDK_TOKEN =
       'sfs_bb064dd57c302911602dd097bc29bedaea6a021c25a66992d475ed959aa526c7_37bce8b5';
-    const config = new Config({
+    const config = new Config(NodeFileSystem, {
       superfaceApiUrl: TEST_REGISTRY_URL,
       sdkAuthToken: TEST_SDK_TOKEN,
     });
@@ -591,7 +590,7 @@ describe('registry', () => {
 
       const mapId = 'test-profile-id.test-provider.test-map-variant@1.0.0';
       await expect(
-        fetchMapSource(mapId, config, timers, crypto)
+        fetchMapSource(mapId, config, crypto, new CrossFetch(timers))
       ).resolves.toEqual(mockMapSOurce);
 
       expect(request).toHaveBeenCalledTimes(1);
@@ -621,7 +620,7 @@ describe('registry', () => {
 
       const mapId = 'test-profile-id.test-provider@1.0.0';
       await expect(
-        fetchMapSource(mapId, config, timers, crypto)
+        fetchMapSource(mapId, config, crypto, new CrossFetch(timers))
       ).resolves.toEqual(mockMapSource);
 
       expect(request).toHaveBeenCalledTimes(1);

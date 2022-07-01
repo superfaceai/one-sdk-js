@@ -1,10 +1,8 @@
-import { ILogger, UnexpectedError, unsupportedContentType } from '~core';
-
-import { USER_AGENT } from '../../../index';
-import { pipe } from '../../../lib/pipe/pipe';
-import { MaybePromise } from '../../../lib/types';
+import { MaybePromise, pipe } from '../../../lib';
+import { USER_AGENT } from '../../../user-agent';
+import { UnexpectedError, unsupportedContentType } from '../../errors';
+import { ILogger } from '../../interfaces';
 import { variablesToStrings } from '../variables';
-import { createUrl, fetchRequest, HttpResponse } from './http';
 import {
   BINARY_CONTENT_REGEXP,
   BINARY_CONTENT_TYPES,
@@ -28,6 +26,8 @@ import {
   ISecurityHandler,
   RequestParameters,
 } from './security';
+import { HttpResponse } from './types';
+import { createUrl, fetchRequest } from './utils';
 
 /**
  * Represents input of pipe filter which works with http response

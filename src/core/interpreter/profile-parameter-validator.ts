@@ -25,10 +25,9 @@ import {
   UseCaseSlotDefinitionNode,
 } from '@superfaceai/ast';
 
-import { ILogger, LogFunction } from '~core';
-
 import { err, ok, Result } from '../../lib';
 import { UnexpectedError } from '../errors';
+import { ILogger, LogFunction } from '../interfaces';
 import { ProfileVisitor } from './interfaces';
 import {
   addFieldToErrors,

@@ -26,11 +26,10 @@ import {
   registerHooks,
   SecurityConfiguration,
   ServiceSelector,
-} from '~core';
-import { NodeCrypto, NodeLogger } from '~node';
-import { getProvider, getProviderForProfile, SuperJson } from '~schema-tools';
-
+} from '../core';
 import { SuperCache } from '../lib/cache';
+import { CrossFetch, NodeCrypto, NodeFileSystem, NodeLogger } from '../node';
+import { getProvider, getProviderForProfile, SuperJson } from '../schema-tools';
 import { MockEnvironment } from './environment';
 import { MockFileSystem } from './filesystem';
 import { MockTimers } from './timers';
@@ -75,7 +74,7 @@ export class MockClient implements ISuperfaceClient {
     this.environment = new MockEnvironment();
     this.timers = new MockTimers();
 
-    this.config = new Config({
+    this.config = new Config(NodeFileSystem, {
       disableReporting: true,
       ...parameters?.configOverride,
     });
@@ -87,6 +86,7 @@ export class MockClient implements ISuperfaceClient {
         this.superJson,
         this.config,
         this.timers,
+        new CrossFetch(this.timers),
         this.logger
       );
       hookMetrics(this.events, this.metricReporter);
@@ -114,6 +114,7 @@ export class MockClient implements ISuperfaceClient {
       fileSystem,
       this.cache,
       this.crypto,
+      new CrossFetch(this.timers),
       this.logger
     );
   }
@@ -137,12 +138,12 @@ export class MockClient implements ISuperfaceClient {
       map,
       providerJson,
       this.config,
-      this.timers,
       {
         services: ServiceSelector.withDefaultUrl(baseUrl),
         security: securityValues,
       },
       this.crypto,
+      new CrossFetch(this.timers),
       this.logger,
       this.events
     );

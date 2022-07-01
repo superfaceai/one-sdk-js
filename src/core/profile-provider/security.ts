@@ -9,11 +9,8 @@ import {
   SecurityValues,
 } from '@superfaceai/ast';
 
-import {
-  invalidSecurityValuesError,
-  SecurityConfiguration,
-  securityNotFoundError,
-} from '~core';
+import { invalidSecurityValuesError, securityNotFoundError } from '../errors';
+import { SecurityConfiguration } from '../interpreter';
 
 export function resolveSecurityConfiguration(
   schemes: SecurityScheme[],

@@ -1,10 +1,9 @@
 import { ProviderJson } from '@superfaceai/ast';
 import { parseMap, parseProfile, Source } from '@superfaceai/parser';
 
-import { ProfileProvider } from '~core';
-import { ok } from '~lib';
-import { SuperJson } from '~schema-tools';
-
+import { ProfileProvider } from '../../core';
+import { ok } from '../../lib';
+import { SuperJson } from '../../schema-tools';
 import { SuperfaceClient } from './client';
 import { createTypedClient, typeHelper } from './client.typed';
 

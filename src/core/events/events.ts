@@ -4,17 +4,10 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import {
-  FetchInstance,
-  HttpResponse,
-  ILogger,
-  ITimers,
-  LogFunction,
-  RequestParameters,
-  UnexpectedError,
-  UseCase,
-} from '~core';
-
+import { UnexpectedError } from '../errors';
+import { ILogger, ITimers, LogFunction } from '../interfaces';
+import { FetchInstance, HttpResponse, RequestParameters } from '../interpreter';
+import { UseCase } from '../usecase';
 import { HooksContext } from './failure/event-adapter';
 import { MapInterpreterEventAdapter } from './failure/map-interpreter-adapter';
 import { FailurePolicyReason } from './failure/policy';

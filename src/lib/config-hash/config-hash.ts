@@ -1,4 +1,4 @@
-import { ICrypto } from '~core';
+import { ICrypto } from '../../core';
 
 export function configHash(values: unknown[], crypto: ICrypto): string {
   // create the payload

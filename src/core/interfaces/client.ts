@@ -1,4 +1,6 @@
-import { Events, Profile, Provider } from '~core';
+import { Events } from '../events';
+import { Profile } from '../profile';
+import { Provider } from '../provider';
 
 export interface ISuperfaceClient {
   getProfile(profileId: string): Promise<Profile>;

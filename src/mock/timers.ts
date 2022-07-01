@@ -1,4 +1,4 @@
-import { ITimeout, ITimers } from '~core';
+import { ITimeout, ITimers } from '../core';
 
 export class MockTimeout implements ITimeout {
   constructor(public value: number) {}

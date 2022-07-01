@@ -1,12 +1,6 @@
-import {
-  ILogger,
-  isCrossFetchError,
-  ITimers,
-  SDKBindError,
-  UnexpectedError,
-} from '~core';
-import { clone } from '~lib';
-
+import { clone } from '../../../lib';
+import { isCrossFetchError, SDKBindError, UnexpectedError } from '../../errors';
+import { ILogger, ITimers } from '../../interfaces';
 import { Events } from '../events';
 import { FailurePolicyRouter } from './policies';
 import { ExecutionFailure, FailurePolicyReason } from './policy';
@@ -213,7 +207,7 @@ export function registerHooks(
         performContext.queuedAction = undefined;
 
         // ignore the placeholder error we produced in `handleCommonResolution`
-        await res.catch(_err => undefined);
+        await res.catch((_err: any) => undefined);
 
         switch (action.kind) {
           case 'switch-provider': {

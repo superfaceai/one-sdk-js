@@ -4,7 +4,7 @@ import {
   isFileURIString,
 } from '@superfaceai/ast';
 
-import { IFileSystem } from '~core';
+import { IFileSystem } from '../../core';
 
 export const trimFileURI = (path: string): string =>
   path.replace(FILE_URI_REGEX, '');

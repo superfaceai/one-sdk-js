@@ -1,8 +1,8 @@
-import { Config } from '~core';
-
+import { NodeFileSystem } from '../../../node';
+import { Config } from '../../config';
 import { evalScript } from './sandbox';
 
-const config = new Config();
+const config = new Config(NodeFileSystem);
 
 describe('sandbox', () => {
   it('prevents string masking attack', () => {

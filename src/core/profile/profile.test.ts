@@ -1,13 +1,14 @@
 import { SuperJsonDocument } from '@superfaceai/ast';
 
-import { Events, IBoundProfileProvider } from '~core';
-import { SuperCache } from '~lib';
-import { MockTimers } from '~mock';
-import { NodeCrypto, NodeFileSystem } from '~node';
-import { SuperJson } from '~schema-tools';
-
+import { SuperCache } from '../../lib';
+import { MockTimers } from '../../mock';
+import { CrossFetch, NodeCrypto, NodeFileSystem } from '../../node';
+import { SuperJson } from '../../schema-tools';
 import { Config } from '../config';
-import { Profile, ProfileConfiguration } from './profile';
+import { Events } from '../events';
+import { IBoundProfileProvider } from '../profile-provider';
+import { Profile } from './profile';
+import { ProfileConfiguration } from './profile-configuration';
 
 const crypto = new NodeCrypto();
 
@@ -18,7 +19,7 @@ function createProfile(superJson: SuperJsonDocument): Profile {
     provider: IBoundProfileProvider;
     expiresAt: number;
   }>();
-  const config = new Config();
+  const config = new Config(NodeFileSystem);
   const configuration = new ProfileConfiguration('test', '1.0.0');
 
   return new Profile(
@@ -29,7 +30,8 @@ function createProfile(superJson: SuperJsonDocument): Profile {
     timers,
     NodeFileSystem,
     cache,
-    crypto
+    crypto,
+    new CrossFetch(timers)
   );
 }
 

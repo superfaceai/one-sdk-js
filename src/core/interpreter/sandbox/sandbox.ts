@@ -1,7 +1,7 @@
 import { VM } from 'vm2';
 
-import { IConfig, ILogger, NonPrimitive } from '~core';
-
+import { IConfig, ILogger } from '../../interfaces';
+import { NonPrimitive } from '../variables';
 import { getStdlib } from './stdlib';
 
 const DEBUG_NAMESPACE = 'sandbox';

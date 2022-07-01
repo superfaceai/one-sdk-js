@@ -1,19 +1,16 @@
+import { SuperCache } from '../../lib';
+import { SuperJson } from '../../schema-tools';
+import { Config } from '../config';
 import {
-  Config,
-  Events,
-  IBoundProfileProvider,
-  ICrypto,
-  IFileSystem,
-  ILogger,
-  ITimers,
-  Profile,
-  ProfileConfiguration,
   profileFileNotFoundError,
   profileNotInstalledError,
   unconfiguredProviderInPriorityError,
-} from '~core';
-import { SuperCache } from '~lib';
-import { SuperJson } from '~schema-tools';
+} from '../errors';
+import { Events, Interceptable } from '../events';
+import { ICrypto, IFileSystem, ILogger, ITimers } from '../interfaces';
+import { AuthCache, FetchInstance } from '../interpreter';
+import { Profile, ProfileConfiguration } from '../profile';
+import { IBoundProfileProvider } from '../profile-provider';
 
 export class InternalClient {
   constructor(
@@ -27,6 +24,7 @@ export class InternalClient {
       expiresAt: number;
     }>,
     private readonly crypto: ICrypto,
+    private readonly fetchInstance: FetchInstance & Interceptable & AuthCache,
     private readonly logger?: ILogger
   ) {}
 
@@ -42,6 +40,7 @@ export class InternalClient {
       this.fileSystem,
       this.boundProfileProviderCache,
       this.crypto,
+      this.fetchInstance,
       this.logger
     );
   }

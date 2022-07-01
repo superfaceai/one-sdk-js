@@ -1,5 +1,4 @@
-import { MockEnvironment } from '~mock';
-
+import { MockEnvironment } from '../../mock';
 import { resolveEnv, resolveEnvRecord } from './env';
 
 const mockEnvVariable = 'superJsonTest';

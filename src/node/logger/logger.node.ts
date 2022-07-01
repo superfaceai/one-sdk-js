@@ -1,7 +1,7 @@
 import createDebug from 'debug';
 
-import { ILogger, LogFunction } from '~core';
-import { SuperCache } from '~lib';
+import { ILogger, LogFunction } from '../../core';
+import { SuperCache } from '../../lib';
 
 export class NodeLogger implements ILogger {
   private cache: SuperCache<LogFunction> = new SuperCache();

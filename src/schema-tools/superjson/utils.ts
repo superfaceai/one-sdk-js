@@ -3,8 +3,7 @@ import {
   Provider,
   ProviderConfiguration,
   unconfiguredProviderError,
-} from '~core';
-
+} from '../../core';
 import { SuperJson } from './superjson';
 
 export function getProvider(

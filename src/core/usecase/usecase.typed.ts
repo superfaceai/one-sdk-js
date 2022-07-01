@@ -1,6 +1,5 @@
-import { NonPrimitive } from '~core';
-import { Result } from '~lib';
-
+import { Result } from '../../lib';
+import { NonPrimitive } from '../interpreter';
 import { PerformError, PerformOptions, UseCaseBase } from './usecase';
 
 export class TypedUseCase<

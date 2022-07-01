@@ -9,12 +9,13 @@ import {
 } from '@superfaceai/ast';
 import { getLocal } from 'mockttp';
 
-import { BoundProfileProvider, Events, ServiceSelector } from '~core';
-import { err } from '~lib';
-import { MockTimers } from '~mock';
-import { NodeCrypto } from '~node';
-
+import { err } from '../../lib';
+import { MockTimers } from '../../mock';
+import { CrossFetch, NodeCrypto, NodeFileSystem } from '../../node';
 import { Config } from '../config';
+import { BoundProfileProvider } from '../profile-provider';
+import { ServiceSelector } from '../services';
+import { Events } from './events';
 
 const astMetadata: AstMetadata = {
   sourceChecksum: 'checksum',
@@ -166,7 +167,7 @@ const mockProviderJson = (name: string): ProviderJson => ({
 });
 
 const mockServer = getLocal();
-const config = new Config();
+const config = new Config(NodeFileSystem);
 const timers = new MockTimers();
 const crypto = new NodeCrypto();
 
@@ -188,12 +189,12 @@ describe('events', () => {
       mockMapDocument,
       mockProviderJson('provider'),
       config,
-      timers,
       {
         services: ServiceSelector.withDefaultUrl(mockServer.url),
         security: [],
       },
       crypto,
+      new CrossFetch(timers),
       undefined,
       events
     );
@@ -232,7 +233,6 @@ describe('events', () => {
       mockMapDocument,
       mockProviderJson('someprovider'),
       config,
-      timers,
       {
         services: ServiceSelector.withDefaultUrl(
           'https://unreachable.localhost'
@@ -240,6 +240,7 @@ describe('events', () => {
         security: [],
       },
       crypto,
+      new CrossFetch(timers),
       undefined,
       events
     );
@@ -274,12 +275,12 @@ describe('events', () => {
       mockMapDocument,
       mockProviderJson('provider'),
       config,
-      timers,
       {
         services: ServiceSelector.withDefaultUrl(mockServer.url),
         security: [],
       },
       crypto,
+      new CrossFetch(timers),
       undefined,
       events
     );
@@ -308,12 +309,12 @@ describe('events', () => {
       mockMapDocument,
       mockProviderJson('provider'),
       config,
-      timers,
       {
         services: ServiceSelector.withDefaultUrl(mockServer.url),
         security: [],
       },
       crypto,
+      new CrossFetch(timers),
       undefined,
       events
     );
@@ -342,12 +343,12 @@ describe('events', () => {
       mockMapDocument,
       mockProviderJson('provider'),
       config,
-      timers,
       {
         services: ServiceSelector.withDefaultUrl(mockServer.url),
         security: [],
       },
       crypto,
+      new CrossFetch(timers),
       undefined,
       events
     );

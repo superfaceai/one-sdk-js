@@ -1,24 +1,11 @@
-import {
-  Events,
-  IBoundProfileProvider,
-  IConfig,
-  ICrypto,
-  IFileSystem,
-  ILogger,
-  ITimers,
-  UseCase,
-} from '~core';
-import { SuperCache } from '~lib';
-import { SuperJson } from '~schema-tools';
-
-export class ProfileConfiguration {
-  constructor(public readonly id: string, public readonly version: string) {}
-
-  public get cacheKey(): string {
-    // TODO: Research a better way?
-    return JSON.stringify(this);
-  }
-}
+import { SuperCache } from '../../lib';
+import { SuperJson } from '../../schema-tools';
+import { Events, Interceptable } from '../events';
+import { IConfig, ICrypto, IFileSystem, ILogger, ITimers } from '../interfaces';
+import { AuthCache, FetchInstance } from '../interpreter';
+import { IBoundProfileProvider } from '../profile-provider';
+import { UseCase } from '../usecase';
+import { ProfileConfiguration } from './profile-configuration';
 
 export abstract class ProfileBase {
   constructor(
@@ -33,6 +20,7 @@ export abstract class ProfileBase {
       expiresAt: number;
     }>,
     protected readonly crypto: ICrypto,
+    protected readonly fetchInstance: FetchInstance & Interceptable & AuthCache,
     protected readonly logger?: ILogger
   ) {}
 
@@ -57,6 +45,7 @@ export class Profile extends ProfileBase {
       this.fileSystem,
       this.crypto,
       this.boundProfileProviderCache,
+      this.fetchInstance,
       this.logger
     );
   }

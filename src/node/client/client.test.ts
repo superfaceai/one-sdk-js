@@ -1,5 +1,5 @@
-import { MockClient } from '~mock';
-import { getProviderForProfile, SuperJson } from '~schema-tools';
+import { MockClient } from '../../mock';
+import { getProviderForProfile, SuperJson } from '../../schema-tools';
 
 const mockSuperJson = new SuperJson({
   profiles: {

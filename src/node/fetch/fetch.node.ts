@@ -22,8 +22,7 @@ import {
   JSON_PROBLEM_CONTENT,
   NetworkFetchError,
   RequestFetchError,
-} from '~core';
-
+} from '../../core';
 import { eventInterceptor } from '../../core/events/events';
 
 export class CrossFetch implements FetchInstance, Interceptable {

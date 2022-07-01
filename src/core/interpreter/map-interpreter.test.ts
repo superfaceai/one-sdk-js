@@ -2,16 +2,16 @@ import { ApiKeyPlacement, HttpScheme, SecurityType } from '@superfaceai/ast';
 import { parseMap, Source } from '@superfaceai/parser';
 import { getLocal } from 'mockttp';
 
-import { Config, ServiceSelector } from '~core';
-import { MockTimers } from '~mock';
-import { CrossFetch, NodeCrypto } from '~node';
-
+import { MockTimers } from '../../mock';
+import { CrossFetch, NodeCrypto, NodeFileSystem } from '../../node';
+import { Config } from '../config';
+import { ServiceSelector } from '../services';
 import { MapInterpreter } from './map-interpreter';
 
 const mockServer = getLocal();
 const timers = new MockTimers();
 const fetchInstance = new CrossFetch(timers);
-const config = new Config();
+const config = new Config(NodeFileSystem);
 const crypto = new NodeCrypto();
 
 const parseMapFromSource = (source: string) =>

@@ -1,4 +1,4 @@
-import { IEnvironment } from '~core';
+import { IEnvironment } from '../core';
 
 export class MockEnvironment implements IEnvironment {
   private values: Record<string, string> = {};

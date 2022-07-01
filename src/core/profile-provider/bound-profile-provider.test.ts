@@ -9,24 +9,23 @@ import {
   SecurityType,
 } from '@superfaceai/ast';
 
+import { err, ok } from '../../lib';
+import { MockTimers } from '../../mock';
+import { CrossFetch, NodeCrypto, NodeFileSystem } from '../../node';
+import { Config } from '../config';
 import {
   InputValidationError,
   MapASTError,
   MapInterpreter,
   ProfileParameterValidator,
   ResultValidationError,
-  ServiceSelector,
-} from '~core';
-import { err, ok } from '~lib';
-import { MockTimers } from '~mock';
-import { NodeCrypto } from '~node';
-
-import { Config } from '../config';
+} from '../interpreter';
+import { ServiceSelector } from '../services';
 import { BoundProfileProvider } from './bound-profile-provider';
 
 jest.mock('../interpreter/map-interpreter');
 
-const mockConfig = new Config();
+const mockConfig = new Config(NodeFileSystem);
 const crypto = new NodeCrypto();
 const timers = new MockTimers();
 
@@ -127,12 +126,12 @@ describe('BoundProfileProvider', () => {
         mockMapDocument,
         mockProviderJson,
         mockConfig,
-        timers,
         {
           services: ServiceSelector.withDefaultUrl('test/url'),
           security: [],
         },
-        crypto
+        crypto,
+        new CrossFetch(timers)
       );
 
       await expect(
@@ -171,7 +170,6 @@ describe('BoundProfileProvider', () => {
         mockMapDocument,
         mockProviderJson,
         mockConfig,
-        timers,
         {
           services: ServiceSelector.withDefaultUrl('test/url'),
           security: [
@@ -184,7 +182,8 @@ describe('BoundProfileProvider', () => {
             },
           ],
         },
-        crypto
+        crypto,
+        new CrossFetch(timers)
       );
 
       await expect(
@@ -235,12 +234,12 @@ describe('BoundProfileProvider', () => {
         mockMapDocument,
         mockProviderJson,
         mockConfig,
-        timers,
         {
           services: ServiceSelector.withDefaultUrl('test/url'),
           security: [],
         },
-        crypto
+        crypto,
+        new CrossFetch(timers)
       );
 
       await expect(
@@ -271,12 +270,12 @@ describe('BoundProfileProvider', () => {
         mockMapDocument,
         mockProviderJson,
         mockConfig,
-        timers,
         {
           services: ServiceSelector.withDefaultUrl('test/url'),
           security: [],
         },
-        crypto
+        crypto,
+        new CrossFetch(timers)
       );
 
       await expect(
@@ -314,7 +313,6 @@ describe('BoundProfileProvider', () => {
         mockMapDocument,
         mockProviderJson,
         mockConfig,
-        timers,
         {
           services: ServiceSelector.withDefaultUrl('test/url'),
           security: [],
@@ -327,7 +325,8 @@ describe('BoundProfileProvider', () => {
             },
           },
         },
-        crypto
+        crypto,
+        new CrossFetch(timers)
       );
       await expect(
         mockBoundProfileProvider.perform<undefined, string>('test')

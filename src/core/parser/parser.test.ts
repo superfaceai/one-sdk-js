@@ -1,8 +1,7 @@
 import { parseMap, parseProfile, Source } from '@superfaceai/parser';
 
-import { ok } from '~lib';
-import { MockFileSystem } from '~mock';
-
+import { ok } from '../../lib';
+import { MockFileSystem } from '../../mock';
 import { Parser } from './parser';
 
 const mapFixture = `

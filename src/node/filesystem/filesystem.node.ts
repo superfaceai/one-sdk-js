@@ -17,8 +17,8 @@ import {
   PermissionDeniedError,
   UnexpectedError,
   UnknownFileSystemError,
-} from '~core';
-import { err, ok, Result } from '~lib';
+} from '../../core';
+import { err, ok, Result } from '../../lib';
 
 export type SystemError = Error & { code: string };
 export function assertSystemError(

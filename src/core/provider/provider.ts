@@ -1,6 +1,6 @@
 import { SecurityValues } from '@superfaceai/ast';
 
-import { mergeSecurity } from '~schema-tools';
+import { mergeSecurity } from '../../schema-tools';
 
 export class ProviderConfiguration {
   constructor(

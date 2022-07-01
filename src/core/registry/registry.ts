@@ -8,18 +8,13 @@ import {
 
 import {
   bindResponseError,
-  HttpClient,
-  HttpResponse,
-  IConfig,
-  ICrypto,
-  ILogger,
   invalidProviderResponseError,
-  ITimers,
   UnexpectedError,
   unknownBindResponseError,
   unknownProviderInfoError,
-} from '~core';
-import { CrossFetch } from '~node';
+} from '../errors';
+import { IConfig, ICrypto, ILogger } from '../interfaces';
+import { FetchInstance, HttpClient, HttpResponse } from '../interpreter';
 
 const DEBUG_NAMESPACE = 'registry';
 
@@ -73,11 +68,10 @@ export function assertIsRegistryProviderInfo(
 export async function fetchProviderInfo(
   providerName: string,
   config: IConfig,
-  timers: ITimers,
   crypto: ICrypto,
+  fetchInstance: FetchInstance,
   logger?: ILogger
 ): Promise<ProviderJson> {
-  const fetchInstance = new CrossFetch(timers);
   const http = new HttpClient(fetchInstance, crypto, logger);
   const sdkToken = config.sdkAuthToken;
 
@@ -218,14 +212,13 @@ export async function fetchBind(
     mapRevision?: string;
   },
   config: IConfig,
-  timers: ITimers,
   crypto: ICrypto,
+  fetchInstance: FetchInstance,
   logger?: ILogger
 ): Promise<{
   provider: ProviderJson;
   mapAst?: MapDocumentNode;
 }> {
-  const fetchInstance = new CrossFetch(timers);
   const http = new HttpClient(fetchInstance, crypto, logger);
   const sdkToken = config.sdkAuthToken;
   logger?.log(DEBUG_NAMESPACE, 'Binding SDK to registry');
@@ -256,11 +249,10 @@ export async function fetchBind(
 export async function fetchMapSource(
   mapId: string,
   config: IConfig,
-  timers: ITimers,
   crypto: ICrypto,
+  fetchInstance: FetchInstance,
   logger?: ILogger
 ): Promise<string> {
-  const fetchInstance = new CrossFetch(timers);
   const http = new HttpClient(fetchInstance, crypto, logger);
   const sdkToken = config.sdkAuthToken;
   logger?.log(DEBUG_NAMESPACE, `Getting source of map: "${mapId}"`);

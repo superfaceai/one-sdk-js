@@ -6,15 +6,14 @@ import {
 } from '@superfaceai/ast';
 import { createHash } from 'crypto';
 
+import { NodeCrypto } from '../../../../../node';
 import {
   digestHeaderNotFound,
   missingPartOfDigestHeader,
   unexpectedDigestValue,
-} from '~core';
-import { NodeCrypto } from '~node';
-
-import { HttpResponse } from '../../http';
+} from '../../../../errors';
 import { FetchInstance, URLENCODED_CONTENT } from '../../interfaces';
+import { HttpResponse } from '../../types';
 import { HttpRequest } from '..';
 import {
   AuthCache,

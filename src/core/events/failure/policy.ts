@@ -1,5 +1,5 @@
-import { HttpResponse, SDKExecutionError } from '~core';
-
+import { SDKExecutionError } from '../../errors';
+import { HttpResponse } from '../../interpreter';
 import {
   ExecutionResolution,
   FailureResolution,

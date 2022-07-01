@@ -13,7 +13,8 @@ import {
   Source,
 } from '@superfaceai/parser';
 
-import { IFileSystem, UnexpectedError } from '~core';
+import { UnexpectedError } from '../errors';
+import { IFileSystem } from '../interfaces';
 
 export class Parser {
   private static mapCache: Record<string, MapDocumentNode> = {};

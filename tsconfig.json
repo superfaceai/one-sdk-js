@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "baseUrl": "src/",
     "declaration": true,
     "downlevelIteration": true,
     "esModuleInterop": true,
@@ -8,18 +7,6 @@
     "experimentalDecorators": true,
     "forceConsistentCasingInFileNames": true,
     "lib": ["ESNext"],
-    "paths": {
-      "~core": ["core"],
-      "~core/*": ["core/*"],
-      "~node": ["node"],
-      "~node/*": ["node/*"],
-      "~lib": ["lib"],
-      "~lib/*": ["lib/*"],
-      "~schema-tools": ["schema-tools"],
-      "~schema-tools/*": ["schema-tools/*"],
-      "~mock": ["mock"],
-      "~mock/*": ["mock/*"]
-    },
     "rootDir": "./src",
     "module": "CommonJS",
     "moduleResolution": "node",

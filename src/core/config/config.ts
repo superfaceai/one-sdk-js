@@ -4,8 +4,7 @@ import {
   IFileSystem,
   ILogger,
   LogFunction,
-} from '~core';
-import { NodeFileSystem } from '~node';
+} from '../interfaces';
 
 const DEBUG_NAMESPACE = 'config';
 
@@ -154,7 +153,7 @@ export class Config implements IConfig {
   public superfaceCacheTimeout: number;
   public superfacePath: string;
 
-  constructor(config?: Partial<IConfig>, fileSystem: FSPath = NodeFileSystem) {
+  constructor(fileSystem: FSPath, config?: Partial<IConfig>) {
     const defaults = DEFAULTS(fileSystem);
     this.cachePath = config?.cachePath ?? defaults.cachePath;
     this.disableReporting =
@@ -174,8 +173,8 @@ export class Config implements IConfig {
 
 export function loadConfigFromEnv(
   environment: IEnvironment,
-  logger?: ILogger,
-  fileSystem: FSPath = NodeFileSystem
+  fileSystem: FSPath,
+  logger?: ILogger
 ): Config {
   const env = {
     superfaceApiUrl: getSuperfaceApiUrl(environment),
@@ -201,5 +200,5 @@ export function loadConfigFromEnv(
     env
   );
 
-  return new Config(env, fileSystem);
+  return new Config(fileSystem, env);
 }

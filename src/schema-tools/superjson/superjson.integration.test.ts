@@ -1,8 +1,7 @@
 import { promises } from 'fs';
 import { join as joinPath } from 'path';
 
-import { DEFAULT_SUPERFACE_PATH } from '~core';
-
+import { DEFAULT_SUPERFACE_PATH } from '../../core/config';
 import { SuperJson } from './superjson';
 
 const { unlink, rmdir, mkdir, writeFile } = promises;

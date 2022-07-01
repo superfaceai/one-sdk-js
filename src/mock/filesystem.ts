@@ -1,5 +1,4 @@
-import { FileSystemError, IFileSystem } from '~core';
-
+import { FileSystemError, IFileSystem } from '../core';
 import { ok, Result } from '../lib/result/result';
 
 export const MockFileSystem: () => IFileSystem = () => ({

@@ -1,12 +1,13 @@
-import { Events, IBoundProfileProvider, UseCase } from '~core';
-import { SuperCache } from '~lib';
-import { MockFileSystem, MockTimers } from '~mock';
-import { NodeCrypto } from '~node';
-import { SuperJson } from '~schema-tools';
-
+import { SuperCache } from '../../lib';
+import { MockFileSystem, MockTimers } from '../../mock';
+import { CrossFetch, NodeCrypto, NodeFileSystem } from '../../node';
+import { SuperJson } from '../../schema-tools';
 import { Config } from '../config';
-import { ProfileConfiguration } from './profile';
+import { Events } from '../events';
+import { IBoundProfileProvider } from '../profile-provider';
+import { UseCase } from '../usecase';
 import { TypedProfile } from './profile.typed';
+import { ProfileConfiguration } from './profile-configuration';
 
 const crypto = new NodeCrypto();
 
@@ -27,7 +28,7 @@ describe('TypedProfile', () => {
     provider: IBoundProfileProvider;
     expiresAt: number;
   }>();
-  const config = new Config();
+  const config = new Config(NodeFileSystem);
   const fileSystem = MockFileSystem();
 
   describe('getUseCases', () => {
@@ -41,6 +42,7 @@ describe('TypedProfile', () => {
         timers,
         fileSystem,
         crypto,
+        new CrossFetch(timers),
         ['sayHello']
       );
 
@@ -54,7 +56,8 @@ describe('TypedProfile', () => {
           timers,
           fileSystem,
           crypto,
-          cache
+          cache,
+          new CrossFetch(timers)
         )
       );
     });
@@ -69,6 +72,7 @@ describe('TypedProfile', () => {
         timers,
         fileSystem,
         crypto,
+        new CrossFetch(timers),
         ['sayHello']
       );
 

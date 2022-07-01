@@ -1,10 +1,10 @@
 import { getLocal } from 'mockttp';
 
-import { Primitive } from '~core';
-import { MockTimers } from '~mock';
-import { CrossFetch, NodeCrypto } from '~node';
-
-import { createUrl, HttpClient } from './http';
+import { MockTimers } from '../../../mock';
+import { CrossFetch, NodeCrypto } from '../../../node';
+import { Primitive } from '../variables';
+import { HttpClient } from './http';
+import { createUrl } from './utils';
 
 const mockServer = getLocal();
 const timers = new MockTimers();

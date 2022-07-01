@@ -29,8 +29,7 @@ import {
   invalidProfileProviderError,
   mergeVariables,
   UnexpectedError,
-} from '~core';
-
+} from '../../core';
 import { resolveEnvRecord } from '../../lib/env';
 import { clone } from '../../lib/object';
 

@@ -1,6 +1,6 @@
 import { createHash, randomInt } from 'crypto';
 
-import { ICrypto } from '~core';
+import { ICrypto } from '../../core';
 
 export class NodeCrypto implements ICrypto {
   public hashString(input: string, algorithm: 'MD5' | 'sha256'): string {

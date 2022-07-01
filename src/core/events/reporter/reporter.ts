@@ -1,21 +1,16 @@
 import { AnonymizedSuperJsonDocument } from '@superfaceai/ast';
 
+import { SuperJson } from '../../../schema-tools';
 import {
-  Events,
-  FailureContext,
-  FailurePolicyReason,
-  FetchInstance,
   IConfig,
   ILogger,
   ITimeout,
   ITimers,
-  JSON_CONTENT,
   LogFunction,
-  stringBody,
-  SuccessContext,
-} from '~core';
-import { CrossFetch } from '~node';
-import { SuperJson } from '~schema-tools';
+} from '../../interfaces';
+import { FetchInstance, JSON_CONTENT, stringBody } from '../../interpreter';
+import { Events, FailureContext, SuccessContext } from '../events';
+import { FailurePolicyReason } from '../failure';
 
 const DEBUG_NAMESPACE = 'metric-reporter';
 
@@ -181,7 +176,6 @@ export function hookMetrics(
 export class MetricReporter {
   private timer: ITimeout | undefined;
   private startTime: number | undefined;
-  private fetchInstance: FetchInstance;
   private readonly sdkToken: string | undefined;
   private performMetrics: Omit<PerformMetricsInput, 'eventType'>[] = [];
   private configHash: string;
@@ -192,9 +186,9 @@ export class MetricReporter {
     superJson: SuperJson,
     private readonly config: IConfig,
     private readonly timers: ITimers,
+    private readonly fetchInstance: FetchInstance,
     logger?: ILogger
   ) {
-    this.fetchInstance = new CrossFetch(timers);
     this.sdkToken = config.sdkAuthToken;
     this.configHash = superJson.configHash;
     this.anonymizedSuperJson = superJson.anonymized;

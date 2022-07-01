@@ -24,9 +24,8 @@ import {
   providersNotSetError,
   SDKExecutionError,
   UnexpectedError,
-} from '~core';
-import { err, ok, Result } from '~lib';
-
+} from '../../core';
+import { err, ok, Result } from '../../lib';
 import { normalizeProfileSettings } from './normalize';
 import { composeFileURI, trimFileURI } from './schema';
 

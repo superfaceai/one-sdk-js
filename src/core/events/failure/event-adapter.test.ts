@@ -7,10 +7,10 @@ import {
 } from '@superfaceai/ast';
 import { getLocal } from 'mockttp';
 
-import { bindResponseError, NotFoundError } from '~core';
-import { err, ok } from '~lib';
-import { MockClient } from '~mock';
-import { getProvider, SuperJson } from '~schema-tools';
+import { err, ok } from '../../../lib';
+import { MockClient } from '../../../mock';
+import { getProvider, SuperJson } from '../../../schema-tools';
+import { bindResponseError, NotFoundError } from '../../errors';
 
 const astMetadata: AstMetadata = {
   sourceChecksum: 'checksum',
@@ -1442,7 +1442,7 @@ describe('event-adapter', () => {
 
     const client = new MockClient(superJson, {
       fileSystemOverride: {
-        readFile: async path => {
+        readFile: async (path: string | string[]) => {
           if (
             path.includes('starwars/character-information@1.0.0.supr.ast.json')
           ) {

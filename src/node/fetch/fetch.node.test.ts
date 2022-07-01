@@ -1,9 +1,9 @@
 import { getLocal } from 'mockttp';
 import { mocked } from 'ts-jest/utils';
 
-import { NetworkFetchError, RequestFetchError } from '~core';
-import { MockTimers } from '~mock';
-import { NodeTimers } from '~node';
+import { NetworkFetchError, RequestFetchError } from '../../core';
+import { MockTimers } from '../../mock';
+import { NodeTimers } from '../timers';
 
 const mockServer = getLocal();
 const timers = new MockTimers();

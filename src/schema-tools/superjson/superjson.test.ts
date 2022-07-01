@@ -12,11 +12,10 @@ import {
   SecurityValues,
 } from '@superfaceai/ast';
 
-import { IFileSystem } from '~core';
-import { err, ok } from '~lib';
-import { MockEnvironment, MockFileSystem } from '~mock';
-import { NodeFileSystem } from '~node';
-
+import { IFileSystem } from '../../core';
+import { err, ok } from '../../lib';
+import { MockEnvironment, MockFileSystem } from '../../mock';
+import { NodeFileSystem } from '../../node';
 import { mergeSecurity } from './mutate';
 import * as normalize from './normalize';
 import { composeFileURI, trimFileURI } from './schema';

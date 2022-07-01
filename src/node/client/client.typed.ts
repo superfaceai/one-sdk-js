@@ -1,6 +1,5 @@
-import { NonPrimitive, TypedProfile, UsecaseType } from '~core';
-import { NodeFileSystem } from '~node';
-
+import { NonPrimitive, TypedProfile, UsecaseType } from '../../core';
+import { NodeFileSystem } from '../filesystem';
 import { SuperfaceClientBase } from './client';
 
 type ProfileUseCases<TInput extends NonPrimitive | undefined, TOutput> = {
@@ -40,6 +39,7 @@ export function createTypedClient<TProfiles extends ProfileUseCases<any, any>>(
         this.timers,
         NodeFileSystem,
         this.crypto,
+        this.fetchInstance,
         Object.keys(profileDefinitions[profileId]),
         this.logger
       );

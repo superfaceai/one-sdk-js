@@ -11,8 +11,8 @@ import {
 } from '@superfaceai/ast';
 
 import { NonPrimitive, Variables } from '../../variables';
-import { HttpResponse } from '../http';
 import { FetchParameters } from '../interfaces';
+import { HttpResponse } from '../types';
 
 export const DEFAULT_AUTHORIZATION_HEADER_NAME = 'Authorization';
 

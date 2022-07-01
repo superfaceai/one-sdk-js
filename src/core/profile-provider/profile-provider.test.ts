@@ -10,31 +10,26 @@ import {
 } from '@superfaceai/ast';
 import { mocked } from 'ts-jest/utils';
 
-import {
-  Events,
-  fetchBind,
-  fetchMapSource,
-  fetchProviderInfo,
-  IFileSystem,
-  localProviderAndRemoteMapError,
-  Parser,
-  ProfileConfiguration,
-  ProfileProvider,
-  ProviderConfiguration,
-  ServiceSelector,
-} from '~core';
-import { err, ok } from '~lib';
-import { MockFileSystem, MockTimers } from '~mock';
-import { NodeCrypto } from '~node';
-import { SuperJson } from '~schema-tools';
-import * as SuperJsonMutate from '~schema-tools/superjson/mutate';
-
+import { err, ok } from '../../lib';
+import { MockFileSystem, MockTimers } from '../../mock';
+import { CrossFetch, NodeCrypto, NodeFileSystem } from '../../node';
+import { SuperJson } from '../../schema-tools';
+import * as SuperJsonMutate from '../../schema-tools/superjson/mutate';
 import { Config } from '../config';
+import { localProviderAndRemoteMapError } from '../errors';
+import { Events } from '../events';
+import { IFileSystem } from '../interfaces';
+import { Parser } from '../parser';
+import { ProfileConfiguration } from '../profile';
+import { ProviderConfiguration } from '../provider';
+import { fetchBind, fetchMapSource, fetchProviderInfo } from '../registry';
+import { ServiceSelector } from '../services';
+import { ProfileProvider } from './profile-provider';
 
 jest.mock('../registry/registry');
 jest.mock('../parser/parser');
 
-const mockConfig = new Config();
+const mockConfig = new Config(NodeFileSystem);
 const crypto = new NodeCrypto();
 const timers = new MockTimers();
 
@@ -274,8 +269,8 @@ describe('profile provider', () => {
           mockConfig,
           new Events(timers),
           fileSystem,
-          timers,
-          crypto
+          crypto,
+          new CrossFetch(timers)
         );
 
         const result = await mockProfileProvider.bind();
@@ -313,8 +308,8 @@ describe('profile provider', () => {
           mockConfig,
           new Events(timers),
           fileSystem,
-          timers,
-          crypto
+          crypto,
+          new CrossFetch(timers)
         );
 
         const result = await mockProfileProvider.bind();
@@ -351,8 +346,8 @@ describe('profile provider', () => {
           mockConfig,
           new Events(timers),
           fileSystem,
-          timers,
-          crypto
+          crypto,
+          new CrossFetch(timers)
         );
 
         const result = await mockProfileProvider.bind();
@@ -387,8 +382,8 @@ describe('profile provider', () => {
           mockConfig,
           new Events(timers),
           fileSystem,
-          timers,
-          crypto
+          crypto,
+          new CrossFetch(timers)
         );
 
         const result = await mockProfileProvider.bind();
@@ -435,8 +430,8 @@ describe('profile provider', () => {
           mockConfig,
           new Events(timers),
           fileSystem,
-          timers,
-          crypto
+          crypto,
+          new CrossFetch(timers)
         );
 
         const result = await mockProfileProvider.bind();
@@ -480,8 +475,8 @@ describe('profile provider', () => {
           mockConfig,
           new Events(timers),
           fileSystem,
-          timers,
-          crypto
+          crypto,
+          new CrossFetch(timers)
         );
 
         const result = await mockProfileProvider.bind();
@@ -523,8 +518,8 @@ describe('profile provider', () => {
           mockConfig,
           new Events(timers),
           fileSystem,
-          timers,
-          crypto
+          crypto,
+          new CrossFetch(timers)
         );
 
         const result = await mockProfileProvider.bind();
@@ -557,8 +552,8 @@ describe('profile provider', () => {
           mockConfig,
           new Events(timers),
           fileSystem,
-          timers,
-          crypto
+          crypto,
+          new CrossFetch(timers)
         );
         await expect(mockProfileProvider.bind()).rejects.toThrow(
           'Hint: Profiles can be installed using the superface cli tool: `superface install --help` for more info'
@@ -600,8 +595,8 @@ describe('profile provider', () => {
           mockConfig,
           new Events(timers),
           fileSystem,
-          timers,
-          crypto
+          crypto,
+          new CrossFetch(timers)
         );
         const result = await mockProfileProvider.bind();
 
@@ -650,8 +645,8 @@ describe('profile provider', () => {
           mockConfig,
           new Events(timers),
           fileSystem,
-          timers,
-          crypto
+          crypto,
+          new CrossFetch(timers)
         );
         const result = await mockProfileProvider.bind();
 
@@ -695,8 +690,8 @@ describe('profile provider', () => {
           mockConfig,
           new Events(timers),
           fileSystem,
-          timers,
-          crypto
+          crypto,
+          new CrossFetch(timers)
         );
 
         await expect(() => mockProfileProvider.bind()).rejects.toMatchObject({
@@ -737,8 +732,8 @@ describe('profile provider', () => {
           mockConfig,
           new Events(timers),
           fileSystem,
-          timers,
-          crypto
+          crypto,
+          new CrossFetch(timers)
         );
 
         await expect(() => mockProfileProvider.bind()).rejects.toThrow(
@@ -779,8 +774,8 @@ describe('profile provider', () => {
           mockConfig,
           new Events(timers),
           fileSystem,
-          timers,
-          crypto
+          crypto,
+          new CrossFetch(timers)
         );
         const result = await mockProfileProvider.bind();
 
@@ -832,8 +827,8 @@ describe('profile provider', () => {
           mockConfig,
           new Events(timers),
           fileSystem,
-          timers,
-          crypto
+          crypto,
+          new CrossFetch(timers)
         );
 
         const result = await mockProfileProvider.bind({ security: [] });
@@ -874,8 +869,8 @@ describe('profile provider', () => {
           mockConfig,
           new Events(timers),
           fileSystem,
-          timers,
-          crypto
+          crypto,
+          new CrossFetch(timers)
         );
 
         await expect(mockProfileProvider.bind()).rejects.toThrow(
@@ -916,8 +911,8 @@ but a secret value was provided for security scheme: made-up-id`
           mockConfig,
           new Events(timers),
           fileSystem,
-          timers,
-          crypto
+          crypto,
+          new CrossFetch(timers)
         );
 
         await expect(mockProfileProvider.bind()).rejects.toThrow(
@@ -958,8 +953,8 @@ but apiKey scheme requires: apikey`
           mockConfig,
           new Events(timers),
           fileSystem,
-          timers,
-          crypto
+          crypto,
+          new CrossFetch(timers)
         );
 
         await expect(mockProfileProvider.bind()).rejects.toThrow(
@@ -1000,8 +995,8 @@ but http scheme requires: username, password`
           mockConfig,
           new Events(timers),
           fileSystem,
-          timers,
-          crypto
+          crypto,
+          new CrossFetch(timers)
         );
 
         await expect(mockProfileProvider.bind()).rejects.toThrow(
@@ -1042,8 +1037,8 @@ but http scheme requires: token`
           mockConfig,
           new Events(timers),
           fileSystem,
-          timers,
-          crypto
+          crypto,
+          new CrossFetch(timers)
         );
 
         await expect(mockProfileProvider.bind()).rejects.toThrow(
@@ -1092,8 +1087,8 @@ but http scheme requires: digest`
           mockConfig,
           new Events(timers),
           fileSystem,
-          timers,
-          crypto
+          crypto,
+          new CrossFetch(timers)
         );
 
         await expect(mockProfileProvider.bind()).rejects.toThrow(
@@ -1157,8 +1152,8 @@ but http scheme requires: digest`
           mockConfig,
           new Events(timers),
           fileSystem,
-          timers,
-          crypto
+          crypto,
+          new CrossFetch(timers)
         );
 
         await expect(mockProfileProvider.bind()).rejects.toThrow(

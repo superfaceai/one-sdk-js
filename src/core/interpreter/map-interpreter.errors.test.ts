@@ -7,10 +7,11 @@ import {
 import { parseMap, Source } from '@superfaceai/parser';
 import { getLocal } from 'mockttp';
 
-import { Config, ServiceSelector, UnexpectedError } from '~core';
-import { MockTimers } from '~mock';
-import { CrossFetch, NodeCrypto } from '~node';
-
+import { MockTimers } from '../../mock';
+import { CrossFetch, NodeCrypto, NodeFileSystem } from '../../node';
+import { Config } from '../config';
+import { UnexpectedError } from '../errors';
+import { ServiceSelector } from '../services';
 import { MapInterpreter } from './map-interpreter';
 import {
   HTTPError,
@@ -20,7 +21,7 @@ import {
   MappedHTTPError,
 } from './map-interpreter.errors';
 
-const config = new Config();
+const config = new Config(NodeFileSystem);
 const mockServer = getLocal();
 const timers = new MockTimers();
 const crypto = new NodeCrypto();

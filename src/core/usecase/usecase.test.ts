@@ -1,18 +1,13 @@
-import {
-  Events,
-  IBoundProfileProvider,
-  ProfileConfiguration,
-  Provider,
-  ProviderConfiguration,
-  registerHooks,
-} from '~core';
-import { SuperCache } from '~lib';
-import { MockFileSystem, MockTimers } from '~mock';
-import { NodeCrypto } from '~node';
-import { SuperJson } from '~schema-tools';
-import * as utils from '~schema-tools/superjson/utils';
-
+import { SuperCache } from '../../lib';
+import { MockFileSystem, MockTimers } from '../../mock';
+import { CrossFetch, NodeCrypto, NodeFileSystem } from '../../node';
+import { SuperJson } from '../../schema-tools';
+import * as utils from '../../schema-tools/superjson/utils';
 import { Config } from '../config';
+import { Events, registerHooks } from '../events';
+import { ProfileConfiguration } from '../profile';
+import { IBoundProfileProvider } from '../profile-provider';
+import { Provider, ProviderConfiguration } from '../provider';
 import { UseCase } from './usecase';
 
 const mockSuperJson = new SuperJson({
@@ -70,7 +65,7 @@ function createUseCase(cacheExpire?: number) {
 
   const filesystem = MockFileSystem();
 
-  const config = new Config();
+  const config = new Config(NodeFileSystem);
 
   const usecase = new UseCase(
     mockProfileConfiguration,
@@ -81,7 +76,8 @@ function createUseCase(cacheExpire?: number) {
     timers,
     filesystem,
     crypto,
-    cache
+    cache,
+    new CrossFetch(timers)
   );
 
   return {
