@@ -28,7 +28,6 @@
     "dist/**/*"
   ],
   "scripts": {
-    "build_bundle": "microbundle --tsconfig tsconfig.release.json",
     "build": "tsc -p tsconfig.release.json --outDir dist",
     "check_dependencies": "node scripts/check_dependencies.js",
     "clean": "rimraf dist/",
@@ -42,7 +41,7 @@
     "test:base": "jest --testPathIgnorePatterns 'event-adapter.test.ts$'",
     "test:clean": "jest --clear-cache && yarn test",
     "test:long": "jest --testPathPattern 'event-adapter.test.ts$'",
-    "test": "yarn test:base && yarn test:long",
+    "test": "jest",
     "watch": "yarn build --watch"
   },
   "devDependencies": {
@@ -55,6 +54,7 @@
     "eslint-import-resolver-typescript": "^2.4.0",
     "eslint-plugin-import": "^2.24.2",
     "eslint-plugin-jest": "^24.4.0",
+    "eslint-plugin-jest-formatting": "^3.1.0",
     "eslint-plugin-simple-import-sort": "^7.0.0",
     "jest": "^27.1.0",
     "mockttp": "^2.2.3",
