@@ -4,13 +4,14 @@ import { AbortController } from 'abort-controller';
 import fetch, { Headers } from 'cross-fetch';
 
 import {
+  AuthCache,
   BINARY_CONTENT_REGEXP,
   CrossFetchError,
   Events,
   FetchBody,
-  FetchInstance,
   FetchParameters,
   FetchResponse,
+  IFetch,
   Interceptable,
   InterceptableMetadata,
   isBinaryBody,
@@ -24,10 +25,12 @@ import {
   RequestFetchError,
 } from '../../core';
 import { eventInterceptor } from '../../core/events/events';
+import { SuperCache } from '../../lib';
 
-export class CrossFetch implements FetchInstance, Interceptable {
+export class NodeFetch implements IFetch, Interceptable, AuthCache {
   public metadata: InterceptableMetadata | undefined;
   public events: Events | undefined;
+  public digest: SuperCache<string> = new SuperCache();
 
   constructor(private readonly timers: ITimers) {}
 
@@ -102,7 +105,7 @@ export class CrossFetch implements FetchInstance, Interceptable {
     try {
       return await fetch(url, options);
     } catch (err: unknown) {
-      throw CrossFetch.normalizeError(err);
+      throw NodeFetch.normalizeError(err);
     } finally {
       if (timeoutHandle !== undefined) {
         this.timers.clearTimeout(timeoutHandle);

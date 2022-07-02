@@ -6,7 +6,7 @@ import {
 } from '@superfaceai/ast';
 
 import { MockTimers } from '../../mock';
-import { CrossFetch, NodeCrypto, NodeFileSystem } from '../../node';
+import { NodeCrypto, NodeFetch, NodeFileSystem } from '../../node';
 import { Config } from '../config';
 import {
   bindResponseError,
@@ -152,7 +152,7 @@ describe('registry', () => {
       request.mockResolvedValue(mockResponse);
 
       await expect(
-        fetchProviderInfo('test', config, crypto, new CrossFetch(timers))
+        fetchProviderInfo('test', config, crypto, new NodeFetch(timers))
       ).resolves.toEqual(mockProviderJson);
 
       expect(request).toHaveBeenCalledTimes(1);
@@ -182,7 +182,7 @@ describe('registry', () => {
       request.mockResolvedValue(mockResponse);
 
       await expect(
-        fetchProviderInfo('test', config, crypto, new CrossFetch(timers))
+        fetchProviderInfo('test', config, crypto, new NodeFetch(timers))
       ).rejects.toEqual(
         unknownProviderInfoError({
           message: 'Registry responded with invalid body',
@@ -213,7 +213,7 @@ describe('registry', () => {
       request.mockResolvedValue(mockResponse);
 
       await expect(
-        fetchProviderInfo('test', config, crypto, new CrossFetch(timers))
+        fetchProviderInfo('test', config, crypto, new NodeFetch(timers))
       ).rejects.toEqual(
         unknownProviderInfoError({
           message: 'Registry responded with invalid ProviderJson definition',
@@ -266,7 +266,7 @@ describe('registry', () => {
           },
           config,
           crypto,
-          new CrossFetch(timers)
+          new NodeFetch(timers)
         )
       ).resolves.toEqual({
         provider: mockProviderJson,
@@ -319,7 +319,7 @@ describe('registry', () => {
           },
           config,
           crypto,
-          new CrossFetch(timers)
+          new NodeFetch(timers)
         )
       ).resolves.toEqual({
         provider: mockProviderJson,
@@ -372,7 +372,7 @@ describe('registry', () => {
           },
           config,
           crypto,
-          new CrossFetch(timers)
+          new NodeFetch(timers)
         )
       ).rejects.toThrow(
         invalidProviderResponseError(
@@ -413,7 +413,7 @@ describe('registry', () => {
           },
           config,
           crypto,
-          new CrossFetch(timers)
+          new NodeFetch(timers)
         )
       ).rejects.toEqual(
         unknownBindResponseError({
@@ -457,7 +457,7 @@ describe('registry', () => {
           },
           config,
           crypto,
-          new CrossFetch(timers)
+          new NodeFetch(timers)
         )
       ).rejects.toEqual(
         unknownBindResponseError({
@@ -504,7 +504,7 @@ describe('registry', () => {
           },
           config,
           crypto,
-          new CrossFetch(timers)
+          new NodeFetch(timers)
         )
       ).rejects.toEqual(
         bindResponseError({
@@ -552,7 +552,7 @@ describe('registry', () => {
           },
           config,
           crypto,
-          new CrossFetch(timers)
+          new NodeFetch(timers)
         )
       ).resolves.toEqual({
         provider: mockProviderJson,
@@ -590,7 +590,7 @@ describe('registry', () => {
 
       const mapId = 'test-profile-id.test-provider.test-map-variant@1.0.0';
       await expect(
-        fetchMapSource(mapId, config, crypto, new CrossFetch(timers))
+        fetchMapSource(mapId, config, crypto, new NodeFetch(timers))
       ).resolves.toEqual(mockMapSOurce);
 
       expect(request).toHaveBeenCalledTimes(1);
@@ -620,7 +620,7 @@ describe('registry', () => {
 
       const mapId = 'test-profile-id.test-provider@1.0.0';
       await expect(
-        fetchMapSource(mapId, config, crypto, new CrossFetch(timers))
+        fetchMapSource(mapId, config, crypto, new NodeFetch(timers))
       ).resolves.toEqual(mockMapSource);
 
       expect(request).toHaveBeenCalledTimes(1);

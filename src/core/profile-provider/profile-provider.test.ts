@@ -12,7 +12,7 @@ import { mocked } from 'ts-jest/utils';
 
 import { err, ok } from '../../lib';
 import { MockFileSystem, MockTimers } from '../../mock';
-import { CrossFetch, NodeCrypto, NodeFileSystem } from '../../node';
+import { NodeCrypto, NodeFetch, NodeFileSystem } from '../../node';
 import { SuperJson } from '../../schema-tools';
 import * as SuperJsonMutate from '../../schema-tools/superjson/mutate';
 import { Config } from '../config';
@@ -270,7 +270,7 @@ describe('profile provider', () => {
           new Events(timers),
           fileSystem,
           crypto,
-          new CrossFetch(timers)
+          new NodeFetch(timers)
         );
 
         const result = await mockProfileProvider.bind();
@@ -309,7 +309,7 @@ describe('profile provider', () => {
           new Events(timers),
           fileSystem,
           crypto,
-          new CrossFetch(timers)
+          new NodeFetch(timers)
         );
 
         const result = await mockProfileProvider.bind();
@@ -347,7 +347,7 @@ describe('profile provider', () => {
           new Events(timers),
           fileSystem,
           crypto,
-          new CrossFetch(timers)
+          new NodeFetch(timers)
         );
 
         const result = await mockProfileProvider.bind();
@@ -383,7 +383,7 @@ describe('profile provider', () => {
           new Events(timers),
           fileSystem,
           crypto,
-          new CrossFetch(timers)
+          new NodeFetch(timers)
         );
 
         const result = await mockProfileProvider.bind();
@@ -431,7 +431,7 @@ describe('profile provider', () => {
           new Events(timers),
           fileSystem,
           crypto,
-          new CrossFetch(timers)
+          new NodeFetch(timers)
         );
 
         const result = await mockProfileProvider.bind();
@@ -476,7 +476,7 @@ describe('profile provider', () => {
           new Events(timers),
           fileSystem,
           crypto,
-          new CrossFetch(timers)
+          new NodeFetch(timers)
         );
 
         const result = await mockProfileProvider.bind();
@@ -519,7 +519,7 @@ describe('profile provider', () => {
           new Events(timers),
           fileSystem,
           crypto,
-          new CrossFetch(timers)
+          new NodeFetch(timers)
         );
 
         const result = await mockProfileProvider.bind();
@@ -553,7 +553,7 @@ describe('profile provider', () => {
           new Events(timers),
           fileSystem,
           crypto,
-          new CrossFetch(timers)
+          new NodeFetch(timers)
         );
         await expect(mockProfileProvider.bind()).rejects.toThrow(
           'Hint: Profiles can be installed using the superface cli tool: `superface install --help` for more info'
@@ -596,7 +596,7 @@ describe('profile provider', () => {
           new Events(timers),
           fileSystem,
           crypto,
-          new CrossFetch(timers)
+          new NodeFetch(timers)
         );
         const result = await mockProfileProvider.bind();
 
@@ -646,7 +646,7 @@ describe('profile provider', () => {
           new Events(timers),
           fileSystem,
           crypto,
-          new CrossFetch(timers)
+          new NodeFetch(timers)
         );
         const result = await mockProfileProvider.bind();
 
@@ -691,7 +691,7 @@ describe('profile provider', () => {
           new Events(timers),
           fileSystem,
           crypto,
-          new CrossFetch(timers)
+          new NodeFetch(timers)
         );
 
         await expect(() => mockProfileProvider.bind()).rejects.toMatchObject({
@@ -733,7 +733,7 @@ describe('profile provider', () => {
           new Events(timers),
           fileSystem,
           crypto,
-          new CrossFetch(timers)
+          new NodeFetch(timers)
         );
 
         await expect(() => mockProfileProvider.bind()).rejects.toThrow(
@@ -775,7 +775,7 @@ describe('profile provider', () => {
           new Events(timers),
           fileSystem,
           crypto,
-          new CrossFetch(timers)
+          new NodeFetch(timers)
         );
         const result = await mockProfileProvider.bind();
 
@@ -828,7 +828,7 @@ describe('profile provider', () => {
           new Events(timers),
           fileSystem,
           crypto,
-          new CrossFetch(timers)
+          new NodeFetch(timers)
         );
 
         const result = await mockProfileProvider.bind({ security: [] });
@@ -870,7 +870,7 @@ describe('profile provider', () => {
           new Events(timers),
           fileSystem,
           crypto,
-          new CrossFetch(timers)
+          new NodeFetch(timers)
         );
 
         await expect(mockProfileProvider.bind()).rejects.toThrow(
@@ -912,7 +912,7 @@ but a secret value was provided for security scheme: made-up-id`
           new Events(timers),
           fileSystem,
           crypto,
-          new CrossFetch(timers)
+          new NodeFetch(timers)
         );
 
         await expect(mockProfileProvider.bind()).rejects.toThrow(
@@ -954,7 +954,7 @@ but apiKey scheme requires: apikey`
           new Events(timers),
           fileSystem,
           crypto,
-          new CrossFetch(timers)
+          new NodeFetch(timers)
         );
 
         await expect(mockProfileProvider.bind()).rejects.toThrow(
@@ -996,7 +996,7 @@ but http scheme requires: username, password`
           new Events(timers),
           fileSystem,
           crypto,
-          new CrossFetch(timers)
+          new NodeFetch(timers)
         );
 
         await expect(mockProfileProvider.bind()).rejects.toThrow(
@@ -1038,7 +1038,7 @@ but http scheme requires: token`
           new Events(timers),
           fileSystem,
           crypto,
-          new CrossFetch(timers)
+          new NodeFetch(timers)
         );
 
         await expect(mockProfileProvider.bind()).rejects.toThrow(
@@ -1088,7 +1088,7 @@ but http scheme requires: digest`
           new Events(timers),
           fileSystem,
           crypto,
-          new CrossFetch(timers)
+          new NodeFetch(timers)
         );
 
         await expect(mockProfileProvider.bind()).rejects.toThrow(
@@ -1153,7 +1153,7 @@ but http scheme requires: digest`
           new Events(timers),
           fileSystem,
           crypto,
-          new CrossFetch(timers)
+          new NodeFetch(timers)
         );
 
         await expect(mockProfileProvider.bind()).rejects.toThrow(

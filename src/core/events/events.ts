@@ -6,7 +6,7 @@
 
 import { UnexpectedError } from '../errors';
 import { ILogger, ITimers, LogFunction } from '../interfaces';
-import { FetchInstance, HttpResponse, RequestParameters } from '../interpreter';
+import { HttpResponse, IFetch, RequestParameters } from '../interpreter';
 import { UseCase } from '../usecase';
 import { HooksContext } from './failure/event-adapter';
 import { MapInterpreterEventAdapter } from './failure/map-interpreter-adapter';
@@ -134,7 +134,7 @@ type EventTypes = {
     InstanceType<typeof UseCase>['performBoundUsecase'],
     PerformContext
   ];
-  fetch: [FetchInstance['fetch'], EventContextBase];
+  fetch: [IFetch['fetch'], EventContextBase];
   'unhandled-http': [
     InstanceType<typeof MapInterpreterEventAdapter>['unhandledHttp'],
     EventContextBase

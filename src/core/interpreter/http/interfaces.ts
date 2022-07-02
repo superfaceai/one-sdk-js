@@ -55,7 +55,7 @@ export type FetchResponse = {
   body?: unknown;
 };
 
-export type FetchInstance = {
+export type IFetch = {
   fetch(url: string, parameters: FetchParameters): Promise<FetchResponse>;
 };
 

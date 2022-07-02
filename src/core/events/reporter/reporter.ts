@@ -8,7 +8,7 @@ import {
   ITimers,
   LogFunction,
 } from '../../interfaces';
-import { FetchInstance, JSON_CONTENT, stringBody } from '../../interpreter';
+import { IFetch, JSON_CONTENT, stringBody } from '../../interpreter';
 import { Events, FailureContext, SuccessContext } from '../events';
 import { FailurePolicyReason } from '../failure';
 
@@ -186,7 +186,7 @@ export class MetricReporter {
     superJson: SuperJson,
     private readonly config: IConfig,
     private readonly timers: ITimers,
-    private readonly fetchInstance: FetchInstance,
+    private readonly fetchInstance: IFetch,
     logger?: ILogger
   ) {
     this.sdkToken = config.sdkAuthToken;

@@ -207,7 +207,7 @@ export function registerHooks(
         performContext.queuedAction = undefined;
 
         // ignore the placeholder error we produced in `handleCommonResolution`
-        await res.catch((_err: any) => undefined);
+        await res.catch(_err => undefined);
 
         switch (action.kind) {
           case 'switch-provider': {

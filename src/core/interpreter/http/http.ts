@@ -16,7 +16,7 @@ import {
   withRequest,
   withResponse,
 } from './filters';
-import { FetchInstance } from './interfaces';
+import { IFetch } from './interfaces';
 import {
   ApiKeyHandler,
   AuthCache,
@@ -34,7 +34,7 @@ export enum NetworkErrors {
 
 export class HttpClient {
   constructor(
-    private fetchInstance: FetchInstance & AuthCache,
+    private fetchInstance: IFetch & AuthCache,
     private readonly crypto: ICrypto,
     private readonly logger?: ILogger
   ) {}
@@ -90,7 +90,7 @@ export class HttpClient {
 }
 
 function createSecurityHandler(
-  fetchInstance: FetchInstance & AuthCache,
+  fetchInstance: IFetch & AuthCache,
   securityConfiguration: SecurityConfiguration[] = [],
   securityRequirements: HttpSecurityRequirement[] = [],
   crypto: ICrypto,

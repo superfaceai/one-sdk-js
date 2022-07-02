@@ -6,13 +6,14 @@ import {
 } from '@superfaceai/ast';
 import { createHash } from 'crypto';
 
+import { SuperCache } from '../../../../../lib';
 import { NodeCrypto } from '../../../../../node';
 import {
   digestHeaderNotFound,
   missingPartOfDigestHeader,
   unexpectedDigestValue,
 } from '../../../../errors';
-import { FetchInstance, URLENCODED_CONTENT } from '../../interfaces';
+import { IFetch, URLENCODED_CONTENT } from '../../interfaces';
 import { HttpResponse } from '../../types';
 import { HttpRequest } from '..';
 import {
@@ -20,7 +21,7 @@ import {
   DEFAULT_AUTHORIZATION_HEADER_NAME,
   RequestParameters,
 } from '../interfaces';
-import { DigestHandler } from './digest';
+import { DigestHandler, hashDigestConfiguration } from './digest';
 
 const mockFetch = jest.fn();
 const crypto = new NodeCrypto();
@@ -45,7 +46,8 @@ describe('DigestHandler', () => {
   let parameters: RequestParameters;
   let retryRequest: HttpRequest | undefined;
 
-  const fetchInstance: FetchInstance & AuthCache = {
+  const fetchInstance: IFetch & AuthCache = {
+    digest: new SuperCache<string>(),
     fetch: mockFetch,
   };
 
@@ -113,17 +115,25 @@ describe('DigestHandler', () => {
         (await mockInstance.authenticate(parameters)).headers?.Authorization
       ).toEqual(expect.stringContaining(`response="${digestResponse}"`));
 
-      expect(fetchInstance.digest).toEqual(
-        expect.stringContaining(`response="${digestResponse}"`)
-      );
+      expect(
+        fetchInstance.digest.getCached(
+          hashDigestConfiguration(configuration, crypto),
+          () => ''
+        )
+      ).toEqual(expect.stringContaining(`response="${digestResponse}"`));
     });
 
     it('changes default authorization header when cache is not empty', async () => {
+      const digest = new SuperCache<string>();
+      digest.getCached(
+        hashDigestConfiguration(configuration, crypto),
+        () => 'secret'
+      );
       mockInstance = new DigestHandler(
         configuration,
         {
           ...fetchInstance,
-          digest: 'secret',
+          digest,
         },
         crypto
       );
@@ -136,13 +146,18 @@ describe('DigestHandler', () => {
     });
 
     it('changes custom authorization header when cache is not empty', async () => {
+      const digest = new SuperCache<string>();
+      digest.getCached(
+        hashDigestConfiguration(configuration, crypto),
+        () => 'secret'
+      );
       configuration.authorizationHeader = 'custom';
 
       mockInstance = new DigestHandler(
         configuration,
         {
           ...fetchInstance,
-          digest: 'secret',
+          digest,
         },
         crypto
       );
@@ -356,7 +371,7 @@ describe('DigestHandler', () => {
         },
       };
 
-      const cacheAndFetch: FetchInstance & AuthCache = {
+      const cacheAndFetch: IFetch & AuthCache = {
         ...fetchInstance,
       };
       mockInstance = new DigestHandler(configuration, cacheAndFetch, crypto);
@@ -367,7 +382,12 @@ describe('DigestHandler', () => {
       expect(
         retryRequest?.headers?.[DEFAULT_AUTHORIZATION_HEADER_NAME]
       ).toMatch(`response="${digestResponse}"`);
-      expect(cacheAndFetch?.digest).toMatch(`response="${digestResponse}"`);
+      expect(
+        cacheAndFetch.digest.getCached(
+          hashDigestConfiguration(configuration, crypto),
+          () => ''
+        )
+      ).toMatch(`response="${digestResponse}"`);
     });
 
     it('prepares digest auth without qop and algorithm for custom authorization header', async () => {
@@ -398,7 +418,7 @@ describe('DigestHandler', () => {
           },
         },
       };
-      const cacheAndFetch: FetchInstance & AuthCache = {
+      const cacheAndFetch: IFetch & AuthCache = {
         ...fetchInstance,
       };
       mockInstance = new DigestHandler(configuration, cacheAndFetch, crypto);
@@ -409,7 +429,12 @@ describe('DigestHandler', () => {
       expect(retryRequest?.headers?.Custom).toMatch(
         `response="${digestResponse}"`
       );
-      expect(cacheAndFetch.digest).toMatch(`response="${digestResponse}"`);
+      expect(
+        cacheAndFetch.digest.getCached(
+          hashDigestConfiguration(configuration, crypto),
+          () => ''
+        )
+      ).toMatch(`response="${digestResponse}"`);
     });
 
     it('prepares digest auth with auth-int qop', async () => {
@@ -438,7 +463,7 @@ describe('DigestHandler', () => {
           },
         },
       };
-      const cacheAndFetch: FetchInstance & AuthCache = {
+      const cacheAndFetch: IFetch & AuthCache = {
         ...fetchInstance,
       };
       mockInstance = new DigestHandler(configuration, cacheAndFetch, crypto);
@@ -449,7 +474,12 @@ describe('DigestHandler', () => {
       expect(
         retryRequest?.headers?.[DEFAULT_AUTHORIZATION_HEADER_NAME]
       ).toMatch(`response="${digestResponse}"`);
-      expect(cacheAndFetch.digest).toMatch(`response="${digestResponse}"`);
+      expect(
+        cacheAndFetch.digest.getCached(
+          hashDigestConfiguration(configuration, crypto),
+          () => ''
+        )
+      ).toMatch(`response="${digestResponse}"`);
     });
 
     it('prepares digest auth with default values and MD5', async () => {
@@ -482,7 +512,7 @@ describe('DigestHandler', () => {
         },
       };
 
-      const cacheAndFetch: FetchInstance & AuthCache = {
+      const cacheAndFetch: IFetch & AuthCache = {
         ...fetchInstance,
       };
       mockInstance = new DigestHandler(configuration, cacheAndFetch, crypto);
@@ -493,7 +523,12 @@ describe('DigestHandler', () => {
       expect(
         retryRequest?.headers?.[DEFAULT_AUTHORIZATION_HEADER_NAME]
       ).toMatch(`response="${digestResponse}"`);
-      expect(cacheAndFetch.digest).toMatch(`response="${digestResponse}"`);
+      expect(
+        cacheAndFetch.digest.getCached(
+          hashDigestConfiguration(configuration, crypto),
+          () => ''
+        )
+      ).toMatch(`response="${digestResponse}"`);
     });
 
     it('prepares digest auth with default values, custom headers and status code', async () => {
@@ -529,7 +564,7 @@ describe('DigestHandler', () => {
         },
       };
 
-      const cacheAndFetch: FetchInstance & AuthCache = {
+      const cacheAndFetch: IFetch & AuthCache = {
         ...fetchInstance,
       };
       mockInstance = new DigestHandler(configuration, cacheAndFetch, crypto);
@@ -540,7 +575,12 @@ describe('DigestHandler', () => {
         `response="${digestResponse}"`
       );
 
-      expect(cacheAndFetch.digest).toMatch(`response="${digestResponse}"`);
+      expect(
+        cacheAndFetch.digest.getCached(
+          hashDigestConfiguration(configuration, crypto),
+          () => ''
+        )
+      ).toMatch(`response="${digestResponse}"`);
     });
 
     it('prepares digest auth with default values and MD5-sess', async () => {
@@ -573,7 +613,7 @@ describe('DigestHandler', () => {
           },
         },
       };
-      const cacheAndFetch: FetchInstance & AuthCache = {
+      const cacheAndFetch: IFetch & AuthCache = {
         ...fetchInstance,
       };
       mockInstance = new DigestHandler(configuration, cacheAndFetch, crypto);
@@ -585,7 +625,12 @@ describe('DigestHandler', () => {
       expect(
         retryRequest?.headers?.[DEFAULT_AUTHORIZATION_HEADER_NAME]
       ).toMatch(`response="${digestResponse}"`);
-      expect(cacheAndFetch.digest).toMatch(`response="${digestResponse}"`);
+      expect(
+        cacheAndFetch.digest.getCached(
+          hashDigestConfiguration(configuration, crypto),
+          () => ''
+        )
+      ).toMatch(`response="${digestResponse}"`);
     });
 
     it('prepares digest auth with default values and SHA-256', async () => {
@@ -618,7 +663,7 @@ describe('DigestHandler', () => {
         },
       };
 
-      const cacheAndFetch: FetchInstance & AuthCache = {
+      const cacheAndFetch: IFetch & AuthCache = {
         ...fetchInstance,
       };
       mockInstance = new DigestHandler(configuration, cacheAndFetch, crypto);
@@ -629,7 +674,12 @@ describe('DigestHandler', () => {
       expect(
         retryRequest?.headers?.[DEFAULT_AUTHORIZATION_HEADER_NAME]
       ).toMatch(`response="${digestResponse}"`);
-      expect(cacheAndFetch.digest).toMatch(`response="${digestResponse}"`);
+      expect(
+        cacheAndFetch.digest.getCached(
+          hashDigestConfiguration(configuration, crypto),
+          () => ''
+        )
+      ).toMatch(`response="${digestResponse}"`);
     });
 
     it('prepares digest auth with default values and SHA-256-sess', async () => {
@@ -665,7 +715,7 @@ describe('DigestHandler', () => {
         },
       };
 
-      const cacheAndFetch: FetchInstance & AuthCache = {
+      const cacheAndFetch: IFetch & AuthCache = {
         ...fetchInstance,
       };
       mockInstance = new DigestHandler(configuration, cacheAndFetch, crypto);
@@ -677,7 +727,12 @@ describe('DigestHandler', () => {
       expect(
         retryRequest?.headers?.[DEFAULT_AUTHORIZATION_HEADER_NAME]
       ).toMatch(`response="${digestResponse}"`);
-      expect(cacheAndFetch.digest).toMatch(`response="${digestResponse}"`);
+      expect(
+        cacheAndFetch.digest.getCached(
+          hashDigestConfiguration(configuration, crypto),
+          () => ''
+        )
+      ).toMatch(`response="${digestResponse}"`);
     });
   });
 });
