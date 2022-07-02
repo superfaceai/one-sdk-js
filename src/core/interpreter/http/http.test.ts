@@ -1,5 +1,6 @@
 import { getLocal } from 'mockttp';
 
+import { SuperCache } from '../../../lib';
 import { MockTimers } from '../../../mock';
 import { NodeCrypto, NodeFetch } from '../../../node';
 import { Primitive } from '../variables';
@@ -130,6 +131,7 @@ describe('HttpClient', () => {
           httpClient = new HttpClient(
             {
               fetch: fetchMock,
+              digest: new SuperCache<string>(),
             },
             crypto
           );
