@@ -23,11 +23,11 @@ describe('fetch', () => {
 
   describe('timeout', () => {
     it('timeouts on network timeout', async () => {
-      const { CrossFetch } = await import('./fetch.node');
+      const { NodeFetch } = await import('./fetch.node');
 
       await mockServer.get('/test').thenTimeout();
       const realTimers = new NodeTimers();
-      const fetch = new CrossFetch(realTimers);
+      const fetch = new NodeFetch(realTimers);
 
       await expect(
         fetch.fetch(`${mockServer.url}/test`, { method: 'GET', timeout: 2000 })
@@ -35,10 +35,10 @@ describe('fetch', () => {
     });
 
     it('rejects on rejected connection', async () => {
-      const { CrossFetch } = await import('./fetch.node');
+      const { NodeFetch } = await import('./fetch.node');
 
       await mockServer.get('/test').thenCloseConnection();
-      const fetch = new CrossFetch(timers);
+      const fetch = new NodeFetch(timers);
 
       await expect(
         fetch.fetch(`${mockServer.url}/test`, { method: 'GET', timeout: 2000 })
@@ -46,14 +46,14 @@ describe('fetch', () => {
     });
 
     it('rethrows error if it is string', async () => {
-      const { CrossFetch } = await import('./fetch.node');
+      const { NodeFetch } = await import('./fetch.node');
 
       // We are mocking node-fetch
       const { fetch } = await import('cross-fetch');
       jest.mock('cross-fetch');
       mocked(fetch).mockRejectedValue('something-bad');
 
-      const fetchInstance = new CrossFetch(timers);
+      const fetchInstance = new NodeFetch(timers);
 
       await expect(
         fetchInstance.fetch(`${mockServer.url}/test`, {
@@ -64,14 +64,14 @@ describe('fetch', () => {
     });
 
     it('rethrows error if it does not contain type property', async () => {
-      const { CrossFetch } = await import('./fetch.node');
+      const { NodeFetch } = await import('./fetch.node');
 
       // We are mocking node-fetch
       const { fetch } = await import('cross-fetch');
       jest.mock('cross-fetch');
       mocked(fetch).mockRejectedValue({ some: 'something-bad' });
 
-      const fetchInstance = new CrossFetch(timers);
+      const fetchInstance = new NodeFetch(timers);
 
       await expect(
         fetchInstance.fetch(`${mockServer.url}/test`, {
@@ -82,14 +82,14 @@ describe('fetch', () => {
     });
 
     it('throws request abort if error does not get recognized', async () => {
-      const { CrossFetch } = await import('./fetch.node');
+      const { NodeFetch } = await import('./fetch.node');
 
       // We are mocking node-fetch
       const { fetch } = await import('cross-fetch');
       jest.mock('cross-fetch');
       mocked(fetch).mockRejectedValue({ type: 'something-bad' });
 
-      const fetchInstance = new CrossFetch(timers);
+      const fetchInstance = new NodeFetch(timers);
 
       await expect(
         fetchInstance.fetch(`${mockServer.url}/test`, {
@@ -100,7 +100,7 @@ describe('fetch', () => {
     });
 
     it('throws on dns ENOTFOUND', async () => {
-      const { CrossFetch } = await import('./fetch.node');
+      const { NodeFetch } = await import('./fetch.node');
 
       // We are mocking node-fetch
       const { fetch } = await import('cross-fetch');
@@ -111,7 +111,7 @@ describe('fetch', () => {
         errno: '',
       });
 
-      const fetchInstance = new CrossFetch(timers);
+      const fetchInstance = new NodeFetch(timers);
 
       await expect(
         fetchInstance.fetch(`${mockServer.url}/test`, {
@@ -122,7 +122,7 @@ describe('fetch', () => {
     });
 
     it('throws on dns EAI_AGAIN', async () => {
-      const { CrossFetch } = await import('./fetch.node');
+      const { NodeFetch } = await import('./fetch.node');
 
       // We are mocking node-fetch
       const { fetch } = await import('cross-fetch');
@@ -133,7 +133,7 @@ describe('fetch', () => {
         errno: '',
       });
 
-      const fetchInstance = new CrossFetch(timers);
+      const fetchInstance = new NodeFetch(timers);
 
       await expect(
         fetchInstance.fetch(`${mockServer.url}/test`, {
@@ -166,9 +166,9 @@ describe('fetch', () => {
         json: responseJsonMock,
       } as any);
 
-      const { CrossFetch } = await import('./fetch.node');
+      const { NodeFetch } = await import('./fetch.node');
 
-      const fetchInstance = new CrossFetch(timers);
+      const fetchInstance = new NodeFetch(timers);
 
       result = await fetchInstance.fetch(`${mockServer.url}/test`, {
         method: 'GET',
@@ -207,9 +207,9 @@ describe('fetch', () => {
         text: responseTextMock,
       } as any);
 
-      const { CrossFetch } = await import('./fetch.node');
+      const { NodeFetch } = await import('./fetch.node');
 
-      const fetchInstance = new CrossFetch(timers);
+      const fetchInstance = new NodeFetch(timers);
 
       result = await fetchInstance.fetch(`${mockServer.url}/test`, {
         method: 'GET',
@@ -258,9 +258,9 @@ describe('fetch', () => {
             arrayBuffer: responseArrayBufferMock,
           } as any);
 
-          const { CrossFetch } = await import('./fetch.node');
+          const { NodeFetch } = await import('./fetch.node');
 
-          const fetchInstance = new CrossFetch(timers);
+          const fetchInstance = new NodeFetch(timers);
 
           result = await fetchInstance.fetch(`${mockServer.url}/test`, {
             method: 'GET',
@@ -304,9 +304,9 @@ describe('fetch', () => {
       let result: any;
 
       beforeEach(async () => {
-        const { CrossFetch } = await import('./fetch.node');
+        const { NodeFetch } = await import('./fetch.node');
 
-        const fetchInstance = new CrossFetch(timers);
+        const fetchInstance = new NodeFetch(timers);
 
         result = await fetchInstance.fetch(`${mockServer.url}/test`, {
           method: 'GET',
@@ -329,9 +329,9 @@ describe('fetch', () => {
       let result: any;
 
       beforeEach(async () => {
-        const { CrossFetch } = await import('./fetch.node');
+        const { NodeFetch } = await import('./fetch.node');
 
-        const fetchInstance = new CrossFetch(timers);
+        const fetchInstance = new NodeFetch(timers);
 
         result = await fetchInstance.fetch(`${mockServer.url}/test`, {
           method: 'GET',
@@ -356,7 +356,7 @@ describe('fetch', () => {
       const { fetch } = await import('cross-fetch');
       jest.mock('cross-fetch');
 
-      const { CrossFetch } = await import('./fetch.node');
+      const { NodeFetch } = await import('./fetch.node');
 
       mocked(fetch).mockResolvedValue({
         headers: {
@@ -367,7 +367,7 @@ describe('fetch', () => {
         text: jest.fn(),
       } as any);
 
-      const fetchInstance = new CrossFetch(timers);
+      const fetchInstance = new NodeFetch(timers);
 
       await fetchInstance.fetch(`${mockServer.url}/test`, {
         method: 'POST',

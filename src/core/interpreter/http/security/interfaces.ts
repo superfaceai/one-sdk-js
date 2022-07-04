@@ -10,6 +10,7 @@ import {
   HttpSecurityRequirement,
 } from '@superfaceai/ast';
 
+import { SuperCache } from '../../../../lib';
 import { NonPrimitive, Variables } from '../../variables';
 import { FetchParameters } from '../interfaces';
 import { HttpResponse } from '../types';
@@ -17,7 +18,7 @@ import { HttpResponse } from '../types';
 export const DEFAULT_AUTHORIZATION_HEADER_NAME = 'Authorization';
 
 export type AuthCache = {
-  digest?: string;
+  digest: SuperCache<string>;
 };
 
 /**

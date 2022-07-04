@@ -4,12 +4,12 @@ import {
   AuthCache,
   Config,
   Events,
-  FetchInstance,
   hookMetrics,
   IBoundProfileProvider,
   IConfig,
   ICrypto,
   IEnvironment,
+  IFetch,
   ILogger,
   Interceptable,
   InternalClient,
@@ -29,7 +29,7 @@ import {
 } from '../../schema-tools';
 import { NodeCrypto } from '../crypto';
 import { NodeEnvironment } from '../environment';
-import { CrossFetch } from '../fetch';
+import { NodeFetch } from '../fetch';
 import { NodeFileSystem } from '../filesystem';
 import { NodeLogger } from '../logger';
 import { NodeTimers } from '../timers';
@@ -69,7 +69,7 @@ const setupMetricReporter = (
     superJson,
     config,
     timers,
-    new CrossFetch(timers),
+    new NodeFetch(timers),
     logger
   );
   hookMetrics(events, metricReporter);
@@ -97,7 +97,7 @@ export abstract class SuperfaceClientBase {
   protected readonly config: Config;
   protected readonly timers: ITimers;
   protected readonly crypto: ICrypto;
-  protected readonly fetchInstance: FetchInstance & Interceptable & AuthCache;
+  protected readonly fetchInstance: IFetch & Interceptable & AuthCache;
   protected readonly logger?: ILogger;
 
   constructor(options?: { superJson?: SuperJson | SuperJsonDocument }) {
@@ -106,7 +106,7 @@ export abstract class SuperfaceClientBase {
     this.timers = new NodeTimers();
     this.logger = new NodeLogger();
     this.events = new Events(this.timers, this.logger);
-    this.fetchInstance = new CrossFetch(this.timers);
+    this.fetchInstance = new NodeFetch(this.timers);
     this.config = loadConfigFromEnv(environment, NodeFileSystem, this.logger);
 
     this.boundProfileProviderCache = new SuperCache<{

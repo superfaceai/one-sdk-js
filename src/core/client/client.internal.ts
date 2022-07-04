@@ -8,7 +8,7 @@ import {
 } from '../errors';
 import { Events, Interceptable } from '../events';
 import { ICrypto, IFileSystem, ILogger, ITimers } from '../interfaces';
-import { AuthCache, FetchInstance } from '../interpreter';
+import { AuthCache, IFetch } from '../interpreter';
 import { Profile, ProfileConfiguration } from '../profile';
 import { IBoundProfileProvider } from '../profile-provider';
 
@@ -24,7 +24,7 @@ export class InternalClient {
       expiresAt: number;
     }>,
     private readonly crypto: ICrypto,
-    private readonly fetchInstance: FetchInstance & Interceptable & AuthCache,
+    private readonly fetchInstance: IFetch & Interceptable & AuthCache,
     private readonly logger?: ILogger
   ) {}
 

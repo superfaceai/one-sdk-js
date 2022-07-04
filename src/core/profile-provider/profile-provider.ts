@@ -31,7 +31,7 @@ import {
   ITimers,
   LogFunction,
 } from '../interfaces';
-import { AuthCache, FetchInstance } from '../interpreter';
+import { AuthCache, IFetch } from '../interpreter';
 import { Parser } from '../parser';
 import { ProfileConfiguration } from '../profile/profile-configuration';
 import { ProviderConfiguration } from '../provider';
@@ -54,7 +54,7 @@ export async function bindProfileProvider(
   timers: ITimers,
   fileSystem: IFileSystem,
   crypto: ICrypto,
-  fetchInstance: FetchInstance & Interceptable & AuthCache,
+  fetchInstance: IFetch & Interceptable & AuthCache,
   logger?: ILogger
 ): Promise<{ provider: IBoundProfileProvider; expiresAt: number }> {
   const profileProvider = new ProfileProvider(
@@ -99,7 +99,7 @@ export class ProfileProvider {
     private events: Events,
     private readonly fileSystem: IFileSystem,
     private readonly crypto: ICrypto,
-    private readonly fetchInstance: FetchInstance & Interceptable & AuthCache,
+    private readonly fetchInstance: IFetch & Interceptable & AuthCache,
     private readonly logger?: ILogger,
     /** url or ast node */
     private map?: string | MapDocumentNode

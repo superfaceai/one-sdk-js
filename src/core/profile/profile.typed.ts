@@ -3,7 +3,7 @@ import { SuperJson } from '../../schema-tools';
 import { UnexpectedError, usecaseNotFoundError } from '../errors';
 import { Events, Interceptable } from '../events';
 import { IConfig, ICrypto, IFileSystem, ILogger, ITimers } from '../interfaces';
-import { AuthCache, FetchInstance, NonPrimitive } from '../interpreter';
+import { AuthCache, IFetch, NonPrimitive } from '../interpreter';
 import { IBoundProfileProvider } from '../profile-provider';
 import { TypedUseCase } from '../usecase';
 import { ProfileBase } from './profile';
@@ -40,7 +40,7 @@ export class TypedProfile<
     protected override readonly timers: ITimers,
     protected override readonly fileSystem: IFileSystem,
     protected override readonly crypto: ICrypto,
-    protected override readonly fetchInstance: FetchInstance &
+    protected override readonly fetchInstance: IFetch &
       Interceptable &
       AuthCache,
     usecases: (keyof TUsecaseTypes)[],

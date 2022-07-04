@@ -8,9 +8,9 @@ import {
   BINARY_CONTENT_TYPES,
   binaryBody,
   FetchBody,
-  FetchInstance,
   FORMDATA_CONTENT,
   formDataBody,
+  IFetch,
   isBinaryBody,
   isFormDataBody,
   isStringBody,
@@ -96,7 +96,7 @@ export const withResponse = (filter: FilterWithResponse): Filter => {
 };
 
 export const fetchFilter: (
-  fetchInstance: FetchInstance & AuthCache,
+  fetchInstance: IFetch & AuthCache,
   logger?: ILogger
 ) => FilterWithRequest =
   (fetchInstance, logger) =>
@@ -128,7 +128,7 @@ export const authenticateFilter: (handler?: ISecurityHandler) => Filter =
 
 // This is handling the cases when we are authenticated but eg. digest credentials expired or OAuth access token is no longer valid
 export const handleResponseFilter: (
-  fetchInstance: FetchInstance & AuthCache,
+  fetchInstance: IFetch & AuthCache,
   logger?: ILogger,
   handler?: ISecurityHandler
 ) => FilterWithResponse =

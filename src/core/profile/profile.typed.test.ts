@@ -1,6 +1,6 @@
 import { SuperCache } from '../../lib';
 import { MockFileSystem, MockTimers } from '../../mock';
-import { CrossFetch, NodeCrypto, NodeFileSystem } from '../../node';
+import { NodeCrypto, NodeFetch, NodeFileSystem } from '../../node';
 import { SuperJson } from '../../schema-tools';
 import { Config } from '../config';
 import { Events } from '../events';
@@ -42,7 +42,7 @@ describe('TypedProfile', () => {
         timers,
         fileSystem,
         crypto,
-        new CrossFetch(timers),
+        new NodeFetch(timers),
         ['sayHello']
       );
 
@@ -57,7 +57,7 @@ describe('TypedProfile', () => {
           fileSystem,
           crypto,
           cache,
-          new CrossFetch(timers)
+          new NodeFetch(timers)
         )
       );
     });
@@ -72,7 +72,7 @@ describe('TypedProfile', () => {
         timers,
         fileSystem,
         crypto,
-        new CrossFetch(timers),
+        new NodeFetch(timers),
         ['sayHello']
       );
 

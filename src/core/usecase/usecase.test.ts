@@ -1,6 +1,6 @@
 import { SuperCache } from '../../lib';
 import { MockFileSystem, MockTimers } from '../../mock';
-import { CrossFetch, NodeCrypto, NodeFileSystem } from '../../node';
+import { NodeCrypto, NodeFetch, NodeFileSystem } from '../../node';
 import { SuperJson } from '../../schema-tools';
 import * as utils from '../../schema-tools/superjson/utils';
 import { Config } from '../config';
@@ -77,7 +77,7 @@ function createUseCase(cacheExpire?: number) {
     filesystem,
     crypto,
     cache,
-    new CrossFetch(timers)
+    new NodeFetch(timers)
   );
 
   return {

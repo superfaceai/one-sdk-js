@@ -36,7 +36,7 @@ import {
   HttpResponse,
   SecurityConfiguration,
 } from './http';
-import { FetchInstance } from './http/interfaces';
+import { IFetch } from './http/interfaces';
 import {
   HTTPError,
   JessieError,
@@ -153,7 +153,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
       logger,
       crypto,
     }: {
-      fetchInstance: FetchInstance & AuthCache;
+      fetchInstance: IFetch & AuthCache;
       externalHandler?: MapInterpreterExternalHandler;
       config: IConfig;
       crypto: ICrypto;

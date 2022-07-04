@@ -12,7 +12,7 @@ import { IConfig, ICrypto, ILogger, LogFunction } from '../interfaces';
 import {
   AuthCache,
   castToNonPrimitive,
-  FetchInstance,
+  IFetch,
   MapInterpreter,
   MapInterpreterError,
   mergeVariables,
@@ -55,7 +55,7 @@ export class BoundProfileProvider implements IBoundProfileProvider {
       parameters?: Record<string, string>;
     },
     private readonly crypto: ICrypto,
-    private readonly fetchInstance: FetchInstance & Interceptable & AuthCache,
+    private readonly fetchInstance: IFetch & Interceptable & AuthCache,
     private readonly logger?: ILogger,
     events?: Events
   ) {

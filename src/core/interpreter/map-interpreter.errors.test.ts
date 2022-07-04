@@ -8,7 +8,7 @@ import { parseMap, Source } from '@superfaceai/parser';
 import { getLocal } from 'mockttp';
 
 import { MockTimers } from '../../mock';
-import { CrossFetch, NodeCrypto, NodeFileSystem } from '../../node';
+import { NodeCrypto, NodeFetch, NodeFileSystem } from '../../node';
 import { Config } from '../config';
 import { UnexpectedError } from '../errors';
 import { ServiceSelector } from '../services';
@@ -25,7 +25,7 @@ const config = new Config(NodeFileSystem);
 const mockServer = getLocal();
 const timers = new MockTimers();
 const crypto = new NodeCrypto();
-const fetchInstance = new CrossFetch(timers);
+const fetchInstance = new NodeFetch(timers);
 const header: MapHeaderNode = {
   kind: 'MapHeader',
   profile: {

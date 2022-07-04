@@ -32,7 +32,7 @@ import {
 } from '../interfaces';
 import {
   AuthCache,
-  FetchInstance,
+  IFetch,
   MapInterpreterError,
   NonPrimitive,
   ProfileParameterError,
@@ -80,7 +80,7 @@ export abstract class UseCaseBase implements Interceptable {
       provider: IBoundProfileProvider;
       expiresAt: number;
     }>,
-    private readonly fetchInstance: FetchInstance & Interceptable & AuthCache,
+    private readonly fetchInstance: IFetch & Interceptable & AuthCache,
     private readonly logger?: ILogger
   ) {
     this.metadata = {
