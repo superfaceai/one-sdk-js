@@ -68,7 +68,11 @@ export async function bindProfileProvider(
     fetchInstance,
     logger
   );
-  const boundProfileProvider = await profileProvider.bind();
+  const boundProfileProvider = await profileProvider.bind({
+    mapRevision: providerConfig.mapRevision,
+    mapVarinat: providerConfig.mapVariant,
+    security: providerConfig.security
+  });
   const expiresAt =
     Math.floor(timers.now() / 1000) + config.superfaceCacheTimeout;
 
@@ -77,6 +81,8 @@ export async function bindProfileProvider(
 
 export type BindConfiguration = {
   security?: SecurityValues[];
+  mapRevision?: string;
+  mapVarinat?: string;
 };
 
 export class ProfileProvider {
@@ -165,8 +171,9 @@ export class ProfileProvider {
       `${profileId}.${providerName}`
     );
     let mapAst = resolvedMapAst.mapAst;
-    const mapVariant = resolvedMapAst.mapVariant;
-    const mapRevision = resolvedMapAst.mapRevision;
+    const mapVariant = configuration?.mapVarinat ?? resolvedMapAst.mapVariant;
+    const mapRevision =
+      configuration?.mapRevision ?? resolvedMapAst.mapRevision;
 
     // resolve map ast using bind and fill in provider info if not specified
     if (mapAst === undefined) {
@@ -252,7 +259,7 @@ export class ProfileProvider {
         ),
         profileProviderSettings:
           this.superJson.normalized.profiles[profileId]?.providers[
-            providerInfo.name
+          providerInfo.name
           ],
         security: securityConfiguration,
         parameters: this.resolveIntegrationParameters(
