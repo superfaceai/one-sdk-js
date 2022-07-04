@@ -1,4 +1,5 @@
 import { ProfileDocumentNode } from '@superfaceai/ast';
+
 import { SuperCache } from '../../lib';
 import { SuperJson } from '../../schema-tools';
 import { Events, Interceptable } from '../events';
@@ -24,7 +25,7 @@ export abstract class ProfileBase {
     protected readonly crypto: ICrypto,
     protected readonly fetchInstance: FetchInstance & Interceptable & AuthCache,
     protected readonly logger?: ILogger
-  ) { }
+  ) {}
 
   public getConfiguredProviders(): string[] {
     return Object.keys(

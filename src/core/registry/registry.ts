@@ -246,7 +246,7 @@ export async function fetchBind(
   );
 }
 
-//TODO: fetch source or AST? Send AST/parser version to brain and let it deal with version matching?
+// TODO: fetch source or AST? Send AST/parser version to brain and let it deal with version matching?
 export async function fetchProfileSource(
   profileId: string,
   config: IConfig,
@@ -260,9 +260,10 @@ export async function fetchProfileSource(
 
   const { body } = await http.request(`/${profileId}`, {
     method: 'GET',
-    headers: sdkToken
-      ? [`Authorization: SUPERFACE-SDK-TOKEN ${sdkToken}`]
-      : undefined,
+    headers:
+      sdkToken !== undefined
+        ? [`Authorization: SUPERFACE-SDK-TOKEN ${sdkToken}`]
+        : undefined,
     baseUrl: config.superfaceApiUrl,
     accept: 'application/vnd.superface.profile',
   });

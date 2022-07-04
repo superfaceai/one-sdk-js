@@ -1,4 +1,5 @@
 import { ProfileDocumentNode } from '@superfaceai/ast';
+
 import { SuperCache } from '../../lib';
 import { SuperJson } from '../../schema-tools';
 import { Config } from '../config';
@@ -29,21 +30,24 @@ export class InternalClient {
     private readonly crypto: ICrypto,
     private readonly fetchInstance: FetchInstance & Interceptable & AuthCache,
     private readonly logger?: ILogger
-  ) { }
+  ) {}
 
-  //TODO: Move to SuperfaceClientBase? 
-  //TODO: Fetch AST directly?
-  //TODO: Fallback to the grid?
-  //TODO: Try to load it from cache?
+  // TODO: Move to SuperfaceClientBase?
+  // TODO: Fetch AST directly?
+  // TODO: Fallback to the grid?
+  // TODO: Try to load it from cache?
   public async resolveProfileAst(
     profileConfiguration: ProfileConfiguration
   ): Promise<ProfileDocumentNode> {
     let scope: string | undefined;
-    let [scopeOrProfileName, profileName] = profileConfiguration.id.split('/');
+    let profileName: string;
+    const [scopeOrProfileName, resolvedProfileName] =
+      profileConfiguration.id.split('/');
 
-    if (profileName === undefined) {
+    if (resolvedProfileName === undefined) {
       profileName = scopeOrProfileName;
     } else {
+      profileName = resolvedProfileName;
       scope = scopeOrProfileName;
     }
 
@@ -84,7 +88,7 @@ export class InternalClient {
         );
       }
     }
-    //Fallback to remote
+    // Fallback to remote
     const profileSource = await fetchProfileSource(
       `${profileConfiguration.id}@${profileConfiguration.version}`,
       this.config,

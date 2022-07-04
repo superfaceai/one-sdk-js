@@ -131,7 +131,7 @@ export class ProfileProvider {
     configuration?: BindConfiguration
   ): Promise<BoundProfileProvider> {
     // resolve profile locally
-    const profileAst = this.profile
+    const profileAst = this.profile;
     // if (profileAst === undefined) {
     //   throw invalidProfileError(this.profileId);
     // }
@@ -249,7 +249,7 @@ export class ProfileProvider {
         ),
         profileProviderSettings:
           this.superJson.normalized.profiles[profileId]?.providers[
-          providerInfo.name
+            providerInfo.name
           ],
         security: securityConfiguration,
         parameters: this.resolveIntegrationParameters(
