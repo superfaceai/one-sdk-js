@@ -1,3 +1,4 @@
+import { ProfileDocumentNode } from '@superfaceai/ast';
 import { SuperCache } from '../../lib';
 import { SuperJson } from '../../schema-tools';
 import { Events, Interceptable } from '../events';
@@ -10,6 +11,7 @@ import { ProfileConfiguration } from './profile-configuration';
 export abstract class ProfileBase {
   constructor(
     public readonly configuration: ProfileConfiguration,
+    public readonly ast: ProfileDocumentNode,
     protected readonly events: Events,
     protected readonly superJson: SuperJson,
     protected readonly config: IConfig,
@@ -22,7 +24,7 @@ export abstract class ProfileBase {
     protected readonly crypto: ICrypto,
     protected readonly fetchInstance: FetchInstance & Interceptable & AuthCache,
     protected readonly logger?: ILogger
-  ) {}
+  ) { }
 
   public getConfiguredProviders(): string[] {
     return Object.keys(
@@ -36,7 +38,7 @@ export class Profile extends ProfileBase {
     // TODO: Check if usecase exists
 
     return new UseCase(
-      this.configuration,
+      this,
       name,
       this.events,
       this.config,

@@ -9,16 +9,16 @@ type ProfileUseCases<TInput extends NonPrimitive | undefined, TOutput> = {
 export type TypedSuperfaceClient<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   TProfiles extends ProfileUseCases<any, any>
-> = SuperfaceClientBase & {
-  getProfile<TProfile extends keyof TProfiles>(
-    profileId: TProfile
-  ): Promise<TypedProfile<TProfiles[TProfile]>>;
-};
+  > = SuperfaceClientBase & {
+    getProfile<TProfile extends keyof TProfiles>(
+      profileId: TProfile
+    ): Promise<TypedProfile<TProfiles[TProfile]>>;
+  };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function createTypedClient<TProfiles extends ProfileUseCases<any, any>>(
   profileDefinitions: TProfiles
-): { new (): TypedSuperfaceClient<TProfiles> } {
+): { new(): TypedSuperfaceClient<TProfiles> } {
   return class TypedSuperfaceClientClass
     extends SuperfaceClientBase
     implements TypedSuperfaceClient<TProfiles>
@@ -29,9 +29,11 @@ export function createTypedClient<TProfiles extends ProfileUseCases<any, any>>(
       const profileConfiguration = await this.internal.getProfileConfiguration(
         profileId as string
       );
+      const ast = await this.internal.resolveProfileAst(profileConfiguration)
 
       return new TypedProfile(
         profileConfiguration,
+        ast,
         this.events,
         this.superJson,
         this.boundProfileProviderCache,

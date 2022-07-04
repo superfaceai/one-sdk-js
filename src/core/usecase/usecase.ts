@@ -38,7 +38,7 @@ import {
   ProfileParameterError,
   Variables,
 } from '../interpreter';
-import { ProfileConfiguration } from '../profile';
+import { ProfileBase } from '../profile';
 import {
   bindProfileProvider,
   IBoundProfileProvider,
@@ -68,7 +68,7 @@ export abstract class UseCaseBase implements Interceptable {
   private readonly log: LogFunction | undefined;
 
   constructor(
-    public readonly profileConfiguration: ProfileConfiguration,
+    public readonly profile: ProfileBase,
     public readonly name: string,
     public readonly events: Events,
     private readonly config: IConfig,
@@ -85,7 +85,7 @@ export abstract class UseCaseBase implements Interceptable {
   ) {
     this.metadata = {
       usecase: name,
-      profile: this.profileConfiguration.id,
+      profile: this.profile.configuration.id,
     };
     this.log = logger?.log(DEBUG_NAMESPACE);
 
@@ -96,7 +96,7 @@ export abstract class UseCaseBase implements Interceptable {
     provider?: string | Provider | undefined;
   }): Promise<void> {
     const hookRouter =
-      this.events.hookContext[`${this.profileConfiguration.id}/${this.name}`]
+      this.events.hookContext[`${this.profile.configuration.id}/${this.name}`]
         .router;
 
     const providerConfig = await this.resolveProviderConfiguration(
@@ -108,7 +108,7 @@ export abstract class UseCaseBase implements Interceptable {
     this.metadata.provider = providerConfig.name;
 
     this.boundProfileProvider = await this.rebind(
-      this.profileConfiguration.cacheKey + providerConfig.cacheKey,
+      this.profile.configuration.cacheKey + providerConfig.cacheKey,
       providerConfig
     );
   }
@@ -120,7 +120,7 @@ export abstract class UseCaseBase implements Interceptable {
     const { provider, expiresAt } =
       await this.boundProfileProviderCache.getCached(cacheKey, () =>
         bindProfileProvider(
-          this.profileConfiguration,
+          this.profile,
           providerConfig,
           this.superJson,
           this.config,
@@ -154,7 +154,7 @@ export abstract class UseCaseBase implements Interceptable {
     if (currentProvider === undefined) {
       const provider = getProviderForProfile(
         this.superJson,
-        this.profileConfiguration.id
+        this.profile.configuration.id
       );
 
       return provider.configuration;
@@ -218,7 +218,7 @@ export abstract class UseCaseBase implements Interceptable {
   }
 
   private checkWarnFailoverMisconfiguration() {
-    const profileId = this.profileConfiguration.id;
+    const profileId = this.profile.configuration.id;
 
     // Check providerFailover/priority array
     const profileEntry = this.superJson.normalized.profiles[profileId];
@@ -236,10 +236,8 @@ export abstract class UseCaseBase implements Interceptable {
       console.warn(
         `Super.json sets provider failover priority to: "${profileEntry.priority.join(
           ', '
-        )}" but provider failover is not allowed for usecase "${
-          this.name
-        }".\nTo allow provider failover please set property "providerFailover" in "${profileId}.defaults[${
-          this.name
+        )}" but provider failover is not allowed for usecase "${this.name
+        }".\nTo allow provider failover please set property "providerFailover" in "${profileId}.defaults[${this.name
         }]" to true`
       );
     }
@@ -255,7 +253,7 @@ export abstract class UseCaseBase implements Interceptable {
   private configureHookContext() {
     this.checkWarnFailoverMisconfiguration();
 
-    const profileId = this.profileConfiguration.id;
+    const profileId = this.profile.configuration.id;
     const profileSettings = this.superJson.normalized.profiles[profileId];
 
     const key = `${profileId}/${this.name}`;
@@ -276,12 +274,12 @@ export abstract class UseCaseBase implements Interceptable {
 
   protected toggleFailover(enabled: boolean): void {
     this.events.hookContext[
-      `${this.profileConfiguration.id}/${this.name}`
+      `${this.profile.configuration.id}/${this.name}`
     ].router.setAllowFailover(enabled);
   }
 
   private instantiateFailurePolicy(provider: string): FailurePolicy {
-    const profileId = this.profileConfiguration.id;
+    const profileId = this.profile.configuration.id;
     const usecaseInfo: UsecaseInfo = {
       profileId,
       usecaseName: this.name,
@@ -313,7 +311,7 @@ export abstract class UseCaseBase implements Interceptable {
       policy = new CircuitBreakerPolicy(
         usecaseInfo,
         retryPolicyConfig.maxContiguousRetries ??
-          RetryPolicy.DEFAULT_MAX_CONTIGUOUS_RETRIES,
+        RetryPolicy.DEFAULT_MAX_CONTIGUOUS_RETRIES,
         retryPolicyConfig.openTime ?? CircuitBreakerPolicy.DEFAULT_OPEN_TIME,
         retryPolicyConfig.requestTimeout ?? RetryPolicy.DEFAULT_REQUEST_TIMEOUT,
         backoff
@@ -322,7 +320,7 @@ export abstract class UseCaseBase implements Interceptable {
       policy = new RetryPolicy(
         usecaseInfo,
         retryPolicyConfig.maxContiguousRetries ??
-          RetryPolicy.DEFAULT_MAX_CONTIGUOUS_RETRIES,
+        RetryPolicy.DEFAULT_MAX_CONTIGUOUS_RETRIES,
         retryPolicyConfig.requestTimeout ?? RetryPolicy.DEFAULT_REQUEST_TIMEOUT,
         new ConstantBackoff(0)
       );

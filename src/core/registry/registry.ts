@@ -246,6 +246,30 @@ export async function fetchBind(
   );
 }
 
+//TODO: fetch source or AST? Send AST/parser version to brain and let it deal with version matching?
+export async function fetchProfileSource(
+  profileId: string,
+  config: IConfig,
+  crypto: ICrypto,
+  fetchInstance: FetchInstance,
+  logger?: ILogger
+): Promise<string> {
+  const http = new HttpClient(fetchInstance, crypto, logger);
+  const sdkToken = config.sdkAuthToken;
+  logger?.log(DEBUG_NAMESPACE, `Getting source of profile: "${profileId}"`);
+
+  const { body } = await http.request(`/${profileId}`, {
+    method: 'GET',
+    headers: sdkToken
+      ? [`Authorization: SUPERFACE-SDK-TOKEN ${sdkToken}`]
+      : undefined,
+    baseUrl: config.superfaceApiUrl,
+    accept: 'application/vnd.superface.profile',
+  });
+
+  return body as string;
+}
+
 export async function fetchMapSource(
   mapId: string,
   config: IConfig,

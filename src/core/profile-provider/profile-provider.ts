@@ -1,11 +1,9 @@
 import {
   assertMapDocumentNode,
-  assertProfileDocumentNode,
   assertProviderJson,
   FILE_URI_PROTOCOL,
   isFileURIString,
   isMapFile,
-  isProfileFile,
   MapDocumentNode,
   prepareProviderParameters,
   ProfileDocumentNode,
@@ -16,7 +14,6 @@ import {
 import { forceCast, profileAstId } from '../../lib';
 import { mergeSecurity, SuperJson } from '../../schema-tools';
 import {
-  invalidProfileError,
   localProviderAndRemoteMapError,
   providersDoNotMatchError,
   referencedFileNotFoundError,
@@ -33,7 +30,7 @@ import {
 } from '../interfaces';
 import { AuthCache, FetchInstance } from '../interpreter';
 import { Parser } from '../parser';
-import { ProfileConfiguration } from '../profile/profile-configuration';
+import { ProfileBase } from '../profile/profile';
 import { ProviderConfiguration } from '../provider';
 import { fetchBind, fetchMapSource, fetchProviderInfo } from '../registry';
 import { ServiceSelector } from '../services';
@@ -46,7 +43,7 @@ import { resolveSecurityConfiguration } from './security';
 const DEBUG_NAMESPACE = 'profile-provider';
 
 export async function bindProfileProvider(
-  profileConfig: ProfileConfiguration,
+  profile: ProfileBase,
   providerConfig: ProviderConfiguration,
   superJson: SuperJson,
   config: IConfig,
@@ -59,7 +56,7 @@ export async function bindProfileProvider(
 ): Promise<{ provider: IBoundProfileProvider; expiresAt: number }> {
   const profileProvider = new ProfileProvider(
     superJson,
-    profileConfig,
+    profile.ast,
     providerConfig,
     config,
     events,
@@ -92,7 +89,7 @@ export class ProfileProvider {
     // TODO: Use superJson from events/Client?
     public readonly superJson: SuperJson,
     /** profile id, url, ast node or configuration instance */
-    private profile: string | ProfileDocumentNode | ProfileConfiguration,
+    private profile: ProfileDocumentNode,
     /** provider name, url or configuration instance */
     private provider: string | ProviderJson | ProviderConfiguration,
     private config: IConfig,
@@ -104,13 +101,13 @@ export class ProfileProvider {
     /** url or ast node */
     private map?: string | MapDocumentNode
   ) {
-    if (this.profile instanceof ProfileConfiguration) {
-      this.profileId = this.profile.id;
-    } else if (typeof this.profile === 'string') {
-      this.profileId = this.profile;
-    } else {
-      this.profileId = profileAstId(this.profile);
-    }
+    // if (this.profile instanceof ProfileConfiguration) {
+    //   this.profileId = this.profile.id;
+    // } else if (typeof this.profile === 'string') {
+    //   this.profileId = this.profile;
+    // } else {
+    this.profileId = profileAstId(this.profile);
+    // }
     const [scopeOrProfileName, profileName] = this.profileId.split('/');
     if (profileName === undefined) {
       this.profileName = scopeOrProfileName;
@@ -134,10 +131,10 @@ export class ProfileProvider {
     configuration?: BindConfiguration
   ): Promise<BoundProfileProvider> {
     // resolve profile locally
-    const profileAst = await this.resolveProfileAst();
-    if (profileAst === undefined) {
-      throw invalidProfileError(this.profileId);
-    }
+    const profileAst = this.profile
+    // if (profileAst === undefined) {
+    //   throw invalidProfileError(this.profileId);
+    // }
     const profileId = profileAstId(profileAst);
 
     // resolve provider from parameters or defer until later
@@ -252,7 +249,7 @@ export class ProfileProvider {
         ),
         profileProviderSettings:
           this.superJson.normalized.profiles[profileId]?.providers[
-            providerInfo.name
+          providerInfo.name
           ],
         security: securityConfiguration,
         parameters: this.resolveIntegrationParameters(
@@ -398,61 +395,61 @@ export class ProfileProvider {
     }
   }
 
-  private async resolveProfileAst(): Promise<ProfileDocumentNode | undefined> {
-    let resolveInput = this.profile;
-    if (resolveInput instanceof ProfileConfiguration) {
-      resolveInput = resolveInput.id;
-    }
+  // private async resolveProfileAst(): Promise<ProfileDocumentNode | undefined> {
+  //   let resolveInput = this.profile;
+  //   if (resolveInput instanceof ProfileConfiguration) {
+  //     resolveInput = resolveInput.id;
+  //   }
 
-    const profileAst = await ProfileProvider.resolveValue(
-      resolveInput,
-      async (fileContents, fileName) => {
-        // If we have profile source, we parse
-        if (fileName !== undefined && isProfileFile(fileName)) {
-          return Parser.parseProfile(
-            fileContents,
-            fileName,
-            {
-              profileName: this.profileName,
-              scope: this.scope,
-            },
-            this.config.cachePath,
-            this.fileSystem
-          );
-        }
+  //   const profileAst = await ProfileProvider.resolveValue(
+  //     resolveInput,
+  //     async (fileContents, fileName) => {
+  //       // If we have profile source, we parse
+  //       if (fileName !== undefined && isProfileFile(fileName)) {
+  //         return Parser.parseProfile(
+  //           fileContents,
+  //           fileName,
+  //           {
+  //             profileName: this.profileName,
+  //             scope: this.scope,
+  //           },
+  //           this.config.cachePath,
+  //           this.fileSystem
+  //         );
+  //       }
 
-        // Otherwise we return parsed
-        return assertProfileDocumentNode(JSON.parse(fileContents));
-      },
-      profileId => {
-        const profileSettings = this.superJson.normalized.profiles[profileId];
-        if (profileSettings === undefined) {
-          // not found at all
-          return undefined;
-        } else if ('file' in profileSettings) {
-          // assumed right next to source file
-          return (
-            FILE_URI_PROTOCOL + this.superJson.resolvePath(profileSettings.file)
-          );
-        } else {
-          // assumed to be in grid folder
-          return (
-            FILE_URI_PROTOCOL +
-            this.superJson.resolvePath(
-              this.fileSystem.path.join(
-                'grid',
-                `${profileId}@${profileSettings.version}.supr`
-              )
-            )
-          );
-        }
-      },
-      this.fileSystem,
-      ['.ast.json', '']
-    );
+  //       // Otherwise we return parsed
+  //       return assertProfileDocumentNode(JSON.parse(fileContents));
+  //     },
+  //     profileId => {
+  //       const profileSettings = this.superJson.normalized.profiles[profileId];
+  //       if (profileSettings === undefined) {
+  //         // not found at all
+  //         return undefined;
+  //       } else if ('file' in profileSettings) {
+  //         // assumed right next to source file
+  //         return (
+  //           FILE_URI_PROTOCOL + this.superJson.resolvePath(profileSettings.file)
+  //         );
+  //       } else {
+  //         // assumed to be in grid folder
+  //         return (
+  //           FILE_URI_PROTOCOL +
+  //           this.superJson.resolvePath(
+  //             this.fileSystem.path.join(
+  //               'grid',
+  //               `${profileId}@${profileSettings.version}.supr`
+  //             )
+  //           )
+  //         );
+  //       }
+  //     },
+  //     this.fileSystem,
+  //     ['.ast.json', '']
+  //   );
 
-    return profileAst;
-  }
+  //   return profileAst;
+  // }
 
   private async resolveProviderInfo(): Promise<{
     providerInfo?: ProviderJson;

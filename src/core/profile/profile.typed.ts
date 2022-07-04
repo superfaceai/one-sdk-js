@@ -1,3 +1,4 @@
+import { ProfileDocumentNode } from '@superfaceai/ast';
 import { SuperCache } from '../../lib';
 import { SuperJson } from '../../schema-tools';
 import { UnexpectedError, usecaseNotFoundError } from '../errors';
@@ -14,9 +15,9 @@ export type UsecaseType<
   TInput extends NonPrimitive | undefined = any,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   TOutput = any
-> = {
-  [name: string]: [TInput, TOutput];
-};
+  > = {
+    [name: string]: [TInput, TOutput];
+  };
 
 export type KnownUsecase<TUsecase extends UsecaseType> = {
   [name in keyof TUsecase]: TypedUseCase<TUsecase[name][0], TUsecase[name][1]>;
@@ -25,11 +26,12 @@ export type KnownUsecase<TUsecase extends UsecaseType> = {
 export class TypedProfile<
   // TKnownUsecases extends KnownUsecase<string, NonPrimitive, unknown>
   TUsecaseTypes extends UsecaseType
-> extends ProfileBase {
+  > extends ProfileBase {
   private readonly knownUsecases: KnownUsecase<TUsecaseTypes>;
 
   constructor(
     public override readonly configuration: ProfileConfiguration,
+    public override readonly ast: ProfileDocumentNode,
     protected override readonly events: Events,
     protected override readonly superJson: SuperJson,
     protected override readonly boundProfileProviderCache: SuperCache<{
@@ -48,6 +50,7 @@ export class TypedProfile<
   ) {
     super(
       configuration,
+      ast,
       events,
       superJson,
       config,
@@ -65,7 +68,7 @@ export class TypedProfile<
           TUsecaseTypes[typeof usecase][0],
           TUsecaseTypes[typeof usecase][1]
         >(
-          configuration,
+          this,
           usecase as string,
           events,
           config,
