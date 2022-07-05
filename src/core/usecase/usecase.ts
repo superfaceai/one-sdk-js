@@ -1,4 +1,12 @@
-import { BackoffKind, OnFail, SecurityValues } from '@superfaceai/ast';
+import {
+  BackoffKind,
+  isApiKeySecurityValues,
+  isBasicAuthSecurityValues,
+  isBearerTokenSecurityValues,
+  isDigestSecurityValues,
+  OnFail,
+  SecurityValues,
+} from '@superfaceai/ast';
 
 import { Result, SuperCache } from '../../lib';
 import {
@@ -50,7 +58,7 @@ const DEBUG_NAMESPACE = 'usecase';
 export type PerformOptions = {
   provider?: Provider | string;
   parameters?: Record<string, string>;
-  security?: SecurityValues[];
+  security?: SecurityValues[] | { [id: string]: Omit<SecurityValues, 'id'> };
 };
 
 // TODO
@@ -141,6 +149,36 @@ export abstract class UseCaseBase implements Interceptable {
     return provider;
   }
 
+  private resolveSecurityValues(
+    security?: SecurityValues[] | { [id: string]: Omit<SecurityValues, 'id'> }
+  ): SecurityValues[] | undefined {
+    if (security === undefined) {
+      return;
+    }
+
+    if (Array.isArray(security)) {
+      return security;
+    }
+
+    const securityValues: SecurityValues[] = [];
+
+    for (const [id, value] of Object.entries(security)) {
+      const securityValue = { ...value, id };
+      if (
+        isBasicAuthSecurityValues(securityValue) ||
+        isBearerTokenSecurityValues(securityValue) ||
+        isApiKeySecurityValues(securityValue) ||
+        isDigestSecurityValues(securityValue)
+      ) {
+        securityValues.push(securityValue);
+      } else {
+        this.log?.('Security: %O is not supported', securityValue);
+      }
+    }
+
+    return securityValues;
+  }
+
   private async resolveProviderConfiguration(
     currentProvider: string | undefined,
     options?: PerformOptions
@@ -213,7 +251,7 @@ export abstract class UseCaseBase implements Interceptable {
     return this.performBoundUsecase(
       input,
       options?.parameters,
-      options?.security
+      this.resolveSecurityValues(options?.security)
     );
   }
 
@@ -236,10 +274,8 @@ export abstract class UseCaseBase implements Interceptable {
       console.warn(
         `Super.json sets provider failover priority to: "${profileEntry.priority.join(
           ', '
-        )}" but provider failover is not allowed for usecase "${
-          this.name
-        }".\nTo allow provider failover please set property "providerFailover" in "${profileId}.defaults[${
-          this.name
+        )}" but provider failover is not allowed for usecase "${this.name
+        }".\nTo allow provider failover please set property "providerFailover" in "${profileId}.defaults[${this.name
         }]" to true`
       );
     }
@@ -313,7 +349,7 @@ export abstract class UseCaseBase implements Interceptable {
       policy = new CircuitBreakerPolicy(
         usecaseInfo,
         retryPolicyConfig.maxContiguousRetries ??
-          RetryPolicy.DEFAULT_MAX_CONTIGUOUS_RETRIES,
+        RetryPolicy.DEFAULT_MAX_CONTIGUOUS_RETRIES,
         retryPolicyConfig.openTime ?? CircuitBreakerPolicy.DEFAULT_OPEN_TIME,
         retryPolicyConfig.requestTimeout ?? RetryPolicy.DEFAULT_REQUEST_TIMEOUT,
         backoff
@@ -322,7 +358,7 @@ export abstract class UseCaseBase implements Interceptable {
       policy = new RetryPolicy(
         usecaseInfo,
         retryPolicyConfig.maxContiguousRetries ??
-          RetryPolicy.DEFAULT_MAX_CONTIGUOUS_RETRIES,
+        RetryPolicy.DEFAULT_MAX_CONTIGUOUS_RETRIES,
         retryPolicyConfig.requestTimeout ?? RetryPolicy.DEFAULT_REQUEST_TIMEOUT,
         new ConstantBackoff(0)
       );
