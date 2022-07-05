@@ -219,7 +219,6 @@ export async function fetchBind(
   provider: ProviderJson;
   mapAst?: MapDocumentNode;
 }> {
-  console.log('fetch bind', request);
   const http = new HttpClient(fetchInstance, crypto, logger);
   const sdkToken = config.sdkAuthToken;
   logger?.log(DEBUG_NAMESPACE, 'Binding SDK to registry');

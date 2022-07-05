@@ -99,7 +99,6 @@ export abstract class UseCaseBase implements Interceptable {
     mapRevision?: string;
     mapVariant?: string;
   }): Promise<void> {
-    console.log('bind opt', options);
     const hookRouter =
       this.events.hookContext[`${this.profileConfiguration.id}/${this.name}`]
         .router;
@@ -120,8 +119,6 @@ export abstract class UseCaseBase implements Interceptable {
         mapVariant: options?.mapVariant,
       }
     );
-
-    // console.log('bound', this.boundProfileProvider);
   }
 
   private async rebind(
@@ -131,7 +128,6 @@ export abstract class UseCaseBase implements Interceptable {
       mapRevision?: string;
       mapVariant?: string;
     }
-    // TODO: store map revision and variant as `mapConfig`?
   ): Promise<IBoundProfileProvider> {
     const { provider, expiresAt } =
       await this.boundProfileProviderCache.getCached(cacheKey, () =>

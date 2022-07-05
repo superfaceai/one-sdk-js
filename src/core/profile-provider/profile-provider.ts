@@ -61,6 +61,7 @@ export async function bindProfileProvider(
   fetchInstance: IFetch & Interceptable & AuthCache,
   logger?: ILogger
 ): Promise<{ provider: IBoundProfileProvider; expiresAt: number }> {
+  // TODO: add map config to profile provider?
   const profileProvider = new ProfileProvider(
     superJson,
     profileConfig,
@@ -72,6 +73,7 @@ export async function bindProfileProvider(
     fetchInstance,
     logger
   );
+  // TODO: profileProvider.bind takes also security - use it or remove it as parameter?
   const boundProfileProvider = await profileProvider.bind(mapConfig);
   const expiresAt =
     Math.floor(timers.now() / 1000) + config.superfaceCacheTimeout;
