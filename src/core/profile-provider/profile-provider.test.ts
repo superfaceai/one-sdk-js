@@ -439,7 +439,7 @@ describe('profile provider', () => {
         expect(result).toMatchObject(expectedBoundProfileProvider);
       });
 
-      it('returns new BoundProfileProvider load localy', async () => {
+      it('returns new BoundProfileProvider load locally', async () => {
         mocked(fetchBind).mockResolvedValue(mockFetchResponse);
         const superJson = new SuperJson({
           profiles: {
@@ -525,6 +525,58 @@ describe('profile provider', () => {
         const result = await mockProfileProvider.bind();
 
         expect(result).toMatchObject(expectedBoundProfileProvider);
+      });
+
+      it('returns new BoundProfileProvider use passed map variant and revision', async () => {
+        mocked(fetchBind).mockResolvedValue(mockFetchResponse);
+        const superJson = new SuperJson({
+          profiles: {
+            ['test-profile']: {
+              version: '1.0.0',
+              defaults: {},
+              providers: {},
+            },
+          },
+          providers: {
+            test: {
+              security: mockSecurityValues,
+            },
+          },
+        });
+        const mockFetchInstance = new NodeFetch(timers);
+
+        fileSystem.readFile = () =>
+          Promise.resolve(ok(JSON.stringify(mockProfileDocument)));
+
+        const mockProfileProvider = new ProfileProvider(
+          superJson,
+          'test-profile',
+          mockProviderConfiguration,
+          mockConfig,
+          new Events(timers),
+          fileSystem,
+          crypto,
+          mockFetchInstance
+        );
+
+        const result = await mockProfileProvider.bind({
+          mapRevision: 'test',
+          mapVariant: 'test',
+        });
+
+        expect(result).toMatchObject(expectedBoundProfileProvider);
+        expect(fetchBind).toBeCalledWith(
+          {
+            profileId: 'test-profile@1.0.0',
+            provider: 'test',
+            mapVariant: 'test',
+            mapRevision: 'test',
+          },
+          mockConfig,
+          crypto,
+          mockFetchInstance,
+          undefined
+        );
       });
 
       it('throws error without profile settings', async () => {
