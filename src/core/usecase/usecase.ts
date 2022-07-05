@@ -99,7 +99,7 @@ export abstract class UseCaseBase implements Interceptable {
     mapRevision?: string;
     mapVarinat?: string;
   }): Promise<void> {
-    console.log('bind opt', options)
+    console.log('bind opt', options);
     const hookRouter =
       this.events.hookContext[`${this.profileConfiguration.id}/${this.name}`]
         .router;
@@ -108,7 +108,7 @@ export abstract class UseCaseBase implements Interceptable {
       hookRouter.getCurrentProvider(),
       options
     );
-    console.log('prov config', providerConfig)
+    console.log('prov config', providerConfig);
 
     hookRouter.setCurrentProvider(providerConfig.name);
     this.metadata.provider = providerConfig.name;
@@ -118,14 +118,14 @@ export abstract class UseCaseBase implements Interceptable {
       providerConfig
     );
 
-    console.log('bound', this.boundProfileProvider)
+    console.log('bound', this.boundProfileProvider);
   }
 
   private async rebind(
     cacheKey: string,
     providerConfig: ProviderConfiguration
+    // TODO: store map revision and variant as `mapConfig`?
   ): Promise<IBoundProfileProvider> {
-    console.log('conf in', providerConfig)
     const { provider, expiresAt } =
       await this.boundProfileProviderCache.getCached(cacheKey, () =>
         bindProfileProvider(
@@ -147,8 +147,6 @@ export abstract class UseCaseBase implements Interceptable {
       void this.rebind(cacheKey, providerConfig);
     }
 
-    console.log('b in', provider)
-
     return provider;
   }
 
@@ -156,7 +154,9 @@ export abstract class UseCaseBase implements Interceptable {
     currentProvider: string | undefined,
     options?: PerformOptions
   ) {
-    const providerConfig = await this.getProviderConfiguration(options?.provider ?? currentProvider);
+    const providerConfig = await this.getProviderConfiguration(
+      options?.provider ?? currentProvider
+    );
 
     return ProviderConfiguration.mergeWithOptions({
       configuration: providerConfig,
@@ -254,8 +254,10 @@ export abstract class UseCaseBase implements Interceptable {
       console.warn(
         `Super.json sets provider failover priority to: "${profileEntry.priority.join(
           ', '
-        )}" but provider failover is not allowed for usecase "${this.name
-        }".\nTo allow provider failover please set property "providerFailover" in "${profileId}.defaults[${this.name
+        )}" but provider failover is not allowed for usecase "${
+          this.name
+        }".\nTo allow provider failover please set property "providerFailover" in "${profileId}.defaults[${
+          this.name
         }]" to true`
       );
     }
@@ -329,7 +331,7 @@ export abstract class UseCaseBase implements Interceptable {
       policy = new CircuitBreakerPolicy(
         usecaseInfo,
         retryPolicyConfig.maxContiguousRetries ??
-        RetryPolicy.DEFAULT_MAX_CONTIGUOUS_RETRIES,
+          RetryPolicy.DEFAULT_MAX_CONTIGUOUS_RETRIES,
         retryPolicyConfig.openTime ?? CircuitBreakerPolicy.DEFAULT_OPEN_TIME,
         retryPolicyConfig.requestTimeout ?? RetryPolicy.DEFAULT_REQUEST_TIMEOUT,
         backoff
@@ -338,7 +340,7 @@ export abstract class UseCaseBase implements Interceptable {
       policy = new RetryPolicy(
         usecaseInfo,
         retryPolicyConfig.maxContiguousRetries ??
-        RetryPolicy.DEFAULT_MAX_CONTIGUOUS_RETRIES,
+          RetryPolicy.DEFAULT_MAX_CONTIGUOUS_RETRIES,
         retryPolicyConfig.requestTimeout ?? RetryPolicy.DEFAULT_REQUEST_TIMEOUT,
         new ConstantBackoff(0)
       );

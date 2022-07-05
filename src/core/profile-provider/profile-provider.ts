@@ -47,6 +47,7 @@ const DEBUG_NAMESPACE = 'profile-provider';
 
 export async function bindProfileProvider(
   profileConfig: ProfileConfiguration,
+  // TODO: add mapConfig property with variant and revision??
   providerConfig: ProviderConfiguration,
   superJson: SuperJson,
   config: IConfig,
@@ -71,7 +72,6 @@ export async function bindProfileProvider(
   const boundProfileProvider = await profileProvider.bind({
     mapRevision: providerConfig.mapRevision,
     mapVarinat: providerConfig.mapVariant,
-    security: providerConfig.security
   });
   const expiresAt =
     Math.floor(timers.now() / 1000) + config.superfaceCacheTimeout;
@@ -259,7 +259,7 @@ export class ProfileProvider {
         ),
         profileProviderSettings:
           this.superJson.normalized.profiles[profileId]?.providers[
-          providerInfo.name
+            providerInfo.name
           ],
         security: securityConfiguration,
         parameters: this.resolveIntegrationParameters(

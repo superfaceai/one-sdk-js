@@ -8,8 +8,8 @@ export class ProviderConfiguration {
     /** @deprecated only for use in testing library */
     public readonly security: SecurityValues[],
     public readonly mapRevision?: string,
-    public readonly mapVariant?: string,
-  ) { }
+    public readonly mapVariant?: string
+  ) {}
 
   public get cacheKey(): string {
     // TODO: Research a better way?
@@ -39,7 +39,7 @@ export class ProviderConfiguration {
 }
 
 export class Provider {
-  constructor(public readonly configuration: ProviderConfiguration) { }
+  constructor(public readonly configuration: ProviderConfiguration) {}
 
   /** @deprecated */
   public async configure(configuration?: {
