@@ -97,7 +97,7 @@ export abstract class UseCaseBase implements Interceptable {
   private async bind(options?: {
     provider?: string | Provider | undefined;
     mapRevision?: string;
-    mapVarinat?: string;
+    mapVariant?: string;
   }): Promise<void> {
     console.log('bind opt', options);
     const hookRouter =
@@ -108,28 +108,36 @@ export abstract class UseCaseBase implements Interceptable {
       hookRouter.getCurrentProvider(),
       options
     );
-    console.log('prov config', providerConfig);
 
     hookRouter.setCurrentProvider(providerConfig.name);
     this.metadata.provider = providerConfig.name;
 
     this.boundProfileProvider = await this.rebind(
       this.profileConfiguration.cacheKey + providerConfig.cacheKey,
-      providerConfig
+      providerConfig,
+      {
+        mapRevision: options?.mapRevision,
+        mapVariant: options?.mapVariant,
+      }
     );
 
-    console.log('bound', this.boundProfileProvider);
+    // console.log('bound', this.boundProfileProvider);
   }
 
   private async rebind(
     cacheKey: string,
-    providerConfig: ProviderConfiguration
+    providerConfig: ProviderConfiguration,
+    mapConfig: {
+      mapRevision?: string;
+      mapVariant?: string;
+    }
     // TODO: store map revision and variant as `mapConfig`?
   ): Promise<IBoundProfileProvider> {
     const { provider, expiresAt } =
       await this.boundProfileProviderCache.getCached(cacheKey, () =>
         bindProfileProvider(
           this.profileConfiguration,
+          mapConfig,
           providerConfig,
           this.superJson,
           this.config,
@@ -144,7 +152,7 @@ export abstract class UseCaseBase implements Interceptable {
     const now = Math.floor(this.timers.now() / 1000);
     if (expiresAt < now) {
       this.boundProfileProviderCache.invalidate(cacheKey);
-      void this.rebind(cacheKey, providerConfig);
+      void this.rebind(cacheKey, providerConfig, mapConfig);
     }
 
     return provider;
@@ -154,16 +162,7 @@ export abstract class UseCaseBase implements Interceptable {
     currentProvider: string | undefined,
     options?: PerformOptions
   ) {
-    const providerConfig = await this.getProviderConfiguration(
-      options?.provider ?? currentProvider
-    );
-
-    return ProviderConfiguration.mergeWithOptions({
-      configuration: providerConfig,
-      security: options?.security,
-      mapRevision: options?.mapRevision,
-      mapVariant: options?.mapVariant,
-    });
+    return this.getProviderConfiguration(options?.provider ?? currentProvider);
   }
 
   private async getProviderConfiguration(

@@ -47,7 +47,10 @@ const DEBUG_NAMESPACE = 'profile-provider';
 
 export async function bindProfileProvider(
   profileConfig: ProfileConfiguration,
-  // TODO: add mapConfig property with variant and revision??
+  mapConfig: {
+    mapRevision?: string;
+    mapVariant?: string;
+  },
   providerConfig: ProviderConfiguration,
   superJson: SuperJson,
   config: IConfig,
@@ -69,10 +72,7 @@ export async function bindProfileProvider(
     fetchInstance,
     logger
   );
-  const boundProfileProvider = await profileProvider.bind({
-    mapRevision: providerConfig.mapRevision,
-    mapVarinat: providerConfig.mapVariant,
-  });
+  const boundProfileProvider = await profileProvider.bind(mapConfig);
   const expiresAt =
     Math.floor(timers.now() / 1000) + config.superfaceCacheTimeout;
 
@@ -82,7 +82,7 @@ export async function bindProfileProvider(
 export type BindConfiguration = {
   security?: SecurityValues[];
   mapRevision?: string;
-  mapVarinat?: string;
+  mapVariant?: string;
 };
 
 export class ProfileProvider {
@@ -171,7 +171,7 @@ export class ProfileProvider {
       `${profileId}.${providerName}`
     );
     let mapAst = resolvedMapAst.mapAst;
-    const mapVariant = configuration?.mapVarinat ?? resolvedMapAst.mapVariant;
+    const mapVariant = configuration?.mapVariant ?? resolvedMapAst.mapVariant;
     const mapRevision =
       configuration?.mapRevision ?? resolvedMapAst.mapRevision;
 
