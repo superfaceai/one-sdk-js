@@ -53,33 +53,45 @@ const DEFAULTS = (fileSystem: FSPath): IConfig => ({
 
 // Extraction functions
 function getSuperfaceApiUrl(environment: IEnvironment): string | undefined {
-  const envUrl = environment.getString(API_URL_ENV_NAME);
-
-  return envUrl !== undefined ? new URL(envUrl).href : undefined;
+  return ensureValidUrl(environment.getString(API_URL_ENV_NAME));
 }
 
 function getSdkAuthToken(
   environment: IEnvironment,
   log?: LogFunction
 ): string | undefined {
-  const token = environment.getString(TOKEN_ENV_NAME);
+  return ensureValidSdkToken(
+    environment.getString(TOKEN_ENV_NAME),
+    TOKEN_ENV_NAME,
+    log
+  );
+}
 
-  if (token === undefined) {
-    log?.(`Environment variable ${TOKEN_ENV_NAME} not found`);
+function ensureValidSdkToken(
+  value: string | undefined,
+  variableName: string,
+  log?: LogFunction
+): string | undefined {
+  if (value === undefined) {
+    log?.(`Variable ${variableName} not found`);
 
     return;
   }
 
   const tokenRegexp = /^(sfs)_([^_]+)_([0-9A-F]{8})$/i;
-  if (!tokenRegexp.test(token)) {
+  if (!tokenRegexp.test(value)) {
     log?.(
-      `Value in environment variable ${TOKEN_ENV_NAME} is not valid SDK authentization token`
+      `Value in environment variable ${variableName} is not valid SDK authentization token`
     );
 
     return;
   }
 
-  return token;
+  return value;
+}
+
+function ensureValidUrl(value: string | undefined): string | undefined {
+  return value !== undefined ? new URL(value).href : undefined;
 }
 
 function ensurePositiveInteger(
@@ -171,6 +183,85 @@ export class Config implements IConfig {
   }
 }
 
+export function mergeConfigs(
+  originalConfig: Config,
+  newConfig: Config,
+  fileSystem: FSPath,
+  logger?: ILogger
+): Config {
+  const env = {
+    superfaceApiUrl:
+      newConfig.superfaceApiUrl ?? originalConfig.superfaceApiUrl,
+    sdkAuthToken: newConfig.sdkAuthToken ?? originalConfig.sdkAuthToken,
+    superfacePath: newConfig.superfacePath ?? originalConfig.superfacePath,
+    superfaceCacheTimeout:
+      newConfig.superfaceCacheTimeout ?? originalConfig.superfaceCacheTimeout,
+    metricDebounceTimeMin:
+      newConfig.metricDebounceTimeMin ?? originalConfig.metricDebounceTimeMin,
+    metricDebounceTimeMax:
+      newConfig.metricDebounceTimeMax ?? originalConfig.metricDebounceTimeMax,
+    disableReporting:
+      newConfig.disableReporting ?? originalConfig.disableReporting,
+    cachePath: newConfig.cachePath ?? originalConfig.cachePath,
+    sandboxTimeout: newConfig.sandboxTimeout ?? originalConfig.sandboxTimeout,
+  };
+
+  logger?.log(
+    DEBUG_NAMESPACE,
+    'Merged config A: %O with B: %O to: %O',
+    originalConfig,
+    newConfig,
+    env
+  );
+
+  return new Config(fileSystem, env);
+}
+
+export function loadConfigFromCode(
+  config: Partial<IConfig>,
+  fileSystem: FSPath,
+  logger?: ILogger
+): Config {
+  const env = {
+    superfaceApiUrl: ensureValidUrl(config.superfaceApiUrl),
+    sdkAuthToken: ensureValidSdkToken(
+      config.sdkAuthToken,
+      'sdkAuthToken',
+      logger?.log(DEBUG_NAMESPACE)
+    ),
+    // TODO: Check if it is path?
+    superfacePath: config.superfacePath,
+    superfaceCacheTimeout: ensurePositiveInteger(
+      config.superfaceCacheTimeout,
+      'superfaceCacheTimeout',
+      logger?.log(DEBUG_NAMESPACE)
+    ),
+    // TODO: check if min is less than max?
+    metricDebounceTimeMin: ensurePositiveInteger(
+      config.metricDebounceTimeMin,
+      'metricDebounceTimeMin',
+      logger?.log(DEBUG_NAMESPACE)
+    ),
+    metricDebounceTimeMax: ensurePositiveInteger(
+      config.metricDebounceTimeMax,
+      'metricDebounceTimeMax',
+      logger?.log(DEBUG_NAMESPACE)
+    ),
+    disableReporting: config.disableReporting,
+    // TODO: Check if it is path?
+    cachePath: config.cachePath,
+    sandboxTimeout: ensurePositiveInteger(
+      config.sandboxTimeout,
+      'sandboxTimeout',
+      logger?.log(DEBUG_NAMESPACE)
+    ),
+  };
+
+  logger?.log(DEBUG_NAMESPACE, 'Loaded config from code: %O', env);
+
+  return new Config(fileSystem, env);
+}
+
 export function loadConfigFromEnv(
   environment: IEnvironment,
   fileSystem: FSPath,
@@ -178,20 +269,35 @@ export function loadConfigFromEnv(
 ): Config {
   const env = {
     superfaceApiUrl: getSuperfaceApiUrl(environment),
-    sdkAuthToken: getSdkAuthToken(environment),
+    sdkAuthToken: getSdkAuthToken(environment, logger?.log(DEBUG_NAMESPACE)),
     superfacePath:
       environment.getString(SUPERFACE_PATH_NAME) ??
       DEFAULT_SUPERFACE_PATH(fileSystem),
-    superfaceCacheTimeout: getBoundCacheTimeout(environment),
-    metricDebounceTimeMin: getMetricDebounceTime('min', environment),
-    metricDebounceTimeMax: getMetricDebounceTime('max', environment),
+    superfaceCacheTimeout: getBoundCacheTimeout(
+      environment,
+      logger?.log(DEBUG_NAMESPACE)
+    ),
+    metricDebounceTimeMin: getMetricDebounceTime(
+      'min',
+      environment,
+      logger?.log(DEBUG_NAMESPACE)
+    ),
+    metricDebounceTimeMax: getMetricDebounceTime(
+      'max',
+      environment,
+      logger?.log(DEBUG_NAMESPACE)
+    ),
     disableReporting:
       environment.getString('NODE_ENV') === 'test' ||
       environment.getBoolean(DISABLE_REPORTING) === true
         ? true
         : undefined,
+    // TODO: add env variable and resolve it?
     cachePath: undefined,
-    sandboxTimeout: getSandboxTimeout(environment),
+    sandboxTimeout: getSandboxTimeout(
+      environment,
+      logger?.log(DEBUG_NAMESPACE)
+    ),
   };
 
   logger?.log(
