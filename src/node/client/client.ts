@@ -123,8 +123,9 @@ export abstract class SuperfaceClientBase {
   protected readonly logger?: ILogger;
 
   constructor(
-    // TODO: for now omit cachePath( does not have env variable, conflicts with our plans for the API)?
-    options?: { superJson?: SuperJson | SuperJsonDocument } & Partial<IConfig>
+    options?: { superJson?: SuperJson | SuperJsonDocument } & Partial<
+      Omit<IConfig, 'cachePath'>
+    >
   ) {
     const environment = new NodeEnvironment();
     this.crypto = new NodeCrypto();

@@ -222,30 +222,30 @@ export function loadConfigFromCode(
   fileSystem: FSPath,
   logger?: ILogger
 ): Config {
+  const logFunction = logger?.log(DEBUG_NAMESPACE);
   const env = {
     superfaceApiUrl: ensureValidUrl(config.superfaceApiUrl),
     sdkAuthToken: ensureValidSdkToken(
       config.sdkAuthToken,
       'sdkAuthToken',
-      logger?.log(DEBUG_NAMESPACE)
+      logFunction
     ),
     // TODO: Check if it is path?
     superfacePath: config.superfacePath,
     superfaceCacheTimeout: ensurePositiveInteger(
       config.superfaceCacheTimeout,
       'superfaceCacheTimeout',
-      logger?.log(DEBUG_NAMESPACE)
+      logFunction
     ),
-    // TODO: check if min is less than max?
     metricDebounceTimeMin: ensurePositiveInteger(
       config.metricDebounceTimeMin,
       'metricDebounceTimeMin',
-      logger?.log(DEBUG_NAMESPACE)
+      logFunction
     ),
     metricDebounceTimeMax: ensurePositiveInteger(
       config.metricDebounceTimeMax,
       'metricDebounceTimeMax',
-      logger?.log(DEBUG_NAMESPACE)
+      logFunction
     ),
     disableReporting: config.disableReporting,
     // TODO: Check if it is path?
@@ -253,7 +253,7 @@ export function loadConfigFromCode(
     sandboxTimeout: ensurePositiveInteger(
       config.sandboxTimeout,
       'sandboxTimeout',
-      logger?.log(DEBUG_NAMESPACE)
+      logFunction
     ),
   };
 
@@ -267,25 +267,23 @@ export function loadConfigFromEnv(
   fileSystem: FSPath,
   logger?: ILogger
 ): Config {
+  const logFunction = logger?.log(DEBUG_NAMESPACE);
   const env = {
     superfaceApiUrl: getSuperfaceApiUrl(environment),
-    sdkAuthToken: getSdkAuthToken(environment, logger?.log(DEBUG_NAMESPACE)),
+    sdkAuthToken: getSdkAuthToken(environment, logFunction),
     superfacePath:
       environment.getString(SUPERFACE_PATH_NAME) ??
       DEFAULT_SUPERFACE_PATH(fileSystem),
-    superfaceCacheTimeout: getBoundCacheTimeout(
-      environment,
-      logger?.log(DEBUG_NAMESPACE)
-    ),
+    superfaceCacheTimeout: getBoundCacheTimeout(environment, logFunction),
     metricDebounceTimeMin: getMetricDebounceTime(
       'min',
       environment,
-      logger?.log(DEBUG_NAMESPACE)
+      logFunction
     ),
     metricDebounceTimeMax: getMetricDebounceTime(
       'max',
       environment,
-      logger?.log(DEBUG_NAMESPACE)
+      logFunction
     ),
     disableReporting:
       environment.getString('NODE_ENV') === 'test' ||
@@ -294,10 +292,7 @@ export function loadConfigFromEnv(
         : undefined,
     // TODO: add env variable and resolve it?
     cachePath: undefined,
-    sandboxTimeout: getSandboxTimeout(
-      environment,
-      logger?.log(DEBUG_NAMESPACE)
-    ),
+    sandboxTimeout: getSandboxTimeout(environment, logFunction),
   };
 
   logger?.log(

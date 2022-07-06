@@ -189,6 +189,7 @@ export class MetricReporter {
     private readonly fetchInstance: IFetch,
     logger?: ILogger
   ) {
+    // TODO: check if min debounce time is less than max debounce time?
     this.sdkToken = config.sdkAuthToken;
     this.configHash = superJson.configHash;
     this.anonymizedSuperJson = superJson.anonymized;
