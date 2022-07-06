@@ -254,6 +254,22 @@ describe('MetricReporter', () => {
     await mockServer.stop();
   });
 
+  it('should throw on mismatching debounce time values', async () => {
+    expect(
+      () =>
+        new MockClient(mockSuperJsonSingle, {
+          configOverride: {
+            disableReporting: false,
+            superfaceApiUrl: mockServer.url,
+            metricDebounceTimeMax: 100,
+            metricDebounceTimeMin: 200,
+          },
+        })
+    ).toThrowError(
+      'Value of metricDebounceTimeMax(100) is lesser than value of metricDebounceTimeMin(200)'
+    );
+  });
+
   it('should report SDK Init', async () => {
     const client = new MockClient(mockSuperJsonSingle, {
       configOverride: {

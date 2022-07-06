@@ -1,6 +1,7 @@
 import { AnonymizedSuperJsonDocument } from '@superfaceai/ast';
 
 import { SuperJson } from '../../../schema-tools';
+import { UnexpectedError } from '../../errors';
 import {
   IConfig,
   ILogger,
@@ -189,7 +190,11 @@ export class MetricReporter {
     private readonly fetchInstance: IFetch,
     logger?: ILogger
   ) {
-    // TODO: check if min debounce time is less than max debounce time?
+    if (config.metricDebounceTimeMax < config.metricDebounceTimeMin) {
+      throw new UnexpectedError(
+        `Value of metricDebounceTimeMax(${config.metricDebounceTimeMax}) is lesser than value of metricDebounceTimeMin(${config.metricDebounceTimeMin})`
+      );
+    }
     this.sdkToken = config.sdkAuthToken;
     this.configHash = superJson.configHash;
     this.anonymizedSuperJson = superJson.anonymized;
