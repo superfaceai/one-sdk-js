@@ -153,6 +153,7 @@ export class Config implements IConfig {
   public superfaceApiUrl: string;
   public superfaceCacheTimeout: number;
   public superfacePath: string;
+  //TODO: this does not have superface specific env variable - can we store it here?
   public debug: boolean;
 
   constructor(fileSystem: FSPath, config?: Partial<IConfig>) {
@@ -170,7 +171,7 @@ export class Config implements IConfig {
     this.superfaceCacheTimeout =
       config?.superfaceCacheTimeout ?? defaults.superfaceCacheTimeout;
     this.superfacePath = config?.superfacePath ?? defaults.superfacePath;
-    this.debug = config?.debug ?? defaults.debug;
+    this.debug = config?.debug !== undefined ? config.debug : defaults.debug;
   }
 }
 
@@ -190,11 +191,12 @@ export function loadConfigFromEnv(
     metricDebounceTimeMax: getMetricDebounceTime('max', environment),
     disableReporting:
       environment.getString('NODE_ENV') === 'test' ||
-      environment.getBoolean(DISABLE_REPORTING) === true
+        environment.getBoolean(DISABLE_REPORTING) === true
         ? true
         : undefined,
     cachePath: undefined,
     sandboxTimeout: getSandboxTimeout(environment),
+    debug: false,
   };
 
   logger?.log(
