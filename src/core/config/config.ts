@@ -49,6 +49,7 @@ const DEFAULTS = (fileSystem: FSPath): IConfig => ({
   superfaceApiUrl: DEFAULT_API_URL,
   superfaceCacheTimeout: DEFAULT_BOUND_PROVIDER_TIMEOUT,
   superfacePath: DEFAULT_SUPERFACE_PATH(fileSystem),
+  debug: false,
 });
 
 // Extraction functions
@@ -152,6 +153,7 @@ export class Config implements IConfig {
   public superfaceApiUrl: string;
   public superfaceCacheTimeout: number;
   public superfacePath: string;
+  public debug: boolean;
 
   constructor(fileSystem: FSPath, config?: Partial<IConfig>) {
     const defaults = DEFAULTS(fileSystem);
@@ -168,6 +170,7 @@ export class Config implements IConfig {
     this.superfaceCacheTimeout =
       config?.superfaceCacheTimeout ?? defaults.superfaceCacheTimeout;
     this.superfacePath = config?.superfacePath ?? defaults.superfacePath;
+    this.debug = config?.debug ?? defaults.debug;
   }
 }
 

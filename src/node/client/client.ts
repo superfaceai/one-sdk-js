@@ -1,4 +1,5 @@
 import { SuperJsonDocument } from '@superfaceai/ast';
+import debug from 'debug';
 
 import {
   AuthCache,
@@ -100,7 +101,10 @@ export abstract class SuperfaceClientBase {
   protected readonly fetchInstance: IFetch & Interceptable & AuthCache;
   protected readonly logger?: ILogger;
 
-  constructor(options?: { superJson?: SuperJson | SuperJsonDocument }) {
+  constructor(options?: {
+    superJson?: SuperJson | SuperJsonDocument;
+    debug?: boolean;
+  }) {
     const environment = new NodeEnvironment();
     this.crypto = new NodeCrypto();
     this.timers = new NodeTimers();
@@ -108,6 +112,12 @@ export abstract class SuperfaceClientBase {
     this.events = new Events(this.timers, this.logger);
     this.fetchInstance = new NodeFetch(this.timers);
     this.config = loadConfigFromEnv(environment, NodeFileSystem, this.logger);
+    // TODO: resolve this in config (value resolved during merge)
+    this.config.debug = options?.debug !== undefined ? options.debug : false;
+    // TODO: move this somewhere?
+    if (this.config.debug) {
+      debug.enable('superface:*');
+    }
 
     this.boundProfileProviderCache = new SuperCache<{
       provider: IBoundProfileProvider;
