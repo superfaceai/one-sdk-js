@@ -184,8 +184,8 @@ export class Config implements IConfig {
 }
 
 export function mergeConfigs(
-  originalConfig: Config,
-  newConfig: Config,
+  originalConfig: Partial<IConfig>,
+  newConfig: Partial<IConfig>,
   fileSystem: FSPath,
   logger?: ILogger
 ): Config {
@@ -218,7 +218,7 @@ export function mergeConfigs(
 }
 
 export function loadConfigFromCode(
-  config: Partial<IConfig>,
+  config: Partial<Omit<IConfig, 'cachePath'>>,
   fileSystem: FSPath,
   logger?: ILogger
 ): Config {
@@ -249,7 +249,7 @@ export function loadConfigFromCode(
     ),
     disableReporting: config.disableReporting,
     // TODO: Check if it is path?
-    cachePath: config.cachePath,
+    cachePath: undefined,
     sandboxTimeout: ensurePositiveInteger(
       config.sandboxTimeout,
       'sandboxTimeout',
