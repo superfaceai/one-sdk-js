@@ -44,16 +44,18 @@ export const SUPERFACE_DIR = 'superface';
 export const META_FILE = 'super.json';
 
 export class SuperJson {
+  //TODO: Do we want to keep it?
   private normalizedCache?: NormalizedSuperJsonDocument;
 
   constructor(
     public document: SuperJsonDocument = {},
+    //TODO: this needs to go!
     public readonly path = '',
     private readonly fileSystem: IFileSystem = NodeFileSystem,
     private readonly environment: IEnvironment = new NodeEnvironment(),
     private readonly crypto: ICrypto = new NodeCrypto(),
     private readonly logger?: ILogger
-  ) {}
+  ) { }
 
   // loading and parsing //
 
@@ -65,6 +67,7 @@ export class SuperJson {
    *
    * Returns relative path to a directory where `super.json` is detected.
    */
+  //TODO: move to utils
   public static async detectSuperJson(
     cwd: string,
     level?: number,
@@ -104,7 +107,7 @@ export class SuperJson {
 
     return await SuperJson.detectSuperJson(cwd, --level, fileSystem);
   }
-
+  //TODO: move to utils
   public static parse(
     input: unknown
   ): Result<SuperJsonDocument, SDKExecutionError> {
@@ -116,7 +119,7 @@ export class SuperJson {
       return err(superJsonFormatError(ensureErrorSubclass(e)));
     }
   }
-
+  //TODO: move to utils
   public static loadSync(
     path: string,
     fileSystem: IFileSystem = NodeFileSystem,
@@ -166,6 +169,7 @@ export class SuperJson {
   /**
    * Attempts to load super.json file from expected location `cwd/superface/super.json`
    */
+  //TODO: move to utils
   public static async load(
     path: string,
     fileSystem: IFileSystem = NodeFileSystem,
@@ -439,10 +443,10 @@ export class SuperJson {
   }
 
   // utilities //
-
   /**
    * Returns a relative path relative to `path` from `dirname(this.path)`.
    */
+  //TODO: move to utils
   public relativePath(path: string): string {
     return this.fileSystem.path.relative(
       this.fileSystem.path.dirname(this.path),
@@ -453,6 +457,7 @@ export class SuperJson {
   /**
    * Resolves relative paths as relative to `dirname(this.path)`.
    */
+  //TODO: move to utils
   public resolvePath(path: string): string {
     return this.fileSystem.path.resolve(
       this.fileSystem.path.dirname(this.path),
@@ -461,11 +466,12 @@ export class SuperJson {
   }
 
   // other representations //
-
+  //TODO: move to utils
   public get stringified(): string {
     return JSON.stringify(this.document, undefined, 2);
   }
 
+  //TODO: move to utils
   public get normalized(): NormalizedSuperJsonDocument {
     if (this.normalizedCache !== undefined) {
       return this.normalizedCache;
@@ -479,7 +485,7 @@ export class SuperJson {
 
     return this.normalizedCache;
   }
-
+  //TODO: move to utils
   public get anonymized(): AnonymizedSuperJsonDocument {
     const profiles: AnonymizedSuperJsonDocument['profiles'] = {};
     for (const [profile, profileEntry] of Object.entries(
@@ -524,7 +530,7 @@ export class SuperJson {
       providers: Object.keys(this.normalized.providers),
     };
   }
-
+  //TODO: move to utils
   public get configHash(): string {
     // <profile>:<version>,<provider>:<priority>:[<version | file>],<provider>:<path>
     const profileValues: string[] = [];
