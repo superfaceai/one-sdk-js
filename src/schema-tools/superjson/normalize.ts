@@ -14,13 +14,14 @@ import type {
   ProviderEntry,
   RetryPolicy,
   SuperJsonDocument,
-  UsecaseDefaults} from '@superfaceai/ast';
+  UsecaseDefaults,
+} from '@superfaceai/ast';
 import {
   BackoffKind,
   FILE_URI_PROTOCOL,
   isFileURIString,
   isVersionString,
-  OnFail
+  OnFail,
 } from '@superfaceai/ast';
 
 import type { IEnvironment, ILogger } from '../../interfaces';
@@ -36,7 +37,7 @@ import { invalidProfileProviderError } from './errors.helpers';
 export function normalizeProfileProviderSettings(
   profileProviderSettings: ProfileProviderEntry | undefined,
   baseDefaults: NormalizedUsecaseDefaults,
-  environment: IEnvironment,
+  environment?: IEnvironment,
   logger?: ILogger
 ): NormalizedProfileProviderSettings {
   if (profileProviderSettings === undefined) {
@@ -163,7 +164,7 @@ export function normalizeRetryPolicy(
 }
 
 export function normalizeUsecaseDefaults(
-  environment: IEnvironment,
+  environment?: IEnvironment,
   logger?: ILogger,
   defaults?: UsecaseDefaults,
   base?: NormalizedUsecaseDefaults
@@ -195,11 +196,15 @@ export function normalizeUsecaseDefaults(
     };
   }
 
-  return resolveEnvRecord(normalized, environment, logger);
+  if (environment !== undefined) {
+    return resolveEnvRecord(normalized, environment, logger);
+  }
+
+  return normalized;
 }
 
 export function normalizeProfileProviderDefaults(
-  environment: IEnvironment,
+  environment?: IEnvironment,
   logger?: ILogger,
   defaults?: ProfileProviderDefaults,
   base?: NormalizedUsecaseDefaults
@@ -225,13 +230,17 @@ export function normalizeProfileProviderDefaults(
     };
   }
 
-  return resolveEnvRecord(normalized, environment, logger);
+  if (environment !== undefined) {
+    return resolveEnvRecord(normalized, environment, logger);
+  }
+
+  return normalized;
 }
 
 export function normalizeProfileSettings(
   profileEntry: ProfileEntry,
   topProviderOrder: string[],
-  environment: IEnvironment,
+  environment?: IEnvironment,
   logger?: ILogger
 ): NormalizedProfileSettings {
   if (typeof profileEntry === 'string') {
@@ -306,7 +315,7 @@ export function normalizeProfileSettings(
 
 export function normalizeProviderSettings(
   providerEntry: ProviderEntry,
-  environment: IEnvironment,
+  environment?: IEnvironment,
   logger?: ILogger
 ): NormalizedProviderSettings {
   if (typeof providerEntry === 'string') {
@@ -323,22 +332,30 @@ export function normalizeProviderSettings(
     );
   }
 
+  if (environment !== undefined) {
+    return {
+      file: providerEntry.file,
+      security:
+        providerEntry.security?.map(entry =>
+          resolveEnvRecord(entry, environment, logger)
+        ) ?? [],
+      parameters: providerEntry.parameters
+        ? resolveEnvRecord(providerEntry.parameters, environment, logger)
+        : {},
+    };
+  }
+
   return {
     file: providerEntry.file,
-    security:
-      providerEntry.security?.map(entry =>
-        resolveEnvRecord(entry, environment, logger)
-      ) ?? [],
-    parameters: providerEntry.parameters
-      ? resolveEnvRecord(providerEntry.parameters, environment, logger)
-      : {},
+    security: providerEntry.security ?? [],
+    parameters: providerEntry.parameters ?? {},
   };
 }
 
 /** Returns a cached normalized clone of the document. */
 export function normalizeSuperJsonDocument(
   originalDocument: SuperJsonDocument,
-  environment: IEnvironment,
+  environment?: IEnvironment,
   logger?: ILogger
 ): NormalizedSuperJsonDocument {
   const document: SuperJsonDocument = clone(originalDocument);

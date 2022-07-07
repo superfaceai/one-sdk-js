@@ -18,24 +18,14 @@ import {
 } from './normalize';
 import { parseSuperJson } from './utils';
 
-const environment = new MockEnvironment();
-
 describe('SuperJson normalization', () => {
-  beforeEach(() => {
-    environment.clear();
-  });
-
   describe('when normalizing profile provider settings', () => {
     it('returns correct object when entry is undefined', async () => {
       const mockProfileProviderEntry = undefined;
       const mockDefaults: NormalizedUsecaseDefaults = {};
 
       expect(
-        normalizeProfileProviderSettings(
-          mockProfileProviderEntry,
-          mockDefaults,
-          environment
-        )
+        normalizeProfileProviderSettings(mockProfileProviderEntry, mockDefaults)
       ).toEqual({
         defaults: {},
       });
@@ -46,11 +36,7 @@ describe('SuperJson normalization', () => {
       const mockDefaults: NormalizedUsecaseDefaults = {};
 
       expect(
-        normalizeProfileProviderSettings(
-          mockProfileProviderEntry,
-          mockDefaults,
-          environment
-        )
+        normalizeProfileProviderSettings(mockProfileProviderEntry, mockDefaults)
       ).toEqual({
         file: 'some/path',
         defaults: {},
@@ -62,11 +48,7 @@ describe('SuperJson normalization', () => {
       const mockDefaults: NormalizedUsecaseDefaults = {};
 
       expect(() =>
-        normalizeProfileProviderSettings(
-          mockProfileProviderEntry,
-          mockDefaults,
-          environment
-        )
+        normalizeProfileProviderSettings(mockProfileProviderEntry, mockDefaults)
       ).toThrowError(
         new RegExp(
           `Invalid profile provider entry format\n\nSettings: ${mockProfileProviderEntry}`
@@ -82,11 +64,7 @@ describe('SuperJson normalization', () => {
       const mockDefaults: NormalizedUsecaseDefaults = {};
 
       expect(
-        normalizeProfileProviderSettings(
-          mockProfileProviderEntry,
-          mockDefaults,
-          environment
-        )
+        normalizeProfileProviderSettings(mockProfileProviderEntry, mockDefaults)
       ).toEqual({
         file: 'some/file/path',
         defaults: {},
@@ -102,11 +80,7 @@ describe('SuperJson normalization', () => {
       const mockDefaults: NormalizedUsecaseDefaults = {};
 
       expect(
-        normalizeProfileProviderSettings(
-          mockProfileProviderEntry,
-          mockDefaults,
-          environment
-        )
+        normalizeProfileProviderSettings(mockProfileProviderEntry, mockDefaults)
       ).toEqual({
         mapRevision: 'test',
         mapVariant: 'test',
@@ -119,9 +93,7 @@ describe('SuperJson normalization', () => {
     it('returns correct object when entry is uri', async () => {
       const mockProfileEntry = 'file://some/path';
 
-      expect(
-        normalizeProfileSettings(mockProfileEntry, [], environment)
-      ).toEqual({
+      expect(normalizeProfileSettings(mockProfileEntry, [])).toEqual({
         file: 'some/path',
         priority: [],
         defaults: {},
@@ -132,9 +104,7 @@ describe('SuperJson normalization', () => {
     it('returns correct object when entry is version', async () => {
       const mockProfileEntry = '1.0.0';
 
-      expect(
-        normalizeProfileSettings(mockProfileEntry, [], environment)
-      ).toEqual({
+      expect(normalizeProfileSettings(mockProfileEntry, [])).toEqual({
         version: '1.0.0',
         priority: [],
         defaults: {},
@@ -144,9 +114,7 @@ describe('SuperJson normalization', () => {
 
     it('throws error when entry is unknown string', async () => {
       const mockProfileEntry = 'madeup';
-      expect(() =>
-        normalizeProfileSettings(mockProfileEntry, [], environment)
-      ).toThrowError(
+      expect(() => normalizeProfileSettings(mockProfileEntry, [])).toThrowError(
         new Error('Invalid profile entry format: ' + mockProfileEntry)
       );
     });
@@ -156,9 +124,7 @@ describe('SuperJson normalization', () => {
         file: 'some/path',
       };
 
-      expect(
-        normalizeProfileSettings(mockProfileEntry, [], environment)
-      ).toEqual({
+      expect(normalizeProfileSettings(mockProfileEntry, [])).toEqual({
         file: 'some/path',
         priority: [],
         defaults: {},
@@ -171,25 +137,22 @@ describe('SuperJson normalization', () => {
     it('returns correct object when entry is uri', async () => {
       const mockProviderEntry = 'file://some/path';
 
-      expect(normalizeProviderSettings(mockProviderEntry, environment)).toEqual(
-        {
-          file: 'some/path',
-          security: [],
-          parameters: {},
-        }
-      );
+      expect(normalizeProviderSettings(mockProviderEntry)).toEqual({
+        file: 'some/path',
+        security: [],
+        parameters: {},
+      });
     });
 
     it('throws error when entry is unknown string', async () => {
       const mockProviderEntry = 'madeup';
-      expect(() =>
-        normalizeProviderSettings(mockProviderEntry, environment)
-      ).toThrowError(
+      expect(() => normalizeProviderSettings(mockProviderEntry)).toThrowError(
         new RegExp('Invalid provider entry format: ' + mockProviderEntry)
       );
     });
 
     it('returns correct object when entry is a object', async () => {
+      const environment = new MockEnvironment();
       const envVariable = 'INTEGRATION_PARAMETER_TEST_VARIABLE';
       environment.addValue(envVariable, 'test-value');
 
@@ -217,6 +180,7 @@ describe('SuperJson normalization', () => {
     });
 
     it('returns correct object when entry is a object with empty security and parameters', async () => {
+      const environment = new MockEnvironment();
       const mockProviderEntry = {
         file: 'some/path',
         security: [],
@@ -247,7 +211,7 @@ describe('SuperJson normalization', () => {
         },
       };
 
-      expect(normalizeSuperJsonDocument(mockSuperJson, environment)).toEqual({
+      expect(normalizeSuperJsonDocument(mockSuperJson)).toEqual({
         providers: {
           test: {
             file: undefined,
@@ -446,7 +410,7 @@ describe('SuperJson normalization', () => {
       }`;
 
         const doc = parseSuperJson(JSON.parse(superJson)).unwrap();
-        expect(normalizeSuperJsonDocument(doc, environment)).toStrictEqual({
+        expect(normalizeSuperJsonDocument(doc)).toStrictEqual({
           profiles: {
             a: {
               defaults: {},
@@ -544,6 +508,8 @@ describe('SuperJson normalization', () => {
                         maxContiguousRetries: 5,
                         backoff: {
                           kind: BackoffKind.EXPONENTIAL,
+                          factor: undefined,
+                          start: undefined,
                         },
                       },
                     },
@@ -625,6 +591,7 @@ describe('SuperJson normalization', () => {
                         backoff: {
                           kind: 'exponential',
                           start: 5,
+                          factor: undefined,
                         },
                       },
                     },
