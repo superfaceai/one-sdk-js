@@ -3,12 +3,11 @@ import type {
   ProfileProviderEntry,
   ProfileSettings,
   ProviderEntry,
+  SecurityValues,
   SuperJsonDocument,
-  UsecaseDefaults} from '@superfaceai/ast';
-import {
-  BackoffKind,
-  OnFail
+  UsecaseDefaults,
 } from '@superfaceai/ast';
+import { BackoffKind, OnFail } from '@superfaceai/ast';
 
 import { MockEnvironment, MockFileSystem } from '../../mock';
 import {
@@ -16,6 +15,7 @@ import {
   mergeProfileDefaults,
   mergeProfileProvider,
   mergeProvider,
+  mergeSecurity,
   setPriority,
   setProfile,
   setProfileProvider,
@@ -2552,6 +2552,71 @@ describe('superjson mutate', () => {
         },
         file: 'some/path',
       });
+    });
+  });
+
+  describe('when merging security', () => {
+    it('merges security correctly', () => {
+      const mockLeft: SecurityValues[] = [
+        {
+          id: 'left-api-id',
+          apikey: 'left-api-key',
+        },
+      ];
+
+      const mockRight: SecurityValues[] = [
+        {
+          id: 'right-digest-id',
+          username: 'right-digest-user',
+          password: 'right-digest-password',
+        },
+      ];
+
+      expect(mergeSecurity(mockLeft, mockRight)).toEqual([
+        {
+          id: 'left-api-id',
+          apikey: 'left-api-key',
+        },
+        {
+          id: 'right-digest-id',
+          username: 'right-digest-user',
+          password: 'right-digest-password',
+        },
+      ]);
+    });
+
+    it('overwrites existing security', () => {
+      const mockLeft: SecurityValues[] = [
+        {
+          id: 'left-api-id',
+          apikey: 'left-api-key',
+        },
+        {
+          id: 'digest-id',
+          username: 'left-digest-user',
+          password: 'left-digest-password',
+        },
+      ];
+
+      const mockRight: SecurityValues[] = [
+        {
+          id: 'digest-id',
+          username: 'right-digest-user',
+          password: 'right-digest-password',
+        },
+      ];
+
+      expect(mergeSecurity(mockLeft, mockRight)).toEqual([
+        {
+          id: 'left-api-id',
+          apikey: 'left-api-key',
+        },
+        {
+          id: 'digest-id',
+          username: 'right-digest-user',
+          password: 'right-digest-password',
+        },
+      ]);
     });
   });
 });

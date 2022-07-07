@@ -8,16 +8,12 @@ import type {
   ProviderSettings,
   SecurityValues,
   SuperJsonDocument,
-  UsecaseDefaults} from '@superfaceai/ast';
-import {
-  isFileURIString,
-  isVersionString
+  UsecaseDefaults,
 } from '@superfaceai/ast';
+import { isFileURIString, isVersionString } from '@superfaceai/ast';
 
 import type { IEnvironment, IFileSystem, ILogger } from '../../interfaces';
-import type {
-  Result,
-  SDKExecutionError} from '../../lib';
+import type { Result, SDKExecutionError } from '../../lib';
 import {
   castToNonPrimitive,
   err,
@@ -28,7 +24,7 @@ import {
 } from '../../lib';
 import { profileNotFoundError, providersNotSetError } from './errors.helpers';
 import { normalizeProfileSettings } from './normalize';
-import { composeFileURI, trimFileURI } from './schema';
+import { composeFileURI, trimFileURI } from './utils';
 
 /** Merges profile defaults into the document or creates the profile if it doesn't exist. */
 export function mergeProfileDefaults(

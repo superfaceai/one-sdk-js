@@ -1,5 +1,10 @@
 import type { SuperJsonDocument } from '@superfaceai/ast';
-import { assertSuperJsonDocument } from '@superfaceai/ast';
+import {
+  assertSuperJsonDocument,
+  FILE_URI_PROTOCOL,
+  FILE_URI_REGEX,
+  isFileURIString,
+} from '@superfaceai/ast';
 
 import type { IFileSystem, ILogger } from '../../interfaces';
 import type { Result, SDKExecutionError } from '../../lib';
@@ -148,3 +153,21 @@ export async function loadSuperJson(
 
   return superdocument;
 }
+
+export const trimFileURI = (path: string): string =>
+  path.replace(FILE_URI_REGEX, '');
+
+export const composeFileURI = (
+  path: string,
+  normalize: IFileSystem['path']['normalize']
+): string => {
+  if (isFileURIString(path)) {
+    return path;
+  }
+
+  const normalized = normalize(path);
+
+  return path.startsWith('../')
+    ? `${FILE_URI_PROTOCOL}${normalized}`
+    : `${FILE_URI_PROTOCOL}./${normalized}`;
+};
