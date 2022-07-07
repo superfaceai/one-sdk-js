@@ -34,7 +34,7 @@ export class InternalClient {
     private readonly crypto: ICrypto,
     private readonly fetchInstance: FetchInstance & Interceptable & AuthCache,
     private readonly logger?: ILogger
-  ) { }
+  ) {}
 
   /**
    * Resolves profile AST file.
