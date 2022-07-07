@@ -18,6 +18,8 @@ import { Profile, ProfileConfiguration } from '../profile';
 import { IBoundProfileProvider } from '../profile-provider';
 import { fetchProfileAst } from '../registry';
 
+const DEBUG_NAMESPACE = 'client';
+
 export class InternalClient {
   constructor(
     private readonly events: Events,
@@ -32,27 +34,24 @@ export class InternalClient {
     private readonly crypto: ICrypto,
     private readonly fetchInstance: FetchInstance & Interceptable & AuthCache,
     private readonly logger?: ILogger
-  ) {}
+  ) { }
 
   /**
    * Resolves profile AST file.
    * File property:
    *  - loads directly passed file
-   *  - can point only .supr.ast.json file
+   *  - can point only to .supr.ast.json file
    *  - throws if file not found or not valid ProfileDocumentNode
    * Version property
    *  - looks for [profileId]@[version].supr.ast.json file in superface/grid
    *  - if not found it tries to fetch profile AST from Registry
-   *
-   * @param profileId
    * @returns ProfileDocumentNode
    */
-  // TODO: Move to separate file to simplify reause and testing?
-  // TODO: Add logs
-  // TODO: private
   public async resolveProfileAst(
     profileId: string
   ): Promise<ProfileDocumentNode> {
+    const logFunction = this.logger?.log(DEBUG_NAMESPACE);
+
     const loadProfileAstFile = async (
       fileNameWithExtension: string
     ): Promise<ProfileDocumentNode> => {
@@ -73,7 +72,7 @@ export class InternalClient {
     let filepath: string;
     if ('file' in profileSettings) {
       filepath = this.superJson.resolvePath(profileSettings.file);
-      console.log('file path', filepath);
+      logFunction?.('Reading possible profile file: %S', filepath);
       // check extensions
       if (filepath.endsWith(EXTENSIONS.profile.source)) {
         throw new Error('TODO invalid extenstion err -needs to be compiled');
@@ -81,7 +80,7 @@ export class InternalClient {
         throw new Error('TODO invalid extenstion err');
       }
 
-      return loadProfileAstFile(filepath);
+      return await loadProfileAstFile(filepath);
     }
     // assumed to be in grid folder
     // TODO: look in other place (.cache) use config.cachePath?
@@ -93,15 +92,19 @@ export class InternalClient {
       )
     );
 
+    logFunction?.('Reading possible profile file: %S', filepath);
     try {
       // TODO: cache this somewhere (similar to CLI - .cache, config.cachePath)?
-      return loadProfileAstFile(filepath + EXTENSIONS.profile.build);
+      return await loadProfileAstFile(filepath + EXTENSIONS.profile.build);
     } catch (error) {
-      console.log('ast failed', error);
+      logFunction?.(
+        'Reading of possible profile file failed with error %O',
+        error
+      );
       void error;
     }
 
-    console.log('fallback');
+    logFunction?.('Fetching profile file from registry');
 
     // Fallback to remote
     // TODO: cache this somewhere (similar to CLI - .cache, config.cachePath)?
