@@ -1,6 +1,4 @@
-import {
-  isFileURIString,
-  isVersionString,
+import type {
   ProfileEntry,
   ProfileProviderDefaults,
   ProfileProviderEntry,
@@ -10,22 +8,25 @@ import {
   ProviderSettings,
   SecurityValues,
   SuperJsonDocument,
-  UsecaseDefaults,
+  UsecaseDefaults} from '@superfaceai/ast';
+import {
+  isFileURIString,
+  isVersionString
 } from '@superfaceai/ast';
 
+import type { IEnvironment, IFileSystem, ILogger } from '../../interfaces';
+import type {
+  Result,
+  SDKExecutionError} from '../../lib';
 import {
   castToNonPrimitive,
-  IEnvironment,
-  IFileSystem,
-  ILogger,
+  err,
   isEmptyRecord,
   mergeVariables,
-  profileNotFoundError,
-  providersNotSetError,
-  SDKExecutionError,
+  ok,
   UnexpectedError,
-} from '../../core';
-import { err, ok, Result } from '../../lib';
+} from '../../lib';
+import { profileNotFoundError, providersNotSetError } from './errors.helpers';
 import { normalizeProfileSettings } from './normalize';
 import { composeFileURI, trimFileURI } from './schema';
 
@@ -221,6 +222,7 @@ export function mergeProfile(
 
   return true;
 }
+
 function resolvePriorityAddition(
   existingPriority: string[] | undefined,
   newProvider: string

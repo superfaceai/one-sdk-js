@@ -1,10 +1,11 @@
-import {
-  ApiKeyPlacement,
+import type {
   AstMetadata,
-  HttpScheme,
   MapDocumentNode,
   ProfileDocumentNode,
-  ProviderJson,
+  ProviderJson} from '@superfaceai/ast';
+import {
+  ApiKeyPlacement,
+  HttpScheme,
   SecurityType,
 } from '@superfaceai/ast';
 import { getLocal } from 'mockttp';

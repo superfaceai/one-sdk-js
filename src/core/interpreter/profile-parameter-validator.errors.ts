@@ -1,4 +1,8 @@
-import { ErrorBase, UnexpectedError } from '../errors';
+import type {
+  IInputValidationError,
+  IResultValidationError,
+} from '../../interfaces';
+import { ErrorBase, UnexpectedError } from '../../lib';
 
 export type ErrorContext = { path?: string[] };
 export type ValidationError =
@@ -98,29 +102,31 @@ export function formatErrors(errors?: ValidationError[]): string {
     .join('\n');
 }
 
-export class InputValidationError extends ErrorBase {
+export class InputValidationError
+  extends ErrorBase
+  implements IInputValidationError
+{
+  public name: 'InputValidationError' = 'InputValidationError';
+
   constructor(public errors?: ValidationError[]) {
     super(
       'InputValidationError',
       'Input validation failed:' + '\n' + formatErrors(errors)
     );
   }
-
-  public override toString(): string {
-    return this.message + '\n' + formatErrors(this.errors);
-  }
 }
 
-export class ResultValidationError extends ErrorBase {
+export class ResultValidationError
+  extends ErrorBase
+  implements IResultValidationError
+{
+  public name: 'ResultValidationError' = 'ResultValidationError';
+
   constructor(public errors?: ValidationError[]) {
     super(
       'ResultValidationError',
       'Result validation failed:' + '\n' + formatErrors(errors)
     );
-  }
-
-  public override toString(): string {
-    return this.message + '\n' + formatErrors(this.errors);
   }
 }
 
@@ -135,7 +141,3 @@ export const isResultValidationError = (
 ): err is ResultValidationError => {
   return err instanceof ResultValidationError;
 };
-
-export type ProfileParameterError =
-  | InputValidationError
-  | ResultValidationError;

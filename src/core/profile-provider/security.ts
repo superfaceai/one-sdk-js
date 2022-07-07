@@ -1,16 +1,17 @@
+import type {
+  SecurityScheme,
+  SecurityValues} from '@superfaceai/ast';
 import {
   HttpScheme,
   isApiKeySecurityValues,
   isBasicAuthSecurityValues,
   isBearerTokenSecurityValues,
   isDigestSecurityValues,
-  SecurityScheme,
-  SecurityType,
-  SecurityValues,
+  SecurityType
 } from '@superfaceai/ast';
 
 import { invalidSecurityValuesError, securityNotFoundError } from '../errors';
-import { SecurityConfiguration } from '../interpreter';
+import type { SecurityConfiguration } from '../interpreter';
 
 export function resolveSecurityConfiguration(
   schemes: SecurityScheme[],

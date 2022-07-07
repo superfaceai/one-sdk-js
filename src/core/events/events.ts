@@ -4,13 +4,13 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { UnexpectedError } from '../errors';
-import { ILogger, ITimers, LogFunction } from '../interfaces';
-import { HttpResponse, IFetch, RequestParameters } from '../interpreter';
-import { UseCase } from '../usecase';
-import { HooksContext } from './failure/event-adapter';
-import { MapInterpreterEventAdapter } from './failure/map-interpreter-adapter';
-import { FailurePolicyReason } from './failure/policy';
+import type { ILogger, ITimers, LogFunction } from '../../interfaces';
+import { UnexpectedError } from '../../lib';
+import type { HttpResponse, IFetch, RequestParameters } from '../interpreter';
+import type { UseCase } from '../usecase';
+import type { HooksContext } from './failure/event-adapter';
+import type { MapInterpreterEventAdapter } from './failure/map-interpreter-adapter';
+import type { FailurePolicyReason } from './failure/policy';
 
 const DEBUG_NAMESPACE = 'events';
 

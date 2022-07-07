@@ -1,4 +1,4 @@
-import { ErrorBase } from './errors';
+import { ErrorBase } from '../../lib';
 
 interface NetworkError {
   kind: 'network';

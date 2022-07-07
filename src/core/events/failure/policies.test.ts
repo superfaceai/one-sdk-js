@@ -5,7 +5,7 @@ import {
   FailurePolicyRouter,
   RetryPolicy,
 } from './policies';
-import { UsecaseInfo } from './policy';
+import type { UsecaseInfo } from './policy';
 
 describe('failure policies', () => {
   const usecaseInfo: UsecaseInfo = {

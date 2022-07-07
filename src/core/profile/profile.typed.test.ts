@@ -1,14 +1,15 @@
 import { SuperCache } from '../../lib';
 import {
+  MockEnvironment,
   MockFileSystem,
   mockProfileDocumentNode,
   MockTimers,
 } from '../../mock';
 import { NodeCrypto, NodeFetch, NodeFileSystem } from '../../node';
-import { SuperJson } from '../../schema-tools';
+import { normalizeSuperJsonDocument } from '../../schema-tools/superjson/normalize';
 import { Config } from '../config';
 import { Events } from '../events';
-import { IBoundProfileProvider } from '../profile-provider';
+import type { IBoundProfileProvider } from '../profile-provider';
 import { UseCase } from '../usecase';
 import { TypedProfile } from './profile.typed';
 import { ProfileConfiguration } from './profile-configuration';
@@ -16,14 +17,17 @@ import { ProfileConfiguration } from './profile-configuration';
 const crypto = new NodeCrypto();
 
 describe('TypedProfile', () => {
-  const mockSuperJson = new SuperJson({
-    profiles: {
-      test: {
-        version: '1.0.0',
+  const mockSuperJson = normalizeSuperJsonDocument(
+    {
+      profiles: {
+        test: {
+          version: '1.0.0',
+        },
       },
+      providers: {},
     },
-    providers: {},
-  });
+    new MockEnvironment()
+  );
   const mockProfileConfiguration = new ProfileConfiguration('test', '1.0.0');
   const ast = mockProfileDocumentNode();
 

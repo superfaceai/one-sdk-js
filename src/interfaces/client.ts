@@ -1,8 +1,8 @@
-import { SecurityValues } from '@superfaceai/ast';
+import type { SecurityValues } from '@superfaceai/ast';
 
-import { Events } from '../events';
-import { Profile } from '../profile';
-import { Provider } from '../provider';
+import type { Events } from '../core/events';
+import type { Profile } from '../core/profile';
+import type { Provider } from '../core/provider';
 
 export interface ISuperfaceClient {
   getProvider(

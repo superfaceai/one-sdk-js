@@ -1,9 +1,10 @@
+import type {
+  MapDocumentNode,
+  ProfileDocumentNode} from '@superfaceai/ast';
 import {
   EXTENSIONS,
   isMapDocumentNode,
   isProfileDocumentNode,
-  MapDocumentNode,
-  ProfileDocumentNode,
   VERSION as AstVersion,
 } from '@superfaceai/ast';
 import {
@@ -13,8 +14,8 @@ import {
   Source,
 } from '@superfaceai/parser';
 
-import { UnexpectedError } from '../errors';
-import { IFileSystem } from '../interfaces';
+import type { IFileSystem } from '../../interfaces';
+import { UnexpectedError } from '../../lib';
 
 export class Parser {
   private static mapCache: Record<string, MapDocumentNode> = {};

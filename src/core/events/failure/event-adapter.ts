@@ -1,10 +1,10 @@
-import { clone } from '../../../lib';
-import { isCrossFetchError, SDKBindError, UnexpectedError } from '../../errors';
-import { ILogger, ITimers } from '../../interfaces';
-import { Events } from '../events';
-import { FailurePolicyRouter } from './policies';
-import { ExecutionFailure, FailurePolicyReason } from './policy';
-import {
+import type { ILogger, ITimers } from '../../../interfaces';
+import { clone, SDKBindError, UnexpectedError } from '../../../lib';
+import { isCrossFetchError } from '../../errors';
+import type { Events } from '../events';
+import type { FailurePolicyRouter } from './policies';
+import type { ExecutionFailure, FailurePolicyReason } from './policy';
+import type {
   AbortResolution,
   RecacheResolution,
   SwitchProviderResolution,

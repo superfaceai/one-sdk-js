@@ -1,10 +1,10 @@
 import { EXTENSIONS } from '@superfaceai/ast';
 
+import type { IConfig, IFileSystem } from '../../interfaces';
 import { err, ok } from '../../lib';
 import { MockFileSystem, mockProfileDocumentNode } from '../../mock';
 import { Config } from '../config';
 import { NotFoundError } from '../errors';
-import { IConfig, IFileSystem } from '../interfaces';
 import { cacheProfileAst, tryToLoadCachedAst } from './cache-profile-ast';
 
 describe('profile AST caching', () => {

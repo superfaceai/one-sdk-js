@@ -2,7 +2,7 @@ export * from './client';
 export * from './config';
 export * from './errors';
 export * from './events';
-export * from './interfaces';
+export * from '../interfaces';
 export * from './interpreter';
 export * from './parser';
 export * from './profile';

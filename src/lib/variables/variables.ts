@@ -1,5 +1,5 @@
-import { indexRecord } from '../../lib/object';
-import { UnexpectedError } from '../errors';
+import { UnexpectedError } from '../error';
+import { indexRecord } from '../object';
 
 // Arrays should be considered opaque value and therefore act as a primitive
 export type Primitive = string | boolean | number | unknown[];

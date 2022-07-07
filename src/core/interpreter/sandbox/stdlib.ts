@@ -1,5 +1,5 @@
+import type { ILogger, LogFunction } from '../../../interfaces';
 import { deepFreeze } from '../../../lib';
-import { ILogger, LogFunction } from '../../interfaces';
 
 const DEBUG_NAMESPACE = 'debug-log';
 

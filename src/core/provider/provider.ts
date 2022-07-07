@@ -1,6 +1,49 @@
-import { SecurityValues } from '@superfaceai/ast';
+import type { NormalizedSuperJsonDocument, SecurityValues } from '@superfaceai/ast';
 
+import type { IProvider } from '../../interfaces';
 import { mergeSecurity } from '../../schema-tools';
+import {
+  noConfiguredProviderError,
+  unconfiguredProviderError,
+} from '../errors';
+
+export function getProvider(
+  superJson: NormalizedSuperJsonDocument,
+  providerName: string
+): Provider {
+  const providerSettings = superJson.providers[providerName];
+
+  if (providerSettings === undefined) {
+    throw unconfiguredProviderError(providerName);
+  }
+
+  return new Provider(
+    new ProviderConfiguration(providerName, providerSettings.security)
+  );
+}
+
+export function getProviderForProfile(
+  superJson: NormalizedSuperJsonDocument,
+  profileId: string
+): Provider {
+  const priorityProviders = superJson.profiles[profileId]?.priority ?? [];
+  if (priorityProviders.length > 0) {
+    const name = priorityProviders[0];
+
+    return getProvider(superJson, name);
+  }
+
+  const knownProfileProviders = Object.keys(
+    superJson.profiles[profileId]?.providers ?? {}
+  );
+  if (knownProfileProviders.length > 0) {
+    const name = knownProfileProviders[0];
+
+    return getProvider(superJson, name);
+  }
+
+  throw noConfiguredProviderError(profileId);
+}
 
 export class ProviderConfiguration {
   // TODO: where should we store security and parameters when they are passed to getProvider? Maybe Provider instance?
@@ -28,7 +71,7 @@ export class ProviderConfiguration {
   }
 }
 
-export class Provider {
+export class Provider implements IProvider {
   constructor(public readonly configuration: ProviderConfiguration) {}
 
   /** @deprecated */

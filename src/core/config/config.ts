@@ -1,10 +1,10 @@
-import {
+import type {
   IConfig,
   IEnvironment,
   IFileSystem,
   ILogger,
   LogFunction,
-} from '../interfaces';
+} from '../../interfaces';
 
 const DEBUG_NAMESPACE = 'config';
 

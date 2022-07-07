@@ -1,4 +1,4 @@
-import {
+import type {
   MapDocumentNode,
   NormalizedProfileProviderSettings,
   ProfileDocumentNode,
@@ -6,22 +6,28 @@ import {
   SecurityValues,
 } from '@superfaceai/ast';
 
-import { err, forceCast, ok, profileAstId, Result } from '../../lib';
-import { Events, Interceptable, MapInterpreterEventAdapter } from '../events';
-import { IConfig, ICrypto, ILogger, LogFunction } from '../interfaces';
-import {
-  AuthCache,
-  castToNonPrimitive,
-  IFetch,
-  MapInterpreter,
+import type {
+  IConfig,
+  ICrypto,
+  ILogger,
+  LogFunction,
   MapInterpreterError,
-  mergeVariables,
-  NonPrimitive,
   ProfileParameterError,
-  ProfileParameterValidator,
-  SecurityConfiguration,
-} from '../interpreter';
-import { IServiceSelector } from '../services';
+} from '../../interfaces';
+import type { NonPrimitive, Result, UnexpectedError } from '../../lib';
+import {
+  castToNonPrimitive,
+  err,
+  forceCast,
+  mergeVariables,
+  ok,
+  profileAstId,
+} from '../../lib';
+import type { Events, Interceptable } from '../events';
+import { MapInterpreterEventAdapter } from '../events';
+import type { AuthCache, IFetch, SecurityConfiguration } from '../interpreter';
+import { MapInterpreter, ProfileParameterValidator } from '../interpreter';
+import type { IServiceSelector } from '../services';
 import { resolveIntegrationParameters } from './parameters';
 import { resolveSecurityConfiguration } from './security';
 
@@ -37,7 +43,12 @@ export interface IBoundProfileProvider {
     input?: TInput,
     parameters?: Record<string, string>,
     securityValues?: SecurityValues[]
-  ): Promise<Result<TResult, ProfileParameterError | MapInterpreterError>>;
+  ): Promise<
+    Result<
+      TResult,
+      ProfileParameterError | MapInterpreterError | UnexpectedError
+    >
+  >;
 }
 
 export class BoundProfileProvider implements IBoundProfileProvider {
@@ -88,7 +99,12 @@ export class BoundProfileProvider implements IBoundProfileProvider {
     input?: TInput,
     parameters?: Record<string, string>,
     securityValues?: SecurityValues[]
-  ): Promise<Result<TResult, ProfileParameterError | MapInterpreterError>> {
+  ): Promise<
+    Result<
+      TResult,
+      ProfileParameterError | MapInterpreterError | UnexpectedError
+    >
+  > {
     this.fetchInstance.metadata = {
       profile: profileAstId(this.profileAst),
       usecase,

@@ -1,10 +1,12 @@
-import { ProviderJson } from '@superfaceai/ast';
+// import { loadSuperJsonSync } from '../../schema-tools';
+import '../../schema-tools/superjson/utils';
+
+import type { ProviderJson } from '@superfaceai/ast';
 import { parseMap, parseProfile, Source } from '@superfaceai/parser';
 import { mocked } from 'ts-jest/utils';
 
 import { ProfileProvider, resolveProfileAst } from '../../core';
 import { ok } from '../../lib';
-import { SuperJson } from '../../schema-tools';
 import { SuperfaceClient } from './client';
 import { createTypedClient, typeHelper } from './client.typed';
 
@@ -30,7 +32,7 @@ const parseProfileFromSource = (source: string) =>
     )
   );
 
-const mockSuperJsonSingle = new SuperJson({
+const mockSuperJsonSingle = {
   profiles: {
     ['example']: {
       version: '1.0.0',
@@ -47,7 +49,7 @@ const mockSuperJsonSingle = new SuperJson({
       },
     },
   },
-});
+};
 
 const mockProviderJson: ProviderJson = {
   name: 'example',
@@ -83,10 +85,14 @@ const mockMapDocumentSuccess = parseMapFromSource(`
 
 process.env.SUPERFACE_DISABLE_METRIC_REPORTING = 'true';
 
+jest.mock('../../schema-tools/superjson/utils', () => ({
+  loadSuperJsonSync: () => ok(mockSuperJsonSingle),
+}));
+
 describe('SuperfaceClient integration test', () => {
-  beforeEach(async () => {
-    SuperJson.loadSync = () => ok(mockSuperJsonSingle);
-  });
+  // beforeEach(async () => {
+  //   SuperJson.loadSync = () => ok(mockSuperJsonSingle);
+  // });
 
   it('should pass parameters from super.json to the map', async () => {
     const client = new SuperfaceClient();

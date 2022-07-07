@@ -3,22 +3,23 @@ import 'isomorphic-form-data';
 import { AbortController } from 'abort-controller';
 import fetch, { Headers } from 'cross-fetch';
 
-import {
+import type {
   AuthCache,
-  BINARY_CONTENT_REGEXP,
   CrossFetchError,
   Events,
   FetchBody,
-  FetchParameters,
   FetchResponse,
   IFetch,
   Interceptable,
   InterceptableMetadata,
+  ITimers} from '../../core';
+import {
+  BINARY_CONTENT_REGEXP,
+  FetchParameters,
   isBinaryBody,
   isFormDataBody,
   isStringBody,
   isUrlSearchParamsBody,
-  ITimers,
   JSON_CONTENT,
   JSON_PROBLEM_CONTENT,
   NetworkFetchError,

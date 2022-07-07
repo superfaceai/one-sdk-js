@@ -1,83 +1,94 @@
-import {
+import type {
   AstMetadata,
-  BackoffKind,
   MapDocumentNode,
-  OnFail,
   ProfileDocumentNode,
 } from '@superfaceai/ast';
-import { getLocal, MockedEndpoint } from 'mockttp';
+import { BackoffKind, OnFail } from '@superfaceai/ast';
+import type { MockedEndpoint } from 'mockttp';
+import { getLocal } from 'mockttp';
 
 import { ok } from '../../../lib';
-import { MockClient } from '../../../mock';
-import { SuperJson } from '../../../schema-tools';
+import { MockClient, MockEnvironment } from '../../../mock';
+import { normalizeSuperJsonDocument } from '../../../schema-tools/superjson/normalize';
 import { FailoverReason } from './reporter';
 
-const mockSuperJsonSingle = new SuperJson({
-  profiles: {
-    ['test-profile']: {
-      version: '1.0.0',
-      defaults: {},
-      providers: {
-        testprovider: {},
-      },
-    },
-  },
-  providers: {
-    testprovider: {},
-  },
-});
+const environment = new MockEnvironment();
 
-const mockSuperJsonSingleFailure = new SuperJson({
-  profiles: {
-    ['test-profile']: {
-      version: '1.0.0',
-      defaults: {},
-      providers: {
-        testprovider2: {},
-      },
-    },
-  },
-  providers: {
-    testprovider2: {},
-  },
-});
-
-const mockSuperJsonFailover = new SuperJson({
-  profiles: {
-    ['test-profile']: {
-      version: '1.0.0',
-      defaults: {
-        Test: {
-          providerFailover: true,
+const mockSuperJsonSingle = normalizeSuperJsonDocument(
+  {
+    profiles: {
+      ['test-profile']: {
+        version: '1.0.0',
+        defaults: {},
+        providers: {
+          testprovider: {},
         },
       },
-      priority: ['testprovider2', 'testprovider'],
-      providers: {
-        testprovider2: {
-          defaults: {
-            Test: {
-              input: {},
-              retryPolicy: {
-                kind: OnFail.CIRCUIT_BREAKER,
-                maxContiguousRetries: 2,
-                requestTimeout: 200000,
-                backoff: {
-                  kind: BackoffKind.EXPONENTIAL,
-                  start: 20,
+    },
+    providers: {
+      testprovider: {},
+    },
+  },
+  environment
+);
+
+const mockSuperJsonSingleFailure = normalizeSuperJsonDocument(
+  {
+    profiles: {
+      ['test-profile']: {
+        version: '1.0.0',
+        defaults: {},
+        providers: {
+          testprovider2: {},
+        },
+      },
+    },
+    providers: {
+      testprovider2: {},
+    },
+  },
+  environment
+);
+
+const mockSuperJsonFailover = normalizeSuperJsonDocument(
+  {
+    profiles: {
+      ['test-profile']: {
+        version: '1.0.0',
+        defaults: {
+          Test: {
+            providerFailover: true,
+          },
+        },
+        priority: ['testprovider2', 'testprovider'],
+        providers: {
+          testprovider2: {
+            defaults: {
+              Test: {
+                input: {},
+                retryPolicy: {
+                  kind: OnFail.CIRCUIT_BREAKER,
+                  maxContiguousRetries: 2,
+                  requestTimeout: 200000,
+                  backoff: {
+                    kind: BackoffKind.EXPONENTIAL,
+                    start: 20,
+                  },
                 },
               },
             },
           },
+          testprovider: {},
         },
-        testprovider: {},
       },
     },
+    providers: {
+      testprovider2: {},
+      testprovider: {},
+    },
   },
-  providers: {
-    testprovider2: {},
-    testprovider: {},
-  },
-});
+  environment
+);
 
 const astMetadata: AstMetadata = {
   sourceChecksum: 'checksum',

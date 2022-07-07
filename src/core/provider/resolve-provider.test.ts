@@ -1,6 +1,7 @@
-import { SecurityValues } from '@superfaceai/ast';
+import type { SecurityValues } from '@superfaceai/ast';
 
-import { SuperJson } from '../../schema-tools';
+import { MockEnvironment } from '../../mock';
+import { normalizeSuperJsonDocument } from '../../schema-tools/superjson/normalize';
 import {
   noConfiguredProviderError,
   profileNotFoundError,
@@ -39,28 +40,31 @@ describe('ResolveProvider', () => {
   };
 
   const mockSuperJson = (withValues?: boolean) =>
-    new SuperJson({
-      profiles: {
-        foo: {
-          version: '1.0.1',
-          providers: {
-            bar: {},
+    normalizeSuperJsonDocument(
+      {
+        profiles: {
+          foo: {
+            version: '1.0.1',
+            providers: {
+              bar: {},
+            },
+          },
+          boo: {
+            version: '1.2.3',
           },
         },
-        boo: {
-          version: '1.2.3',
+        providers: {
+          bar:
+            withValues === true
+              ? {
+                  security: mockSecurityValues,
+                  parameters: mockParameters,
+                }
+              : {},
         },
       },
-      providers: {
-        bar:
-          withValues === true
-            ? {
-                security: mockSecurityValues,
-                parameters: mockParameters,
-              }
-            : {},
-      },
-    });
+      new MockEnvironment()
+    );
 
   describe('when super.json is defined', () => {
     it('should return Provider instance when provider is string', async () => {
@@ -173,14 +177,17 @@ describe('ResolveProvider', () => {
       expect(() =>
         resolveProvider({
           profileId: 'boo',
-          superJson: new SuperJson({
-            profiles: {
-              boo: {
-                version: '1.2.3',
+          superJson: normalizeSuperJsonDocument(
+            {
+              profiles: {
+                boo: {
+                  version: '1.2.3',
+                },
               },
+              providers: {},
             },
-            providers: {},
-          }),
+            new MockEnvironment()
+          ),
         })
       ).toThrow(noConfiguredProviderError('boo'));
     });

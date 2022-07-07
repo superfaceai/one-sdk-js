@@ -1,5 +1,7 @@
-import { FileSystemError, IFileSystem } from '../core';
-import { ok, Result } from '../lib/result/result';
+import type { FileSystemError, IFileSystem } from '../core';
+import type { Result } from '../lib/result/result';
+import { ok } from '../lib/result/result';
+import { NodeFileSystem } from '../node';
 
 export type IPartialFileSystem = Partial<Omit<IFileSystem, 'path' | 'sync'>> & {
   path?: Partial<IFileSystem['path']>;
@@ -26,7 +28,7 @@ export const MockFileSystem = (
       fileSystem?.path?.join ??
       jest.fn((...strings: string[]) => strings.join('/')),
     normalize: fileSystem?.path?.normalize ?? jest.fn((path: string) => path),
-    resolve: fileSystem?.path?.resolve ?? jest.fn(() => ''),
+    resolve: fileSystem?.path?.resolve ?? jest.fn(NodeFileSystem.path.resolve),
     relative: fileSystem?.path?.relative ?? jest.fn(() => ''),
   },
   exists: fileSystem?.exists ?? jest.fn(async () => true),

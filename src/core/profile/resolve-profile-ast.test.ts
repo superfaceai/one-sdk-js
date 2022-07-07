@@ -1,69 +1,73 @@
-import { EXTENSIONS, ProfileDocumentNode } from '@superfaceai/ast';
+import type { ProfileDocumentNode } from '@superfaceai/ast';
+import { EXTENSIONS } from '@superfaceai/ast';
 import { mocked } from 'ts-jest/utils';
 
+import type { IFileSystem } from '../../interfaces';
 import { err, ok } from '../../lib';
 import {
+  MockEnvironment,
   MockFileSystem,
   mockProfileDocumentNode,
   MockTimers,
 } from '../../mock';
 import { NodeCrypto, NodeFetch, NodeLogger } from '../../node';
-import { SuperJson } from '../../schema-tools';
+import { normalizeSuperJsonDocument } from '../../schema-tools/superjson/normalize';
 import { Config } from '../config';
 import {
   NotFoundError,
   profileFileNotFoundError,
-  SDKExecutionError,
   sourceFileExtensionFoundError,
   unableToResolveProfileError,
   unsupportedFileExtensionError,
   versionMismatchError,
 } from '../errors';
-import { IFileSystem } from '../interfaces';
 import { fetchProfileAst } from '../registry';
 import { resolveProfileAst } from './resolve-profile-ast';
 
 jest.mock('../../core/registry');
 
-const mockSuperJson = new SuperJson({
-  profiles: {
-    'testy/mctestface': '0.1.0',
-    foo: 'file://../foo.supr.ast.json',
-    'evil/foo': 'file://../foo.supr',
-    'bad/foo': 'file://../foo.ts',
-    bar: {
-      file: '../bar.supr.ast.json',
-      providers: {
-        quz: {},
+const mockSuperJson = normalizeSuperJsonDocument(
+  {
+    profiles: {
+      'testy/mctestface': '0.1.0',
+      foo: 'file://../foo.supr.ast.json',
+      'evil/foo': 'file://../foo.supr',
+      'bad/foo': 'file://../foo.ts',
+      bar: {
+        file: '../bar.supr.ast.json',
+        providers: {
+          quz: {},
+        },
+      },
+      baz: {
+        version: '1.2.3',
+        providers: {
+          quz: {},
+        },
       },
     },
-    baz: {
-      version: '1.2.3',
-      providers: {
-        quz: {},
+    providers: {
+      fooder: {
+        file: '../fooder.provider.json',
+        security: [],
       },
+      quz: {},
     },
   },
-  providers: {
-    fooder: {
-      file: '../fooder.provider.json',
-      security: [],
-    },
-    quz: {},
-  },
-});
+  new MockEnvironment()
+);
 
 const createMockFileSystem = (
   profileId: string,
   profilePath: string,
-  result: ProfileDocumentNode | NotFoundError | SDKExecutionError
+  result: ProfileDocumentNode | NotFoundError
 ): IFileSystem =>
   MockFileSystem({
     path: {
       resolve: (...pathSegments: string[]) => pathSegments.join(''),
     },
     readFile: jest.fn(path => {
-      if (result instanceof SDKExecutionError) {
+      if (result instanceof NotFoundError) {
         return Promise.resolve(err(result));
       }
 
@@ -71,14 +75,11 @@ const createMockFileSystem = (
         new Config(MockFileSystem()).cachePath,
         profileId + EXTENSIONS.profile.build,
       ].join('/');
+
       if (!path.includes(cachePath) && !path.includes(profilePath)) {
         throw new Error(
           `Path: "${path}" does not contain path to profile "${profilePath}" or path to cache: "${cachePath}"`
         );
-      }
-
-      if (result instanceof NotFoundError) {
-        return Promise.resolve(err(result));
       }
 
       return Promise.resolve(ok(JSON.stringify(result)));
@@ -267,7 +268,7 @@ describe('resolveProfileAst', () => {
           profileId: 'testy/mctestface',
           version: '0.1.0',
           // empty super.json
-          superJson: new SuperJson(),
+          superJson: normalizeSuperJsonDocument({}, new MockEnvironment()),
           config,
           crypto,
           fileSystem,
@@ -300,7 +301,7 @@ describe('resolveProfileAst', () => {
           profileId: 'testy/mctestface',
           version: '0.1.0',
           // empty super.json
-          superJson: new SuperJson(),
+          superJson: normalizeSuperJsonDocument({}, new MockEnvironment()),
           config,
           crypto,
           fileSystem,
@@ -390,7 +391,7 @@ describe('resolveProfileAst', () => {
 
   describe('when using entry with filepath only', () => {
     it('rejects when profile points to a non-existent path', async () => {
-      const mockError = profileFileNotFoundError('../foo.supr.ast.json', 'foo');
+      const mockError = new NotFoundError('file not found');
       fileSystem = createMockFileSystem(
         'testy/mctestface',
         'testy/mctestface@0.1.0.supr.ast.json',
@@ -407,7 +408,12 @@ describe('resolveProfileAst', () => {
           fetchInstance,
           logger,
         })
-      ).rejects.toThrow(mockError);
+      ).rejects.toThrow(
+        profileFileNotFoundError(
+          fileSystem.path.resolve(config.superfacePath, '../foo.supr.ast.json'),
+          'foo'
+        )
+      );
     });
 
     it('rejects when profile points to a path with .supr extension', async () => {
@@ -439,7 +445,7 @@ describe('resolveProfileAst', () => {
         })
       ).rejects.toThrow(
         unsupportedFileExtensionError(
-          mockSuperJson.resolvePath('../foo.ts'),
+          MockFileSystem().path.resolve(config.superfacePath, '../foo.ts'),
           EXTENSIONS.profile.build
         )
       );
@@ -563,7 +569,7 @@ describe('resolveProfileAst', () => {
 
   describe('when using file property', () => {
     it('rejects when profile points to a non-existent path', async () => {
-      const mockError = profileFileNotFoundError('../bar.supr.ast.json', 'bar');
+      const mockError = new NotFoundError('file not found');
       fileSystem = createMockFileSystem('bar', 'bar.supr.ast.json', mockError);
 
       await expect(
@@ -576,7 +582,12 @@ describe('resolveProfileAst', () => {
           fetchInstance,
           logger,
         })
-      ).rejects.toThrow(mockError);
+      ).rejects.toThrow(
+        profileFileNotFoundError(
+          fileSystem.path.resolve(config.superfacePath, '../bar.supr.ast.json'),
+          'bar'
+        )
+      );
     });
 
     it('returns a valid profile when it points to existing path', async () => {

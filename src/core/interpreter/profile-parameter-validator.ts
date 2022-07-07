@@ -1,4 +1,4 @@
-import {
+import type {
   ComlinkAssignmentNode,
   ComlinkListLiteralNode,
   ComlinkObjectLiteralNode,
@@ -6,8 +6,6 @@ import {
   EnumDefinitionNode,
   EnumValueNode,
   FieldDefinitionNode,
-  isNamedFieldDefinitionNode,
-  isNamedModelDefinitionNode,
   ListDefinitionNode,
   ModelTypeNameNode,
   NamedFieldDefinitionNode,
@@ -22,21 +20,24 @@ import {
   UnionDefinitionNode,
   UseCaseDefinitionNode,
   UseCaseExampleNode,
-  UseCaseSlotDefinitionNode,
+  UseCaseSlotDefinitionNode} from '@superfaceai/ast';
+import {
+  isNamedFieldDefinitionNode,
+  isNamedModelDefinitionNode
 } from '@superfaceai/ast';
 
-import { err, ok, Result } from '../../lib';
-import { UnexpectedError } from '../errors';
-import { ILogger, LogFunction } from '../interfaces';
-import { ProfileVisitor } from './interfaces';
+import type { ILogger, LogFunction, ProfileParameterError } from '../../interfaces';
+import type { Result} from '../../lib';
+import { err, ok, UnexpectedError } from '../../lib';
+import type { ProfileVisitor } from './interfaces';
+import type {
+  ValidationError} from './profile-parameter-validator.errors';
 import {
   addFieldToErrors,
   formatErrors,
   InputValidationError,
   isWrongTypeError,
-  ProfileParameterError,
-  ResultValidationError,
-  ValidationError,
+  ResultValidationError
 } from './profile-parameter-validator.errors';
 
 const DEBUG_NAMESPACE = 'profile-parameter-validator';
@@ -108,7 +109,7 @@ export class ProfileParameterValidator implements ProfileVisitor {
     input: unknown,
     kind: ProfileParameterKind,
     usecase: string
-  ): Result<undefined, ProfileParameterError> {
+  ): Result<undefined, ProfileParameterError | UnexpectedError> {
     try {
       const validator = this.visit(this.ast, kind, usecase);
       const [result, errors] = validator(input);

@@ -1,3 +1,7 @@
+import type {
+  NormalizedUsecaseDefaults,
+  ProfileProviderEntry,
+  SecurityValues} from '@superfaceai/ast';
 import {
   BackoffKind,
   isApiKeySecurityValues,
@@ -6,25 +10,31 @@ import {
   isDigestSecurityValues,
   isFileURIString,
   isVersionString,
-  NormalizedUsecaseDefaults,
-  OnFail,
-  ProfileProviderEntry,
-  SecurityValues,
+  OnFail
 } from '@superfaceai/ast';
 
-import { IFileSystem } from '../../core';
+import type { IFileSystem, IFileSystemError } from '../../core';
+import {
+  anonymizeSuperJson,
+  hashSuperJson,
+} from '../../core/events/reporter/utils';
 import { err, ok } from '../../lib';
 import { MockEnvironment, MockFileSystem } from '../../mock';
-import { NodeFileSystem } from '../../node';
+import { NodeCrypto, NodeFileSystem } from '../../node';
 import { mergeSecurity } from './mutate';
 import * as normalize from './normalize';
+import { normalizeSuperJsonDocument } from './normalize';
 import { composeFileURI, trimFileURI } from './schema';
-import { SuperJson } from './superjson';
+import {
+  detectSuperJson,
+  loadSuperJson,
+  loadSuperJsonSync,
+  parseSuperJson,
+} from './utils';
 
 const environment = new MockEnvironment();
 
 describe('SuperJson', () => {
-  let superjson: SuperJson;
   let fileSystem: IFileSystem;
 
   const mockSuperJsonDocument = {
@@ -39,7 +49,6 @@ describe('SuperJson', () => {
 
   beforeEach(() => {
     fileSystem = MockFileSystem();
-    superjson = new SuperJson({}, undefined, fileSystem);
     environment.clear();
   });
 
@@ -119,23 +128,7 @@ describe('SuperJson', () => {
   });
 
   describe('when getting stringified version of super.json', () => {
-    it('returns correct string', () => {
-      const mockSuperJsonDocument = {
-        profiles: {
-          test: {
-            defaults: { input: { input: { test: 'test' } } },
-            file: 'some/path',
-            providers: {},
-          },
-        },
-      };
-      const superJson = new SuperJson(mockSuperJsonDocument);
-      expect(superJson.stringified).toEqual(
-        JSON.stringify(mockSuperJsonDocument, undefined, 2)
-      );
-    });
-
-    it('checks unknow input correctly', () => {
+    it('checks unknown input correctly', () => {
       const mockInput = {
         id: 'id',
         token: 'token',
@@ -149,7 +142,7 @@ describe('SuperJson', () => {
 
     it('returns err when unable to find super.json', () => {
       fileSystem.sync.isAccessible = () => false;
-      const result = SuperJson.loadSync('test', fileSystem);
+      const result = loadSuperJsonSync('test', fileSystem);
       expect(result.isErr()).toBe(true);
       expect(result.isErr() && result.error.message).toMatch(
         'Unable to find super.json'
@@ -158,7 +151,7 @@ describe('SuperJson', () => {
 
     it('returns err when super.json is not file', () => {
       fileSystem.sync.isFile = () => false;
-      const result = SuperJson.loadSync('test', fileSystem);
+      const result = loadSuperJsonSync('test', fileSystem);
       expect(result.isErr()).toBe(true);
       expect(result.isErr() && result.error.message).toMatch(
         '"test" is not a file'
@@ -166,8 +159,8 @@ describe('SuperJson', () => {
     });
 
     it('returns err when unable to read super.json', () => {
-      fileSystem.sync.readFile = () => err(mockError);
-      const result = SuperJson.loadSync('test', fileSystem);
+      fileSystem.sync.readFile = () => err(mockError as IFileSystemError);
+      const result = loadSuperJsonSync('test', fileSystem);
       expect(result.isErr()).toBe(true);
       expect(result.isErr() && result.error.message).toMatch(
         'Unable to read super.json\n\nError: test'
@@ -199,7 +192,7 @@ describe('SuperJson', () => {
           }
         }
       }`);
-      expect(SuperJson.loadSync('test', fileSystem).isErr()).toEqual(true);
+      expect(loadSuperJsonSync('test', fileSystem).isErr()).toEqual(true);
     });
 
     it('returns err when there is an error during parsing super.json - usecase not nested under defaults', () => {
@@ -230,15 +223,15 @@ describe('SuperJson', () => {
           }
         }
       }`);
-      expect(SuperJson.loadSync('test', fileSystem).isErr()).toEqual(true);
+      expect(loadSuperJsonSync('test', fileSystem).isErr()).toEqual(true);
     });
 
     it('returns new super.json', () => {
       fileSystem.sync.readFile = () =>
         ok(JSON.stringify(mockSuperJsonDocument));
 
-      expect(SuperJson.loadSync('test', fileSystem)).toEqual(
-        ok(new SuperJson(mockSuperJsonDocument, 'test', fileSystem))
+      expect(loadSuperJsonSync('test', fileSystem)).toEqual(
+        ok(mockSuperJsonDocument)
       );
     });
   });
@@ -248,7 +241,7 @@ describe('SuperJson', () => {
 
     it('returns err when unable to find super.json', async () => {
       fileSystem.isAccessible = async () => false;
-      const result = await SuperJson.load('test', fileSystem);
+      const result = await loadSuperJson('test', fileSystem);
       expect(result.isErr()).toBe(true);
       expect(result.isErr() && result.error.message).toMatch(
         'super.json not found in "test"'
@@ -257,7 +250,7 @@ describe('SuperJson', () => {
 
     it('returns err when super.json is not file', async () => {
       fileSystem.isFile = async () => false;
-      const result = await SuperJson.load('test', fileSystem);
+      const result = await loadSuperJson('test', fileSystem);
       expect(result.isErr()).toBe(true);
       expect(result.isErr() && result.error.message).toMatch(
         '"test" is not a file'
@@ -265,8 +258,8 @@ describe('SuperJson', () => {
     });
 
     it('returns err when unable to read super.json', async () => {
-      fileSystem.readFile = async () => err(mockError);
-      const result = await SuperJson.load('test', fileSystem);
+      fileSystem.readFile = async () => err(mockError as IFileSystemError);
+      const result = await loadSuperJson('test', fileSystem);
       expect(result.isErr()).toBe(true);
       expect(result.isErr() && result.error.message).toMatch(
         'Unable to read super.json'
@@ -298,15 +291,15 @@ describe('SuperJson', () => {
           }
         }
       }`);
-      expect((await SuperJson.load('test', fileSystem)).isErr()).toEqual(true);
+      expect((await loadSuperJson('test', fileSystem)).isErr()).toEqual(true);
     });
 
     it('returns new super.json', async () => {
       fileSystem.readFile = async () =>
         ok(JSON.stringify(mockSuperJsonDocument));
 
-      await expect(SuperJson.load('test', fileSystem)).resolves.toEqual(
-        ok(new SuperJson(mockSuperJsonDocument, 'test', fileSystem))
+      await expect(loadSuperJson('test', fileSystem)).resolves.toEqual(
+        ok(mockSuperJsonDocument)
       );
     });
   });
@@ -521,23 +514,19 @@ describe('SuperJson', () => {
 
   describe('when getting normalized super.json', () => {
     it('returns correct object when cache is undefined', async () => {
-      const mockSuperJson = new SuperJson(
-        {
-          providers: {
-            test: {},
-          },
-          profiles: {
-            profile: {
-              file: 'some/path',
-              defaults: {},
-            },
+      const mockSuperJson = {
+        providers: {
+          test: {},
+        },
+        profiles: {
+          profile: {
+            file: 'some/path',
+            defaults: {},
           },
         },
-        undefined,
-        fileSystem
-      );
+      };
 
-      expect(mockSuperJson.normalized).toEqual({
+      expect(normalizeSuperJsonDocument(mockSuperJson, environment)).toEqual({
         providers: {
           test: {
             file: undefined,
@@ -556,124 +545,65 @@ describe('SuperJson', () => {
       });
     });
 
-    it('returns correct object when cache is defined', async () => {
-      const mockSuperJson = new SuperJson(
-        {
-          providers: {
-            test: {},
-          },
-          profiles: {
-            profile: {
-              file: 'some/path',
-              defaults: {},
-            },
-          },
-        },
-        undefined,
-        fileSystem
-      );
+    describe('when checking version string validity', () => {
+      it('checks version string validity', () => {
+        expect(isVersionString('1.0.0')).toBe(true);
+        expect(isVersionString('0.0.0')).toBe(true);
+        expect(isVersionString('1.0')).toBe(false);
+        expect(isVersionString('1')).toBe(false);
+        expect(isVersionString('^1.0.0')).toBe(false);
+        expect(isVersionString('hippopotamus')).toBe(false);
+      });
+    });
 
-      expect(mockSuperJson.normalized).toEqual({
-        providers: {
-          test: {
-            file: undefined,
-            security: [],
-            parameters: {},
-          },
-        },
-        profiles: {
-          profile: {
-            file: 'some/path',
-            priority: ['test'],
-            defaults: {},
-            providers: {},
-          },
-        },
+    describe('when checking file URI string validity', () => {
+      it('checks file URI string validity', () => {
+        expect(isFileURIString('file://../superface.suma')).toBe(true);
+        expect(isFileURIString('file:///superface.suma')).toBe(true);
+        expect(isFileURIString('file://superface.suma')).toBe(true);
+        expect(isFileURIString('a banana daiquiri')).toBe(false);
+      });
+    });
+
+    describe('when triming file uri', () => {
+      it('return path without file://', () => {
+        expect(trimFileURI('file://test/path/to/super.json')).toEqual(
+          'test/path/to/super.json'
+        );
+      });
+    });
+
+    describe('when composing file uri', () => {
+      const filesystem = NodeFileSystem;
+
+      it('return path without change', () => {
+        expect(
+          composeFileURI(
+            'file://test/path/to/super.json',
+            filesystem.path.normalize
+          )
+        ).toEqual('file://test/path/to/super.json');
       });
 
-      const normalizeProfileSettingsSpy = jest.spyOn(
-        normalize,
-        'normalizeProfileSettings'
-      );
-      expect(mockSuperJson.normalized).toEqual({
-        providers: {
-          test: {
-            file: undefined,
-            security: [],
-            parameters: {},
-          },
-        },
-        profiles: {
-          profile: {
-            priority: ['test'],
-            file: 'some/path',
-            defaults: {},
-            providers: {},
-          },
-        },
+      it('return path with file://../', () => {
+        expect(
+          composeFileURI(
+            '../test/path/to/super.json',
+            filesystem.path.normalize
+          )
+        ).toEqual('file://../test/path/to/super.json');
       });
 
-      expect(normalizeProfileSettingsSpy).toHaveBeenCalledTimes(0);
-      normalizeProfileSettingsSpy.mockRestore();
-    });
-  });
-
-  describe('when checking version string validity', () => {
-    it('checks version string validity', () => {
-      expect(isVersionString('1.0.0')).toBe(true);
-      expect(isVersionString('0.0.0')).toBe(true);
-      expect(isVersionString('1.0')).toBe(false);
-      expect(isVersionString('1')).toBe(false);
-      expect(isVersionString('^1.0.0')).toBe(false);
-      expect(isVersionString('hippopotamus')).toBe(false);
-    });
-  });
-
-  describe('when checking file URI string validity', () => {
-    it('checks file URI string validity', () => {
-      expect(isFileURIString('file://../superface.suma')).toBe(true);
-      expect(isFileURIString('file:///superface.suma')).toBe(true);
-      expect(isFileURIString('file://superface.suma')).toBe(true);
-      expect(isFileURIString('a banana daiquiri')).toBe(false);
-    });
-  });
-
-  describe('when triming file uri', () => {
-    it('return path without file://', () => {
-      expect(trimFileURI('file://test/path/to/super.json')).toEqual(
-        'test/path/to/super.json'
-      );
-    });
-  });
-
-  describe('when composing file uri', () => {
-    const filesystem = NodeFileSystem;
-
-    it('return path without change', () => {
-      expect(
-        composeFileURI(
-          'file://test/path/to/super.json',
-          filesystem.path.normalize
-        )
-      ).toEqual('file://test/path/to/super.json');
+      it('return path with file://', () => {
+        expect(
+          composeFileURI('test/path/to/super.json', filesystem.path.normalize)
+        ).toEqual('file://./test/path/to/super.json');
+      });
     });
 
-    it('return path with file://../', () => {
-      expect(
-        composeFileURI('../test/path/to/super.json', filesystem.path.normalize)
-      ).toEqual('file://../test/path/to/super.json');
-    });
-
-    it('return path with file://', () => {
-      expect(
-        composeFileURI('test/path/to/super.json', filesystem.path.normalize)
-      ).toEqual('file://./test/path/to/super.json');
-    });
-  });
-
-  describe('when parsing super.json', () => {
-    it('parses valid super.json', () => {
-      const superJson = `{
+    describe('when parsing super.json', () => {
+      it('parses valid super.json', () => {
+        const superJson = `{
         "profiles": {
           "send-message": {
             "version": "1.0.0",
@@ -696,11 +626,11 @@ describe('SuperJson', () => {
           }
         }
       }`;
-      expect(SuperJson.parse(JSON.parse(superJson)).isOk()).toBe(true);
-    });
+        expect(parseSuperJson(JSON.parse(superJson)).isOk()).toBe(true);
+      });
 
-    it('parses valid super.json with multiple profiles', () => {
-      const superJson = `{
+      it('parses valid super.json with multiple profiles', () => {
+        const superJson = `{
         "profiles": {
           "acme/deliver-crate": "1.2.3",
           "superfaceai/send-sms": {
@@ -755,11 +685,11 @@ describe('SuperJson', () => {
           }
         }
       }`;
-      expect(SuperJson.parse(JSON.parse(superJson)).isOk()).toBe(true);
-    });
+        expect(parseSuperJson(JSON.parse(superJson)).isOk()).toBe(true);
+      });
 
-    it('returns error on document with invalid profile provider', () => {
-      const superJson = `{
+      it('returns error on document with invalid profile provider', () => {
+        const superJson = `{
         "profiles": {
           "send-message": {
             "version": "1.0.Z",
@@ -782,11 +712,11 @@ describe('SuperJson', () => {
           }
         }
       }`;
-      expect(SuperJson.parse(JSON.parse(superJson)).isErr()).toBe(true);
-    });
+        expect(parseSuperJson(JSON.parse(superJson)).isErr()).toBe(true);
+      });
 
-    it('returns error on document with invalid security', () => {
-      const superJson = `{
+      it('returns error on document with invalid security', () => {
+        const superJson = `{
         "profiles": {
           "send-message": {
             "version": "1.0.X",
@@ -814,18 +744,18 @@ describe('SuperJson', () => {
           }
         }
       }`;
-      expect(SuperJson.parse(JSON.parse(superJson)).isErr()).toBe(true);
+        expect(parseSuperJson(JSON.parse(superJson)).isErr()).toBe(true);
+      });
+
+      it('returns error invalid document', () => {
+        const superJson = '"hello"';
+        expect(parseSuperJson(JSON.parse(superJson)).isErr()).toBe(true);
+      });
     });
 
-    it('returns error invalid document', () => {
-      const superJson = '"hello"';
-      expect(SuperJson.parse(JSON.parse(superJson)).isErr()).toBe(true);
-    });
-  });
-
-  describe('when normalizing super.json', () => {
-    it('normalizes super.json correctly', () => {
-      const superJson = `{
+    describe('when normalizing super.json', () => {
+      it('normalizes super.json correctly', () => {
+        const superJson = `{
         "profiles": {
           "a": "file://a.supr",
           "b": "0.1.0",
@@ -982,383 +912,356 @@ describe('SuperJson', () => {
         }
       }`;
 
-      const doc = new SuperJson(
-        SuperJson.parse(JSON.parse(superJson)).unwrap()
-      );
-      expect(doc.normalized).toStrictEqual({
-        profiles: {
-          a: {
-            defaults: {},
-            priority: ['foo', 'bar', 'baz'],
-            providers: {},
-            file: 'a.supr',
-          },
-          b: {
-            defaults: {},
-            priority: ['foo', 'bar', 'baz'],
-            providers: {},
-            version: '0.1.0',
-          },
-          'x/a': {
-            defaults: {},
-            priority: ['foo', 'bar', 'baz'],
-            providers: {},
-            file: 'x/a.supr',
-          },
-          'x/b': {
-            defaults: {
-              Test: {
-                input: {},
-                providerFailover: false,
-              },
+        const doc = parseSuperJson(JSON.parse(superJson)).unwrap();
+        expect(normalizeSuperJsonDocument(doc, environment)).toStrictEqual({
+          profiles: {
+            a: {
+              defaults: {},
+              priority: ['foo', 'bar', 'baz'],
+              providers: {},
+              file: 'a.supr',
             },
-            priority: ['foo', 'bar', 'baz'],
-            providers: {},
-            version: '0.2.1',
-          },
-          'y/a': {
-            defaults: {},
-            priority: ['foo', 'baz'],
-            providers: {
-              foo: {
-                file: 'y/a.suma',
-                defaults: {},
-              },
-              baz: {
-                mapVariant: 'bugfix',
-                mapRevision: undefined,
-                defaults: {},
-              },
+            b: {
+              defaults: {},
+              priority: ['foo', 'bar', 'baz'],
+              providers: {},
+              version: '0.1.0',
             },
-            version: '1.2.3',
-          },
-          'y/b': {
-            defaults: {
-              Usecase: {
-                input: {
-                  a: 1,
-                  b: {
-                    x: 1,
-                    y: true,
-                  },
+            'x/a': {
+              defaults: {},
+              priority: ['foo', 'bar', 'baz'],
+              providers: {},
+              file: 'x/a.supr',
+            },
+            'x/b': {
+              defaults: {
+                Test: {
+                  input: {},
+                  providerFailover: false,
                 },
-                providerFailover: true,
               },
+              priority: ['foo', 'bar', 'baz'],
+              providers: {},
+              version: '0.2.1',
             },
-            priority: ['foo', 'bar'],
-            providers: {
-              foo: {
-                defaults: {
-                  Usecase: {
-                    input: {
-                      a: 1,
-                      b: {
-                        x: 1,
-                        y: true,
-                      },
-                    },
-                    retryPolicy: {
-                      kind: OnFail.NONE,
+            'y/a': {
+              defaults: {},
+              priority: ['foo', 'baz'],
+              providers: {
+                foo: {
+                  file: 'y/a.suma',
+                  defaults: {},
+                },
+                baz: {
+                  mapVariant: 'bugfix',
+                  mapRevision: undefined,
+                  defaults: {},
+                },
+              },
+              version: '1.2.3',
+            },
+            'y/b': {
+              defaults: {
+                Usecase: {
+                  input: {
+                    a: 1,
+                    b: {
+                      x: 1,
+                      y: true,
                     },
                   },
+                  providerFailover: true,
                 },
-                mapVariant: undefined,
-                mapRevision: undefined,
               },
-              bar: {
-                defaults: {
-                  Usecase: {
-                    input: {
-                      a: 12,
-                      b: {
-                        x: {},
-                        y: true,
+              priority: ['foo', 'bar'],
+              providers: {
+                foo: {
+                  defaults: {
+                    Usecase: {
+                      input: {
+                        a: 1,
+                        b: {
+                          x: 1,
+                          y: true,
+                        },
                       },
-                      c: {
-                        hello: 17,
-                      },
-                    },
-                    retryPolicy: {
-                      kind: OnFail.CIRCUIT_BREAKER,
-                      maxContiguousRetries: 5,
-                      backoff: {
-                        kind: BackoffKind.EXPONENTIAL,
+                      retryPolicy: {
+                        kind: OnFail.NONE,
                       },
                     },
                   },
+                  mapVariant: undefined,
+                  mapRevision: undefined,
                 },
-                mapVariant: undefined,
-                mapRevision: undefined,
-              },
-            },
-            version: '1.2.3',
-          },
-          'y/c': {
-            defaults: {
-              Usecase: {
-                input: {
-                  a: 1,
-                  b: {
-                    x: 1,
-                    y: true,
-                  },
-                },
-                providerFailover: false,
-              },
-            },
-            priority: ['foo', 'bar'],
-            providers: {
-              foo: {
-                defaults: {
-                  Usecase: {
-                    input: {
-                      a: 1,
-                      b: {
-                        x: 1,
-                        y: true,
+                bar: {
+                  defaults: {
+                    Usecase: {
+                      input: {
+                        a: 12,
+                        b: {
+                          x: {},
+                          y: true,
+                        },
+                        c: {
+                          hello: 17,
+                        },
                       },
-                    },
-                    retryPolicy: {
-                      kind: 'circuit-breaker',
-                      backoff: { kind: BackoffKind.EXPONENTIAL },
-                    },
-                  },
-                },
-                mapVariant: undefined,
-                mapRevision: undefined,
-              },
-              bar: {
-                defaults: {
-                  Usecase: {
-                    input: {
-                      a: 12,
-                      b: {
-                        x: {},
-                        y: true,
-                      },
-                      c: {
-                        hello: 17,
-                      },
-                    },
-                    retryPolicy: {
-                      kind: 'none',
-                    },
-                  },
-                },
-                mapVariant: undefined,
-                mapRevision: undefined,
-              },
-              zoo: {
-                defaults: {
-                  Usecase: {
-                    input: {
-                      a: 12,
-                      b: {
-                        x: {},
-                        y: true,
-                      },
-                    },
-                    retryPolicy: {
-                      kind: 'circuit-breaker',
-                      maxContiguousRetries: 5,
-                      backoff: {
-                        kind: 'exponential',
-                        start: 5,
+                      retryPolicy: {
+                        kind: OnFail.CIRCUIT_BREAKER,
+                        maxContiguousRetries: 5,
+                        backoff: {
+                          kind: BackoffKind.EXPONENTIAL,
+                        },
                       },
                     },
                   },
+                  mapVariant: undefined,
+                  mapRevision: undefined,
                 },
-                mapVariant: undefined,
-                mapRevision: undefined,
+              },
+              version: '1.2.3',
+            },
+            'y/c': {
+              defaults: {
+                Usecase: {
+                  input: {
+                    a: 1,
+                    b: {
+                      x: 1,
+                      y: true,
+                    },
+                  },
+                  providerFailover: false,
+                },
+              },
+              priority: ['foo', 'bar'],
+              providers: {
+                foo: {
+                  defaults: {
+                    Usecase: {
+                      input: {
+                        a: 1,
+                        b: {
+                          x: 1,
+                          y: true,
+                        },
+                      },
+                      retryPolicy: {
+                        kind: 'circuit-breaker',
+                        backoff: { kind: BackoffKind.EXPONENTIAL },
+                      },
+                    },
+                  },
+                  mapVariant: undefined,
+                  mapRevision: undefined,
+                },
+                bar: {
+                  defaults: {
+                    Usecase: {
+                      input: {
+                        a: 12,
+                        b: {
+                          x: {},
+                          y: true,
+                        },
+                        c: {
+                          hello: 17,
+                        },
+                      },
+                      retryPolicy: {
+                        kind: 'none',
+                      },
+                    },
+                  },
+                  mapVariant: undefined,
+                  mapRevision: undefined,
+                },
+                zoo: {
+                  defaults: {
+                    Usecase: {
+                      input: {
+                        a: 12,
+                        b: {
+                          x: {},
+                          y: true,
+                        },
+                      },
+                      retryPolicy: {
+                        kind: 'circuit-breaker',
+                        maxContiguousRetries: 5,
+                        backoff: {
+                          kind: 'exponential',
+                          start: 5,
+                        },
+                      },
+                    },
+                  },
+                  mapVariant: undefined,
+                  mapRevision: undefined,
+                },
+              },
+              version: '1.2.4',
+            },
+          },
+          providers: {
+            foo: {
+              file: '/foo.provider.json',
+              security: [],
+              parameters: {},
+            },
+            bar: {
+              file: './bar.provider.json',
+              security: [],
+              parameters: {},
+            },
+            baz: {
+              file: undefined,
+              security: [
+                {
+                  id: 'myBasicAuth',
+                  username: 'hi',
+                  password: 'heya',
+                },
+              ],
+              parameters: {
+                first: 'awesome',
+                second: '',
               },
             },
-            version: '1.2.4',
           },
-        },
-        providers: {
-          foo: {
-            file: '/foo.provider.json',
-            security: [],
-            parameters: {},
-          },
-          bar: {
-            file: './bar.provider.json',
-            security: [],
-            parameters: {},
-          },
-          baz: {
-            file: undefined,
-            security: [
-              {
-                id: 'myBasicAuth',
-                username: 'hi',
-                password: 'heya',
-              },
-            ],
-            parameters: {
-              first: 'awesome',
-              second: '',
-            },
-          },
-        },
+        });
       });
     });
-  });
 
-  describe('when calling relative path', () => {
-    it('returns path correctly', () => {
-      const mockPath = '/mock/final/path';
-      fileSystem.path.relative = () => mockPath;
-      expect(superjson.relativePath('path')).toEqual(mockPath);
-    });
-  });
+    describe('when merging security', () => {
+      it('merges security correctly', () => {
+        const mockLeft: SecurityValues[] = [
+          {
+            id: 'left-api-id',
+            apikey: 'left-api-key',
+          },
+        ];
 
-  describe('when resolving path', () => {
-    it('resolves path correctly', () => {
-      const mockPath = '/mock/final/path';
-      fileSystem.path.resolve = () => mockPath;
-      expect(superjson.resolvePath('path')).toEqual(mockPath);
-    });
-  });
+        const mockRight: SecurityValues[] = [
+          {
+            id: 'right-digest-id',
+            username: 'right-digest-user',
+            password: 'right-digest-password',
+          },
+        ];
 
-  describe('when merging security', () => {
-    it('merges security correctly', () => {
-      const mockLeft: SecurityValues[] = [
-        {
-          id: 'left-api-id',
-          apikey: 'left-api-key',
-        },
-      ];
+        expect(mergeSecurity(mockLeft, mockRight)).toEqual([
+          {
+            id: 'left-api-id',
+            apikey: 'left-api-key',
+          },
+          {
+            id: 'right-digest-id',
+            username: 'right-digest-user',
+            password: 'right-digest-password',
+          },
+        ]);
+      });
 
-      const mockRight: SecurityValues[] = [
-        {
-          id: 'right-digest-id',
-          username: 'right-digest-user',
-          password: 'right-digest-password',
-        },
-      ];
+      it('overwrites existing security', () => {
+        const mockLeft: SecurityValues[] = [
+          {
+            id: 'left-api-id',
+            apikey: 'left-api-key',
+          },
+          {
+            id: 'digest-id',
+            username: 'left-digest-user',
+            password: 'left-digest-password',
+          },
+        ];
 
-      expect(mergeSecurity(mockLeft, mockRight)).toEqual([
-        {
-          id: 'left-api-id',
-          apikey: 'left-api-key',
-        },
-        {
-          id: 'right-digest-id',
-          username: 'right-digest-user',
-          password: 'right-digest-password',
-        },
-      ]);
-    });
+        const mockRight: SecurityValues[] = [
+          {
+            id: 'digest-id',
+            username: 'right-digest-user',
+            password: 'right-digest-password',
+          },
+        ];
 
-    it('overwrites existing security', () => {
-      const mockLeft: SecurityValues[] = [
-        {
-          id: 'left-api-id',
-          apikey: 'left-api-key',
-        },
-        {
-          id: 'digest-id',
-          username: 'left-digest-user',
-          password: 'left-digest-password',
-        },
-      ];
-
-      const mockRight: SecurityValues[] = [
-        {
-          id: 'digest-id',
-          username: 'right-digest-user',
-          password: 'right-digest-password',
-        },
-      ];
-
-      expect(mergeSecurity(mockLeft, mockRight)).toEqual([
-        {
-          id: 'left-api-id',
-          apikey: 'left-api-key',
-        },
-        {
-          id: 'digest-id',
-          username: 'right-digest-user',
-          password: 'right-digest-password',
-        },
-      ]);
-    });
-  });
-
-  describe('when detecting super json', () => {
-    it('detects super.json in cwd', async () => {
-      const mockCwd = 'path/to/';
-
-      fileSystem.path.relative = () => mockCwd;
-      expect(
-        await SuperJson.detectSuperJson(mockCwd, undefined, fileSystem)
-      ).toEqual(mockCwd);
+        expect(mergeSecurity(mockLeft, mockRight)).toEqual([
+          {
+            id: 'left-api-id',
+            apikey: 'left-api-key',
+          },
+          {
+            id: 'digest-id',
+            username: 'right-digest-user',
+            password: 'right-digest-password',
+          },
+        ]);
+      });
     });
 
-    it('detects super.json from 1 level above', async () => {
-      const mockCwd = 'path/to/';
+    describe('when detecting super json', () => {
+      it('detects super.json in cwd', async () => {
+        const mockCwd = 'path/to/';
 
-      fileSystem.isAccessible = jest
-        .fn()
-        .mockResolvedValueOnce(false)
-        .mockResolvedValue(true);
-      fileSystem.path.relative = () => mockCwd;
+        fileSystem.path.relative = () => mockCwd;
+        expect(await detectSuperJson(mockCwd, fileSystem)).toEqual(mockCwd);
+      });
 
-      expect(
-        await SuperJson.detectSuperJson(process.cwd(), undefined, fileSystem)
-      ).toEqual(mockCwd);
+      it('detects super.json from 1 level above', async () => {
+        const mockCwd = 'path/to/';
+
+        fileSystem.isAccessible = jest
+          .fn()
+          .mockResolvedValueOnce(false)
+          .mockResolvedValue(true);
+        fileSystem.path.relative = () => mockCwd;
+
+        expect(await detectSuperJson(process.cwd(), fileSystem)).toEqual(
+          mockCwd
+        );
+      });
+
+      it('does not detect super.json from 2 levels above', async () => {
+        const mockCwd = 'path/to/';
+
+        fileSystem.isAccessible = async () => false;
+        fileSystem.path.relative = () => mockCwd;
+
+        expect(await detectSuperJson(mockCwd, fileSystem)).toBeUndefined();
+      });
+
+      it('detects super.json from 1 level below', async () => {
+        const mockCwd = 'path/to/';
+        fileSystem.path.relative = () => mockCwd;
+        fileSystem.isAccessible = jest
+          .fn()
+          .mockResolvedValueOnce(false)
+          .mockResolvedValueOnce(false)
+          .mockResolvedValueOnce(true)
+          .mockResolvedValue(true);
+
+        expect(await detectSuperJson(mockCwd, fileSystem, 1)).toEqual(mockCwd);
+      });
+
+      it('detects super.json from 2 levels below', async () => {
+        const mockCwd = 'path/to/';
+        fileSystem.path.relative = () => mockCwd;
+
+        fileSystem.isAccessible = jest
+          .fn()
+          .mockResolvedValueOnce(false)
+          .mockResolvedValueOnce(false)
+          .mockResolvedValueOnce(true)
+          .mockResolvedValueOnce(false)
+          .mockResolvedValueOnce(true);
+
+        expect(await detectSuperJson(mockCwd, fileSystem, 2)).toEqual(mockCwd);
+      });
     });
 
-    it('does not detect super.json from 2 levels above', async () => {
-      const mockCwd = 'path/to/';
-
-      fileSystem.isAccessible = async () => false;
-      fileSystem.path.relative = () => mockCwd;
-
-      expect(
-        await SuperJson.detectSuperJson(mockCwd, undefined, fileSystem)
-      ).toBeUndefined();
-    });
-
-    it('detects super.json from 1 level below', async () => {
-      const mockCwd = 'path/to/';
-      fileSystem.path.relative = () => mockCwd;
-      fileSystem.isAccessible = jest
-        .fn()
-        .mockResolvedValueOnce(false)
-        .mockResolvedValueOnce(false)
-        .mockResolvedValueOnce(true)
-        .mockResolvedValue(true);
-
-      expect(await SuperJson.detectSuperJson(mockCwd, 1, fileSystem)).toEqual(
-        mockCwd
-      );
-    });
-
-    it('detects super.json from 2 levels below', async () => {
-      const mockCwd = 'path/to/';
-      fileSystem.path.relative = () => mockCwd;
-
-      fileSystem.isAccessible = jest
-        .fn()
-        .mockResolvedValueOnce(false)
-        .mockResolvedValueOnce(false)
-        .mockResolvedValueOnce(true)
-        .mockResolvedValueOnce(false)
-        .mockResolvedValueOnce(true);
-
-      expect(await SuperJson.detectSuperJson(mockCwd, 2, fileSystem)).toEqual(
-        mockCwd
-      );
-    });
-  });
-
-  // TODO: Proper tests for config hash and anonymization
-  describe('when computing config hash', () => {
-    it('does debug', () => {
-      const superJson = new SuperJson(
-        {
+    // TODO: Proper tests for config hash and anonymization
+    describe('when computing config hash', () => {
+      it('does debug', () => {
+        const superJson = {
           profiles: {
             abc: {
               file: 'x',
@@ -1383,41 +1286,42 @@ describe('SuperJson', () => {
               file: 'hi',
             },
           },
-        },
-        undefined,
-        fileSystem
-      );
+        };
 
-      expect(superJson.anonymized).toEqual({
-        profiles: {
-          abc: {
-            version: 'file',
-            providers: [
-              {
-                provider: 'second',
-                priority: 1,
-                version: '1.0',
-              },
-              {
-                provider: 'first',
-                priority: 0,
-                version: 'file',
-              },
-            ],
+        const normalized = normalizeSuperJsonDocument(superJson, environment);
+        expect(anonymizeSuperJson(normalized)).toEqual({
+          profiles: {
+            abc: {
+              version: 'file',
+              providers: [
+                {
+                  provider: 'second',
+                  priority: 1,
+                  version: '1.0',
+                },
+                {
+                  provider: 'first',
+                  priority: 0,
+                  version: 'file',
+                },
+              ],
+            },
+            ghe: {
+              version: '1.2.3',
+              providers: [],
+            },
+            def: {
+              version: 'file',
+              providers: [],
+            },
           },
-          ghe: {
-            version: '1.2.3',
-            providers: [],
-          },
-          def: {
-            version: 'file',
-            providers: [],
-          },
-        },
-        providers: ['foo', 'bar'],
+          providers: ['foo', 'bar'],
+        });
+
+        expect(hashSuperJson(normalized, new NodeCrypto())).toBe(
+          'd090f0589a19634c065e903a81006f79'
+        );
       });
-
-      expect(superJson.configHash).toBe('d090f0589a19634c065e903a81006f79');
     });
   });
 });

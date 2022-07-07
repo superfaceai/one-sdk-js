@@ -1,41 +1,44 @@
-import {
+import type {
   MapDocumentNode,
+  NormalizedSuperJsonDocument,
   ProfileDocumentNode,
   ProviderJson,
   SecurityValues,
 } from '@superfaceai/ast';
 import { ProfileId, ProfileVersion } from '@superfaceai/parser';
 
-import {
-  BoundProfileProvider,
-  Config,
-  Events,
-  hookMetrics,
+import type {
   IBoundProfileProvider,
   IConfig,
   ICrypto,
   IEnvironment,
   IFileSystem,
   ILogger,
-  InternalClient,
   ISuperfaceClient,
-  MetricReporter,
   Profile,
-  ProfileConfiguration,
   Provider,
+  SecurityConfiguration,
+} from '../core';
+import {
+  BoundProfileProvider,
+  Config,
+  Events,
+  hookMetrics,
+  InternalClient,
+  MetricReporter,
+  ProfileConfiguration,
   ProviderConfiguration,
   registerHooks,
   resolveProvider,
   resolveSecurityValues,
-  SecurityConfiguration,
   ServiceSelector,
   superJsonNotDefinedError,
 } from '../core';
 import { SuperCache } from '../lib/cache';
 import { NodeCrypto, NodeFetch, NodeFileSystem, NodeLogger } from '../node';
-import { SuperJson } from '../schema-tools';
 import { MockEnvironment } from './environment';
-import { IPartialFileSystem, MockFileSystem } from './filesystem';
+import type { IPartialFileSystem } from './filesystem';
+import { MockFileSystem } from './filesystem';
 import { MockTimers } from './timers';
 
 const mockProviderJson = (name: string): ProviderJson => ({
@@ -65,7 +68,7 @@ export class MockClient implements ISuperfaceClient {
   public crypto: ICrypto;
 
   constructor(
-    public superJson?: SuperJson,
+    public superJson?: NormalizedSuperJsonDocument,
     parameters?: {
       configOverride?: Partial<IConfig>;
       fileSystemOverride?: IPartialFileSystem;
@@ -90,6 +93,7 @@ export class MockClient implements ISuperfaceClient {
         this.config,
         this.timers,
         new NodeFetch(this.timers),
+        this.crypto,
         this.superJson,
         this.logger
       );

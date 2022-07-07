@@ -1,10 +1,11 @@
+import type {
+  NonPrimitive} from './variables';
 import {
   assertIsVariables,
   getValue,
   isNonPrimitive,
   isPrimitive,
   mergeVariables,
-  NonPrimitive,
   variablesToStrings,
 } from './variables';
 

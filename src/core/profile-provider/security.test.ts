@@ -1,9 +1,10 @@
+import type {
+  SecurityScheme,
+  SecurityValues} from '@superfaceai/ast';
 import {
   ApiKeyPlacement,
   HttpScheme,
-  SecurityScheme,
-  SecurityType,
-  SecurityValues,
+  SecurityType
 } from '@superfaceai/ast';
 
 import { invalidSecurityValuesError, securityNotFoundError } from '../errors';

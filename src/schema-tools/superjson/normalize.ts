@@ -1,9 +1,5 @@
-import {
-  BackoffKind,
+import type {
   BackoffPolicy,
-  FILE_URI_PROTOCOL,
-  isFileURIString,
-  isVersionString,
   NormalizedBackoffPolicy,
   NormalizedProfileProviderDefaults,
   NormalizedProfileProviderSettings,
@@ -12,26 +8,30 @@ import {
   NormalizedRetryPolicy,
   NormalizedSuperJsonDocument,
   NormalizedUsecaseDefaults,
-  OnFail,
   ProfileEntry,
   ProfileProviderDefaults,
   ProfileProviderEntry,
   ProviderEntry,
   RetryPolicy,
   SuperJsonDocument,
-  UsecaseDefaults,
+  UsecaseDefaults} from '@superfaceai/ast';
+import {
+  BackoffKind,
+  FILE_URI_PROTOCOL,
+  isFileURIString,
+  isVersionString,
+  OnFail
 } from '@superfaceai/ast';
 
+import type { IEnvironment, ILogger } from '../../interfaces';
 import {
   castToNonPrimitive,
-  IEnvironment,
-  ILogger,
-  invalidProfileProviderError,
+  clone,
   mergeVariables,
+  resolveEnvRecord,
   UnexpectedError,
-} from '../../core';
-import { resolveEnvRecord } from '../../lib/env';
-import { clone } from '../../lib/object';
+} from '../../lib';
+import { invalidProfileProviderError } from './errors.helpers';
 
 export function normalizeProfileProviderSettings(
   profileProviderSettings: ProfileProviderEntry | undefined,
@@ -341,7 +341,6 @@ export function normalizeSuperJsonDocument(
   environment: IEnvironment,
   logger?: ILogger
 ): NormalizedSuperJsonDocument {
-  // clone
   const document: SuperJsonDocument = clone(originalDocument);
 
   const profiles = document.profiles ?? {};

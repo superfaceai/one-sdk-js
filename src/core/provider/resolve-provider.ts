@@ -1,6 +1,5 @@
-import { SecurityValues } from '@superfaceai/ast';
+import type { NormalizedSuperJsonDocument, SecurityValues } from '@superfaceai/ast';
 
-import { SuperJson } from '../../schema-tools';
 import {
   noConfiguredProviderError,
   profileNotFoundError,
@@ -21,7 +20,7 @@ export function resolveProvider({
 }: {
   security?: SecurityValues[];
   parameters?: Record<string, string>;
-  superJson?: SuperJson;
+  superJson?: NormalizedSuperJsonDocument;
   provider?: string | Provider;
   profileId?: string;
 }): Provider {
@@ -36,7 +35,7 @@ export function resolveProvider({
 
   if (profileId !== undefined) {
     if (superJson !== undefined) {
-      const profileSettings = superJson.normalized.profiles[profileId];
+      const profileSettings = superJson.profiles[profileId];
 
       if (profileSettings === undefined) {
         throw profileNotFoundError(profileId);
@@ -68,12 +67,12 @@ function createProvider({
 }: {
   security?: SecurityValues[];
   parameters?: Record<string, string>;
-  superJson?: SuperJson;
+  superJson?: NormalizedSuperJsonDocument;
   provider: string | Provider;
 }): Provider {
   if (typeof provider === 'string') {
     // Fallback to super json values if possible
-    const providerSettings = superJson?.normalized.providers[provider];
+    const providerSettings = superJson?.providers[provider];
 
     return new Provider(
       new ProviderConfiguration(

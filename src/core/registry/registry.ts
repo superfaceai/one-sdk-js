@@ -1,29 +1,26 @@
+import type {
+  MapDocumentNode,
+  ProfileDocumentNode,
+  ProviderJson,
+} from '@superfaceai/ast';
 import {
   assertMapDocumentNode,
   assertProfileDocumentNode,
   assertProviderJson,
   isProviderJson,
-  MapDocumentNode,
-  ProfileDocumentNode,
-  ProviderJson,
 } from '@superfaceai/ast';
 
+import type { IConfig, ICrypto, ILogger } from '../../interfaces';
+import { UnexpectedError } from '../../lib';
 import {
   bindResponseError,
   invalidProviderResponseError,
   invalidResponseError,
-  UnexpectedError,
   unknownBindResponseError,
   unknownProviderInfoError,
 } from '../errors';
-import { IConfig, ICrypto, ILogger } from '../interfaces';
-import {
-  AuthCache,
-  HttpClient,
-  HttpResponse,
-  IFetch,
-  JSON_PROBLEM_CONTENT,
-} from '../interpreter';
+import type { AuthCache, HttpResponse, IFetch } from '../interpreter';
+import { HttpClient, JSON_PROBLEM_CONTENT } from '../interpreter';
 
 const DEBUG_NAMESPACE = 'registry';
 

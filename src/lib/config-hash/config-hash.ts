@@ -1,7 +1,6 @@
-import { ICrypto } from '../../core';
+import type { ICrypto } from '../../core';
 
 export function configHash(values: unknown[], crypto: ICrypto): string {
-  // create the payload
   const data = values
     .map(value => {
       if (typeof value === 'string') {
@@ -12,6 +11,5 @@ export function configHash(values: unknown[], crypto: ICrypto): string {
     })
     .join(';');
 
-  // then hash it
   return crypto.hashString(data, 'MD5');
 }

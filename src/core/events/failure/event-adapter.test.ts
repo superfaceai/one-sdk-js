@@ -1,21 +1,19 @@
-import {
+import type {
   AstMetadata,
-  BackoffKind,
   MapDocumentNode,
-  OnFail,
+  NormalizedSuperJsonDocument,
   ProfileDocumentNode,
 } from '@superfaceai/ast';
+import { BackoffKind, OnFail } from '@superfaceai/ast';
 import { getLocal } from 'mockttp';
 
-import { err, ok, Result } from '../../../lib';
-import { MockClient } from '../../../mock';
-import { SuperJson } from '../../../schema-tools';
-import {
-  bindResponseError,
-  FileSystemError,
-  NotFoundError,
-} from '../../errors';
-import { IConfig } from '../../interfaces';
+import type { IConfig } from '../../../interfaces';
+import type { Result } from '../../../lib';
+import { err, ok } from '../../../lib';
+import { MockClient, MockEnvironment } from '../../../mock';
+import { normalizeSuperJsonDocument } from '../../../schema-tools/superjson/normalize';
+import type { FileSystemError } from '../../errors';
+import { bindResponseError, NotFoundError } from '../../errors';
 import { Provider, ProviderConfiguration } from '../../provider';
 
 const astMetadata: AstMetadata = {
@@ -422,21 +420,24 @@ const thirdMockMapDocument: MapDocumentNode = {
 const mockServer = getLocal();
 
 describe('event-adapter', () => {
-  const superJson = new SuperJson({
-    profiles: {
-      ['starwars/character-information']: {
-        version: '1.0.0',
-        providers: {
-          provider: {},
+  const superJson = normalizeSuperJsonDocument(
+    {
+      profiles: {
+        ['starwars/character-information']: {
+          version: '1.0.0',
+          providers: {
+            provider: {},
+          },
+        },
+      },
+      providers: {
+        provider: {
+          security: [],
         },
       },
     },
-    providers: {
-      provider: {
-        security: [],
-      },
-    },
-  });
+    new MockEnvironment()
+  );
 
   beforeEach(async () => {
     await mockServer.start();
@@ -448,7 +449,7 @@ describe('event-adapter', () => {
 
   const createMockClient = (options?: {
     profileAstPath?: string;
-    superJson?: SuperJson;
+    superJson?: NormalizedSuperJsonDocument;
     ast?: ProfileDocumentNode;
     config?: Partial<IConfig>;
   }): MockClient => {
@@ -568,32 +569,35 @@ describe('event-adapter', () => {
   // Circuit breaker
   it('use circuit-breaker policy - aborts after HTTP 500', async () => {
     const endpoint = await mockServer.forGet('/first').thenJson(500, {});
-    const superJson = new SuperJson({
-      profiles: {
-        ['starwars/character-information']: {
-          version: '1.0.0',
-          providers: {
-            provider: {
-              defaults: {
-                Test: {
-                  input: {},
-                  retryPolicy: {
-                    kind: OnFail.CIRCUIT_BREAKER,
-                    maxContiguousRetries: 2,
-                    requestTimeout: 1000,
+    const superJson = normalizeSuperJsonDocument(
+      {
+        profiles: {
+          ['starwars/character-information']: {
+            version: '1.0.0',
+            providers: {
+              provider: {
+                defaults: {
+                  Test: {
+                    input: {},
+                    retryPolicy: {
+                      kind: OnFail.CIRCUIT_BREAKER,
+                      maxContiguousRetries: 2,
+                      requestTimeout: 1000,
+                    },
                   },
                 },
               },
             },
           },
         },
-      },
-      providers: {
-        provider: {
-          security: [],
+        providers: {
+          provider: {
+            security: [],
+          },
         },
       },
-    });
+      new MockEnvironment()
+    );
 
     const client = createMockClient({ superJson });
     client.addBoundProfileProvider(
@@ -638,22 +642,24 @@ describe('event-adapter', () => {
       };
     });
 
-    const superJson = new SuperJson({
-      profiles: {
-        ['starwars/character-information']: {
-          version: '1.0.0',
-          providers: {
-            provider: {
-              defaults: {
-                Test: {
-                  input: {},
-                  retryPolicy: {
-                    kind: OnFail.CIRCUIT_BREAKER,
-                    maxContiguousRetries: 5,
-                    requestTimeout: 1000,
-                    backoff: {
-                      kind: BackoffKind.EXPONENTIAL,
-                      start: backoffTime,
+    const superJson = normalizeSuperJsonDocument(
+      {
+        profiles: {
+          ['starwars/character-information']: {
+            version: '1.0.0',
+            providers: {
+              provider: {
+                defaults: {
+                  Test: {
+                    input: {},
+                    retryPolicy: {
+                      kind: OnFail.CIRCUIT_BREAKER,
+                      maxContiguousRetries: 5,
+                      requestTimeout: 1000,
+                      backoff: {
+                        kind: BackoffKind.EXPONENTIAL,
+                        start: backoffTime,
+                      },
                     },
                   },
                 },
@@ -661,13 +667,14 @@ describe('event-adapter', () => {
             },
           },
         },
-      },
-      providers: {
-        provider: {
-          security: [],
+        providers: {
+          provider: {
+            security: [],
+          },
         },
       },
-    });
+      new MockEnvironment()
+    );
 
     const client = createMockClient({ superJson });
     client.addBoundProfileProvider(
@@ -698,42 +705,45 @@ describe('event-adapter', () => {
   it('use circuit-breaker policy - switch providers after HTTP 500, using default provider', async () => {
     const endpoint = await mockServer.forGet('/first').thenJson(500, {});
     const secondEndpoint = await mockServer.forGet('/second').thenJson(200, {});
-    const superJson = new SuperJson({
-      profiles: {
-        ['starwars/character-information']: {
-          version: '1.0.0',
-          defaults: {
-            Test: {
-              providerFailover: true,
+    const superJson = normalizeSuperJsonDocument(
+      {
+        profiles: {
+          ['starwars/character-information']: {
+            version: '1.0.0',
+            defaults: {
+              Test: {
+                providerFailover: true,
+              },
             },
-          },
-          priority: ['provider', 'second'],
-          providers: {
-            provider: {
-              defaults: {
-                Test: {
-                  input: {},
-                  retryPolicy: {
-                    kind: OnFail.CIRCUIT_BREAKER,
-                    maxContiguousRetries: 2,
-                    requestTimeout: 1000,
+            priority: ['provider', 'second'],
+            providers: {
+              provider: {
+                defaults: {
+                  Test: {
+                    input: {},
+                    retryPolicy: {
+                      kind: OnFail.CIRCUIT_BREAKER,
+                      maxContiguousRetries: 2,
+                      requestTimeout: 1000,
+                    },
                   },
                 },
               },
+              second: {},
             },
-            second: {},
+          },
+        },
+        providers: {
+          provider: {
+            security: [],
+          },
+          second: {
+            security: [],
           },
         },
       },
-      providers: {
-        provider: {
-          security: [],
-        },
-        second: {
-          security: [],
-        },
-      },
-    });
+      new MockEnvironment()
+    );
 
     const client = createMockClient({ superJson });
 
@@ -765,42 +775,45 @@ describe('event-adapter', () => {
   it('use circuit-breaker policy - do not switch providers after HTTP 500 - using provider from user', async () => {
     const endpoint = await mockServer.forGet('/first').thenJson(500, {});
     const secondEndpoint = await mockServer.forGet('/second').thenJson(200, {});
-    const superJson = new SuperJson({
-      profiles: {
-        ['starwars/character-information']: {
-          version: '1.0.0',
-          defaults: {
-            Test: {
-              providerFailover: true,
+    const superJson = normalizeSuperJsonDocument(
+      {
+        profiles: {
+          ['starwars/character-information']: {
+            version: '1.0.0',
+            defaults: {
+              Test: {
+                providerFailover: true,
+              },
             },
-          },
-          priority: ['provider', 'second'],
-          providers: {
-            provider: {
-              defaults: {
-                Test: {
-                  input: {},
-                  retryPolicy: {
-                    kind: OnFail.CIRCUIT_BREAKER,
-                    maxContiguousRetries: 2,
-                    requestTimeout: 1000,
+            priority: ['provider', 'second'],
+            providers: {
+              provider: {
+                defaults: {
+                  Test: {
+                    input: {},
+                    retryPolicy: {
+                      kind: OnFail.CIRCUIT_BREAKER,
+                      maxContiguousRetries: 2,
+                      requestTimeout: 1000,
+                    },
                   },
                 },
               },
+              second: {},
             },
-            second: {},
+          },
+        },
+        providers: {
+          provider: {
+            security: [],
+          },
+          second: {
+            security: [],
           },
         },
       },
-      providers: {
-        provider: {
-          security: [],
-        },
-        second: {
-          security: [],
-        },
-      },
-    });
+      new MockEnvironment()
+    );
 
     const client = createMockClient({ superJson });
 
@@ -830,43 +843,46 @@ describe('event-adapter', () => {
   it('use circuit-breaker policy - do not switch providers after HTTP 500, providerFailover is false', async () => {
     const endpoint = await mockServer.forGet('/first').thenJson(500, {});
     const secondEndpoint = await mockServer.forGet('/second').thenJson(200, {});
-    const superJson = new SuperJson({
-      profiles: {
-        ['starwars/character-information']: {
-          version: '1.0.0',
-          defaults: {
-            Test: {
-              providerFailover: false,
+    const superJson = normalizeSuperJsonDocument(
+      {
+        profiles: {
+          ['starwars/character-information']: {
+            version: '1.0.0',
+            defaults: {
+              Test: {
+                providerFailover: false,
+              },
             },
-          },
-          // Set
-          priority: ['provider', 'second'],
-          providers: {
-            provider: {
-              defaults: {
-                Test: {
-                  input: {},
-                  retryPolicy: {
-                    kind: OnFail.CIRCUIT_BREAKER,
-                    maxContiguousRetries: 2,
-                    requestTimeout: 1000,
+            // Set
+            priority: ['provider', 'second'],
+            providers: {
+              provider: {
+                defaults: {
+                  Test: {
+                    input: {},
+                    retryPolicy: {
+                      kind: OnFail.CIRCUIT_BREAKER,
+                      maxContiguousRetries: 2,
+                      requestTimeout: 1000,
+                    },
                   },
                 },
               },
+              second: {},
             },
-            second: {},
+          },
+        },
+        providers: {
+          provider: {
+            security: [],
+          },
+          second: {
+            security: [],
           },
         },
       },
-      providers: {
-        provider: {
-          security: [],
-        },
-        second: {
-          security: [],
-        },
-      },
-    });
+      new MockEnvironment()
+    );
 
     const client = createMockClient({ superJson });
 
@@ -897,42 +913,45 @@ describe('event-adapter', () => {
   it('use circuit-breaker policy - switch providers after HTTP 500, use implict priority array', async () => {
     const endpoint = await mockServer.forGet('/first').thenJson(500, {});
     const secondEndpoint = await mockServer.forGet('/second').thenJson(200, {});
-    const superJson = new SuperJson({
-      profiles: {
-        ['starwars/character-information']: {
-          version: '1.0.0',
-          defaults: {
-            Test: {
-              providerFailover: true,
+    const superJson = normalizeSuperJsonDocument(
+      {
+        profiles: {
+          ['starwars/character-information']: {
+            version: '1.0.0',
+            defaults: {
+              Test: {
+                providerFailover: true,
+              },
             },
-          },
-          priority: [],
-          providers: {
-            provider: {
-              defaults: {
-                Test: {
-                  input: {},
-                  retryPolicy: {
-                    kind: OnFail.CIRCUIT_BREAKER,
-                    maxContiguousRetries: 2,
-                    requestTimeout: 1000,
+            priority: [],
+            providers: {
+              provider: {
+                defaults: {
+                  Test: {
+                    input: {},
+                    retryPolicy: {
+                      kind: OnFail.CIRCUIT_BREAKER,
+                      maxContiguousRetries: 2,
+                      requestTimeout: 1000,
+                    },
                   },
                 },
               },
+              second: {},
             },
-            second: {},
+          },
+        },
+        providers: {
+          provider: {
+            security: [],
+          },
+          second: {
+            security: [],
           },
         },
       },
-      providers: {
-        provider: {
-          security: [],
-        },
-        second: {
-          security: [],
-        },
-      },
-    });
+      new MockEnvironment()
+    );
 
     const client = createMockClient({ superJson });
 
@@ -964,53 +983,56 @@ describe('event-adapter', () => {
   it('use two circuit-breaker policies - switch providers after HTTP 500', async () => {
     const endpoint = await mockServer.forGet('/first').thenJson(500, {});
     const secondEndpoint = await mockServer.forGet('/second').thenJson(200, {});
-    const superJson = new SuperJson({
-      profiles: {
-        ['starwars/character-information']: {
-          version: '1.0.0',
-          defaults: {
-            Test: {
-              providerFailover: true,
+    const superJson = normalizeSuperJsonDocument(
+      {
+        profiles: {
+          ['starwars/character-information']: {
+            version: '1.0.0',
+            defaults: {
+              Test: {
+                providerFailover: true,
+              },
             },
-          },
-          priority: [],
-          providers: {
-            provider: {
-              defaults: {
-                Test: {
-                  input: {},
-                  retryPolicy: {
-                    kind: OnFail.CIRCUIT_BREAKER,
-                    maxContiguousRetries: 2,
-                    requestTimeout: 1000,
+            priority: [],
+            providers: {
+              provider: {
+                defaults: {
+                  Test: {
+                    input: {},
+                    retryPolicy: {
+                      kind: OnFail.CIRCUIT_BREAKER,
+                      maxContiguousRetries: 2,
+                      requestTimeout: 1000,
+                    },
+                  },
+                },
+              },
+              second: {
+                defaults: {
+                  Test: {
+                    input: {},
+                    retryPolicy: {
+                      kind: OnFail.CIRCUIT_BREAKER,
+                      maxContiguousRetries: 2,
+                      requestTimeout: 1000,
+                    },
                   },
                 },
               },
             },
-            second: {
-              defaults: {
-                Test: {
-                  input: {},
-                  retryPolicy: {
-                    kind: OnFail.CIRCUIT_BREAKER,
-                    maxContiguousRetries: 2,
-                    requestTimeout: 1000,
-                  },
-                },
-              },
-            },
+          },
+        },
+        providers: {
+          provider: {
+            security: [],
+          },
+          second: {
+            security: [],
           },
         },
       },
-      providers: {
-        provider: {
-          security: [],
-        },
-        second: {
-          security: [],
-        },
-      },
-    });
+      new MockEnvironment()
+    );
 
     const client = createMockClient({ superJson });
 
@@ -1057,42 +1079,45 @@ describe('event-adapter', () => {
     });
     const secondEndpoint = await mockServer.forGet('/second').thenJson(200, {});
 
-    const superJson = new SuperJson({
-      profiles: {
-        ['starwars/character-information']: {
-          version: '1.0.0',
-          defaults: {
-            Test: {
-              providerFailover: true,
+    const superJson = normalizeSuperJsonDocument(
+      {
+        profiles: {
+          ['starwars/character-information']: {
+            version: '1.0.0',
+            defaults: {
+              Test: {
+                providerFailover: true,
+              },
             },
-          },
-          priority: ['provider', 'second'],
-          providers: {
-            provider: {
-              defaults: {
-                Test: {
-                  input: {},
-                  retryPolicy: {
-                    kind: OnFail.CIRCUIT_BREAKER,
-                    maxContiguousRetries: 2,
-                    requestTimeout: 1000,
+            priority: ['provider', 'second'],
+            providers: {
+              provider: {
+                defaults: {
+                  Test: {
+                    input: {},
+                    retryPolicy: {
+                      kind: OnFail.CIRCUIT_BREAKER,
+                      maxContiguousRetries: 2,
+                      requestTimeout: 1000,
+                    },
                   },
                 },
               },
+              second: {},
             },
-            second: {},
+          },
+        },
+        providers: {
+          provider: {
+            security: [],
+          },
+          second: {
+            security: [],
           },
         },
       },
-      providers: {
-        provider: {
-          security: [],
-        },
-        second: {
-          security: [],
-        },
-      },
-    });
+      new MockEnvironment()
+    );
 
     const client = createMockClient({ superJson });
 
@@ -1142,42 +1167,45 @@ describe('event-adapter', () => {
     });
     const secondEndpoint = await mockServer.forGet('/second').thenJson(200, {});
 
-    const superJson = new SuperJson({
-      profiles: {
-        ['starwars/character-information']: {
-          version: '1.0.0',
-          defaults: {
-            Test: {
-              providerFailover: true,
+    const superJson = normalizeSuperJsonDocument(
+      {
+        profiles: {
+          ['starwars/character-information']: {
+            version: '1.0.0',
+            defaults: {
+              Test: {
+                providerFailover: true,
+              },
             },
-          },
-          priority: ['provider', 'second'],
-          providers: {
-            provider: {
-              defaults: {
-                Test: {
-                  input: {},
-                  retryPolicy: {
-                    kind: OnFail.CIRCUIT_BREAKER,
-                    maxContiguousRetries: 2,
-                    requestTimeout: 1000,
+            priority: ['provider', 'second'],
+            providers: {
+              provider: {
+                defaults: {
+                  Test: {
+                    input: {},
+                    retryPolicy: {
+                      kind: OnFail.CIRCUIT_BREAKER,
+                      maxContiguousRetries: 2,
+                      requestTimeout: 1000,
+                    },
                   },
                 },
               },
+              second: {},
             },
-            second: {},
+          },
+        },
+        providers: {
+          provider: {
+            security: [],
+          },
+          second: {
+            security: [],
           },
         },
       },
-      providers: {
-        provider: {
-          security: [],
-        },
-        second: {
-          security: [],
-        },
-      },
-    });
+      new MockEnvironment()
+    );
 
     const client = createMockClient({ superJson });
 
@@ -1229,49 +1257,52 @@ describe('event-adapter', () => {
     const secondEndpoint = await mockServer.forGet('/second').thenJson(200, {});
     const thirdEndpoint = await mockServer.forGet('/third').thenJson(200, {});
 
-    const superJson = new SuperJson({
-      profiles: {
-        ['starwars/character-information']: {
-          version: '1.0.0',
-          priority: ['provider', 'second'],
-          defaults: {
-            Test: {
-              providerFailover: true,
+    const superJson = normalizeSuperJsonDocument(
+      {
+        profiles: {
+          ['starwars/character-information']: {
+            version: '1.0.0',
+            priority: ['provider', 'second'],
+            defaults: {
+              Test: {
+                providerFailover: true,
+              },
             },
-          },
-          providers: {
-            provider: {
-              defaults: {
-                Test: {
-                  input: {},
-                  retryPolicy: {
-                    kind: OnFail.CIRCUIT_BREAKER,
-                    maxContiguousRetries: 2,
-                    requestTimeout: 1000,
+            providers: {
+              provider: {
+                defaults: {
+                  Test: {
+                    input: {},
+                    retryPolicy: {
+                      kind: OnFail.CIRCUIT_BREAKER,
+                      maxContiguousRetries: 2,
+                      requestTimeout: 1000,
+                    },
                   },
                 },
               },
+              second: {},
             },
-            second: {},
+          },
+          ['startrek/character-information']: {
+            version: '1.0.0',
+            providers: { third: {} },
           },
         },
-        ['startrek/character-information']: {
-          version: '1.0.0',
-          providers: { third: {} },
+        providers: {
+          provider: {
+            security: [],
+          },
+          second: {
+            security: [],
+          },
+          third: {
+            security: [],
+          },
         },
       },
-      providers: {
-        provider: {
-          security: [],
-        },
-        second: {
-          security: [],
-        },
-        third: {
-          security: [],
-        },
-      },
-    });
+      new MockEnvironment()
+    );
 
     const client = new MockClient(superJson, {
       fileSystemOverride: {
@@ -1338,49 +1369,52 @@ describe('event-adapter', () => {
     const endpoint = await mockServer.forGet('/first').thenJson(500, {});
     const secondEndpoint = await mockServer.forGet('/second').thenJson(200, {});
 
-    const superJson = new SuperJson({
-      profiles: {
-        ['starwars/character-information']: {
-          version: '1.0.0',
-          defaults: {
-            Test: {
-              providerFailover: true,
-            },
-          },
-          priority: ['provider', 'second'],
-          providers: {
-            provider: {
-              defaults: {
-                Test: {
-                  input: {},
-                  retryPolicy: OnFail.NONE,
-                },
+    const superJson = normalizeSuperJsonDocument(
+      {
+        profiles: {
+          ['starwars/character-information']: {
+            version: '1.0.0',
+            defaults: {
+              Test: {
+                providerFailover: true,
               },
             },
-            second: {
-              defaults: {
-                Test: {
-                  input: {},
-                  retryPolicy: {
-                    kind: OnFail.CIRCUIT_BREAKER,
-                    maxContiguousRetries: 2,
-                    requestTimeout: 1000,
+            priority: ['provider', 'second'],
+            providers: {
+              provider: {
+                defaults: {
+                  Test: {
+                    input: {},
+                    retryPolicy: OnFail.NONE,
+                  },
+                },
+              },
+              second: {
+                defaults: {
+                  Test: {
+                    input: {},
+                    retryPolicy: {
+                      kind: OnFail.CIRCUIT_BREAKER,
+                      maxContiguousRetries: 2,
+                      requestTimeout: 1000,
+                    },
                   },
                 },
               },
             },
           },
         },
-      },
-      providers: {
-        provider: {
-          security: [],
+        providers: {
+          provider: {
+            security: [],
+          },
+          second: {
+            security: [],
+          },
         },
-        second: {
-          security: [],
-        },
       },
-    });
+      new MockEnvironment()
+    );
 
     const client = createMockClient({ superJson });
 
@@ -1421,45 +1455,48 @@ describe('event-adapter', () => {
         title: 'test',
       });
 
-    const superJson = new SuperJson({
-      profiles: {
-        ['starwars/character-information']: {
-          version: '1.0.0',
-          defaults: {
-            Test: {
-              providerFailover: true,
+    const superJson = normalizeSuperJsonDocument(
+      {
+        profiles: {
+          ['starwars/character-information']: {
+            version: '1.0.0',
+            defaults: {
+              Test: {
+                providerFailover: true,
+              },
             },
-          },
-          priority: ['invalid', 'provider'],
-          providers: {
-            provider: {
-              defaults: {
-                Test: {
-                  input: {},
-                  retryPolicy: OnFail.NONE,
+            priority: ['invalid', 'provider'],
+            providers: {
+              provider: {
+                defaults: {
+                  Test: {
+                    input: {},
+                    retryPolicy: OnFail.NONE,
+                  },
+                },
+              },
+              invalid: {
+                defaults: {
+                  Test: {
+                    input: {},
+                    retryPolicy: OnFail.NONE,
+                  },
                 },
               },
             },
-            invalid: {
-              defaults: {
-                Test: {
-                  input: {},
-                  retryPolicy: OnFail.NONE,
-                },
-              },
-            },
+          },
+        },
+        providers: {
+          provider: {
+            security: [],
+          },
+          invalid: {
+            security: [],
           },
         },
       },
-      providers: {
-        provider: {
-          security: [],
-        },
-        invalid: {
-          security: [],
-        },
-      },
-    });
+      new MockEnvironment()
+    );
 
     const client = createMockClient({
       profileAstPath: 'starwars/character-information@1.0.0.supr.ast.json',
@@ -1495,43 +1532,46 @@ describe('event-adapter', () => {
         title: 'test',
       });
 
-    const superJson = new SuperJson({
-      profiles: {
-        ['starwars/character-information']: {
-          version: '1.0.0',
-          defaults: {
-            Test: {
-              providerFailover: true,
+    const superJson = normalizeSuperJsonDocument(
+      {
+        profiles: {
+          ['starwars/character-information']: {
+            version: '1.0.0',
+            defaults: {
+              Test: {
+                providerFailover: true,
+              },
             },
-          },
-          priority: ['invalid', 'provider'],
-          providers: {
-            provider: {
-              defaults: {
-                Test: {
-                  input: {},
+            priority: ['invalid', 'provider'],
+            providers: {
+              provider: {
+                defaults: {
+                  Test: {
+                    input: {},
+                  },
+                },
+              },
+              invalid: {
+                defaults: {
+                  Test: {
+                    input: {},
+                  },
                 },
               },
             },
-            invalid: {
-              defaults: {
-                Test: {
-                  input: {},
-                },
-              },
-            },
+          },
+        },
+        providers: {
+          provider: {
+            security: [],
+          },
+          invalid: {
+            security: [],
           },
         },
       },
-      providers: {
-        provider: {
-          security: [],
-        },
-        invalid: {
-          security: [],
-        },
-      },
-    });
+      new MockEnvironment()
+    );
 
     const client = createMockClient({
       profileAstPath: 'starwars/character-information@1.0.0.supr.ast.json',
@@ -1568,43 +1608,46 @@ describe('event-adapter', () => {
         title: 'test',
       });
 
-    const superJson = new SuperJson({
-      profiles: {
-        ['starwars/character-information']: {
-          version: '1.0.0',
-          defaults: {
-            Test: {
-              providerFailover: false,
+    const superJson = normalizeSuperJsonDocument(
+      {
+        profiles: {
+          ['starwars/character-information']: {
+            version: '1.0.0',
+            defaults: {
+              Test: {
+                providerFailover: false,
+              },
             },
-          },
-          priority: ['invalid', 'provider'],
-          providers: {
-            provider: {
-              defaults: {
-                Test: {
-                  input: {},
+            priority: ['invalid', 'provider'],
+            providers: {
+              provider: {
+                defaults: {
+                  Test: {
+                    input: {},
+                  },
+                },
+              },
+              invalid: {
+                defaults: {
+                  Test: {
+                    input: {},
+                  },
                 },
               },
             },
-            invalid: {
-              defaults: {
-                Test: {
-                  input: {},
-                },
-              },
-            },
+          },
+        },
+        providers: {
+          provider: {
+            security: [],
+          },
+          invalid: {
+            security: [],
           },
         },
       },
-      providers: {
-        provider: {
-          security: [],
-        },
-        invalid: {
-          security: [],
-        },
-      },
-    });
+      new MockEnvironment()
+    );
 
     const client = createMockClient({
       profileAstPath: 'starwars/character-information@1.0.0.supr.ast.json',
@@ -1642,53 +1685,56 @@ describe('event-adapter', () => {
         title: 'test',
       });
 
-    const superJson = new SuperJson({
-      profiles: {
-        ['starwars/character-information']: {
-          version: '1.0.0',
-          defaults: {
-            Test: {
-              providerFailover: true,
+    const superJson = normalizeSuperJsonDocument(
+      {
+        profiles: {
+          ['starwars/character-information']: {
+            version: '1.0.0',
+            defaults: {
+              Test: {
+                providerFailover: true,
+              },
             },
-          },
-          priority: ['invalid', 'provider'],
-          providers: {
-            provider: {
-              defaults: {
-                Test: {
-                  input: {},
-                  retryPolicy: {
-                    kind: OnFail.CIRCUIT_BREAKER,
-                    maxContiguousRetries: 2,
-                    requestTimeout: 1000,
+            priority: ['invalid', 'provider'],
+            providers: {
+              provider: {
+                defaults: {
+                  Test: {
+                    input: {},
+                    retryPolicy: {
+                      kind: OnFail.CIRCUIT_BREAKER,
+                      maxContiguousRetries: 2,
+                      requestTimeout: 1000,
+                    },
+                  },
+                },
+              },
+              invalid: {
+                defaults: {
+                  Test: {
+                    input: {},
+                    retryPolicy: {
+                      kind: OnFail.CIRCUIT_BREAKER,
+                      maxContiguousRetries: 2,
+                      requestTimeout: 1000,
+                    },
                   },
                 },
               },
             },
-            invalid: {
-              defaults: {
-                Test: {
-                  input: {},
-                  retryPolicy: {
-                    kind: OnFail.CIRCUIT_BREAKER,
-                    maxContiguousRetries: 2,
-                    requestTimeout: 1000,
-                  },
-                },
-              },
-            },
+          },
+        },
+        providers: {
+          provider: {
+            security: [],
+          },
+          invalid: {
+            security: [],
           },
         },
       },
-      providers: {
-        provider: {
-          security: [],
-        },
-        invalid: {
-          security: [],
-        },
-      },
-    });
+      new MockEnvironment()
+    );
 
     const client = createMockClient({
       profileAstPath: 'starwars/character-information@1.0.0.supr.ast.json',
@@ -1720,53 +1766,56 @@ describe('event-adapter', () => {
   it('preserves hook context within one client', async () => {
     const endpoint = await mockServer.forGet('/first').thenJson(500, {});
     const secondEndpoint = await mockServer.forGet('/second').thenJson(200, {});
-    const superJson = new SuperJson({
-      profiles: {
-        ['starwars/character-information']: {
-          version: '1.0.0',
-          defaults: {
-            Test: {
-              providerFailover: true,
+    const superJson = normalizeSuperJsonDocument(
+      {
+        profiles: {
+          ['starwars/character-information']: {
+            version: '1.0.0',
+            defaults: {
+              Test: {
+                providerFailover: true,
+              },
             },
-          },
-          priority: [],
-          providers: {
-            provider: {
-              defaults: {
-                Test: {
-                  input: {},
-                  retryPolicy: {
-                    kind: OnFail.CIRCUIT_BREAKER,
-                    maxContiguousRetries: 2,
-                    requestTimeout: 1000,
+            priority: [],
+            providers: {
+              provider: {
+                defaults: {
+                  Test: {
+                    input: {},
+                    retryPolicy: {
+                      kind: OnFail.CIRCUIT_BREAKER,
+                      maxContiguousRetries: 2,
+                      requestTimeout: 1000,
+                    },
+                  },
+                },
+              },
+              second: {
+                defaults: {
+                  Test: {
+                    input: {},
+                    retryPolicy: {
+                      kind: OnFail.CIRCUIT_BREAKER,
+                      maxContiguousRetries: 2,
+                      requestTimeout: 1000,
+                    },
                   },
                 },
               },
             },
-            second: {
-              defaults: {
-                Test: {
-                  input: {},
-                  retryPolicy: {
-                    kind: OnFail.CIRCUIT_BREAKER,
-                    maxContiguousRetries: 2,
-                    requestTimeout: 1000,
-                  },
-                },
-              },
-            },
+          },
+        },
+        providers: {
+          provider: {
+            security: [],
+          },
+          second: {
+            security: [],
           },
         },
       },
-      providers: {
-        provider: {
-          security: [],
-        },
-        second: {
-          security: [],
-        },
-      },
-    });
+      new MockEnvironment()
+    );
 
     const client = createMockClient({ superJson });
 
@@ -1809,61 +1858,64 @@ describe('event-adapter', () => {
   it('does not preserve hook context across clients', async () => {
     const endpoint = await mockServer.forGet('/first').thenJson(500, {});
     const secondEndpoint = await mockServer.forGet('/second').thenJson(200, {});
-    const superJson = new SuperJson({
-      profiles: {
-        ['starwars/character-information']: {
-          version: '1.0.0',
-          defaults: {
-            Test: {
-              providerFailover: true,
+    const superJson = normalizeSuperJsonDocument(
+      {
+        profiles: {
+          ['starwars/character-information']: {
+            version: '1.0.0',
+            defaults: {
+              Test: {
+                providerFailover: true,
+              },
             },
-          },
-          priority: [],
-          providers: {
-            provider: {
-              defaults: {
-                Test: {
-                  input: {},
-                  retryPolicy: {
-                    kind: OnFail.CIRCUIT_BREAKER,
-                    maxContiguousRetries: 2,
-                    requestTimeout: 1000,
-                    backoff: {
-                      kind: BackoffKind.EXPONENTIAL,
-                      start: 50,
+            priority: [],
+            providers: {
+              provider: {
+                defaults: {
+                  Test: {
+                    input: {},
+                    retryPolicy: {
+                      kind: OnFail.CIRCUIT_BREAKER,
+                      maxContiguousRetries: 2,
+                      requestTimeout: 1000,
+                      backoff: {
+                        kind: BackoffKind.EXPONENTIAL,
+                        start: 50,
+                      },
+                    },
+                  },
+                },
+              },
+              second: {
+                defaults: {
+                  Test: {
+                    input: {},
+                    retryPolicy: {
+                      kind: OnFail.CIRCUIT_BREAKER,
+                      maxContiguousRetries: 2,
+                      requestTimeout: 1000,
+                      backoff: {
+                        kind: BackoffKind.EXPONENTIAL,
+                        start: 50,
+                      },
                     },
                   },
                 },
               },
             },
-            second: {
-              defaults: {
-                Test: {
-                  input: {},
-                  retryPolicy: {
-                    kind: OnFail.CIRCUIT_BREAKER,
-                    maxContiguousRetries: 2,
-                    requestTimeout: 1000,
-                    backoff: {
-                      kind: BackoffKind.EXPONENTIAL,
-                      start: 50,
-                    },
-                  },
-                },
-              },
-            },
+          },
+        },
+        providers: {
+          provider: {
+            security: [],
+          },
+          second: {
+            security: [],
           },
         },
       },
-      providers: {
-        provider: {
-          security: [],
-        },
-        second: {
-          security: [],
-        },
-      },
-    });
+      new MockEnvironment()
+    );
 
     {
       const client = createMockClient({ superJson });

@@ -1,4 +1,4 @@
-import { IEnvironment } from '../../core';
+import type { IEnvironment } from '../../core';
 
 export class NodeEnvironment implements IEnvironment {
   public getString(key: string): string | undefined {

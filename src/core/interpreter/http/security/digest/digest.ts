@@ -1,27 +1,28 @@
-import { DigestSecurityScheme, DigestSecurityValues } from '@superfaceai/ast';
+import type { DigestSecurityScheme, DigestSecurityValues } from '@superfaceai/ast';
 
+import type { ICrypto, ILogger, LogFunction } from '../../../../../interfaces';
 import { pipe } from '../../../../../lib';
 import {
   digestHeaderNotFound,
   missingPartOfDigestHeader,
   unexpectedDigestValue,
 } from '../../../../errors';
-import { ICrypto, ILogger, LogFunction } from '../../../../interfaces';
 import {
   fetchFilter,
   isCompleteHttpRequest,
   prepareRequestFilter,
   withRequest,
 } from '../../filters';
-import { IFetch } from '../../interfaces';
-import { HttpResponse } from '../../types';
-import {
+import type { IFetch } from '../../interfaces';
+import type { HttpResponse } from '../../types';
+import type {
   AuthCache,
   AuthenticateRequestAsync,
-  DEFAULT_AUTHORIZATION_HEADER_NAME,
   HandleResponseAsync,
   ISecurityHandler,
-  RequestParameters,
+  RequestParameters} from '../interfaces';
+import {
+  DEFAULT_AUTHORIZATION_HEADER_NAME
 } from '../interfaces';
 
 const DEBUG_NAMESPACE = 'http:security:digest-handler';

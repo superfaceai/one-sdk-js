@@ -1,43 +1,43 @@
+import type {
+  MapDocumentNode,
+  NormalizedSuperJsonDocument,
+  ProfileDocumentNode,
+  ProviderJson,
+  SecurityValues,
+} from '@superfaceai/ast';
 import {
   assertMapDocumentNode,
   assertProviderJson,
   FILE_URI_PROTOCOL,
   isFileURIString,
   isMapFile,
-  MapDocumentNode,
-  ProfileDocumentNode,
-  ProviderJson,
-  SecurityValues,
 } from '@superfaceai/ast';
 
-import { forceCast, profileAstId } from '../../lib';
-import { mergeSecurity, SuperJson } from '../../schema-tools';
-import {
-  localProviderAndRemoteMapError,
-  providersDoNotMatchError,
-  referencedFileNotFoundError,
-  UnexpectedError,
-} from '../errors';
-import { Events, Interceptable } from '../events';
-import {
+import type {
   IConfig,
   ICrypto,
   IFileSystem,
   ILogger,
   ITimers,
   LogFunction,
-} from '../interfaces';
-import { AuthCache, IFetch } from '../interpreter';
+} from '../../interfaces';
+import { forceCast, profileAstId, UnexpectedError } from '../../lib';
+import { mergeSecurity } from '../../schema-tools';
+import {
+  localProviderAndRemoteMapError,
+  providersDoNotMatchError,
+  referencedFileNotFoundError,
+} from '../errors';
+import type { Events, Interceptable } from '../events';
+import type { AuthCache, IFetch } from '../interpreter';
 import { Parser } from '../parser';
-import { ProviderConfiguration } from '../provider';
+import type { ProviderConfiguration } from '../provider';
 import { fetchBind, fetchMapSource, fetchProviderInfo } from '../registry';
 import { ServiceSelector } from '../services';
-import {
-  BoundProfileProvider,
-  IBoundProfileProvider,
-} from './bound-profile-provider';
+import type { IBoundProfileProvider } from './bound-profile-provider';
+import { BoundProfileProvider } from './bound-profile-provider';
 import { resolveIntegrationParameters } from './parameters';
-import { ProfileProviderConfiguration } from './profile-provider-configuration';
+import type { ProfileProviderConfiguration } from './profile-provider-configuration';
 import { resolveSecurityConfiguration } from './security';
 
 const DEBUG_NAMESPACE = 'profile-provider';
@@ -46,7 +46,7 @@ export async function bindProfileProvider(
   profile: ProfileDocumentNode,
   profileProviderConfig: ProfileProviderConfiguration,
   providerConfig: ProviderConfiguration,
-  superJson: SuperJson | undefined,
+  superJson: NormalizedSuperJsonDocument | undefined,
   config: IConfig,
   events: Events,
   timers: ITimers,
@@ -89,7 +89,7 @@ export class ProfileProvider {
   constructor(
     /** Preloaded superJson instance */
     // TODO: Use superJson from events/Client?
-    public readonly superJson: SuperJson | undefined,
+    public readonly superJson: NormalizedSuperJsonDocument | undefined,
     /** profile ast node */
     private profile: ProfileDocumentNode,
     /** provider configuration instance */
@@ -242,14 +242,12 @@ export class ProfileProvider {
           providerInfo.defaultService
         ),
         profileProviderSettings:
-          this.superJson?.normalized.profiles[profileId]?.providers[
-            providerInfo.name
-          ],
+          this.superJson?.profiles[profileId]?.providers[providerInfo.name],
         security: securityConfiguration,
         parameters: resolveIntegrationParameters(
           providerInfo,
           this.providerConfig.parameters ??
-            this.superJson?.normalized.providers[providerInfo.name]?.parameters
+            this.superJson?.providers[providerInfo.name]?.parameters
         ),
       },
       this.crypto,
@@ -349,13 +347,16 @@ export class ProfileProvider {
         if (this.superJson === undefined) {
           return undefined;
         }
-        const providerSettings =
-          this.superJson.normalized.providers[providerName];
+
+        const providerSettings = this.superJson.providers[providerName];
         if (providerSettings?.file !== undefined) {
           // local file is resolved
           return (
             FILE_URI_PROTOCOL +
-            this.superJson.resolvePath(providerSettings.file)
+            this.fileSystem.path.resolve(
+              this.config.superfacePath,
+              providerSettings.file
+            )
           );
         } else {
           // local file not specified
@@ -414,14 +415,17 @@ export class ProfileProvider {
           return undefined;
         }
         const profileProviderSettings =
-          this.superJson.normalized.profiles[profileId].providers[providerName];
+          this.superJson.profiles[profileId].providers[providerName];
 
         if (profileProviderSettings === undefined) {
           return undefined;
         } else if ('file' in profileProviderSettings) {
           return (
             FILE_URI_PROTOCOL +
-            this.superJson.resolvePath(profileProviderSettings.file)
+            this.fileSystem.path.resolve(
+              this.config.superfacePath,
+              profileProviderSettings.file
+            )
           );
         } else {
           mapInfo.mapVariant = profileProviderSettings.mapVariant;
@@ -507,7 +511,7 @@ export class ProfileProvider {
     overlay?: SecurityValues[]
   ): SecurityValues[] {
     const base: SecurityValues[] =
-      this.superJson?.normalized.providers[providerName]?.security ?? [];
+      this.superJson?.providers[providerName]?.security ?? [];
 
     if (overlay !== undefined) {
       return mergeSecurity(base, overlay);

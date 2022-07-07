@@ -1,28 +1,29 @@
-import {
-  extractVersion,
-  isValidDocumentName,
+import type {
+  NormalizedSuperJsonDocument,
   ProfileDocumentNode,
 } from '@superfaceai/ast';
+import { extractVersion, isValidDocumentName } from '@superfaceai/ast';
 
-import { profileAstId, SuperCache, versionToString } from '../../lib';
-import { SuperJson } from '../../schema-tools';
-import { Config } from '../config';
+import type { ICrypto, IFileSystem, ILogger, ITimers } from '../../interfaces';
+import type { SuperCache } from '../../lib';
+import { profileAstId, versionToString } from '../../lib';
+import type { Config } from '../config';
 import {
   invalidIdentifierIdError,
   invalidVersionError,
+  profileFileNotFoundError,
   profileNotInstalledError,
   unconfiguredProviderInPriorityError,
 } from '../errors';
-import { Events, Interceptable } from '../events';
-import { ICrypto, IFileSystem, ILogger, ITimers } from '../interfaces';
-import { AuthCache, IFetch } from '../interpreter';
+import type { Events, Interceptable } from '../events';
+import type { AuthCache, IFetch } from '../interpreter';
 import { Profile, ProfileConfiguration, resolveProfileAst } from '../profile';
-import { IBoundProfileProvider } from '../profile-provider';
+import type { IBoundProfileProvider } from '../profile-provider';
 
 export class InternalClient {
   constructor(
     private readonly events: Events,
-    private readonly superJson: SuperJson | undefined,
+    private readonly superJson: NormalizedSuperJsonDocument | undefined,
     private readonly config: Config,
     private readonly timers: ITimers,
     private readonly fileSystem: IFileSystem,
@@ -72,19 +73,29 @@ export class InternalClient {
   ): Promise<ProfileConfiguration> {
     const profileId = profileAstId(ast);
     if (this.superJson !== undefined) {
-      const profileSettings = this.superJson?.normalized.profiles[profileId];
+      const profileSettings = this.superJson.profiles[profileId];
       if (profileSettings === undefined) {
         throw profileNotInstalledError(profileId);
       }
 
-      // TODO: load priority and add it to ProfileConfiguration?
-      const priority = profileSettings.priority;
-      if (!priority.every(p => this.superJson?.normalized.providers[p])) {
-        throw unconfiguredProviderInPriorityError(
-          profileId,
-          priority,
-          Object.keys(this.superJson?.normalized.providers ?? [])
+      if ('file' in profileSettings) {
+        const filePath = this.fileSystem.path.resolve(
+          this.config.superfacePath,
+          profileSettings.file
         );
+        if (!(await this.fileSystem.exists(filePath))) {
+          throw profileFileNotFoundError(profileSettings.file, profileId);
+        }
+
+        // TODO: load priority and add it to ProfileConfiguration?
+        const priority = profileSettings.priority;
+        if (!priority.every(p => this.superJson?.providers[p])) {
+          throw unconfiguredProviderInPriorityError(
+            profileId,
+            priority,
+            Object.keys(this.superJson.providers ?? [])
+          );
+        }
       }
     }
 
