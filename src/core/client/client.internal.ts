@@ -14,7 +14,6 @@ import {
 import { Events, Interceptable } from '../events';
 import { ICrypto, IFileSystem, ILogger, ITimers } from '../interfaces';
 import { AuthCache, FetchInstance } from '../interpreter';
-import { Parser } from '../parser';
 import { Profile, ProfileConfiguration } from '../profile';
 import { IBoundProfileProvider } from '../profile-provider';
 import { fetchProfileAst } from '../registry';
@@ -39,61 +38,30 @@ export class InternalClient {
    * Resolves profile AST file.
    * File property:
    *  - loads directly passed file
-   *  - can point to .supr or .supr.ast.json file
-   *  - throws if file not found
+   *  - can point only .supr.ast.json file
+   *  - throws if file not found or not valid ProfileDocumentNode
    * Version property
    *  - looks for [profileId]@[version].supr.ast.json file in superface/grid
-   *  - if not found looks for [profileId]@[version].supr file in superface/grid
    *  - if not found it tries to fetch profile AST from Registry
    *
-   * @param profileConfiguration
+   * @param profileId
    * @returns ProfileDocumentNode
    */
-  // TODO: Move to SuperfaceClientBase or move to separate file to simplify reause and testing?
+  // TODO: Move to separate file to simplify reause and testing?
   // TODO: Add logs
   // TODO: private
   public async resolveProfileAst(
     profileId: string
   ): Promise<ProfileDocumentNode> {
-    // TODO: do we have some util for this? Create it if we don't
-    let scope: string | undefined;
-    let profileName: string;
-    const [scopeOrProfileName, resolvedProfileName] = profileId.split('/');
-
-    if (resolvedProfileName === undefined) {
-      profileName = scopeOrProfileName;
-    } else {
-      profileName = resolvedProfileName;
-      scope = scopeOrProfileName;
-    }
-
-    // TODO: move to utils?
     const loadProfileAstFile = async (
       fileNameWithExtension: string
     ): Promise<ProfileDocumentNode> => {
       const contents = await this.fileSystem.readFile(fileNameWithExtension);
-
       if (contents.isErr()) {
         throw contents.error;
       }
-      if (fileNameWithExtension.endsWith(EXTENSIONS.profile.build)) {
-        // treat as ast.json
-        return assertProfileDocumentNode(JSON.parse(contents.value));
-      } else if (fileNameWithExtension.endsWith(EXTENSIONS.profile.source)) {
-        // treat as .supr
-        return Parser.parseProfile(
-          contents.value,
-          fileNameWithExtension,
-          {
-            profileName,
-            scope,
-          },
-          this.config.cachePath,
-          this.fileSystem
-        );
-      } else {
-        throw new Error('TODO invalid extenstion err');
-      }
+
+      return assertProfileDocumentNode(JSON.parse(contents.value));
     };
 
     const profileSettings = this.superJson.normalized.profiles[profileId];
@@ -106,6 +74,12 @@ export class InternalClient {
     if ('file' in profileSettings) {
       filepath = this.superJson.resolvePath(profileSettings.file);
       console.log('file path', filepath);
+      // check extensions
+      if (filepath.endsWith(EXTENSIONS.profile.source)) {
+        throw new Error('TODO invalid extenstion err -needs to be compiled');
+      } else if (!filepath.endsWith(EXTENSIONS.profile.build)) {
+        throw new Error('TODO invalid extenstion err');
+      }
 
       return loadProfileAstFile(filepath);
     }
@@ -119,31 +93,12 @@ export class InternalClient {
       )
     );
 
-    // TODO: make this pretty
-    let ast: ProfileDocumentNode | undefined = undefined;
     try {
-      ast = await loadProfileAstFile(filepath + EXTENSIONS.profile.build);
       // TODO: cache this somewhere (similar to CLI - .cache, config.cachePath)?
-      console.log('ast ok');
+      return loadProfileAstFile(filepath + EXTENSIONS.profile.build);
     } catch (error) {
       console.log('ast failed', error);
       void error;
-    }
-
-    if (ast !== undefined) {
-      return ast;
-    }
-
-    try {
-      ast = await loadProfileAstFile(filepath + EXTENSIONS.profile.source);
-      console.log('source ok');
-    } catch (error) {
-      console.log('source failed', error);
-      void error;
-    }
-
-    if (ast !== undefined) {
-      return ast;
     }
 
     console.log('fallback');
@@ -187,6 +142,7 @@ export class InternalClient {
       throw profileNotInstalledError(profileId);
     }
 
+    // TODO: use/create some util?
     let version = `${ast.header.version.major}.${ast.header.version.minor}.${ast.header.version.patch}`;
 
     if (ast.header.version.label !== undefined) {
