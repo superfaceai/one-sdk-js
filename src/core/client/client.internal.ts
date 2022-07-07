@@ -1,14 +1,13 @@
 import {
+  assertProfileDocumentNode,
   EXTENSIONS,
-  isProfileDocumentNode,
   ProfileDocumentNode,
 } from '@superfaceai/ast';
 
-import { Result, SuperCache } from '../../lib';
+import { SuperCache } from '../../lib';
 import { SuperJson } from '../../schema-tools';
 import { Config } from '../config';
 import {
-  FileSystemError,
   profileFileNotFoundError,
   profileNotInstalledError,
   unconfiguredProviderInPriorityError,
@@ -39,18 +38,27 @@ export class InternalClient {
 
   /**
    * Resolves profile AST file.
+   * File property:
+   *  - loads directly passed file
+   *  - can point to .supr or .supr.ast.json file
+   *  - throws if file not found
+   * Version property
+   *  - looks for [profileId]@[version].supr.ast.json file in superface/grid
+   *  - if not found looks for [profileId]@[version].supr file in superface/grid
+   *  - if not found it tries to fetch profile AST from Registry
    *
    * @param profileConfiguration
-   * @returns
+   * @returns ProfileDocumentNode
    */
-  // TODO: Move to SuperfaceClientBase?
+  // TODO: Move to SuperfaceClientBase or move to separate file to simplify reause and testing?
+  // TODO: Add logs
   public async resolveProfileAst(
-    profileConfiguration: ProfileConfiguration
+    profileId: string
   ): Promise<ProfileDocumentNode> {
+    // TODO: do we have some util for this? Create it if we don't
     let scope: string | undefined;
     let profileName: string;
-    const [scopeOrProfileName, resolvedProfileName] =
-      profileConfiguration.id.split('/');
+    const [scopeOrProfileName, resolvedProfileName] = profileId.split('/');
 
     if (resolvedProfileName === undefined) {
       profileName = scopeOrProfileName;
@@ -60,29 +68,22 @@ export class InternalClient {
     }
 
     // TODO: move to utils?
-    // TODO: handle cases when extension is part of filepath
-    const loadProfileAst = async (
-      filepath: string
-    ): Promise<ProfileDocumentNode | undefined> => {
-      let contents: Result<string, FileSystemError>;
-      const fileNameWithExtension = filepath + EXTENSIONS.profile.build;
+    const loadProfileAstFile = async (
+      fileNameWithExtension: string
+    ): Promise<ProfileDocumentNode> => {
+      const contents = await this.fileSystem.readFile(fileNameWithExtension);
 
-      contents = await this.fileSystem.readFile(fileNameWithExtension);
-      console.log('ast con', contents)
-
-      if (contents.isOk()) {
-        const possibleProfileAst: unknown = JSON.parse(contents.value);
-        if (isProfileDocumentNode(possibleProfileAst)) {
-          return possibleProfileAst;
-        }
+      if (contents.isErr()) {
+        throw contents.error;
       }
-      console.log('source con', contents)
-
-      contents = await this.fileSystem.readFile(fileNameWithExtension);
-      if (contents.isOk()) {
+      if (fileNameWithExtension.endsWith(EXTENSIONS.profile.build)) {
+        // treat as ast.json
+        return assertProfileDocumentNode(JSON.parse(contents.value));
+      } else if (fileNameWithExtension.endsWith(EXTENSIONS.profile.source)) {
+        // treat as .supr
         return Parser.parseProfile(
           contents.value,
-          filepath,
+          fileNameWithExtension,
           {
             profileName,
             scope,
@@ -90,48 +91,67 @@ export class InternalClient {
           this.config.cachePath,
           this.fileSystem
         );
+      } else {
+        throw new Error('TODO invalid extenstion err');
       }
-
-      return;
     };
 
-    const profileSettings =
-      this.superJson.normalized.profiles[profileConfiguration.id];
-    if (profileSettings !== undefined) {
-      let filepath: string;
-      if ('file' in profileSettings) {
-        // assumed right next to source file
-        // FIX: super.json path - when we use in code super.json it is resolving path incorrectly
-        filepath = this.superJson.resolvePath(profileSettings.file);
-      } else {
-        // assumed to be in grid folder
-        // TODO: look in other place (.cache) use config.cachePath?
-        // FIX: super.json path - when we use in code super.json it is resolving path incorrectly
-        filepath = this.superJson.resolvePath(
-          this.fileSystem.path.join(
-            'grid',
-            `${profileConfiguration.id}@${profileSettings.version}`
-          )
-        );
-      }
+    const profileSettings = this.superJson.normalized.profiles[profileId];
 
-      console.log('file path', filepath)
-
-      const ast = await loadProfileAst(filepath);
-
-      if (ast !== undefined) {
-        return ast;
-      }
-      // if this logic path fails whole method should fail - do not fallback to remote
-      if ('file' in profileSettings) {
-        throw new Error('TODO unable to find profile file');
-      }
+    if (profileSettings === undefined) {
+      // TODO: more suitable error
+      throw profileNotInstalledError(profileId);
     }
+    let filepath: string;
+    if ('file' in profileSettings) {
+      filepath = this.superJson.resolvePath(profileSettings.file);
+      console.log('file path', filepath);
+
+      return loadProfileAstFile(filepath);
+    }
+    // assumed to be in grid folder
+    // TODO: look in other place (.cache) use config.cachePath?
+    // FIX: super.json path - when we use in code super.json it is resolving path incorrectly
+    filepath = this.superJson.resolvePath(
+      this.fileSystem.path.join(
+        'grid',
+        `${profileId}@${profileSettings.version}`
+      )
+    );
+
+    // TODO: make this pretty
+    let ast: ProfileDocumentNode | undefined = undefined;
+    try {
+      ast = await loadProfileAstFile(filepath + EXTENSIONS.profile.build);
+      // TODO: cache this somewhere (similar to CLI - .cache, config.cachePath)?
+      console.log('ast ok');
+    } catch (error) {
+      console.log('ast failed', error);
+      void error;
+    }
+
+    if (ast !== undefined) {
+      return ast;
+    }
+
+    try {
+      ast = await loadProfileAstFile(filepath + EXTENSIONS.profile.source);
+      console.log('source ok');
+    } catch (error) {
+      console.log('source failed', error);
+      void error;
+    }
+
+    if (ast !== undefined) {
+      return ast;
+    }
+
+    console.log('fallback');
 
     // Fallback to remote
     // TODO: cache this somewhere (similar to CLI - .cache, config.cachePath)?
     return fetchProfileAst(
-      `${profileConfiguration.id}@${profileConfiguration.version}`,
+      `${profileId}@${profileSettings.version}`,
       this.config,
       this.crypto,
       this.fetchInstance,
@@ -141,7 +161,7 @@ export class InternalClient {
 
   public async getProfile(profileId: string): Promise<Profile> {
     const profileConfiguration = await this.getProfileConfiguration(profileId);
-    const ast = await this.resolveProfileAst(profileConfiguration);
+    const ast = await this.resolveProfileAst(profileId);
 
     return new Profile(
       profileConfiguration,
@@ -168,8 +188,9 @@ export class InternalClient {
 
     let version;
     if ('file' in profileSettings) {
+      // TODO: remove this check?
       const filePath = this.superJson.resolvePath(profileSettings.file);
-      console.log('ex path', filePath)
+      console.log('ex path', filePath);
       if (!(await this.fileSystem.exists(filePath))) {
         throw profileFileNotFoundError(profileSettings.file, profileId);
       }

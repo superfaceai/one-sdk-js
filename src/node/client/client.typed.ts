@@ -29,7 +29,7 @@ export function createTypedClient<TProfiles extends ProfileUseCases<any, any>>(
       const profileConfiguration = await this.internal.getProfileConfiguration(
         profileId as string
       );
-      const ast = await this.internal.resolveProfileAst(profileConfiguration);
+      const ast = await this.internal.resolveProfileAst(profileId as string);
 
       return new TypedProfile(
         profileConfiguration,
