@@ -26,10 +26,10 @@ export function createTypedClient<TProfiles extends ProfileUseCases<any, any>>(
     public async getProfile<TProfile extends keyof TProfiles>(
       profileId: TProfile
     ): Promise<TypedProfile<TProfiles[TProfile]>> {
-      const profileConfiguration = await this.internal.getProfileConfiguration(
-        profileId as string
-      );
       const ast = await this.internal.resolveProfileAst(profileId as string);
+      const profileConfiguration = await this.internal.getProfileConfiguration(
+        ast
+      );
 
       return new TypedProfile(
         profileConfiguration,

@@ -4,11 +4,10 @@ import {
   ProfileDocumentNode,
 } from '@superfaceai/ast';
 
-import { SuperCache } from '../../lib';
+import { profileAstId, SuperCache } from '../../lib';
 import { SuperJson } from '../../schema-tools';
 import { Config } from '../config';
 import {
-  profileFileNotFoundError,
   profileNotInstalledError,
   unconfiguredProviderInPriorityError,
 } from '../errors';
@@ -34,7 +33,7 @@ export class InternalClient {
     private readonly crypto: ICrypto,
     private readonly fetchInstance: FetchInstance & Interceptable & AuthCache,
     private readonly logger?: ILogger
-  ) { }
+  ) {}
 
   /**
    * Resolves profile AST file.
@@ -52,6 +51,7 @@ export class InternalClient {
    */
   // TODO: Move to SuperfaceClientBase or move to separate file to simplify reause and testing?
   // TODO: Add logs
+  // TODO: private
   public async resolveProfileAst(
     profileId: string
   ): Promise<ProfileDocumentNode> {
@@ -160,8 +160,8 @@ export class InternalClient {
   }
 
   public async getProfile(profileId: string): Promise<Profile> {
-    const profileConfiguration = await this.getProfileConfiguration(profileId);
     const ast = await this.resolveProfileAst(profileId);
+    const profileConfiguration = await this.getProfileConfiguration(ast);
 
     return new Profile(
       profileConfiguration,
@@ -179,26 +179,18 @@ export class InternalClient {
   }
 
   public async getProfileConfiguration(
-    profileId: string
+    ast: ProfileDocumentNode
   ): Promise<ProfileConfiguration> {
+    const profileId = profileAstId(ast);
     const profileSettings = this.superJson.normalized.profiles[profileId];
     if (profileSettings === undefined) {
       throw profileNotInstalledError(profileId);
     }
 
-    let version;
-    if ('file' in profileSettings) {
-      // TODO: remove this check?
-      const filePath = this.superJson.resolvePath(profileSettings.file);
-      console.log('ex path', filePath);
-      if (!(await this.fileSystem.exists(filePath))) {
-        throw profileFileNotFoundError(profileSettings.file, profileId);
-      }
+    let version = `${ast.header.version.major}.${ast.header.version.minor}.${ast.header.version.patch}`;
 
-      // TODO: read version from the ast?
-      version = 'unknown';
-    } else {
-      version = profileSettings.version;
+    if (ast.header.version.label !== undefined) {
+      version += `-${ast.header.version.label}`;
     }
 
     // TODO: load priority and add it to ProfileConfiguration?
