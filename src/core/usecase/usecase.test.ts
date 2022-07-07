@@ -105,7 +105,7 @@ describe('UseCase', () => {
   });
 
   describe('when calling perform', () => {
-    it('passes security values', async () => {
+    it('passes security values when entered as array', async () => {
       const { usecase, performSpy } = createUseCase();
       await expect(
         usecase.perform(
@@ -126,6 +126,52 @@ describe('UseCase', () => {
         { x: 7 },
         undefined,
         [{ id: 'test', apikey: 'key' }]
+      );
+    });
+
+    it('passes security values when entered as object', async () => {
+      const { usecase, performSpy } = createUseCase();
+      await expect(
+        usecase.perform(
+          { x: 7 },
+          {
+            security: {
+              test: {
+                apikey: 'key',
+              },
+            },
+          }
+        )
+      ).resolves.toBeUndefined();
+
+      expect(performSpy).toHaveBeenCalledWith(
+        'test-usecase',
+        { x: 7 },
+        undefined,
+        [{ id: 'test', apikey: 'key' }]
+      );
+    });
+
+    it('does not pass security values when not supported', async () => {
+      const { usecase, performSpy } = createUseCase();
+      await expect(
+        usecase.perform(
+          { x: 7 },
+          {
+            security: {
+              test: {
+                foo: 'key',
+              },
+            },
+          }
+        )
+      ).resolves.toBeUndefined();
+
+      expect(performSpy).toHaveBeenCalledWith(
+        'test-usecase',
+        { x: 7 },
+        undefined,
+        []
       );
     });
 
