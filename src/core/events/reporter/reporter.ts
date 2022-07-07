@@ -192,7 +192,7 @@ export class MetricReporter {
   ) {
     if (config.metricDebounceTimeMax < config.metricDebounceTimeMin) {
       throw new UnexpectedError(
-        `Value of metricDebounceTimeMax(${config.metricDebounceTimeMax}) is lesser than value of metricDebounceTimeMin(${config.metricDebounceTimeMin})`
+        `Value of metricDebounceTimeMax (${config.metricDebounceTimeMax}) is lesser than value of metricDebounceTimeMin (${config.metricDebounceTimeMin})`
       );
     }
     this.sdkToken = config.sdkAuthToken;
