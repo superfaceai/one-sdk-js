@@ -130,11 +130,9 @@ export class ProfileProvider {
   public async bind(
     configuration?: BindConfiguration
   ): Promise<BoundProfileProvider> {
-    // resolve profile locally
+    // profile is resolved during getProfile
     const profileAst = this.profile;
-    // if (profileAst === undefined) {
-    //   throw invalidProfileError(this.profileId);
-    // }
+
     const profileId = profileAstId(profileAst);
 
     // resolve provider from parameters or defer until later
@@ -394,62 +392,6 @@ export class ProfileProvider {
       );
     }
   }
-
-  // private async resolveProfileAst(): Promise<ProfileDocumentNode | undefined> {
-  //   let resolveInput = this.profile;
-  //   if (resolveInput instanceof ProfileConfiguration) {
-  //     resolveInput = resolveInput.id;
-  //   }
-
-  //   const profileAst = await ProfileProvider.resolveValue(
-  //     resolveInput,
-  //     async (fileContents, fileName) => {
-  //       // If we have profile source, we parse
-  //       if (fileName !== undefined && isProfileFile(fileName)) {
-  //         return Parser.parseProfile(
-  //           fileContents,
-  //           fileName,
-  //           {
-  //             profileName: this.profileName,
-  //             scope: this.scope,
-  //           },
-  //           this.config.cachePath,
-  //           this.fileSystem
-  //         );
-  //       }
-
-  //       // Otherwise we return parsed
-  //       return assertProfileDocumentNode(JSON.parse(fileContents));
-  //     },
-  //     profileId => {
-  //       const profileSettings = this.superJson.normalized.profiles[profileId];
-  //       if (profileSettings === undefined) {
-  //         // not found at all
-  //         return undefined;
-  //       } else if ('file' in profileSettings) {
-  //         // assumed right next to source file
-  //         return (
-  //           FILE_URI_PROTOCOL + this.superJson.resolvePath(profileSettings.file)
-  //         );
-  //       } else {
-  //         // assumed to be in grid folder
-  //         return (
-  //           FILE_URI_PROTOCOL +
-  //           this.superJson.resolvePath(
-  //             this.fileSystem.path.join(
-  //               'grid',
-  //               `${profileId}@${profileSettings.version}.supr`
-  //             )
-  //           )
-  //         );
-  //       }
-  //     },
-  //     this.fileSystem,
-  //     ['.ast.json', '']
-  //   );
-
-  //   return profileAst;
-  // }
 
   private async resolveProviderInfo(): Promise<{
     providerInfo?: ProviderJson;

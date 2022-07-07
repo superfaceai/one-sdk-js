@@ -1,7 +1,7 @@
 import { ProviderJson } from '@superfaceai/ast';
 import { parseMap, parseProfile, Source } from '@superfaceai/parser';
 
-import { ProfileProvider } from '../../core';
+import { InternalClient, ProfileProvider } from '../../core';
 import { ok } from '../../lib';
 import { SuperJson } from '../../schema-tools';
 import { SuperfaceClient } from './client';
@@ -91,7 +91,7 @@ describe('SuperfaceClient integration test', () => {
     // Let .bind happen with mocked inputs
     // Mocking private property of ProfileProvider
     jest
-      .spyOn(ProfileProvider.prototype as any, 'resolveProfileAst')
+      .spyOn(InternalClient.prototype, 'resolveProfileAst')
       .mockResolvedValue(mockProfileDocument);
     jest
       .spyOn(ProfileProvider.prototype as any, 'resolveProviderInfo')
@@ -116,7 +116,7 @@ describe('SuperfaceClient integration test', () => {
     // Let .bind happen with mocked inputs
     // Mocking private property of ProfileProvider
     jest
-      .spyOn(ProfileProvider.prototype as any, 'resolveProfileAst')
+      .spyOn(InternalClient.prototype, 'resolveProfileAst')
       .mockResolvedValue(mockProfileDocument);
     jest
       .spyOn(ProfileProvider.prototype as any, 'resolveProviderInfo')
@@ -140,7 +140,7 @@ describe('SuperfaceClient integration test', () => {
   describe('typed client', () => {
     it('should perform successfully', async () => {
       jest
-        .spyOn(ProfileProvider.prototype as any, 'resolveProfileAst')
+        .spyOn(InternalClient.prototype, 'resolveProfileAst')
         .mockResolvedValue(mockProfileDocument);
       jest
         .spyOn(ProfileProvider.prototype as any, 'resolveProviderInfo')

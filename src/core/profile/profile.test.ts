@@ -1,7 +1,7 @@
 import { SuperJsonDocument } from '@superfaceai/ast';
 
 import { SuperCache } from '../../lib';
-import { MockTimers } from '../../mock';
+import { mockProfileDocumentNode, MockTimers } from '../../mock';
 import { CrossFetch, NodeCrypto, NodeFileSystem } from '../../node';
 import { SuperJson } from '../../schema-tools';
 import { Config } from '../config';
@@ -20,10 +20,12 @@ function createProfile(superJson: SuperJsonDocument): Profile {
     expiresAt: number;
   }>();
   const config = new Config(NodeFileSystem);
+  const ast = mockProfileDocumentNode({ usecaseName: 'sayHello' });
   const configuration = new ProfileConfiguration('test', '1.0.0');
 
   return new Profile(
     configuration,
+    ast,
     events,
     new SuperJson(superJson),
     config,
@@ -49,7 +51,6 @@ describe('Profile', () => {
 
     expect(profile.getUseCase('sayHello')).toMatchObject({
       name: 'sayHello',
-      profileConfiguration: profile.configuration,
     });
   });
 

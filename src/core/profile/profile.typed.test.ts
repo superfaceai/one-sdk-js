@@ -1,5 +1,9 @@
 import { SuperCache } from '../../lib';
-import { MockFileSystem, MockTimers } from '../../mock';
+import {
+  MockFileSystem,
+  mockProfileDocumentNode,
+  MockTimers,
+} from '../../mock';
 import { CrossFetch, NodeCrypto, NodeFileSystem } from '../../node';
 import { SuperJson } from '../../schema-tools';
 import { Config } from '../config';
@@ -21,6 +25,7 @@ describe('TypedProfile', () => {
     providers: {},
   });
   const mockProfileConfiguration = new ProfileConfiguration('test', '1.0.0');
+  const ast = mockProfileDocumentNode();
 
   const timers = new MockTimers();
   const events = new Events(timers);
@@ -35,6 +40,7 @@ describe('TypedProfile', () => {
     it('should get usecase correctly', async () => {
       const typedProfile = new TypedProfile(
         mockProfileConfiguration,
+        ast,
         events,
         mockSuperJson,
         cache,
@@ -48,7 +54,7 @@ describe('TypedProfile', () => {
 
       expect(typedProfile.getUseCase('sayHello')).toEqual(
         new UseCase(
-          mockProfileConfiguration,
+          typedProfile,
           'sayHello',
           events,
           config,
@@ -65,6 +71,7 @@ describe('TypedProfile', () => {
     it('should throw when usecase is not found', async () => {
       const typedProfile = new TypedProfile(
         mockProfileConfiguration,
+        mockProfileDocumentNode(),
         events,
         mockSuperJson,
         cache,
