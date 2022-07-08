@@ -1580,8 +1580,8 @@ describe('superjson mutate', () => {
             TEST_PROFILE_NAME,
             TEST_PROFILE_PROVIDER,
             to.profileProvider,
-            environment,
-            filesystem
+            filesystem,
+            environment
           )
         ).toStrictEqual(expectedChanged);
 
@@ -1626,8 +1626,8 @@ describe('superjson mutate', () => {
           TEST_PROFILE_NAME,
           TEST_PROFILE_PROVIDER,
           undefined,
-          environment,
-          filesystem
+          filesystem,
+          environment
         )
       ).toStrictEqual(true);
 
@@ -1666,8 +1666,8 @@ describe('superjson mutate', () => {
           {
             file: 'file',
           },
-          environment,
-          filesystem
+          filesystem,
+          environment
         )
       ).toStrictEqual(true);
 

@@ -492,8 +492,8 @@ export function setProfileProvider(
   profileName: string,
   providerName: string,
   payload: ProfileProviderEntry | undefined,
-  environment: IEnvironment,
   filesystem: IFileSystem,
+  environment?: IEnvironment,
   logger?: ILogger
 ): boolean {
   let changed = false;
