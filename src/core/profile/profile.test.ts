@@ -5,6 +5,7 @@ import { mockProfileDocumentNode, MockTimers } from '../../mock';
 import { NodeCrypto, NodeFetch, NodeFileSystem } from '../../node';
 import { SuperJson } from '../../schema-tools';
 import { Config } from '../config';
+import { usecaseNotFoundError } from '../errors';
 import { Events } from '../events';
 import { IBoundProfileProvider } from '../profile-provider';
 import { Profile } from './profile';
@@ -38,19 +39,37 @@ function createProfile(superJson: SuperJsonDocument): Profile {
 }
 
 describe('Profile', () => {
-  it('should call getUseCases correctly', async () => {
-    const superJson = {
-      profiles: {
-        test: {
-          version: '1.0.0',
+  describe('when calling getUseCases', () => {
+    it('should retrun new UseCase', async () => {
+      const superJson = {
+        profiles: {
+          test: {
+            version: '1.0.0',
+          },
         },
-      },
-      providers: {},
-    };
-    const profile = createProfile(superJson);
+        providers: {},
+      };
+      const profile = createProfile(superJson);
 
-    expect(profile.getUseCase('sayHello')).toMatchObject({
-      name: 'sayHello',
+      expect(profile.getUseCase('sayHello')).toMatchObject({
+        name: 'sayHello',
+      });
+    });
+
+    it('should throw on non existent use case name', async () => {
+      const superJson = {
+        profiles: {
+          test: {
+            version: '1.0.0',
+          },
+        },
+        providers: {},
+      };
+      const profile = createProfile(superJson);
+
+      expect(() => profile.getUseCase('made-up')).toThrow(
+        usecaseNotFoundError('made-up', ['sayHello'])
+      );
     });
   });
 
