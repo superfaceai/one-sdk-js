@@ -31,7 +31,7 @@ import { SuperCache } from '../lib/cache';
 import { NodeCrypto, NodeFetch, NodeFileSystem, NodeLogger } from '../node';
 import { getProvider, getProviderForProfile, SuperJson } from '../schema-tools';
 import { MockEnvironment } from './environment';
-import { MockFileSystem } from './filesystem';
+import { IPartialFileSystem, MockFileSystem } from './filesystem';
 import { MockTimers } from './timers';
 
 const mockProviderJson = (name: string): ProviderJson => ({
@@ -64,7 +64,7 @@ export class MockClient implements ISuperfaceClient {
     public superJson: SuperJson,
     parameters?: {
       configOverride?: Partial<IConfig>;
-      fileSystemOverride?: Partial<IFileSystem>;
+      fileSystemOverride?: IPartialFileSystem;
     }
   ) {
     // TODO: test logger?
@@ -97,14 +97,9 @@ export class MockClient implements ISuperfaceClient {
       expiresAt: number;
     }>();
 
-    let fileSystem: IFileSystem = MockFileSystem();
-
-    if (parameters?.fileSystemOverride !== undefined) {
-      fileSystem = {
-        ...fileSystem,
-        ...parameters.fileSystemOverride,
-      };
-    }
+    const fileSystem: IFileSystem = MockFileSystem(
+      parameters?.fileSystemOverride
+    );
 
     this.internalClient = new InternalClient(
       this.events,

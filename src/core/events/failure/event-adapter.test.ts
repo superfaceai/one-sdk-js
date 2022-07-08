@@ -1507,6 +1507,9 @@ describe('event-adapter', () => {
 
     const client = new MockClient(superJson, {
       fileSystemOverride: {
+        path: {
+          resolve: (...pathSegments: string[]) => pathSegments.join(),
+        },
         readFile: async (path: string | string[]) => {
           if (
             path.includes('starwars/character-information@1.0.0.supr.ast.json')
@@ -1586,6 +1589,9 @@ describe('event-adapter', () => {
 
     const client = new MockClient(superJson, {
       fileSystemOverride: {
+        path: {
+          resolve: (...pathSegments: string[]) => pathSegments.join(),
+        },
         readFile: async path => {
           if (
             path.includes('starwars/character-information@1.0.0.supr.ast.json')
@@ -1666,6 +1672,9 @@ describe('event-adapter', () => {
 
     const client = new MockClient(superJson, {
       fileSystemOverride: {
+        path: {
+          resolve: (...pathSegments: string[]) => pathSegments.join(),
+        },
         readFile: async path => {
           if (
             path.includes('starwars/character-information@1.0.0.supr.ast.json')
@@ -1757,6 +1766,9 @@ describe('event-adapter', () => {
 
     const client = new MockClient(superJson, {
       fileSystemOverride: {
+        path: {
+          resolve: (...pathSegments: string[]) => pathSegments.join(),
+        },
         readFile: async path => {
           if (
             path.includes('starwars/character-information@1.0.0.supr.ast.json')

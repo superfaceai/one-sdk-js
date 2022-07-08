@@ -71,6 +71,9 @@ describe('superface client', () => {
       it('returns a valid profile when profile is found in grid', async () => {
         const client = new MockClient(mockSuperJson, {
           fileSystemOverride: {
+            path: {
+              resolve: (...pathSegments: string[]) => pathSegments.join(''),
+            },
             readFile: jest.fn(path => {
               expect(path).toMatch('testy/mctestface@0.1.0.supr.ast.json');
 
@@ -111,6 +114,9 @@ describe('superface client', () => {
         );
         const client = new MockClient(mockSuperJson, {
           fileSystemOverride: {
+            path: {
+              resolve: (...pathSegments: string[]) => pathSegments.join(''),
+            },
             readFile: jest.fn(path => {
               expect(path).toMatch('testy/mctestface@0.1.0.supr.ast.json');
 
@@ -211,6 +217,9 @@ describe('superface client', () => {
       it('returns a valid profile when profile is found in grid', async () => {
         const client = new MockClient(mockSuperJson, {
           fileSystemOverride: {
+            path: {
+              resolve: (...pathSegments: string[]) => pathSegments.join(''),
+            },
             readFile: jest.fn(path => {
               expect(path).toMatch('baz@1.2.3.supr.ast.json');
 
@@ -249,6 +258,9 @@ describe('superface client', () => {
         );
         const client = new MockClient(mockSuperJson, {
           fileSystemOverride: {
+            path: {
+              resolve: (...pathSegments: string[]) => pathSegments.join(''),
+            },
             readFile: jest.fn(path => {
               expect(path).toMatch('baz@1.2.3.supr.ast.json');
 

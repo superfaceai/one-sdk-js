@@ -17,8 +17,8 @@ export function versionToString(version: {
   if (version.label !== undefined) {
     versionString += `-${version.label}`;
   }
-  
-return versionString;
+
+  return versionString;
 }
 
 export function forceCast<T>(_: unknown): asserts _ is T {}

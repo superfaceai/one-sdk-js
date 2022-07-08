@@ -91,20 +91,22 @@ export class InternalClient {
 
       return await loadProfileAstFile(filepath);
     }
-    // assumed to be in grid folder
-    // TODO: look in other place (.cache) use config.cachePath?
-    // FIX: super.json path - when we use in code super.json it is resolving path incorrectly
-    filepath = this.superJson.resolvePath(
-      this.fileSystem.path.join(
-        'grid',
-        `${profileId}@${profileSettings.version}`
-      )
+    // assumed to be in grid folder under superface directory
+    const gridPath = this.fileSystem.path.join(
+      'grid',
+      `${profileId}@${profileSettings.version}`
     );
+    const superfaceFolderPath = this.fileSystem.path.dirname(
+      this.config.superfacePath
+    );
+
+    filepath =
+      this.fileSystem.path.resolve(superfaceFolderPath, gridPath) +
+      EXTENSIONS.profile.build;
 
     logFunction?.('Reading possible profile file: %S', filepath);
     try {
-      // TODO: cache this somewhere (in memory)?
-      return await loadProfileAstFile(filepath + EXTENSIONS.profile.build);
+      return await loadProfileAstFile(filepath);
     } catch (error) {
       logFunction?.(
         'Reading of possible profile file failed with error %O',
@@ -116,7 +118,6 @@ export class InternalClient {
     logFunction?.('Fetching profile file from registry');
 
     // Fallback to remote
-    // TODO: cache this somewhere (similar to CLI - .cache, config.cachePath, in memory)?
     return fetchProfileAst(
       `${profileId}@${profileSettings.version}`,
       this.config,
