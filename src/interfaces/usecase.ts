@@ -1,6 +1,6 @@
 import type { SecurityValues } from '@superfaceai/ast';
 
-import type { NonPrimitive, Result, Variables } from '../lib';
+import type { NonPrimitive, Result, UnexpectedError, Variables } from '../lib';
 import type { PerformError } from './errors';
 import type { IProvider } from './provider';
 
@@ -22,5 +22,5 @@ export interface IUseCase {
   >(
     input?: TInput,
     options?: PerformOptions
-  ): Promise<Result<TOutput, PerformError>>;
+  ): Promise<Result<TOutput, PerformError | UnexpectedError>>;
 }

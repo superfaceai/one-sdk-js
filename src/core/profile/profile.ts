@@ -9,6 +9,7 @@ import type {
   ICrypto,
   IFileSystem,
   ILogger,
+  IProfile,
   ITimers,
 } from '../../interfaces';
 import type { SuperCache } from '../../lib';
@@ -44,7 +45,7 @@ export abstract class ProfileBase {
   }
 }
 
-export class Profile extends ProfileBase {
+export class Profile extends ProfileBase implements IProfile {
   public getUseCase(name: string): UseCase {
     const supportedUsecaseNames = this.ast.definitions
       .filter(isUseCaseDefinitionNode)

@@ -17,6 +17,7 @@ import type {
   IFileSystem,
   ILogger,
   ITimers,
+  IUseCase,
   LogFunction,
   PerformError,
 } from '../../interfaces';
@@ -345,7 +346,7 @@ export abstract class UseCaseBase implements Interceptable {
   }
 }
 
-export class UseCase extends UseCaseBase {
+export class UseCase extends UseCaseBase implements IUseCase {
   public async perform<
     TInput extends NonPrimitive | undefined = Record<
       string,
