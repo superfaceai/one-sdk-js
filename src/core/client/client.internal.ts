@@ -4,7 +4,7 @@ import {
   ProfileDocumentNode,
 } from '@superfaceai/ast';
 
-import { profileAstId, SuperCache } from '../../lib';
+import { profileAstId, SuperCache, versionToString } from '../../lib';
 import { SuperJson } from '../../schema-tools';
 import { Config } from '../config';
 import {
@@ -154,13 +154,6 @@ export class InternalClient {
       throw profileNotInstalledError(profileId);
     }
 
-    // TODO: use/create some util?
-    let version = `${ast.header.version.major}.${ast.header.version.minor}.${ast.header.version.patch}`;
-
-    if (ast.header.version.label !== undefined) {
-      version += `-${ast.header.version.label}`;
-    }
-
     // TODO: load priority and add it to ProfileConfiguration?
     const priority = profileSettings.priority;
     if (!priority.every(p => this.superJson.normalized.providers[p])) {
@@ -171,6 +164,9 @@ export class InternalClient {
       );
     }
 
-    return new ProfileConfiguration(profileId, version);
+    return new ProfileConfiguration(
+      profileId,
+      versionToString(ast.header.version)
+    );
   }
 }
