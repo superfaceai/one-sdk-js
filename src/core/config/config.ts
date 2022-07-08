@@ -208,6 +208,7 @@ export function mergeConfigs(
       newConfig.disableReporting ?? originalConfig.disableReporting,
     cachePath: newConfig.cachePath ?? originalConfig.cachePath,
     sandboxTimeout: newConfig.sandboxTimeout ?? originalConfig.sandboxTimeout,
+    debug: newConfig.debug ?? originalConfig.debug,
   };
 
   logger?.log(
@@ -259,6 +260,7 @@ export function loadConfigFromCode(
       'sandboxTimeout',
       logFunction
     ),
+    debug: config?.debug !== undefined ? config.debug : false,
   };
 
   logger?.log(DEBUG_NAMESPACE, 'Loaded config from code: %O', env);

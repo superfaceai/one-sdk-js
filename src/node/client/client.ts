@@ -129,6 +129,10 @@ export abstract class SuperfaceClientBase {
       debug?: boolean;
     } & Partial<Omit<IConfig, 'cachePath'>>
   ) {
+    if (options?.debug === true) {
+      debug.enable('superface:*');
+    }
+
     const environment = new NodeEnvironment();
     this.crypto = new NodeCrypto();
     this.timers = new NodeTimers();
@@ -141,12 +145,6 @@ export abstract class SuperfaceClientBase {
       NodeFileSystem,
       this.logger
     );
-    // TODO: resolve this in config (value resolved during merge)
-    this.config.debug = options?.debug !== undefined ? options.debug : false;
-    // TODO: move this somewhere?
-    if (this.config.debug) {
-      debug.enable('superface:*');
-    }
 
     this.boundProfileProviderCache = new SuperCache<{
       provider: IBoundProfileProvider;
