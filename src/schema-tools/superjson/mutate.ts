@@ -554,8 +554,8 @@ export function swapProfileProviderVariant(
   variant:
     | { kind: 'local'; file: string }
     | { kind: 'remote'; mapVariant?: string; mapRevision?: string },
-  environment: IEnvironment,
   filesystem: IFileSystem,
+  environment?: IEnvironment,
   logger?: ILogger
 ): boolean {
   const [_, targetProfile] = ensureProfileWithProviders(
