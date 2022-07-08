@@ -4,7 +4,8 @@ import { mocked } from 'ts-jest/utils';
 import {
   NotFoundError,
   profileFileNotFoundError,
-  SDKExecutionError,
+  sourceFileExtensionFoundError,
+  unsupportedFileExtensionError,
 } from '../../core';
 import { fetchProfileAst } from '../../core/registry';
 import { err, ok } from '../../lib';
@@ -149,13 +150,7 @@ describe('superface client', () => {
         const client = new MockClient(mockSuperJson);
 
         await expect(client.getProfile('evil/foo')).rejects.toThrow(
-          new SDKExecutionError(
-            `${EXTENSIONS.profile.source} extension found.`,
-            [],
-            [
-              `${EXTENSIONS.profile.source} files needs to be compiled with Superface CLI.`,
-            ]
-          )
+          sourceFileExtensionFoundError(EXTENSIONS.profile.source)
         );
       });
 
@@ -163,12 +158,9 @@ describe('superface client', () => {
         const client = new MockClient(mockSuperJson);
 
         await expect(client.getProfile('bad/foo')).rejects.toThrow(
-          new SDKExecutionError(
-            `File paths ${mockSuperJson.resolvePath(
-              '../foo.ts'
-            )} contains unsupported extension.`,
-            [],
-            [`Use file with ${EXTENSIONS.profile.build} extension.`]
+          unsupportedFileExtensionError(
+            mockSuperJson.resolvePath('../foo.ts'),
+            EXTENSIONS.profile.build
           )
         );
       });

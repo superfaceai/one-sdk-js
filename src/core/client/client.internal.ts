@@ -12,8 +12,9 @@ import {
   profileFileNotFoundError,
   profileNotFoundError,
   profileNotInstalledError,
-  SDKExecutionError,
+  sourceFileExtensionFoundError,
   unconfiguredProviderInPriorityError,
+  unsupportedFileExtensionError,
 } from '../errors';
 import { Events, Interceptable } from '../events';
 import { ICrypto, IFileSystem, ILogger, ITimers } from '../interfaces';
@@ -81,23 +82,11 @@ export class InternalClient {
       logFunction?.('Reading possible profile file: %S', filepath);
       // check extensions
       if (filepath.endsWith(EXTENSIONS.profile.source)) {
-        // TODO: add to error helpers?
         // FIX:  SDKExecutionError is used to ensure correct formatting. Improve formatting of UnexpectedError
-        throw new SDKExecutionError(
-          `${EXTENSIONS.profile.source} extension found.`,
-          [],
-          [
-            `${EXTENSIONS.profile.source} files needs to be compiled with Superface CLI.`,
-          ]
-        );
+        throw sourceFileExtensionFoundError(EXTENSIONS.profile.source);
       } else if (!filepath.endsWith(EXTENSIONS.profile.build)) {
-        // TODO: add to error helperss?
         // FIX:  SDKExecutionError is used to ensure correct formatting. Improve formatting of UnexpectedError
-        throw new SDKExecutionError(
-          `File paths ${filepath} contains unsupported extension.`,
-          [],
-          [`Use file with ${EXTENSIONS.profile.build} extension.`]
-        );
+        throw unsupportedFileExtensionError(filepath, EXTENSIONS.profile.build);
       }
 
       return await loadProfileAstFile(filepath);

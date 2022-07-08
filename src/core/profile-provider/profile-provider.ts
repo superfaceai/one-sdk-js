@@ -30,7 +30,6 @@ import {
 } from '../interfaces';
 import { AuthCache, IFetch } from '../interpreter';
 import { Parser } from '../parser';
-import { ProfileBase } from '../profile/profile';
 import { ProviderConfiguration } from '../provider';
 import { fetchBind, fetchMapSource, fetchProviderInfo } from '../registry';
 import { ServiceSelector } from '../services';
@@ -43,7 +42,7 @@ import { resolveSecurityConfiguration } from './security';
 const DEBUG_NAMESPACE = 'profile-provider';
 
 export async function bindProfileProvider(
-  profile: ProfileBase,
+  profile: ProfileDocumentNode,
   providerConfig: ProviderConfiguration,
   superJson: SuperJson,
   config: IConfig,
@@ -56,7 +55,7 @@ export async function bindProfileProvider(
 ): Promise<{ provider: IBoundProfileProvider; expiresAt: number }> {
   const profileProvider = new ProfileProvider(
     superJson,
-    profile.ast,
+    profile,
     providerConfig,
     config,
     events,
@@ -101,13 +100,7 @@ export class ProfileProvider {
     /** url or ast node */
     private map?: string | MapDocumentNode
   ) {
-    // if (this.profile instanceof ProfileConfiguration) {
-    //   this.profileId = this.profile.id;
-    // } else if (typeof this.profile === 'string') {
-    //   this.profileId = this.profile;
-    // } else {
     this.profileId = profileAstId(this.profile);
-    // }
     const [scopeOrProfileName, profileName] = this.profileId.split('/');
     if (profileName === undefined) {
       this.profileName = scopeOrProfileName;
@@ -130,10 +123,7 @@ export class ProfileProvider {
   public async bind(
     configuration?: BindConfiguration
   ): Promise<BoundProfileProvider> {
-    // profile is resolved during getProfile
-    const profileAst = this.profile;
-
-    const profileId = profileAstId(profileAst);
+    const profileId = profileAstId(this.profile);
 
     // resolve provider from parameters or defer until later
     const resolvedProviderInfo = await this.resolveProviderInfo();
@@ -174,7 +164,7 @@ export class ProfileProvider {
         {
           profileId:
             profileId +
-            `@${profileAst.header.version.major}.${profileAst.header.version.minor}.${profileAst.header.version.patch}`,
+            `@${this.profile.header.version.major}.${this.profile.header.version.minor}.${this.profile.header.version.patch}`,
           provider: providerName,
           mapVariant,
           mapRevision,
@@ -191,7 +181,7 @@ export class ProfileProvider {
       mapAst = fetchResponse.mapAst;
       // If we don't have a map (probably due to validation issue) we try to get map source and parse it on our own
       if (!mapAst) {
-        const version = `${profileAst.header.version.major}.${profileAst.header.version.minor}.${profileAst.header.version.patch}`;
+        const version = `${this.profile.header.version.major}.${this.profile.header.version.minor}.${this.profile.header.version.patch}`;
         const mapId =
           mapVariant !== undefined
             ? `${profileId}.${providerName}.${mapVariant}@${version}`
@@ -208,8 +198,8 @@ export class ProfileProvider {
           mapSource,
           mapId,
           {
-            profileName: profileAst.header.name,
-            scope: profileAst.header.scope,
+            profileName: this.profile.header.name,
+            scope: this.profile.header.scope,
             providerName,
           },
           this.config.cachePath,
@@ -236,7 +226,7 @@ export class ProfileProvider {
     );
 
     return new BoundProfileProvider(
-      profileAst,
+      this.profile,
       mapAst,
       providerInfo,
       this.config,

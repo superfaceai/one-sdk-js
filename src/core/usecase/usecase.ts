@@ -128,7 +128,7 @@ export abstract class UseCaseBase implements Interceptable {
     const { provider, expiresAt } =
       await this.boundProfileProviderCache.getCached(cacheKey, () =>
         bindProfileProvider(
-          this.profile,
+          this.profile.ast,
           providerConfig,
           this.superJson,
           this.config,
