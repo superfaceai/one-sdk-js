@@ -1,4 +1,3 @@
-// import { loadSuperJsonSync } from '../../schema-tools';
 import '../../schema-tools/superjson/utils';
 
 import type { ProviderJson } from '@superfaceai/ast';
@@ -90,10 +89,6 @@ jest.mock('../../schema-tools/superjson/utils', () => ({
 }));
 
 describe('SuperfaceClient integration test', () => {
-  // beforeEach(async () => {
-  //   SuperJson.loadSync = () => ok(mockSuperJsonSingle);
-  // });
-
   it('should pass parameters from super.json to the map', async () => {
     const client = new SuperfaceClient();
 

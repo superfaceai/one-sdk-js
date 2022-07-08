@@ -117,7 +117,7 @@ export function loadSuperJsonSync(
 }
 
 /**
- * Attempts to load super.json file from expected location `cwd/superface/super.json`
+ * Attempts to load super.json file at `path`
  */
 export async function loadSuperJson(
   path: string,
