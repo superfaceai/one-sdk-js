@@ -8,7 +8,11 @@ import { profileAstId, SuperCache } from '../../lib';
 import { SuperJson } from '../../schema-tools';
 import { Config } from '../config';
 import {
+  NotFoundError,
+  profileFileNotFoundError,
+  profileNotFoundError,
   profileNotInstalledError,
+  SDKExecutionError,
   unconfiguredProviderInPriorityError,
 } from '../errors';
 import { Events, Interceptable } from '../events';
@@ -42,7 +46,7 @@ export class InternalClient {
    *  - loads directly passed file
    *  - can point only to .supr.ast.json file
    *  - throws if file not found or not valid ProfileDocumentNode
-   * Version property
+   * Version property:
    *  - looks for [profileId]@[version].supr.ast.json file in superface/grid
    *  - if not found it tries to fetch profile AST from Registry
    * @returns ProfileDocumentNode
@@ -57,6 +61,9 @@ export class InternalClient {
     ): Promise<ProfileDocumentNode> => {
       const contents = await this.fileSystem.readFile(fileNameWithExtension);
       if (contents.isErr()) {
+        if (contents.error instanceof NotFoundError) {
+          throw profileFileNotFoundError(fileNameWithExtension, profileId);
+        }
         throw contents.error;
       }
 
@@ -66,8 +73,7 @@ export class InternalClient {
     const profileSettings = this.superJson.normalized.profiles[profileId];
 
     if (profileSettings === undefined) {
-      // TODO: more suitable error
-      throw profileNotInstalledError(profileId);
+      throw profileNotFoundError(profileId);
     }
     let filepath: string;
     if ('file' in profileSettings) {
@@ -75,9 +81,23 @@ export class InternalClient {
       logFunction?.('Reading possible profile file: %S', filepath);
       // check extensions
       if (filepath.endsWith(EXTENSIONS.profile.source)) {
-        throw new Error('TODO invalid extenstion err -needs to be compiled');
+        // TODO: add to error helpers?
+        // FIX:  SDKExecutionError is used to ensure correct formatting. Improve formatting of UnexpectedError
+        throw new SDKExecutionError(
+          `${EXTENSIONS.profile.source} extension found.`,
+          [],
+          [
+            `${EXTENSIONS.profile.source} files needs to be compiled with Superface CLI.`,
+          ]
+        );
       } else if (!filepath.endsWith(EXTENSIONS.profile.build)) {
-        throw new Error('TODO invalid extenstion err');
+        // TODO: add to error helperss?
+        // FIX:  SDKExecutionError is used to ensure correct formatting. Improve formatting of UnexpectedError
+        throw new SDKExecutionError(
+          `File paths ${filepath} contains unsupported extension.`,
+          [],
+          [`Use file with ${EXTENSIONS.profile.build} extension.`]
+        );
       }
 
       return await loadProfileAstFile(filepath);
@@ -94,7 +114,7 @@ export class InternalClient {
 
     logFunction?.('Reading possible profile file: %S', filepath);
     try {
-      // TODO: cache this somewhere (similar to CLI - .cache, config.cachePath)?
+      // TODO: cache this somewhere (in memory)?
       return await loadProfileAstFile(filepath + EXTENSIONS.profile.build);
     } catch (error) {
       logFunction?.(
@@ -107,7 +127,7 @@ export class InternalClient {
     logFunction?.('Fetching profile file from registry');
 
     // Fallback to remote
-    // TODO: cache this somewhere (similar to CLI - .cache, config.cachePath)?
+    // TODO: cache this somewhere (similar to CLI - .cache, config.cachePath, in memory)?
     return fetchProfileAst(
       `${profileId}@${profileSettings.version}`,
       this.config,

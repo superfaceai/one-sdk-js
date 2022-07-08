@@ -1,6 +1,11 @@
+import { EXTENSIONS } from '@superfaceai/ast';
 import { mocked } from 'ts-jest/utils';
 
-import { NotFoundError } from '../../core';
+import {
+  NotFoundError,
+  profileFileNotFoundError,
+  SDKExecutionError,
+} from '../../core';
 import { fetchProfileAst } from '../../core/registry';
 import { err, ok } from '../../lib';
 import { MockClient, mockProfileDocumentNode } from '../../mock';
@@ -57,7 +62,7 @@ describe('superface client', () => {
       const client = new MockClient(mockSuperJson);
 
       await expect(client.getProfile('does/not-exist')).rejects.toThrow(
-        'Hint: Profile can be installed using the superface cli tool: `superface install does/not-exist`'
+        'Profile "does/not-exist" not found in super.json'
       );
     });
 
@@ -127,7 +132,10 @@ describe('superface client', () => {
 
     describe('when using entry with filepath only', () => {
       it('rejects when profile points to a non-existent path', async () => {
-        const mockError = new NotFoundError('test');
+        const mockError = profileFileNotFoundError(
+          '../foo.supr.ast.json',
+          'foo'
+        );
         const client = new MockClient(mockSuperJson, {
           fileSystemOverride: {
             readFile: () => Promise.resolve(err(mockError)),
@@ -141,7 +149,13 @@ describe('superface client', () => {
         const client = new MockClient(mockSuperJson);
 
         await expect(client.getProfile('evil/foo')).rejects.toThrow(
-          new Error('TODO invalid extenstion err -needs to be compiled')
+          new SDKExecutionError(
+            `${EXTENSIONS.profile.source} extension found.`,
+            [],
+            [
+              `${EXTENSIONS.profile.source} files needs to be compiled with Superface CLI.`,
+            ]
+          )
         );
       });
 
@@ -149,7 +163,13 @@ describe('superface client', () => {
         const client = new MockClient(mockSuperJson);
 
         await expect(client.getProfile('bad/foo')).rejects.toThrow(
-          new Error('TODO invalid extenstion err')
+          new SDKExecutionError(
+            `File paths ${mockSuperJson.resolvePath(
+              '../foo.ts'
+            )} contains unsupported extension.`,
+            [],
+            [`Use file with ${EXTENSIONS.profile.build} extension.`]
+          )
         );
       });
 
@@ -259,7 +279,10 @@ describe('superface client', () => {
 
     describe('when using file property', () => {
       it('rejects when profile points to a non-existent path', async () => {
-        const mockError = new NotFoundError('test');
+        const mockError = profileFileNotFoundError(
+          '../bar.supr.ast.json',
+          'bar'
+        );
         const client = new MockClient(mockSuperJson, {
           fileSystemOverride: {
             readFile: () => Promise.resolve(err(mockError)),
