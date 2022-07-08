@@ -11,12 +11,15 @@ import {
   ICrypto,
   IEnvironment,
   IFetch,
+  IFileSystem,
   ILogger,
   Interceptable,
   InternalClient,
   ISuperfaceClient,
   ITimers,
+  loadConfigFromCode,
   loadConfigFromEnv,
+  mergeConfigs,
   MetricReporter,
   Profile,
   Provider,
@@ -57,6 +60,25 @@ const resolveSuperJson = (
   }
 
   return new SuperJson(superJson);
+};
+
+const resolveConfig = (
+  config: Partial<IConfig> | undefined,
+  environment: IEnvironment,
+  fileSystem: IFileSystem,
+  logger?: ILogger
+): Config => {
+  const envConfig = loadConfigFromEnv(environment, fileSystem, logger);
+  if (config === undefined) {
+    return envConfig;
+  }
+
+  return mergeConfigs(
+    envConfig,
+    loadConfigFromCode(config, fileSystem, logger),
+    fileSystem,
+    logger
+  );
 };
 
 const setupMetricReporter = (
@@ -101,17 +123,24 @@ export abstract class SuperfaceClientBase {
   protected readonly fetchInstance: IFetch & Interceptable & AuthCache;
   protected readonly logger?: ILogger;
 
-  constructor(options?: {
-    superJson?: SuperJson | SuperJsonDocument;
-    debug?: boolean;
-  }) {
+  constructor(
+    options?: {
+      superJson?: SuperJson | SuperJsonDocument;
+      debug?: boolean;
+    } & Partial<Omit<IConfig, 'cachePath'>>
+  ) {
     const environment = new NodeEnvironment();
     this.crypto = new NodeCrypto();
     this.timers = new NodeTimers();
     this.logger = new NodeLogger();
     this.events = new Events(this.timers, this.logger);
     this.fetchInstance = new NodeFetch(this.timers);
-    this.config = loadConfigFromEnv(environment, NodeFileSystem, this.logger);
+    this.config = resolveConfig(
+      options,
+      environment,
+      NodeFileSystem,
+      this.logger
+    );
     // TODO: resolve this in config (value resolved during merge)
     this.config.debug = options?.debug !== undefined ? options.debug : false;
     // TODO: move this somewhere?
