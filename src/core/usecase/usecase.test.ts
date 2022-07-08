@@ -4,7 +4,7 @@ import {
   mockProfileDocumentNode,
   MockTimers,
 } from '../../mock';
-import { CrossFetch, NodeCrypto, NodeFileSystem } from '../../node';
+import { NodeCrypto, NodeFetch, NodeFileSystem } from '../../node';
 import { SuperJson } from '../../schema-tools';
 import * as utils from '../../schema-tools/superjson/utils';
 import { Config } from '../config';
@@ -57,7 +57,7 @@ function createUseCase(cacheExpire?: number) {
     MockFileSystem(),
     cache,
     crypto,
-    new CrossFetch(timers)
+    new NodeFetch(timers)
   );
 
   const mockBoundProfileProvider2 = {
@@ -95,7 +95,7 @@ function createUseCase(cacheExpire?: number) {
     filesystem,
     crypto,
     cache,
-    new CrossFetch(timers)
+    new NodeFetch(timers)
   );
 
   return {
@@ -113,7 +113,7 @@ describe('UseCase', () => {
   });
 
   describe('when calling perform', () => {
-    it('passes security values', async () => {
+    it('passes security values when entered as array', async () => {
       const { usecase, performSpy } = createUseCase();
       await expect(
         usecase.perform(
@@ -134,6 +134,52 @@ describe('UseCase', () => {
         { x: 7 },
         undefined,
         [{ id: 'test', apikey: 'key' }]
+      );
+    });
+
+    it('passes security values when entered as object', async () => {
+      const { usecase, performSpy } = createUseCase();
+      await expect(
+        usecase.perform(
+          { x: 7 },
+          {
+            security: {
+              test: {
+                apikey: 'key',
+              },
+            },
+          }
+        )
+      ).resolves.toBeUndefined();
+
+      expect(performSpy).toHaveBeenCalledWith(
+        'test-usecase',
+        { x: 7 },
+        undefined,
+        [{ id: 'test', apikey: 'key' }]
+      );
+    });
+
+    it('does not pass security values when not supported', async () => {
+      const { usecase, performSpy } = createUseCase();
+      await expect(
+        usecase.perform(
+          { x: 7 },
+          {
+            security: {
+              test: {
+                foo: 'key',
+              },
+            },
+          }
+        )
+      ).resolves.toBeUndefined();
+
+      expect(performSpy).toHaveBeenCalledWith(
+        'test-usecase',
+        { x: 7 },
+        undefined,
+        []
       );
     });
 

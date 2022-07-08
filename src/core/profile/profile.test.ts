@@ -2,7 +2,7 @@ import { SuperJsonDocument } from '@superfaceai/ast';
 
 import { SuperCache } from '../../lib';
 import { mockProfileDocumentNode, MockTimers } from '../../mock';
-import { CrossFetch, NodeCrypto, NodeFileSystem } from '../../node';
+import { NodeCrypto, NodeFetch, NodeFileSystem } from '../../node';
 import { SuperJson } from '../../schema-tools';
 import { Config } from '../config';
 import { Events } from '../events';
@@ -33,7 +33,7 @@ function createProfile(superJson: SuperJsonDocument): Profile {
     NodeFileSystem,
     cache,
     crypto,
-    new CrossFetch(timers)
+    new NodeFetch(timers)
   );
 }
 

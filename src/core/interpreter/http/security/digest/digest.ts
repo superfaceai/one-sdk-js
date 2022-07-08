@@ -13,7 +13,7 @@ import {
   prepareRequestFilter,
   withRequest,
 } from '../../filters';
-import { FetchInstance } from '../../interfaces';
+import { IFetch } from '../../interfaces';
 import { HttpResponse } from '../../types';
 import {
   AuthCache,
@@ -45,6 +45,16 @@ export type DigestAuthValues = {
   cnonce: string;
 };
 
+export function hashDigestConfiguration(
+  configuration: DigestSecurityValues,
+  crypto: ICrypto
+): string {
+  return crypto.hashString(
+    configuration.id + configuration.username + configuration.password,
+    'MD5'
+  );
+}
+
 /**
  * Helper for digest authentication
  */
@@ -63,7 +73,7 @@ export class DigestHandler implements ISecurityHandler {
 
   constructor(
     public readonly configuration: DigestSecurityScheme & DigestSecurityValues,
-    private readonly fetchInstance: FetchInstance & AuthCache,
+    private readonly fetchInstance: IFetch & AuthCache,
     private readonly crypto: ICrypto,
     private readonly logger?: ILogger
   ) {
@@ -85,54 +95,45 @@ export class DigestHandler implements ISecurityHandler {
   ) => {
     const headers: Record<string, string> = parameters.headers || {};
 
-    // If we have cached credentials we use them
-    if (this.fetchInstance?.digest !== undefined) {
-      this.log?.('Using cached digest credentials');
-      headers[
-        this.configuration.authorizationHeader ??
-          DEFAULT_AUTHORIZATION_HEADER_NAME
-      ] = this.fetchInstance.digest;
+    const credentials = await this.fetchInstance.digest.getCached(
+      hashDigestConfiguration(this.configuration, this.crypto),
+      async () => {
+        const { response } = await pipe(
+          {
+            parameters: {
+              ...parameters,
+              headers,
+            },
+          },
+          prepareRequestFilter,
+          withRequest(fetchFilter(this.fetchInstance, this.logger))
+        );
 
-      return {
-        ...parameters,
-        headers,
-      };
-    }
+        if (response === undefined) {
+          throw new Error('Response is undefined');
+        }
 
-    // If we don't, we try to get challenge header
-    const { response } = await pipe(
-      {
-        parameters: {
-          ...parameters,
-          headers,
-        },
-      },
-      prepareRequestFilter,
-      withRequest(fetchFilter(this.fetchInstance, this.logger))
+        if (
+          response.statusCode !== this.statusCode ||
+          !response.headers[this.challengeHeader]
+        ) {
+          throw digestHeaderNotFound(
+            this.challengeHeader,
+            Object.keys(response.headers)
+          );
+        }
+
+        this.log?.('Getting new digest values');
+        const credentials = this.buildDigestAuth(
+          // We need actual resolved url
+          response.debug.request.url,
+          parameters.method,
+          this.extractDigestValues(response.headers[this.challengeHeader])
+        );
+
+        return credentials;
+      }
     );
-
-    if (response === undefined) {
-      throw new Error('Response is undefined');
-    }
-
-    if (
-      response.statusCode !== this.statusCode ||
-      !response.headers[this.challengeHeader]
-    ) {
-      throw digestHeaderNotFound(
-        this.challengeHeader,
-        Object.keys(response.headers)
-      );
-    }
-
-    this.log?.('Getting new digest values');
-    const credentials = this.buildDigestAuth(
-      // We need actual resolved url
-      response.debug.request.url,
-      parameters.method,
-      this.extractDigestValues(response.headers[this.challengeHeader])
-    );
-    this.fetchInstance.digest = credentials;
 
     return {
       ...parameters,
@@ -155,14 +156,24 @@ export class DigestHandler implements ISecurityHandler {
           Object.keys(response.headers)
         );
       }
-      this.log?.('Getting new digest values');
-      const credentials = this.buildDigestAuth(
-        // We need actual resolved url
-        response.debug.request.url,
-        resourceRequestParameters.method,
-        this.extractDigestValues(response.headers[this.challengeHeader])
+      const configurationHash = hashDigestConfiguration(
+        this.configuration,
+        this.crypto
       );
-      this.fetchInstance.digest = credentials;
+      this.fetchInstance.digest.invalidate(configurationHash);
+      const credentials = this.fetchInstance.digest.getCached(
+        configurationHash,
+        () => {
+          this.log?.('Getting new digest values');
+
+          return this.buildDigestAuth(
+            // We need actual resolved url
+            response.debug.request.url,
+            resourceRequestParameters.method,
+            this.extractDigestValues(response.headers[this.challengeHeader])
+          );
+        }
+      );
 
       const prepared = await prepareRequestFilter({
         parameters: {

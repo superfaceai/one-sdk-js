@@ -11,7 +11,7 @@ import {
 
 import { err, ok } from '../../lib';
 import { MockTimers } from '../../mock';
-import { CrossFetch, NodeCrypto, NodeFileSystem } from '../../node';
+import { NodeCrypto, NodeFetch, NodeFileSystem } from '../../node';
 import { Config } from '../config';
 import {
   InputValidationError,
@@ -131,7 +131,7 @@ describe('BoundProfileProvider', () => {
           security: [],
         },
         crypto,
-        new CrossFetch(timers)
+        new NodeFetch(timers)
       );
 
       await expect(
@@ -183,7 +183,7 @@ describe('BoundProfileProvider', () => {
           ],
         },
         crypto,
-        new CrossFetch(timers)
+        new NodeFetch(timers)
       );
 
       await expect(
@@ -239,7 +239,7 @@ describe('BoundProfileProvider', () => {
           security: [],
         },
         crypto,
-        new CrossFetch(timers)
+        new NodeFetch(timers)
       );
 
       await expect(
@@ -275,7 +275,7 @@ describe('BoundProfileProvider', () => {
           security: [],
         },
         crypto,
-        new CrossFetch(timers)
+        new NodeFetch(timers)
       );
 
       await expect(
@@ -326,7 +326,7 @@ describe('BoundProfileProvider', () => {
           },
         },
         crypto,
-        new CrossFetch(timers)
+        new NodeFetch(timers)
       );
       await expect(
         mockBoundProfileProvider.perform<undefined, string>('test')

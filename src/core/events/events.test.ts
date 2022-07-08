@@ -11,7 +11,7 @@ import { getLocal } from 'mockttp';
 
 import { err } from '../../lib';
 import { MockTimers } from '../../mock';
-import { CrossFetch, NodeCrypto, NodeFileSystem } from '../../node';
+import { NodeCrypto, NodeFetch, NodeFileSystem } from '../../node';
 import { Config } from '../config';
 import { BoundProfileProvider } from '../profile-provider';
 import { ServiceSelector } from '../services';
@@ -194,7 +194,7 @@ describe('events', () => {
         security: [],
       },
       crypto,
-      new CrossFetch(timers),
+      new NodeFetch(timers),
       undefined,
       events
     );
@@ -240,7 +240,7 @@ describe('events', () => {
         security: [],
       },
       crypto,
-      new CrossFetch(timers),
+      new NodeFetch(timers),
       undefined,
       events
     );
@@ -280,7 +280,7 @@ describe('events', () => {
         security: [],
       },
       crypto,
-      new CrossFetch(timers),
+      new NodeFetch(timers),
       undefined,
       events
     );
@@ -314,7 +314,7 @@ describe('events', () => {
         security: [],
       },
       crypto,
-      new CrossFetch(timers),
+      new NodeFetch(timers),
       undefined,
       events
     );
@@ -348,7 +348,7 @@ describe('events', () => {
         security: [],
       },
       crypto,
-      new CrossFetch(timers),
+      new NodeFetch(timers),
       undefined,
       events
     );

@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-non-null-asserted-optional-chain */
+import { SuperCache } from '../../../lib';
 import {
   authenticateFilter,
   bodyFilter,
@@ -23,6 +24,7 @@ import {
 describe('HTTP Filters', () => {
   const fetchInstance = {
     fetch: jest.fn().mockResolvedValue({ status: 200, body: '' }),
+    digest: new SuperCache<string>(),
   };
   const defaultResponse = {
     statusCode: 200,

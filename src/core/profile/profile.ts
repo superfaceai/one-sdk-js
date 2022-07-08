@@ -4,7 +4,7 @@ import { SuperCache } from '../../lib';
 import { SuperJson } from '../../schema-tools';
 import { Events, Interceptable } from '../events';
 import { IConfig, ICrypto, IFileSystem, ILogger, ITimers } from '../interfaces';
-import { AuthCache, FetchInstance } from '../interpreter';
+import { AuthCache, IFetch } from '../interpreter';
 import { IBoundProfileProvider } from '../profile-provider';
 import { UseCase } from '../usecase';
 import { ProfileConfiguration } from './profile-configuration';
@@ -23,7 +23,7 @@ export abstract class ProfileBase {
       expiresAt: number;
     }>,
     protected readonly crypto: ICrypto,
-    protected readonly fetchInstance: FetchInstance & Interceptable & AuthCache,
+    protected readonly fetchInstance: IFetch & Interceptable & AuthCache,
     protected readonly logger?: ILogger
   ) {}
 

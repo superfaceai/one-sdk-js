@@ -2,7 +2,7 @@ import { recursiveKeyList } from '../../../lib';
 import { missingPathReplacementError, UnexpectedError } from '../../errors';
 import { ILogger } from '../../interfaces';
 import { getValue, NonPrimitive, variableToString } from '../variables';
-import { FetchInstance } from './interfaces';
+import { IFetch } from './interfaces';
 import { HttpRequest } from './security';
 import { HttpResponse } from './types';
 
@@ -78,7 +78,7 @@ export const createUrl = (
 };
 
 export async function fetchRequest(
-  fetchInstance: FetchInstance,
+  fetchInstance: IFetch,
   request: HttpRequest,
   logger?: ILogger
 ): Promise<HttpResponse> {

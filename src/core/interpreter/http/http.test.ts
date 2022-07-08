@@ -1,14 +1,15 @@
 import { getLocal } from 'mockttp';
 
+import { SuperCache } from '../../../lib';
 import { MockTimers } from '../../../mock';
-import { CrossFetch, NodeCrypto } from '../../../node';
+import { NodeCrypto, NodeFetch } from '../../../node';
 import { Primitive } from '../variables';
 import { HttpClient } from './http';
 import { createUrl } from './utils';
 
 const mockServer = getLocal();
 const timers = new MockTimers();
-const fetchInstance = new CrossFetch(timers);
+const fetchInstance = new NodeFetch(timers);
 const crypto = new NodeCrypto();
 const http = new HttpClient(fetchInstance, crypto);
 
@@ -130,6 +131,7 @@ describe('HttpClient', () => {
           httpClient = new HttpClient(
             {
               fetch: fetchMock,
+              digest: new SuperCache<string>(),
             },
             crypto
           );

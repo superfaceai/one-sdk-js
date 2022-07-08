@@ -16,7 +16,7 @@ import {
   unknownProviderInfoError,
 } from '../errors';
 import { IConfig, ICrypto, ILogger } from '../interfaces';
-import { FetchInstance, HttpClient, HttpResponse } from '../interpreter';
+import { AuthCache, HttpClient, HttpResponse, IFetch } from '../interpreter';
 
 const DEBUG_NAMESPACE = 'registry';
 
@@ -71,7 +71,7 @@ export async function fetchProviderInfo(
   providerName: string,
   config: IConfig,
   crypto: ICrypto,
-  fetchInstance: FetchInstance,
+  fetchInstance: IFetch & AuthCache,
   logger?: ILogger
 ): Promise<ProviderJson> {
   const http = new HttpClient(fetchInstance, crypto, logger);
@@ -215,7 +215,7 @@ export async function fetchBind(
   },
   config: IConfig,
   crypto: ICrypto,
-  fetchInstance: FetchInstance,
+  fetchInstance: IFetch & AuthCache,
   logger?: ILogger
 ): Promise<{
   provider: ProviderJson;
@@ -252,7 +252,7 @@ export async function fetchProfileAst(
   profileId: string,
   config: IConfig,
   crypto: ICrypto,
-  fetchInstance: FetchInstance,
+  fetchInstance: IFetch & AuthCache,
   logger?: ILogger
 ): Promise<ProfileDocumentNode> {
   const http = new HttpClient(fetchInstance, crypto, logger);
@@ -280,7 +280,7 @@ export async function fetchMapSource(
   mapId: string,
   config: IConfig,
   crypto: ICrypto,
-  fetchInstance: FetchInstance,
+  fetchInstance: IFetch & AuthCache,
   logger?: ILogger
 ): Promise<string> {
   const http = new HttpClient(fetchInstance, crypto, logger);
