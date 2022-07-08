@@ -420,6 +420,22 @@ const thirdMockMapDocument: MapDocumentNode = {
 const mockServer = getLocal();
 
 describe('event-adapter', () => {
+  const superJson = new SuperJson({
+    profiles: {
+      ['starwars/character-information']: {
+        version: '1.0.0',
+        providers: {
+          provider: {},
+        },
+      },
+    },
+    providers: {
+      provider: {
+        security: [],
+      },
+    },
+  });
+
   beforeEach(async () => {
     await mockServer.start();
   });
@@ -428,37 +444,33 @@ describe('event-adapter', () => {
     await mockServer.stop();
   });
 
-  const setupReadFileOverride = (ast: ProfileDocumentNode) => ({
-    fileSystemOverride: {
-      readFile: (): Promise<Result<string, FileSystemError>> =>
-        Promise.resolve(ok(JSON.stringify(ast))),
-    },
-  });
+  const createClient = (
+    overrideSuperJson?: SuperJson,
+    overrideAst?: ProfileDocumentNode
+  ): MockClient => {
+    return new MockClient(
+      overrideSuperJson !== undefined ? overrideSuperJson : superJson,
+      {
+        fileSystemOverride: {
+          readFile: (): Promise<Result<string, FileSystemError>> =>
+            Promise.resolve(
+              ok(
+                JSON.stringify(
+                  overrideAst !== undefined
+                    ? overrideAst
+                    : firstMockProfileDocument
+                )
+              )
+            ),
+        },
+      }
+    );
+  };
 
   // Without retry policy
   it('does not use retry policy - returns after HTTP 200', async () => {
     const endpoint = await mockServer.get('/first').thenJson(200, {});
-
-    const superJson = new SuperJson({
-      profiles: {
-        ['starwars/character-information']: {
-          version: '1.0.0',
-          providers: {
-            provider: {},
-          },
-        },
-      },
-      providers: {
-        provider: {
-          security: [],
-        },
-      },
-    });
-
-    const client = new MockClient(
-      superJson,
-      setupReadFileOverride(firstMockProfileDocument)
-    );
+    const client = createClient();
     client.addBoundProfileProvider(
       firstMockProfileDocument,
       firstMockMapDocument,
@@ -478,26 +490,8 @@ describe('event-adapter', () => {
 
   it('does not use retry policy - aborts after HTTP 500', async () => {
     const endpoint = await mockServer.get('/first').thenJson(500, {});
-    const superJson = new SuperJson({
-      profiles: {
-        ['starwars/character-information']: {
-          version: '1.0.0',
-          providers: {
-            provider: {},
-          },
-        },
-      },
-      providers: {
-        provider: {
-          security: [],
-        },
-      },
-    });
+    const client = createClient();
 
-    const client = new MockClient(
-      superJson,
-      setupReadFileOverride(firstMockProfileDocument)
-    );
     client.addBoundProfileProvider(
       firstMockProfileDocument,
       firstMockMapDocument,
@@ -517,26 +511,8 @@ describe('event-adapter', () => {
 
   it('does not use retry policy - aborts after closed connection', async () => {
     await mockServer.get('/first').thenCloseConnection();
-    const superJson = new SuperJson({
-      profiles: {
-        ['starwars/character-information']: {
-          version: '1.0.0',
-          providers: {
-            provider: {},
-          },
-        },
-      },
-      providers: {
-        provider: {
-          security: [],
-        },
-      },
-    });
+    const client = createClient();
 
-    const client = new MockClient(
-      superJson,
-      setupReadFileOverride(firstMockProfileDocument)
-    );
     client.addBoundProfileProvider(
       firstMockProfileDocument,
       firstMockMapDocument,
@@ -554,26 +530,8 @@ describe('event-adapter', () => {
 
   it('does not use retry policy - aborts after timeout', async () => {
     await mockServer.get('/first').thenTimeout();
-    const superJson = new SuperJson({
-      profiles: {
-        ['starwars/character-information']: {
-          version: '1.0.0',
-          providers: {
-            provider: {},
-          },
-        },
-      },
-      providers: {
-        provider: {
-          security: [],
-        },
-      },
-    });
+    const client = createClient();
 
-    const client = new MockClient(
-      superJson,
-      setupReadFileOverride(firstMockProfileDocument)
-    );
     client.addBoundProfileProvider(
       firstMockProfileDocument,
       firstMockMapDocument,
@@ -619,10 +577,7 @@ describe('event-adapter', () => {
       },
     });
 
-    const client = new MockClient(
-      superJson,
-      setupReadFileOverride(firstMockProfileDocument)
-    );
+    const client = createClient(superJson);
     client.addBoundProfileProvider(
       firstMockProfileDocument,
       firstMockMapDocument,
@@ -696,10 +651,7 @@ describe('event-adapter', () => {
       },
     });
 
-    const client = new MockClient(
-      superJson,
-      setupReadFileOverride(firstMockProfileDocument)
-    );
+    const client = createClient(superJson);
     client.addBoundProfileProvider(
       firstMockProfileDocument,
       firstMockMapDocument,
@@ -765,10 +717,8 @@ describe('event-adapter', () => {
       },
     });
 
-    const client = new MockClient(
-      superJson,
-      setupReadFileOverride(firstMockProfileDocument)
-    );
+    const client = createClient(superJson);
+
     client.addBoundProfileProvider(
       firstMockProfileDocument,
       firstMockMapDocument,
@@ -834,10 +784,8 @@ describe('event-adapter', () => {
       },
     });
 
-    const client = new MockClient(
-      superJson,
-      setupReadFileOverride(firstMockProfileDocument)
-    );
+    const client = createClient(superJson);
+
     client.addBoundProfileProvider(
       firstMockProfileDocument,
       firstMockMapDocument,
@@ -902,10 +850,8 @@ describe('event-adapter', () => {
       },
     });
 
-    const client = new MockClient(
-      superJson,
-      setupReadFileOverride(firstMockProfileDocument)
-    );
+    const client = createClient(superJson);
+
     client.addBoundProfileProvider(
       firstMockProfileDocument,
       firstMockMapDocument,
@@ -970,10 +916,8 @@ describe('event-adapter', () => {
       },
     });
 
-    const client = new MockClient(
-      superJson,
-      setupReadFileOverride(firstMockProfileDocument)
-    );
+    const client = createClient(superJson);
+
     client.addBoundProfileProvider(
       firstMockProfileDocument,
       firstMockMapDocument,
@@ -1050,10 +994,8 @@ describe('event-adapter', () => {
       },
     });
 
-    const client = new MockClient(
-      superJson,
-      setupReadFileOverride(firstMockProfileDocument)
-    );
+    const client = createClient(superJson);
+
     client.addBoundProfileProvider(
       firstMockProfileDocument,
       firstMockMapDocument,
@@ -1134,10 +1076,8 @@ describe('event-adapter', () => {
       },
     });
 
-    const client = new MockClient(
-      superJson,
-      setupReadFileOverride(firstMockProfileDocument)
-    );
+    const client = createClient(superJson);
+
     client.addBoundProfileProvider(
       firstMockProfileDocument,
       firstMockMapDocument,
@@ -1221,10 +1161,8 @@ describe('event-adapter', () => {
       },
     });
 
-    const client = new MockClient(
-      superJson,
-      setupReadFileOverride(firstMockProfileDocument)
-    );
+    const client = createClient(superJson);
+
     client.addBoundProfileProvider(
       firstMockProfileDocument,
       firstMockMapDocument,
@@ -1426,10 +1364,8 @@ describe('event-adapter', () => {
       },
     });
 
-    const client = new MockClient(
-      superJson,
-      setupReadFileOverride(firstMockProfileDocument)
-    );
+    const client = createClient(superJson);
+
     client.addBoundProfileProvider(
       firstMockProfileDocument,
       firstMockMapDocument,
@@ -1853,10 +1789,8 @@ describe('event-adapter', () => {
       },
     });
 
-    const client = new MockClient(
-      superJson,
-      setupReadFileOverride(firstMockProfileDocument)
-    );
+    const client = createClient(superJson);
+
     client.addBoundProfileProvider(
       firstMockProfileDocument,
       firstMockMapDocument,
@@ -1953,10 +1887,8 @@ describe('event-adapter', () => {
     });
 
     {
-      const client = new MockClient(
-        superJson,
-        setupReadFileOverride(firstMockProfileDocument)
-      );
+      const client = createClient(superJson);
+
       client.addBoundProfileProvider(
         firstMockProfileDocument,
         firstMockMapDocument,
@@ -1981,10 +1913,8 @@ describe('event-adapter', () => {
     }
 
     {
-      const client = new MockClient(
-        superJson,
-        setupReadFileOverride(firstMockProfileDocument)
-      );
+      const client = createClient(superJson);
+
       client.addBoundProfileProvider(
         firstMockProfileDocument,
         firstMockMapDocument,
