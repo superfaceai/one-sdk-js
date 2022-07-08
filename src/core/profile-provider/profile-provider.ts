@@ -218,6 +218,7 @@ export class ProfileProvider {
             providerName,
           },
           this.config.cachePath,
+          this.config.cache,
           this.fileSystem
         );
       }
@@ -417,6 +418,7 @@ export class ProfileProvider {
               scope: this.scope,
             },
             this.config.cachePath,
+            this.config.cache,
             this.fileSystem
           );
         }
@@ -517,6 +519,7 @@ export class ProfileProvider {
               scope: this.scope,
             },
             this.config.cachePath,
+            this.config.cache,
             this.fileSystem
           );
         }
