@@ -95,8 +95,8 @@ export function mergeProfile(
   document: SuperJsonDocument,
   profileName: string,
   payload: ProfileEntry,
-  environment: IEnvironment,
   filesystem: IFileSystem,
+  environment?: IEnvironment,
   logger?: ILogger
 ): boolean {
   // if specified profile is not found
@@ -201,8 +201,8 @@ export function mergeProfile(
         profileName,
         providerName,
         entry,
-        environment,
         filesystem,
+        environment,
         logger
       )
     );
@@ -260,8 +260,8 @@ export function setProfile(
       document,
       profileName,
       payload,
-      environment,
       filesystem,
+      environment,
       logger
     );
     changed = changed || mergeChanged;
@@ -276,7 +276,7 @@ export function setProfile(
 function ensureProfileWithProviders(
   document: SuperJsonDocument,
   profileName: string,
-  environment: IEnvironment,
+  environment?: IEnvironment,
   logger?: ILogger
 ): [
   boolean,
@@ -330,8 +330,8 @@ export function mergeProfileProvider(
   profileName: string,
   providerName: string,
   payload: ProfileProviderEntry,
-  environment: IEnvironment,
   fileSystem: IFileSystem,
+  environment?: IEnvironment,
   logger?: ILogger
 ): boolean {
   const [_, targetProfile] = ensureProfileWithProviders(
@@ -537,8 +537,8 @@ export function setProfileProvider(
       profileName,
       providerName,
       payload,
-      environment,
       filesystem,
+      environment,
       logger
     );
     changed = changed || mergeChanged;
