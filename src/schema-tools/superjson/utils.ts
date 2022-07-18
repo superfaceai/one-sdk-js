@@ -1,3 +1,5 @@
+import { SecurityValues } from '@superfaceai/ast';
+
 import {
   noConfiguredProviderError,
   Provider,
@@ -8,7 +10,8 @@ import { SuperJson } from './superjson';
 
 export function getProvider(
   superJson: SuperJson,
-  providerName: string
+  providerName: string,
+  security?: SecurityValues[]
 ): Provider {
   const providerSettings = superJson.normalized.providers[providerName];
 
@@ -17,7 +20,10 @@ export function getProvider(
   }
 
   return new Provider(
-    new ProviderConfiguration(providerName, providerSettings.security)
+    new ProviderConfiguration(
+      providerName,
+      security ?? providerSettings.security
+    )
   );
 }
 

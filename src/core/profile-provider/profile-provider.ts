@@ -68,7 +68,10 @@ export async function bindProfileProvider(
     fetchInstance,
     logger
   );
-  const boundProfileProvider = await profileProvider.bind();
+  const boundProfileProvider = await profileProvider.bind({
+    // TODO: resolve security in more readable way
+    security: providerConfig.security,
+  });
   const expiresAt =
     Math.floor(timers.now() / 1000) + config.superfaceCacheTimeout;
 
