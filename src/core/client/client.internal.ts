@@ -1,29 +1,17 @@
-import {
-  assertProfileDocumentNode,
-  EXTENSIONS,
-  ProfileDocumentNode,
-} from '@superfaceai/ast';
+import { ProfileDocumentNode } from '@superfaceai/ast';
 
 import { profileAstId, SuperCache, versionToString } from '../../lib';
 import { SuperJson } from '../../schema-tools';
 import { Config } from '../config';
 import {
-  NotFoundError,
-  profileFileNotFoundError,
-  profileNotFoundError,
   profileNotInstalledError,
-  sourceFileExtensionFoundError,
   unconfiguredProviderInPriorityError,
-  unsupportedFileExtensionError,
 } from '../errors';
 import { Events, Interceptable } from '../events';
 import { ICrypto, IFileSystem, ILogger, ITimers } from '../interfaces';
 import { AuthCache, IFetch } from '../interpreter';
-import { Profile, ProfileConfiguration } from '../profile';
+import { Profile, ProfileConfiguration, resolveProfileAst } from '../profile';
 import { IBoundProfileProvider } from '../profile-provider';
-import { fetchProfileAst } from '../registry';
-
-const DEBUG_NAMESPACE = 'client';
 
 export class InternalClient {
   constructor(
@@ -41,94 +29,16 @@ export class InternalClient {
     private readonly logger?: ILogger
   ) {}
 
-  /**
-   * Resolves profile AST file.
-   * File property:
-   *  - loads directly passed file
-   *  - can point only to .supr.ast.json file
-   *  - throws if file not found or not valid ProfileDocumentNode
-   * Version property:
-   *  - looks for [profileId]@[version].supr.ast.json file in superface/grid
-   *  - if not found it tries to fetch profile AST from Registry
-   * @returns ProfileDocumentNode
-   */
-  public async resolveProfileAst(
-    profileId: string
-  ): Promise<ProfileDocumentNode> {
-    const logFunction = this.logger?.log(DEBUG_NAMESPACE);
-
-    const loadProfileAstFile = async (
-      fileNameWithExtension: string
-    ): Promise<ProfileDocumentNode> => {
-      const contents = await this.fileSystem.readFile(fileNameWithExtension);
-      if (contents.isErr()) {
-        if (contents.error instanceof NotFoundError) {
-          throw profileFileNotFoundError(fileNameWithExtension, profileId);
-        }
-        throw contents.error;
-      }
-
-      return assertProfileDocumentNode(JSON.parse(contents.value));
-    };
-
-    const profileSettings = this.superJson.normalized.profiles[profileId];
-
-    if (profileSettings === undefined) {
-      throw profileNotFoundError(profileId);
-    }
-    let filepath: string;
-    if ('file' in profileSettings) {
-      filepath = this.superJson.resolvePath(profileSettings.file);
-      logFunction?.('Reading possible profile file: %S', filepath);
-      // check extensions
-      if (filepath.endsWith(EXTENSIONS.profile.source)) {
-        // FIX:  SDKExecutionError is used to ensure correct formatting. Improve formatting of UnexpectedError
-        throw sourceFileExtensionFoundError(EXTENSIONS.profile.source);
-      } else if (!filepath.endsWith(EXTENSIONS.profile.build)) {
-        // FIX:  SDKExecutionError is used to ensure correct formatting. Improve formatting of UnexpectedError
-        throw unsupportedFileExtensionError(filepath, EXTENSIONS.profile.build);
-      }
-
-      return await loadProfileAstFile(filepath);
-    }
-    // assumed to be in grid folder under superface directory
-    const gridPath = this.fileSystem.path.join(
-      'grid',
-      `${profileId}@${profileSettings.version}`
-    );
-    const superfaceFolderPath = this.fileSystem.path.dirname(
-      this.config.superfacePath
-    );
-
-    filepath =
-      this.fileSystem.path.resolve(superfaceFolderPath, gridPath) +
-      EXTENSIONS.profile.build;
-
-    logFunction?.('Reading possible profile file: %S', filepath);
-    try {
-      return await loadProfileAstFile(filepath);
-    } catch (error) {
-      logFunction?.(
-        'Reading of possible profile file failed with error %O',
-        error
-      );
-      void error;
-    }
-
-    logFunction?.('Fetching profile file from registry');
-
-    // Fallback to remote
-    return fetchProfileAst(
-      `${profileId}@${profileSettings.version}`,
-      this.config,
-      this.crypto,
-      this.fetchInstance,
-      this.logger
-    );
-  }
-
   public async getProfile(profileId: string): Promise<Profile> {
-    const ast = await this.resolveProfileAst(profileId);
+    const ast = await resolveProfileAst({
+      profileId,
+      logger: this.logger,
+      fetchInstance: this.fetchInstance,
+      fileSystem: this.fileSystem,
+      config: this.config,
+      crypto: this.crypto,
+      superJson: this.superJson,
+    });
     const profileConfiguration = await this.getProfileConfiguration(ast);
 
     return new Profile(
