@@ -319,6 +319,44 @@ describe('profile provider', () => {
         expect(fileSystem.writeFile).toHaveBeenCalled();
       });
 
+      it('returns new BoundProfileProvider without caching provider', async () => {
+        const mockConfigWithDisabledCache = new Config(NodeFileSystem, {
+          cache: false,
+        });
+
+        mocked(fetchBind).mockResolvedValue(mockFetchResponse);
+        const superJson = new SuperJson({
+          profiles: {
+            ['test-profile']: {
+              version: '1.0.0',
+              defaults: {},
+              providers: {},
+            },
+          },
+          providers: {
+            test: {
+              security: mockSecurityValues,
+            },
+          },
+        });
+        const mockProfileProvider = new ProfileProvider(
+          superJson,
+          mockProfileDocument,
+          mockProviderConfiguration,
+          mockConfigWithDisabledCache,
+          new Events(timers),
+          fileSystem,
+          crypto,
+          new NodeFetch(timers)
+        );
+
+        const result = await mockProfileProvider.bind();
+
+        expect(result).toMatchObject(expectedBoundProfileProvider);
+        // It should not cache the provider
+        expect(fileSystem.writeFile).not.toHaveBeenCalled();
+      });
+
       it('returns new BoundProfileProvider use profile id', async () => {
         mocked(fetchBind).mockResolvedValue(mockFetchResponse);
         const superJson = new SuperJson({

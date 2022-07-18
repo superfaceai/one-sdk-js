@@ -36,7 +36,7 @@ export const DEFAULT_CACHE_PATH = (fileSystem: FSPath): string =>
   fileSystem.path.join(fileSystem.path.cwd(), 'superface', '.cache');
 export const DEFAULT_SANDBOX_TIMEOUT = 100;
 export const DEFAULT_DISABLE_REPORTING = false;
-export const DEFAULT_CACHE = false;
+export const DEFAULT_CACHE = true;
 // 1 hour
 export const DEFAULT_BOUND_PROVIDER_TIMEOUT = 60 * 60;
 

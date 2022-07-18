@@ -385,17 +385,21 @@ export class ProfileProvider {
       this.providersCachePath,
       `${providerJson.name}.json`
     );
-    try {
-      await this.fileSystem.mkdir(this.providersCachePath, { recursive: true });
-      await this.fileSystem.writeFile(
-        providerCachePath,
-        JSON.stringify(providerJson, undefined, 2)
-      );
-    } catch (error) {
-      this.log?.(
-        `Failed to cache provider.json for ${providerJson.name}: %O`,
-        error
-      );
+    if (this.config.cache === true) {
+      try {
+        await this.fileSystem.mkdir(this.providersCachePath, {
+          recursive: true,
+        });
+        await this.fileSystem.writeFile(
+          providerCachePath,
+          JSON.stringify(providerJson, undefined, 2)
+        );
+      } catch (error) {
+        this.log?.(
+          `Failed to cache provider.json for ${providerJson.name}: %O`,
+          error
+        );
+      }
     }
   }
 
