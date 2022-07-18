@@ -15,6 +15,7 @@ import {
   FileSystemError,
   NotFoundError,
 } from '../../errors';
+import { IConfig } from '../../interfaces';
 
 const astMetadata: AstMetadata = {
   sourceChecksum: 'checksum',
@@ -444,25 +445,41 @@ describe('event-adapter', () => {
     await mockServer.stop();
   });
 
-  const createClient = (
-    overrideSuperJson?: SuperJson,
-    overrideAst?: ProfileDocumentNode
-  ): MockClient => {
+  const createMockClient = (options?: {
+    profileAstPath?: string;
+    superJson?: SuperJson;
+    ast?: ProfileDocumentNode;
+    config?: Partial<IConfig>;
+  }): MockClient => {
     return new MockClient(
-      overrideSuperJson !== undefined ? overrideSuperJson : superJson,
+      options?.superJson !== undefined ? options.superJson : superJson,
       {
         fileSystemOverride: {
-          readFile: (): Promise<Result<string, FileSystemError>> =>
-            Promise.resolve(
+          path: {
+            resolve: (...pathSegments: string[]) => pathSegments.join(),
+          },
+          readFile: (
+            path: string
+          ): Promise<Result<string, FileSystemError>> => {
+            if (
+              options?.profileAstPath !== undefined &&
+              !path.includes(options.profileAstPath)
+            ) {
+              return Promise.resolve(err(new NotFoundError('File not found')));
+            }
+
+            return Promise.resolve(
               ok(
                 JSON.stringify(
-                  overrideAst !== undefined
-                    ? overrideAst
+                  options?.ast !== undefined
+                    ? options.ast
                     : firstMockProfileDocument
                 )
               )
-            ),
+            );
+          },
         },
+        configOverride: options?.config,
       }
     );
   };
@@ -470,7 +487,7 @@ describe('event-adapter', () => {
   // Without retry policy
   it('does not use retry policy - returns after HTTP 200', async () => {
     const endpoint = await mockServer.get('/first').thenJson(200, {});
-    const client = createClient();
+    const client = createMockClient();
     client.addBoundProfileProvider(
       firstMockProfileDocument,
       firstMockMapDocument,
@@ -490,7 +507,7 @@ describe('event-adapter', () => {
 
   it('does not use retry policy - aborts after HTTP 500', async () => {
     const endpoint = await mockServer.get('/first').thenJson(500, {});
-    const client = createClient();
+    const client = createMockClient();
 
     client.addBoundProfileProvider(
       firstMockProfileDocument,
@@ -511,7 +528,7 @@ describe('event-adapter', () => {
 
   it('does not use retry policy - aborts after closed connection', async () => {
     await mockServer.get('/first').thenCloseConnection();
-    const client = createClient();
+    const client = createMockClient();
 
     client.addBoundProfileProvider(
       firstMockProfileDocument,
@@ -530,7 +547,7 @@ describe('event-adapter', () => {
 
   it('does not use retry policy - aborts after timeout', async () => {
     await mockServer.get('/first').thenTimeout();
-    const client = createClient();
+    const client = createMockClient();
 
     client.addBoundProfileProvider(
       firstMockProfileDocument,
@@ -577,7 +594,7 @@ describe('event-adapter', () => {
       },
     });
 
-    const client = createClient(superJson);
+    const client = createMockClient({ superJson });
     client.addBoundProfileProvider(
       firstMockProfileDocument,
       firstMockMapDocument,
@@ -651,7 +668,7 @@ describe('event-adapter', () => {
       },
     });
 
-    const client = createClient(superJson);
+    const client = createMockClient({ superJson });
     client.addBoundProfileProvider(
       firstMockProfileDocument,
       firstMockMapDocument,
@@ -717,7 +734,7 @@ describe('event-adapter', () => {
       },
     });
 
-    const client = createClient(superJson);
+    const client = createMockClient({ superJson });
 
     client.addBoundProfileProvider(
       firstMockProfileDocument,
@@ -784,7 +801,7 @@ describe('event-adapter', () => {
       },
     });
 
-    const client = createClient(superJson);
+    const client = createMockClient({ superJson });
 
     client.addBoundProfileProvider(
       firstMockProfileDocument,
@@ -850,7 +867,7 @@ describe('event-adapter', () => {
       },
     });
 
-    const client = createClient(superJson);
+    const client = createMockClient({ superJson });
 
     client.addBoundProfileProvider(
       firstMockProfileDocument,
@@ -916,7 +933,7 @@ describe('event-adapter', () => {
       },
     });
 
-    const client = createClient(superJson);
+    const client = createMockClient({ superJson });
 
     client.addBoundProfileProvider(
       firstMockProfileDocument,
@@ -994,7 +1011,7 @@ describe('event-adapter', () => {
       },
     });
 
-    const client = createClient(superJson);
+    const client = createMockClient({ superJson });
 
     client.addBoundProfileProvider(
       firstMockProfileDocument,
@@ -1076,7 +1093,7 @@ describe('event-adapter', () => {
       },
     });
 
-    const client = createClient(superJson);
+    const client = createMockClient({ superJson });
 
     client.addBoundProfileProvider(
       firstMockProfileDocument,
@@ -1161,7 +1178,7 @@ describe('event-adapter', () => {
       },
     });
 
-    const client = createClient(superJson);
+    const client = createMockClient({ superJson });
 
     client.addBoundProfileProvider(
       firstMockProfileDocument,
@@ -1364,7 +1381,7 @@ describe('event-adapter', () => {
       },
     });
 
-    const client = createClient(superJson);
+    const client = createMockClient({ superJson });
 
     client.addBoundProfileProvider(
       firstMockProfileDocument,
@@ -1441,22 +1458,10 @@ describe('event-adapter', () => {
       },
     });
 
-    const client = new MockClient(superJson, {
-      fileSystemOverride: {
-        path: {
-          resolve: (...pathSegments: string[]) => pathSegments.join(),
-        },
-        readFile: async (path: string | string[]) => {
-          if (
-            path.includes('starwars/character-information@1.0.0.supr.ast.json')
-          ) {
-            return ok(JSON.stringify(firstMockProfileDocument));
-          }
-
-          return err(new NotFoundError('File not found'));
-        },
-      },
-      configOverride: {
+    const client = createMockClient({
+      profileAstPath: 'starwars/character-information@1.0.0.supr.ast.json',
+      superJson,
+      config: {
         superfaceApiUrl: mockServer.url,
       },
     });
@@ -1523,22 +1528,10 @@ describe('event-adapter', () => {
       },
     });
 
-    const client = new MockClient(superJson, {
-      fileSystemOverride: {
-        path: {
-          resolve: (...pathSegments: string[]) => pathSegments.join(),
-        },
-        readFile: async path => {
-          if (
-            path.includes('starwars/character-information@1.0.0.supr.ast.json')
-          ) {
-            return ok(JSON.stringify(firstMockProfileDocument));
-          }
-
-          return err(new NotFoundError('File not found'));
-        },
-      },
-      configOverride: {
+    const client = createMockClient({
+      profileAstPath: 'starwars/character-information@1.0.0.supr.ast.json',
+      superJson,
+      config: {
         superfaceApiUrl: mockServer.url,
       },
     });
@@ -1606,22 +1599,10 @@ describe('event-adapter', () => {
       },
     });
 
-    const client = new MockClient(superJson, {
-      fileSystemOverride: {
-        path: {
-          resolve: (...pathSegments: string[]) => pathSegments.join(),
-        },
-        readFile: async path => {
-          if (
-            path.includes('starwars/character-information@1.0.0.supr.ast.json')
-          ) {
-            return ok(JSON.stringify(firstMockProfileDocument));
-          }
-
-          return err(new NotFoundError('File not found'));
-        },
-      },
-      configOverride: {
+    const client = createMockClient({
+      profileAstPath: 'starwars/character-information@1.0.0.supr.ast.json',
+      superJson,
+      config: {
         superfaceApiUrl: mockServer.url,
       },
     });
@@ -1700,25 +1681,14 @@ describe('event-adapter', () => {
       },
     });
 
-    const client = new MockClient(superJson, {
-      fileSystemOverride: {
-        path: {
-          resolve: (...pathSegments: string[]) => pathSegments.join(),
-        },
-        readFile: async path => {
-          if (
-            path.includes('starwars/character-information@1.0.0.supr.ast.json')
-          ) {
-            return ok(JSON.stringify(firstMockProfileDocument));
-          }
-
-          return err(new NotFoundError('File not found'));
-        },
-      },
-      configOverride: {
+    const client = createMockClient({
+      profileAstPath: 'starwars/character-information@1.0.0.supr.ast.json',
+      superJson,
+      config: {
         superfaceApiUrl: mockServer.url,
       },
     });
+
     client.addBoundProfileProvider(
       firstMockProfileDocument,
       firstMockMapDocument,
@@ -1789,7 +1759,7 @@ describe('event-adapter', () => {
       },
     });
 
-    const client = createClient(superJson);
+    const client = createMockClient({ superJson });
 
     client.addBoundProfileProvider(
       firstMockProfileDocument,
@@ -1887,7 +1857,7 @@ describe('event-adapter', () => {
     });
 
     {
-      const client = createClient(superJson);
+      const client = createMockClient({ superJson });
 
       client.addBoundProfileProvider(
         firstMockProfileDocument,
@@ -1913,7 +1883,7 @@ describe('event-adapter', () => {
     }
 
     {
-      const client = createClient(superJson);
+      const client = createMockClient({ superJson });
 
       client.addBoundProfileProvider(
         firstMockProfileDocument,
