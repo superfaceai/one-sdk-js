@@ -269,11 +269,7 @@ export async function fetchProfileAst(
     accept: 'application/vnd.superface.profile+json',
   });
 
-  if (typeof body === 'string') {
-    return assertProfileDocumentNode(JSON.parse(body));
-  }
-
-  throw new Error('TODO Invalid profile AST errr');
+  return assertProfileDocumentNode(JSON.parse(body as string));
 }
 
 export async function fetchMapSource(
