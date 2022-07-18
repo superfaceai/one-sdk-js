@@ -257,7 +257,7 @@ export async function fetchProfileAst(
 ): Promise<ProfileDocumentNode> {
   const http = new HttpClient(fetchInstance, crypto, logger);
   const sdkToken = config.sdkAuthToken;
-  logger?.log(DEBUG_NAMESPACE, `Getting source of profile: "${profileId}"`);
+  logger?.log(DEBUG_NAMESPACE, `Getting AST of profile: "${profileId}"`);
 
   const { body } = await http.request(`/${profileId}`, {
     method: 'GET',
