@@ -5,8 +5,10 @@ import { mergeSecurity } from '../../schema-tools';
 export class ProviderConfiguration {
   constructor(
     public readonly name: string,
+    // TODO: where should we store security and parameters when they are passed to getProvider?
     /** @deprecated only for use in testing library */
-    public readonly security: SecurityValues[]
+    public readonly security: SecurityValues[],
+    public readonly parameters?: Record<string, string>
   ) {}
 
   public get cacheKey(): string {

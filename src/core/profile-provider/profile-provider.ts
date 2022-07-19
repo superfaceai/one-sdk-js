@@ -69,8 +69,9 @@ export async function bindProfileProvider(
     logger
   );
   const boundProfileProvider = await profileProvider.bind({
-    // TODO: resolve security in more readable way
+    // TODO: resolve security and parameters in more readable way
     security: providerConfig.security,
+    parameters: providerConfig.parameters,
   });
   const expiresAt =
     Math.floor(timers.now() / 1000) + config.superfaceCacheTimeout;
@@ -80,6 +81,7 @@ export async function bindProfileProvider(
 
 export type BindConfiguration = {
   security?: SecurityValues[];
+  parameters?: Record<string, string>;
 };
 
 export class ProfileProvider {
@@ -260,7 +262,9 @@ export class ProfileProvider {
         security: securityConfiguration,
         parameters: this.resolveIntegrationParameters(
           providerInfo,
-          this.superJson.normalized.providers[providerInfo.name]?.parameters
+          // TODO: pass parameters from getProvider?
+          configuration?.parameters ??
+            this.superJson.normalized.providers[providerInfo.name]?.parameters
         ),
       },
       this.crypto,

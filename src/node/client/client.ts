@@ -182,6 +182,7 @@ export abstract class SuperfaceClientBase {
   public async getProvider(
     providerName: string,
     options?: {
+      parameters?: Record<string, string>;
       security?:
         | SecurityValues[]
         | { [id: string]: Omit<SecurityValues, 'id'> };
@@ -190,7 +191,12 @@ export abstract class SuperfaceClientBase {
     // TODO: pass logger
     const security = resolveSecurityValues(options?.security);
 
-    return getProvider(this.superJson, providerName, security);
+    return getProvider(
+      this.superJson,
+      providerName,
+      security,
+      options?.parameters
+    );
   }
 
   /** Returns a provider configuration for when no provider is passed to untyped `.perform`. */

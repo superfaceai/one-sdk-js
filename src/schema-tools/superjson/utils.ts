@@ -11,7 +11,8 @@ import { SuperJson } from './superjson';
 export function getProvider(
   superJson: SuperJson,
   providerName: string,
-  security?: SecurityValues[]
+  security?: SecurityValues[],
+  parameters?: Record<string, string>
 ): Provider {
   const providerSettings = superJson.normalized.providers[providerName];
 
@@ -22,7 +23,8 @@ export function getProvider(
   return new Provider(
     new ProviderConfiguration(
       providerName,
-      security ?? providerSettings.security
+      security ?? providerSettings.security,
+      parameters ?? providerSettings.parameters
     )
   );
 }
