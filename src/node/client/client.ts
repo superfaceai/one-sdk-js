@@ -24,6 +24,7 @@ import {
   Profile,
   Provider,
   registerHooks as registerFailoverHooks,
+  resolveProfileId,
 } from '../../core';
 import { SuperCache } from '../../lib';
 import {
@@ -206,8 +207,16 @@ export class SuperfaceClient
   extends SuperfaceClientBase
   implements ISuperfaceClient
 {
-  /** Gets a profile from super.json based on `profileId` in format: `[scope/]name`. */
-  public async getProfile(profileId: string): Promise<Profile> {
-    return this.internal.getProfile(profileId);
+  /** Gets a profile from super.json based on `profile` in format: `[scope/]name@profileVersion`. */
+  public async getProfile(
+    profile: string | { id: string; version?: string }
+  ): Promise<Profile> {
+    // TODO move this inside getProfileConfiguration function
+    const { id, version } = resolveProfileId(profile);
+
+    console.log('id', id, ' version ', version);
+
+    // TODO pass id and version
+    return this.internal.getProfile(id);
   }
 }

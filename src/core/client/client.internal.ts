@@ -1,3 +1,5 @@
+import { extractVersion } from '@superfaceai/ast';
+
 import { SuperCache } from '../../lib';
 import { SuperJson } from '../../schema-tools';
 import { Config } from '../config';
@@ -78,4 +80,33 @@ export class InternalClient {
 
     return new ProfileConfiguration(profileId, version);
   }
+}
+
+export function resolveProfileId(
+  profile: string | { id: string; version?: string }
+): { id: string; version?: string } {
+  let id: string;
+  let version: string | undefined;
+
+  if (typeof profile === 'string') {
+    [id, version] = profile.split('@');
+  } else {
+    id = profile.id;
+    version = profile.version;
+  }
+
+  if (version !== undefined) {
+    const extracted = extractVersion(version);
+    if (extracted.minor === undefined) {
+      // TODO: correct error
+      throw new Error('Minor');
+    }
+    if (extracted.patch === undefined) {
+      // TODO: correct error
+      throw new Error('Patch');
+    }
+  }
+
+  // TODO check if id is valid?
+  return { id, version };
 }
