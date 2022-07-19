@@ -127,6 +127,10 @@ export abstract class SuperfaceClientBase {
     options?: {
       superJson?: SuperJson | SuperJsonDocument;
       debug?: boolean;
+      /**
+       * Flag that can be used to disable caching to filesystem. `true` by default.
+       */
+      cache?: boolean;
     } & Partial<Omit<IConfig, 'cachePath'>>
   ) {
     if (options?.debug === true) {

@@ -9,4 +9,5 @@ export interface IConfig {
   superfaceCacheTimeout: number;
   superfacePath: string;
   debug: boolean;
+  cache: boolean;
 }

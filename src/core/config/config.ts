@@ -36,6 +36,7 @@ export const DEFAULT_CACHE_PATH = (fileSystem: FSPath): string =>
   fileSystem.path.join(fileSystem.path.cwd(), 'superface', '.cache');
 export const DEFAULT_SANDBOX_TIMEOUT = 100;
 export const DEFAULT_DISABLE_REPORTING = false;
+export const DEFAULT_CACHE = true;
 // 1 hour
 export const DEFAULT_BOUND_PROVIDER_TIMEOUT = 60 * 60;
 
@@ -50,6 +51,7 @@ const DEFAULTS = (fileSystem: FSPath): IConfig => ({
   superfaceCacheTimeout: DEFAULT_BOUND_PROVIDER_TIMEOUT,
   superfacePath: DEFAULT_SUPERFACE_PATH(fileSystem),
   debug: false,
+  cache: DEFAULT_CACHE,
 });
 
 // Extraction functions
@@ -167,6 +169,7 @@ export class Config implements IConfig {
   public superfacePath: string;
   // TODO: this does not have superface specific env variable - can we store it here?
   public debug: boolean;
+  public cache: boolean;
 
   constructor(fileSystem: FSPath, config?: Partial<IConfig>) {
     const defaults = DEFAULTS(fileSystem);
@@ -184,6 +187,7 @@ export class Config implements IConfig {
       config?.superfaceCacheTimeout ?? defaults.superfaceCacheTimeout;
     this.superfacePath = config?.superfacePath ?? defaults.superfacePath;
     this.debug = config?.debug !== undefined ? config.debug : defaults.debug;
+    this.cache = config?.cache ?? defaults.cache;
   }
 }
 
@@ -209,6 +213,7 @@ export function mergeConfigs(
     cachePath: newConfig.cachePath ?? originalConfig.cachePath,
     sandboxTimeout: newConfig.sandboxTimeout ?? originalConfig.sandboxTimeout,
     debug: newConfig.debug ?? originalConfig.debug,
+    cache: newConfig.cache ?? originalConfig.cache,
   };
 
   logger?.log(
@@ -261,6 +266,7 @@ export function loadConfigFromCode(
       logFunction
     ),
     debug: config?.debug !== undefined ? config.debug : false,
+    cache: config.cache,
   };
 
   logger?.log(DEBUG_NAMESPACE, 'Loaded config from code: %O', env);

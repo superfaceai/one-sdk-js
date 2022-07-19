@@ -60,7 +60,7 @@ describe('Parser', () => {
 
       filesystem.isAccessible = jest.fn().mockResolvedValue(true);
 
-      await Parser.clearCache(cachePath, filesystem);
+      await Parser.clearCache(cachePath, true, filesystem);
 
       expect(Object.keys((Parser as any).profileCache).length).toEqual(0);
       expect(Object.keys((Parser as any).mapCache).length).toEqual(0);
@@ -71,13 +71,28 @@ describe('Parser', () => {
       });
     });
 
+    it('should clear in memory and keep file cache', async () => {
+      (Parser as any).profileCache = { profilePath: profileASTFixture };
+      (Parser as any).mapCache = { mapPath: mapASTFixture };
+
+      filesystem.isAccessible = jest.fn().mockResolvedValue(true);
+
+      await Parser.clearCache(cachePath, false, filesystem);
+
+      expect(Object.keys((Parser as any).profileCache).length).toEqual(0);
+      expect(Object.keys((Parser as any).mapCache).length).toEqual(0);
+
+      expect(filesystem.rm).not.toHaveBeenCalled();
+      expect(filesystem.rm).not.toHaveBeenCalled();
+    });
+
     it('should clear in memory cache', async () => {
       (Parser as any).profileCache = { profilePath: profileASTFixture };
       (Parser as any).mapCache = { mapPath: mapASTFixture };
 
       filesystem.isAccessible = jest.fn().mockResolvedValue(false);
 
-      await Parser.clearCache(cachePath, filesystem);
+      await Parser.clearCache(cachePath, true, filesystem);
 
       expect(Object.keys((Parser as any).profileCache).length).toEqual(0);
       expect(Object.keys((Parser as any).mapCache).length).toEqual(0);
@@ -102,6 +117,7 @@ describe('Parser', () => {
           scope: 'test',
         },
         cachePath,
+        true,
         filesystem
       );
       expect(filesystem.mkdir).toHaveBeenCalled();
@@ -133,6 +149,7 @@ describe('Parser', () => {
           scope: 'test',
         },
         cachePath,
+        true,
         filesystem
       );
       expect(filesystem.readFile).toHaveBeenCalledTimes(1);
@@ -151,6 +168,7 @@ describe('Parser', () => {
           scope: 'test',
         },
         cachePath,
+        true,
         filesystem
       );
       expect(filesystem.readFile).toHaveBeenCalledTimes(1);
@@ -164,6 +182,7 @@ describe('Parser', () => {
           scope: 'test',
         },
         cachePath,
+        true,
         filesystem
       );
       expect(filesystem.readFile).toHaveBeenCalledTimes(1);
@@ -192,6 +211,7 @@ describe('Parser', () => {
           scope: 'test',
         },
         cachePath,
+        true,
         filesystem
       );
       expect(filesystem.readFile).toHaveBeenCalled();
@@ -223,6 +243,7 @@ describe('Parser', () => {
           scope: 'test',
         },
         cachePath,
+        true,
         filesystem
       );
       expect(filesystem.readFile).toHaveBeenCalled();
@@ -243,9 +264,29 @@ describe('Parser', () => {
           scope: 'test',
         },
         cachePath,
+        true,
         filesystem
       );
       expect(filesystem.readFile).toHaveBeenCalled();
+      expect(filesystem.writeFile).not.toHaveBeenCalled();
+    });
+
+    it('should not load from cache file when already present and cache is disabled', async () => {
+      filesystem.exists = jest.fn().mockResolvedValue(true);
+      filesystem.readFile = jest.fn().mockResolvedValueOnce(ok(mapASTFixture));
+      await Parser.parseMap(
+        mapFixture,
+        'map.suma',
+        {
+          profileName: 'profile',
+          providerName: 'test-provider',
+          scope: 'test',
+        },
+        cachePath,
+        false,
+        filesystem
+      );
+      expect(filesystem.readFile).not.toHaveBeenCalled();
       expect(filesystem.writeFile).not.toHaveBeenCalled();
     });
 
@@ -266,6 +307,7 @@ describe('Parser', () => {
           scope: 'test',
         },
         cachePath,
+        true,
         filesystem
       );
 
@@ -281,11 +323,53 @@ describe('Parser', () => {
           scope: 'test',
         },
         cachePath,
+        true,
         filesystem
       );
       expect(filesystem.mkdir).toHaveBeenCalledTimes(2);
       expect(filesystem.writeFile).toHaveBeenCalledTimes(2);
       expect(filesystem.rm).toHaveBeenCalled();
+    });
+
+    it('should not recache and delete old files on change when cache is disabled', async () => {
+      filesystem.exists = jest.fn().mockResolvedValue(false);
+      filesystem.readFile = jest.fn().mockResolvedValueOnce(ok(mapASTFixture));
+      filesystem.readdir = jest
+        .fn()
+        .mockResolvedValueOnce(ok([]))
+        .mockResolvedValueOnce(ok(['test-provider.suma.ast.json']));
+
+      await Parser.parseMap(
+        mapFixture,
+        'profile.supr',
+        {
+          profileName: 'profile',
+          providerName: 'test-provider',
+          scope: 'test',
+        },
+        cachePath,
+        true,
+        filesystem
+      );
+
+      expect(filesystem.mkdir).toHaveBeenCalledTimes(1);
+      expect(filesystem.writeFile).toHaveBeenCalledTimes(1);
+      expect(filesystem.rm).not.toHaveBeenCalled();
+      await Parser.parseMap(
+        mapFixtureChanged,
+        'profile.supr',
+        {
+          profileName: 'profile',
+          providerName: 'test-provider',
+          scope: 'test',
+        },
+        cachePath,
+        false,
+        filesystem
+      );
+      expect(filesystem.mkdir).toHaveBeenCalledTimes(1);
+      expect(filesystem.writeFile).toHaveBeenCalledTimes(1);
+      expect(filesystem.rm).not.toHaveBeenCalled();
     });
   });
 
@@ -305,6 +389,7 @@ describe('Parser', () => {
           scope: 'test',
         },
         cachePath,
+        true,
         filesystem
       );
       expect(filesystem.mkdir).toHaveBeenCalled();
@@ -336,6 +421,7 @@ describe('Parser', () => {
           scope: 'test',
         },
         cachePath,
+        true,
         filesystem
       );
       expect(filesystem.exists).toHaveBeenCalledTimes(1);
@@ -356,6 +442,7 @@ describe('Parser', () => {
           scope: 'test',
         },
         cachePath,
+        true,
         filesystem
       );
       expect(filesystem.exists).toHaveBeenCalledTimes(1);
@@ -369,6 +456,7 @@ describe('Parser', () => {
           scope: 'test',
         },
         cachePath,
+        true,
         filesystem
       );
       expect(filesystem.exists).toHaveBeenCalledTimes(1);
@@ -398,6 +486,7 @@ describe('Parser', () => {
           scope: 'test',
         },
         cachePath,
+        true,
         filesystem
       );
       expect(filesystem.readFile).toHaveBeenCalled();
@@ -428,6 +517,7 @@ describe('Parser', () => {
           scope: 'test',
         },
         cachePath,
+        true,
         filesystem
       );
       expect(filesystem.readFile).toHaveBeenCalled();
@@ -449,10 +539,26 @@ describe('Parser', () => {
           scope: 'test',
         },
         cachePath,
+        true,
         filesystem
       );
       expect(filesystem.readFile).toHaveBeenCalled();
       expect(filesystem.writeFile).not.toHaveBeenCalled();
+    });
+
+    it('should not load from cache file when cache is disabled', async () => {
+      await Parser.parseProfile(
+        profileFixture,
+        'profile.supr',
+        {
+          profileName: 'profile',
+          scope: 'test',
+        },
+        cachePath,
+        false,
+        filesystem
+      );
+      expect(filesystem.readFile).not.toHaveBeenCalled();
     });
 
     it('should recache and delete old files on change', async () => {
@@ -470,6 +576,7 @@ describe('Parser', () => {
           scope: 'test',
         },
         cachePath,
+        true,
         filesystem
       );
       expect(filesystem.mkdir).toHaveBeenCalledTimes(1);
@@ -483,11 +590,50 @@ describe('Parser', () => {
           scope: 'test',
         },
         cachePath,
+        true,
         filesystem
       );
       expect(filesystem.mkdir).toHaveBeenCalledTimes(2);
       expect(filesystem.writeFile).toHaveBeenCalledTimes(2);
       expect(filesystem.rm).toHaveBeenCalled();
+    });
+
+    it('should not recache and delete old files on change when cache is disabled', async () => {
+      filesystem.exists = jest.fn().mockResolvedValue(false);
+      filesystem.readdir = jest
+        .fn()
+        .mockResolvedValueOnce(ok([]))
+        .mockResolvedValueOnce(ok(['profile.supr.ast.json']));
+
+      await Parser.parseProfile(
+        profileFixture,
+        'profile.supr',
+        {
+          profileName: 'profile',
+          scope: 'test',
+        },
+        cachePath,
+        // Prepare
+        true,
+        filesystem
+      );
+      expect(filesystem.mkdir).toHaveBeenCalledTimes(1);
+      expect(filesystem.writeFile).toHaveBeenCalledTimes(1);
+      expect(filesystem.rm).not.toHaveBeenCalled();
+      await Parser.parseProfile(
+        profileFixtureChanged,
+        'profile.supr',
+        {
+          profileName: 'profile',
+          scope: 'test',
+        },
+        cachePath,
+        false,
+        filesystem
+      );
+      expect(filesystem.mkdir).toHaveBeenCalledTimes(1);
+      expect(filesystem.writeFile).toHaveBeenCalledTimes(1);
+      expect(filesystem.rm).not.toHaveBeenCalled();
     });
   });
 });
