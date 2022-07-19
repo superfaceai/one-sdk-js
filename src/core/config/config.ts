@@ -167,7 +167,6 @@ export class Config implements IConfig {
   public superfaceApiUrl: string;
   public superfaceCacheTimeout: number;
   public superfacePath: string;
-  // TODO: this does not have superface specific env variable - can we store it here?
   public debug: boolean;
   public cache: boolean;
 
@@ -299,7 +298,7 @@ export function loadConfigFromEnv(
     ),
     disableReporting:
       environment.getString('NODE_ENV') === 'test' ||
-      environment.getBoolean(DISABLE_REPORTING) === true
+        environment.getBoolean(DISABLE_REPORTING) === true
         ? true
         : undefined,
     // TODO: add env variable and resolve it?
