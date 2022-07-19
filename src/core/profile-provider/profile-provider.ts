@@ -69,7 +69,7 @@ export async function bindProfileProvider(
     logger
   );
   const boundProfileProvider = await profileProvider.bind({
-    // TODO: resolve security and parameters in more readable way
+    // TODO: resolve security and parameters directly in bind? 
     security: providerConfig.security,
     parameters: providerConfig.parameters,
   });
@@ -98,6 +98,7 @@ export class ProfileProvider {
     public readonly superJson: SuperJson,
     /** profile id, url, ast node or configuration instance */
     private profile: string | ProfileDocumentNode | ProfileConfiguration,
+    // TODO: can thsi be something else than configuration?
     /** provider name, url or configuration instance */
     private provider: string | ProviderJson | ProviderConfiguration,
     private config: IConfig,
@@ -257,14 +258,13 @@ export class ProfileProvider {
         ),
         profileProviderSettings:
           this.superJson.normalized.profiles[profileId]?.providers[
-            providerInfo.name
+          providerInfo.name
           ],
         security: securityConfiguration,
         parameters: this.resolveIntegrationParameters(
           providerInfo,
-          // TODO: pass parameters from getProvider?
           configuration?.parameters ??
-            this.superJson.normalized.providers[providerInfo.name]?.parameters
+          this.superJson.normalized.providers[providerInfo.name]?.parameters
         ),
       },
       this.crypto,

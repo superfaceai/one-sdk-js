@@ -188,13 +188,13 @@ export abstract class SuperfaceClientBase {
         | { [id: string]: Omit<SecurityValues, 'id'> };
     }
   ): Promise<Provider> {
-    // TODO: pass logger
-    const security = resolveSecurityValues(options?.security);
-
     return getProvider(
       this.superJson,
       providerName,
-      security,
+      resolveSecurityValues(
+        options?.security,
+        this.logger?.log('security-values-resolution')
+      ),
       options?.parameters
     );
   }
