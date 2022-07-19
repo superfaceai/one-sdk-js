@@ -6,7 +6,8 @@ import * as utils from '../../schema-tools/superjson/utils';
 import { Config } from '../config';
 import { Events, registerHooks } from '../events';
 import { ProfileConfiguration } from '../profile';
-import { IBoundProfileProvider } from '../profile-provider';
+import { ProfileProviderConfiguration } from '../profile-provider';
+import { IBoundProfileProvider } from '../profile-provider/bound-profile-provider';
 import { Provider, ProviderConfiguration } from '../provider';
 import { UseCase } from './usecase';
 
@@ -26,7 +27,7 @@ const mockBoundProfileProvider = {
   perform: jest.fn(),
 };
 
-jest.mock('../profile-provider', () => ({
+jest.mock('../profile-provider/profile-provider', () => ({
   bindProfileProvider: jest.fn(() => mockBoundProfileProvider),
 }));
 
@@ -203,7 +204,7 @@ describe('UseCase', () => {
       expect(rebindSpy).toBeCalledWith(
         profileConfiguration.cacheKey + providerConfiguration.cacheKey,
         providerConfiguration,
-        { mapRevision: 'rev', mapVariant: 'var' }
+        new ProfileProviderConfiguration('rev', 'var')
       );
 
       expect(performSpy).toHaveBeenCalledWith(

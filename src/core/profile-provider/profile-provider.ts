@@ -41,16 +41,14 @@ import {
   BoundProfileProvider,
   IBoundProfileProvider,
 } from './bound-profile-provider';
+import { ProfileProviderConfiguration } from './profile-provider-configuration';
 import { resolveSecurityConfiguration } from './security';
 
 const DEBUG_NAMESPACE = 'profile-provider';
 
 export async function bindProfileProvider(
   profileConfig: ProfileConfiguration,
-  mapConfig: {
-    mapRevision?: string;
-    mapVariant?: string;
-  },
+  profileProviderConfig: ProfileProviderConfiguration,
   providerConfig: ProviderConfiguration,
   superJson: SuperJson,
   config: IConfig,
@@ -66,6 +64,7 @@ export async function bindProfileProvider(
     superJson,
     profileConfig,
     providerConfig,
+    profileProviderConfig,
     config,
     events,
     fileSystem,
@@ -74,7 +73,7 @@ export async function bindProfileProvider(
     logger
   );
   // TODO: profileProvider.bind takes also security - use it or remove it as parameter?
-  const boundProfileProvider = await profileProvider.bind(mapConfig);
+  const boundProfileProvider = await profileProvider.bind();
   const expiresAt =
     Math.floor(timers.now() / 1000) + config.superfaceCacheTimeout;
 
@@ -83,8 +82,6 @@ export async function bindProfileProvider(
 
 export type BindConfiguration = {
   security?: SecurityValues[];
-  mapRevision?: string;
-  mapVariant?: string;
 };
 
 export class ProfileProvider {
@@ -103,6 +100,7 @@ export class ProfileProvider {
     private profile: string | ProfileDocumentNode | ProfileConfiguration,
     /** provider name, url or configuration instance */
     private provider: string | ProviderJson | ProviderConfiguration,
+    private profileProviderConfig: ProfileProviderConfiguration,
     private config: IConfig,
     private events: Events,
     private readonly fileSystem: IFileSystem,
@@ -173,9 +171,10 @@ export class ProfileProvider {
       `${profileId}.${providerName}`
     );
     let mapAst = resolvedMapAst.mapAst;
-    const mapVariant = configuration?.mapVariant ?? resolvedMapAst.mapVariant;
+    const mapVariant =
+      this.profileProviderConfig.variant ?? resolvedMapAst.mapVariant;
     const mapRevision =
-      configuration?.mapRevision ?? resolvedMapAst.mapRevision;
+      this.profileProviderConfig.revision ?? resolvedMapAst.mapRevision;
 
     // resolve map ast using bind and fill in provider info if not specified
     if (mapAst === undefined) {

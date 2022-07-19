@@ -50,6 +50,7 @@ import { ProfileConfiguration } from '../profile';
 import {
   bindProfileProvider,
   IBoundProfileProvider,
+  ProfileProviderConfiguration,
 } from '../profile-provider';
 import { Provider, ProviderConfiguration } from '../provider';
 
@@ -122,26 +123,23 @@ export abstract class UseCaseBase implements Interceptable {
     this.boundProfileProvider = await this.rebind(
       this.profileConfiguration.cacheKey + providerConfig.cacheKey,
       providerConfig,
-      {
-        mapRevision: options?.mapRevision,
-        mapVariant: options?.mapVariant,
-      }
+      new ProfileProviderConfiguration(
+        options?.mapRevision,
+        options?.mapVariant
+      )
     );
   }
 
   private async rebind(
     cacheKey: string,
     providerConfig: ProviderConfiguration,
-    mapConfig: {
-      mapRevision?: string;
-      mapVariant?: string;
-    }
+    profileProviderConfig: ProfileProviderConfiguration
   ): Promise<IBoundProfileProvider> {
     const { provider, expiresAt } =
       await this.boundProfileProviderCache.getCached(cacheKey, () =>
         bindProfileProvider(
           this.profileConfiguration,
-          mapConfig,
+          profileProviderConfig,
           providerConfig,
           this.superJson,
           this.config,
@@ -156,7 +154,7 @@ export abstract class UseCaseBase implements Interceptable {
     const now = Math.floor(this.timers.now() / 1000);
     if (expiresAt < now) {
       this.boundProfileProviderCache.invalidate(cacheKey);
-      void this.rebind(cacheKey, providerConfig, mapConfig);
+      void this.rebind(cacheKey, providerConfig, profileProviderConfig);
     }
 
     return provider;
