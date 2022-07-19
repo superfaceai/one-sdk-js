@@ -29,6 +29,7 @@ export class Parser {
       scope?: string;
     },
     cachePath: string,
+    cacheEnabled: boolean,
     fileSystem: IFileSystem
   ): Promise<MapDocumentNode> {
     const sourceChecksum = new Source(input, fileName).checksum();
@@ -54,6 +55,7 @@ export class Parser {
     let parsedMap = await Parser.loadCached(
       path,
       isMapDocumentNode,
+      cacheEnabled,
       this.mapCache,
       new Source(input, fileName).checksum(),
       fileSystem
@@ -63,8 +65,9 @@ export class Parser {
     }
 
     // If not, delete old parsed maps
-    await Parser.clearFileCache(path, fileSystem);
-
+    if (cacheEnabled) {
+      await Parser.clearFileCache(path, fileSystem);
+    }
     // And write parsed file to cache
     parsedMap = parseMap(new Source(input, fileName));
     if (!isMapDocumentNode(parsedMap)) {
@@ -83,6 +86,7 @@ export class Parser {
       parsedMap,
       this.mapCache,
       profileCachePath,
+      cacheEnabled,
       path,
       fileSystem
     );
@@ -98,6 +102,7 @@ export class Parser {
       scope?: string;
     },
     cachePath: string,
+    cacheEnabled: boolean,
     fileSystem: IFileSystem
   ): Promise<ProfileDocumentNode> {
     const sourceChecksum = new Source(input, fileName).checksum();
@@ -123,6 +128,7 @@ export class Parser {
     let parsedProfile = await Parser.loadCached(
       path,
       isProfileDocumentNode,
+      cacheEnabled,
       this.profileCache,
       sourceChecksum,
       fileSystem
@@ -133,7 +139,9 @@ export class Parser {
     }
 
     // If not, delete old parsed profiles
-    await Parser.clearFileCache(path, fileSystem);
+    if (cacheEnabled) {
+      await Parser.clearFileCache(path, fileSystem);
+    }
 
     // And write parsed file to cache
     parsedProfile = parseProfile(new Source(input, fileName));
@@ -153,6 +161,7 @@ export class Parser {
       parsedProfile,
       this.profileCache,
       scopeCachePath,
+      cacheEnabled,
       path,
       fileSystem
     );
@@ -162,12 +171,13 @@ export class Parser {
 
   public static async clearCache(
     cachePath: string,
+    cacheEnabled: boolean,
     fileSystem: IFileSystem
   ): Promise<void> {
     this.mapCache = {};
     this.profileCache = {};
 
-    if (await fileSystem.isAccessible(cachePath)) {
+    if (cacheEnabled && (await fileSystem.isAccessible(cachePath))) {
       await fileSystem.rm(cachePath, { recursive: true });
     }
   }
@@ -177,10 +187,14 @@ export class Parser {
   >(
     path: string,
     guard: (node: unknown) => node is T,
+    cacheEnabled: boolean,
     cache: Record<string, T>,
     sourceHash: string,
     fileSystem: IFileSystem
   ): Promise<T | undefined> {
+    if (!cacheEnabled) {
+      return undefined;
+    }
     if (!(await fileSystem.exists(path))) {
       return undefined;
     }
@@ -224,16 +238,19 @@ export class Parser {
     node: T,
     cache: Record<string, T>,
     cachePath: string,
+    cacheEnabled: boolean,
     filePath: string,
     fileSystem: IFileSystem
   ): Promise<void> {
     cache[filePath] = node;
-    try {
-      await fileSystem.mkdir(cachePath, { recursive: true });
-      await fileSystem.writeFile(filePath, JSON.stringify(node));
-    } catch (e) {
-      // Fail silently as the cache is strictly speaking unnecessary
-      void e;
+    if (cacheEnabled) {
+      try {
+        await fileSystem.mkdir(cachePath, { recursive: true });
+        await fileSystem.writeFile(filePath, JSON.stringify(node));
+      } catch (e) {
+        // Fail silently as the cache is strictly speaking unnecessary
+        void e;
+      }
     }
   }
 }

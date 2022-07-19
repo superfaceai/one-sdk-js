@@ -123,9 +123,13 @@ export abstract class SuperfaceClientBase {
   protected readonly logger?: ILogger;
 
   constructor(
-    options?: { superJson?: SuperJson | SuperJsonDocument } & Partial<
-      Omit<IConfig, 'cachePath'>
-    >
+    options?: {
+      superJson?: SuperJson | SuperJsonDocument;
+      /**
+       * Flag that can be used to disable caching to filesystem. `true` by default.
+       */
+      cache?: boolean;
+    } & Partial<Omit<IConfig, 'cachePath'>>
   ) {
     const environment = new NodeEnvironment();
     this.crypto = new NodeCrypto();
