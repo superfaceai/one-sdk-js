@@ -69,7 +69,7 @@ export async function bindProfileProvider(
     logger
   );
   const boundProfileProvider = await profileProvider.bind({
-    // TODO: resolve security and parameters directly in bind? 
+    // TODO: resolve security and parameters directly in bind?
     security: providerConfig.security,
     parameters: providerConfig.parameters,
   });
@@ -224,6 +224,7 @@ export class ProfileProvider {
             providerName,
           },
           this.config.cachePath,
+          this.config.cache,
           this.fileSystem
         );
       }
@@ -258,13 +259,13 @@ export class ProfileProvider {
         ),
         profileProviderSettings:
           this.superJson.normalized.profiles[profileId]?.providers[
-          providerInfo.name
+            providerInfo.name
           ],
         security: securityConfiguration,
         parameters: this.resolveIntegrationParameters(
           providerInfo,
           configuration?.parameters ??
-          this.superJson.normalized.providers[providerInfo.name]?.parameters
+            this.superJson.normalized.providers[providerInfo.name]?.parameters
         ),
       },
       this.crypto,
@@ -391,17 +392,21 @@ export class ProfileProvider {
       this.providersCachePath,
       `${providerJson.name}.json`
     );
-    try {
-      await this.fileSystem.mkdir(this.providersCachePath, { recursive: true });
-      await this.fileSystem.writeFile(
-        providerCachePath,
-        JSON.stringify(providerJson, undefined, 2)
-      );
-    } catch (error) {
-      this.log?.(
-        `Failed to cache provider.json for ${providerJson.name}: %O`,
-        error
-      );
+    if (this.config.cache === true) {
+      try {
+        await this.fileSystem.mkdir(this.providersCachePath, {
+          recursive: true,
+        });
+        await this.fileSystem.writeFile(
+          providerCachePath,
+          JSON.stringify(providerJson, undefined, 2)
+        );
+      } catch (error) {
+        this.log?.(
+          `Failed to cache provider.json for ${providerJson.name}: %O`,
+          error
+        );
+      }
     }
   }
 
@@ -424,6 +429,7 @@ export class ProfileProvider {
               scope: this.scope,
             },
             this.config.cachePath,
+            this.config.cache,
             this.fileSystem
           );
         }
@@ -524,6 +530,7 @@ export class ProfileProvider {
               scope: this.scope,
             },
             this.config.cachePath,
+            this.config.cache,
             this.fileSystem
           );
         }

@@ -8,4 +8,6 @@ export interface IConfig {
   superfaceApiUrl: string;
   superfaceCacheTimeout: number;
   superfacePath: string;
+  debug: boolean;
+  cache: boolean;
 }

@@ -60,6 +60,7 @@ describe('Config', () => {
             superfaceApiUrl: 'https://superface.ai/old',
             superfaceCacheTimeout: 3,
             superfacePath: '/Users/someone/old/super.json',
+            debug: false,
           }),
           new Config(NodeFileSystem, {
             disableReporting: false,
@@ -70,6 +71,7 @@ describe('Config', () => {
             superfaceApiUrl: 'https://superface.ai/new',
             superfaceCacheTimeout: 3600,
             superfacePath: '/Users/someone/new/super.json',
+            debug: true,
           }),
           NodeFileSystem
         )
@@ -83,6 +85,7 @@ describe('Config', () => {
           superfaceApiUrl: 'https://superface.ai/new',
           superfaceCacheTimeout: 3600,
           superfacePath: '/Users/someone/new/super.json',
+          debug: true,
         })
       );
     });
@@ -100,6 +103,7 @@ describe('Config', () => {
             superfaceCacheTimeout: 3,
             superfacePath: '/Users/someone/old/super.json',
             cachePath: '.cache',
+            debug: true,
           },
           {
             superfacePath: '/Users/someone/new/super.json',
@@ -117,6 +121,7 @@ describe('Config', () => {
           superfaceCacheTimeout: 3,
           superfacePath: '/Users/someone/new/super.json',
           cachePath: '.cache',
+          debug: true,
         })
       );
     });
@@ -140,6 +145,7 @@ describe('Config', () => {
         superfaceApiUrl: 'https://superface.ai/custom/url',
         superfaceCacheTimeout: 36000,
         superfacePath: '/Users/someone/superface/super.json',
+        debug: true,
       };
       const customConfig = loadConfigFromCode(customEnv, NodeFileSystem);
       expect(customConfig.disableReporting).toEqual(customEnv.disableReporting);
@@ -156,6 +162,7 @@ describe('Config', () => {
         customEnv.superfaceCacheTimeout
       );
       expect(customConfig.superfacePath).toEqual(customEnv.superfacePath);
+      expect(customConfig.debug).toEqual(customEnv.debug);
     });
 
     it('throws on invalid url', async () => {

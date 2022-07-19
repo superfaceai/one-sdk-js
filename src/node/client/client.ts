@@ -1,4 +1,5 @@
 import { SecurityValues, SuperJsonDocument } from '@superfaceai/ast';
+import debug from 'debug';
 
 import {
   AuthCache,
@@ -124,10 +125,19 @@ export abstract class SuperfaceClientBase {
   protected readonly logger?: ILogger;
 
   constructor(
-    options?: { superJson?: SuperJson | SuperJsonDocument } & Partial<
-      Omit<IConfig, 'cachePath'>
-    >
+    options?: {
+      superJson?: SuperJson | SuperJsonDocument;
+      debug?: boolean;
+      /**
+       * Flag that can be used to disable caching to filesystem. `true` by default.
+       */
+      cache?: boolean;
+    } & Partial<Omit<IConfig, 'cachePath'>>
   ) {
+    if (options?.debug === true) {
+      debug.enable('superface:*');
+    }
+
     const environment = new NodeEnvironment();
     this.crypto = new NodeCrypto();
     this.timers = new NodeTimers();
