@@ -36,6 +36,7 @@ export const DEFAULT_CACHE_PATH = (fileSystem: FSPath): string =>
   fileSystem.path.join(fileSystem.path.cwd(), 'superface', '.cache');
 export const DEFAULT_SANDBOX_TIMEOUT = 100;
 export const DEFAULT_DISABLE_REPORTING = false;
+export const DEFAULT_CACHE = true;
 // 1 hour
 export const DEFAULT_BOUND_PROVIDER_TIMEOUT = 60 * 60;
 
@@ -49,37 +50,50 @@ const DEFAULTS = (fileSystem: FSPath): IConfig => ({
   superfaceApiUrl: DEFAULT_API_URL,
   superfaceCacheTimeout: DEFAULT_BOUND_PROVIDER_TIMEOUT,
   superfacePath: DEFAULT_SUPERFACE_PATH(fileSystem),
+  cache: DEFAULT_CACHE,
 });
 
 // Extraction functions
 function getSuperfaceApiUrl(environment: IEnvironment): string | undefined {
-  const envUrl = environment.getString(API_URL_ENV_NAME);
-
-  return envUrl !== undefined ? new URL(envUrl).href : undefined;
+  return ensureValidUrl(environment.getString(API_URL_ENV_NAME));
 }
 
 function getSdkAuthToken(
   environment: IEnvironment,
   log?: LogFunction
 ): string | undefined {
-  const token = environment.getString(TOKEN_ENV_NAME);
+  return ensureValidSdkToken(
+    environment.getString(TOKEN_ENV_NAME),
+    TOKEN_ENV_NAME,
+    log
+  );
+}
 
-  if (token === undefined) {
-    log?.(`Environment variable ${TOKEN_ENV_NAME} not found`);
+function ensureValidSdkToken(
+  value: string | undefined,
+  variableName: string,
+  log?: LogFunction
+): string | undefined {
+  if (value === undefined) {
+    log?.(`Variable ${variableName} not found`);
 
     return;
   }
 
   const tokenRegexp = /^(sfs)_([^_]+)_([0-9A-F]{8})$/i;
-  if (!tokenRegexp.test(token)) {
+  if (!tokenRegexp.test(value)) {
     log?.(
-      `Value in environment variable ${TOKEN_ENV_NAME} is not valid SDK authentization token`
+      `Value in environment variable ${variableName} is not valid SDK authentization token`
     );
 
     return;
   }
 
-  return token;
+  return value;
+}
+
+function ensureValidUrl(value: string | undefined): string | undefined {
+  return value !== undefined ? new URL(value).href : undefined;
 }
 
 function ensurePositiveInteger(
@@ -152,6 +166,7 @@ export class Config implements IConfig {
   public superfaceApiUrl: string;
   public superfaceCacheTimeout: number;
   public superfacePath: string;
+  public cache: boolean;
 
   constructor(fileSystem: FSPath, config?: Partial<IConfig>) {
     const defaults = DEFAULTS(fileSystem);
@@ -168,7 +183,89 @@ export class Config implements IConfig {
     this.superfaceCacheTimeout =
       config?.superfaceCacheTimeout ?? defaults.superfaceCacheTimeout;
     this.superfacePath = config?.superfacePath ?? defaults.superfacePath;
+    this.cache = config?.cache ?? defaults.cache;
   }
+}
+
+export function mergeConfigs(
+  originalConfig: Partial<IConfig>,
+  newConfig: Partial<IConfig>,
+  fileSystem: FSPath,
+  logger?: ILogger
+): Config {
+  const env = {
+    superfaceApiUrl:
+      newConfig.superfaceApiUrl ?? originalConfig.superfaceApiUrl,
+    sdkAuthToken: newConfig.sdkAuthToken ?? originalConfig.sdkAuthToken,
+    superfacePath: newConfig.superfacePath ?? originalConfig.superfacePath,
+    superfaceCacheTimeout:
+      newConfig.superfaceCacheTimeout ?? originalConfig.superfaceCacheTimeout,
+    metricDebounceTimeMin:
+      newConfig.metricDebounceTimeMin ?? originalConfig.metricDebounceTimeMin,
+    metricDebounceTimeMax:
+      newConfig.metricDebounceTimeMax ?? originalConfig.metricDebounceTimeMax,
+    disableReporting:
+      newConfig.disableReporting ?? originalConfig.disableReporting,
+    cachePath: newConfig.cachePath ?? originalConfig.cachePath,
+    sandboxTimeout: newConfig.sandboxTimeout ?? originalConfig.sandboxTimeout,
+    cache: newConfig.cache ?? originalConfig.cache,
+  };
+
+  logger?.log(
+    DEBUG_NAMESPACE,
+    'Merged config A: %O with B: %O to: %O',
+    originalConfig,
+    newConfig,
+    env
+  );
+
+  return new Config(fileSystem, env);
+}
+
+export function loadConfigFromCode(
+  config: Partial<Omit<IConfig, 'cachePath'>>,
+  fileSystem: FSPath,
+  logger?: ILogger
+): Config {
+  const logFunction = logger?.log(DEBUG_NAMESPACE);
+  const env = {
+    superfaceApiUrl: ensureValidUrl(config.superfaceApiUrl),
+    sdkAuthToken: ensureValidSdkToken(
+      config.sdkAuthToken,
+      'sdkAuthToken',
+      logFunction
+    ),
+    // TODO: Check if it is path?
+    superfacePath: config.superfacePath,
+    superfaceCacheTimeout: ensurePositiveInteger(
+      config.superfaceCacheTimeout,
+      'superfaceCacheTimeout',
+      logFunction
+    ),
+    metricDebounceTimeMin: ensurePositiveInteger(
+      config.metricDebounceTimeMin,
+      'metricDebounceTimeMin',
+      logFunction
+    ),
+    metricDebounceTimeMax: ensurePositiveInteger(
+      config.metricDebounceTimeMax,
+      'metricDebounceTimeMax',
+      logFunction
+    ),
+    disableReporting: config.disableReporting,
+    // TODO: Check if it is path?
+    cachePath: undefined,
+    sandboxTimeout: ensurePositiveInteger(
+      config.sandboxTimeout,
+      'sandboxTimeout',
+      logFunction
+    ),
+    cache: config.cache,
+  };
+
+  logger?.log(DEBUG_NAMESPACE, 'Loaded config from code: %O', env);
+
+  return new Config(fileSystem, env);
 }
 
 export function loadConfigFromEnv(
@@ -176,22 +273,32 @@ export function loadConfigFromEnv(
   fileSystem: FSPath,
   logger?: ILogger
 ): Config {
+  const logFunction = logger?.log(DEBUG_NAMESPACE);
   const env = {
     superfaceApiUrl: getSuperfaceApiUrl(environment),
-    sdkAuthToken: getSdkAuthToken(environment),
+    sdkAuthToken: getSdkAuthToken(environment, logFunction),
     superfacePath:
       environment.getString(SUPERFACE_PATH_NAME) ??
       DEFAULT_SUPERFACE_PATH(fileSystem),
-    superfaceCacheTimeout: getBoundCacheTimeout(environment),
-    metricDebounceTimeMin: getMetricDebounceTime('min', environment),
-    metricDebounceTimeMax: getMetricDebounceTime('max', environment),
+    superfaceCacheTimeout: getBoundCacheTimeout(environment, logFunction),
+    metricDebounceTimeMin: getMetricDebounceTime(
+      'min',
+      environment,
+      logFunction
+    ),
+    metricDebounceTimeMax: getMetricDebounceTime(
+      'max',
+      environment,
+      logFunction
+    ),
     disableReporting:
       environment.getString('NODE_ENV') === 'test' ||
       environment.getBoolean(DISABLE_REPORTING) === true
         ? true
         : undefined,
+    // TODO: add env variable and resolve it?
     cachePath: undefined,
-    sandboxTimeout: getSandboxTimeout(environment),
+    sandboxTimeout: getSandboxTimeout(environment, logFunction),
   };
 
   logger?.log(
