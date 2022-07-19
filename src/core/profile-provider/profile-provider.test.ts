@@ -527,7 +527,7 @@ describe('profile provider', () => {
         expect(result).toMatchObject(expectedBoundProfileProvider);
       });
 
-      it('returns new BoundProfileProvider use passed map variant and revision', async () => {
+      it('returns new BoundProfileProvider with passed map variant and revision', async () => {
         mocked(fetchBind).mockResolvedValue(mockFetchResponse);
         const superJson = new SuperJson({
           profiles: {
