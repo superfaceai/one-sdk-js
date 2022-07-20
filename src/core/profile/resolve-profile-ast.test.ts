@@ -17,6 +17,7 @@ import {
   sourceFileExtensionFoundError,
   unableToResolveProfileError,
   unsupportedFileExtensionError,
+  versionMismatchError,
 } from '../errors';
 import { IFileSystem } from '../interfaces';
 import { fetchProfileAst } from '../registry';
@@ -104,6 +105,134 @@ describe('resolveProfileAst', () => {
   });
 
   describe('when passing version', () => {
+    describe('when profile is defined in super.json', () => {
+      it('returns a valid profile when it points to existing path', async () => {
+        fileSystem = createMockFileSystem(
+          'foo.supr.ast.json',
+          mockProfileDocumentNode({
+            name: 'foo',
+            version: {
+              major: 1,
+              minor: 0,
+              patch: 1,
+              label: 'test',
+            },
+          })
+        );
+
+        const ast = await resolveProfileAst({
+          profileId: 'foo',
+          version: '1.0.1',
+          superJson: mockSuperJson,
+          config,
+          crypto,
+          fileSystem,
+          fetchInstance,
+          logger,
+        });
+        expect(ast.header.version).toEqual({
+          major: 1,
+          minor: 0,
+          patch: 1,
+          label: 'test',
+        });
+      });
+
+      it('returns a valid profile when profile is found in grid', async () => {
+        fileSystem = createMockFileSystem(
+          'testy/mctestface@0.1.0.supr.ast.json',
+          mockProfileDocumentNode({
+            name: 'mctestface',
+            scope: 'testy',
+            version: {
+              major: 0,
+              minor: 1,
+              patch: 0,
+            },
+          })
+        );
+
+        const ast = await resolveProfileAst({
+          profileId: 'testy/mctestface',
+          version: '0.1.0',
+          superJson: mockSuperJson,
+          config,
+          crypto,
+          fileSystem,
+          fetchInstance,
+          logger,
+        });
+
+        expect(ast.header.version).toEqual({ major: 0, minor: 1, patch: 0 });
+      });
+
+      it('returns a valid profile when profile is found in registry', async () => {
+        mocked(fetchProfileAst).mockResolvedValue(
+          mockProfileDocumentNode({
+            name: 'mctestface',
+            scope: 'testy',
+            version: {
+              major: 0,
+              minor: 1,
+              patch: 0,
+            },
+          })
+        );
+        fileSystem = createMockFileSystem(
+          'testy/mctestface@0.1.0.supr.ast.json',
+          new NotFoundError('test')
+        );
+
+        const ast = await resolveProfileAst({
+          profileId: 'testy/mctestface',
+          version: '0.1.0',
+          superJson: mockSuperJson,
+          config,
+          crypto,
+          fileSystem,
+          fetchInstance,
+          logger,
+        });
+
+        expect(ast.header.version).toEqual({ major: 0, minor: 1, patch: 0 });
+        expect(fetchProfileAst).toHaveBeenCalledWith(
+          'testy/mctestface@0.1.0',
+          config,
+          crypto,
+          fetchInstance,
+          logger
+        );
+      });
+
+      it('throws when there is a version mismatch', async () => {
+        fileSystem = createMockFileSystem(
+          'testy/mctestface@1.1.0.supr.ast.json',
+          mockProfileDocumentNode({
+            name: 'mctestface',
+            scope: 'testy',
+            version: {
+              major: 1,
+              minor: 1,
+              patch: 0,
+            },
+          })
+        );
+
+        await expect(
+          resolveProfileAst({
+            profileId: 'testy/mctestface',
+            version: '1.1.0',
+            superJson: mockSuperJson,
+            config,
+            crypto,
+            fileSystem,
+            fetchInstance,
+            logger,
+          })
+        ).rejects.toThrow(versionMismatchError('0.1.0', '1.1.0'));
+      });
+    });
+
     describe('when profile is not defined in super.json', () => {
       it('returns a valid profile when profile is found in grid', async () => {
         fileSystem = createMockFileSystem(
