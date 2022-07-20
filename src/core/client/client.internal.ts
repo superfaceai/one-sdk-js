@@ -1,4 +1,4 @@
-import { extractVersion , ProfileDocumentNode } from '@superfaceai/ast';
+import { extractVersion, ProfileDocumentNode } from '@superfaceai/ast';
 
 import { profileAstId, SuperCache, versionToString } from '../../lib';
 import { SuperJson } from '../../schema-tools';
@@ -29,9 +29,14 @@ export class InternalClient {
     private readonly logger?: ILogger
   ) {}
 
-  public async getProfile(profileId: string): Promise<Profile> {
+  public async getProfile(
+    profile: string | { id: string; version?: string }
+  ): Promise<Profile> {
+    const { id, version } = resolveProfileId(profile);
+
     const ast = await resolveProfileAst({
-      profileId,
+      profileId: id,
+      version,
       logger: this.logger,
       fetchInstance: this.fetchInstance,
       fileSystem: this.fileSystem,

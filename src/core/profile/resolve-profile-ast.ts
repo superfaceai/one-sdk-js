@@ -32,6 +32,7 @@ const DEBUG_NAMESPACE = 'profile-ast-resolution';
  */
 export async function resolveProfileAst({
   profileId,
+  version,
   logger,
   superJson,
   fileSystem,
@@ -40,6 +41,7 @@ export async function resolveProfileAst({
   fetchInstance,
 }: {
   profileId: string;
+  version?: string;
   logger?: ILogger;
   superJson: SuperJson;
   fileSystem: IFileSystem;
@@ -65,6 +67,14 @@ export async function resolveProfileAst({
 
   const profileSettings = superJson.normalized.profiles[profileId];
 
+  // TODO what we should do when we don't have profileSettings and version is undefined? -error
+  if (profileSettings === undefined && version === undefined) {
+    // TODO: better error
+    throw new Error('Profile not found in sj and version is missing');
+  }
+
+  // TODO what we should do when we have profileSettings and version is also defined? -error
+
   if (profileSettings === undefined) {
     throw profileNotFoundError(profileId);
   }
@@ -83,6 +93,7 @@ export async function resolveProfileAst({
 
     return await loadProfileAstFile(filepath);
   }
+  // TODO: this should happen also for case with version defined
   // assumed to be in grid folder under superface directory
   const gridPath = fileSystem.path.join(
     'grid',
