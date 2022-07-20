@@ -37,12 +37,15 @@ import {
   BoundProfileProvider,
   IBoundProfileProvider,
 } from './bound-profile-provider';
+import { ProfileProviderConfiguration } from './profile-provider-configuration';
 import { resolveSecurityConfiguration } from './security';
 
 const DEBUG_NAMESPACE = 'profile-provider';
 
 export async function bindProfileProvider(
   profile: ProfileDocumentNode,
+  // profileConfig: ProfileConfiguration,
+  profileProviderConfig: ProfileProviderConfiguration,
   providerConfig: ProviderConfiguration,
   superJson: SuperJson,
   config: IConfig,
@@ -57,6 +60,7 @@ export async function bindProfileProvider(
     superJson,
     profile,
     providerConfig,
+    profileProviderConfig,
     config,
     events,
     fileSystem,
@@ -91,6 +95,7 @@ export class ProfileProvider {
     private profile: ProfileDocumentNode,
     /** provider name, url or configuration instance */
     private provider: string | ProviderJson | ProviderConfiguration,
+    private profileProviderConfig: ProfileProviderConfiguration,
     private config: IConfig,
     private events: Events,
     private readonly fileSystem: IFileSystem,
@@ -150,8 +155,10 @@ export class ProfileProvider {
       `${profileId}.${providerName}`
     );
     let mapAst = resolvedMapAst.mapAst;
-    const mapVariant = resolvedMapAst.mapVariant;
-    const mapRevision = resolvedMapAst.mapRevision;
+    const mapVariant =
+      this.profileProviderConfig.variant ?? resolvedMapAst.mapVariant;
+    const mapRevision =
+      this.profileProviderConfig.revision ?? resolvedMapAst.mapRevision;
 
     // resolve map ast using bind and fill in provider info if not specified
     if (mapAst === undefined) {
