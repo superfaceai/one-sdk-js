@@ -142,6 +142,17 @@ export function invalidVersionError(
   );
 }
 
+export function versionMismatchError(
+  superJsonVersion: string,
+  getProfileVersion: string
+): SDKExecutionError {
+  return new SDKExecutionError(
+    `Version from super.json (${superJsonVersion}) and getProfile (${getProfileVersion}) does not match.`,
+    ['If version in super.json and in "getProfile" is used thy must match'],
+    ['Use version either in super.json or in "getProfile"']
+  );
+}
+
 export function profileNotFoundError(profileName: string): SDKExecutionError {
   return new SDKExecutionError(
     `Profile "${profileName}" not found in super.json`,

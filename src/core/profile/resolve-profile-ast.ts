@@ -11,6 +11,7 @@ import {
   sourceFileExtensionFoundError,
   unableToResolveProfileError,
   unsupportedFileExtensionError,
+  versionMismatchError,
 } from '../errors';
 import { Interceptable } from '../events';
 import { IConfig, ICrypto, IFileSystem, ILogger } from '../interfaces';
@@ -79,14 +80,11 @@ export async function resolveProfileAst({
     version !== undefined &&
     profileSettings.version !== version
   ) {
-    // TODO throw error instead?
-    logFunction?.(
-      `Version from super.json (${profileSettings.version}) and getProfile (${version}) does not match, using: ${version}`
-    );
+    throw versionMismatchError(profileSettings.version, version);
   }
   let filepath: string;
 
-  // TODO do we wand to check `file` if we have version from getProfile?
+  // TODO do we want to check `file` if we have version from getProfile?
   if (profileSettings !== undefined && 'file' in profileSettings) {
     filepath = superJson.resolvePath(profileSettings.file);
     logFunction?.('Reading possible profile file: %s', filepath);
