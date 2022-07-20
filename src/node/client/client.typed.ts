@@ -17,7 +17,7 @@ export type TypedSuperfaceClient<
   TProfiles extends ProfileUseCases<any, any>
 > = SuperfaceClientBase & {
   getProfile<TProfile extends keyof TProfiles>(
-    profile: TProfile
+    profile: TProfile | { id: TProfile; version?: string }
   ): Promise<TypedProfile<TProfiles[TProfile]>>;
 };
 
