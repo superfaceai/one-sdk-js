@@ -1,3 +1,5 @@
+import { ProfileDocumentNode } from '@superfaceai/ast';
+
 import { SuperCache } from '../../lib';
 import { SuperJson } from '../../schema-tools';
 import { UnexpectedError, usecaseNotFoundError } from '../errors';
@@ -30,6 +32,7 @@ export class TypedProfile<
 
   constructor(
     public override readonly configuration: ProfileConfiguration,
+    public override readonly ast: ProfileDocumentNode,
     protected override readonly events: Events,
     protected override readonly superJson: SuperJson,
     protected override readonly boundProfileProviderCache: SuperCache<{
@@ -48,6 +51,7 @@ export class TypedProfile<
   ) {
     super(
       configuration,
+      ast,
       events,
       superJson,
       config,
@@ -65,7 +69,7 @@ export class TypedProfile<
           TUsecaseTypes[typeof usecase][0],
           TUsecaseTypes[typeof usecase][1]
         >(
-          configuration,
+          this,
           usecase as string,
           events,
           config,

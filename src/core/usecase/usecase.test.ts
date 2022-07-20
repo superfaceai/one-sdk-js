@@ -1,12 +1,17 @@
 import { SuperCache } from '../../lib';
-import { MockFileSystem, MockTimers } from '../../mock';
+import {
+  MockFileSystem,
+  mockProfileDocumentNode,
+  MockTimers,
+} from '../../mock';
 import { NodeCrypto, NodeFetch, NodeFileSystem } from '../../node';
 import { SuperJson } from '../../schema-tools';
 import * as utils from '../../schema-tools/superjson/utils';
 import { Config } from '../config';
 import { Events, registerHooks } from '../events';
-import { ProfileConfiguration } from '../profile';
-import { IBoundProfileProvider } from '../profile-provider';
+import { Profile, ProfileBase, ProfileConfiguration } from '../profile';
+import { ProfileProviderConfiguration } from '../profile-provider';
+import { IBoundProfileProvider } from '../profile-provider/bound-profile-provider';
 import { Provider, ProviderConfiguration } from '../provider';
 import { UseCase } from './usecase';
 
@@ -26,7 +31,7 @@ const mockBoundProfileProvider = {
   perform: jest.fn(),
 };
 
-jest.mock('../profile-provider', () => ({
+jest.mock('../profile-provider/profile-provider', () => ({
   bindProfileProvider: jest.fn(() => mockBoundProfileProvider),
 }));
 
@@ -42,21 +47,42 @@ function createUseCase(cacheExpire?: number) {
     perform: jest.fn(),
   };
 
+  const mockProviderConfiguration = new ProviderConfiguration(
+    'test-provider',
+    []
+  );
+  const mockProviderConfiguration2 = new ProviderConfiguration(
+    'test-provider2',
+    []
+  );
+
   const cache = new SuperCache<{
     provider: IBoundProfileProvider;
     expiresAt: number;
   }>();
+
+  const profile: ProfileBase = new Profile(
+    mockProfileConfiguration,
+    mockProfileDocumentNode(),
+    events,
+    mockSuperJson,
+    new Config(MockFileSystem()),
+    timers,
+    MockFileSystem(),
+    cache,
+    crypto,
+    new NodeFetch(timers)
+  );
+
   cache.getCached(
-    mockProfileConfiguration.cacheKey +
-      new ProviderConfiguration('test-provider', []).cacheKey,
+    mockProfileConfiguration.cacheKey + mockProviderConfiguration.cacheKey,
     () => ({
       provider: mockBoundProfileProvider,
       expiresAt: cacheExpire ?? Infinity,
     })
   );
   cache.getCached(
-    mockProfileConfiguration.cacheKey +
-      new ProviderConfiguration('test-provider2', []).cacheKey,
+    mockProfileConfiguration.cacheKey + mockProviderConfiguration2.cacheKey,
     () => ({
       provider: mockBoundProfileProvider2,
       expiresAt: cacheExpire ?? Infinity,
@@ -68,7 +94,7 @@ function createUseCase(cacheExpire?: number) {
   const config = new Config(NodeFileSystem);
 
   const usecase = new UseCase(
-    mockProfileConfiguration,
+    profile,
     'test-usecase',
     events,
     config,
@@ -83,6 +109,9 @@ function createUseCase(cacheExpire?: number) {
   return {
     performSpy: mockBoundProfileProvider.perform,
     performSpy2: mockBoundProfileProvider2.perform,
+    profileConfiguration: mockProfileConfiguration,
+    providerConfiguration: mockProviderConfiguration,
+    providerConfiguration2: mockProviderConfiguration2,
     usecase,
     cache,
     timers,
@@ -162,6 +191,45 @@ describe('UseCase', () => {
         { x: 7 },
         undefined,
         []
+      );
+    });
+
+    it('passes map variant and map revision', async () => {
+      const {
+        usecase,
+        performSpy,
+        profileConfiguration,
+        providerConfiguration,
+      } = createUseCase();
+
+      const rebindSpy = jest.spyOn(usecase as any, 'rebind');
+      await expect(
+        usecase.perform(
+          { x: 7 },
+          {
+            security: [
+              {
+                id: 'test',
+                apikey: 'key',
+              },
+            ],
+            mapRevision: 'rev',
+            mapVariant: 'var',
+          }
+        )
+      ).resolves.toBeUndefined();
+
+      expect(rebindSpy).toBeCalledWith(
+        profileConfiguration.cacheKey + providerConfiguration.cacheKey,
+        providerConfiguration,
+        new ProfileProviderConfiguration('rev', 'var')
+      );
+
+      expect(performSpy).toHaveBeenCalledWith(
+        'test-usecase',
+        { x: 7 },
+        undefined,
+        [{ id: 'test', apikey: 'key' }]
       );
     });
 

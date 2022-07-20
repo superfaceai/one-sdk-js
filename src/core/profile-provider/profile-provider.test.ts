@@ -20,11 +20,11 @@ import { localProviderAndRemoteMapError } from '../errors';
 import { Events } from '../events';
 import { IFileSystem } from '../interfaces';
 import { Parser } from '../parser';
-import { ProfileConfiguration } from '../profile';
 import { ProviderConfiguration } from '../provider';
 import { fetchBind, fetchMapSource, fetchProviderInfo } from '../registry';
 import { ServiceSelector } from '../services';
 import { ProfileProvider } from './profile-provider';
+import { ProfileProviderConfiguration } from './profile-provider-configuration';
 
 jest.mock('../registry/registry');
 jest.mock('../parser/parser');
@@ -114,6 +114,9 @@ describe('profile provider', () => {
 
   const mockProviderConfiguration: ProviderConfiguration =
     new ProviderConfiguration('test', []);
+
+  const mockProfileProviderConfiguration: ProfileProviderConfiguration =
+    new ProfileProviderConfiguration();
 
   const mockSecurityValues: SecurityValues[] = [
     {
@@ -266,6 +269,7 @@ describe('profile provider', () => {
           superJson,
           mockProfileDocument,
           mockProviderConfiguration,
+          mockProfileProviderConfiguration,
           mockConfig,
           new Events(timers),
           fileSystem,
@@ -305,6 +309,7 @@ describe('profile provider', () => {
           superJson,
           mockProfileDocument,
           mockProviderConfiguration,
+          mockProfileProviderConfiguration,
           mockConfig,
           new Events(timers),
           fileSystem,
@@ -343,6 +348,7 @@ describe('profile provider', () => {
           superJson,
           mockProfileDocument,
           mockProviderConfiguration,
+          mockProfileProviderConfiguration,
           mockConfigWithDisabledCache,
           new Events(timers),
           fileSystem,
@@ -379,8 +385,9 @@ describe('profile provider', () => {
 
         const mockProfileProvider = new ProfileProvider(
           superJson,
-          'test-profile',
+          mockProfileDocument,
           mockProviderConfiguration,
+          mockProfileProviderConfiguration,
           mockConfig,
           new Events(timers),
           fileSystem,
@@ -415,8 +422,9 @@ describe('profile provider', () => {
 
         const mockProfileProvider = new ProfileProvider(
           superJson,
-          new ProfileConfiguration('test-profile', '1.0.0'),
+          mockProfileDocument,
           mockProviderConfiguration,
+          mockProfileProviderConfiguration,
           mockConfig,
           new Events(timers),
           fileSystem,
@@ -463,8 +471,9 @@ describe('profile provider', () => {
 
         const mockProfileProvider = new ProfileProvider(
           superJson,
-          new ProfileConfiguration('test-profile', '1.0.0'),
+          mockProfileDocument,
           mockProviderConfiguration,
+          mockProfileProviderConfiguration,
           mockConfig,
           new Events(timers),
           fileSystem,
@@ -477,7 +486,7 @@ describe('profile provider', () => {
         expect(result).toMatchObject(expectedBoundProfileProvider);
       });
 
-      it('returns new BoundProfileProvider load localy', async () => {
+      it('returns new BoundProfileProvider load locally', async () => {
         mocked(fetchBind).mockResolvedValue(mockFetchResponse);
         const superJson = new SuperJson({
           profiles: {
@@ -502,14 +511,14 @@ describe('profile provider', () => {
 
         fileSystem.readFile = jest
           .fn()
-          .mockResolvedValueOnce(ok(JSON.stringify(mockProfileDocument)))
           .mockResolvedValueOnce(ok(JSON.stringify(mockProviderJson)))
           .mockResolvedValueOnce(ok(JSON.stringify(mockMapDocument)));
 
         const mockProfileProvider = new ProfileProvider(
           superJson,
-          'test-profile',
+          mockProfileDocument,
           mockProviderConfiguration,
+          mockProfileProviderConfiguration,
           mockConfig,
           new Events(timers),
           fileSystem,
@@ -526,7 +535,6 @@ describe('profile provider', () => {
         mocked(fetchBind).mockResolvedValue(mockFetchResponse);
         fileSystem.readFile = jest
           .fn()
-          .mockResolvedValueOnce(ok(JSON.stringify(mockProfileDocument)))
           .mockResolvedValueOnce(ok(JSON.stringify(mockProviderJson)))
           .mockResolvedValueOnce(ok(JSON.stringify(mockMapDocument)));
         const superJson = new SuperJson({
@@ -551,8 +559,9 @@ describe('profile provider', () => {
 
         const mockProfileProvider = new ProfileProvider(
           superJson,
-          'test-profile',
+          mockProfileDocument,
           mockProviderConfiguration,
+          mockProfileProviderConfiguration,
           mockConfig,
           new Events(timers),
           fileSystem,
@@ -565,36 +574,53 @@ describe('profile provider', () => {
         expect(result).toMatchObject(expectedBoundProfileProvider);
       });
 
-      it('throws error without profile settings', async () => {
+      it('returns new BoundProfileProvider with passed map variant and revision', async () => {
         mocked(fetchBind).mockResolvedValue(mockFetchResponse);
         const superJson = new SuperJson({
-          profiles: {},
+          profiles: {
+            ['test-profile']: {
+              version: '1.0.0',
+              defaults: {},
+              providers: {},
+            },
+          },
           providers: {
             test: {
-              file: 'file://some/file',
-              security: [],
+              security: mockSecurityValues,
             },
           },
         });
+        const mockFetchInstance = new NodeFetch(timers);
 
-        fileSystem.readFile = jest
-          .fn()
-          .mockResolvedValueOnce(ok(JSON.stringify(mockProfileDocument)))
-          .mockResolvedValueOnce(ok(JSON.stringify(mockProviderJson)))
-          .mockResolvedValueOnce(ok(JSON.stringify(mockMapDocument)));
+        fileSystem.readFile = () =>
+          Promise.resolve(ok(JSON.stringify(mockProfileDocument)));
 
         const mockProfileProvider = new ProfileProvider(
           superJson,
-          'test-profile',
-          'test',
+          mockProfileDocument,
+          mockProviderConfiguration,
+          new ProfileProviderConfiguration('test-revision', 'test-variant'),
           mockConfig,
           new Events(timers),
           fileSystem,
           crypto,
-          new NodeFetch(timers)
+          mockFetchInstance
         );
-        await expect(mockProfileProvider.bind()).rejects.toThrow(
-          'Hint: Profiles can be installed using the superface cli tool: `superface install --help` for more info'
+
+        const result = await mockProfileProvider.bind();
+
+        expect(result).toMatchObject(expectedBoundProfileProvider);
+        expect(fetchBind).toBeCalledWith(
+          {
+            profileId: 'test-profile@1.0.0',
+            provider: 'test',
+            mapVariant: 'test-variant',
+            mapRevision: 'test-revision',
+          },
+          mockConfig,
+          crypto,
+          mockFetchInstance,
+          undefined
         );
       });
 
@@ -621,15 +647,15 @@ describe('profile provider', () => {
 
         fileSystem.readFile = jest
           .fn()
-          .mockResolvedValueOnce(ok(JSON.stringify(mockProfileDocument)))
           .mockResolvedValueOnce(ok(JSON.stringify(mockMapDocument)));
 
         mocked(fetchProviderInfo).mockResolvedValue(mockProviderJson);
 
         const mockProfileProvider = new ProfileProvider(
           superJson,
-          'test-profile',
+          mockProfileDocument,
           mockProviderConfiguration,
+          mockProfileProviderConfiguration,
           mockConfig,
           new Events(timers),
           fileSystem,
@@ -670,7 +696,6 @@ describe('profile provider', () => {
 
         fileSystem.readFile = jest
           .fn()
-          .mockResolvedValueOnce(ok(JSON.stringify(mockProfileDocument)))
           .mockResolvedValueOnce(ok(JSON.stringify(mockMapDocument)))
           .mockResolvedValueOnce(ok(JSON.stringify(mockProviderJson)));
 
@@ -678,8 +703,9 @@ describe('profile provider', () => {
 
         const mockProfileProvider = new ProfileProvider(
           superJson,
-          'test-profile',
+          mockProfileDocument,
           mockProviderConfiguration,
+          mockProfileProviderConfiguration,
           mockConfig,
           new Events(timers),
           fileSystem,
@@ -689,7 +715,7 @@ describe('profile provider', () => {
         const result = await mockProfileProvider.bind();
 
         expect(result).toMatchObject(expectedBoundProfileProvider);
-        expect(fileSystem.readFile).toHaveBeenCalledTimes(3);
+        expect(fileSystem.readFile).toHaveBeenCalledTimes(2);
       });
 
       it('throws when both fetch and cache read fails', async () => {
@@ -715,7 +741,6 @@ describe('profile provider', () => {
 
         fileSystem.readFile = jest
           .fn()
-          .mockResolvedValueOnce(ok(JSON.stringify(mockProfileDocument)))
           .mockResolvedValueOnce(ok(JSON.stringify(mockMapDocument)))
           .mockRejectedValueOnce(err('denied!'));
 
@@ -723,8 +748,9 @@ describe('profile provider', () => {
 
         const mockProfileProvider = new ProfileProvider(
           superJson,
-          'test-profile',
+          mockProfileDocument,
           mockProviderConfiguration,
+          mockProfileProviderConfiguration,
           mockConfig,
           new Events(timers),
           fileSystem,
@@ -735,7 +761,7 @@ describe('profile provider', () => {
         await expect(() => mockProfileProvider.bind()).rejects.toMatchObject({
           error: 'denied!',
         });
-        expect(fileSystem.readFile).toHaveBeenCalledTimes(3);
+        expect(fileSystem.readFile).toHaveBeenCalledTimes(2);
       });
 
       it('throws error when provider is provided locally but map is not', async () => {
@@ -758,15 +784,15 @@ describe('profile provider', () => {
 
         fileSystem.readFile = jest
           .fn()
-          .mockResolvedValueOnce(ok(JSON.stringify(mockProfileDocument)))
           .mockResolvedValueOnce(ok(JSON.stringify(mockProviderJson)));
 
         mocked(fetchProviderInfo).mockResolvedValue(mockProviderJson);
 
         const mockProfileProvider = new ProfileProvider(
           superJson,
-          'test-profile',
+          mockProfileDocument,
           mockProviderConfiguration,
+          mockProfileProviderConfiguration,
           mockConfig,
           new Events(timers),
           fileSystem,
@@ -807,8 +833,9 @@ describe('profile provider', () => {
 
         const mockProfileProvider = new ProfileProvider(
           superJson,
-          'test-profile',
+          mockProfileDocument,
           mockProviderConfiguration,
+          mockProfileProviderConfiguration,
           mockConfig,
           new Events(timers),
           fileSystem,
@@ -862,6 +889,7 @@ describe('profile provider', () => {
           superJson,
           mockProfileDocument,
           mockProviderConfiguration,
+          mockProfileProviderConfiguration,
           mockConfig,
           new Events(timers),
           fileSystem,
@@ -904,6 +932,7 @@ describe('profile provider', () => {
           superJson,
           mockProfileDocument,
           'test',
+          mockProfileProviderConfiguration,
           mockConfig,
           new Events(timers),
           fileSystem,
@@ -946,6 +975,7 @@ but a secret value was provided for security scheme: made-up-id`
           superJson,
           mockProfileDocument,
           'test',
+          mockProfileProviderConfiguration,
           mockConfig,
           new Events(timers),
           fileSystem,
@@ -988,6 +1018,7 @@ but apiKey scheme requires: apikey`
           superJson,
           mockProfileDocument,
           'test',
+          mockProfileProviderConfiguration,
           mockConfig,
           new Events(timers),
           fileSystem,
@@ -1030,6 +1061,7 @@ but http scheme requires: username, password`
           superJson,
           mockProfileDocument,
           'test',
+          mockProfileProviderConfiguration,
           mockConfig,
           new Events(timers),
           fileSystem,
@@ -1072,6 +1104,7 @@ but http scheme requires: token`
           superJson,
           mockProfileDocument,
           'test',
+          mockProfileProviderConfiguration,
           mockConfig,
           new Events(timers),
           fileSystem,
@@ -1109,7 +1142,6 @@ but http scheme requires: digest`
         });
 
         mocked(fileSystem.readFile)
-          .mockResolvedValueOnce(ok(JSON.stringify(mockProfileDocument)))
           .mockResolvedValueOnce(ok(JSON.stringify(mockProviderJson)))
           .mockResolvedValueOnce(ok(JSON.stringify(mockMapDocument)));
 
@@ -1120,8 +1152,9 @@ but http scheme requires: digest`
 
         const mockProfileProvider = new ProfileProvider(
           superJson,
-          'test-profile',
+          mockProfileDocument,
           providerConfiguration,
+          mockProfileProviderConfiguration,
           mockConfig,
           new Events(timers),
           fileSystem,
@@ -1179,14 +1212,14 @@ but http scheme requires: digest`
 
         fileSystem.readFile = jest
           .fn()
-          .mockResolvedValueOnce(ok(JSON.stringify(mockProfileDocument)))
           .mockResolvedValueOnce(ok(JSON.stringify(mockProviderJson)))
           .mockResolvedValueOnce(ok(JSON.stringify(mockMapDocumentBoop)));
 
         const mockProfileProvider = new ProfileProvider(
           superJson,
-          'test-profile',
+          mockProfileDocument,
           mockProviderConfiguration,
+          mockProfileProviderConfiguration,
           mockConfig,
           new Events(timers),
           fileSystem,

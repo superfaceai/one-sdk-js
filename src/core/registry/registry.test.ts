@@ -2,6 +2,7 @@ import {
   AssertionError,
   AstMetadata,
   MapDocumentNode,
+  ProfileDocumentNode,
   ProviderJson,
 } from '@superfaceai/ast';
 
@@ -18,6 +19,7 @@ import {
   assertIsRegistryProviderInfo,
   fetchBind,
   fetchMapSource,
+  fetchProfileAst,
   fetchProviderInfo,
 } from './registry';
 
@@ -67,6 +69,22 @@ describe('registry', () => {
       provider: 'test-profile',
     },
     definitions: [],
+  };
+
+  const mockProfileDocument: ProfileDocumentNode = {
+    astMetadata,
+    kind: 'ProfileDocument',
+    definitions: [],
+    header: {
+      kind: 'ProfileHeader',
+      name: 'test-profile-id',
+      scope: 'scope',
+      version: {
+        major: 1,
+        minor: 1,
+        patch: 1,
+      },
+    },
   };
 
   const mockProviderJson: ProviderJson = {
@@ -560,6 +578,74 @@ describe('registry', () => {
       });
 
       expect(request).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('when fetching profile ast', () => {
+    const TEST_REGISTRY_URL = 'https://example.com/test-registry';
+    const TEST_SDK_TOKEN =
+      'sfs_bb064dd57c302911602dd097bc29bedaea6a021c25a66992d475ed959aa526c7_37bce8b5';
+    const config = new Config(NodeFileSystem, {
+      superfaceApiUrl: TEST_REGISTRY_URL,
+      sdkAuthToken: TEST_SDK_TOKEN,
+    });
+
+    it('fetches profile AST with scope', async () => {
+      const mockResponse = {
+        statusCode: 200,
+        body: JSON.stringify(mockProfileDocument),
+        headers: { test: 'test' },
+        debug: {
+          request: {
+            headers: { test: 'test' },
+            url: 'test',
+            body: {},
+          },
+        },
+      };
+      request.mockResolvedValue(mockResponse);
+
+      const profileId = 'scope/test-profile-id@1.0.0';
+      await expect(
+        fetchProfileAst(profileId, config, crypto, new NodeFetch(timers))
+      ).resolves.toEqual(mockProfileDocument);
+
+      expect(request).toHaveBeenCalledTimes(1);
+      expect(request).toHaveBeenCalledWith(`/${profileId}`, {
+        method: 'GET',
+        baseUrl: TEST_REGISTRY_URL,
+        accept: 'application/vnd.superface.profile+json',
+        headers: [`Authorization: SUPERFACE-SDK-TOKEN ${TEST_SDK_TOKEN}`],
+      });
+    });
+
+    it('fetches profile ast without scope', async () => {
+      const mockResponse = {
+        statusCode: 200,
+        body: JSON.stringify(mockProfileDocument),
+        headers: { test: 'test' },
+        debug: {
+          request: {
+            headers: { test: 'test' },
+            url: 'test',
+            body: {},
+          },
+        },
+      };
+      request.mockResolvedValue(mockResponse);
+
+      const profileId = 'test-profile-id@1.0.0';
+      await expect(
+        fetchProfileAst(profileId, config, crypto, new NodeFetch(timers))
+      ).resolves.toEqual(mockProfileDocument);
+
+      expect(request).toHaveBeenCalledTimes(1);
+      expect(request).toHaveBeenCalledWith(`/${profileId}`, {
+        method: 'GET',
+        baseUrl: TEST_REGISTRY_URL,
+        accept: 'application/vnd.superface.profile+json',
+        headers: [`Authorization: SUPERFACE-SDK-TOKEN ${TEST_SDK_TOKEN}`],
+      });
     });
   });
 

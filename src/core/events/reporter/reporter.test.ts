@@ -7,6 +7,7 @@ import {
 } from '@superfaceai/ast';
 import { getLocal, MockedEndpoint } from 'mockttp';
 
+import { ok } from '../../../lib';
 import { MockClient } from '../../../mock';
 import { SuperJson } from '../../../schema-tools';
 import { FailoverReason } from './reporter';
@@ -305,6 +306,10 @@ describe('MetricReporter', () => {
 
   it('should report success', async () => {
     const client = new MockClient(mockSuperJsonSingle, {
+      fileSystemOverride: {
+        readFile: () =>
+          Promise.resolve(ok(JSON.stringify(mockProfileDocument))),
+      },
       configOverride: {
         disableReporting: false,
         superfaceApiUrl: mockServer.url,
@@ -347,6 +352,10 @@ describe('MetricReporter', () => {
 
   it('should report failure and unsuccessful switch', async () => {
     const client = new MockClient(mockSuperJsonSingleFailure, {
+      fileSystemOverride: {
+        readFile: () =>
+          Promise.resolve(ok(JSON.stringify(mockProfileDocument))),
+      },
       configOverride: {
         disableReporting: false,
         superfaceApiUrl: mockServer.url,
@@ -416,6 +425,10 @@ describe('MetricReporter', () => {
 
   it('should report success with a delay', async () => {
     const client = new MockClient(mockSuperJsonSingle, {
+      fileSystemOverride: {
+        readFile: () =>
+          Promise.resolve(ok(JSON.stringify(mockProfileDocument))),
+      },
       configOverride: {
         disableReporting: false,
         superfaceApiUrl: mockServer.url,
@@ -455,6 +468,10 @@ describe('MetricReporter', () => {
 
   it('should report multiple successes', async () => {
     const client = new MockClient(mockSuperJsonSingle, {
+      fileSystemOverride: {
+        readFile: () =>
+          Promise.resolve(ok(JSON.stringify(mockProfileDocument))),
+      },
       configOverride: {
         disableReporting: false,
         superfaceApiUrl: mockServer.url,
@@ -499,6 +516,10 @@ describe('MetricReporter', () => {
 
   it('should report multiple successes with a delay', async () => {
     const client = new MockClient(mockSuperJsonSingle, {
+      fileSystemOverride: {
+        readFile: () =>
+          Promise.resolve(ok(JSON.stringify(mockProfileDocument))),
+      },
       configOverride: {
         disableReporting: false,
         superfaceApiUrl: mockServer.url,
@@ -567,6 +588,10 @@ describe('MetricReporter', () => {
       .spyOn(Date, 'now')
       .mockImplementation(() => currentTime);
     const client = new MockClient(mockSuperJsonSingle, {
+      fileSystemOverride: {
+        readFile: () =>
+          Promise.resolve(ok(JSON.stringify(mockProfileDocument))),
+      },
       configOverride: {
         disableReporting: false,
         superfaceApiUrl: mockServer.url,
@@ -636,6 +661,10 @@ describe('MetricReporter', () => {
       .spyOn(Date, 'now')
       .mockImplementation(() => currentTime);
     const client = new MockClient(mockSuperJsonFailover, {
+      fileSystemOverride: {
+        readFile: () =>
+          Promise.resolve(ok(JSON.stringify(mockProfileDocument))),
+      },
       configOverride: {
         disableReporting: false,
         superfaceApiUrl: mockServer.url,
@@ -719,5 +748,5 @@ describe('MetricReporter', () => {
     });
 
     systemTimeMock.mockRestore();
-  });
+  }, 10000);
 });

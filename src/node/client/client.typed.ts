@@ -1,4 +1,9 @@
-import { NonPrimitive, TypedProfile, UsecaseType } from '../../core';
+import {
+  NonPrimitive,
+  resolveProfileAst,
+  TypedProfile,
+  UsecaseType,
+} from '../../core';
 import { NodeFileSystem } from '../filesystem';
 import { SuperfaceClientBase } from './client';
 
@@ -26,12 +31,22 @@ export function createTypedClient<TProfiles extends ProfileUseCases<any, any>>(
     public async getProfile<TProfile extends keyof TProfiles>(
       profileId: TProfile
     ): Promise<TypedProfile<TProfiles[TProfile]>> {
+      const ast = await resolveProfileAst({
+        profileId: profileId as string,
+        logger: this.logger,
+        fetchInstance: this.fetchInstance,
+        fileSystem: NodeFileSystem,
+        config: this.config,
+        crypto: this.crypto,
+        superJson: this.superJson,
+      });
       const profileConfiguration = await this.internal.getProfileConfiguration(
-        profileId as string
+        ast
       );
 
       return new TypedProfile(
         profileConfiguration,
+        ast,
         this.events,
         this.superJson,
         this.boundProfileProviderCache,
