@@ -49,15 +49,6 @@ const mockSuperJson = new SuperJson({
   },
 });
 
-// const mockSuperJsonCustomPath = new SuperJson({
-//   profiles: {
-//     test: '2.1.0',
-//   },
-//   providers: {
-//     quz: {},
-//   },
-// });
-
 describe('resolveProfileAst', () => {
   const logger = new NodeLogger();
   const crypto = new NodeCrypto();
