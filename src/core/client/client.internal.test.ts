@@ -1,3 +1,4 @@
+import { invalidVersionError } from '../errors';
 import { resolveProfileId } from './client.internal';
 
 describe('InternalClient', () => {
@@ -18,11 +19,15 @@ describe('InternalClient', () => {
       });
 
       it('throws on missing minor version', async () => {
-        expect(() => resolveProfileId('scope/name@1')).toThrow();
+        expect(() => resolveProfileId('scope/name@1')).toThrow(
+          invalidVersionError('1', 'minor')
+        );
       });
 
       it('throws on missing patch version', async () => {
-        expect(() => resolveProfileId('scope/name@1.2')).toThrow();
+        expect(() => resolveProfileId('scope/name@1.2')).toThrow(
+          invalidVersionError('1.2', 'patch')
+        );
       });
     });
 
@@ -46,13 +51,13 @@ describe('InternalClient', () => {
       it('throws on missing minor version', async () => {
         expect(() =>
           resolveProfileId({ id: 'scope/name', version: '1' })
-        ).toThrow();
+        ).toThrow(invalidVersionError('1', 'minor'));
       });
 
       it('throws on missing patch version', async () => {
         expect(() =>
           resolveProfileId({ id: 'scope/name', version: '1.2' })
-        ).toThrow();
+        ).toThrow(invalidVersionError('1.2', 'patch'));
       });
     });
   });

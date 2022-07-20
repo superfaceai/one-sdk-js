@@ -127,6 +127,21 @@ export function unableToResolveProfileError(
   );
 }
 
+export function invalidVersionError(
+  completeVersion: string,
+  problematicPart: 'minor' | 'patch'
+): SDKExecutionError {
+  return new SDKExecutionError(
+    `Version "${completeVersion}" is not valid version. "${problematicPart}" is missing or not a number`,
+    [
+      `Version "${completeVersion}" is not valid version in format major.minor.patch eg. "1.0.0". "${problematicPart}" is missing or not a number`,
+    ],
+    [
+      'Pass valid version string in format major.minor.patch-label (-label is optional) eg. "1.0.0" or "1.2.3-test"',
+    ]
+  );
+}
+
 export function profileNotFoundError(profileName: string): SDKExecutionError {
   return new SDKExecutionError(
     `Profile "${profileName}" not found in super.json`,

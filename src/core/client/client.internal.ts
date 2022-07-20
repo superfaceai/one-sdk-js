@@ -4,6 +4,7 @@ import { profileAstId, SuperCache, versionToString } from '../../lib';
 import { SuperJson } from '../../schema-tools';
 import { Config } from '../config';
 import {
+  invalidVersionError,
   profileNotInstalledError,
   unconfiguredProviderInPriorityError,
 } from '../errors';
@@ -103,12 +104,10 @@ export function resolveProfileId(
   if (version !== undefined) {
     const extracted = extractVersion(version);
     if (extracted.minor === undefined) {
-      // TODO: correct error
-      throw new Error('Minor');
+      throw invalidVersionError(version, 'minor');
     }
     if (extracted.patch === undefined) {
-      // TODO: correct error
-      throw new Error('Patch');
+      throw invalidVersionError(version, 'patch');
     }
   }
 

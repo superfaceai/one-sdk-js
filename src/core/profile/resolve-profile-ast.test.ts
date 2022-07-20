@@ -69,6 +69,7 @@ const createMockFileSystem = (
       if (result instanceof NotFoundError) {
         return Promise.resolve(err(result));
       }
+
       return Promise.resolve(ok(JSON.stringify(result)));
     }),
   });
@@ -101,6 +102,7 @@ describe('resolveProfileAst', () => {
       })
     ).rejects.toThrow(unableToResolveProfileError('does/not-exist'));
   });
+
   describe('when passing version', () => {
     describe('when profile is not defined in super.json', () => {
       it('returns a valid profile when profile is found in grid', async () => {
@@ -411,10 +413,7 @@ describe('resolveProfileAst', () => {
   describe('when using file property', () => {
     it('rejects when profile points to a non-existent path', async () => {
       const mockError = profileFileNotFoundError('../bar.supr.ast.json', 'bar');
-      fileSystem = createMockFileSystem(
-        'bar.supr.ast.json',
-        mockError
-      );
+      fileSystem = createMockFileSystem('bar.supr.ast.json', mockError);
 
       await expect(
         resolveProfileAst({
