@@ -44,7 +44,6 @@ const DEBUG_NAMESPACE = 'profile-provider';
 
 export async function bindProfileProvider(
   profile: ProfileDocumentNode,
-  // profileConfig: ProfileConfiguration,
   profileProviderConfig: ProfileProviderConfiguration,
   providerConfig: ProviderConfiguration,
   superJson: SuperJson,
@@ -68,11 +67,7 @@ export async function bindProfileProvider(
     fetchInstance,
     logger
   );
-  const boundProfileProvider = await profileProvider.bind({
-    // TODO: resolve security and parameters directly in bind?
-    security: providerConfig.security,
-    parameters: providerConfig.parameters,
-  });
+  const boundProfileProvider = await profileProvider.bind();
   const expiresAt =
     Math.floor(timers.now() / 1000) + config.superfaceCacheTimeout;
 
@@ -81,7 +76,6 @@ export async function bindProfileProvider(
 
 export type BindConfiguration = {
   security?: SecurityValues[];
-  parameters?: Record<string, string>;
 };
 
 export class ProfileProvider {
@@ -98,9 +92,8 @@ export class ProfileProvider {
     public readonly superJson: SuperJson,
     /** profile ast node */
     private profile: ProfileDocumentNode,
-    /** provider name, url or configuration instance */
-    // TODO: can thsi be something else than configuration?
-    private provider: string | ProviderJson | ProviderConfiguration,
+    /** provider configuration instance */
+    private providerConfig: ProviderConfiguration,
     private profileProviderConfig: ProfileProviderConfiguration,
     private config: IConfig,
     private events: Events,
@@ -142,11 +135,10 @@ export class ProfileProvider {
     const providerName = resolvedProviderInfo.providerName;
     const securityValues = this.resolveSecurityValues(
       providerName,
-      configuration?.security
+      configuration?.security ?? this.providerConfig.security
     );
 
-    const thisProviderName =
-      typeof this.provider === 'string' ? this.provider : this.provider.name;
+    const thisProviderName = this.providerConfig.name;
 
     if (providerName !== thisProviderName) {
       throw providersDoNotMatchError(
@@ -256,7 +248,7 @@ export class ProfileProvider {
         security: securityConfiguration,
         parameters: this.resolveIntegrationParameters(
           providerInfo,
-          configuration?.parameters ??
+          this.providerConfig.parameters ??
             this.superJson.normalized.providers[providerInfo.name]?.parameters
         ),
       },
@@ -406,10 +398,7 @@ export class ProfileProvider {
     providerInfo?: ProviderJson;
     providerName: string;
   }> {
-    let resolveInput = this.provider;
-    if (resolveInput instanceof ProviderConfiguration) {
-      resolveInput = resolveInput.name;
-    }
+    const resolveInput = this.providerConfig.name;
 
     const providerInfo = await ProfileProvider.resolveValue<ProviderJson>(
       resolveInput,

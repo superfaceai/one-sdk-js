@@ -49,11 +49,13 @@ function createUseCase(cacheExpire?: number) {
 
   const mockProviderConfiguration = new ProviderConfiguration(
     'test-provider',
-    []
+    [],
+    {}
   );
   const mockProviderConfiguration2 = new ProviderConfiguration(
     'test-provider2',
-    []
+    [],
+    {}
   );
 
   const cache = new SuperCache<{
