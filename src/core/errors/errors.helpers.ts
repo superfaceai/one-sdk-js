@@ -112,6 +112,21 @@ export function profileFileNotFoundError(
   );
 }
 
+export function unableToResolveProfileError(
+  profileId: string
+): SDKExecutionError {
+  return new SDKExecutionError(
+    `Profile "${profileId}" not found in super.json and version is not defined in "getProfile"`,
+    [
+      `To resolve correct profile "${profileId}" must be defined in super.json or profile version must be specified in "getProfile" function`,
+    ],
+    [
+      `Profile can be installed to local super.json using the superface cli tool: \`superface install ${profileId}\``,
+      `Optionally full version eg. 1.0.0 can be passed to "getProfile" in format \`${profileId}@version\` or as an obejct: { id: ${profileId}, version: version}`,
+    ]
+  );
+}
+
 export function profileNotFoundError(profileName: string): SDKExecutionError {
   return new SDKExecutionError(
     `Profile "${profileName}" not found in super.json`,

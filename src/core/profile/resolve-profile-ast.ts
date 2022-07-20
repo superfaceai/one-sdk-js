@@ -8,8 +8,8 @@ import { SuperJson } from '../../schema-tools';
 import {
   NotFoundError,
   profileFileNotFoundError,
-  profileNotFoundError,
   sourceFileExtensionFoundError,
+  unableToResolveProfileError,
   unsupportedFileExtensionError,
 } from '../errors';
 import { Interceptable } from '../events';
@@ -51,6 +51,7 @@ export async function resolveProfileAst({
 }): Promise<ProfileDocumentNode> {
   const logFunction = logger?.log(DEBUG_NAMESPACE);
 
+  // TODO look to cache first
   const loadProfileAstFile = async (
     fileNameWithExtension: string
   ): Promise<ProfileDocumentNode> => {
@@ -67,21 +68,28 @@ export async function resolveProfileAst({
 
   const profileSettings = superJson.normalized.profiles[profileId];
 
-  // TODO what we should do when we don't have profileSettings and version is undefined? -error
+  // Error when we don't have profileSettings and version is undefined
   if (profileSettings === undefined && version === undefined) {
-    // TODO: better error
-    throw new Error('Profile not found in sj and version is missing');
+    throw unableToResolveProfileError(profileId);
   }
-
-  // TODO what we should do when we have profileSettings and version is also defined? -error
-
-  if (profileSettings === undefined) {
-    throw profileNotFoundError(profileId);
+  // when version in profileSettings and version in "getProfile" does not match
+  if (
+    profileSettings !== undefined &&
+    'version' in profileSettings &&
+    version !== undefined &&
+    profileSettings.version !== version
+  ) {
+    // TODO throw error instead?
+    logFunction?.(
+      `Version from super.json (${profileSettings.version}) and getProfile (${version}) does not match, using: ${version}`
+    );
   }
   let filepath: string;
-  if ('file' in profileSettings) {
+
+  // TODO do we wand to check `file` if we have version from getProfile?
+  if (profileSettings !== undefined && 'file' in profileSettings) {
     filepath = superJson.resolvePath(profileSettings.file);
-    logFunction?.('Reading possible profile file: %S', filepath);
+    logFunction?.('Reading possible profile file: %s', filepath);
     // check extensions
     if (filepath.endsWith(EXTENSIONS.profile.source)) {
       // FIX:  SDKExecutionError is used to ensure correct formatting. Improve formatting of UnexpectedError
@@ -93,11 +101,11 @@ export async function resolveProfileAst({
 
     return await loadProfileAstFile(filepath);
   }
-  // TODO: this should happen also for case with version defined
-  // assumed to be in grid folder under superface directory
+
+  const resolvedVersion = version ?? profileSettings.version;
   const gridPath = fileSystem.path.join(
     'grid',
-    `${profileId}@${profileSettings.version}`
+    `${profileId}@${resolvedVersion}`
   );
   const superfaceFolderPath = fileSystem.path.dirname(config.superfacePath);
 
@@ -108,6 +116,7 @@ export async function resolveProfileAst({
   logFunction?.('Reading possible profile file: %S', filepath);
   try {
     return await loadProfileAstFile(filepath);
+    // TODO cache loaded ast?
   } catch (error) {
     logFunction?.(
       'Reading of possible profile file failed with error %O',
@@ -119,8 +128,9 @@ export async function resolveProfileAst({
   logFunction?.('Fetching profile file from registry');
 
   // Fallback to remote
+  // TODO this should be cached
   return fetchProfileAst(
-    `${profileId}@${profileSettings.version}`,
+    `${profileId}@${resolvedVersion}`,
     config,
     crypto,
     fetchInstance,
