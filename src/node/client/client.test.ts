@@ -1,8 +1,41 @@
+import { SecurityValues } from '@superfaceai/ast';
 import { mocked } from 'ts-jest/utils';
 
-import { ProfileConfiguration, resolveProfileAst } from '../../core';
+import {
+  ProfileConfiguration,
+  ProviderConfiguration,
+  resolveProfileAst,
+} from '../../core';
 import { MockClient, mockProfileDocumentNode } from '../../mock';
 import { SuperJson } from '../../schema-tools';
+
+const mockSecurityValues: SecurityValues[] = [
+  {
+    username: 'test-username',
+    id: 'basic',
+    password: 'test-password',
+  },
+  {
+    id: 'api',
+    apikey: 'test-api-key',
+  },
+  {
+    id: 'bearer',
+    token: 'test-token',
+  },
+  {
+    id: 'digest',
+    username: 'test-digest-user',
+    password: 'test-digest-password',
+  },
+];
+
+const mockParameters = {
+  first: 'plain value',
+  second: '$TEST_SECOND', // unset env value without default
+  third: '$TEST_THIRD', // unset env value with default
+  // fourth is missing - should be resolved to its default
+};
 
 const mockSuperJson = new SuperJson({
   profiles: {
@@ -29,6 +62,10 @@ const mockSuperJson = new SuperJson({
       security: [],
     },
     quz: {},
+    'test-provider': {
+      security: mockSecurityValues,
+      parameters: mockParameters,
+    },
   },
 });
 
@@ -60,6 +97,61 @@ describe('superface client', () => {
       expect(profile.ast).toEqual(ast);
       expect(profile.configuration).toEqual(
         new ProfileConfiguration('testy/mctestface', '1.0.0')
+      );
+    });
+  });
+
+  describe('getProvider', () => {
+    it('retruns Provider instance', async () => {
+      const client = new MockClient(mockSuperJson);
+      const provider = await client.getProvider('test-provider');
+
+      expect(provider.configuration).toEqual(
+        new ProviderConfiguration(
+          'test-provider',
+          mockSecurityValues,
+          mockParameters
+        )
+      );
+    });
+
+    it('retruns Provider instance with custom security values and parameters', async () => {
+      const client = new MockClient(
+        new SuperJson({
+          providers: {
+            'test-provider': {
+              security: [],
+            },
+          },
+        })
+      );
+
+      const provider = await client.getProvider('test-provider', {
+        security: {
+          basic: {
+            username: 'test-username',
+            password: 'test-password',
+          },
+          api: {
+            apikey: 'test-api-key',
+          },
+          bearer: {
+            token: 'test-token',
+          },
+          digest: {
+            username: 'test-digest-user',
+            password: 'test-digest-password',
+          },
+        },
+        parameters: mockParameters,
+      });
+
+      expect(provider.configuration).toEqual(
+        new ProviderConfiguration(
+          'test-provider',
+          mockSecurityValues,
+          mockParameters
+        )
       );
     });
   });
