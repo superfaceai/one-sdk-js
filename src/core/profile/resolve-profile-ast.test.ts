@@ -1,4 +1,4 @@
-import { EXTENSIONS } from '@superfaceai/ast';
+import { EXTENSIONS, ProfileDocumentNode } from '@superfaceai/ast';
 import { mocked } from 'ts-jest/utils';
 
 import { err, ok } from '../../lib';
@@ -13,9 +13,12 @@ import { Config } from '../config';
 import {
   NotFoundError,
   profileFileNotFoundError,
+  SDKExecutionError,
   sourceFileExtensionFoundError,
+  unableToResolveProfileError,
   unsupportedFileExtensionError,
 } from '../errors';
+import { IFileSystem } from '../interfaces';
 import { fetchProfileAst } from '../registry';
 import { resolveProfileAst } from './resolve-profile-ast';
 
@@ -49,6 +52,27 @@ const mockSuperJson = new SuperJson({
   },
 });
 
+const createMockFileSystem = (
+  profilePath: string,
+  result: ProfileDocumentNode | NotFoundError | SDKExecutionError
+): IFileSystem =>
+  MockFileSystem({
+    path: {
+      resolve: (...pathSegments: string[]) => pathSegments.join(''),
+    },
+    readFile: jest.fn(path => {
+      if (result instanceof SDKExecutionError) {
+        return Promise.resolve(err(result));
+      }
+      expect(path).toMatch(profilePath);
+
+      if (result instanceof NotFoundError) {
+        return Promise.resolve(err(result));
+      }
+      return Promise.resolve(ok(JSON.stringify(result)));
+    }),
+  });
+
 describe('resolveProfileAst', () => {
   const logger = new NodeLogger();
   const crypto = new NodeCrypto();
@@ -64,7 +88,7 @@ describe('resolveProfileAst', () => {
     jest.resetAllMocks();
   });
 
-  it('rejects when profile does not exists', async () => {
+  it('rejects when profile does not exists and version is not specified', async () => {
     await expect(
       resolveProfileAst({
         profileId: 'does/not-exist',
@@ -75,35 +99,94 @@ describe('resolveProfileAst', () => {
         fetchInstance,
         logger,
       })
-    ).rejects.toThrow('Profile "does/not-exist" not found in super.json');
+    ).rejects.toThrow(unableToResolveProfileError('does/not-exist'));
+  });
+  describe('when passing version', () => {
+    describe('when profile is not defined in super.json', () => {
+      it('returns a valid profile when profile is found in grid', async () => {
+        fileSystem = createMockFileSystem(
+          'testy/mctestface@0.1.0.supr.ast.json',
+          mockProfileDocumentNode({
+            name: 'mctestface',
+            scope: 'testy',
+            version: {
+              major: 0,
+              minor: 1,
+              patch: 0,
+            },
+          })
+        );
+
+        const ast = await resolveProfileAst({
+          profileId: 'testy/mctestface',
+          version: '0.1.0',
+          // empty super.json
+          superJson: new SuperJson(),
+          config,
+          crypto,
+          fileSystem,
+          fetchInstance,
+          logger,
+        });
+
+        expect(ast.header.version).toEqual({ major: 0, minor: 1, patch: 0 });
+      });
+
+      it('returns a valid profile when profile is found in registry', async () => {
+        mocked(fetchProfileAst).mockResolvedValue(
+          mockProfileDocumentNode({
+            name: 'mctestface',
+            scope: 'testy',
+            version: {
+              major: 0,
+              minor: 1,
+              patch: 0,
+            },
+          })
+        );
+        fileSystem = createMockFileSystem(
+          'testy/mctestface@0.1.0.supr.ast.json',
+          new NotFoundError('test')
+        );
+
+        const ast = await resolveProfileAst({
+          profileId: 'testy/mctestface',
+          version: '0.1.0',
+          // empty super.json
+          superJson: new SuperJson(),
+          config,
+          crypto,
+          fileSystem,
+          fetchInstance,
+          logger,
+        });
+
+        expect(ast.header.version).toEqual({ major: 0, minor: 1, patch: 0 });
+        expect(fetchProfileAst).toHaveBeenCalledWith(
+          'testy/mctestface@0.1.0',
+          config,
+          crypto,
+          fetchInstance,
+          logger
+        );
+      });
+    });
   });
 
   describe('when using entry with version only', () => {
     it('returns a valid profile when profile is found in grid', async () => {
-      fileSystem = MockFileSystem({
-        path: {
-          resolve: (...pathSegments: string[]) => pathSegments.join(''),
-        },
-        readFile: jest.fn(path => {
-          expect(path).toMatch('testy/mctestface@0.1.0.supr.ast.json');
-
-          return Promise.resolve(
-            ok(
-              JSON.stringify(
-                mockProfileDocumentNode({
-                  name: 'mctestface',
-                  scope: 'testy',
-                  version: {
-                    major: 0,
-                    minor: 1,
-                    patch: 0,
-                  },
-                })
-              )
-            )
-          );
-        }),
-      });
+      fileSystem = createMockFileSystem(
+        'testy/mctestface@0.1.0.supr.ast.json',
+        mockProfileDocumentNode({
+          name: 'mctestface',
+          scope: 'testy',
+          version: {
+            major: 0,
+            minor: 1,
+            patch: 0,
+          },
+        })
+      );
 
       const ast = await resolveProfileAst({
         profileId: 'testy/mctestface',
@@ -130,16 +213,10 @@ describe('resolveProfileAst', () => {
           },
         })
       );
-      fileSystem = MockFileSystem({
-        path: {
-          resolve: (...pathSegments: string[]) => pathSegments.join(''),
-        },
-        readFile: jest.fn(path => {
-          expect(path).toMatch('testy/mctestface@0.1.0.supr.ast.json');
-
-          return Promise.resolve(err(new NotFoundError('test')));
-        }),
-      });
+      fileSystem = createMockFileSystem(
+        'testy/mctestface@0.1.0.supr.ast.json',
+        new NotFoundError('test')
+      );
 
       const ast = await resolveProfileAst({
         profileId: 'testy/mctestface',
@@ -165,9 +242,10 @@ describe('resolveProfileAst', () => {
   describe('when using entry with filepath only', () => {
     it('rejects when profile points to a non-existent path', async () => {
       const mockError = profileFileNotFoundError('../foo.supr.ast.json', 'foo');
-      fileSystem = MockFileSystem({
-        readFile: () => Promise.resolve(err(mockError)),
-      });
+      fileSystem = createMockFileSystem(
+        'testy/mctestface@0.1.0.supr.ast.json',
+        mockError
+      );
 
       await expect(
         resolveProfileAst({
@@ -183,15 +261,13 @@ describe('resolveProfileAst', () => {
     });
 
     it('rejects when profile points to a path with .supr extension', async () => {
-      fileSystem = MockFileSystem();
-
       await expect(
         resolveProfileAst({
           profileId: 'evil/foo',
           superJson: mockSuperJson,
           config,
           crypto,
-          fileSystem,
+          fileSystem: MockFileSystem(),
           fetchInstance,
           logger,
         })
@@ -201,15 +277,13 @@ describe('resolveProfileAst', () => {
     });
 
     it('rejects when profile points to a path with unsupported extension', async () => {
-      fileSystem = MockFileSystem();
-
       await expect(
         resolveProfileAst({
           profileId: 'bad/foo',
           superJson: mockSuperJson,
           config,
           crypto,
-          fileSystem,
+          fileSystem: MockFileSystem(),
           fetchInstance,
           logger,
         })
@@ -222,27 +296,18 @@ describe('resolveProfileAst', () => {
     });
 
     it('returns a valid profile when it points to existing path', async () => {
-      fileSystem = MockFileSystem({
-        readFile: jest.fn(path => {
-          expect(path).toMatch('foo.supr.ast.json');
-
-          return Promise.resolve(
-            ok(
-              JSON.stringify(
-                mockProfileDocumentNode({
-                  name: 'foo',
-                  version: {
-                    major: 1,
-                    minor: 0,
-                    patch: 1,
-                    label: 'test',
-                  },
-                })
-              )
-            )
-          );
-        }),
-      });
+      fileSystem = createMockFileSystem(
+        'foo.supr.ast.json',
+        mockProfileDocumentNode({
+          name: 'foo',
+          version: {
+            major: 1,
+            minor: 0,
+            patch: 1,
+            label: 'test',
+          },
+        })
+      );
 
       const ast = await resolveProfileAst({
         profileId: 'foo',
@@ -264,9 +329,7 @@ describe('resolveProfileAst', () => {
     it('rejects when loaded file is not valid ProfileDocumentNode', async () => {
       const invalidAst: any = mockProfileDocumentNode({ name: 'foo' });
       invalidAst.kind = 'broken';
-      fileSystem = MockFileSystem({
-        readFile: () => Promise.resolve(ok(JSON.stringify(invalidAst))),
-      });
+      fileSystem = createMockFileSystem('foo.supr.ast.json', invalidAst);
 
       await expect(
         resolveProfileAst({
@@ -284,29 +347,17 @@ describe('resolveProfileAst', () => {
 
   describe('when using version property', () => {
     it('returns a valid profile when profile is found in grid', async () => {
-      fileSystem = MockFileSystem({
-        path: {
-          resolve: (...pathSegments: string[]) => pathSegments.join(''),
-        },
-        readFile: jest.fn(path => {
-          expect(path).toMatch('baz@1.2.3.supr.ast.json');
-
-          return Promise.resolve(
-            ok(
-              JSON.stringify(
-                mockProfileDocumentNode({
-                  name: 'baz',
-                  version: {
-                    major: 1,
-                    minor: 2,
-                    patch: 3,
-                  },
-                })
-              )
-            )
-          );
-        }),
-      });
+      fileSystem = createMockFileSystem(
+        'baz@1.2.3.supr.ast.json',
+        mockProfileDocumentNode({
+          name: 'baz',
+          version: {
+            major: 1,
+            minor: 2,
+            patch: 3,
+          },
+        })
+      );
 
       const ast = await resolveProfileAst({
         profileId: 'baz',
@@ -331,16 +382,10 @@ describe('resolveProfileAst', () => {
           },
         })
       );
-      fileSystem = MockFileSystem({
-        path: {
-          resolve: (...pathSegments: string[]) => pathSegments.join(''),
-        },
-        readFile: jest.fn(path => {
-          expect(path).toMatch('baz@1.2.3.supr.ast.json');
-
-          return Promise.resolve(err(new NotFoundError('test')));
-        }),
-      });
+      fileSystem = createMockFileSystem(
+        'baz@1.2.3.supr.ast.json',
+        new NotFoundError('test')
+      );
 
       const ast = await resolveProfileAst({
         profileId: 'baz',
@@ -366,9 +411,10 @@ describe('resolveProfileAst', () => {
   describe('when using file property', () => {
     it('rejects when profile points to a non-existent path', async () => {
       const mockError = profileFileNotFoundError('../bar.supr.ast.json', 'bar');
-      fileSystem = MockFileSystem({
-        readFile: () => Promise.resolve(err(mockError)),
-      });
+      fileSystem = createMockFileSystem(
+        'bar.supr.ast.json',
+        mockError
+      );
 
       await expect(
         resolveProfileAst({
@@ -384,26 +430,17 @@ describe('resolveProfileAst', () => {
     });
 
     it('returns a valid profile when it points to existing path', async () => {
-      fileSystem = MockFileSystem({
-        readFile: jest.fn(path => {
-          expect(path).toMatch('bar.supr.ast.json');
-
-          return Promise.resolve(
-            ok(
-              JSON.stringify(
-                mockProfileDocumentNode({
-                  name: 'bar',
-                  version: {
-                    major: 1,
-                    minor: 0,
-                    patch: 1,
-                  },
-                })
-              )
-            )
-          );
-        }),
-      });
+      fileSystem = createMockFileSystem(
+        'bar.supr.ast.json',
+        mockProfileDocumentNode({
+          name: 'bar',
+          version: {
+            major: 1,
+            minor: 0,
+            patch: 1,
+          },
+        })
+      );
 
       const ast = await resolveProfileAst({
         profileId: 'bar',
@@ -420,9 +457,7 @@ describe('resolveProfileAst', () => {
     it('rejects when loaded file is not valid ProfileDocumentNode', async () => {
       const invalidAst: any = mockProfileDocumentNode({ name: 'bar' });
       invalidAst.kind = 'broken';
-      fileSystem = MockFileSystem({
-        readFile: () => Promise.resolve(ok(JSON.stringify(invalidAst))),
-      });
+      fileSystem = createMockFileSystem('bar.supr.ast.json', invalidAst);
 
       await expect(
         resolveProfileAst({
