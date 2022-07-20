@@ -25,6 +25,7 @@ import { ProviderConfiguration } from '../provider';
 import { fetchBind, fetchMapSource, fetchProviderInfo } from '../registry';
 import { ServiceSelector } from '../services';
 import { ProfileProvider } from './profile-provider';
+import { ProfileProviderConfiguration } from './profile-provider-configuration';
 
 jest.mock('../registry/registry');
 jest.mock('../parser/parser');
@@ -114,6 +115,9 @@ describe('profile provider', () => {
 
   const mockProviderConfiguration: ProviderConfiguration =
     new ProviderConfiguration('test', []);
+
+  const mockProfileProviderConfiguration: ProfileProviderConfiguration =
+    new ProfileProviderConfiguration();
 
   const mockSecurityValues: SecurityValues[] = [
     {
@@ -266,6 +270,7 @@ describe('profile provider', () => {
           superJson,
           mockProfileDocument,
           mockProviderConfiguration,
+          mockProfileProviderConfiguration,
           mockConfig,
           new Events(timers),
           fileSystem,
@@ -305,6 +310,7 @@ describe('profile provider', () => {
           superJson,
           mockProfileDocument,
           mockProviderConfiguration,
+          mockProfileProviderConfiguration,
           mockConfig,
           new Events(timers),
           fileSystem,
@@ -343,6 +349,7 @@ describe('profile provider', () => {
           superJson,
           mockProfileDocument,
           mockProviderConfiguration,
+          mockProfileProviderConfiguration,
           mockConfigWithDisabledCache,
           new Events(timers),
           fileSystem,
@@ -381,6 +388,7 @@ describe('profile provider', () => {
           superJson,
           'test-profile',
           mockProviderConfiguration,
+          mockProfileProviderConfiguration,
           mockConfig,
           new Events(timers),
           fileSystem,
@@ -417,6 +425,7 @@ describe('profile provider', () => {
           superJson,
           new ProfileConfiguration('test-profile', '1.0.0'),
           mockProviderConfiguration,
+          mockProfileProviderConfiguration,
           mockConfig,
           new Events(timers),
           fileSystem,
@@ -465,6 +474,7 @@ describe('profile provider', () => {
           superJson,
           new ProfileConfiguration('test-profile', '1.0.0'),
           mockProviderConfiguration,
+          mockProfileProviderConfiguration,
           mockConfig,
           new Events(timers),
           fileSystem,
@@ -477,7 +487,7 @@ describe('profile provider', () => {
         expect(result).toMatchObject(expectedBoundProfileProvider);
       });
 
-      it('returns new BoundProfileProvider load localy', async () => {
+      it('returns new BoundProfileProvider load locally', async () => {
         mocked(fetchBind).mockResolvedValue(mockFetchResponse);
         const superJson = new SuperJson({
           profiles: {
@@ -510,6 +520,7 @@ describe('profile provider', () => {
           superJson,
           'test-profile',
           mockProviderConfiguration,
+          mockProfileProviderConfiguration,
           mockConfig,
           new Events(timers),
           fileSystem,
@@ -553,6 +564,7 @@ describe('profile provider', () => {
           superJson,
           'test-profile',
           mockProviderConfiguration,
+          mockProfileProviderConfiguration,
           mockConfig,
           new Events(timers),
           fileSystem,
@@ -563,6 +575,56 @@ describe('profile provider', () => {
         const result = await mockProfileProvider.bind();
 
         expect(result).toMatchObject(expectedBoundProfileProvider);
+      });
+
+      it('returns new BoundProfileProvider with passed map variant and revision', async () => {
+        mocked(fetchBind).mockResolvedValue(mockFetchResponse);
+        const superJson = new SuperJson({
+          profiles: {
+            ['test-profile']: {
+              version: '1.0.0',
+              defaults: {},
+              providers: {},
+            },
+          },
+          providers: {
+            test: {
+              security: mockSecurityValues,
+            },
+          },
+        });
+        const mockFetchInstance = new NodeFetch(timers);
+
+        fileSystem.readFile = () =>
+          Promise.resolve(ok(JSON.stringify(mockProfileDocument)));
+
+        const mockProfileProvider = new ProfileProvider(
+          superJson,
+          'test-profile',
+          mockProviderConfiguration,
+          new ProfileProviderConfiguration('test-revision', 'test-variant'),
+          mockConfig,
+          new Events(timers),
+          fileSystem,
+          crypto,
+          mockFetchInstance
+        );
+
+        const result = await mockProfileProvider.bind();
+
+        expect(result).toMatchObject(expectedBoundProfileProvider);
+        expect(fetchBind).toBeCalledWith(
+          {
+            profileId: 'test-profile@1.0.0',
+            provider: 'test',
+            mapVariant: 'test-variant',
+            mapRevision: 'test-revision',
+          },
+          mockConfig,
+          crypto,
+          mockFetchInstance,
+          undefined
+        );
       });
 
       it('throws error without profile settings', async () => {
@@ -587,6 +649,7 @@ describe('profile provider', () => {
           superJson,
           'test-profile',
           'test',
+          mockProfileProviderConfiguration,
           mockConfig,
           new Events(timers),
           fileSystem,
@@ -630,6 +693,7 @@ describe('profile provider', () => {
           superJson,
           'test-profile',
           mockProviderConfiguration,
+          mockProfileProviderConfiguration,
           mockConfig,
           new Events(timers),
           fileSystem,
@@ -680,6 +744,7 @@ describe('profile provider', () => {
           superJson,
           'test-profile',
           mockProviderConfiguration,
+          mockProfileProviderConfiguration,
           mockConfig,
           new Events(timers),
           fileSystem,
@@ -725,6 +790,7 @@ describe('profile provider', () => {
           superJson,
           'test-profile',
           mockProviderConfiguration,
+          mockProfileProviderConfiguration,
           mockConfig,
           new Events(timers),
           fileSystem,
@@ -767,6 +833,7 @@ describe('profile provider', () => {
           superJson,
           'test-profile',
           mockProviderConfiguration,
+          mockProfileProviderConfiguration,
           mockConfig,
           new Events(timers),
           fileSystem,
@@ -809,6 +876,7 @@ describe('profile provider', () => {
           superJson,
           'test-profile',
           mockProviderConfiguration,
+          mockProfileProviderConfiguration,
           mockConfig,
           new Events(timers),
           fileSystem,
@@ -862,6 +930,7 @@ describe('profile provider', () => {
           superJson,
           mockProfileDocument,
           mockProviderConfiguration,
+          mockProfileProviderConfiguration,
           mockConfig,
           new Events(timers),
           fileSystem,
@@ -904,6 +973,7 @@ describe('profile provider', () => {
           superJson,
           mockProfileDocument,
           'test',
+          mockProfileProviderConfiguration,
           mockConfig,
           new Events(timers),
           fileSystem,
@@ -946,6 +1016,7 @@ but a secret value was provided for security scheme: made-up-id`
           superJson,
           mockProfileDocument,
           'test',
+          mockProfileProviderConfiguration,
           mockConfig,
           new Events(timers),
           fileSystem,
@@ -988,6 +1059,7 @@ but apiKey scheme requires: apikey`
           superJson,
           mockProfileDocument,
           'test',
+          mockProfileProviderConfiguration,
           mockConfig,
           new Events(timers),
           fileSystem,
@@ -1030,6 +1102,7 @@ but http scheme requires: username, password`
           superJson,
           mockProfileDocument,
           'test',
+          mockProfileProviderConfiguration,
           mockConfig,
           new Events(timers),
           fileSystem,
@@ -1072,6 +1145,7 @@ but http scheme requires: token`
           superJson,
           mockProfileDocument,
           'test',
+          mockProfileProviderConfiguration,
           mockConfig,
           new Events(timers),
           fileSystem,
@@ -1122,6 +1196,7 @@ but http scheme requires: digest`
           superJson,
           'test-profile',
           providerConfiguration,
+          mockProfileProviderConfiguration,
           mockConfig,
           new Events(timers),
           fileSystem,
@@ -1187,6 +1262,7 @@ but http scheme requires: digest`
           superJson,
           'test-profile',
           mockProviderConfiguration,
+          mockProfileProviderConfiguration,
           mockConfig,
           new Events(timers),
           fileSystem,

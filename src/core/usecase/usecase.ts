@@ -50,6 +50,7 @@ import { ProfileConfiguration } from '../profile';
 import {
   bindProfileProvider,
   IBoundProfileProvider,
+  ProfileProviderConfiguration,
 } from '../profile-provider';
 import { Provider, ProviderConfiguration } from '../provider';
 
@@ -58,6 +59,8 @@ const DEBUG_NAMESPACE = 'usecase';
 export type PerformOptions = {
   provider?: Provider | string;
   parameters?: Record<string, string>;
+  mapVariant?: string;
+  mapRevision?: string;
   security?: SecurityValues[] | { [id: string]: Omit<SecurityValues, 'id'> };
 };
 
@@ -102,6 +105,8 @@ export abstract class UseCaseBase implements Interceptable {
 
   private async bind(options?: {
     provider?: string | Provider | undefined;
+    mapRevision?: string;
+    mapVariant?: string;
   }): Promise<void> {
     const hookRouter =
       this.events.hookContext[`${this.profileConfiguration.id}/${this.name}`]
@@ -117,18 +122,24 @@ export abstract class UseCaseBase implements Interceptable {
 
     this.boundProfileProvider = await this.rebind(
       this.profileConfiguration.cacheKey + providerConfig.cacheKey,
-      providerConfig
+      providerConfig,
+      new ProfileProviderConfiguration(
+        options?.mapRevision,
+        options?.mapVariant
+      )
     );
   }
 
   private async rebind(
     cacheKey: string,
-    providerConfig: ProviderConfiguration
+    providerConfig: ProviderConfiguration,
+    profileProviderConfig: ProfileProviderConfiguration
   ): Promise<IBoundProfileProvider> {
     const { provider, expiresAt } =
       await this.boundProfileProviderCache.getCached(cacheKey, () =>
         bindProfileProvider(
           this.profileConfiguration,
+          profileProviderConfig,
           providerConfig,
           this.superJson,
           this.config,
@@ -143,7 +154,7 @@ export abstract class UseCaseBase implements Interceptable {
     const now = Math.floor(this.timers.now() / 1000);
     if (expiresAt < now) {
       this.boundProfileProviderCache.invalidate(cacheKey);
-      void this.rebind(cacheKey, providerConfig);
+      void this.rebind(cacheKey, providerConfig, profileProviderConfig);
     }
 
     return provider;
