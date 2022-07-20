@@ -41,6 +41,7 @@ export function getProviderForProfile(
     return getProvider(superJson, name);
   }
 
+  // TODO: this case should not happen - covered by super json normalization
   const knownProfileProviders = Object.keys(
     superJson.normalized.profiles[profileId]?.providers ?? {}
   );

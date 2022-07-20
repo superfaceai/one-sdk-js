@@ -6,9 +6,49 @@ import {
   unconfiguredProviderError,
 } from '../../core';
 import { SuperJson } from './superjson';
-import { getProvider } from './utils';
+import { getProvider, getProviderForProfile } from './utils';
 
 describe('schema-tools utils', () => {
+  describe('getProviderForProfile', () => {
+    it('throws when providers are not configured', async () => {
+      expect(() =>
+        getProviderForProfile(
+          new SuperJson({
+            profiles: {
+              test: '2.1.0',
+            },
+            providers: {
+              quz: {},
+            },
+          }),
+          'foo'
+        )
+      ).toThrow(
+        'Profile "foo" needs at least one configured provider for automatic provider selection'
+      );
+    });
+
+    it('returns a configured provider when present', async () => {
+      const provider = getProviderForProfile(
+        new SuperJson({
+          profiles: {
+            baz: {
+              version: '1.2.3',
+              providers: {
+                quz: {},
+              },
+            },
+          },
+          providers: {
+            quz: {},
+          },
+        }),
+        'baz'
+      );
+      expect(provider.configuration.name).toBe('quz');
+    });
+  });
+
   describe('getProvider', () => {
     const mockSecurityValues: SecurityValues[] = [
       {

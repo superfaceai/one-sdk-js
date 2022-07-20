@@ -2,7 +2,7 @@ import { mocked } from 'ts-jest/utils';
 
 import { ProfileConfiguration, resolveProfileAst } from '../../core';
 import { MockClient, mockProfileDocumentNode } from '../../mock';
-import { getProviderForProfile, SuperJson } from '../../schema-tools';
+import { SuperJson } from '../../schema-tools';
 
 const mockSuperJson = new SuperJson({
   profiles: {
@@ -61,31 +61,6 @@ describe('superface client', () => {
       expect(profile.configuration).toEqual(
         new ProfileConfiguration('testy/mctestface', '1.0.0')
       );
-    });
-  });
-
-  describe('getProviderForProfile', () => {
-    it('throws when providers are not configured', async () => {
-      expect(() =>
-        getProviderForProfile(
-          new SuperJson({
-            profiles: {
-              test: '2.1.0',
-            },
-            providers: {
-              quz: {},
-            },
-          }),
-          'foo'
-        )
-      ).toThrow(
-        'Profile "foo" needs at least one configured provider for automatic provider selection'
-      );
-    });
-
-    it('returns a configured provider when present', async () => {
-      const provider = getProviderForProfile(mockSuperJson, 'baz');
-      expect(provider.configuration.name).toBe('quz');
     });
   });
 });
