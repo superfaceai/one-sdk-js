@@ -1,15 +1,16 @@
-import { SuperCache } from '../../lib';
+import { ProfileDocumentNode } from '@superfaceai/ast';
+
+import { profileAstId, SuperCache, versionToString } from '../../lib';
 import { SuperJson } from '../../schema-tools';
 import { Config } from '../config';
 import {
-  profileFileNotFoundError,
   profileNotInstalledError,
   unconfiguredProviderInPriorityError,
 } from '../errors';
 import { Events, Interceptable } from '../events';
 import { ICrypto, IFileSystem, ILogger, ITimers } from '../interfaces';
 import { AuthCache, IFetch } from '../interpreter';
-import { Profile, ProfileConfiguration } from '../profile';
+import { Profile, ProfileConfiguration, resolveProfileAst } from '../profile';
 import { IBoundProfileProvider } from '../profile-provider';
 
 export class InternalClient {
@@ -29,10 +30,20 @@ export class InternalClient {
   ) {}
 
   public async getProfile(profileId: string): Promise<Profile> {
-    const profileConfiguration = await this.getProfileConfiguration(profileId);
+    const ast = await resolveProfileAst({
+      profileId,
+      logger: this.logger,
+      fetchInstance: this.fetchInstance,
+      fileSystem: this.fileSystem,
+      config: this.config,
+      crypto: this.crypto,
+      superJson: this.superJson,
+    });
+    const profileConfiguration = await this.getProfileConfiguration(ast);
 
     return new Profile(
       profileConfiguration,
+      ast,
       this.events,
       this.superJson,
       this.config,
@@ -46,24 +57,12 @@ export class InternalClient {
   }
 
   public async getProfileConfiguration(
-    profileId: string
+    ast: ProfileDocumentNode
   ): Promise<ProfileConfiguration> {
+    const profileId = profileAstId(ast);
     const profileSettings = this.superJson.normalized.profiles[profileId];
     if (profileSettings === undefined) {
       throw profileNotInstalledError(profileId);
-    }
-
-    let version;
-    if ('file' in profileSettings) {
-      const filePath = this.superJson.resolvePath(profileSettings.file);
-      if (!(await this.fileSystem.exists(filePath))) {
-        throw profileFileNotFoundError(profileSettings.file, profileId);
-      }
-
-      // TODO: read version from the ast?
-      version = 'unknown';
-    } else {
-      version = profileSettings.version;
     }
 
     // TODO: load priority and add it to ProfileConfiguration?
@@ -76,6 +75,9 @@ export class InternalClient {
       );
     }
 
-    return new ProfileConfiguration(profileId, version);
+    return new ProfileConfiguration(
+      profileId,
+      versionToString(ast.header.version)
+    );
   }
 }

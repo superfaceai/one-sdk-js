@@ -1,11 +1,14 @@
 import { ProviderJson } from '@superfaceai/ast';
 import { parseMap, parseProfile, Source } from '@superfaceai/parser';
+import { mocked } from 'ts-jest/utils';
 
-import { ProfileProvider } from '../../core';
+import { ProfileProvider, resolveProfileAst } from '../../core';
 import { ok } from '../../lib';
 import { SuperJson } from '../../schema-tools';
 import { SuperfaceClient } from './client';
 import { createTypedClient, typeHelper } from './client.typed';
+
+jest.mock('../../core/profile/resolve-profile-ast');
 
 const parseMapFromSource = (source: string) =>
   parseMap(
@@ -89,10 +92,8 @@ describe('SuperfaceClient integration test', () => {
     const client = new SuperfaceClient();
 
     // Let .bind happen with mocked inputs
+    mocked(resolveProfileAst).mockResolvedValue(mockProfileDocument);
     // Mocking private property of ProfileProvider
-    jest
-      .spyOn(ProfileProvider.prototype as any, 'resolveProfileAst')
-      .mockResolvedValue(mockProfileDocument);
     jest
       .spyOn(ProfileProvider.prototype as any, 'resolveProviderInfo')
       .mockResolvedValue({
@@ -114,10 +115,8 @@ describe('SuperfaceClient integration test', () => {
     const client = new SuperfaceClient();
 
     // Let .bind happen with mocked inputs
+    mocked(resolveProfileAst).mockResolvedValue(mockProfileDocument);
     // Mocking private property of ProfileProvider
-    jest
-      .spyOn(ProfileProvider.prototype as any, 'resolveProfileAst')
-      .mockResolvedValue(mockProfileDocument);
     jest
       .spyOn(ProfileProvider.prototype as any, 'resolveProviderInfo')
       .mockResolvedValue({
@@ -139,9 +138,8 @@ describe('SuperfaceClient integration test', () => {
 
   describe('typed client', () => {
     it('should perform successfully', async () => {
-      jest
-        .spyOn(ProfileProvider.prototype as any, 'resolveProfileAst')
-        .mockResolvedValue(mockProfileDocument);
+      mocked(resolveProfileAst).mockResolvedValue(mockProfileDocument);
+      // Mocking private property of ProfileProvider
       jest
         .spyOn(ProfileProvider.prototype as any, 'resolveProviderInfo')
         .mockResolvedValue({

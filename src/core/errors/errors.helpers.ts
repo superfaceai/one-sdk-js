@@ -63,6 +63,27 @@ export function noConfiguredProviderError(
   );
 }
 
+export function unsupportedFileExtensionError(
+  filepath: string,
+  correctExtension: string
+): SDKExecutionError {
+  return new SDKExecutionError(
+    `File paths ${filepath} contains unsupported extension.`,
+    [],
+    [`Use file with ${correctExtension} extension.`]
+  );
+}
+
+export function sourceFileExtensionFoundError(
+  extension: string
+): SDKExecutionError {
+  return new SDKExecutionError(
+    `${extension} extension found.`,
+    [],
+    [`${extension} files needs to be compiled with Superface CLI.`]
+  );
+}
+
 export function profileNotInstalledError(profileId: string): SDKExecutionError {
   return new SDKExecutionError(
     `Profile not installed: ${profileId}`,

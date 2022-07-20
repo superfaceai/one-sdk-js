@@ -1,5 +1,8 @@
+import { isUseCaseDefinitionNode, ProfileDocumentNode } from '@superfaceai/ast';
+
 import { SuperCache } from '../../lib';
 import { SuperJson } from '../../schema-tools';
+import { usecaseNotFoundError } from '../errors';
 import { Events, Interceptable } from '../events';
 import { IConfig, ICrypto, IFileSystem, ILogger, ITimers } from '../interfaces';
 import { AuthCache, IFetch } from '../interpreter';
@@ -10,6 +13,7 @@ import { ProfileConfiguration } from './profile-configuration';
 export abstract class ProfileBase {
   constructor(
     public readonly configuration: ProfileConfiguration,
+    public readonly ast: ProfileDocumentNode,
     protected readonly events: Events,
     protected readonly superJson: SuperJson,
     protected readonly config: IConfig,
@@ -33,10 +37,15 @@ export abstract class ProfileBase {
 
 export class Profile extends ProfileBase {
   public getUseCase(name: string): UseCase {
-    // TODO: Check if usecase exists
+    const supportedUsecaseNames = this.ast.definitions
+      .filter(isUseCaseDefinitionNode)
+      .map(u => u.useCaseName);
+    if (!supportedUsecaseNames.includes(name)) {
+      throw usecaseNotFoundError(name, supportedUsecaseNames);
+    }
 
     return new UseCase(
-      this.configuration,
+      this,
       name,
       this.events,
       this.config,
