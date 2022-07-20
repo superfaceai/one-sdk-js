@@ -1,11 +1,9 @@
 import {
   assertMapDocumentNode,
-  assertProfileDocumentNode,
   assertProviderJson,
   FILE_URI_PROTOCOL,
   isFileURIString,
   isMapFile,
-  isProfileFile,
   MapDocumentNode,
   prepareProviderParameters,
   ProfileDocumentNode,
@@ -16,7 +14,6 @@ import {
 import { forceCast, profileAstId } from '../../lib';
 import { mergeSecurity, SuperJson } from '../../schema-tools';
 import {
-  invalidProfileError,
   localProviderAndRemoteMapError,
   providersDoNotMatchError,
   referencedFileNotFoundError,
@@ -33,7 +30,6 @@ import {
 } from '../interfaces';
 import { AuthCache, IFetch } from '../interpreter';
 import { Parser } from '../parser';
-import { ProfileConfiguration } from '../profile/profile-configuration';
 import { ProviderConfiguration } from '../provider';
 import { fetchBind, fetchMapSource, fetchProviderInfo } from '../registry';
 import { ServiceSelector } from '../services';
@@ -47,7 +43,8 @@ import { resolveSecurityConfiguration } from './security';
 const DEBUG_NAMESPACE = 'profile-provider';
 
 export async function bindProfileProvider(
-  profileConfig: ProfileConfiguration,
+  profile: ProfileDocumentNode,
+  // profileConfig: ProfileConfiguration,
   profileProviderConfig: ProfileProviderConfiguration,
   providerConfig: ProviderConfiguration,
   superJson: SuperJson,
@@ -61,7 +58,7 @@ export async function bindProfileProvider(
 ): Promise<{ provider: IBoundProfileProvider; expiresAt: number }> {
   const profileProvider = new ProfileProvider(
     superJson,
-    profileConfig,
+    profile,
     providerConfig,
     profileProviderConfig,
     config,
@@ -95,7 +92,7 @@ export class ProfileProvider {
     // TODO: Use superJson from events/Client?
     public readonly superJson: SuperJson,
     /** profile id, url, ast node or configuration instance */
-    private profile: string | ProfileDocumentNode | ProfileConfiguration,
+    private profile: ProfileDocumentNode,
     /** provider name, url or configuration instance */
     private provider: string | ProviderJson | ProviderConfiguration,
     private profileProviderConfig: ProfileProviderConfiguration,
@@ -108,13 +105,7 @@ export class ProfileProvider {
     /** url or ast node */
     private map?: string | MapDocumentNode
   ) {
-    if (this.profile instanceof ProfileConfiguration) {
-      this.profileId = this.profile.id;
-    } else if (typeof this.profile === 'string') {
-      this.profileId = this.profile;
-    } else {
-      this.profileId = profileAstId(this.profile);
-    }
+    this.profileId = profileAstId(this.profile);
     const [scopeOrProfileName, profileName] = this.profileId.split('/');
     if (profileName === undefined) {
       this.profileName = scopeOrProfileName;
@@ -137,12 +128,7 @@ export class ProfileProvider {
   public async bind(
     configuration?: BindConfiguration
   ): Promise<BoundProfileProvider> {
-    // resolve profile locally
-    const profileAst = await this.resolveProfileAst();
-    if (profileAst === undefined) {
-      throw invalidProfileError(this.profileId);
-    }
-    const profileId = profileAstId(profileAst);
+    const profileId = profileAstId(this.profile);
 
     // resolve provider from parameters or defer until later
     const resolvedProviderInfo = await this.resolveProviderInfo();
@@ -185,7 +171,7 @@ export class ProfileProvider {
         {
           profileId:
             profileId +
-            `@${profileAst.header.version.major}.${profileAst.header.version.minor}.${profileAst.header.version.patch}`,
+            `@${this.profile.header.version.major}.${this.profile.header.version.minor}.${this.profile.header.version.patch}`,
           provider: providerName,
           mapVariant,
           mapRevision,
@@ -202,7 +188,7 @@ export class ProfileProvider {
       mapAst = fetchResponse.mapAst;
       // If we don't have a map (probably due to validation issue) we try to get map source and parse it on our own
       if (!mapAst) {
-        const version = `${profileAst.header.version.major}.${profileAst.header.version.minor}.${profileAst.header.version.patch}`;
+        const version = `${this.profile.header.version.major}.${this.profile.header.version.minor}.${this.profile.header.version.patch}`;
         const mapId =
           mapVariant !== undefined
             ? `${profileId}.${providerName}.${mapVariant}@${version}`
@@ -219,8 +205,8 @@ export class ProfileProvider {
           mapSource,
           mapId,
           {
-            profileName: profileAst.header.name,
-            scope: profileAst.header.scope,
+            profileName: this.profile.header.name,
+            scope: this.profile.header.scope,
             providerName,
           },
           this.config.cachePath,
@@ -248,7 +234,7 @@ export class ProfileProvider {
     );
 
     return new BoundProfileProvider(
-      profileAst,
+      this.profile,
       mapAst,
       providerInfo,
       this.config,
@@ -407,63 +393,6 @@ export class ProfileProvider {
         );
       }
     }
-  }
-
-  private async resolveProfileAst(): Promise<ProfileDocumentNode | undefined> {
-    let resolveInput = this.profile;
-    if (resolveInput instanceof ProfileConfiguration) {
-      resolveInput = resolveInput.id;
-    }
-
-    const profileAst = await ProfileProvider.resolveValue(
-      resolveInput,
-      async (fileContents, fileName) => {
-        // If we have profile source, we parse
-        if (fileName !== undefined && isProfileFile(fileName)) {
-          return Parser.parseProfile(
-            fileContents,
-            fileName,
-            {
-              profileName: this.profileName,
-              scope: this.scope,
-            },
-            this.config.cachePath,
-            this.config.cache,
-            this.fileSystem
-          );
-        }
-
-        // Otherwise we return parsed
-        return assertProfileDocumentNode(JSON.parse(fileContents));
-      },
-      profileId => {
-        const profileSettings = this.superJson.normalized.profiles[profileId];
-        if (profileSettings === undefined) {
-          // not found at all
-          return undefined;
-        } else if ('file' in profileSettings) {
-          // assumed right next to source file
-          return (
-            FILE_URI_PROTOCOL + this.superJson.resolvePath(profileSettings.file)
-          );
-        } else {
-          // assumed to be in grid folder
-          return (
-            FILE_URI_PROTOCOL +
-            this.superJson.resolvePath(
-              this.fileSystem.path.join(
-                'grid',
-                `${profileId}@${profileSettings.version}.supr`
-              )
-            )
-          );
-        }
-      },
-      this.fileSystem,
-      ['.ast.json', '']
-    );
-
-    return profileAst;
   }
 
   private async resolveProviderInfo(): Promise<{

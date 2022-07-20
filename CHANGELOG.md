@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Pass `cache` flag to SuperfaceClient constructor
 - Pass `debug` flag to SuperfaceClient constructor
 - Pass `mapVariant` and `mapRevision` values in `perform`
+- **BREAKING CHANGE**: .supr files are no longer allowed
 
 ## [1.5.2] - 2022-06-15
 ### Fixed

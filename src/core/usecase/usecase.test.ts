@@ -1,11 +1,15 @@
 import { SuperCache } from '../../lib';
-import { MockFileSystem, MockTimers } from '../../mock';
+import {
+  MockFileSystem,
+  mockProfileDocumentNode,
+  MockTimers,
+} from '../../mock';
 import { NodeCrypto, NodeFetch, NodeFileSystem } from '../../node';
 import { SuperJson } from '../../schema-tools';
 import * as utils from '../../schema-tools/superjson/utils';
 import { Config } from '../config';
 import { Events, registerHooks } from '../events';
-import { ProfileConfiguration } from '../profile';
+import { Profile, ProfileBase, ProfileConfiguration } from '../profile';
 import { ProfileProviderConfiguration } from '../profile-provider';
 import { IBoundProfileProvider } from '../profile-provider/bound-profile-provider';
 import { Provider, ProviderConfiguration } from '../provider';
@@ -56,6 +60,20 @@ function createUseCase(cacheExpire?: number) {
     provider: IBoundProfileProvider;
     expiresAt: number;
   }>();
+
+  const profile: ProfileBase = new Profile(
+    mockProfileConfiguration,
+    mockProfileDocumentNode(),
+    events,
+    mockSuperJson,
+    new Config(MockFileSystem()),
+    timers,
+    MockFileSystem(),
+    cache,
+    crypto,
+    new NodeFetch(timers)
+  );
+
   cache.getCached(
     mockProfileConfiguration.cacheKey + mockProviderConfiguration.cacheKey,
     () => ({
@@ -76,7 +94,7 @@ function createUseCase(cacheExpire?: number) {
   const config = new Config(NodeFileSystem);
 
   const usecase = new UseCase(
-    mockProfileConfiguration,
+    profile,
     'test-usecase',
     events,
     config,
