@@ -2,6 +2,7 @@ import {
   noConfiguredProviderError,
   Provider,
   ProviderConfiguration,
+  unconfiguredProviderError,
 } from '../../core';
 import { SuperJson } from './superjson';
 
@@ -11,9 +12,9 @@ export function getProvider(
 ): Provider {
   const providerSettings = superJson?.normalized.providers[providerName];
 
-  // if (providerSettings === undefined) {
-  //   throw unconfiguredProviderError(providerName);
-  // }
+  if (superJson !== undefined && providerSettings === undefined) {
+    throw unconfiguredProviderError(providerName);
+  }
 
   return new Provider(
     new ProviderConfiguration(providerName, providerSettings?.security ?? [])

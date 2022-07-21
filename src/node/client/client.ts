@@ -44,15 +44,20 @@ const resolveSuperJson = (
   crypto: ICrypto,
   superJson?: SuperJson | SuperJsonDocument,
   logger?: ILogger
-): SuperJson => {
+): SuperJson | undefined => {
   if (superJson === undefined) {
-    return SuperJson.loadSync(
+    const superJsonResult = SuperJson.loadSync(
       path,
       NodeFileSystem,
       environment,
       crypto,
       logger
-    ).unwrap();
+    );
+    if (superJsonResult.isOk()) {
+      return superJsonResult.value;
+    }
+    
+return undefined;
   }
 
   if (superJson instanceof SuperJson) {
@@ -109,7 +114,7 @@ const setupMetricReporter = (
 };
 
 export abstract class SuperfaceClientBase {
-  public readonly superJson: SuperJson;
+  public readonly superJson: SuperJson | undefined;
   protected readonly events: Events;
   protected readonly internal: InternalClient;
   protected readonly boundProfileProviderCache: SuperCache<{
@@ -162,7 +167,8 @@ export abstract class SuperfaceClientBase {
       this.logger
     );
 
-    if (!this.config.disableReporting) {
+    // FIX: use without super.json
+    if (!this.config.disableReporting && this.superJson !== undefined) {
       setupMetricReporter(
         this.superJson,
         this.config,
