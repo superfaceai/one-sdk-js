@@ -52,7 +52,6 @@ export async function resolveProfileAst({
 }): Promise<ProfileDocumentNode> {
   const logFunction = logger?.log(DEBUG_NAMESPACE);
 
-  // TODO look to cache first
   const loadProfileAstFile = async (
     fileNameWithExtension: string
   ): Promise<ProfileDocumentNode> => {
@@ -114,7 +113,6 @@ export async function resolveProfileAst({
   logFunction?.('Reading possible profile file: %S', filepath);
   try {
     return await loadProfileAstFile(filepath);
-    // TODO cache loaded ast?
   } catch (error) {
     logFunction?.(
       'Reading of possible profile file failed with error %O',
@@ -126,7 +124,6 @@ export async function resolveProfileAst({
   logFunction?.('Fetching profile file from registry');
 
   // Fallback to remote
-  // TODO this should be cached
   return fetchProfileAst(
     `${profileId}@${resolvedVersion}`,
     config,
