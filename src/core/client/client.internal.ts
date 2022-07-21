@@ -1,9 +1,14 @@
-import { extractVersion, ProfileDocumentNode } from '@superfaceai/ast';
+import {
+  extractVersion,
+  isValidDocumentName,
+  ProfileDocumentNode,
+} from '@superfaceai/ast';
 
 import { profileAstId, SuperCache, versionToString } from '../../lib';
 import { SuperJson } from '../../schema-tools';
 import { Config } from '../config';
 import {
+  invalidIdentifierIdError,
   invalidVersionError,
   profileNotInstalledError,
   unconfiguredProviderInPriorityError,
@@ -101,6 +106,7 @@ export function resolveProfileId(
     version = profile.version;
   }
 
+  // Check if version is full
   if (version !== undefined) {
     const extracted = extractVersion(version);
     if (extracted.minor === undefined) {
@@ -111,6 +117,23 @@ export function resolveProfileId(
     }
   }
 
-  // TODO check if id is valid?
+  // Check scope and name
+  let name: string,
+    scope: string | undefined = undefined;
+  const [scopeOrName, possibleName] = id.split('/');
+  if (possibleName === undefined) {
+    name = scopeOrName;
+  } else {
+    scope = scopeOrName;
+    name = possibleName;
+  }
+  if (scope !== undefined && !isValidDocumentName(scope)) {
+    throw invalidIdentifierIdError(scope, 'Scope');
+  }
+
+  if (!isValidDocumentName(name)) {
+    throw invalidIdentifierIdError(name, 'Name');
+  }
+
   return { id, version };
 }

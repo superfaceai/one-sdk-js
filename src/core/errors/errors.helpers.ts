@@ -127,6 +127,17 @@ export function unableToResolveProfileError(
   );
 }
 
+export function invalidIdentifierIdError(
+  identifier: string,
+  problematicPart: 'Name' | 'Scope'
+): SDKExecutionError {
+  return new SDKExecutionError(
+    `${problematicPart} "${identifier}" is not a valid lowercase .`,
+    [],
+    ['Use valid idetifier']
+  );
+}
+
 export function invalidVersionError(
   completeVersion: string,
   problematicPart: 'minor' | 'patch'
