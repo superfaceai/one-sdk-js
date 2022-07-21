@@ -1,6 +1,7 @@
 import {
   NonPrimitive,
   resolveProfileAst,
+  resolveProfileId,
   TypedProfile,
   UsecaseType,
 } from '../../core';
@@ -16,7 +17,7 @@ export type TypedSuperfaceClient<
   TProfiles extends ProfileUseCases<any, any>
 > = SuperfaceClientBase & {
   getProfile<TProfile extends keyof TProfiles>(
-    profileId: TProfile
+    profile: TProfile | { id: TProfile; version?: string }
   ): Promise<TypedProfile<TProfiles[TProfile]>>;
 };
 
@@ -29,10 +30,15 @@ export function createTypedClient<TProfiles extends ProfileUseCases<any, any>>(
     implements TypedSuperfaceClient<TProfiles>
   {
     public async getProfile<TProfile extends keyof TProfiles>(
-      profileId: TProfile
+      profile: TProfile | { id: TProfile; version?: string }
     ): Promise<TypedProfile<TProfiles[TProfile]>> {
+      const { id, version } = resolveProfileId(
+        profile as string | { id: string; version?: string }
+      );
+
       const ast = await resolveProfileAst({
-        profileId: profileId as string,
+        profileId: id,
+        version,
         logger: this.logger,
         fetchInstance: this.fetchInstance,
         fileSystem: NodeFileSystem,
@@ -55,7 +61,7 @@ export function createTypedClient<TProfiles extends ProfileUseCases<any, any>>(
         NodeFileSystem,
         this.crypto,
         this.fetchInstance,
-        Object.keys(profileDefinitions[profileId]),
+        Object.keys(profileDefinitions[id]),
         this.logger
       );
     }

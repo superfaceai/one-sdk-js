@@ -8,9 +8,10 @@ import { SuperJson } from '../../schema-tools';
 import {
   NotFoundError,
   profileFileNotFoundError,
-  profileNotFoundError,
   sourceFileExtensionFoundError,
+  unableToResolveProfileError,
   unsupportedFileExtensionError,
+  versionMismatchError,
 } from '../errors';
 import { Interceptable } from '../events';
 import { IConfig, ICrypto, IFileSystem, ILogger } from '../interfaces';
@@ -32,6 +33,7 @@ const DEBUG_NAMESPACE = 'profile-ast-resolution';
  */
 export async function resolveProfileAst({
   profileId,
+  version,
   logger,
   superJson,
   fileSystem,
@@ -40,6 +42,7 @@ export async function resolveProfileAst({
   fetchInstance,
 }: {
   profileId: string;
+  version?: string;
   logger?: ILogger;
   superJson: SuperJson;
   fileSystem: IFileSystem;
@@ -65,13 +68,25 @@ export async function resolveProfileAst({
 
   const profileSettings = superJson.normalized.profiles[profileId];
 
-  if (profileSettings === undefined) {
-    throw profileNotFoundError(profileId);
+  // Error when we don't have profileSettings and version is undefined
+  if (profileSettings === undefined && version === undefined) {
+    throw unableToResolveProfileError(profileId);
+  }
+  // when version in profileSettings and version in "getProfile" does not match
+  if (
+    profileSettings !== undefined &&
+    'version' in profileSettings &&
+    version !== undefined &&
+    profileSettings.version !== version
+  ) {
+    throw versionMismatchError(profileSettings.version, version);
   }
   let filepath: string;
-  if ('file' in profileSettings) {
+
+  // TODO do we want to check `file` if we have version from getProfile?
+  if (profileSettings !== undefined && 'file' in profileSettings) {
     filepath = superJson.resolvePath(profileSettings.file);
-    logFunction?.('Reading possible profile file: %S', filepath);
+    logFunction?.('Reading possible profile file: %s', filepath);
     // check extensions
     if (filepath.endsWith(EXTENSIONS.profile.source)) {
       // FIX:  SDKExecutionError is used to ensure correct formatting. Improve formatting of UnexpectedError
@@ -83,10 +98,11 @@ export async function resolveProfileAst({
 
     return await loadProfileAstFile(filepath);
   }
-  // assumed to be in grid folder under superface directory
+
+  const resolvedVersion = version ?? profileSettings.version;
   const gridPath = fileSystem.path.join(
     'grid',
-    `${profileId}@${profileSettings.version}`
+    `${profileId}@${resolvedVersion}`
   );
   const superfaceFolderPath = fileSystem.path.dirname(config.superfacePath);
 
@@ -109,7 +125,7 @@ export async function resolveProfileAst({
 
   // Fallback to remote
   return fetchProfileAst(
-    `${profileId}@${profileSettings.version}`,
+    `${profileId}@${resolvedVersion}`,
     config,
     crypto,
     fetchInstance,

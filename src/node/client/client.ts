@@ -206,8 +206,10 @@ export class SuperfaceClient
   extends SuperfaceClientBase
   implements ISuperfaceClient
 {
-  /** Gets a profile from super.json based on `profileId` in format: `[scope/]name`. */
-  public async getProfile(profileId: string): Promise<Profile> {
-    return this.internal.getProfile(profileId);
+  /** Gets a profile from super.json or remote registry based on `profile`. `profile` can be string in format: `[scope/]name@profileVersion` or object with `id` and optional `version` . */
+  public async getProfile(
+    profile: string | { id: string; version?: string }
+  ): Promise<Profile> {
+    return this.internal.getProfile(profile);
   }
 }
