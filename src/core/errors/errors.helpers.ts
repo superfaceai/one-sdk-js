@@ -112,6 +112,58 @@ export function profileFileNotFoundError(
   );
 }
 
+export function unableToResolveProfileError(
+  profileId: string
+): SDKExecutionError {
+  return new SDKExecutionError(
+    `Profile "${profileId}" not found in super.json and version is not defined in "getProfile"`,
+    [
+      `To resolve correct profile "${profileId}" must be defined in super.json or profile version must be specified in "getProfile" function`,
+    ],
+    [
+      `Profile can be installed to local super.json using the superface cli tool: \`superface install ${profileId}\``,
+      `Optionally full version eg. 1.0.0 can be passed to "getProfile" in format \`${profileId}@version\` or as an obejct: { id: ${profileId}, version: version}`,
+    ]
+  );
+}
+
+export function invalidIdentifierIdError(
+  identifier: string,
+  problematicPart: 'Name' | 'Scope'
+): SDKExecutionError {
+  return new SDKExecutionError(
+    `${problematicPart} "${identifier}" is not a valid lowercase .`,
+    [],
+    ['Use valid idetifier']
+  );
+}
+
+export function invalidVersionError(
+  completeVersion: string,
+  problematicPart: 'minor' | 'patch'
+): SDKExecutionError {
+  return new SDKExecutionError(
+    `Version "${completeVersion}" is not valid version. "${problematicPart}" is missing or not a number`,
+    [
+      `Version "${completeVersion}" is not valid version in format major.minor.patch eg. "1.0.0". "${problematicPart}" is missing or not a number`,
+    ],
+    [
+      'Pass valid version string in format major.minor.patch-label (-label is optional) eg. "1.0.0" or "1.2.3-test"',
+    ]
+  );
+}
+
+export function versionMismatchError(
+  superJsonVersion: string,
+  getProfileVersion: string
+): SDKExecutionError {
+  return new SDKExecutionError(
+    `Version from super.json (${superJsonVersion}) and getProfile (${getProfileVersion}) does not match.`,
+    ['If version in super.json and in "getProfile" is used thy must match'],
+    ['Use version either in super.json or in "getProfile"']
+  );
+}
+
 export function profileNotFoundError(profileName: string): SDKExecutionError {
   return new SDKExecutionError(
     `Profile "${profileName}" not found in super.json`,

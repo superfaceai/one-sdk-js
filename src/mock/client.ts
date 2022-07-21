@@ -167,8 +167,10 @@ export class MockClient implements ISuperfaceClient {
     this.events.on(...args);
   }
 
-  public getProfile(profileId: string): Promise<Profile> {
-    return this.internalClient.getProfile(profileId);
+  public getProfile(
+    profile: string | { id: string; version?: string }
+  ): Promise<Profile> {
+    return this.internalClient.getProfile(profile);
   }
 
   public async getProvider(

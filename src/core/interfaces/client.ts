@@ -5,7 +5,6 @@ import { Profile } from '../profile';
 import { Provider } from '../provider';
 
 export interface ISuperfaceClient {
-  getProfile(profileId: string): Promise<Profile>;
   getProvider(
     providerName: string,
     options?: {
@@ -15,6 +14,9 @@ export interface ISuperfaceClient {
         | { [id: string]: Omit<SecurityValues, 'id'> };
     }
   ): Promise<Provider>;
+  getProfile(
+    profile: string | { id: string; version?: string }
+  ): Promise<Profile>;
   getProviderForProfile(profileId: string): Promise<Provider>;
   on(...args: Parameters<Events['on']>): void;
 }

@@ -1,9 +1,15 @@
-import { ProfileDocumentNode } from '@superfaceai/ast';
+import {
+  extractVersion,
+  isValidDocumentName,
+  ProfileDocumentNode,
+} from '@superfaceai/ast';
 
 import { profileAstId, SuperCache, versionToString } from '../../lib';
 import { SuperJson } from '../../schema-tools';
 import { Config } from '../config';
 import {
+  invalidIdentifierIdError,
+  invalidVersionError,
   profileNotInstalledError,
   unconfiguredProviderInPriorityError,
 } from '../errors';
@@ -29,9 +35,14 @@ export class InternalClient {
     private readonly logger?: ILogger
   ) {}
 
-  public async getProfile(profileId: string): Promise<Profile> {
+  public async getProfile(
+    profile: string | { id: string; version?: string }
+  ): Promise<Profile> {
+    const { id, version } = resolveProfileId(profile);
+
     const ast = await resolveProfileAst({
-      profileId,
+      profileId: id,
+      version,
       logger: this.logger,
       fetchInstance: this.fetchInstance,
       fileSystem: this.fileSystem,
@@ -80,4 +91,49 @@ export class InternalClient {
       versionToString(ast.header.version)
     );
   }
+}
+
+export function resolveProfileId(
+  profile: string | { id: string; version?: string }
+): { id: string; version?: string } {
+  let id: string;
+  let version: string | undefined;
+
+  if (typeof profile === 'string') {
+    [id, version] = profile.split('@');
+  } else {
+    id = profile.id;
+    version = profile.version;
+  }
+
+  // Check if version is full
+  if (version !== undefined) {
+    const extracted = extractVersion(version);
+    if (extracted.minor === undefined) {
+      throw invalidVersionError(version, 'minor');
+    }
+    if (extracted.patch === undefined) {
+      throw invalidVersionError(version, 'patch');
+    }
+  }
+
+  // Check scope and name
+  let name: string,
+    scope: string | undefined = undefined;
+  const [scopeOrName, possibleName] = id.split('/');
+  if (possibleName === undefined) {
+    name = scopeOrName;
+  } else {
+    scope = scopeOrName;
+    name = possibleName;
+  }
+  if (scope !== undefined && !isValidDocumentName(scope)) {
+    throw invalidIdentifierIdError(scope, 'Scope');
+  }
+
+  if (!isValidDocumentName(name)) {
+    throw invalidIdentifierIdError(name, 'Name');
+  }
+
+  return { id, version };
 }
