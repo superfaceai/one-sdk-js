@@ -83,7 +83,7 @@ export abstract class UseCaseBase implements Interceptable {
     public readonly name: string,
     public readonly events: Events,
     private readonly config: IConfig,
-    private readonly superJson: SuperJson,
+    private readonly superJson: SuperJson | undefined,
     private readonly timers: ITimers,
     private readonly fileSystem: IFileSystem,
     private readonly crypto: ICrypto,
@@ -270,9 +270,12 @@ export abstract class UseCaseBase implements Interceptable {
     const profileId = this.profile.configuration.id;
 
     // Check providerFailover/priority array
-    const profileEntry = this.superJson.normalized.profiles[profileId];
+    const profileEntry = this.superJson?.normalized.profiles[profileId];
 
-    if (profileEntry.defaults[this.name] === undefined) {
+    if (
+      profileEntry === undefined ||
+      profileEntry.defaults[this.name] === undefined
+    ) {
       return;
     }
 
@@ -305,7 +308,7 @@ export abstract class UseCaseBase implements Interceptable {
     this.checkWarnFailoverMisconfiguration();
 
     const profileId = this.profile.configuration.id;
-    const profileSettings = this.superJson.normalized.profiles[profileId];
+    const profileSettings = this.superJson?.normalized.profiles[profileId];
 
     const key = `${profileId}/${this.name}`;
 
@@ -314,7 +317,7 @@ export abstract class UseCaseBase implements Interceptable {
         router: new FailurePolicyRouter(
           provider => this.instantiateFailurePolicy(provider),
           // Use priority only when provider failover is enabled
-          profileSettings.defaults[this.name]?.providerFailover === true
+          profileSettings?.defaults[this.name]?.providerFailover === true
             ? profileSettings.priority
             : []
         ),
@@ -338,8 +341,8 @@ export abstract class UseCaseBase implements Interceptable {
       usecaseSafety: 'unsafe',
     };
 
-    const profileSettings = this.superJson.normalized.profiles[profileId];
-    const retryPolicyConfig = profileSettings.providers[provider]?.defaults[
+    const profileSettings = this.superJson?.normalized.profiles[profileId];
+    const retryPolicyConfig = profileSettings?.providers[provider]?.defaults[
       this.name
     ]?.retryPolicy ?? { kind: OnFail.NONE };
 

@@ -22,7 +22,7 @@ import { IBoundProfileProvider } from '../profile-provider';
 export class InternalClient {
   constructor(
     private readonly events: Events,
-    private readonly superJson: SuperJson,
+    private readonly superJson: SuperJson | undefined,
     private readonly config: Config,
     private readonly timers: ITimers,
     private readonly fileSystem: IFileSystem,
@@ -71,18 +71,18 @@ export class InternalClient {
     ast: ProfileDocumentNode
   ): Promise<ProfileConfiguration> {
     const profileId = profileAstId(ast);
-    const profileSettings = this.superJson.normalized.profiles[profileId];
+    const profileSettings = this.superJson?.normalized.profiles[profileId];
     if (profileSettings === undefined) {
       throw profileNotInstalledError(profileId);
     }
 
     // TODO: load priority and add it to ProfileConfiguration?
     const priority = profileSettings.priority;
-    if (!priority.every(p => this.superJson.normalized.providers[p])) {
+    if (!priority.every(p => this.superJson?.normalized.providers[p])) {
       throw unconfiguredProviderInPriorityError(
         profileId,
         priority,
-        Object.keys(this.superJson.normalized.providers)
+        Object.keys(this.superJson?.normalized.providers ?? [])
       );
     }
 
