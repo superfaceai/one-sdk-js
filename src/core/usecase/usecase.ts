@@ -56,6 +56,37 @@ import { Provider, ProviderConfiguration } from '../provider';
 
 const DEBUG_NAMESPACE = 'usecase';
 
+export function resolveSecurityValues(
+  security?: SecurityValues[] | { [id: string]: Omit<SecurityValues, 'id'> },
+  logFunction?: LogFunction
+): SecurityValues[] | undefined {
+  if (security === undefined) {
+    return;
+  }
+
+  if (Array.isArray(security)) {
+    return security;
+  }
+
+  const securityValues: SecurityValues[] = [];
+
+  for (const [id, value] of Object.entries(security)) {
+    const securityValue = { ...value, id };
+    if (
+      isBasicAuthSecurityValues(securityValue) ||
+      isBearerTokenSecurityValues(securityValue) ||
+      isApiKeySecurityValues(securityValue) ||
+      isDigestSecurityValues(securityValue)
+    ) {
+      securityValues.push(securityValue);
+    } else {
+      logFunction?.('Security: %O is not supported', securityValue);
+    }
+  }
+
+  return securityValues;
+}
+
 export type PerformOptions = {
   provider?: Provider | string;
   parameters?: Record<string, string>;
@@ -112,7 +143,7 @@ export abstract class UseCaseBase implements Interceptable {
       this.events.hookContext[`${this.profile.configuration.id}/${this.name}`]
         .router;
 
-    const providerConfig = await this.resolveProviderConfiguration(
+    const providerConfig = this.resolveProviderConfiguration(
       hookRouter.getCurrentProvider(),
       options
     );
@@ -160,46 +191,37 @@ export abstract class UseCaseBase implements Interceptable {
     return provider;
   }
 
-  private resolveSecurityValues(
-    security?: SecurityValues[] | { [id: string]: Omit<SecurityValues, 'id'> }
-  ): SecurityValues[] | undefined {
-    if (security === undefined) {
-      return;
-    }
-
-    if (Array.isArray(security)) {
-      return security;
-    }
-
-    const securityValues: SecurityValues[] = [];
-
-    for (const [id, value] of Object.entries(security)) {
-      const securityValue = { ...value, id };
-      if (
-        isBasicAuthSecurityValues(securityValue) ||
-        isBearerTokenSecurityValues(securityValue) ||
-        isApiKeySecurityValues(securityValue) ||
-        isDigestSecurityValues(securityValue)
-      ) {
-        securityValues.push(securityValue);
-      } else {
-        this.log?.('Security: %O is not supported', securityValue);
-      }
-    }
-
-    return securityValues;
-  }
-
-  private async resolveProviderConfiguration(
+  private resolveProviderConfiguration(
     currentProvider: string | undefined,
     options?: PerformOptions
-  ) {
-    return this.getProviderConfiguration(options?.provider ?? currentProvider);
+  ): ProviderConfiguration {
+    if (this.superJson === undefined) {
+      if (options?.provider === undefined) {
+        // TODO: improve error
+        throw new Error('Provider must be specified');
+      }
+
+      if (typeof options.provider === 'string') {
+        // TODO: resolve security log
+        return new ProviderConfiguration(
+          options.provider,
+          resolveSecurityValues(options.security) ?? [],
+          options.parameters
+        );
+      }
+
+      return options.provider.configuration;
+    }
+
+    return this.getProviderConfiguration(currentProvider);
   }
 
-  private async getProviderConfiguration(
+  private getProviderConfiguration(
     currentProvider: string | Provider | undefined
-  ): Promise<ProviderConfiguration> {
+  ): ProviderConfiguration {
+    if (this.superJson === undefined) {
+      throw new Error('SJ is undefined');
+    }
     if (currentProvider === undefined) {
       const provider = getProviderForProfile(
         this.superJson,
@@ -262,7 +284,7 @@ export abstract class UseCaseBase implements Interceptable {
     return this.performBoundUsecase(
       input,
       options?.parameters,
-      this.resolveSecurityValues(options?.security)
+      resolveSecurityValues(options?.security)
     );
   }
 
