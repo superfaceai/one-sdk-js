@@ -289,6 +289,99 @@ describe('profile provider', () => {
         expect(result).toMatchObject(expectedBoundProfileProvider);
       });
 
+      it('returns new BoundProfileProvider with custom integration parameters and security', async () => {
+        const mockProviderJsonWithParameters: ProviderJson = {
+          name: 'test',
+          services: [{ id: 'test-service', baseUrl: 'service/base/url' }],
+          securitySchemes: [
+            {
+              type: SecurityType.HTTP,
+              id: 'basic',
+              scheme: HttpScheme.BASIC,
+            },
+            {
+              id: 'api',
+              type: SecurityType.APIKEY,
+              in: ApiKeyPlacement.HEADER,
+              name: 'Authorization',
+            },
+            {
+              id: 'bearer',
+              type: SecurityType.HTTP,
+              scheme: HttpScheme.BEARER,
+              bearerFormat: 'some',
+            },
+            {
+              id: 'digest',
+              type: SecurityType.HTTP,
+              scheme: HttpScheme.DIGEST,
+            },
+          ],
+          defaultService: 'test-service',
+          parameters: [
+            {
+              name: 'first',
+              description: 'first test value',
+            },
+            {
+              name: 'second',
+            },
+            {
+              name: 'third',
+              default: 'third-default',
+            },
+            {
+              name: 'fourth',
+              default: 'fourth-default',
+            },
+          ],
+        };
+        mocked(fetchBind).mockResolvedValue({
+          provider: mockProviderJsonWithParameters,
+          mapAst: mockMapDocument,
+        });
+        const superJson = new SuperJson({
+          profiles: {
+            'test-profile': {
+              version: '1.0.0',
+              defaults: {},
+              providers: {},
+            },
+          },
+          providers: {
+            test: {},
+          },
+        });
+        const mockProfileProvider = new ProfileProvider(
+          superJson,
+          mockProfileDocument,
+          new ProviderConfiguration('test', mockSecurityValues, {
+            first: 'plain value',
+            second: '$TEST_SECOND', // unset env value without default
+            third: '$TEST_THIRD', // unset env value with default
+            // fourth is missing - should be resolved to its default
+          }),
+
+          mockProfileProviderConfiguration,
+          mockConfig,
+          new Events(timers),
+          fileSystem,
+          crypto,
+          new NodeFetch(timers)
+        );
+
+        const result = await mockProfileProvider.bind();
+
+        expect(result.configuration.parameters).toEqual({
+          first: 'plain value',
+          second: '$TEST_SECOND',
+          third: 'third-default',
+          fourth: 'fourth-default',
+        });
+
+        expect(result).toMatchObject(expectedBoundProfileProvider);
+      });
+
       it('returns new BoundProfileProvider', async () => {
         mocked(fetchBind).mockResolvedValue(mockFetchResponse);
         const superJson = new SuperJson({
@@ -931,7 +1024,7 @@ describe('profile provider', () => {
         const mockProfileProvider = new ProfileProvider(
           superJson,
           mockProfileDocument,
-          'test',
+          new ProviderConfiguration('test', []),
           mockProfileProviderConfiguration,
           mockConfig,
           new Events(timers),
@@ -974,7 +1067,7 @@ but a secret value was provided for security scheme: made-up-id`
         const mockProfileProvider = new ProfileProvider(
           superJson,
           mockProfileDocument,
-          'test',
+          new ProviderConfiguration('test', []),
           mockProfileProviderConfiguration,
           mockConfig,
           new Events(timers),
@@ -1017,7 +1110,7 @@ but apiKey scheme requires: apikey`
         const mockProfileProvider = new ProfileProvider(
           superJson,
           mockProfileDocument,
-          'test',
+          new ProviderConfiguration('test', []),
           mockProfileProviderConfiguration,
           mockConfig,
           new Events(timers),
@@ -1060,7 +1153,7 @@ but http scheme requires: username, password`
         const mockProfileProvider = new ProfileProvider(
           superJson,
           mockProfileDocument,
-          'test',
+          new ProviderConfiguration('test', []),
           mockProfileProviderConfiguration,
           mockConfig,
           new Events(timers),
@@ -1103,7 +1196,7 @@ but http scheme requires: token`
         const mockProfileProvider = new ProfileProvider(
           superJson,
           mockProfileDocument,
-          'test',
+          new ProviderConfiguration('test', []),
           mockProfileProviderConfiguration,
           mockConfig,
           new Events(timers),

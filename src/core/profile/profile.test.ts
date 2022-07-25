@@ -40,7 +40,7 @@ function createProfile(superJson: SuperJsonDocument): Profile {
 
 describe('Profile', () => {
   describe('when calling getUseCases', () => {
-    it('should retrun new UseCase', async () => {
+    it('should return new UseCase', async () => {
       const superJson = {
         profiles: {
           test: {
