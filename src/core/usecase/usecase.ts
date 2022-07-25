@@ -9,11 +9,7 @@ import {
 } from '@superfaceai/ast';
 
 import { Result, SuperCache } from '../../lib';
-import {
-  getProvider,
-  getProviderForProfile,
-  SuperJson,
-} from '../../schema-tools';
+import { SuperJson } from '../../schema-tools';
 import { UnexpectedError } from '../errors';
 import {
   AbortPolicy,
@@ -52,7 +48,11 @@ import {
   IBoundProfileProvider,
   ProfileProviderConfiguration,
 } from '../profile-provider';
-import { Provider, ProviderConfiguration } from '../provider';
+import {
+  Provider,
+  ProviderConfiguration,
+  resolveProviderConfiguration,
+} from '../provider';
 
 const DEBUG_NAMESPACE = 'usecase';
 
@@ -143,10 +143,11 @@ export abstract class UseCaseBase implements Interceptable {
       this.events.hookContext[`${this.profile.configuration.id}/${this.name}`]
         .router;
 
-    const providerConfig = this.resolveProviderConfiguration(
-      hookRouter.getCurrentProvider(),
-      options
-    );
+    const providerConfig = resolveProviderConfiguration({
+      provider: options?.provider ?? hookRouter.getCurrentProvider(),
+      profileId: this.profile.configuration.id,
+      superJson: this.superJson,
+    });
 
     hookRouter.setCurrentProvider(providerConfig.name);
     this.metadata.provider = providerConfig.name;
@@ -189,54 +190,6 @@ export abstract class UseCaseBase implements Interceptable {
     }
 
     return provider;
-  }
-
-  private resolveProviderConfiguration(
-    currentProvider: string | undefined,
-    options?: PerformOptions
-  ): ProviderConfiguration {
-    if (this.superJson === undefined) {
-      if (options?.provider === undefined) {
-        // TODO: improve error
-        throw new Error('Provider must be specified');
-      }
-
-      if (typeof options.provider === 'string') {
-        // TODO: resolve security log
-        return new ProviderConfiguration(
-          options.provider,
-          resolveSecurityValues(options.security) ?? [],
-          options.parameters
-        );
-      }
-
-      return options.provider.configuration;
-    }
-
-    return this.getProviderConfiguration(currentProvider);
-  }
-
-  private getProviderConfiguration(
-    currentProvider: string | Provider | undefined
-  ): ProviderConfiguration {
-    if (this.superJson === undefined) {
-      throw new Error('SJ is undefined');
-    }
-    if (currentProvider === undefined) {
-      const provider = getProviderForProfile(
-        this.superJson,
-        this.profile.configuration.id
-      );
-
-      return provider.configuration;
-    }
-    if (typeof currentProvider === 'string') {
-      const provider = getProvider(this.superJson, currentProvider);
-
-      return provider.configuration;
-    }
-
-    return currentProvider.configuration;
   }
 
   @eventInterceptor({ eventName: 'perform', placement: 'around' })

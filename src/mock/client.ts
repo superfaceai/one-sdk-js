@@ -25,13 +25,14 @@ import {
   Provider,
   ProviderConfiguration,
   registerHooks,
+  resolveProviderConfiguration,
   resolveSecurityValues,
   SecurityConfiguration,
   ServiceSelector,
 } from '../core';
 import { SuperCache } from '../lib/cache';
 import { NodeCrypto, NodeFetch, NodeFileSystem, NodeLogger } from '../node';
-import { getProvider, getProviderForProfile, SuperJson } from '../schema-tools';
+import { getProviderForProfile, SuperJson } from '../schema-tools';
 import { MockEnvironment } from './environment';
 import { IPartialFileSystem, MockFileSystem } from './filesystem';
 import { MockTimers } from './timers';
@@ -185,18 +186,25 @@ export class MockClient implements ISuperfaceClient {
         | { [id: string]: Omit<SecurityValues, 'id'> };
     }
   ): Promise<Provider> {
-    return getProvider(
-      this.superJson,
-      providerName,
-      resolveSecurityValues(
-        options?.security,
-        this.logger?.log('security-values-resolution')
-      ),
-      options?.parameters
+    return new Provider(
+      resolveProviderConfiguration({
+        superJson: this.superJson,
+        security: resolveSecurityValues(
+          options?.security,
+          this.logger?.log('security-values-resolution')
+        ),
+        provider: providerName,
+        parameters: options?.parameters,
+      })
     );
   }
 
   public async getProviderForProfile(profileId: string): Promise<Provider> {
+    if (this.superJson === undefined) {
+      // TODO: improve error
+      throw new Error('Super.json must be specified');
+    }
+
     return getProviderForProfile(this.superJson, profileId);
   }
 }

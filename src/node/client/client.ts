@@ -24,14 +24,11 @@ import {
   Profile,
   Provider,
   registerHooks as registerFailoverHooks,
+  resolveProviderConfiguration,
   resolveSecurityValues,
 } from '../../core';
 import { SuperCache } from '../../lib';
-import {
-  getProvider,
-  getProviderForProfile,
-  SuperJson,
-} from '../../schema-tools';
+import { getProviderForProfile, SuperJson } from '../../schema-tools';
 import { NodeCrypto } from '../crypto';
 import { NodeEnvironment } from '../environment';
 import { NodeFetch } from '../fetch';
@@ -204,19 +201,26 @@ export abstract class SuperfaceClientBase {
         | { [id: string]: Omit<SecurityValues, 'id'> };
     }
   ): Promise<Provider> {
-    return getProvider(
-      this.superJson,
-      providerName,
-      resolveSecurityValues(
-        options?.security,
-        this.logger?.log('security-values-resolution')
-      ),
-      options?.parameters
+    return new Provider(
+      resolveProviderConfiguration({
+        superJson: this.superJson,
+        security: resolveSecurityValues(
+          options?.security,
+          this.logger?.log('security-values-resolution')
+        ),
+        provider: providerName,
+        parameters: options?.parameters,
+      })
     );
   }
 
   /** Returns a provider configuration for when no provider is passed to untyped `.perform`. */
   public async getProviderForProfile(profileId: string): Promise<Provider> {
+    if (this.superJson === undefined) {
+      // TODO: improve error
+      throw new Error('Super.json must be specified');
+    }
+
     return getProviderForProfile(this.superJson, profileId);
   }
 

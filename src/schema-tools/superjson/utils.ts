@@ -24,8 +24,8 @@ export function getProvider(
   return new Provider(
     new ProviderConfiguration(
       providerName,
-      security ?? providerSettings?.security ?? [],
-      parameters ?? providerSettings?.parameters
+      security ?? providerSettings.security ?? [],
+      parameters ?? providerSettings.parameters
     )
   );
 }
