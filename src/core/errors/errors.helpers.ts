@@ -57,7 +57,8 @@ export function noConfiguredProviderError(
       `Profile "${profileId}" needs at least one configured provider for automatic provider selection`,
     ],
     [
-      `Check that a provider is configured for a profile in super.json -> profiles["${profileId}"].providers`,
+      'Check that a provider is configured for a profile in "perform" call',
+      `Optionally, check that a provider is configured for a profile in super.json -> profiles["${profileId}"].providers`,
       'Providers can be configured using the superface cli tool: `superface configure --help` for more info',
     ]
   );

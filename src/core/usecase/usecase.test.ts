@@ -8,7 +8,8 @@ import { NodeCrypto, NodeFetch, NodeFileSystem } from '../../node';
 import { SuperJson } from '../../schema-tools';
 import * as utils from '../../schema-tools/superjson/utils';
 import { Config } from '../config';
-import { Events, registerHooks } from '../events';
+import { noConfiguredProviderError } from '../errors';
+import { Events } from '../events';
 import { Profile, ProfileBase, ProfileConfiguration } from '../profile';
 import { ProfileProviderConfiguration } from '../profile-provider';
 import { IBoundProfileProvider } from '../profile-provider/bound-profile-provider';
@@ -39,7 +40,7 @@ function createUseCase(cacheExpire?: number, omitSuperJson?: boolean) {
   const crypto = new NodeCrypto();
   const timers = new MockTimers();
   const events = new Events(timers);
-  registerHooks(events, timers);
+  // registerHooks(events, timers);
 
   const mockProfileConfiguration = new ProfileConfiguration('test', '1.0.0');
 
@@ -61,14 +62,18 @@ function createUseCase(cacheExpire?: number, omitSuperJson?: boolean) {
     expiresAt: number;
   }>();
 
+  const filesystem = MockFileSystem();
+
+  const config = new Config(NodeFileSystem);
+
   const profile: ProfileBase = new Profile(
     mockProfileConfiguration,
     mockProfileDocumentNode(),
     events,
     omitSuperJson === true ? undefined : mockSuperJson,
-    new Config(MockFileSystem()),
+    config,
     timers,
-    MockFileSystem(),
+    filesystem,
     cache,
     crypto,
     new NodeFetch(timers)
@@ -88,10 +93,6 @@ function createUseCase(cacheExpire?: number, omitSuperJson?: boolean) {
       expiresAt: cacheExpire ?? Infinity,
     })
   );
-
-  const filesystem = MockFileSystem();
-
-  const config = new Config(NodeFileSystem);
 
   const usecase = new UseCase(
     profile,
@@ -151,7 +152,7 @@ describe('UseCase', () => {
       });
 
       it('passes security values when entered as object', async () => {
-        const { usecase, performSpy } = createUseCase();
+        const { usecase, performSpy } = createUseCase(undefined, true);
         await expect(
           usecase.perform(
             { x: 7 },
@@ -175,7 +176,7 @@ describe('UseCase', () => {
       });
 
       it('does not pass security values when not supported', async () => {
-        const { usecase, performSpy } = createUseCase();
+        const { usecase, performSpy } = createUseCase(undefined, true);
         await expect(
           usecase.perform(
             { x: 7 },
@@ -204,7 +205,7 @@ describe('UseCase', () => {
           performSpy,
           profileConfiguration,
           providerConfiguration,
-        } = createUseCase();
+        } = createUseCase(undefined, true);
 
         const rebindSpy = jest.spyOn(usecase as any, 'rebind');
         await expect(
@@ -235,6 +236,73 @@ describe('UseCase', () => {
           { x: 7 },
           undefined,
           [{ id: 'test', apikey: 'key' }]
+        );
+      });
+
+      it('calls perform on correct BoundProfileProvider', async () => {
+        const { usecase, performSpy } = createUseCase(undefined, true);
+        await expect(
+          usecase.perform(
+            { x: 7 },
+            {
+              provider: 'test-provider',
+            }
+          )
+        ).resolves.toBeUndefined();
+        expect(performSpy).toHaveBeenCalledWith(
+          'test-usecase',
+          { x: 7 },
+          undefined,
+          undefined
+        );
+      });
+
+      it('throws when there is no provider specified', async () => {
+        const { usecase, performSpy } = createUseCase(undefined, true);
+
+        await expect(usecase.perform({ x: 7 })).rejects.toThrow(
+          noConfiguredProviderError('test')
+        );
+        expect(performSpy).not.toHaveBeenCalled();
+      });
+
+      it('does not call getProviderForProfile when there is provider config', async () => {
+        const mockProviderConfiguration = new ProviderConfiguration(
+          'test-provider',
+          []
+        );
+        const mockProvider = new Provider(mockProviderConfiguration);
+        const getProviderForProfileSpy = jest.spyOn(
+          utils,
+          'getProviderForProfile'
+        );
+        const { usecase, performSpy } = createUseCase(undefined, true);
+        await expect(
+          usecase.perform({ x: 7 }, { provider: mockProvider })
+        ).resolves.toBeUndefined();
+        expect(performSpy).toHaveBeenCalledWith(
+          'test-usecase',
+          { x: 7 },
+          undefined,
+          undefined
+        );
+        expect(getProviderForProfileSpy).not.toHaveBeenCalled();
+      });
+
+      it('calls perform on overridden BoundProfileProvider', async () => {
+        const { usecase, performSpy, performSpy2 } = createUseCase(
+          undefined,
+          true
+        );
+        await expect(
+          usecase.perform({ x: 7 }, { provider: 'test-provider2' })
+        ).resolves.toBeUndefined();
+        expect(performSpy).not.toHaveBeenCalled();
+        expect(performSpy2).toHaveBeenCalledWith(
+          'test-usecase',
+          { x: 7 },
+          undefined,
+          undefined
         );
       });
     });
