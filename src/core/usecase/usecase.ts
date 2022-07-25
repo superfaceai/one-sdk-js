@@ -272,10 +272,7 @@ export abstract class UseCaseBase implements Interceptable {
     // Check providerFailover/priority array
     const profileEntry = this.superJson?.normalized.profiles[profileId];
 
-    if (
-      profileEntry === undefined ||
-      profileEntry.defaults[this.name] === undefined
-    ) {
+    if (profileEntry?.defaults[this.name] === undefined) {
       return;
     }
 

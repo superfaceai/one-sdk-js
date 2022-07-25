@@ -408,12 +408,12 @@ export class ProfileProvider {
       resolveInput,
       async fileContents => JSON.parse(fileContents) as ProviderJson, // TODO: validate
       providerName => {
+        if (this.superJson === undefined) {
+          return undefined;
+        }
         const providerSettings =
-          this.superJson?.normalized.providers[providerName];
-        if (
-          this.superJson !== undefined &&
-          providerSettings?.file !== undefined
-        ) {
+          this.superJson.normalized.providers[providerName];
+        if (providerSettings?.file !== undefined) {
           // local file is resolved
           return (
             FILE_URI_PROTOCOL +

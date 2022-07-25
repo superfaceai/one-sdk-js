@@ -65,9 +65,6 @@ export async function resolveProfileAst({
 
     return assertProfileDocumentNode(JSON.parse(contents.value));
   };
-  if (superJson === undefined && version === undefined) {
-    throw unableToResolveProfileError(profileId);
-  }
 
   const profileSettings = superJson?.normalized.profiles[profileId];
 
@@ -87,7 +84,7 @@ export async function resolveProfileAst({
   let filepath: string;
 
   let resolvedVersion: string;
-  // TODO do we want to check `file` if we have version from getProfile?
+  // TODO: do we want to check `file` if we have version from getProfile?
   if (superJson !== undefined && profileSettings !== undefined) {
     if ('file' in profileSettings) {
       filepath = superJson.resolvePath(profileSettings.file);

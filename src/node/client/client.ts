@@ -56,8 +56,8 @@ const resolveSuperJson = (
     if (superJsonResult.isOk()) {
       return superJsonResult.value;
     }
-    
-return undefined;
+
+    return undefined;
   }
 
   if (superJson instanceof SuperJson) {
