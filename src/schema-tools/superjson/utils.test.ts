@@ -1,6 +1,7 @@
 import { SecurityValues } from '@superfaceai/ast';
 
 import {
+  profileNotFoundError,
   Provider,
   ProviderConfiguration,
   unconfiguredProviderError,
@@ -10,16 +11,28 @@ import { getProvider, getProviderForProfile } from './utils';
 
 describe('schema-tools utils', () => {
   describe('getProviderForProfile', () => {
+    it('throws when profile is not found', async () => {
+      expect(() =>
+        getProviderForProfile(
+          new SuperJson({
+            profiles: {},
+            providers: {
+              quz: {},
+            },
+          }),
+          'foo'
+        )
+      ).toThrow(profileNotFoundError('foo'));
+    });
+
     it('throws when providers are not configured', async () => {
       expect(() =>
         getProviderForProfile(
           new SuperJson({
             profiles: {
-              test: '2.1.0',
+              foo: '2.1.0',
             },
-            providers: {
-              quz: {},
-            },
+            providers: {},
           }),
           'foo'
         )
@@ -46,6 +59,31 @@ describe('schema-tools utils', () => {
         'baz'
       );
       expect(provider.configuration.name).toBe('quz');
+    });
+
+    it('returns a configured provider according to priority', async () => {
+      const provider = getProviderForProfile(
+        new SuperJson({
+          profiles: {
+            baz: {
+              version: '1.2.3',
+              priority: ['c', 'a', 'b'],
+              providers: {
+                a: {},
+                b: {},
+                c: {},
+              },
+            },
+          },
+          providers: {
+            a: {},
+            b: {},
+            c: {},
+          },
+        }),
+        'baz'
+      );
+      expect(provider.configuration.name).toBe('c');
     });
   });
 

@@ -2,6 +2,7 @@ import { SecurityValues } from '@superfaceai/ast';
 
 import {
   noConfiguredProviderError,
+  profileNotFoundError,
   Provider,
   ProviderConfiguration,
   unconfiguredProviderError,
@@ -33,20 +34,16 @@ export function getProviderForProfile(
   superJson: SuperJson,
   profileId: string
 ): Provider {
-  const priorityProviders =
-    superJson.normalized.profiles[profileId]?.priority ?? [];
-  if (priorityProviders.length > 0) {
-    const name = priorityProviders[0];
+  const profileSettings = superJson.normalized.profiles[profileId];
 
-    return getProvider(superJson, name);
+  if (profileSettings === undefined) {
+    throw profileNotFoundError(profileId);
   }
 
-  // TODO: this case should not happen - covered by super json normalization
-  const knownProfileProviders = Object.keys(
-    superJson.normalized.profiles[profileId]?.providers ?? {}
-  );
-  if (knownProfileProviders.length > 0) {
-    const name = knownProfileProviders[0];
+  const priorityProviders = superJson.normalized.profiles[profileId].priority;
+
+  if (priorityProviders.length > 0) {
+    const name = priorityProviders[0];
 
     return getProvider(superJson, name);
   }
