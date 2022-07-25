@@ -12,7 +12,7 @@ export function getProvider(
 ): Provider {
   const providerSettings = superJson?.normalized.providers[providerName];
 
-  if (providerSettings === undefined) {
+  if (superJson !== undefined && providerSettings === undefined) {
     throw unconfiguredProviderError(providerName);
   }
 

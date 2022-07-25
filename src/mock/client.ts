@@ -61,7 +61,7 @@ export class MockClient implements ISuperfaceClient {
   public crypto: ICrypto;
 
   constructor(
-    public superJson: SuperJson,
+    public superJson?: SuperJson,
     parameters?: {
       configOverride?: Partial<IConfig>;
       fileSystemOverride?: IPartialFileSystem;
@@ -81,7 +81,10 @@ export class MockClient implements ISuperfaceClient {
     this.events = new Events(this.timers, this.logger);
     registerHooks(this.events, this.timers, this.logger);
 
-    if (this.config.disableReporting === false) {
+    if (
+      this.config.disableReporting === false &&
+      this.superJson !== undefined
+    ) {
       this.metricReporter = new MetricReporter(
         this.superJson,
         this.config,
