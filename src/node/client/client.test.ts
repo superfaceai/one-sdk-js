@@ -80,7 +80,7 @@ jest.mock('../../core/events/failure/event-adapter');
 
 describe('superface client', () => {
   describe('getProfile', () => {
-    it('retruns Profile instance', async () => {
+    it('returns Profile instance', async () => {
       const ast = mockProfileDocumentNode({
         name: 'testy/mctestface',
         version: {
@@ -102,7 +102,7 @@ describe('superface client', () => {
   });
 
   describe('getProvider', () => {
-    it('retruns Provider instance', async () => {
+    it('returns Provider instance', async () => {
       const client = new MockClient(mockSuperJson);
       const provider = await client.getProvider('test-provider');
 
@@ -115,7 +115,7 @@ describe('superface client', () => {
       );
     });
 
-    it('retruns Provider instance with custom security values and parameters', async () => {
+    it('returns Provider instance with custom security values and parameters', async () => {
       const client = new MockClient(
         new SuperJson({
           providers: {

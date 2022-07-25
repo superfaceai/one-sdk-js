@@ -84,7 +84,7 @@ describe('schema-tools utils', () => {
       );
     });
 
-    it('retrun correct provider instance', () => {
+    it('return correct provider instance', () => {
       const superJson = new SuperJson({
         profiles: {
           'test-profile': {
@@ -107,7 +107,7 @@ describe('schema-tools utils', () => {
       );
     });
 
-    it('retrun correct provider instance with custom security and parameters', () => {
+    it('return correct provider instance with custom security and parameters', () => {
       const superJson = new SuperJson({
         profiles: {
           'test-profile': {
