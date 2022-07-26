@@ -1,5 +1,8 @@
+import { SecurityValues } from '@superfaceai/ast';
+
 import {
   noConfiguredProviderError,
+  profileNotFoundError,
   Provider,
   ProviderConfiguration,
   unconfiguredProviderError,
@@ -8,7 +11,9 @@ import { SuperJson } from './superjson';
 
 export function getProvider(
   superJson: SuperJson,
-  providerName: string
+  providerName: string,
+  security?: SecurityValues[],
+  parameters?: Record<string, string>
 ): Provider {
   const providerSettings = superJson.normalized.providers[providerName];
 
@@ -17,7 +22,11 @@ export function getProvider(
   }
 
   return new Provider(
-    new ProviderConfiguration(providerName, providerSettings.security)
+    new ProviderConfiguration(
+      providerName,
+      security ?? providerSettings.security,
+      parameters ?? providerSettings.parameters
+    )
   );
 }
 
@@ -25,19 +34,16 @@ export function getProviderForProfile(
   superJson: SuperJson,
   profileId: string
 ): Provider {
-  const priorityProviders =
-    superJson.normalized.profiles[profileId]?.priority ?? [];
-  if (priorityProviders.length > 0) {
-    const name = priorityProviders[0];
+  const profileSettings = superJson.normalized.profiles[profileId];
 
-    return getProvider(superJson, name);
+  if (profileSettings === undefined) {
+    throw profileNotFoundError(profileId);
   }
 
-  const knownProfileProviders = Object.keys(
-    superJson.normalized.profiles[profileId]?.providers ?? {}
-  );
-  if (knownProfileProviders.length > 0) {
-    const name = knownProfileProviders[0];
+  const priorityProviders = superJson.normalized.profiles[profileId].priority;
+
+  if (priorityProviders.length > 0) {
+    const name = priorityProviders[0];
 
     return getProvider(superJson, name);
   }

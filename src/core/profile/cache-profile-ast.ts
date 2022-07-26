@@ -102,11 +102,6 @@ export async function cacheProfileAst({
   config: IConfig;
   log?: LogFunction;
 }): Promise<void> {
-  // const id: string =
-  //   ast.header.scope !== undefined
-  //     ? `${ast.header.scope}/${ast.header.name}`
-  //     : ast.header.name;
-
   const profileCachePath =
     ast.header.scope !== undefined
       ? fileSystem.path.join(config.cachePath, ast.header.scope)
@@ -117,14 +112,12 @@ export async function cacheProfileAst({
       await fileSystem.mkdir(profileCachePath, {
         recursive: true,
       });
-      const p = fileSystem.path.join(
+      const path = fileSystem.path.join(
         profileCachePath,
         ast.header.name + EXTENSIONS.profile.build
       );
-      console.log('p', p);
-      await fileSystem.writeFile(p, JSON.stringify(ast, undefined, 2));
+      await fileSystem.writeFile(path, JSON.stringify(ast, undefined, 2));
     } catch (error) {
-      console.log('mk err', error);
       log?.(`Failed to cache profile AST for ${ast.header.name}: %O`, error);
     }
   }

@@ -126,7 +126,7 @@ export async function resolveProfileAst({
 
   logFunction?.('Fetching profile file from registry');
 
-  // Fallback to remote
+  // Fallback to cache/remote
   const cachedAst = await tryToLoadCachedAst({
     profileId,
     version,

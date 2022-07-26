@@ -56,6 +56,37 @@ import { Provider, ProviderConfiguration } from '../provider';
 
 const DEBUG_NAMESPACE = 'usecase';
 
+export function resolveSecurityValues(
+  security?: SecurityValues[] | { [id: string]: Omit<SecurityValues, 'id'> },
+  logFunction?: LogFunction
+): SecurityValues[] | undefined {
+  if (security === undefined) {
+    return;
+  }
+
+  if (Array.isArray(security)) {
+    return security;
+  }
+
+  const securityValues: SecurityValues[] = [];
+
+  for (const [id, value] of Object.entries(security)) {
+    const securityValue = { ...value, id };
+    if (
+      isBasicAuthSecurityValues(securityValue) ||
+      isBearerTokenSecurityValues(securityValue) ||
+      isApiKeySecurityValues(securityValue) ||
+      isDigestSecurityValues(securityValue)
+    ) {
+      securityValues.push(securityValue);
+    } else {
+      logFunction?.('Security: %O is not supported', securityValue);
+    }
+  }
+
+  return securityValues;
+}
+
 export type PerformOptions = {
   provider?: Provider | string;
   parameters?: Record<string, string>;
@@ -160,36 +191,6 @@ export abstract class UseCaseBase implements Interceptable {
     return provider;
   }
 
-  private resolveSecurityValues(
-    security?: SecurityValues[] | { [id: string]: Omit<SecurityValues, 'id'> }
-  ): SecurityValues[] | undefined {
-    if (security === undefined) {
-      return;
-    }
-
-    if (Array.isArray(security)) {
-      return security;
-    }
-
-    const securityValues: SecurityValues[] = [];
-
-    for (const [id, value] of Object.entries(security)) {
-      const securityValue = { ...value, id };
-      if (
-        isBasicAuthSecurityValues(securityValue) ||
-        isBearerTokenSecurityValues(securityValue) ||
-        isApiKeySecurityValues(securityValue) ||
-        isDigestSecurityValues(securityValue)
-      ) {
-        securityValues.push(securityValue);
-      } else {
-        this.log?.('Security: %O is not supported', securityValue);
-      }
-    }
-
-    return securityValues;
-  }
-
   private async resolveProviderConfiguration(
     currentProvider: string | undefined,
     options?: PerformOptions
@@ -262,7 +263,7 @@ export abstract class UseCaseBase implements Interceptable {
     return this.performBoundUsecase(
       input,
       options?.parameters,
-      this.resolveSecurityValues(options?.security)
+      resolveSecurityValues(options?.security)
     );
   }
 

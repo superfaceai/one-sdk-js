@@ -2,6 +2,7 @@ import {
   MapDocumentNode,
   ProfileDocumentNode,
   ProviderJson,
+  SecurityValues,
 } from '@superfaceai/ast';
 import { ProfileId, ProfileVersion } from '@superfaceai/parser';
 
@@ -24,6 +25,7 @@ import {
   Provider,
   ProviderConfiguration,
   registerHooks,
+  resolveSecurityValues,
   SecurityConfiguration,
   ServiceSelector,
 } from '../core';
@@ -171,8 +173,24 @@ export class MockClient implements ISuperfaceClient {
     return this.internalClient.getProfile(profile);
   }
 
-  public async getProvider(providerName: string): Promise<Provider> {
-    return getProvider(this.superJson, providerName);
+  public async getProvider(
+    providerName: string,
+    options?: {
+      parameters?: Record<string, string>;
+      security?:
+        | SecurityValues[]
+        | { [id: string]: Omit<SecurityValues, 'id'> };
+    }
+  ): Promise<Provider> {
+    return getProvider(
+      this.superJson,
+      providerName,
+      resolveSecurityValues(
+        options?.security,
+        this.logger?.log('security-values-resolution')
+      ),
+      options?.parameters
+    );
   }
 
   public async getProviderForProfile(profileId: string): Promise<Provider> {

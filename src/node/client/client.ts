@@ -1,4 +1,4 @@
-import { SuperJsonDocument } from '@superfaceai/ast';
+import { SecurityValues, SuperJsonDocument } from '@superfaceai/ast';
 import debug from 'debug';
 
 import {
@@ -24,6 +24,7 @@ import {
   Profile,
   Provider,
   registerHooks as registerFailoverHooks,
+  resolveSecurityValues,
 } from '../../core';
 import { SuperCache } from '../../lib';
 import {
@@ -188,8 +189,24 @@ export abstract class SuperfaceClientBase {
   }
 
   /** Gets a provider from super.json based on `providerName`. */
-  public async getProvider(providerName: string): Promise<Provider> {
-    return getProvider(this.superJson, providerName);
+  public async getProvider(
+    providerName: string,
+    options?: {
+      parameters?: Record<string, string>;
+      security?:
+        | SecurityValues[]
+        | { [id: string]: Omit<SecurityValues, 'id'> };
+    }
+  ): Promise<Provider> {
+    return getProvider(
+      this.superJson,
+      providerName,
+      resolveSecurityValues(
+        options?.security,
+        this.logger?.log('security-values-resolution')
+      ),
+      options?.parameters
+    );
   }
 
   /** Returns a provider configuration for when no provider is passed to untyped `.perform`. */
