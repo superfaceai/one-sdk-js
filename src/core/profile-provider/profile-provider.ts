@@ -472,9 +472,7 @@ export class ProfileProvider {
           return undefined;
         }
         const profileProviderSettings =
-          this.superJson?.normalized.profiles[profileId].providers[
-            providerName
-          ];
+          this.superJson.normalized.profiles[profileId].providers[providerName];
 
         if (profileProviderSettings === undefined) {
           return undefined;

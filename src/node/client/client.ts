@@ -28,7 +28,7 @@ import {
   resolveSecurityValues,
 } from '../../core';
 import { SuperCache } from '../../lib';
-import { getProviderForProfile, SuperJson } from '../../schema-tools';
+import { SuperJson } from '../../schema-tools';
 import { NodeCrypto } from '../crypto';
 import { NodeEnvironment } from '../environment';
 import { NodeFetch } from '../fetch';
@@ -191,7 +191,7 @@ export abstract class SuperfaceClientBase {
     );
   }
 
-  /** Gets a provider from super.json based on `providerName`. */
+  /** Gets a provider based on passed parameters or fallbacks to super.json information. */
   public async getProvider(
     providerName: string,
     options?: {
@@ -212,14 +212,13 @@ export abstract class SuperfaceClientBase {
     });
   }
 
+  // TDOD: do we need this?
   /** Returns a provider configuration for when no provider is passed to untyped `.perform`. */
   public async getProviderForProfile(profileId: string): Promise<Provider> {
-    if (this.superJson === undefined) {
-      // TODO: improve error
-      throw new Error('Super.json must be specified');
-    }
-
-    return getProviderForProfile(this.superJson, profileId);
+    return resolveProvider({
+      superJson: this.superJson,
+      profileId,
+    });
   }
 
   public on(...args: Parameters<Events['on']>): void {

@@ -7,9 +7,9 @@ import {
   unableToResolveProviderError,
 } from '../errors';
 import { Provider, ProviderConfiguration } from './provider';
-import { resolveProvider } from './resolve-provider-configuration';
+import { resolveProvider } from './resolve-provider';
 
-describe('ResolveProviderConfiguration', () => {
+describe('ResolveProvider', () => {
   const mockSecurityValues: SecurityValues[] = [
     {
       username: 'test-username',

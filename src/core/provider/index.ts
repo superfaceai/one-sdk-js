@@ -1,2 +1,2 @@
 export * from './provider';
-export * from './resolve-provider-configuration';
+export * from './resolve-provider';

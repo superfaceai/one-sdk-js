@@ -15,9 +15,7 @@ export class ProviderConfiguration {
   ) {
     this.security = security;
     // Sanitize parameters
-    if (parameters === undefined) {
-      this.parameters = undefined;
-    } else if (Object.keys(parameters).length === 0) {
+    if (parameters === undefined || Object.keys(parameters).length === 0) {
       this.parameters = undefined;
     } else {
       this.parameters = parameters;
