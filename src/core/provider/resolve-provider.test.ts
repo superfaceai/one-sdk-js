@@ -63,7 +63,7 @@ describe('ResolveProvider', () => {
     });
 
   describe('when super.json is defined', () => {
-    it('should return configuration when provider is string', async () => {
+    it('should return Provider instance when provider is string', async () => {
       expect(
         resolveProvider({
           superJson: mockSuperJson(),
@@ -72,7 +72,7 @@ describe('ResolveProvider', () => {
       ).toEqual(new Provider(new ProviderConfiguration('bar', [])));
     });
 
-    it('should return configuration with exisitng values', async () => {
+    it('should return Provider instance with exisitng values', async () => {
       expect(
         resolveProvider({
           superJson: mockSuperJson(),
@@ -88,7 +88,7 @@ describe('ResolveProvider', () => {
       );
     });
 
-    it('should return configuration with super.json values', async () => {
+    it('should return Provider instance with super.json values', async () => {
       expect(
         resolveProvider({
           superJson: mockSuperJson(true),
@@ -101,7 +101,7 @@ describe('ResolveProvider', () => {
       );
     });
 
-    it('should return configuration with custom values', async () => {
+    it('should return Provider instance with custom values', async () => {
       expect(
         resolveProvider({
           superJson: mockSuperJson(),
@@ -116,7 +116,7 @@ describe('ResolveProvider', () => {
       );
     });
 
-    it('should return configuration with overriden values', async () => {
+    it('should return Provider instance with overriden values', async () => {
       expect(
         resolveProvider({
           superJson: mockSuperJson(),
@@ -132,7 +132,7 @@ describe('ResolveProvider', () => {
       );
     });
 
-    it('should return configuration and get provider for profile', async () => {
+    it('should return Provider instance and get provider for profile', async () => {
       expect(
         resolveProvider({
           superJson: mockSuperJson(),
@@ -141,7 +141,7 @@ describe('ResolveProvider', () => {
       ).toEqual(new Provider(new ProviderConfiguration('bar', [])));
     });
 
-    it('should return configuration and get provider for profile with values from super.json', async () => {
+    it('should return Provider instance and get provider for profile with values from super.json', async () => {
       expect(
         resolveProvider({
           superJson: mockSuperJson(true),
@@ -154,7 +154,7 @@ describe('ResolveProvider', () => {
       );
     });
 
-    it('should return configuration and get provider for profile with custom values', async () => {
+    it('should return Provider instance and get provider for profile with custom values', async () => {
       expect(
         resolveProvider({
           superJson: mockSuperJson(),
@@ -193,7 +193,7 @@ describe('ResolveProvider', () => {
   });
 
   describe('when super.json is undefined', () => {
-    it('should return configuration', async () => {
+    it('should return Provider instance', async () => {
       expect(
         resolveProvider({
           provider: 'bar',
@@ -201,7 +201,7 @@ describe('ResolveProvider', () => {
       ).toEqual(new Provider(new ProviderConfiguration('bar', [])));
     });
 
-    it('should return configuration with custom values', async () => {
+    it('should return Provider instance with custom values', async () => {
       expect(
         resolveProvider({
           security: mockSecurityValues,
@@ -215,7 +215,7 @@ describe('ResolveProvider', () => {
       );
     });
 
-    it('should return configuration with overriden values', async () => {
+    it('should return Provider instance with overriden values', async () => {
       expect(
         resolveProvider({
           security: mockSecurityValues,
