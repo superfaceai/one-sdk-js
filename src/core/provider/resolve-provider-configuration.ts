@@ -56,7 +56,7 @@ export function resolveProvider({
 
     throw noConfiguredProviderError(profileId);
   }
-  // This should be unreachable in common use
+  // This should be unreachable in common use. We always have defined provider or profile id and super.json
   throw unableToResolveProviderError();
 }
 

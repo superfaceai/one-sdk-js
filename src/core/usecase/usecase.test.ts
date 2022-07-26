@@ -430,25 +430,6 @@ describe('UseCase', () => {
         );
       });
 
-      // it('calls getProviderForProfile when there is no provider config', async () => {
-      //   const getProviderForProfileSpy = jest.spyOn(
-      //     utils,
-      //     'getProviderForProfile'
-      //   );
-      //   const { usecase, performSpy } = createUseCase();
-      //   await expect(usecase.perform({ x: 7 })).resolves.toBeUndefined();
-      //   expect(performSpy).toHaveBeenCalledWith(
-      //     'test-usecase',
-      //     { x: 7 },
-      //     undefined,
-      //     undefined
-      //   );
-      //   expect(getProviderForProfileSpy).toHaveBeenCalledWith(
-      //     mockSuperJson,
-      //     'test'
-      //   );
-      // });
-
       it('does not call getProviderForProfile when there is provider config', async () => {
         const mockProviderConfiguration = new ProviderConfiguration(
           'test-provider',

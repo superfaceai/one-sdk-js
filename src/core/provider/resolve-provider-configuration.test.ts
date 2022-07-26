@@ -47,6 +47,9 @@ describe('ResolveProviderConfiguration', () => {
             bar: {},
           },
         },
+        boo: {
+          version: '1.2.3',
+        },
       },
       providers: {
         bar:
@@ -60,13 +63,29 @@ describe('ResolveProviderConfiguration', () => {
     });
 
   describe('when super.json is defined', () => {
-    it('should return configuration', async () => {
+    it('should return configuration when provider is string', async () => {
       expect(
         resolveProvider({
           superJson: mockSuperJson(),
           provider: 'bar',
         })
       ).toEqual(new Provider(new ProviderConfiguration('bar', [])));
+    });
+
+    it('should return configuration with exisitng values', async () => {
+      expect(
+        resolveProvider({
+          superJson: mockSuperJson(),
+          provider: new Provider(
+            new ProviderConfiguration('bar', mockSecurityValues, mockParameters)
+          ),
+          profileId: 'foo',
+        })
+      ).toEqual(
+        new Provider(
+          new ProviderConfiguration('bar', mockSecurityValues, mockParameters)
+        )
+      );
     });
 
     it('should return configuration with super.json values', async () => {
@@ -148,6 +167,22 @@ describe('ResolveProviderConfiguration', () => {
           new ProviderConfiguration('bar', mockSecurityValues, mockParameters)
         )
       );
+    });
+
+    it('should throw error when profile is not configured in super.json', async () => {
+      expect(() =>
+        resolveProvider({
+          profileId: 'boo',
+          superJson: new SuperJson({
+            profiles: {
+              boo: {
+                version: '1.2.3',
+              },
+            },
+            providers: {},
+          }),
+        })
+      ).toThrow(noConfiguredProviderError('boo'));
     });
 
     it('should throw error when profile is not found in super.json', async () => {
