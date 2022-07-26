@@ -48,11 +48,7 @@ import {
   IBoundProfileProvider,
   ProfileProviderConfiguration,
 } from '../profile-provider';
-import {
-  Provider,
-  ProviderConfiguration,
-  resolveProviderConfiguration,
-} from '../provider';
+import { Provider, ProviderConfiguration, resolveProvider } from '../provider';
 
 const DEBUG_NAMESPACE = 'usecase';
 
@@ -143,11 +139,11 @@ export abstract class UseCaseBase implements Interceptable {
       this.events.hookContext[`${this.profile.configuration.id}/${this.name}`]
         .router;
 
-    const providerConfig = resolveProviderConfiguration({
+    const providerConfig = resolveProvider({
       provider: options?.provider ?? hookRouter.getCurrentProvider(),
       profileId: this.profile.configuration.id,
       superJson: this.superJson,
-    });
+    }).configuration;
 
     hookRouter.setCurrentProvider(providerConfig.name);
     this.metadata.provider = providerConfig.name;

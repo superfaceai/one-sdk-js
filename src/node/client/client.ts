@@ -24,7 +24,7 @@ import {
   Profile,
   Provider,
   registerHooks as registerFailoverHooks,
-  resolveProviderConfiguration,
+  resolveProvider,
   resolveSecurityValues,
 } from '../../core';
 import { SuperCache } from '../../lib';
@@ -201,17 +201,15 @@ export abstract class SuperfaceClientBase {
         | { [id: string]: Omit<SecurityValues, 'id'> };
     }
   ): Promise<Provider> {
-    return new Provider(
-      resolveProviderConfiguration({
-        superJson: this.superJson,
-        security: resolveSecurityValues(
-          options?.security,
-          this.logger?.log('security-values-resolution')
-        ),
-        provider: providerName,
-        parameters: options?.parameters,
-      })
-    );
+    return resolveProvider({
+      superJson: this.superJson,
+      security: resolveSecurityValues(
+        options?.security,
+        this.logger?.log('security-values-resolution')
+      ),
+      provider: providerName,
+      parameters: options?.parameters,
+    });
   }
 
   /** Returns a provider configuration for when no provider is passed to untyped `.perform`. */

@@ -48,6 +48,20 @@ export function superJsonReadError(error: Error): SDKExecutionError {
   );
 }
 
+export function unableToResolveProviderError(): SDKExecutionError {
+  return new SDKExecutionError(
+    'Unable to resolve provider',
+    [
+      'Provider must be specified in "perform" method call or "getProvider". Optionally, profileId and super.json can be used to obtain provider for profile.',
+    ],
+    [
+      'Check that a provider is configured for a profile in "perform" call',
+      'Optionally, check that a provider is configured for a profile in super.json',
+      'Providers can be configured using the superface cli tool: `superface configure --help` for more info',
+    ]
+  );
+}
+
 export function noConfiguredProviderError(
   profileId: string
 ): SDKExecutionError {
