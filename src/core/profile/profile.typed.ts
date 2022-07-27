@@ -34,7 +34,7 @@ export class TypedProfile<
     public override readonly configuration: ProfileConfiguration,
     public override readonly ast: ProfileDocumentNode,
     protected override readonly events: Events,
-    protected override readonly superJson: SuperJson,
+    protected override readonly superJson: SuperJson | undefined,
     protected override readonly boundProfileProviderCache: SuperCache<{
       provider: IBoundProfileProvider;
       expiresAt: number;

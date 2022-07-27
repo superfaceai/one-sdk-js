@@ -9,13 +9,14 @@ import { getLocal } from 'mockttp';
 
 import { err, ok, Result } from '../../../lib';
 import { MockClient } from '../../../mock';
-import { getProvider, SuperJson } from '../../../schema-tools';
+import { SuperJson } from '../../../schema-tools';
 import {
   bindResponseError,
   FileSystemError,
   NotFoundError,
 } from '../../errors';
 import { IConfig } from '../../interfaces';
+import { Provider, ProviderConfiguration } from '../../provider';
 
 const astMetadata: AstMetadata = {
   sourceChecksum: 'checksum',
@@ -498,7 +499,7 @@ describe('event-adapter', () => {
     // Run it as usual
     const profile = await client.getProfile('starwars/character-information');
     const useCase = profile.getUseCase('Test');
-    const provider = getProvider(superJson, 'provider');
+    const provider = new Provider(new ProviderConfiguration('provider', []));
     const result = await useCase.perform(undefined, { provider });
 
     expect(result.isOk() && result.value).toEqual({ message: 'hello' });
@@ -518,7 +519,7 @@ describe('event-adapter', () => {
 
     const profile = await client.getProfile('starwars/character-information');
     const useCase = profile.getUseCase('Test');
-    const provider = getProvider(superJson, 'provider');
+    const provider = new Provider(new ProviderConfiguration('provider', []));
     const result = useCase.perform(undefined, { provider });
 
     await expect(result).rejects.toThrow(/status code: 500/);
@@ -539,7 +540,7 @@ describe('event-adapter', () => {
 
     const profile = await client.getProfile('starwars/character-information');
     const useCase = profile.getUseCase('Test');
-    const provider = getProvider(superJson, 'provider');
+    const provider = new Provider(new ProviderConfiguration('provider', []));
     const result = useCase.perform(undefined, { provider });
 
     await expect(result).rejects.toThrow(/network error/);
@@ -557,7 +558,7 @@ describe('event-adapter', () => {
     );
     const profile = await client.getProfile('starwars/character-information');
     const useCase = profile.getUseCase('Test');
-    const provider = getProvider(superJson, 'provider');
+    const provider = new Provider(new ProviderConfiguration('provider', []));
     const result = useCase.perform(undefined, { provider });
     setImmediate(() => client.timers.tick(300000));
 

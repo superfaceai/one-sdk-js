@@ -25,13 +25,14 @@ import {
   Provider,
   ProviderConfiguration,
   registerHooks,
+  resolveProvider,
   resolveSecurityValues,
   SecurityConfiguration,
   ServiceSelector,
 } from '../core';
 import { SuperCache } from '../lib/cache';
 import { NodeCrypto, NodeFetch, NodeFileSystem, NodeLogger } from '../node';
-import { getProvider, getProviderForProfile, SuperJson } from '../schema-tools';
+import { SuperJson } from '../schema-tools';
 import { MockEnvironment } from './environment';
 import { IPartialFileSystem, MockFileSystem } from './filesystem';
 import { MockTimers } from './timers';
@@ -63,7 +64,7 @@ export class MockClient implements ISuperfaceClient {
   public crypto: ICrypto;
 
   constructor(
-    public superJson: SuperJson,
+    public superJson?: SuperJson,
     parameters?: {
       configOverride?: Partial<IConfig>;
       fileSystemOverride?: IPartialFileSystem;
@@ -83,7 +84,10 @@ export class MockClient implements ISuperfaceClient {
     this.events = new Events(this.timers, this.logger);
     registerHooks(this.events, this.timers, this.logger);
 
-    if (this.config.disableReporting === false) {
+    if (
+      this.config.disableReporting === false &&
+      this.superJson !== undefined
+    ) {
       this.metricReporter = new MetricReporter(
         this.superJson,
         this.config,
@@ -182,18 +186,21 @@ export class MockClient implements ISuperfaceClient {
         | { [id: string]: Omit<SecurityValues, 'id'> };
     }
   ): Promise<Provider> {
-    return getProvider(
-      this.superJson,
-      providerName,
-      resolveSecurityValues(
+    return resolveProvider({
+      superJson: this.superJson,
+      security: resolveSecurityValues(
         options?.security,
         this.logger?.log('security-values-resolution')
       ),
-      options?.parameters
-    );
+      provider: providerName,
+      parameters: options?.parameters,
+    });
   }
 
   public async getProviderForProfile(profileId: string): Promise<Provider> {
-    return getProviderForProfile(this.superJson, profileId);
+    return resolveProvider({
+      superJson: this.superJson,
+      profileId,
+    });
   }
 }

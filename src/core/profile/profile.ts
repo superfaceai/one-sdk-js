@@ -15,7 +15,7 @@ export abstract class ProfileBase {
     public readonly configuration: ProfileConfiguration,
     public readonly ast: ProfileDocumentNode,
     protected readonly events: Events,
-    protected readonly superJson: SuperJson,
+    protected readonly superJson: SuperJson | undefined,
     protected readonly config: IConfig,
     protected readonly timers: ITimers,
     protected readonly fileSystem: IFileSystem,
@@ -30,7 +30,8 @@ export abstract class ProfileBase {
 
   public getConfiguredProviders(): string[] {
     return Object.keys(
-      this.superJson.normalized.profiles[this.configuration.id]?.providers ?? {}
+      this.superJson?.normalized.profiles[this.configuration.id]?.providers ??
+        {}
     );
   }
 }

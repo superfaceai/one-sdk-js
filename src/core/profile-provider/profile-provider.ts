@@ -46,7 +46,7 @@ export async function bindProfileProvider(
   profile: ProfileDocumentNode,
   profileProviderConfig: ProfileProviderConfiguration,
   providerConfig: ProviderConfiguration,
-  superJson: SuperJson,
+  superJson: SuperJson | undefined,
   config: IConfig,
   events: Events,
   timers: ITimers,
@@ -89,7 +89,7 @@ export class ProfileProvider {
   constructor(
     /** Preloaded superJson instance */
     // TODO: Use superJson from events/Client?
-    public readonly superJson: SuperJson,
+    public readonly superJson: SuperJson | undefined,
     /** profile ast node */
     private profile: ProfileDocumentNode,
     /** provider configuration instance */
@@ -242,14 +242,14 @@ export class ProfileProvider {
           providerInfo.defaultService
         ),
         profileProviderSettings:
-          this.superJson.normalized.profiles[profileId]?.providers[
+          this.superJson?.normalized.profiles[profileId]?.providers[
             providerInfo.name
           ],
         security: securityConfiguration,
         parameters: this.resolveIntegrationParameters(
           providerInfo,
           this.providerConfig.parameters ??
-            this.superJson.normalized.providers[providerInfo.name]?.parameters
+            this.superJson?.normalized.providers[providerInfo.name]?.parameters
         ),
       },
       this.crypto,
@@ -404,6 +404,9 @@ export class ProfileProvider {
       resolveInput,
       async fileContents => JSON.parse(fileContents) as ProviderJson, // TODO: validate
       providerName => {
+        if (this.superJson === undefined) {
+          return undefined;
+        }
         const providerSettings =
           this.superJson.normalized.providers[providerName];
         if (providerSettings?.file !== undefined) {
@@ -464,6 +467,10 @@ export class ProfileProvider {
       },
       mapId => {
         const [profileId, providerName] = mapId.split('.');
+
+        if (this.superJson === undefined) {
+          return undefined;
+        }
         const profileProviderSettings =
           this.superJson.normalized.profiles[profileId].providers[providerName];
 
@@ -558,7 +565,7 @@ export class ProfileProvider {
     overlay?: SecurityValues[]
   ): SecurityValues[] {
     const base: SecurityValues[] =
-      this.superJson.normalized.providers[providerName]?.security ?? [];
+      this.superJson?.normalized.providers[providerName]?.security ?? [];
 
     if (overlay !== undefined) {
       return mergeSecurity(base, overlay);
