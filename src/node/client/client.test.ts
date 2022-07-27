@@ -55,6 +55,12 @@ const mockSuperJson = new SuperJson({
         quz: {},
       },
     },
+    'test-profile': {
+      version: '1.0.0',
+      providers: {
+        'test-provider': {},
+      },
+    },
   },
   providers: {
     fooder: {
@@ -80,69 +86,123 @@ jest.mock('../../core/events/failure/event-adapter');
 
 describe('superface client', () => {
   describe('getProfile', () => {
-    it('returns Profile instance', async () => {
-      const ast = mockProfileDocumentNode({
-        name: 'testy/mctestface',
-        version: {
-          major: 1,
-          minor: 0,
-          patch: 0,
-        },
+    describe('when using without super json', () => {
+      it('retruns Profile instance', async () => {
+        const ast = mockProfileDocumentNode({
+          name: 'testy/mctestface',
+          version: {
+            major: 1,
+            minor: 0,
+            patch: 0,
+          },
+        });
+        mocked(resolveProfileAst).mockResolvedValue(ast);
+        const client = new MockClient();
+
+        const profile = await client.getProfile('testy/mctestface@1.0.0');
+
+        expect(profile.ast).toEqual(ast);
+        expect(profile.configuration).toEqual(
+          new ProfileConfiguration('testy/mctestface', '1.0.0')
+        );
       });
-      mocked(resolveProfileAst).mockResolvedValue(ast);
-      const client = new MockClient(mockSuperJson);
+    });
 
-      const profile = await client.getProfile('testy/mctestface');
+    describe('when using with super json', () => {
+      it('retruns Profile instance', async () => {
+        const ast = mockProfileDocumentNode({
+          name: 'testy/mctestface',
+          version: {
+            major: 1,
+            minor: 0,
+            patch: 0,
+          },
+        });
+        mocked(resolveProfileAst).mockResolvedValue(ast);
+        const client = new MockClient(mockSuperJson);
 
-      expect(profile.ast).toEqual(ast);
-      expect(profile.configuration).toEqual(
-        new ProfileConfiguration('testy/mctestface', '1.0.0')
-      );
+        const profile = await client.getProfile('testy/mctestface');
+
+        expect(profile.ast).toEqual(ast);
+        expect(profile.configuration).toEqual(
+          new ProfileConfiguration('testy/mctestface', '1.0.0')
+        );
+      });
     });
   });
 
   describe('getProvider', () => {
+    describe('when using with super json', () => {
+      it('returns Provider instance', async () => {
+        const client = new MockClient(mockSuperJson);
+        const provider = await client.getProvider('test-provider');
+
+        expect(provider.configuration).toEqual(
+          new ProviderConfiguration(
+            'test-provider',
+            mockSecurityValues,
+            mockParameters
+          )
+        );
+      });
+
+      it('returns Provider instance with custom security values and parameters', async () => {
+        const client = new MockClient(
+          new SuperJson({
+            providers: {
+              'test-provider': {
+                security: [],
+              },
+            },
+          })
+        );
+
+        const provider = await client.getProvider('test-provider', {
+          security: {
+            basic: {
+              username: 'test-username',
+              password: 'test-password',
+            },
+            api: {
+              apikey: 'test-api-key',
+            },
+            bearer: {
+              token: 'test-token',
+            },
+            digest: {
+              username: 'test-digest-user',
+              password: 'test-digest-password',
+            },
+          },
+          parameters: mockParameters,
+        });
+
+        expect(provider.configuration).toEqual(
+          new ProviderConfiguration(
+            'test-provider',
+            mockSecurityValues,
+            mockParameters
+          )
+        );
+      });
+    });
+  });
+
+  describe('when using without super json', () => {
     it('returns Provider instance', async () => {
-      const client = new MockClient(mockSuperJson);
+      const client = new MockClient();
       const provider = await client.getProvider('test-provider');
 
       expect(provider.configuration).toEqual(
-        new ProviderConfiguration(
-          'test-provider',
-          mockSecurityValues,
-          mockParameters
-        )
+        new ProviderConfiguration('test-provider', [])
       );
     });
 
     it('returns Provider instance with custom security values and parameters', async () => {
-      const client = new MockClient(
-        new SuperJson({
-          providers: {
-            'test-provider': {
-              security: [],
-            },
-          },
-        })
-      );
+      const client = new MockClient();
 
       const provider = await client.getProvider('test-provider', {
-        security: {
-          basic: {
-            username: 'test-username',
-            password: 'test-password',
-          },
-          api: {
-            apikey: 'test-api-key',
-          },
-          bearer: {
-            token: 'test-token',
-          },
-          digest: {
-            username: 'test-digest-user',
-            password: 'test-digest-password',
-          },
-        },
+        security: mockSecurityValues,
         parameters: mockParameters,
       });
 

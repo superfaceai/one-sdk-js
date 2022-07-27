@@ -44,7 +44,7 @@ export async function resolveProfileAst({
   profileId: string;
   version?: string;
   logger?: ILogger;
-  superJson: SuperJson;
+  superJson: SuperJson | undefined;
   fileSystem: IFileSystem;
   config: IConfig;
   crypto: ICrypto;
@@ -66,7 +66,7 @@ export async function resolveProfileAst({
     return assertProfileDocumentNode(JSON.parse(contents.value));
   };
 
-  const profileSettings = superJson.normalized.profiles[profileId];
+  const profileSettings = superJson?.normalized.profiles[profileId];
 
   // Error when we don't have profileSettings and version is undefined
   if (profileSettings === undefined && version === undefined) {
@@ -83,23 +83,27 @@ export async function resolveProfileAst({
   }
   let filepath: string;
 
-  // TODO do we want to check `file` if we have version from getProfile?
-  if (profileSettings !== undefined && 'file' in profileSettings) {
-    filepath = superJson.resolvePath(profileSettings.file);
-    logFunction?.('Reading possible profile file: %s', filepath);
-    // check extensions
-    if (filepath.endsWith(EXTENSIONS.profile.source)) {
-      // FIX:  SDKExecutionError is used to ensure correct formatting. Improve formatting of UnexpectedError
-      throw sourceFileExtensionFoundError(EXTENSIONS.profile.source);
-    } else if (!filepath.endsWith(EXTENSIONS.profile.build)) {
-      // FIX:  SDKExecutionError is used to ensure correct formatting. Improve formatting of UnexpectedError
-      throw unsupportedFileExtensionError(filepath, EXTENSIONS.profile.build);
+  let resolvedVersion: string;
+  // TODO: do we want to check `file` if we have version from getProfile?
+  if (superJson !== undefined && profileSettings !== undefined) {
+    if ('file' in profileSettings) {
+      filepath = superJson.resolvePath(profileSettings.file);
+      logFunction?.('Reading possible profile file: %s', filepath);
+      // check extensions
+      if (filepath.endsWith(EXTENSIONS.profile.source)) {
+        // FIX:  SDKExecutionError is used to ensure correct formatting. Improve formatting of UnexpectedError
+        throw sourceFileExtensionFoundError(EXTENSIONS.profile.source);
+      } else if (!filepath.endsWith(EXTENSIONS.profile.build)) {
+        // FIX:  SDKExecutionError is used to ensure correct formatting. Improve formatting of UnexpectedError
+        throw unsupportedFileExtensionError(filepath, EXTENSIONS.profile.build);
+      }
+
+      return await loadProfileAstFile(filepath);
     }
-
-    return await loadProfileAstFile(filepath);
+    resolvedVersion = version ?? profileSettings.version;
+  } else {
+    resolvedVersion = version as string;
   }
-
-  const resolvedVersion = version ?? profileSettings.version;
   const gridPath = fileSystem.path.join(
     'grid',
     `${profileId}@${resolvedVersion}`

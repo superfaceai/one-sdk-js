@@ -24,14 +24,11 @@ import {
   Profile,
   Provider,
   registerHooks as registerFailoverHooks,
+  resolveProvider,
   resolveSecurityValues,
 } from '../../core';
 import { SuperCache } from '../../lib';
-import {
-  getProvider,
-  getProviderForProfile,
-  SuperJson,
-} from '../../schema-tools';
+import { SuperJson } from '../../schema-tools';
 import { NodeCrypto } from '../crypto';
 import { NodeEnvironment } from '../environment';
 import { NodeFetch } from '../fetch';
@@ -45,15 +42,20 @@ const resolveSuperJson = (
   crypto: ICrypto,
   superJson?: SuperJson | SuperJsonDocument,
   logger?: ILogger
-): SuperJson => {
+): SuperJson | undefined => {
   if (superJson === undefined) {
-    return SuperJson.loadSync(
+    const superJsonResult = SuperJson.loadSync(
       path,
       NodeFileSystem,
       environment,
       crypto,
       logger
-    ).unwrap();
+    );
+    if (superJsonResult.isOk()) {
+      return superJsonResult.value;
+    }
+
+    return undefined;
   }
 
   if (superJson instanceof SuperJson) {
@@ -110,7 +112,7 @@ const setupMetricReporter = (
 };
 
 export abstract class SuperfaceClientBase {
-  public readonly superJson: SuperJson;
+  public readonly superJson: SuperJson | undefined;
   protected readonly events: Events;
   protected readonly internal: InternalClient;
   protected readonly boundProfileProviderCache: SuperCache<{
@@ -163,7 +165,8 @@ export abstract class SuperfaceClientBase {
       this.logger
     );
 
-    if (!this.config.disableReporting) {
+    // FIX: use without super.json
+    if (!this.config.disableReporting && this.superJson !== undefined) {
       setupMetricReporter(
         this.superJson,
         this.config,
@@ -188,7 +191,7 @@ export abstract class SuperfaceClientBase {
     );
   }
 
-  /** Gets a provider from super.json based on `providerName`. */
+  /** Gets a provider based on passed parameters or fallbacks to super.json information. */
   public async getProvider(
     providerName: string,
     options?: {
@@ -198,20 +201,24 @@ export abstract class SuperfaceClientBase {
         | { [id: string]: Omit<SecurityValues, 'id'> };
     }
   ): Promise<Provider> {
-    return getProvider(
-      this.superJson,
-      providerName,
-      resolveSecurityValues(
+    return resolveProvider({
+      superJson: this.superJson,
+      security: resolveSecurityValues(
         options?.security,
         this.logger?.log('security-values-resolution')
       ),
-      options?.parameters
-    );
+      provider: providerName,
+      parameters: options?.parameters,
+    });
   }
 
+  // TDOD: do we need this?
   /** Returns a provider configuration for when no provider is passed to untyped `.perform`. */
   public async getProviderForProfile(profileId: string): Promise<Provider> {
-    return getProviderForProfile(this.superJson, profileId);
+    return resolveProvider({
+      superJson: this.superJson,
+      profileId,
+    });
   }
 
   public on(...args: Parameters<Events['on']>): void {

@@ -9,11 +9,7 @@ import {
 } from '@superfaceai/ast';
 
 import { Result, SuperCache } from '../../lib';
-import {
-  getProvider,
-  getProviderForProfile,
-  SuperJson,
-} from '../../schema-tools';
+import { SuperJson } from '../../schema-tools';
 import { UnexpectedError } from '../errors';
 import {
   AbortPolicy,
@@ -52,7 +48,7 @@ import {
   IBoundProfileProvider,
   ProfileProviderConfiguration,
 } from '../profile-provider';
-import { Provider, ProviderConfiguration } from '../provider';
+import { Provider, ProviderConfiguration, resolveProvider } from '../provider';
 
 const DEBUG_NAMESPACE = 'usecase';
 
@@ -114,7 +110,7 @@ export abstract class UseCaseBase implements Interceptable {
     public readonly name: string,
     public readonly events: Events,
     private readonly config: IConfig,
-    private readonly superJson: SuperJson,
+    private readonly superJson: SuperJson | undefined,
     private readonly timers: ITimers,
     private readonly fileSystem: IFileSystem,
     private readonly crypto: ICrypto,
@@ -143,10 +139,11 @@ export abstract class UseCaseBase implements Interceptable {
       this.events.hookContext[`${this.profile.configuration.id}/${this.name}`]
         .router;
 
-    const providerConfig = await this.resolveProviderConfiguration(
-      hookRouter.getCurrentProvider(),
-      options
-    );
+    const providerConfig = resolveProvider({
+      provider: options?.provider ?? hookRouter.getCurrentProvider(),
+      profileId: this.profile.configuration.id,
+      superJson: this.superJson,
+    }).configuration;
 
     hookRouter.setCurrentProvider(providerConfig.name);
     this.metadata.provider = providerConfig.name;
@@ -189,33 +186,6 @@ export abstract class UseCaseBase implements Interceptable {
     }
 
     return provider;
-  }
-
-  private async resolveProviderConfiguration(
-    currentProvider: string | undefined,
-    options?: PerformOptions
-  ) {
-    return this.getProviderConfiguration(options?.provider ?? currentProvider);
-  }
-
-  private async getProviderConfiguration(
-    currentProvider: string | Provider | undefined
-  ): Promise<ProviderConfiguration> {
-    if (currentProvider === undefined) {
-      const provider = getProviderForProfile(
-        this.superJson,
-        this.profile.configuration.id
-      );
-
-      return provider.configuration;
-    }
-    if (typeof currentProvider === 'string') {
-      const provider = getProvider(this.superJson, currentProvider);
-
-      return provider.configuration;
-    }
-
-    return currentProvider.configuration;
   }
 
   @eventInterceptor({ eventName: 'perform', placement: 'around' })
@@ -271,9 +241,9 @@ export abstract class UseCaseBase implements Interceptable {
     const profileId = this.profile.configuration.id;
 
     // Check providerFailover/priority array
-    const profileEntry = this.superJson.normalized.profiles[profileId];
+    const profileEntry = this.superJson?.normalized.profiles[profileId];
 
-    if (profileEntry.defaults[this.name] === undefined) {
+    if (profileEntry?.defaults[this.name] === undefined) {
       return;
     }
 
@@ -306,7 +276,7 @@ export abstract class UseCaseBase implements Interceptable {
     this.checkWarnFailoverMisconfiguration();
 
     const profileId = this.profile.configuration.id;
-    const profileSettings = this.superJson.normalized.profiles[profileId];
+    const profileSettings = this.superJson?.normalized.profiles[profileId];
 
     const key = `${profileId}/${this.name}`;
 
@@ -315,7 +285,7 @@ export abstract class UseCaseBase implements Interceptable {
         router: new FailurePolicyRouter(
           provider => this.instantiateFailurePolicy(provider),
           // Use priority only when provider failover is enabled
-          profileSettings.defaults[this.name]?.providerFailover === true
+          profileSettings?.defaults[this.name]?.providerFailover === true
             ? profileSettings.priority
             : []
         ),
@@ -339,8 +309,8 @@ export abstract class UseCaseBase implements Interceptable {
       usecaseSafety: 'unsafe',
     };
 
-    const profileSettings = this.superJson.normalized.profiles[profileId];
-    const retryPolicyConfig = profileSettings.providers[provider]?.defaults[
+    const profileSettings = this.superJson?.normalized.profiles[profileId];
+    const retryPolicyConfig = profileSettings?.providers[provider]?.defaults[
       this.name
     ]?.retryPolicy ?? { kind: OnFail.NONE };
 
