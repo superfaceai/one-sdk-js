@@ -17,6 +17,7 @@ import { Interceptable } from '../events';
 import { IConfig, ICrypto, IFileSystem, ILogger } from '../interfaces';
 import { AuthCache, IFetch } from '../interpreter';
 import { fetchProfileAst } from '../registry';
+import { cacheProfileAst, tryToLoadCachedAst } from './cache-profile-ast';
 
 const DEBUG_NAMESPACE = 'profile-ast-resolution';
 
@@ -116,6 +117,7 @@ export async function resolveProfileAst({
 
   logFunction?.('Reading possible profile file: %S', filepath);
   try {
+    // TODO: do we want to cache it on cachePath?
     return await loadProfileAstFile(filepath);
   } catch (error) {
     logFunction?.(
@@ -127,12 +129,32 @@ export async function resolveProfileAst({
 
   logFunction?.('Fetching profile file from registry');
 
-  // Fallback to remote
-  return fetchProfileAst(
+  // Fallback to cache/remote
+  const cachedAst = await tryToLoadCachedAst({
+    profileId,
+    version,
+    fileSystem,
+    config,
+    log: logFunction,
+  });
+  if (cachedAst !== undefined) {
+    return cachedAst;
+  }
+
+  const ast = await fetchProfileAst(
     `${profileId}@${resolvedVersion}`,
     config,
     crypto,
     fetchInstance,
     logger
   );
+
+  await cacheProfileAst({
+    ast,
+    config,
+    fileSystem,
+    log: logFunction,
+  });
+
+  return ast;
 }
