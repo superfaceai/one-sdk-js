@@ -11,6 +11,7 @@ import {
 import {
   bindResponseError,
   invalidProviderResponseError,
+  invalidResponseError,
   UnexpectedError,
   unknownBindResponseError,
   unknownProviderInfoError,
@@ -26,6 +27,32 @@ export interface RegistryProviderInfo {
   serviceUrl: string;
   mappingUrl: string;
   semanticProfile: string;
+}
+
+export interface RegistryErrorBody {
+  title: string;
+  detail?: string;
+}
+
+export function isRegistryErrorBody(
+  input: unknown
+): input is RegistryErrorBody {
+  if (typeof input === 'object' && input !== null) {
+    if ('title' in input) {
+      const structuredInput = input as {
+        title: unknown;
+        detail?: unknown;
+      };
+
+      return (
+        typeof structuredInput.title === 'string' &&
+        (structuredInput.detail === undefined ||
+          typeof structuredInput.detail === 'string')
+      );
+    }
+  }
+
+  return false;
 }
 
 export function assertIsRegistryProviderInfo(
@@ -139,17 +166,6 @@ function parseBindResponse(
   provider: ProviderJson;
   mapAst?: MapDocumentNode;
 } {
-  function isErrorBody(
-    input: unknown
-  ): input is { detail: string; title: string } {
-    return (
-      typeof input === 'object' &&
-      input !== null &&
-      'detail' in input &&
-      'title' in input
-    );
-  }
-
   function assertProperties(
     obj: unknown
   ): asserts obj is { provider: unknown; map_ast: string } {
@@ -168,7 +184,7 @@ function parseBindResponse(
   }
 
   if (response.statusCode !== 200) {
-    if (isErrorBody(response.body)) {
+    if (isRegistryErrorBody(response.body)) {
       throw bindResponseError({
         ...request,
         statusCode: response.statusCode,
@@ -259,7 +275,7 @@ export async function fetchProfileAst(
   const sdkToken = config.sdkAuthToken;
   logger?.log(DEBUG_NAMESPACE, `Getting AST of profile: "${profileId}"`);
 
-  const { body } = await http.request(`/${profileId}`, {
+  const { body, statusCode } = await http.request(`/${profileId}`, {
     method: 'GET',
     headers:
       sdkToken !== undefined
@@ -268,6 +284,10 @@ export async function fetchProfileAst(
     baseUrl: config.superfaceApiUrl,
     accept: 'application/vnd.superface.profile+json',
   });
+
+  if (statusCode !== 200) {
+    throw invalidResponseError(body);
+  }
 
   return assertProfileDocumentNode(JSON.parse(body as string));
 }

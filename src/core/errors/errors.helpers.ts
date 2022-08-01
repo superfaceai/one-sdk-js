@@ -1,5 +1,6 @@
 import { AssertionError, BackoffKind, SecurityValues } from '@superfaceai/ast';
 
+import { isRegistryErrorBody } from '../registry';
 import { SDKBindError, SDKExecutionError } from './errors';
 
 export function ensureErrorSubclass(error: unknown): Error {
@@ -503,6 +504,24 @@ export function unexpectedDigestValue(
         ', '
       )}`,
     ],
+    []
+  );
+}
+
+export function invalidResponseError(error: unknown): SDKExecutionError {
+  if (isRegistryErrorBody(error)) {
+    return new SDKBindError(
+      `Registry call failed with unexpected error: ${
+        error.detail ?? error.title
+      }`,
+      [],
+      []
+    );
+  }
+
+  return new SDKBindError(
+    `Registry call failed with unexpected error: ${JSON.stringify(error)}`,
+    [],
     []
   );
 }
