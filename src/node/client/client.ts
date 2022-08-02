@@ -26,6 +26,7 @@ import {
   registerHooks as registerFailoverHooks,
   resolveProvider,
   resolveSecurityValues,
+  superJsonNotDefinedError,
 } from '../../core';
 import { SuperCache } from '../../lib';
 import { SuperJson } from '../../schema-tools';
@@ -212,9 +213,12 @@ export abstract class SuperfaceClientBase {
     });
   }
 
-  // TDOD: do we need this?
   /** Returns a provider configuration for when no provider is passed to untyped `.perform`. */
   public async getProviderForProfile(profileId: string): Promise<Provider> {
+    if (this.superJson === undefined) {
+      throw superJsonNotDefinedError('getProviderForProfile');
+    }
+
     return resolveProvider({
       superJson: this.superJson,
       profileId,

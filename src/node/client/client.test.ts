@@ -5,6 +5,7 @@ import {
   ProfileConfiguration,
   ProviderConfiguration,
   resolveProfileAst,
+  superJsonNotDefinedError,
 } from '../../core';
 import { MockClient, mockProfileDocumentNode } from '../../mock';
 import { SuperJson } from '../../schema-tools';
@@ -186,33 +187,59 @@ describe('superface client', () => {
         );
       });
     });
-  });
 
-  describe('when using without super json', () => {
-    it('returns Provider instance', async () => {
-      const client = new MockClient();
-      const provider = await client.getProvider('test-provider');
+    describe('when using without super json', () => {
+      it('returns Provider instance', async () => {
+        const client = new MockClient();
+        const provider = await client.getProvider('test-provider');
 
-      expect(provider.configuration).toEqual(
-        new ProviderConfiguration('test-provider', [])
-      );
-    });
-
-    it('returns Provider instance with custom security values and parameters', async () => {
-      const client = new MockClient();
-
-      const provider = await client.getProvider('test-provider', {
-        security: mockSecurityValues,
-        parameters: mockParameters,
+        expect(provider.configuration).toEqual(
+          new ProviderConfiguration('test-provider', [])
+        );
       });
 
-      expect(provider.configuration).toEqual(
-        new ProviderConfiguration(
-          'test-provider',
-          mockSecurityValues,
-          mockParameters
-        )
-      );
+      it('returns Provider instance with custom security values and parameters', async () => {
+        const client = new MockClient();
+
+        const provider = await client.getProvider('test-provider', {
+          security: mockSecurityValues,
+          parameters: mockParameters,
+        });
+
+        expect(provider.configuration).toEqual(
+          new ProviderConfiguration(
+            'test-provider',
+            mockSecurityValues,
+            mockParameters
+          )
+        );
+      });
+    });
+  });
+
+  describe('getProviderForProfile', () => {
+    describe('when using with super json', () => {
+      it('returns Provider instance', async () => {
+        const client = new MockClient(mockSuperJson);
+        const provider = await client.getProviderForProfile('test-profile');
+
+        expect(provider.configuration).toEqual(
+          new ProviderConfiguration(
+            'test-provider',
+            mockSecurityValues,
+            mockParameters
+          )
+        );
+      });
+    });
+
+    describe('when using without super json', () => {
+      it('throws error', async () => {
+        const client = new MockClient();
+        await expect(
+          client.getProviderForProfile('test-profile')
+        ).rejects.toEqual(superJsonNotDefinedError('getProviderForProfile'));
+      });
     });
   });
 });
