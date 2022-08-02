@@ -20,7 +20,7 @@ export function superJsonNotDefinedError(
     [],
     [
       'Define "superJson" property in SuperfaceClient constructor',
-      'Add super.json config file',
+      'Add super.json config file with @superfaceai/cli package',
     ]
   );
 }
