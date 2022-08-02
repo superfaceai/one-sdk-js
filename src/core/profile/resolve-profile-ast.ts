@@ -127,19 +127,22 @@ export async function resolveProfileAst({
     void error;
   }
 
-  logFunction?.('Fetching profile file from registry');
+  logFunction?.('Trying to load profile file from cache');
 
   // Fallback to cache/remote
   const cachedAst = await tryToLoadCachedAst({
     profileId,
-    version,
+    version: resolvedVersion,
     fileSystem,
     config,
     log: logFunction,
   });
   if (cachedAst !== undefined) {
+    logFunction?.('Loading profile file from cache successful');
+
     return cachedAst;
   }
+  logFunction?.('Fetching profile file from registry');
 
   const ast = await fetchProfileAst(
     `${profileId}@${resolvedVersion}`,
