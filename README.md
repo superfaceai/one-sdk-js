@@ -37,32 +37,27 @@ or Yarn:
 yarn add @superfaceai/one-sdk
 ```
 
-## **Usage**
+## Usage
 
-With OneSDK everything revolves about your application's use cases for an API.
+OneSDK can be used in one of two ways:
 
-<!-- TODO: some intro to  use case/profile? -->
+* Without configuration: You pass the most essential configuration directly as a function parameter in code. Ideal for small projects and trying Superface out.
 
-OneSDK can be used in two ways:
-* Without configuration, you pass most esential configuration directly in code. Ideal for trying out Superface and small projects.
+* With configuration: You configure Superface via a local configuration file (or a configuration object obtained elsewhere). Ideal for larger projects, or when you need advanced features, such as provider failover or locally-stored profiles, maps and providers.
 
-* With configuration, you configure Superface with local config file or configuration object in code. Ideal when you need advanced features like provider failover or use of local capabilities.
+💡 **For a quick usage example, check out [Get Started](https://superface.ai/docs/getting-started).**
 
-
-<!-- TODO: do we still have get started? If yes, wil it be scoped to first time use or to use with super.json? -->
-💡 **For quick usage example, check [get started](https://superface.ai/docs/getting-started) documentation.**
-
-## First time use
+### First time use
 
 You need to provide:
 * profile name and version
-* use-case name
+* use case name
 * provider name
 * input parameters
-* provider specific integration parameters
-* provider specific security values
+* (if necessary) provider-specific integration parameters
+* (if necessary) provider-specific security values
 
-These can be found on profile page. Values of security values can be found in your provider account.
+These can be found in the [Catalog](https://superface.ai/catalog) and on the profile page (e.g. [vcs/user-repos](https://superface.ai/vcs/user-repos)). Security values need to be obtained through the relevant provider (e.g. on their website, in your account settings, etc.).
 
 ```js
 const { SuperfaceClient } = require('@superfaceai/one-sdk');
@@ -85,6 +80,7 @@ async function run() {
     security: {
       // Provider specific security values in format:
       '<securityValueId>': {
+        // TODO: also have foobar here?
         // Security value
       }
     }
@@ -96,13 +92,21 @@ async function run() {
 run();
 ```
 
-
-### Advanced use
-<!-- TODO: some intro to super.json config file and super.json in code? -->
+### Advanced usage
 <!-- TODO: probably leave the in code super.json as a last option as it is difficult to configure-->
 <!-- TODO: mention getProviderForProfile? -->
 
-To get started, first install a use case profile using the [Superface CLI](https://github.com/superfaceai/cli). In the project directory, run:
+There are some features that cannot be used with the simple approach described above, namely:
+  - Using locally stored profiles, maps and providers; e.g. (yet) unpublished integrations, or integrations with APIs internal to your organization. 
+  - Configuring [provider failover](https://superface.ai/docs/guides/using-multiple-providers#failover).
+
+Also, as your project grows in size and complexity, you may find it useful to have a central location for configuring details concerning your API integrations.
+
+`super.json` is the main Superface configuration file, located by default in the `superface` folder under your project root, but it can also be passed as a parameter in code, if for instance, your environment makes it inconvenient to use the filesystem.
+
+To get started, first **install** a use case profile using the [Superface CLI](https://github.com/superfaceai/cli).
+
+In the project directory, run:
 
 ```shell
 npx @superfaceai/cli install <profileName>
@@ -110,7 +114,7 @@ npx @superfaceai/cli install <profileName>
 
 The CLI creates a configuration file in `superface/super.json`.
 
-Next you configure a provider for the use-case:
+Next, you configure a provider for the use case:
 
 ```shell
 npx @superfaceai/cli configure <providerName> -p <profileName>
@@ -118,7 +122,7 @@ npx @superfaceai/cli configure <providerName> -p <profileName>
 
 CLI may instruct you about setting up API keys if the provider needs them.
 
-In your code, you initialize the SDK instance, load the profile and perform the use-case:
+In your code, initialize the SDK instance, load the profile and perform the use case:
 
 ```js
 const { SuperfaceClient } = require('@superfaceai/one-sdk');
@@ -157,7 +161,7 @@ This code will use the first provider by priority as defined in `super.json` fil
  }
 ```
 
-To find available use cases, visit the [Superface Catalog](https://superface.ai/catalog). If you are missing a use case, [let us know](#support)! You can also always [add your own use-case or API provider](https://superface.ai/docs/guides/how-to-create).
+To find available use cases, visit the [Catalog](https://superface.ai/catalog). If you are missing a use case, [let us know](#support)! You can also always [add your own use-case or API provider](https://superface.ai/docs/guides/how-to-create).
 
 ## Security
 
