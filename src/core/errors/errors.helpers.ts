@@ -508,13 +508,14 @@ export function unexpectedDigestValue(
   );
 }
 
-export function invalidResponseError(error: unknown): SDKExecutionError {
+export function invalidResponseError(
+  statusCode: number,
+  error: unknown
+): SDKExecutionError {
   if (isRegistryErrorBody(error)) {
     return new SDKBindError(
-      `Registry call failed with unexpected error: ${
-        error.detail ?? error.title
-      }`,
-      [],
+      `Registry call failed with status code: ${statusCode} and error message: ${error.title}`,
+      error.detail !== undefined ? [error.detail] : [],
       []
     );
   }

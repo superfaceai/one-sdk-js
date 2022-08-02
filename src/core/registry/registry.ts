@@ -17,7 +17,13 @@ import {
   unknownProviderInfoError,
 } from '../errors';
 import { IConfig, ICrypto, ILogger } from '../interfaces';
-import { AuthCache, HttpClient, HttpResponse, IFetch } from '../interpreter';
+import {
+  AuthCache,
+  HttpClient,
+  HttpResponse,
+  IFetch,
+  JSON_PROBLEM_CONTENT,
+} from '../interpreter';
 
 const DEBUG_NAMESPACE = 'registry';
 
@@ -275,7 +281,7 @@ export async function fetchProfileAst(
   const sdkToken = config.sdkAuthToken;
   logger?.log(DEBUG_NAMESPACE, `Getting AST of profile: "${profileId}"`);
 
-  const { body, statusCode } = await http.request(`/${profileId}`, {
+  const { body, headers, statusCode } = await http.request(`/${profileId}`, {
     method: 'GET',
     headers:
       sdkToken !== undefined
@@ -285,8 +291,8 @@ export async function fetchProfileAst(
     accept: 'application/vnd.superface.profile+json',
   });
 
-  if (statusCode !== 200) {
-    throw invalidResponseError(body);
+  if ((headers['content-type'] ?? '').includes(JSON_PROBLEM_CONTENT)) {
+    throw invalidResponseError(statusCode, body);
   }
 
   return assertProfileDocumentNode(JSON.parse(body as string));

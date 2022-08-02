@@ -16,6 +16,7 @@ import {
   unknownBindResponseError,
   unknownProviderInfoError,
 } from '../errors';
+import { JSON_PROBLEM_CONTENT } from '../interpreter';
 import {
   assertIsRegistryProviderInfo,
   fetchBind,
@@ -657,7 +658,7 @@ describe('registry', () => {
       const mockResponse = {
         statusCode: 400,
         body: mockBody,
-        headers: { test: 'test' },
+        headers: { 'content-type': `${JSON_PROBLEM_CONTENT}; charset=utf-8` },
         debug: {
           request: {
             headers: { test: 'test' },
@@ -672,7 +673,7 @@ describe('registry', () => {
       const profileId = 'test-profile-id@1.0.0';
       await expect(
         fetchProfileAst(profileId, config, crypto, new NodeFetch(timers))
-      ).rejects.toEqual(invalidResponseError(mockBody));
+      ).rejects.toEqual(invalidResponseError(400, mockBody));
 
       expect(request).toHaveBeenCalledTimes(1);
       expect(request).toHaveBeenCalledWith(`/${profileId}`, {
