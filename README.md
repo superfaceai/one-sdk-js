@@ -12,9 +12,9 @@
 ![TypeScript](https://img.shields.io/static/v1?message=TypeScript&&logoColor=ffffff&color=007acc&labelColor=5c5c5c&label=built%20with)
 [![Discord](https://img.shields.io/discord/819563244418105354?logo=discord&logoColor=fff)](https://sfc.is/discord)
 
-OneSDK is a universal API client which provides an unparalleled developer experience for every HTTP API. It enhances resiliency to API changes and comes with built-in integration monitoring and fail-overs.
+OneSDK is a universal API client which provides an unparalleled developer experience for every HTTP API. It enhances resiliency to API changes, and comes with built-in integration monitoring and provider failover.
 
-For more details about Superface visit [how it works](https://superface.ai/how-it-works) and [get started](https://superface.ai/docs/getting-started).
+For more details about Superface, visit [How it Works](https://superface.ai/how-it-works) and [Get Started](https://superface.ai/docs/getting-started).
 
 ## Important Links
 
@@ -25,7 +25,7 @@ For more details about Superface visit [how it works](https://superface.ai/how-i
 
 ## Install
 
-To install OneSDK into a Node.js project run:
+To install OneSDK into a Node.js project, run:
 
 ```shell
 npm install @superfaceai/one-sdk
@@ -173,7 +173,7 @@ Superface is not a proxy. The calls are always going directly from your applicat
 
 OneSDK accesses `superface/super.json` file and accesses cache in `superface/.cache` directory. It also accesses local maps, profiles, and provider configuration if specified in the `super.json` file. Non-local maps, profiles and provider configuration are loaded from the Superface network registry in the runtime and cached locally. OneSDK sends diagnostic usage report to Superface as described [below](#metrics-reporting).
 
-More about the journey of the secrets within OneSDK can be found in [Security](SECURITY.md).
+More about the journey of the secrets within OneSDK can be found in [SECURITY](SECURITY.md).
 
 ## Metrics Reporting
 
