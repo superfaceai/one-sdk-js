@@ -12,6 +12,19 @@ export function ensureErrorSubclass(error: unknown): Error {
   return new Error(JSON.stringify(error));
 }
 
+export function superJsonNotDefinedError(
+  callerName: string
+): SDKExecutionError {
+  return new SDKExecutionError(
+    `Super.json must be defined to call "${callerName}"`,
+    [],
+    [
+      'Define "superJson" property in SuperfaceClient constructor',
+      'Add super.json config file',
+    ]
+  );
+}
+
 export function superJsonNotFoundError(
   path: string,
   error?: Error

@@ -29,6 +29,7 @@ import {
   resolveSecurityValues,
   SecurityConfiguration,
   ServiceSelector,
+  superJsonNotDefinedError,
 } from '../core';
 import { SuperCache } from '../lib/cache';
 import { NodeCrypto, NodeFetch, NodeFileSystem, NodeLogger } from '../node';
@@ -198,6 +199,10 @@ export class MockClient implements ISuperfaceClient {
   }
 
   public async getProviderForProfile(profileId: string): Promise<Provider> {
+    if (this.superJson === undefined) {
+      throw superJsonNotDefinedError('getProviderForProfile');
+    }
+
     return resolveProvider({
       superJson: this.superJson,
       profileId,
