@@ -157,37 +157,39 @@ This code will use the first provider by priority as defined in `super.json` fil
  }
 ```
 
-To find available use-cases, sign up for Superface and visit [Use-cases Catalog](https://superface.ai/catalog). If you are missing a use case, [let us know](#support). You can always [add your own use-case or API provider](https://superface.ai/docs/guides/how-to-create).
+To find available use cases, visit the [Superface Catalog](https://superface.ai/catalog). If you are missing a use case, [let us know](#support)! You can also always [add your own use-case or API provider](https://superface.ai/docs/guides/how-to-create).
 
-<!-- TODO: point to docs for working with the result object -->
+## Security
+
+Superface is not a proxy. The calls are always going directly from your application to API providers. Their contents are **never** sent anywhere else but to the selected provider's API.
+
+OneSDK accesses `superface/super.json` file if instructed to, and accesses cache in `superface/.cache` directory. It also accesses local maps, profiles, and provider configuration as per configuration. Non-local maps, profiles and providers are loaded from the Superface remote registry at runtime, and cached locally. OneSDK also sends diagnostic usage report to Superface as described [below](#metrics-reporting).
+
+More about how OneSDK handles secrets can be found in [SECURITY](SECURITY.md).
+
+## Metrics Reporting
+
+Superface allows you to [monitor your integrations](https://superface.ai/docs/guides/integrations-monitoring) and display the metrics on a dashboard. There are three kinds of metrics reported:
+
+1. When an OneSDK instance is created
+2. After each perform (reporting success or failure of a given use case)
+3. When a provider failover is triggered
+
+This functionality requires you to obtain and set a `SUPERFACE_SDK_TOKEN`. For more information, see [Integrations Monitoring](https://superface.ai/docs/guides/integrations-monitoring).
+
+OneSDK also sends anonymized metadata about its usage to Superface services. This data contains no personal information nor the contents of the API calls, is rate limited as to not impact performance, and can be disabled by setting an environment variable:
+
+```shell
+SUPERFACE_DISABLE_METRIC_REPORTING=true
+```
+
+For metrics to be successfuly sent, the application needs to exit properly, i.e. there should be no unhandled `Promise` rejections or exceptions.
 
 ## Support
 
 If you have any questions, want to report a bug, request a feature or you just want to talk, feel free to [open an issue](https://github.com/superfaceai/one-sdk-js/issues/new/choose) or hop on our [Discord server](https://sfc.is/discord).
 
 You can find more options for reaching us on the [Support page](https://superface.ai/support).
-
-## Security
-
-Superface is not a proxy. The calls are always going directly from your application to API providers. The API secrets are never sent anywhere else but to the used provider's API.
-
-OneSDK accesses `superface/super.json` file and accesses cache in `superface/.cache` directory. It also accesses local maps, profiles, and provider configuration if specified in the `super.json` file. Non-local maps, profiles and provider configuration are loaded from the Superface network registry in the runtime and cached locally. OneSDK sends diagnostic usage report to Superface as described [below](#metrics-reporting).
-
-More about the journey of the secrets within OneSDK can be found in [SECURITY](SECURITY.md).
-
-## Metrics Reporting
-
-OneSDK sends anonymized information about use-cases usage to Superface services. This info is anonymized, rate limited and allows you to [monitor your integrations](https://superface.ai/docs/integrations-monitoring) on the dashboard.
-
-There are three kinds of metrics reported one is sent when the client instance is created, one after each perform (reporting success or failure), and one when a provider failover happens.
-
-The reports can be disabled with environment variable:
-
-```shell
-SUPERFACE_DISABLE_METRIC_REPORTING=true
-```
-
-For metrics to be successfuly sent, the application needs to be properly exited, i.e. there should be no unhandled Promise rejections or exceptions.
 
 ## Contributing
 

@@ -1,6 +1,6 @@
 # Security within Superface OneSDK
 
-OneSDK interprets the map to fulfill the required usecase. This often requires making http requests with authorization. Thus the user needs to provide Superface with the right secrets to access the capability exposed by the API.
+OneSDK interprets the map to fulfill the required usecase. This often requires making HTTP requests with authorization. Thus the user needs to provide Superface with the right secrets to access the capability exposed by the API.
 
 _Note: If any of the following links are out of date, please file an issue or open a PR and link to the relevant places again._
 
