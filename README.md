@@ -37,11 +37,71 @@ or Yarn:
 yarn add @superfaceai/one-sdk
 ```
 
-## Usage
-
-💡 **For quick usage example, check [get started](https://superface.ai/docs/getting-started) documentation.**
+## **Usage**
 
 With OneSDK everything revolves about your application's use cases for an API.
+
+<!-- TODO: some intro to  use case/profile? -->
+
+OneSDK can be used in two ways:
+* Without configuration, you pass most esential configuration directly in code. Ideal for trying out Superface and small projects.
+
+* With configuration, you configure Superface with local config file or configuration object in code. Ideal when you need advanced features like provider failover or use of local capabilities.
+
+
+<!-- TODO: do we still have get started? If yes, wil it be scoped to first time use or to use with super.json? -->
+💡 **For quick usage example, check [get started](https://superface.ai/docs/getting-started) documentation.**
+
+## First time use
+
+You need to provide:
+* profile name and version
+* use-case name
+* provider name
+* input parameters
+* provider specific integration parameters
+* provider specific security values
+
+These can be found on profile page. Values of security values can be found in your provider account.
+
+```js
+const { SuperfaceClient } = require('@superfaceai/one-sdk');
+
+const sdk = new SuperfaceClient();
+
+async function run() {
+  const profile = await sdk.getProfile({ id: '<profileName>', version: '<profileVersion>'});
+
+  const result = await profile.getUseCase('<usecaseName>').perform({
+    // TODO: more detail description?
+    // Input parameters
+  },
+  {
+    provider: '<providerName>',
+    parameters: {
+      // Provider specific integration parameters in format:
+      '<integrationParameterId>': '<integrationParameterValue>'
+    },
+    security: {
+      // Provider specific security values in format:
+      '<securityValueId>': {
+        // Security value
+      }
+    }
+  });
+
+  console.log(result.unwrap());
+}
+
+run();
+```
+
+
+### Advanced use
+<!-- TODO: some intro to super.json config file and super.json in code? -->
+<!-- TODO: probably leave the in code super.json as a last option as it is difficult to configure-->
+<!-- TODO: mention getProviderForProfile? -->
+
 To get started, first install a use case profile using the [Superface CLI](https://github.com/superfaceai/cli). In the project directory, run:
 
 ```shell
