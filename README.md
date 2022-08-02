@@ -197,6 +197,6 @@ We welcome all kinds of contributions! Please see the [Contribution Guide](CONTR
 
 OneSDK is licensed under the [MIT License](LICENSE).
 
-© 2021 Superface s.r.o.
+© 2022 Superface s.r.o.
 
 <!-- TODO: allcontributors -->
