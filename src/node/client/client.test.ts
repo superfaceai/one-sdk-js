@@ -2,12 +2,14 @@ import { SecurityValues } from '@superfaceai/ast';
 import { mocked } from 'ts-jest/utils';
 
 import {
+  MetricReporter,
   ProfileConfiguration,
   ProviderConfiguration,
   resolveProfileAst,
 } from '../../core';
 import { MockClient, mockProfileDocumentNode } from '../../mock';
 import { SuperJson } from '../../schema-tools';
+import { SuperfaceClient } from './client';
 
 const mockSecurityValues: SecurityValues[] = [
   {
@@ -83,6 +85,7 @@ afterEach(() => {
 jest.mock('../../core/registry');
 jest.mock('../../core/profile/resolve-profile-ast');
 jest.mock('../../core/events/failure/event-adapter');
+jest.mock('../../core/events/reporter');
 
 describe('superface client', () => {
   describe('getProfile', () => {
@@ -213,6 +216,24 @@ describe('superface client', () => {
           mockParameters
         )
       );
+    });
+
+    it('skips SDKInit reporting', async () => {
+      new SuperfaceClient({ superJson: undefined });
+
+      // Metric Reporter is setted up
+      expect(MetricReporter).toHaveBeenCalled();
+
+      // SDKInit event is not reported
+      expect(
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        MetricReporter.prototype.reportEvent
+      ).not.toHaveBeenCalledWith([
+        {
+          eventType: 'SDKInit',
+          occurredAt: expect.any(Date),
+        },
+      ]);
     });
   });
 });

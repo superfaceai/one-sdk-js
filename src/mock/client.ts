@@ -84,15 +84,12 @@ export class MockClient implements ISuperfaceClient {
     this.events = new Events(this.timers, this.logger);
     registerHooks(this.events, this.timers, this.logger);
 
-    if (
-      this.config.disableReporting === false &&
-      this.superJson !== undefined
-    ) {
+    if (this.config.disableReporting === false) {
       this.metricReporter = new MetricReporter(
-        this.superJson,
         this.config,
         this.timers,
         new NodeFetch(this.timers),
+        this.superJson,
         this.logger
       );
       hookMetrics(this.events, this.metricReporter);

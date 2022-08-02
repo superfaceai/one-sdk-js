@@ -85,24 +85,28 @@ const resolveConfig = (
 };
 
 const setupMetricReporter = (
-  superJson: SuperJson,
   config: IConfig,
   timers: ITimers,
   events: Events,
+  superJson?: SuperJson,
   logger?: ILogger
 ) => {
   const metricReporter = new MetricReporter(
-    superJson,
     config,
     timers,
     new NodeFetch(timers),
+    superJson,
     logger
   );
   hookMetrics(events, metricReporter);
-  metricReporter.reportEvent({
-    eventType: 'SDKInit',
-    occurredAt: new Date(timers.now()),
-  });
+
+  if (superJson) {
+    metricReporter.reportEvent({
+      eventType: 'SDKInit',
+      occurredAt: new Date(timers.now()),
+    });
+  }
+
   process.on('beforeExit', () => metricReporter.flush());
   process.on('uncaughtExceptionMonitor', () => {
     console.warn(
@@ -165,13 +169,12 @@ export abstract class SuperfaceClientBase {
       this.logger
     );
 
-    // FIX: use without super.json
-    if (!this.config.disableReporting && this.superJson !== undefined) {
+    if (!this.config.disableReporting) {
       setupMetricReporter(
-        this.superJson,
         this.config,
         this.timers,
         this.events,
+        this.superJson,
         this.logger
       );
     }

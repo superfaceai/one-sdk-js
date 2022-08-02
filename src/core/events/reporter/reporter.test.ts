@@ -749,4 +749,31 @@ describe('MetricReporter', () => {
 
     systemTimeMock.mockRestore();
   }, 10000);
+
+  describe('without super.json', () => {
+    it('should report without configuration and hash', async () => {
+      const client = new MockClient(undefined, {
+        configOverride: {
+          disableReporting: false,
+          superfaceApiUrl: mockServer.url,
+        },
+      });
+
+      client.metricReporter?.reportEvent({
+        eventType: 'SDKInit',
+        occurredAt: new Date(),
+      });
+
+      while (await eventEndpoint.isPending()) {
+        await new Promise(setImmediate);
+      }
+
+      const requests = await eventEndpoint.getSeenRequests();
+      expect(requests).toHaveLength(1);
+      expect(await requests[0].body.getJson()).toMatchObject({
+        event_type: 'SDKInit',
+        data: {},
+      });
+    });
+  });
 });
