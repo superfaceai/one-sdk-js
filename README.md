@@ -94,11 +94,7 @@ As your project grows in size and complexity, you may find it useful to have a c
   - Using [locally stored profiles, maps and providers](https://superface.ai/docs/advanced-usage#local); e.g. (yet) unpublished integrations, or integrations with APIs internal to your organization. 
   - Configuring [provider failover](https://superface.ai/docs/guides/using-multiple-providers#failover).
 
-For these cases, there's Superface configuration. It can be provided in one of two ways:
-
-- As a `super.json` file, located by default in the `superface` folder under your project root
-- Passed as a parameter in code (if for instance, your environment makes it inconvenient to use the filesystem).
-
+For these cases, there's Superface configuration. 
 To find out more, visit [Advanced Usage](https://superface.ai/docs/advanced-usage).
 
 ## Security
