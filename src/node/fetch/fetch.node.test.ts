@@ -25,7 +25,7 @@ describe('fetch', () => {
     it('timeouts on network timeout', async () => {
       const { NodeFetch } = await import('./fetch.node');
 
-      await mockServer.get('/test').thenTimeout();
+      await mockServer.forGet('/test').thenTimeout();
       const realTimers = new NodeTimers();
       const fetch = new NodeFetch(realTimers);
 
@@ -37,7 +37,7 @@ describe('fetch', () => {
     it('rejects on rejected connection', async () => {
       const { NodeFetch } = await import('./fetch.node');
 
-      await mockServer.get('/test').thenCloseConnection();
+      await mockServer.forGet('/test').thenCloseConnection();
       const fetch = new NodeFetch(timers);
 
       await expect(

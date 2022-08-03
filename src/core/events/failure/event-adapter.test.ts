@@ -487,7 +487,7 @@ describe('event-adapter', () => {
 
   // Without retry policy
   it('does not use retry policy - returns after HTTP 200', async () => {
-    const endpoint = await mockServer.get('/first').thenJson(200, {});
+    const endpoint = await mockServer.forGet('/first').thenJson(200, {});
     const client = createMockClient();
     client.addBoundProfileProvider(
       firstMockProfileDocument,
@@ -507,7 +507,7 @@ describe('event-adapter', () => {
   });
 
   it('does not use retry policy - aborts after HTTP 500', async () => {
-    const endpoint = await mockServer.get('/first').thenJson(500, {});
+    const endpoint = await mockServer.forGet('/first').thenJson(500, {});
     const client = createMockClient();
 
     client.addBoundProfileProvider(
@@ -528,7 +528,7 @@ describe('event-adapter', () => {
   });
 
   it('does not use retry policy - aborts after closed connection', async () => {
-    await mockServer.get('/first').thenCloseConnection();
+    await mockServer.forGet('/first').thenCloseConnection();
     const client = createMockClient();
 
     client.addBoundProfileProvider(
@@ -547,7 +547,7 @@ describe('event-adapter', () => {
   });
 
   it('does not use retry policy - aborts after timeout', async () => {
-    await mockServer.get('/first').thenTimeout();
+    await mockServer.forGet('/first').thenTimeout();
     const client = createMockClient();
 
     client.addBoundProfileProvider(
@@ -567,7 +567,7 @@ describe('event-adapter', () => {
 
   // Circuit breaker
   it('use circuit-breaker policy - aborts after HTTP 500', async () => {
-    const endpoint = await mockServer.get('/first').thenJson(500, {});
+    const endpoint = await mockServer.forGet('/first').thenJson(500, {});
     const superJson = new SuperJson({
       profiles: {
         ['starwars/character-information']: {
@@ -620,7 +620,7 @@ describe('event-adapter', () => {
     let secondRequestTime: number | undefined;
 
     let retry = true;
-    const endpoint = await mockServer.get('/first').thenCallback(() => {
+    const endpoint = await mockServer.forGet('/first').thenCallback(() => {
       if (retry) {
         retry = false;
         firstRequestTime = client.timers.now();
@@ -696,8 +696,8 @@ describe('event-adapter', () => {
   });
 
   it('use circuit-breaker policy - switch providers after HTTP 500, using default provider', async () => {
-    const endpoint = await mockServer.get('/first').thenJson(500, {});
-    const secondEndpoint = await mockServer.get('/second').thenJson(200, {});
+    const endpoint = await mockServer.forGet('/first').thenJson(500, {});
+    const secondEndpoint = await mockServer.forGet('/second').thenJson(200, {});
     const superJson = new SuperJson({
       profiles: {
         ['starwars/character-information']: {
@@ -763,8 +763,8 @@ describe('event-adapter', () => {
   });
 
   it('use circuit-breaker policy - do not switch providers after HTTP 500 - using provider from user', async () => {
-    const endpoint = await mockServer.get('/first').thenJson(500, {});
-    const secondEndpoint = await mockServer.get('/second').thenJson(200, {});
+    const endpoint = await mockServer.forGet('/first').thenJson(500, {});
+    const secondEndpoint = await mockServer.forGet('/second').thenJson(200, {});
     const superJson = new SuperJson({
       profiles: {
         ['starwars/character-information']: {
@@ -828,8 +828,8 @@ describe('event-adapter', () => {
   });
 
   it('use circuit-breaker policy - do not switch providers after HTTP 500, providerFailover is false', async () => {
-    const endpoint = await mockServer.get('/first').thenJson(500, {});
-    const secondEndpoint = await mockServer.get('/second').thenJson(200, {});
+    const endpoint = await mockServer.forGet('/first').thenJson(500, {});
+    const secondEndpoint = await mockServer.forGet('/second').thenJson(200, {});
     const superJson = new SuperJson({
       profiles: {
         ['starwars/character-information']: {
@@ -895,8 +895,8 @@ describe('event-adapter', () => {
   });
 
   it('use circuit-breaker policy - switch providers after HTTP 500, use implict priority array', async () => {
-    const endpoint = await mockServer.get('/first').thenJson(500, {});
-    const secondEndpoint = await mockServer.get('/second').thenJson(200, {});
+    const endpoint = await mockServer.forGet('/first').thenJson(500, {});
+    const secondEndpoint = await mockServer.forGet('/second').thenJson(200, {});
     const superJson = new SuperJson({
       profiles: {
         ['starwars/character-information']: {
@@ -962,8 +962,8 @@ describe('event-adapter', () => {
   });
 
   it('use two circuit-breaker policies - switch providers after HTTP 500', async () => {
-    const endpoint = await mockServer.get('/first').thenJson(500, {});
-    const secondEndpoint = await mockServer.get('/second').thenJson(200, {});
+    const endpoint = await mockServer.forGet('/first').thenJson(500, {});
+    const secondEndpoint = await mockServer.forGet('/second').thenJson(200, {});
     const superJson = new SuperJson({
       profiles: {
         ['starwars/character-information']: {
@@ -1046,7 +1046,7 @@ describe('event-adapter', () => {
 
   it('use circuit-breaker policy - switch providers after HTTP 500 and switch back - default provider', async () => {
     let endpointCalls = 0;
-    const endpoint = await mockServer.get('/first').thenCallback(() => {
+    const endpoint = await mockServer.forGet('/first').thenCallback(() => {
       endpointCalls += 1;
 
       if (endpointCalls > 2) {
@@ -1055,7 +1055,7 @@ describe('event-adapter', () => {
         return { statusCode: 500, json: {} };
       }
     });
-    const secondEndpoint = await mockServer.get('/second').thenJson(200, {});
+    const secondEndpoint = await mockServer.forGet('/second').thenJson(200, {});
 
     const superJson = new SuperJson({
       profiles: {
@@ -1131,7 +1131,7 @@ describe('event-adapter', () => {
 
   it('use circuit-breaker policy - switch providers after HTTP 500 and perform another usecase', async () => {
     let endpointCalls = 0;
-    const endpoint = await mockServer.get('/first').thenCallback(() => {
+    const endpoint = await mockServer.forGet('/first').thenCallback(() => {
       endpointCalls += 1;
 
       if (endpointCalls > 2) {
@@ -1140,7 +1140,7 @@ describe('event-adapter', () => {
         return { statusCode: 500, json: {} };
       }
     });
-    const secondEndpoint = await mockServer.get('/second').thenJson(200, {});
+    const secondEndpoint = await mockServer.forGet('/second').thenJson(200, {});
 
     const superJson = new SuperJson({
       profiles: {
@@ -1217,7 +1217,7 @@ describe('event-adapter', () => {
 
   it('use circuit-breaker policy - switch providers after HTTP 500, perform another usecase and switch profile', async () => {
     let endpointCalls = 0;
-    const endpoint = await mockServer.get('/first').thenCallback(() => {
+    const endpoint = await mockServer.forGet('/first').thenCallback(() => {
       endpointCalls += 1;
 
       if (endpointCalls > 2) {
@@ -1226,8 +1226,8 @@ describe('event-adapter', () => {
         return { statusCode: 500, json: {} };
       }
     });
-    const secondEndpoint = await mockServer.get('/second').thenJson(200, {});
-    const thirdEndpoint = await mockServer.get('/third').thenJson(200, {});
+    const secondEndpoint = await mockServer.forGet('/second').thenJson(200, {});
+    const thirdEndpoint = await mockServer.forGet('/third').thenJson(200, {});
 
     const superJson = new SuperJson({
       profiles: {
@@ -1335,8 +1335,8 @@ describe('event-adapter', () => {
   });
 
   it('use circuit-breaker policy - switch providers after HTTP 500, using provider from user and abort policy', async () => {
-    const endpoint = await mockServer.get('/first').thenJson(500, {});
-    const secondEndpoint = await mockServer.get('/second').thenJson(200, {});
+    const endpoint = await mockServer.forGet('/first').thenJson(500, {});
+    const secondEndpoint = await mockServer.forGet('/second').thenJson(200, {});
 
     const superJson = new SuperJson({
       profiles: {
@@ -1413,11 +1413,13 @@ describe('event-adapter', () => {
    * Bind
    */
   it('use abort policy - switch providers after error in bind', async () => {
-    const endpoint = await mockServer.get('/first').thenJson(200, {});
-    const bindEndpoint = await mockServer.post('/registry/bind').thenJson(400, {
-      detail: 'Invalid request',
-      title: 'test',
-    });
+    const endpoint = await mockServer.forGet('/first').thenJson(200, {});
+    const bindEndpoint = await mockServer
+      .forPost('/registry/bind')
+      .thenJson(400, {
+        detail: 'Invalid request',
+        title: 'test',
+      });
 
     const superJson = new SuperJson({
       profiles: {
@@ -1485,11 +1487,13 @@ describe('event-adapter', () => {
   });
 
   it('use default policy - switch providers after error in bind', async () => {
-    const endpoint = await mockServer.get('/first').thenJson(200, {});
-    const bindEndpoint = await mockServer.post('/registry/bind').thenJson(400, {
-      detail: 'Invalid request',
-      title: 'test',
-    });
+    const endpoint = await mockServer.forGet('/first').thenJson(200, {});
+    const bindEndpoint = await mockServer
+      .forPost('/registry/bind')
+      .thenJson(400, {
+        detail: 'Invalid request',
+        title: 'test',
+      });
 
     const superJson = new SuperJson({
       profiles: {
@@ -1556,11 +1560,13 @@ describe('event-adapter', () => {
   });
 
   it('use default policy - fail after error in bind', async () => {
-    const endpoint = await mockServer.get('/first').thenJson(200, {});
-    const bindEndpoint = await mockServer.post('/registry/bind').thenJson(400, {
-      detail: 'Invalid request',
-      title: 'test',
-    });
+    const endpoint = await mockServer.forGet('/first').thenJson(200, {});
+    const bindEndpoint = await mockServer
+      .forPost('/registry/bind')
+      .thenJson(400, {
+        detail: 'Invalid request',
+        title: 'test',
+      });
 
     const superJson = new SuperJson({
       profiles: {
@@ -1628,11 +1634,13 @@ describe('event-adapter', () => {
   });
 
   it('use circuit breaker policy - switch providers after error in bind', async () => {
-    const endpoint = await mockServer.get('/first').thenJson(200, {});
-    const bindEndpoint = await mockServer.post('/registry/bind').thenJson(400, {
-      detail: 'Invalid request',
-      title: 'test',
-    });
+    const endpoint = await mockServer.forGet('/first').thenJson(200, {});
+    const bindEndpoint = await mockServer
+      .forPost('/registry/bind')
+      .thenJson(400, {
+        detail: 'Invalid request',
+        title: 'test',
+      });
 
     const superJson = new SuperJson({
       profiles: {
@@ -1710,8 +1718,8 @@ describe('event-adapter', () => {
   });
 
   it('preserves hook context within one client', async () => {
-    const endpoint = await mockServer.get('/first').thenJson(500, {});
-    const secondEndpoint = await mockServer.get('/second').thenJson(200, {});
+    const endpoint = await mockServer.forGet('/first').thenJson(500, {});
+    const secondEndpoint = await mockServer.forGet('/second').thenJson(200, {});
     const superJson = new SuperJson({
       profiles: {
         ['starwars/character-information']: {
@@ -1799,8 +1807,8 @@ describe('event-adapter', () => {
   });
 
   it('does not preserve hook context across clients', async () => {
-    const endpoint = await mockServer.get('/first').thenJson(500, {});
-    const secondEndpoint = await mockServer.get('/second').thenJson(200, {});
+    const endpoint = await mockServer.forGet('/first').thenJson(500, {});
+    const secondEndpoint = await mockServer.forGet('/second').thenJson(200, {});
     const superJson = new SuperJson({
       profiles: {
         ['starwars/character-information']: {
