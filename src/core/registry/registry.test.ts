@@ -12,9 +12,11 @@ import { Config } from '../config';
 import {
   bindResponseError,
   invalidProviderResponseError,
+  invalidResponseError,
   unknownBindResponseError,
   unknownProviderInfoError,
 } from '../errors';
+import { JSON_PROBLEM_CONTENT } from '../interpreter';
 import {
   assertIsRegistryProviderInfo,
   fetchBind,
@@ -638,6 +640,40 @@ describe('registry', () => {
       await expect(
         fetchProfileAst(profileId, config, crypto, new NodeFetch(timers))
       ).resolves.toEqual(mockProfileDocument);
+
+      expect(request).toHaveBeenCalledTimes(1);
+      expect(request).toHaveBeenCalledWith(`/${profileId}`, {
+        method: 'GET',
+        baseUrl: TEST_REGISTRY_URL,
+        accept: 'application/vnd.superface.profile+json',
+        headers: [`Authorization: SUPERFACE-SDK-TOKEN ${TEST_SDK_TOKEN}`],
+      });
+    });
+
+    it('throws error on invalid status code and response body with detail', async () => {
+      const mockBody = {
+        detail: 'Test',
+        title: 'Title',
+      };
+      const mockResponse = {
+        statusCode: 400,
+        body: mockBody,
+        headers: { 'content-type': `${JSON_PROBLEM_CONTENT}; charset=utf-8` },
+        debug: {
+          request: {
+            headers: { test: 'test' },
+            url: 'test',
+            body: {},
+          },
+        },
+      };
+
+      request.mockResolvedValue(mockResponse);
+
+      const profileId = 'test-profile-id@1.0.0';
+      await expect(
+        fetchProfileAst(profileId, config, crypto, new NodeFetch(timers))
+      ).rejects.toEqual(invalidResponseError(400, mockBody));
 
       expect(request).toHaveBeenCalledTimes(1);
       expect(request).toHaveBeenCalledWith(`/${profileId}`, {
