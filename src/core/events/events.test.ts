@@ -181,7 +181,7 @@ describe('events', () => {
   });
 
   it('handles retry', async () => {
-    const endpoint = await mockServer.get('/test').thenJson(200, {});
+    const endpoint = await mockServer.forGet('/test').thenJson(200, {});
     const events = new Events(timers);
 
     const profile = new BoundProfileProvider(
@@ -267,7 +267,7 @@ describe('events', () => {
   });
 
   it('passes unhandled http responses to unhandled-http (201)', async () => {
-    const endpoint = await mockServer.get('/test').thenJson(201, {});
+    const endpoint = await mockServer.forGet('/test').thenJson(201, {});
 
     const events = new Events(timers);
     const profile = new BoundProfileProvider(
@@ -301,7 +301,7 @@ describe('events', () => {
   });
 
   it('passes unhandled http responses to unhandled-http (400)', async () => {
-    const endpoint = await mockServer.get('/test').thenJson(400, {});
+    const endpoint = await mockServer.forGet('/test').thenJson(400, {});
 
     const events = new Events(timers);
     const profile = new BoundProfileProvider(
@@ -335,7 +335,7 @@ describe('events', () => {
   });
 
   it('does not pass handled http response to unhandled-http (200)', async () => {
-    const endpoint = await mockServer.get('/test').thenJson(200, {});
+    const endpoint = await mockServer.forGet('/test').thenJson(200, {});
 
     const events = new Events(timers);
     const profile = new BoundProfileProvider(

@@ -26,7 +26,7 @@ describe('HttpClient', () => {
   });
 
   it('gets basic response', async () => {
-    await mockServer.get('/valid').thenJson(200, { response: 'valid' });
+    await mockServer.forGet('/valid').thenJson(200, { response: 'valid' });
     const response = await http.request('/valid', {
       method: 'get',
       accept: 'application/json',
@@ -38,7 +38,7 @@ describe('HttpClient', () => {
 
   it('gets error response', async () => {
     await mockServer
-      .get('/invalid')
+      .forGet('/invalid')
       .thenJson(404, { error: { message: 'Not found' } });
     const response = await http.request('/invalid', {
       method: 'get',
@@ -163,7 +163,7 @@ describe('HttpClient', () => {
 
   describe('multipart/form-data', () => {
     it('encodes multipart boundary correctly', async () => {
-      await mockServer.post('/data').thenCallback(async req => {
+      await mockServer.forPost('/data').thenCallback(async req => {
         return {
           status: 200,
           headers: { 'content-type': 'application/json' },

@@ -247,7 +247,7 @@ describe('MetricReporter', () => {
   beforeEach(async () => {
     await mockServer.start();
     eventEndpoint = await mockServer
-      .post('/insights/sdk_event')
+      .forPost('/insights/sdk_event')
       .thenJson(202, {});
   });
 
