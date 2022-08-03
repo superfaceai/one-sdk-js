@@ -176,12 +176,14 @@ More about how OneSDK handles secrets can be found in [SECURITY](SECURITY.md).
 Superface allows you to [monitor your integrations](https://superface.ai/docs/guides/integrations-monitoring) and display the metrics on a dashboard. There are three kinds of metrics reported:
 
 1. When an OneSDK instance is created
-2. After each perform (reporting success or failure of a given use case)
-3. When a provider failover is triggered
+2. After each perform - reporting success or failure of a given use case
+3. When provider failover is triggered - what provider failed and which one was switched to
 
-This functionality requires you to obtain and set a `SUPERFACE_SDK_TOKEN`. For more information, see [Integrations Monitoring](https://superface.ai/docs/guides/integrations-monitoring).
+These metrics contain no personal information nor the contents of the API calls and are rate limited as to not impact performance.
 
-OneSDK also sends anonymized metadata about its usage to Superface services. This data contains no personal information nor the contents of the API calls, is rate limited as to not impact performance, and can be disabled by setting an environment variable:
+Utilizing this functionality requires you to obtain and set a `SUPERFACE_SDK_TOKEN`. For more information, see [Integrations Monitoring](https://superface.ai/docs/guides/integrations-monitoring).
+
+However, even without an `SUPERFACE_SDK_TOKEN` set, this data is sent anonymized to Superface services for diagnostic purposes. All metrics reporting can be disabled by setting an environment variable:
 
 ```shell
 SUPERFACE_DISABLE_METRIC_REPORTING=true
