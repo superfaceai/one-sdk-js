@@ -17,14 +17,14 @@ const DEBUG_NAMESPACE = 'metric-reporter';
 
 type EventBase = {
   event_type: 'SDKInit' | 'Metrics' | 'ProviderChange';
-  configuration_hash: string;
+  configuration_hash: string | undefined;
   occurred_at: string;
 };
 
 type SDKInitEvent = EventBase & {
   event_type: 'SDKInit';
   data: {
-    configuration: AnonymizedSuperJsonDocument;
+    configuration: AnonymizedSuperJsonDocument | undefined;
   };
 };
 
@@ -179,15 +179,15 @@ export class MetricReporter {
   private startTime: number | undefined;
   private readonly sdkToken: string | undefined;
   private performMetrics: Omit<PerformMetricsInput, 'eventType'>[] = [];
-  private configHash: string;
-  private anonymizedSuperJson: AnonymizedSuperJsonDocument;
+  private configHash: string | undefined;
+  private anonymizedSuperJson: AnonymizedSuperJsonDocument | undefined;
   private readonly log: LogFunction | undefined;
 
   constructor(
-    superJson: SuperJson,
     private readonly config: IConfig,
     private readonly timers: ITimers,
     private readonly fetchInstance: IFetch,
+    superJson?: SuperJson,
     logger?: ILogger
   ) {
     if (config.metricDebounceTimeMax < config.metricDebounceTimeMin) {
@@ -196,9 +196,12 @@ export class MetricReporter {
       );
     }
     this.sdkToken = config.sdkAuthToken;
-    this.configHash = superJson.configHash;
-    this.anonymizedSuperJson = superJson.anonymized;
     this.log = logger?.log(DEBUG_NAMESPACE);
+
+    if (superJson) {
+      this.configHash = superJson.configHash;
+      this.anonymizedSuperJson = superJson.anonymized;
+    }
   }
 
   public reportEvent(event: EventInput): void {
