@@ -22,6 +22,7 @@ import {
   SecurityConfiguration,
 } from '../interpreter';
 import { IServiceSelector } from '../services';
+import { resolveIntegrationParameters } from './parameters';
 import { resolveSecurityConfiguration } from './security';
 
 const DEBUG_NAMESPACE_SENSITIVE = 'bound-profile-provider:sensitive';
@@ -121,9 +122,9 @@ export class BoundProfileProvider implements IBoundProfileProvider {
         usecase,
         services: this.configuration.services,
         security,
-        parameters: this.mergeParameters(
-          parameters,
-          this.configuration.parameters
+        parameters: resolveIntegrationParameters(
+          this.provider,
+          this.mergeParameters(parameters, this.configuration.parameters)
         ),
       },
       {
