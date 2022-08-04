@@ -1,55 +1,36 @@
-import type {
-  IFileExistsError,
-  INotEmptyError,
-  INotFoundError,
-  IPermissionDeniedError,
-  IUnknownFileSystemError,
-} from '../../interfaces';
+import { ErrorBase } from '../../lib';
 
-export class FileExistsError extends Error implements IFileExistsError {
-  public override name = 'FileExistsError' as const;
-
+export class FileExistsError extends ErrorBase {
   constructor(message: string) {
-    super(message);
+    super(FileExistsError.name, message);
     Object.setPrototypeOf(this, FileExistsError.prototype);
   }
 }
 
-export class PermissionDeniedError
-  extends Error
-  implements IPermissionDeniedError
-{
-  public override name = 'PermissionDeniedError' as const;
-
+export class PermissionDeniedError extends ErrorBase {
   constructor(message: string) {
-    super(message);
+    super(PermissionDeniedError.name, message);
     Object.setPrototypeOf(this, PermissionDeniedError.prototype);
   }
 }
 
-export class NotEmptyError extends Error implements INotEmptyError {
-  public override name = 'NotEmptyError' as const;
+export class NotEmptyError extends ErrorBase {
   constructor(message: string) {
-    super(message);
+    super(NotEmptyError.name, message);
     Object.setPrototypeOf(this, NotEmptyError.prototype);
   }
 }
 
-export class NotFoundError extends Error implements INotFoundError {
-  public override name = 'NotFoundError' as const;
+export class NotFoundError extends ErrorBase {
   constructor(message: string) {
-    super(message);
+    super(NotFoundError.name, message);
     Object.setPrototypeOf(this, NotFoundError.prototype);
   }
 }
 
-export class UnknownFileSystemError
-  extends Error
-  implements IUnknownFileSystemError
-{
-  public override name = 'UnknownFileSystemError' as const;
+export class UnknownFileSystemError extends ErrorBase {
   constructor(message: string) {
-    super(message);
+    super(UnknownFileSystemError.name, message);
     Object.setPrototypeOf(this, UnknownFileSystemError.prototype);
   }
 }

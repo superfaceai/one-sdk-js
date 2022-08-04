@@ -1,7 +1,3 @@
-import type {
-  IInputValidationError,
-  IResultValidationError,
-} from '../../interfaces';
 import { ErrorBase, UnexpectedError } from '../../lib';
 
 export type ErrorContext = { path?: string[] };
@@ -102,31 +98,25 @@ export function formatErrors(errors?: ValidationError[]): string {
     .join('\n');
 }
 
-export class InputValidationError
-  extends ErrorBase
-  implements IInputValidationError
-{
-  public name = 'InputValidationError' as const;
-
+export class InputValidationError extends ErrorBase {
   constructor(public errors?: ValidationError[]) {
     super(
       'InputValidationError',
       'Input validation failed:' + '\n' + formatErrors(errors)
     );
+
+    Object.setPrototypeOf(this, InputValidationError.prototype);
   }
 }
 
-export class ResultValidationError
-  extends ErrorBase
-  implements IResultValidationError
-{
-  public name = 'ResultValidationError' as const;
-
+export class ResultValidationError extends ErrorBase {
   constructor(public errors?: ValidationError[]) {
     super(
-      'ResultValidationError',
+      ResultValidationError.name,
       'Result validation failed:' + '\n' + formatErrors(errors)
     );
+
+    Object.setPrototypeOf(this, ResultValidationError.prototype);
   }
 }
 

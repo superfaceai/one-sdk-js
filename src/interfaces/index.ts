@@ -2,7 +2,6 @@ export * from './binary';
 export * from './client';
 export * from './config';
 export * from './crypto';
-export * from './errors';
 export * from './environment';
 export * from './events';
 export * from './filesystem';

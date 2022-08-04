@@ -28,8 +28,7 @@ import type {
   IConfig,
   ICrypto,
   ILogger,
-  LogFunction,
-  MapInterpreterError,
+  LogFunction
 } from '../../interfaces';
 import {
   isBinaryData,
@@ -167,7 +166,7 @@ abstract class NodeVisitor<N extends MapASTNode, V = undefined>
     protected stack: NonPrimitive,
     protected readonly childIdentifier: string,
     protected readonly log: LogFunction | undefined
-  ) {}
+  ) { }
 
   protected prepareResultDone(
     value?: V,
@@ -320,7 +319,7 @@ class MapDefinitionVisitor extends NodeVisitor<MapDefinitionNode> {
     return this.prepareResultDone(undefined);
   }
 
-  public override [Symbol.toStringTag](): string {
+  public override[Symbol.toStringTag](): string {
     return 'MapDefinitionVisitor';
   }
 }
@@ -343,7 +342,7 @@ class OperationDefinitionVisitor extends NodeVisitor<OperationDefinitionNode> {
     return this.prepareResultDone(undefined);
   }
 
-  public override [Symbol.toStringTag](): string {
+  public override[Symbol.toStringTag](): string {
     return 'OperationDefinitionVisitor';
   }
 }
@@ -391,7 +390,7 @@ class SetStatementVisitor extends NodeVisitor<SetStatementNode> {
     return this.prepareResultDone(undefined);
   }
 
-  public override [Symbol.toStringTag](): string {
+  public override[Symbol.toStringTag](): string {
     return 'SetStatementVisitor';
   }
 }
@@ -408,7 +407,7 @@ class ConditionAtomVisitor extends NodeVisitor<ConditionAtomNode, boolean> {
     return this.prepareResultDone(Boolean(result.value));
   }
 
-  public override [Symbol.toStringTag](): string {
+  public override[Symbol.toStringTag](): string {
     return 'ConditionAtomVisitor';
   }
 }
@@ -449,7 +448,7 @@ class AssignmentVisitor extends NodeVisitor<AssignmentNode, NonPrimitive> {
     return this.prepareResultDone(object);
   }
 
-  public override [Symbol.toStringTag](): string {
+  public override[Symbol.toStringTag](): string {
     return 'AssignmentVisitor';
   }
 }
@@ -463,7 +462,7 @@ class PrimitiveLiteralVisitor extends NodeVisitor<
     return this.prepareResultDone(this.node.value);
   }
 
-  public override [Symbol.toStringTag](): string {
+  public override[Symbol.toStringTag](): string {
     return 'PrimitiveLiteralVisitor';
   }
 }
@@ -490,7 +489,7 @@ class ObjectLiteralVisitor extends NodeVisitor<
     return this.prepareResultDone(object);
   }
 
-  public override [Symbol.toStringTag](): string {
+  public override[Symbol.toStringTag](): string {
     return 'ObjectLiteralVisitor';
   }
 }
@@ -540,7 +539,7 @@ class JessieExpressionVisitor extends NodeVisitor<
     }
   }
 
-  public override [Symbol.toStringTag](): string {
+  public override[Symbol.toStringTag](): string {
     return 'JessieExpressionVisitor';
   }
 }
@@ -578,7 +577,7 @@ class IterationAtomVisitor extends NodeVisitor<
     return this.prepareResultDone(result.value);
   }
 
-  public override [Symbol.toStringTag](): string {
+  public override[Symbol.toStringTag](): string {
     return 'IterationAtomVisitor';
   }
 }
@@ -697,7 +696,7 @@ class CallVisitor extends NodeVisitor<
     }
   }
 
-  public override [Symbol.toStringTag](): string {
+  public override[Symbol.toStringTag](): string {
     return 'CallVisitor';
   }
 }
@@ -867,7 +866,7 @@ class HttpCallStatementVisitor extends NodeVisitor<HttpCallStatementNode> {
     return this.prepareResultDone(undefined);
   }
 
-  public override [Symbol.toStringTag](): string {
+  public override[Symbol.toStringTag](): string {
     return 'HttpCallStatementVisitor';
   }
 }
@@ -923,7 +922,7 @@ class HttpRequestVisitor extends NodeVisitor<HttpRequestNode, HttpRequest> {
     });
   }
 
-  public override [Symbol.toStringTag](): string {
+  public override[Symbol.toStringTag](): string {
     return 'HttpRequestVisitor';
   }
 }
@@ -1009,7 +1008,7 @@ class HttpResponseHandlerVisitor extends NodeVisitor<
     return this.prepareResultDone(true);
   }
 
-  public override [Symbol.toStringTag](): string {
+  public override[Symbol.toStringTag](): string {
     return 'HttpResponseHandlerVisitor';
   }
 }
@@ -1064,7 +1063,7 @@ class OutcomeStatementVisitor extends NodeVisitor<OutcomeStatementNode> {
     return this.prepareResultDone(undefined, this.node.terminateFlow);
   }
 
-  public override [Symbol.toStringTag](): string {
+  public override[Symbol.toStringTag](): string {
     return 'OutcomeStatementVisitor';
   }
 }

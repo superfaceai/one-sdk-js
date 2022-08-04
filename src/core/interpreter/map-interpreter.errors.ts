@@ -1,25 +1,20 @@
 import type { MapASTNode, MapDocumentNode } from '@superfaceai/ast';
 
-import type {
-  ErrorMetadata,
-  IHTTPError,
-  IJessieError,
-  IMapASTError,
-  IMappedError,
-  IMappedHTTPError,
-} from '../../interfaces';
 import { ErrorBase } from '../../lib';
 import type { HttpMultiMap } from './http';
 
+export interface ErrorMetadata {
+  node?: MapASTNode;
+  ast?: MapDocumentNode;
+}
+
+// TODO rename to MapInterpreterError
 export class MapInterpreterErrorBase extends ErrorBase {
   private path?: string[];
 
-  constructor(
-    public override kind: string,
-    public override message: string,
-    public metadata?: ErrorMetadata
-  ) {
+  constructor(kind: string, message: string, public metadata?: ErrorMetadata) {
     super(kind, message);
+    Object.setPrototypeOf(this, MapInterpreterErrorBase.prototype);
   }
 
   public get astPath(): string[] | undefined {
@@ -81,25 +76,16 @@ export class MapInterpreterErrorBase extends ErrorBase {
   }
 }
 
-export class MapASTError
-  extends MapInterpreterErrorBase
-  implements IMapASTError
-{
-  public name = 'MapASTError' as const;
-
-  constructor(
-    public override message: string,
-    public override metadata?: ErrorMetadata
-  ) {
-    super('MapASTError', message, metadata);
+export class MapASTError extends MapInterpreterErrorBase {
+  constructor(message: string, public override metadata?: ErrorMetadata) {
+    super(MapASTError.name, message, metadata);
+    Object.setPrototypeOf(this, MapASTError.prototype);
   }
 }
 
-export class HTTPError extends MapInterpreterErrorBase implements IHTTPError {
-  public name = 'HTTPError' as const;
-
+export class HTTPError extends MapInterpreterErrorBase {
   constructor(
-    public override message: string,
+    message: string,
     public override metadata?: ErrorMetadata,
     public statusCode?: number,
     public request?: {
@@ -112,23 +98,20 @@ export class HTTPError extends MapInterpreterErrorBase implements IHTTPError {
       headers?: HttpMultiMap;
     }
   ) {
-    super('HTTPError', message, metadata);
+    super(HTTPError.name, message, metadata);
+    Object.setPrototypeOf(this, HTTPError.prototype);
   }
 }
 
-export class MappedHTTPError<T>
-  extends MapInterpreterErrorBase
-  implements IMappedHTTPError<T>
-{
-  public name = 'MappedHTTPError' as const;
-
+export class MappedHTTPError<T> extends MapInterpreterErrorBase {
   constructor(
-    public override message: string,
+    message: string,
     public override metadata?: { node?: MapASTNode; ast?: MapDocumentNode },
     public statusCode?: number,
     public properties?: T
   ) {
-    super('MappedHTTPError', message, metadata);
+    super(MappedHTTPError.name, message, metadata);
+    Object.setPrototypeOf(this, MappedHTTPError.prototype);
   }
 
   public override toString(): string {
@@ -147,18 +130,14 @@ export class MappedHTTPError<T>
   }
 }
 
-export class JessieError
-  extends MapInterpreterErrorBase
-  implements IJessieError
-{
-  public name = 'JessieError' as const;
-
+export class JessieError extends MapInterpreterErrorBase {
   constructor(
-    public override message: string,
+    message: string,
     public originalError: Error,
     public override metadata?: { node?: MapASTNode; ast?: MapDocumentNode }
   ) {
-    super('JessieError', message);
+    super(JessieError.name, message);
+    Object.setPrototypeOf(this, JessieError.prototype);
   }
 
   public override toString(): string {
@@ -175,18 +154,16 @@ export class JessieError
   }
 }
 
-export class MappedError<T>
-  extends MapInterpreterErrorBase
-  implements IMappedError<T>
-{
-  public name = 'MappedError' as const;
+export class MappedError<T> extends MapInterpreterErrorBase {
+  public override name = 'MappedError' as const;
 
   constructor(
-    public override message: string,
+    message: string,
     public override metadata?: { node?: MapASTNode; ast?: MapDocumentNode },
     public properties?: T
   ) {
-    super('MappedError', message, metadata);
+    super(MappedError.name, message, metadata);
+    Object.setPrototypeOf(this, MappedError.prototype);
   }
 
   public override toString(): string {

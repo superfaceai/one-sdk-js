@@ -1,5 +1,5 @@
+import type { FileSystemError } from '../core';
 import type { Result } from '../lib';
-import type { IFileSystemError } from './errors/filesystem.errors';
 
 export interface IFileSystem {
   /**
@@ -69,17 +69,17 @@ export interface IFileSystem {
     mkdir: (
       path: string,
       options?: { recursive?: boolean }
-    ) => Result<void, IFileSystemError>;
+    ) => Result<void, FileSystemError>;
 
     /**
      * Reads file content as string.
      */
-    readFile: (path: string) => Result<string, IFileSystemError>;
+    readFile: (path: string) => Result<string, FileSystemError>;
 
     /**
      * Returns list of files at `path`.
      */
-    readdir: (path: string) => Result<string[], IFileSystemError>;
+    readdir: (path: string) => Result<string[], FileSystemError>;
 
     /**
      * Removes file or director if it exists.
@@ -88,12 +88,12 @@ export interface IFileSystem {
     rm: (
       path: string,
       options?: { recursive?: boolean }
-    ) => Result<void, IFileSystemError>;
+    ) => Result<void, FileSystemError>;
 
     /**
      * Writes string to file.
      */
-    writeFile: (path: string, data: string) => Result<void, IFileSystemError>;
+    writeFile: (path: string, data: string) => Result<void, FileSystemError>;
   };
 
   /**
@@ -125,17 +125,17 @@ export interface IFileSystem {
   mkdir: (
     path: string,
     options?: { recursive?: boolean }
-  ) => Promise<Result<void, IFileSystemError>>;
+  ) => Promise<Result<void, FileSystemError>>;
 
   /**
    * Reads file content as string.
    */
-  readFile: (path: string) => Promise<Result<string, IFileSystemError>>;
+  readFile: (path: string) => Promise<Result<string, FileSystemError>>;
 
   /**
    * Returns list of files at `path`.
    */
-  readdir: (path: string) => Promise<Result<string[], IFileSystemError>>;
+  readdir: (path: string) => Promise<Result<string[], FileSystemError>>;
 
   /**
    * Removes file or directory if it exists.
@@ -144,7 +144,7 @@ export interface IFileSystem {
   rm: (
     path: string,
     options?: { recursive?: boolean }
-  ) => Promise<Result<void, IFileSystemError>>;
+  ) => Promise<Result<void, FileSystemError>>;
 
   /**
    * Writes string to file.
@@ -152,5 +152,5 @@ export interface IFileSystem {
   writeFile: (
     path: string,
     data: string
-  ) => Promise<Result<void, IFileSystemError>>;
+  ) => Promise<Result<void, FileSystemError>>;
 }
