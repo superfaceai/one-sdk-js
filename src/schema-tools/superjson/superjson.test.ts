@@ -12,7 +12,7 @@ import {
   SecurityValues,
 } from '@superfaceai/ast';
 
-import { IFileSystem } from '../../core';
+import { IFileSystem, SDKExecutionError } from '../../core';
 import { err, ok } from '../../lib';
 import { MockEnvironment, MockFileSystem } from '../../mock';
 import { NodeFileSystem } from '../../node';
@@ -145,7 +145,7 @@ describe('SuperJson', () => {
   });
 
   describe('when loading super.json synchronously', () => {
-    const mockError = new Error('test');
+    const mockError = new SDKExecutionError('Error', ['test'], []);
 
     it('returns err when unable to find super.json', () => {
       fileSystem.sync.isAccessible = () => false;
@@ -170,7 +170,7 @@ describe('SuperJson', () => {
       const result = SuperJson.loadSync('test', fileSystem);
       expect(result.isErr()).toBe(true);
       expect(result.isErr() && result.error.message).toMatch(
-        'Unable to read super.json\n\nError: test'
+        'Unable to read super.json\n\nError\n\ntest\n\n'
       );
     });
 
@@ -244,7 +244,7 @@ describe('SuperJson', () => {
   });
 
   describe('when loading super.json asynchronously', () => {
-    const mockError = new Error('test');
+    const mockError = new SDKExecutionError('Error', ['test'], []);
 
     it('returns err when unable to find super.json', async () => {
       fileSystem.isAccessible = async () => false;

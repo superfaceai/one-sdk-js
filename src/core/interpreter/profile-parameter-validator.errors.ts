@@ -104,6 +104,8 @@ export class InputValidationError extends ErrorBase {
       'InputValidationError',
       'Input validation failed:' + '\n' + formatErrors(errors)
     );
+
+    Object.setPrototypeOf(this, InputValidationError.prototype);
   }
 
   public override toString(): string {
@@ -114,9 +116,11 @@ export class InputValidationError extends ErrorBase {
 export class ResultValidationError extends ErrorBase {
   constructor(public errors?: ValidationError[]) {
     super(
-      'ResultValidationError',
+      ResultValidationError.name,
       'Result validation failed:' + '\n' + formatErrors(errors)
     );
+
+    Object.setPrototypeOf(this, ResultValidationError.prototype);
   }
 
   public override toString(): string {

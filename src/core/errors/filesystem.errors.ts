@@ -1,39 +1,36 @@
-export class FileExistsError extends Error {
+import { ErrorBase } from './errors';
+
+export class FileExistsError extends ErrorBase {
   constructor(message: string) {
-    super(message);
-    this.name = this.constructor.name;
+    super(FileExistsError.name, message);
     Object.setPrototypeOf(this, FileExistsError.prototype);
   }
 }
 
-export class PermissionDeniedError extends Error {
+export class PermissionDeniedError extends ErrorBase {
   constructor(message: string) {
-    super(message);
-    this.name = this.constructor.name;
+    super(PermissionDeniedError.name, message);
     Object.setPrototypeOf(this, PermissionDeniedError.prototype);
   }
 }
 
-export class NotEmptyError extends Error {
+export class NotEmptyError extends ErrorBase {
   constructor(message: string) {
-    super(message);
-    this.name = this.constructor.name;
+    super(NotEmptyError.name, message);
     Object.setPrototypeOf(this, NotEmptyError.prototype);
   }
 }
 
-export class NotFoundError extends Error {
+export class NotFoundError extends ErrorBase {
   constructor(message: string) {
-    super(message);
-    this.name = this.constructor.name;
+    super(NotFoundError.name, message);
     Object.setPrototypeOf(this, NotFoundError.prototype);
   }
 }
 
-export class UnknownFileSystemError extends Error {
+export class UnknownFileSystemError extends ErrorBase {
   constructor(message: string) {
-    super(message);
-    this.name = this.constructor.name;
+    super(UnknownFileSystemError.name, message);
     Object.setPrototypeOf(this, UnknownFileSystemError.prototype);
   }
 }

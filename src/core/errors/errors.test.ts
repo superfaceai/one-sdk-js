@@ -1,6 +1,26 @@
-import { SDKExecutionError, UnexpectedError } from './errors';
+import { ErrorBase, SDKExecutionError, UnexpectedError } from './errors';
 
 describe('errors', () => {
+  describe('ErrorBase', () => {
+    const error = new ErrorBase('MyKind', 'My message');
+
+    it('has kind', () => {
+      expect(error.kind).toBe('MyKind');
+    });
+
+    it('has name', () => {
+      expect(error.name).toBe('MyKind');
+    });
+
+    it('creates default string description', () => {
+      expect(Object.prototype.toString.call(error)).toBe('[object MyKind]');
+    });
+
+    it('strigifies kind and message', () => {
+      expect(error.toString()).toBe('MyKind: My message');
+    });
+  });
+
   describe('UnexpectedError', () => {
     const error = new UnexpectedError('out of nowhere');
 
@@ -56,7 +76,7 @@ Hint: hint3
       );
 
       expect(Object.prototype.toString.call(error)).toBe(
-        '[object SdkExecutionError]'
+        '[object SDKExecutionError]'
       );
     });
 
