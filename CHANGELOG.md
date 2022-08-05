@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Optionally pass `version` to `getProfile`
 - Pass `security` and `parameters` values in `getProvider`
 
+### Changed
+- Default cache location is `node_modules/.cache/superface`
 
 ## [1.5.2] - 2022-06-15
 ### Fixed
