@@ -1846,8 +1846,8 @@ describe('superjson mutate', () => {
           PROFILE,
           provider,
           variant,
-          environment,
-          filesystem
+          filesystem,
+          environment
         )
       ).toEqual(expected[0]);
       expect(
