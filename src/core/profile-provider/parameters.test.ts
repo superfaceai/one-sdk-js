@@ -1,4 +1,4 @@
-import { ProviderJson } from '@superfaceai/ast';
+import type { ProviderJson } from '@superfaceai/ast';
 
 import { resolveIntegrationParameters } from './parameters';
 
