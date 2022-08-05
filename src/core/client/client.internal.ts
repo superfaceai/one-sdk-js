@@ -11,9 +11,7 @@ import type { Config } from '../config';
 import {
   invalidIdentifierIdError,
   invalidVersionError,
-  profileFileNotFoundError,
   profileNotInstalledError,
-  unconfiguredProviderInPriorityError,
 } from '../errors';
 import type { Events, Interceptable } from '../events';
 import type { AuthCache, IFetch } from '../interpreter';
@@ -76,26 +74,6 @@ export class InternalClient {
       const profileSettings = this.superJson.profiles[profileId];
       if (profileSettings === undefined) {
         throw profileNotInstalledError(profileId);
-      }
-
-      if ('file' in profileSettings) {
-        const filePath = this.fileSystem.path.resolve(
-          this.config.superfacePath,
-          profileSettings.file
-        );
-        if (!(await this.fileSystem.exists(filePath))) {
-          throw profileFileNotFoundError(profileSettings.file, profileId);
-        }
-
-        // TODO: load priority and add it to ProfileConfiguration?
-        const priority = profileSettings.priority;
-        if (!priority.every(p => this.superJson?.providers[p])) {
-          throw unconfiguredProviderInPriorityError(
-            profileId,
-            priority,
-            Object.keys(this.superJson.providers ?? [])
-          );
-        }
       }
     }
 
