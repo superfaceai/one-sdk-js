@@ -33,7 +33,12 @@ export const DEFAULT_METRIC_DEBOUNCE_TIME = {
   max: 60000,
 };
 export const DEFAULT_CACHE_PATH = (fileSystem: FSPath): string =>
-  fileSystem.path.join(fileSystem.path.cwd(), 'superface', '.cache');
+  fileSystem.path.join(
+    fileSystem.path.cwd(),
+    'node_modules',
+    '.cache',
+    'superface'
+  );
 export const DEFAULT_SANDBOX_TIMEOUT = 100;
 export const DEFAULT_DISABLE_REPORTING = false;
 export const DEFAULT_CACHE = true;
