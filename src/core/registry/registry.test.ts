@@ -5,6 +5,7 @@ import type {
   ProviderJson,
 } from '@superfaceai/ast';
 import { AssertionError } from '@superfaceai/ast';
+import { parseMap, Source } from '@superfaceai/parser';
 
 import { MockTimers } from '../../mock';
 import { NodeCrypto, NodeFetch, NodeFileSystem } from '../../node';
@@ -20,7 +21,7 @@ import { JSON_PROBLEM_CONTENT } from '../interpreter';
 import {
   assertIsRegistryProviderInfo,
   fetchBind,
-  fetchMapSource,
+  fetchMapAST,
   fetchProfileAst,
   fetchProviderInfo,
 } from './registry';
@@ -685,7 +686,7 @@ describe('registry', () => {
     });
   });
 
-  describe('when fetching map source', () => {
+  describe('when fetching map AST', () => {
     const TEST_REGISTRY_URL = 'https://example.com/test-registry';
     const TEST_SDK_TOKEN =
       'sfs_bb064dd57c302911602dd097bc29bedaea6a021c25a66992d475ed959aa526c7_37bce8b5';
@@ -694,11 +695,12 @@ describe('registry', () => {
       sdkAuthToken: TEST_SDK_TOKEN,
     });
 
-    it('fetches map source with map variant', async () => {
-      const mockMapSOurce = 'source';
+    it('fetches map AST with map variant', async () => {
+      const mockMapSource = "profile = 'xxx@1.0'\nprovider = 'yyy'";
+      const parsed = parseMap(new Source(mockMapSource));
       const mockResponse = {
         statusCode: 200,
-        body: mockMapSOurce,
+        body: JSON.stringify(parsed),
         headers: { test: 'test' },
         debug: {
           request: {
@@ -712,23 +714,24 @@ describe('registry', () => {
 
       const mapId = 'test-profile-id.test-provider.test-map-variant@1.0.0';
       await expect(
-        fetchMapSource(mapId, config, crypto, new NodeFetch(timers))
-      ).resolves.toEqual(mockMapSOurce);
+        fetchMapAST(mapId, config, crypto, new NodeFetch(timers))
+      ).resolves.toEqual(parsed);
 
       expect(request).toHaveBeenCalledTimes(1);
       expect(request).toHaveBeenCalledWith(`/${mapId}`, {
         method: 'GET',
         baseUrl: TEST_REGISTRY_URL,
-        accept: 'application/vnd.superface.map',
+        accept: 'application/vnd.superface.map+json',
         headers: [`Authorization: SUPERFACE-SDK-TOKEN ${TEST_SDK_TOKEN}`],
       });
     });
 
-    it('fetches map source without map variant', async () => {
-      const mockMapSource = 'source';
+    it('fetches map AST without map variant', async () => {
+      const mockMapSource = "profile = 'xxx@1.0'\nprovider = 'yyy'";
+      const parsed = parseMap(new Source(mockMapSource));
       const mockResponse = {
         statusCode: 200,
-        body: mockMapSource,
+        body: JSON.stringify(parsed),
         headers: { test: 'test' },
         debug: {
           request: {
@@ -742,14 +745,14 @@ describe('registry', () => {
 
       const mapId = 'test-profile-id.test-provider@1.0.0';
       await expect(
-        fetchMapSource(mapId, config, crypto, new NodeFetch(timers))
-      ).resolves.toEqual(mockMapSource);
+        fetchMapAST(mapId, config, crypto, new NodeFetch(timers))
+      ).resolves.toEqual(parsed);
 
       expect(request).toHaveBeenCalledTimes(1);
       expect(request).toHaveBeenCalledWith(`/${mapId}`, {
         method: 'GET',
         baseUrl: TEST_REGISTRY_URL,
-        accept: 'application/vnd.superface.map',
+        accept: 'application/vnd.superface.map+json',
         headers: [`Authorization: SUPERFACE-SDK-TOKEN ${TEST_SDK_TOKEN}`],
       });
     });

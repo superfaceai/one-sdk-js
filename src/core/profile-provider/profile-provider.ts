@@ -10,7 +10,6 @@ import {
   assertProviderJson,
   FILE_URI_PROTOCOL,
   isFileURIString,
-  isMapFile,
 } from '@superfaceai/ast';
 
 import type {
@@ -30,9 +29,8 @@ import {
 } from '../errors';
 import type { Events, Interceptable } from '../events';
 import type { AuthCache, IFetch } from '../interpreter';
-import { Parser } from '../parser';
 import type { ProviderConfiguration } from '../provider';
-import { fetchBind, fetchMapSource, fetchProviderInfo } from '../registry';
+import { fetchBind, fetchMapAST, fetchProviderInfo } from '../registry';
 import { ServiceSelector } from '../services';
 import type { IBoundProfileProvider } from './bound-profile-provider';
 import { BoundProfileProvider } from './bound-profile-provider';
@@ -80,8 +78,6 @@ export type BindConfiguration = {
 
 export class ProfileProvider {
   private profileId: string;
-  private scope: string | undefined;
-  private profileName: string;
   private providerJson?: ProviderJson;
   private readonly providersCachePath: string;
   private readonly log: LogFunction | undefined;
@@ -105,13 +101,6 @@ export class ProfileProvider {
     private map?: string | MapDocumentNode
   ) {
     this.profileId = profileAstId(this.profile);
-    const [scopeOrProfileName, profileName] = this.profileId.split('/');
-    if (profileName === undefined) {
-      this.profileName = scopeOrProfileName;
-    } else {
-      this.scope = scopeOrProfileName;
-      this.profileName = profileName;
-    }
     this.providersCachePath = fileSystem.path.join(
       config.cachePath,
       'providers'
@@ -191,25 +180,12 @@ export class ProfileProvider {
           mapVariant !== undefined
             ? `${profileId}.${providerName}.${mapVariant}@${version}`
             : `${profileId}.${providerName}@${version}`;
-        const mapSource = await fetchMapSource(
+        mapAst = await fetchMapAST(
           mapId,
           this.config,
           this.crypto,
           this.fetchInstance,
           this.logger
-        );
-
-        mapAst = await Parser.parseMap(
-          mapSource,
-          mapId,
-          {
-            profileName: this.profile.header.name,
-            scope: this.profile.header.scope,
-            providerName,
-          },
-          this.config.cachePath,
-          this.config.cache,
-          this.fileSystem
         );
       }
     } else if (providerInfo === undefined) {
@@ -385,27 +361,9 @@ export class ProfileProvider {
     mapRevision?: string;
   }> {
     const mapInfo: { mapVariant?: string; mapRevision?: string } = {};
-    const [, providerName] = mapId.split('.');
     const mapAst = await ProfileProvider.resolveValue<MapDocumentNode>(
       this.map ?? mapId,
-      async (fileContents, fileName) => {
-        // If we have source, we parse
-        if (fileName !== undefined && isMapFile(fileName)) {
-          return Parser.parseMap(
-            fileContents,
-            fileName,
-            {
-              profileName: this.profileName,
-              providerName,
-              scope: this.scope,
-            },
-            this.config.cachePath,
-            this.config.cache,
-            this.fileSystem
-          );
-        }
-
-        // Otherwise we return parsed
+      async fileContents => {
         return assertMapDocumentNode(JSON.parse(fileContents));
       },
       mapId => {

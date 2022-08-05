@@ -17,15 +17,13 @@ import { normalizeSuperJsonDocument } from '../../schema-tools/superjson/normali
 import { Config } from '../config';
 import { localProviderAndRemoteMapError } from '../errors';
 import { Events } from '../events';
-import { Parser } from '../parser';
 import { ProviderConfiguration } from '../provider';
-import { fetchBind, fetchMapSource, fetchProviderInfo } from '../registry';
+import { fetchBind, fetchProviderInfo } from '../registry';
 import { ServiceSelector } from '../services';
 import { ProfileProvider } from './profile-provider';
 import { ProfileProviderConfiguration } from './profile-provider-configuration';
 
 jest.mock('../registry/registry');
-jest.mock('../parser/parser');
 
 const mockConfig = new Config(NodeFileSystem);
 const crypto = new NodeCrypto();
@@ -525,58 +523,6 @@ describe('profile provider', () => {
           },
           new MockEnvironment()
         );
-
-        fileSystem.readFile = () =>
-          Promise.resolve(ok(JSON.stringify(mockProfileDocument)));
-
-        const mockProfileProvider = new ProfileProvider(
-          superJson,
-          mockProfileDocument,
-          mockProviderConfiguration,
-          mockProfileProviderConfiguration,
-          mockConfig,
-          new Events(timers),
-          fileSystem,
-          crypto,
-          new NodeFetch(timers)
-        );
-
-        const result = await mockProfileProvider.bind();
-
-        expect(result).toMatchObject(expectedBoundProfileProvider);
-      });
-
-      it('returns new BoundProfileProvider get map source affter failed validation', async () => {
-        const mockMapSource = 'test source';
-        mocked(fetchBind).mockResolvedValue({
-          provider: mockFetchResponse.provider,
-          mapAst: undefined,
-        });
-        const superJson = normalizeSuperJsonDocument(
-          {
-            profiles: {
-              ['test-profile']: {
-                version: '1.0.0',
-                defaults: {},
-                providers: {
-                  test: {},
-                },
-              },
-            },
-            providers: {
-              test: {
-                security: mockSecurityValues,
-              },
-            },
-          },
-          new MockEnvironment()
-        );
-
-        mocked(fetchMapSource).mockResolvedValue(mockMapSource);
-
-        jest
-          .spyOn(Parser, 'parseMap')
-          .mockResolvedValue(mockFetchResponse.mapAst);
 
         fileSystem.readFile = () =>
           Promise.resolve(ok(JSON.stringify(mockProfileDocument)));
