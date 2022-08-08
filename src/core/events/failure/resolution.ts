@@ -1,4 +1,4 @@
-import { FailurePolicyReason } from './policy';
+import type { FailurePolicyReason } from './policy';
 
 /** Additional common configuration for making requests. */
 export type RequestConfiguration = {

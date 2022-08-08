@@ -1,4 +1,4 @@
-import { SDKExecutionError, UnexpectedError } from './errors';
+import { SDKExecutionError, UnexpectedError } from '../../lib';
 
 describe('errors', () => {
   describe('UnexpectedError', () => {
@@ -56,7 +56,7 @@ Hint: hint3
       );
 
       expect(Object.prototype.toString.call(error)).toBe(
-        '[object SdkExecutionError]'
+        '[object SDKExecutionError]'
       );
     });
 

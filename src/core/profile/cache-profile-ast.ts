@@ -1,10 +1,7 @@
-import {
-  EXTENSIONS,
-  isProfileDocumentNode,
-  ProfileDocumentNode,
-} from '@superfaceai/ast';
+import type { ProfileDocumentNode } from '@superfaceai/ast';
+import { EXTENSIONS, isProfileDocumentNode } from '@superfaceai/ast';
 
-import { IConfig, IFileSystem, LogFunction } from '../interfaces';
+import type { IConfig, IFileSystem, LogFunction } from '../../interfaces';
 
 export async function tryToLoadCachedAst({
   profileId,

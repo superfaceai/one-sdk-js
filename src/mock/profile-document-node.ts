@@ -1,4 +1,4 @@
-import { ProfileDocumentNode } from '@superfaceai/ast';
+import type { ProfileDocumentNode } from '@superfaceai/ast';
 
 export const mockProfileDocumentNode = (options?: {
   name?: string;

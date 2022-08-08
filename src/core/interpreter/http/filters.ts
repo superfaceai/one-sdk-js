@@ -1,16 +1,22 @@
-import { MaybePromise, pipe } from '../../../lib';
+import type { ILogger } from '../../../interfaces';
+import type {
+  MaybePromise} from '../../../lib';
+import {
+  pipe,
+  UnexpectedError,
+  variablesToStrings,
+} from '../../../lib';
 import { USER_AGENT } from '../../../user-agent';
-import { UnexpectedError, unsupportedContentType } from '../../errors';
-import { ILogger } from '../../interfaces';
-import { variablesToStrings } from '../variables';
+import { unsupportedContentType } from '../../errors';
+import type {
+  FetchBody,
+  IFetch} from './interfaces';
 import {
   BINARY_CONTENT_REGEXP,
   BINARY_CONTENT_TYPES,
   binaryBody,
-  FetchBody,
   FORMDATA_CONTENT,
   formDataBody,
-  IFetch,
   isBinaryBody,
   isFormDataBody,
   isStringBody,
@@ -20,13 +26,13 @@ import {
   URLENCODED_CONTENT,
   urlSearchParamsBody,
 } from './interfaces';
-import {
+import type {
   AuthCache,
   HttpRequest,
   ISecurityHandler,
   RequestParameters,
 } from './security';
-import { HttpResponse } from './types';
+import type { HttpResponse } from './types';
 import { createUrl, fetchRequest } from './utils';
 
 /**

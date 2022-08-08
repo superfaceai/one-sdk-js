@@ -1,4 +1,4 @@
-import {
+import type {
   AssignmentNode,
   CallStatementNode,
   ConditionAtomNode,
@@ -7,8 +7,6 @@ import {
   HttpResponseHandlerNode,
   HttpSecurityRequirement,
   InlineCallNode,
-  isMapDefinitionNode,
-  isOperationDefinitionNode,
   IterationAtomNode,
   JessieExpressionNode,
   LiteralNode,
@@ -22,37 +20,49 @@ import {
   OutcomeStatementNode,
   PrimitiveLiteralNode,
   SetStatementNode,
-  Substatement,
+  Substatement} from '@superfaceai/ast';
+import {
+  isMapDefinitionNode,
+  isOperationDefinitionNode
 } from '@superfaceai/ast';
 
-import { err, ok, Result } from '../../lib';
-import { UnexpectedError } from '../errors';
-import { IConfig, ICrypto, ILogger, LogFunction } from '../interfaces';
-import { IServiceSelector } from '../services';
-import { MapInterpreterExternalHandler } from './external-handler';
+import type {
+  IConfig,
+  ICrypto,
+  ILogger,
+  LogFunction,
+  MapInterpreterError,
+} from '../../interfaces';
+import type {
+  NonPrimitive,
+  Primitive,
+  Result,
+  Variables} from '../../lib';
 import {
+  castToVariables,
+  err,
+  mergeVariables,
+  ok,
+  UnexpectedError
+} from '../../lib';
+import type { IServiceSelector } from '../services';
+import type { MapInterpreterExternalHandler } from './external-handler';
+import type {
   AuthCache,
-  HttpClient,
   HttpResponse,
-  SecurityConfiguration,
+  SecurityConfiguration} from './http';
+import {
+  HttpClient
 } from './http';
-import { IFetch } from './http/interfaces';
+import type { IFetch } from './http/interfaces';
 import {
   HTTPError,
   JessieError,
   MapASTError,
-  MapInterpreterError,
   MappedError,
   MappedHTTPError,
 } from './map-interpreter.errors';
 import { evalScript } from './sandbox';
-import {
-  castToVariables,
-  mergeVariables,
-  NonPrimitive,
-  Primitive,
-  Variables,
-} from './variables';
 
 const DEBUG_NAMESPACE = 'map-interpreter';
 
@@ -562,8 +572,8 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
                 const statusCode = this.stackTop('map').variables.statusCode;
                 error = new MappedHTTPError(
                   'Expected HTTP error',
-                  typeof statusCode === 'number' ? statusCode : undefined,
                   { node: statement, ast: this.ast },
+                  typeof statusCode === 'number' ? statusCode : undefined,
                   outcome?.result
                 );
               } else {

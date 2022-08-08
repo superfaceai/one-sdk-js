@@ -1,4 +1,4 @@
-import { ProviderService } from '@superfaceai/ast';
+import type { ProviderService } from '@superfaceai/ast';
 
 export interface IServiceSelector {
   getUrl(serviceId?: string): string | undefined;

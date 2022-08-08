@@ -1,17 +1,8 @@
-import { AssertionError, BackoffKind, SecurityValues } from '@superfaceai/ast';
+import type { SecurityValues } from '@superfaceai/ast';
+import { AssertionError, BackoffKind } from '@superfaceai/ast';
 
+import { SDKBindError, SDKExecutionError } from '../../lib';
 import { isRegistryErrorBody } from '../registry';
-import { SDKBindError, SDKExecutionError } from './errors';
-
-export function ensureErrorSubclass(error: unknown): Error {
-  if (typeof error === 'string') {
-    return new Error(error);
-  } else if (error instanceof Error) {
-    return error;
-  }
-
-  return new Error(JSON.stringify(error));
-}
 
 export function superJsonNotDefinedError(
   callerName: string
@@ -97,7 +88,7 @@ export function unsupportedFileExtensionError(
   correctExtension: string
 ): SDKExecutionError {
   return new SDKExecutionError(
-    `File paths ${filepath} contains unsupported extension.`,
+    `File path ${filepath} contains unsupported extension.`,
     [],
     [`Use file with ${correctExtension} extension.`]
   );
@@ -407,16 +398,6 @@ export function usecaseNotFoundError(
   );
 }
 
-export function invalidProfileProviderError(
-  profileProviderSettings: string
-): SDKExecutionError {
-  return new SDKExecutionError(
-    'Invalid profile provider entry format',
-    [`Settings: ${profileProviderSettings}`],
-    []
-  );
-}
-
 export function localProviderAndRemoteMapError(
   providerName: string,
   profileId: string
@@ -541,9 +522,7 @@ export function invalidResponseError(
 }
 
 // Bind errors
-export function invalidProviderResponseError(
-  error: unknown
-): SDKExecutionError {
+export function invalidProviderResponseError(error: unknown): SDKBindError {
   if (error instanceof AssertionError) {
     return new SDKBindError(
       'Bind call responded with invalid provider body',

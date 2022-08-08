@@ -1,30 +1,35 @@
 import { SuperCache } from '../../lib';
 import {
+  MockEnvironment,
   MockFileSystem,
   mockProfileDocumentNode,
   MockTimers,
 } from '../../mock';
 import { NodeCrypto, NodeFetch, NodeFileSystem } from '../../node';
-import { SuperJson } from '../../schema-tools';
+import { normalizeSuperJsonDocument } from '../../schema-tools/superjson/normalize';
 import { Config } from '../config';
 import { Events, registerHooks } from '../events';
-import { Profile, ProfileBase, ProfileConfiguration } from '../profile';
+import type { ProfileBase } from '../profile';
+import { Profile, ProfileConfiguration } from '../profile';
+import type { IBoundProfileProvider } from '../profile-provider';
 import { ProfileProviderConfiguration } from '../profile-provider';
-import { IBoundProfileProvider } from '../profile-provider/bound-profile-provider';
 import { ProviderConfiguration } from '../provider';
 import { UseCase } from './usecase';
 
-const mockSuperJson = new SuperJson({
-  profiles: {
-    test: {
-      version: '1.0.0',
+const mockSuperJson = normalizeSuperJsonDocument(
+  {
+    profiles: {
+      test: {
+        version: '1.0.0',
+      },
+    },
+    providers: {
+      'test-provider': {},
+      'test-provider2': {},
     },
   },
-  providers: {
-    'test-provider': {},
-    'test-provider2': {},
-  },
-});
+  new MockEnvironment()
+);
 
 const mockBoundProfileProvider = {
   perform: jest.fn(),

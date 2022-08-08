@@ -1,17 +1,22 @@
-import { AnonymizedSuperJsonDocument } from '@superfaceai/ast';
+import type {
+  AnonymizedSuperJsonDocument,
+  NormalizedSuperJsonDocument,
+} from '@superfaceai/ast';
 
-import { SuperJson } from '../../../schema-tools';
-import { UnexpectedError } from '../../errors';
-import {
+import type {
   IConfig,
+  ICrypto,
   ILogger,
   ITimeout,
   ITimers,
   LogFunction,
-} from '../../interfaces';
-import { IFetch, JSON_CONTENT, stringBody } from '../../interpreter';
-import { Events, FailureContext, SuccessContext } from '../events';
-import { FailurePolicyReason } from '../failure';
+} from '../../../interfaces';
+import { UnexpectedError } from '../../../lib';
+import type { IFetch } from '../../interpreter';
+import { JSON_CONTENT, stringBody } from '../../interpreter';
+import type { Events, FailureContext, SuccessContext } from '../events';
+import type { FailurePolicyReason } from '../failure';
+import { anonymizeSuperJson, hashSuperJson } from './utils';
 
 const DEBUG_NAMESPACE = 'metric-reporter';
 
@@ -187,7 +192,8 @@ export class MetricReporter {
     private readonly config: IConfig,
     private readonly timers: ITimers,
     private readonly fetchInstance: IFetch,
-    superJson?: SuperJson,
+    crypto: ICrypto,
+    superJson?: NormalizedSuperJsonDocument,
     logger?: ILogger
   ) {
     if (config.metricDebounceTimeMax < config.metricDebounceTimeMin) {
@@ -199,8 +205,8 @@ export class MetricReporter {
     this.log = logger?.log(DEBUG_NAMESPACE);
 
     if (superJson) {
-      this.configHash = superJson.configHash;
-      this.anonymizedSuperJson = superJson.anonymized;
+      this.configHash = hashSuperJson(superJson, crypto);
+      this.anonymizedSuperJson = anonymizeSuperJson(superJson);
     }
   }
 

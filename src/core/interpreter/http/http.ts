@@ -1,13 +1,20 @@
+import type {
+  HttpSecurityRequirement} from '@superfaceai/ast';
 import {
   HttpScheme,
-  HttpSecurityRequirement,
   SecurityType,
 } from '@superfaceai/ast';
 
+import type { ICrypto, ILogger } from '../../../interfaces';
+import type {
+  NonPrimitive,
+  Variables} from '../../../lib';
+import {
+  UnexpectedError,
+  variablesToStrings,
+} from '../../../lib';
 import { pipe } from '../../../lib/pipe/pipe';
-import { missingSecurityValuesError, UnexpectedError } from '../../errors';
-import { ICrypto, ILogger } from '../../interfaces';
-import { NonPrimitive, Variables, variablesToStrings } from '../variables';
+import { missingSecurityValuesError } from '../../errors';
 import {
   authenticateFilter,
   fetchFilter,
@@ -16,17 +23,18 @@ import {
   withRequest,
   withResponse,
 } from './filters';
-import { IFetch } from './interfaces';
-import {
-  ApiKeyHandler,
+import type { IFetch } from './interfaces';
+import type {
   AuthCache,
-  DigestHandler,
-  HttpHandler,
   ISecurityHandler,
   RequestParameters,
-  SecurityConfiguration,
+  SecurityConfiguration} from './security';
+import {
+  ApiKeyHandler,
+  DigestHandler,
+  HttpHandler
 } from './security';
-import { HttpResponse } from './types';
+import type { HttpResponse } from './types';
 
 export enum NetworkErrors {
   TIMEOUT_ERROR = 'TIMEOUT_ERROR',

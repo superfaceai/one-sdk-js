@@ -1,6 +1,6 @@
 import { parseProfile, Source } from '@superfaceai/parser';
 
-import { Result } from '../../lib';
+import type { Result } from '../../lib';
 import { ProfileParameterValidator } from './profile-parameter-validator';
 import {
   isInputValidationError,

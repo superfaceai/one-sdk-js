@@ -50,6 +50,7 @@ module.exports = {
       'error',
       { accessibility: 'explicit', overrides: { constructors: 'no-public' } },
     ],
+    '@typescript-eslint/consistent-type-imports': ['error', { prefer: 'type-imports' }],
   },
   settings: {
     'import/parsers': {

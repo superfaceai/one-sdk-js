@@ -1,10 +1,6 @@
-import {
-  NonPrimitive,
-  resolveProfileAst,
-  resolveProfileId,
-  TypedProfile,
-  UsecaseType,
-} from '../../core';
+import type { UsecaseType } from '../../core';
+import { resolveProfileAst, resolveProfileId, TypedProfile } from '../../core';
+import type { NonPrimitive } from '../../lib';
 import { NodeFileSystem } from '../filesystem';
 import { SuperfaceClientBase } from './client';
 

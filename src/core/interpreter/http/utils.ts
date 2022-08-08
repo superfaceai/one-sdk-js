@@ -1,10 +1,16 @@
-import { recursiveKeyList } from '../../../lib';
-import { missingPathReplacementError, UnexpectedError } from '../../errors';
-import { ILogger } from '../../interfaces';
-import { getValue, NonPrimitive, variableToString } from '../variables';
-import { IFetch } from './interfaces';
-import { HttpRequest } from './security';
-import { HttpResponse } from './types';
+import type { ILogger } from '../../../interfaces';
+import type {
+  NonPrimitive} from '../../../lib';
+import {
+  getValue,
+  recursiveKeyList,
+  UnexpectedError,
+  variableToString,
+} from '../../../lib';
+import { missingPathReplacementError } from '../../errors';
+import type { IFetch } from './interfaces';
+import type { HttpRequest } from './security';
+import type { HttpResponse } from './types';
 
 const DEBUG_NAMESPACE = 'http';
 const DEBUG_NAMESPACE_SENSITIVE = 'http:sensitive';

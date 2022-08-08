@@ -1,4 +1,4 @@
-import { UnexpectedError } from '../../core/errors';
+import { UnexpectedError } from '../error';
 
 /**
  * Creates a deep clone of the value.

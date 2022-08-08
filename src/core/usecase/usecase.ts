@@ -1,3 +1,7 @@
+import type {
+  NormalizedSuperJsonDocument,
+  SecurityValues,
+} from '@superfaceai/ast';
 import {
   BackoffKind,
   isApiKeySecurityValues,
@@ -5,50 +9,47 @@ import {
   isBearerTokenSecurityValues,
   isDigestSecurityValues,
   OnFail,
-  SecurityValues,
 } from '@superfaceai/ast';
 
-import { Result, SuperCache } from '../../lib';
-import { SuperJson } from '../../schema-tools';
-import { UnexpectedError } from '../errors';
+import type {
+  IConfig,
+  ICrypto,
+  IFileSystem,
+  ILogger,
+  ITimers,
+  IUseCase,
+  LogFunction,
+  PerformError,
+} from '../../interfaces';
+import { PerformOptions } from '../../interfaces';
+import type { NonPrimitive, Result, SuperCache, Variables } from '../../lib';
+import { UnexpectedError } from '../../lib';
+import type {
+  Events,
+  FailurePolicy,
+  Interceptable,
+  InterceptableMetadata,
+  UsecaseInfo,
+} from '../events';
 import {
   AbortPolicy,
   Backoff,
   CircuitBreakerPolicy,
   ConstantBackoff,
   eventInterceptor,
-  Events,
   ExponentialBackoff,
-  FailurePolicy,
   FailurePolicyRouter,
-  Interceptable,
-  InterceptableMetadata,
   RetryPolicy,
-  UsecaseInfo,
 } from '../events';
-import {
-  IConfig,
-  ICrypto,
-  IFileSystem,
-  ILogger,
-  ITimers,
-  LogFunction,
-} from '../interfaces';
-import {
-  AuthCache,
-  IFetch,
-  MapInterpreterError,
-  NonPrimitive,
-  ProfileParameterError,
-  Variables,
-} from '../interpreter';
-import { ProfileBase } from '../profile';
+import type { AuthCache, IFetch } from '../interpreter';
+import type { ProfileBase } from '../profile';
+import type { IBoundProfileProvider } from '../profile-provider';
 import {
   bindProfileProvider,
-  IBoundProfileProvider,
   ProfileProviderConfiguration,
 } from '../profile-provider';
-import { Provider, ProviderConfiguration, resolveProvider } from '../provider';
+import type { Provider, ProviderConfiguration } from '../provider';
+import { resolveProvider } from '../provider';
 
 const DEBUG_NAMESPACE = 'usecase';
 
@@ -83,17 +84,6 @@ export function resolveSecurityValues(
   return securityValues;
 }
 
-export type PerformOptions = {
-  provider?: Provider | string;
-  parameters?: Record<string, string>;
-  mapVariant?: string;
-  mapRevision?: string;
-  security?: SecurityValues[] | { [id: string]: Omit<SecurityValues, 'id'> };
-};
-
-// TODO
-export type PerformError = ProfileParameterError | MapInterpreterError;
-
 export type ProviderProvider = {
   getProvider: (provider: string) => Promise<Provider>;
   getProviderForProfile: (profileId: string) => Promise<Provider>;
@@ -110,7 +100,7 @@ export abstract class UseCaseBase implements Interceptable {
     public readonly name: string,
     public readonly events: Events,
     private readonly config: IConfig,
-    private readonly superJson: SuperJson | undefined,
+    private readonly superJson: NormalizedSuperJsonDocument | undefined,
     private readonly timers: ITimers,
     private readonly fileSystem: IFileSystem,
     private readonly crypto: ICrypto,
@@ -199,7 +189,7 @@ export abstract class UseCaseBase implements Interceptable {
     input?: TInput,
     parameters?: Record<string, string>,
     security?: SecurityValues[]
-  ): Promise<Result<TOutput, PerformError>> {
+  ): Promise<Result<TOutput, PerformError | UnexpectedError>> {
     if (this.boundProfileProvider === undefined) {
       throw new UnexpectedError(
         'Unreachable code reached: BoundProfileProvider is undefined.'
@@ -225,7 +215,7 @@ export abstract class UseCaseBase implements Interceptable {
   >(
     input?: TInput,
     options?: PerformOptions
-  ): Promise<Result<TOutput, PerformError>> {
+  ): Promise<Result<TOutput, PerformError | UnexpectedError>> {
     await this.bind(options);
 
     this.log?.('Bound provider: %O', this.boundProfileProvider);
@@ -241,7 +231,7 @@ export abstract class UseCaseBase implements Interceptable {
     const profileId = this.profile.configuration.id;
 
     // Check providerFailover/priority array
-    const profileEntry = this.superJson?.normalized.profiles[profileId];
+    const profileEntry = this.superJson?.profiles[profileId];
 
     if (profileEntry?.defaults[this.name] === undefined) {
       return;
@@ -276,7 +266,7 @@ export abstract class UseCaseBase implements Interceptable {
     this.checkWarnFailoverMisconfiguration();
 
     const profileId = this.profile.configuration.id;
-    const profileSettings = this.superJson?.normalized.profiles[profileId];
+    const profileSettings = this.superJson?.profiles[profileId];
 
     const key = `${profileId}/${this.name}`;
 
@@ -309,7 +299,7 @@ export abstract class UseCaseBase implements Interceptable {
       usecaseSafety: 'unsafe',
     };
 
-    const profileSettings = this.superJson?.normalized.profiles[profileId];
+    const profileSettings = this.superJson?.profiles[profileId];
     const retryPolicyConfig = profileSettings?.providers[provider]?.defaults[
       this.name
     ]?.retryPolicy ?? { kind: OnFail.NONE };
@@ -356,7 +346,7 @@ export abstract class UseCaseBase implements Interceptable {
   }
 }
 
-export class UseCase extends UseCaseBase {
+export class UseCase extends UseCaseBase implements IUseCase {
   public async perform<
     TInput extends NonPrimitive | undefined = Record<
       string,
@@ -366,7 +356,7 @@ export class UseCase extends UseCaseBase {
   >(
     input?: TInput,
     options?: PerformOptions
-  ): Promise<Result<TOutput, PerformError>> {
+  ): Promise<Result<TOutput, PerformError | UnexpectedError>> {
     // Disable failover when user specified provider
     // needs to happen here because bindAndPerform is subject to retry from event hooks
     // including provider failover

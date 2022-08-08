@@ -1,12 +1,12 @@
 import { ApiKeyPlacement, SecurityType } from '@superfaceai/ast';
 
-import { SDKExecutionError } from '../../../../errors';
+import { SDKExecutionError } from '../../../../../lib';
 import {
   FORMDATA_CONTENT,
   JSON_CONTENT,
   URLENCODED_CONTENT,
 } from '../../interfaces';
-import { RequestParameters, SecurityConfiguration } from '..';
+import type { RequestParameters, SecurityConfiguration } from '..';
 import { ApiKeyHandler } from './api-key';
 
 describe('ApiKeyHandler', () => {

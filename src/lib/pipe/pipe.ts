@@ -1,5 +1,5 @@
 import { clone } from '../object';
-import { MaybePromise } from '../types';
+import type { MaybePromise } from '../types';
 
 export async function pipe<T>(
   initial: T,

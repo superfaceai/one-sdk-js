@@ -1,21 +1,31 @@
-import { isUseCaseDefinitionNode, ProfileDocumentNode } from '@superfaceai/ast';
+import type {
+  NormalizedSuperJsonDocument,
+  ProfileDocumentNode,
+} from '@superfaceai/ast';
+import { isUseCaseDefinitionNode } from '@superfaceai/ast';
 
-import { SuperCache } from '../../lib';
-import { SuperJson } from '../../schema-tools';
+import type {
+  IConfig,
+  ICrypto,
+  IFileSystem,
+  ILogger,
+  IProfile,
+  ITimers,
+} from '../../interfaces';
+import type { SuperCache } from '../../lib';
 import { usecaseNotFoundError } from '../errors';
-import { Events, Interceptable } from '../events';
-import { IConfig, ICrypto, IFileSystem, ILogger, ITimers } from '../interfaces';
-import { AuthCache, IFetch } from '../interpreter';
-import { IBoundProfileProvider } from '../profile-provider';
+import type { Events, Interceptable } from '../events';
+import type { AuthCache, IFetch } from '../interpreter';
+import type { IBoundProfileProvider } from '../profile-provider';
 import { UseCase } from '../usecase';
-import { ProfileConfiguration } from './profile-configuration';
+import type { ProfileConfiguration } from './profile-configuration';
 
 export abstract class ProfileBase {
   constructor(
     public readonly configuration: ProfileConfiguration,
     public readonly ast: ProfileDocumentNode,
     protected readonly events: Events,
-    protected readonly superJson: SuperJson | undefined,
+    protected readonly superJson: NormalizedSuperJsonDocument | undefined,
     protected readonly config: IConfig,
     protected readonly timers: ITimers,
     protected readonly fileSystem: IFileSystem,
@@ -30,13 +40,12 @@ export abstract class ProfileBase {
 
   public getConfiguredProviders(): string[] {
     return Object.keys(
-      this.superJson?.normalized.profiles[this.configuration.id]?.providers ??
-        {}
+      this.superJson?.profiles[this.configuration.id]?.providers ?? {}
     );
   }
 }
 
-export class Profile extends ProfileBase {
+export class Profile extends ProfileBase implements IProfile {
   public getUseCase(name: string): UseCase {
     const supportedUsecaseNames = this.ast.definitions
       .filter(isUseCaseDefinitionNode)

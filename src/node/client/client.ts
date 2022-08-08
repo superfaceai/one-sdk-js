@@ -1,11 +1,13 @@
-import { SecurityValues, SuperJsonDocument } from '@superfaceai/ast';
+import type {
+  NormalizedSuperJsonDocument,
+  SecurityValues,
+  SuperJsonDocument,
+} from '@superfaceai/ast';
 import debug from 'debug';
 
-import {
+import type {
   AuthCache,
   Config,
-  Events,
-  hookMetrics,
   IBoundProfileProvider,
   IConfig,
   ICrypto,
@@ -14,22 +16,27 @@ import {
   IFileSystem,
   ILogger,
   Interceptable,
-  InternalClient,
   ISuperfaceClient,
   ITimers,
+  Profile,
+  Provider,
+} from '../../core';
+import {
+  Events,
+  hookMetrics,
+  InternalClient,
   loadConfigFromCode,
   loadConfigFromEnv,
   mergeConfigs,
   MetricReporter,
-  Profile,
-  Provider,
   registerHooks as registerFailoverHooks,
   resolveProvider,
   resolveSecurityValues,
   superJsonNotDefinedError,
 } from '../../core';
 import { SuperCache } from '../../lib';
-import { SuperJson } from '../../schema-tools';
+import { loadSuperJsonSync } from '../../schema-tools';
+import { normalizeSuperJsonDocument } from '../../schema-tools/superjson/normalize';
 import { NodeCrypto } from '../crypto';
 import { NodeEnvironment } from '../environment';
 import { NodeFetch } from '../fetch';
@@ -39,19 +46,12 @@ import { NodeTimers } from '../timers';
 
 const resolveSuperJson = (
   path: string,
-  environment: IEnvironment,
-  crypto: ICrypto,
-  superJson?: SuperJson | SuperJsonDocument,
+  superJson?: SuperJsonDocument,
   logger?: ILogger
-): SuperJson | undefined => {
+): SuperJsonDocument | undefined => {
   if (superJson === undefined) {
-    const superJsonResult = SuperJson.loadSync(
-      path,
-      NodeFileSystem,
-      environment,
-      crypto,
-      logger
-    );
+    const superJsonResult = loadSuperJsonSync(path, NodeFileSystem, logger);
+
     if (superJsonResult.isOk()) {
       return superJsonResult.value;
     }
@@ -59,11 +59,7 @@ const resolveSuperJson = (
     return undefined;
   }
 
-  if (superJson instanceof SuperJson) {
-    return superJson;
-  }
-
-  return new SuperJson(superJson);
+  return superJson;
 };
 
 const resolveConfig = (
@@ -89,13 +85,15 @@ const setupMetricReporter = (
   config: IConfig,
   timers: ITimers,
   events: Events,
-  superJson?: SuperJson,
+  crypto: ICrypto,
+  superJson?: NormalizedSuperJsonDocument,
   logger?: ILogger
 ) => {
   const metricReporter = new MetricReporter(
     config,
     timers,
     new NodeFetch(timers),
+    crypto,
     superJson,
     logger
   );
@@ -117,7 +115,7 @@ const setupMetricReporter = (
 };
 
 export abstract class SuperfaceClientBase {
-  public readonly superJson: SuperJson | undefined;
+  public readonly superJson: NormalizedSuperJsonDocument | undefined;
   protected readonly events: Events;
   protected readonly internal: InternalClient;
   protected readonly boundProfileProviderCache: SuperCache<{
@@ -133,7 +131,7 @@ export abstract class SuperfaceClientBase {
 
   constructor(
     options?: {
-      superJson?: SuperJson | SuperJsonDocument;
+      superJson?: SuperJsonDocument;
       debug?: boolean;
       /**
        * Flag that can be used to disable caching to filesystem. `true` by default.
@@ -162,19 +160,21 @@ export abstract class SuperfaceClientBase {
       provider: IBoundProfileProvider;
       expiresAt: number;
     }>();
-    this.superJson = resolveSuperJson(
+    const superJson = resolveSuperJson(
       this.config.superfacePath,
-      environment,
-      this.crypto,
       options?.superJson,
       this.logger
     );
+    this.superJson =
+      superJson &&
+      normalizeSuperJsonDocument(superJson, environment, this.logger);
 
     if (!this.config.disableReporting) {
       setupMetricReporter(
         this.config,
         this.timers,
         this.events,
+        this.crypto,
         this.superJson,
         this.logger
       );

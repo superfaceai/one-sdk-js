@@ -1,6 +1,6 @@
-import { Result } from '../../lib';
-import { NonPrimitive } from '../interpreter';
-import { PerformError, PerformOptions, UseCaseBase } from './usecase';
+import type { PerformError, PerformOptions } from '../../interfaces';
+import type { NonPrimitive, Result, UnexpectedError } from '../../lib';
+import { UseCaseBase } from './usecase';
 
 export class TypedUseCase<
   TInput extends NonPrimitive | undefined,
@@ -9,7 +9,7 @@ export class TypedUseCase<
   public async perform(
     input: TInput,
     options?: PerformOptions
-  ): Promise<Result<TOutput, PerformError>> {
+  ): Promise<Result<TOutput, PerformError | UnexpectedError>> {
     // Disable failover when user specified provider
     // needs to happen here because bindAndPerform is subject to retry from event hooks
     // including provider failover

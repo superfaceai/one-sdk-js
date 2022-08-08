@@ -1,5 +1,6 @@
-import { SecurityValues } from '@superfaceai/ast';
+import type { SecurityValues } from '@superfaceai/ast';
 
+import type { IProvider } from '../../interfaces';
 import { mergeSecurity } from '../../schema-tools';
 
 export class ProviderConfiguration {
@@ -28,7 +29,7 @@ export class ProviderConfiguration {
   }
 }
 
-export class Provider {
+export class Provider implements IProvider {
   constructor(public readonly configuration: ProviderConfiguration) {}
 
   /** @deprecated */

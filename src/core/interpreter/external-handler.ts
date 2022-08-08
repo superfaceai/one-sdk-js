@@ -1,6 +1,6 @@
-import { HttpCallStatementNode, MapDocumentNode } from '@superfaceai/ast';
+import type { HttpCallStatementNode, MapDocumentNode } from '@superfaceai/ast';
 
-import { HttpResponse } from './http';
+import type { HttpResponse } from './http';
 
 /**
  * Interface for external handler that is used in the MapInterpreter to handle certain states generically.

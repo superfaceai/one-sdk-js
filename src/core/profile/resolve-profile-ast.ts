@@ -1,10 +1,10 @@
-import {
-  assertProfileDocumentNode,
-  EXTENSIONS,
+import type {
+  NormalizedSuperJsonDocument,
   ProfileDocumentNode,
 } from '@superfaceai/ast';
+import { assertProfileDocumentNode, EXTENSIONS } from '@superfaceai/ast';
 
-import { SuperJson } from '../../schema-tools';
+import type { IConfig, ICrypto, IFileSystem, ILogger } from '../../interfaces';
 import {
   NotFoundError,
   profileFileNotFoundError,
@@ -13,9 +13,8 @@ import {
   unsupportedFileExtensionError,
   versionMismatchError,
 } from '../errors';
-import { Interceptable } from '../events';
-import { IConfig, ICrypto, IFileSystem, ILogger } from '../interfaces';
-import { AuthCache, IFetch } from '../interpreter';
+import type { Interceptable } from '../events';
+import type { AuthCache, IFetch } from '../interpreter';
 import { fetchProfileAst } from '../registry';
 import { cacheProfileAst, tryToLoadCachedAst } from './cache-profile-ast';
 
@@ -45,7 +44,7 @@ export async function resolveProfileAst({
   profileId: string;
   version?: string;
   logger?: ILogger;
-  superJson: SuperJson | undefined;
+  superJson: NormalizedSuperJsonDocument | undefined;
   fileSystem: IFileSystem;
   config: IConfig;
   crypto: ICrypto;
@@ -67,7 +66,7 @@ export async function resolveProfileAst({
     return assertProfileDocumentNode(JSON.parse(contents.value));
   };
 
-  const profileSettings = superJson?.normalized.profiles[profileId];
+  const profileSettings = superJson?.profiles[profileId];
 
   // Error when we don't have profileSettings and version is undefined
   if (profileSettings === undefined && version === undefined) {
@@ -88,7 +87,10 @@ export async function resolveProfileAst({
   // TODO: do we want to check `file` if we have version from getProfile?
   if (superJson !== undefined && profileSettings !== undefined) {
     if ('file' in profileSettings) {
-      filepath = superJson.resolvePath(profileSettings.file);
+      filepath = fileSystem.path.resolve(
+        config.superfacePath,
+        profileSettings.file
+      );
       logFunction?.('Reading possible profile file: %s', filepath);
       // check extensions
       if (filepath.endsWith(EXTENSIONS.profile.source)) {

@@ -1,10 +1,10 @@
-import {
-  AssertionError,
+import type {
   AstMetadata,
   MapDocumentNode,
   ProfileDocumentNode,
   ProviderJson,
 } from '@superfaceai/ast';
+import { AssertionError } from '@superfaceai/ast';
 
 import { MockTimers } from '../../mock';
 import { NodeCrypto, NodeFetch, NodeFileSystem } from '../../node';

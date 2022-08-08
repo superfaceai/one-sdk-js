@@ -1,4 +1,4 @@
-import { SecurityValues } from '@superfaceai/ast';
+import type { SecurityValues } from '@superfaceai/ast';
 import { mocked } from 'ts-jest/utils';
 
 import {
@@ -8,8 +8,12 @@ import {
   resolveProfileAst,
   superJsonNotDefinedError,
 } from '../../core';
-import { MockClient, mockProfileDocumentNode } from '../../mock';
-import { SuperJson } from '../../schema-tools';
+import {
+  MockClient,
+  MockEnvironment,
+  mockProfileDocumentNode,
+} from '../../mock';
+import { normalizeSuperJsonDocument } from '../../schema-tools/superjson/normalize';
 import { SuperfaceClient } from './client';
 
 const mockSecurityValues: SecurityValues[] = [
@@ -40,43 +44,46 @@ const mockParameters = {
   // fourth is missing - should be resolved to its default
 };
 
-const mockSuperJson = new SuperJson({
-  profiles: {
-    'testy/mctestface': '0.1.0',
-    foo: 'file://../foo.supr.ast.json',
-    'evil/foo': 'file://../foo.supr',
-    'bad/foo': 'file://../foo.ts',
-    bar: {
-      file: '../bar.supr.ast.json',
-      providers: {
-        quz: {},
+const mockSuperJson = normalizeSuperJsonDocument(
+  {
+    profiles: {
+      'testy/mctestface': '0.1.0',
+      foo: 'file://../foo.supr.ast.json',
+      'evil/foo': 'file://../foo.supr',
+      'bad/foo': 'file://../foo.ts',
+      bar: {
+        file: '../bar.supr.ast.json',
+        providers: {
+          quz: {},
+        },
+      },
+      baz: {
+        version: '1.2.3',
+        providers: {
+          quz: {},
+        },
+      },
+      'test-profile': {
+        version: '1.0.0',
+        providers: {
+          'test-provider': {},
+        },
       },
     },
-    baz: {
-      version: '1.2.3',
-      providers: {
-        quz: {},
+    providers: {
+      fooder: {
+        file: '../fooder.provider.json',
+        security: [],
       },
-    },
-    'test-profile': {
-      version: '1.0.0',
-      providers: {
-        'test-provider': {},
+      quz: {},
+      'test-provider': {
+        security: mockSecurityValues,
+        parameters: mockParameters,
       },
     },
   },
-  providers: {
-    fooder: {
-      file: '../fooder.provider.json',
-      security: [],
-    },
-    quz: {},
-    'test-provider': {
-      security: mockSecurityValues,
-      parameters: mockParameters,
-    },
-  },
-});
+  new MockEnvironment()
+);
 
 afterEach(() => {
   jest.useRealTimers();
@@ -152,13 +159,16 @@ describe('superface client', () => {
 
       it('returns Provider instance with custom security values and parameters', async () => {
         const client = new MockClient(
-          new SuperJson({
-            providers: {
-              'test-provider': {
-                security: [],
+          normalizeSuperJsonDocument(
+            {
+              providers: {
+                'test-provider': {
+                  security: [],
+                },
               },
             },
-          })
+            new MockEnvironment()
+          )
         );
 
         const provider = await client.getProvider('test-provider', {

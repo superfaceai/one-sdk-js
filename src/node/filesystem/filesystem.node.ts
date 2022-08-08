@@ -8,17 +8,16 @@ import {
   resolve as resolvePath,
 } from 'path';
 
+import type { FileSystemError, IFileSystem } from '../../core';
 import {
   FileExistsError,
-  FileSystemError,
-  IFileSystem,
   NotEmptyError,
   NotFoundError,
   PermissionDeniedError,
-  UnexpectedError,
   UnknownFileSystemError,
 } from '../../core';
-import { err, ok, Result } from '../../lib';
+import type { Result } from '../../lib';
+import { err, ok, UnexpectedError } from '../../lib';
 
 export type SystemError = Error & { code: string };
 export function assertSystemError(

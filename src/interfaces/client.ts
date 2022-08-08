@@ -1,8 +1,8 @@
-import { SecurityValues } from '@superfaceai/ast';
+import type { SecurityValues } from '@superfaceai/ast';
 
-import { Events } from '../events';
-import { Profile } from '../profile';
-import { Provider } from '../provider';
+import type { Events } from '../core/events';
+import type { IProfile } from './profile';
+import type { IProvider } from './provider';
 
 export interface ISuperfaceClient {
   getProvider(
@@ -13,10 +13,10 @@ export interface ISuperfaceClient {
         | SecurityValues[]
         | { [id: string]: Omit<SecurityValues, 'id'> };
     }
-  ): Promise<Provider>;
+  ): Promise<IProvider>;
   getProfile(
     profile: string | { id: string; version?: string }
-  ): Promise<Profile>;
-  getProviderForProfile(profileId: string): Promise<Provider>;
+  ): Promise<IProfile>;
+  getProviderForProfile(profileId: string): Promise<IProvider>;
   on(...args: Parameters<Events['on']>): void;
 }

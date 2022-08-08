@@ -1,11 +1,14 @@
-import { MapASTNode, MapDocumentNode } from '@superfaceai/ast';
+import type { MapASTNode, MapDocumentNode } from '@superfaceai/ast';
 
-import { ErrorBase } from '../errors';
-
-export interface ErrorMetadata {
-  node?: MapASTNode;
-  ast?: MapDocumentNode;
-}
+import type {
+  ErrorMetadata,
+  IHTTPError,
+  IJessieError,
+  IMapASTError,
+  IMappedError,
+  IMappedHTTPError,
+} from '../../interfaces';
+import { ErrorBase } from '../../lib';
 
 export class MapInterpreterErrorBase extends ErrorBase {
   private path?: string[];
@@ -73,7 +76,12 @@ export class MapInterpreterErrorBase extends ErrorBase {
   }
 }
 
-export class MapASTError extends MapInterpreterErrorBase {
+export class MapASTError
+  extends MapInterpreterErrorBase
+  implements IMapASTError
+{
+  public name: 'MapASTError' = 'MapASTError';
+
   constructor(
     public override message: string,
     public override metadata?: ErrorMetadata
@@ -82,7 +90,9 @@ export class MapASTError extends MapInterpreterErrorBase {
   }
 }
 
-export class HTTPError extends MapInterpreterErrorBase {
+export class HTTPError extends MapInterpreterErrorBase implements IHTTPError {
+  public name: 'HTTPError' = 'HTTPError';
+
   constructor(
     public override message: string,
     public override metadata?: ErrorMetadata,
@@ -101,14 +111,19 @@ export class HTTPError extends MapInterpreterErrorBase {
   }
 }
 
-export class MappedHTTPError<T> extends HTTPError {
+export class MappedHTTPError<T>
+  extends MapInterpreterErrorBase
+  implements IMappedHTTPError<T>
+{
+  public name: 'MappedHTTPError' = 'MappedHTTPError';
+
   constructor(
     public override message: string,
-    public override statusCode?: number,
     public override metadata?: { node?: MapASTNode; ast?: MapDocumentNode },
+    public statusCode?: number,
     public properties?: T
   ) {
-    super(message, metadata, statusCode);
+    super('MappedHTTPError', message, metadata);
   }
 
   public override toString(): string {
@@ -127,7 +142,12 @@ export class MappedHTTPError<T> extends HTTPError {
   }
 }
 
-export class JessieError extends MapInterpreterErrorBase {
+export class JessieError
+  extends MapInterpreterErrorBase
+  implements IJessieError
+{
+  public name: 'JessieError' = 'JessieError';
+
   constructor(
     public override message: string,
     public originalError: Error,
@@ -150,7 +170,12 @@ export class JessieError extends MapInterpreterErrorBase {
   }
 }
 
-export class MappedError<T> extends MapInterpreterErrorBase {
+export class MappedError<T>
+  extends MapInterpreterErrorBase
+  implements IMappedError<T>
+{
+  public name: 'MappedError' = 'MappedError';
+
   constructor(
     public override message: string,
     public override metadata?: { node?: MapASTNode; ast?: MapDocumentNode },
@@ -162,7 +187,7 @@ export class MappedError<T> extends MapInterpreterErrorBase {
   public override toString(): string {
     return [
       `${this.kind}: ${this.message}`,
-      this.properties
+      this.properties !== undefined
         ? 'Properties: ' + JSON.stringify(this.properties, undefined, 2)
         : undefined,
       this.astPath ? `AST Path: ${this.astPath.join('.')}` : undefined,
@@ -174,10 +199,3 @@ export class MappedError<T> extends MapInterpreterErrorBase {
       .join('\n');
   }
 }
-
-export type MapInterpreterError =
-  | MapASTError
-  | MappedHTTPError<unknown>
-  | MappedError<unknown>
-  | HTTPError
-  | JessieError;

@@ -1,21 +1,38 @@
-import {
-  BackoffKind,
-  OnFail,
+import type {
   ProfileEntry,
   ProfileProviderEntry,
   ProfileSettings,
   ProviderEntry,
+  SecurityValues,
   SuperJsonDocument,
   UsecaseDefaults,
 } from '@superfaceai/ast';
+import { BackoffKind, OnFail } from '@superfaceai/ast';
 
-import { SuperJson } from '.';
+import { MockEnvironment, MockFileSystem } from '../../mock';
+import {
+  mergeProfile,
+  mergeProfileDefaults,
+  mergeProfileProvider,
+  mergeProvider,
+  mergeSecurity,
+  setPriority,
+  setProfile,
+  setProfileProvider,
+  setProvider,
+  swapProfileProviderVariant,
+  swapProviderVariant,
+} from './mutate';
+import { normalizeSuperJsonDocument } from './normalize';
+
+const environment = new MockEnvironment();
+const filesystem = MockFileSystem();
 
 describe('superjson mutate', () => {
-  let superjson: SuperJson;
+  let superjson: SuperJsonDocument;
 
   beforeEach(() => {
-    superjson = new SuperJson({});
+    superjson = {};
   });
 
   describe('when merging profile defaults', () => {
@@ -28,12 +45,13 @@ describe('superjson mutate', () => {
       };
 
       expect(
-        superjson.mergeProfileDefaults(
+        mergeProfileDefaults(
+          superjson,
           mockProfileName,
           mockProfileDeafultsEntry
         )
       ).toEqual(true);
-      expect(superjson.document.profiles?.[mockProfileName]).toEqual({
+      expect(superjson.profiles?.[mockProfileName]).toEqual({
         defaults: {
           [mockUseCaseName]: {
             providerFailover: false,
@@ -51,12 +69,13 @@ describe('superjson mutate', () => {
       };
 
       expect(
-        superjson.mergeProfileDefaults(
+        mergeProfileDefaults(
+          superjson,
           mockProfileName,
           mockProfileDeafultsEntry
         )
       ).toEqual(true);
-      expect(superjson.document.profiles?.[mockProfileName]).toEqual({
+      expect(superjson.profiles?.[mockProfileName]).toEqual({
         defaults: {
           [mockUseCaseName]: {
             providerFailover: true,
@@ -71,21 +90,22 @@ describe('superjson mutate', () => {
       const mockProfileName = 'profile';
       const mockUseCaseName = 'usecase';
 
-      superjson = new SuperJson({
+      superjson = {
         profiles: { [mockProfileName]: 'file://some/path' },
-      });
+      };
 
       let mockProfileDeafultsEntry: UsecaseDefaults = {
         [mockUseCaseName]: { providerFailover: false, input: { test: 'test' } },
       };
 
       expect(
-        superjson.mergeProfileDefaults(
+        mergeProfileDefaults(
+          superjson,
           mockProfileName,
           mockProfileDeafultsEntry
         )
       ).toEqual(true);
-      expect(superjson.document.profiles?.[mockProfileName]).toEqual({
+      expect(superjson.profiles?.[mockProfileName]).toEqual({
         defaults: {
           [mockUseCaseName]: {
             providerFailover: false,
@@ -103,12 +123,13 @@ describe('superjson mutate', () => {
       };
 
       expect(
-        superjson.mergeProfileDefaults(
+        mergeProfileDefaults(
+          superjson,
           mockProfileName,
           mockProfileDeafultsEntry
         )
       ).toEqual(true);
-      expect(superjson.document.profiles?.[mockProfileName]).toEqual({
+      expect(superjson.profiles?.[mockProfileName]).toEqual({
         defaults: {
           [mockUseCaseName]: {
             providerFailover: true,
@@ -123,7 +144,7 @@ describe('superjson mutate', () => {
       const mockProfileName = 'profile';
       const mockUseCaseName = 'usecase';
 
-      superjson = new SuperJson({
+      superjson = {
         profiles: {
           [mockProfileName]: {
             version: '1.0.0',
@@ -131,19 +152,20 @@ describe('superjson mutate', () => {
             providers: { test: {} },
           },
         },
-      });
+      };
 
       let mockProfileDeafultsEntry: UsecaseDefaults = {
         [mockUseCaseName]: { providerFailover: true, input: { test: 'test' } },
       };
 
       expect(
-        superjson.mergeProfileDefaults(
+        mergeProfileDefaults(
+          superjson,
           mockProfileName,
           mockProfileDeafultsEntry
         )
       ).toEqual(true);
-      expect(superjson.document.profiles?.[mockProfileName]).toEqual({
+      expect(superjson.profiles?.[mockProfileName]).toEqual({
         defaults: {
           [mockUseCaseName]: {
             providerFailover: true,
@@ -163,12 +185,13 @@ describe('superjson mutate', () => {
       };
 
       expect(
-        superjson.mergeProfileDefaults(
+        mergeProfileDefaults(
+          superjson,
           mockProfileName,
           mockProfileDeafultsEntry
         )
       ).toEqual(true);
-      expect(superjson.document.profiles?.[mockProfileName]).toEqual({
+      expect(superjson.profiles?.[mockProfileName]).toEqual({
         defaults: {
           [mockUseCaseName]: {
             providerFailover: false,
@@ -185,7 +208,7 @@ describe('superjson mutate', () => {
       const mockProfileName = 'profile';
       const mockUseCaseName = 'usecase';
 
-      superjson = new SuperJson({
+      superjson = {
         profiles: {
           [mockProfileName]: {
             version: '1.0.0',
@@ -194,19 +217,20 @@ describe('superjson mutate', () => {
             providers: { test: {} },
           },
         },
-      });
+      };
 
       let mockProfileDeafultsEntry: UsecaseDefaults = {
         [mockUseCaseName]: { providerFailover: true, input: { test: 'test' } },
       };
 
       expect(
-        superjson.mergeProfileDefaults(
+        mergeProfileDefaults(
+          superjson,
           mockProfileName,
           mockProfileDeafultsEntry
         )
       ).toEqual(true);
-      expect(superjson.document.profiles?.[mockProfileName]).toEqual({
+      expect(superjson.profiles?.[mockProfileName]).toEqual({
         defaults: {
           [mockUseCaseName]: {
             providerFailover: true,
@@ -226,12 +250,13 @@ describe('superjson mutate', () => {
       };
 
       expect(
-        superjson.mergeProfileDefaults(
+        mergeProfileDefaults(
+          superjson,
           mockProfileName,
           mockProfileDeafultsEntry
         )
       ).toEqual(true);
-      expect(superjson.document.profiles?.[mockProfileName]).toEqual({
+      expect(superjson.profiles?.[mockProfileName]).toEqual({
         defaults: {
           [mockUseCaseName]: {
             providerFailover: false,
@@ -250,10 +275,20 @@ describe('superjson mutate', () => {
       const mockProfileName = 'profile';
       const mockProfileEntry: ProfileEntry = 'file://some/path';
 
-      expect(superjson.mergeProfile(mockProfileName, mockProfileEntry)).toEqual(
-        true
-      );
-      expect(superjson.normalized.profiles[mockProfileName]).toEqual({
+      expect(
+        mergeProfile(
+          superjson,
+          mockProfileName,
+          mockProfileEntry,
+          filesystem,
+          environment
+        )
+      ).toEqual(true);
+      expect(
+        normalizeSuperJsonDocument(superjson, environment).profiles[
+          mockProfileName
+        ]
+      ).toEqual({
         defaults: {},
         priority: [],
         file: 'some/path',
@@ -265,10 +300,20 @@ describe('superjson mutate', () => {
       let mockProfileName = 'profile';
       const mockProfileEntry: ProfileEntry = 'file://some/path';
 
-      expect(superjson.mergeProfile(mockProfileName, mockProfileEntry)).toEqual(
-        true
-      );
-      expect(superjson.normalized.profiles[mockProfileName]).toEqual({
+      expect(
+        mergeProfile(
+          superjson,
+          mockProfileName,
+          mockProfileEntry,
+          filesystem,
+          environment
+        )
+      ).toEqual(true);
+      expect(
+        normalizeSuperJsonDocument(superjson, environment).profiles[
+          mockProfileName
+        ]
+      ).toEqual({
         defaults: {},
         priority: [],
         file: 'some/path',
@@ -277,11 +322,19 @@ describe('superjson mutate', () => {
 
       mockProfileName = 'second-profile';
 
-      expect(superjson.mergeProfile(mockProfileName, mockProfileEntry)).toEqual(
-        true
-      );
+      expect(
+        mergeProfile(
+          superjson,
+          mockProfileName,
+          mockProfileEntry,
+          filesystem,
+          environment
+        )
+      ).toEqual(true);
 
-      expect(superjson.normalized.profiles).toEqual({
+      expect(
+        normalizeSuperJsonDocument(superjson, environment).profiles
+      ).toEqual({
         profile: {
           defaults: {},
           file: 'some/path',
@@ -301,7 +354,7 @@ describe('superjson mutate', () => {
       const mockProfileName = 'profile';
       const mockProfileEntry: ProfileEntry = 'file://some/path';
 
-      superjson = new SuperJson({
+      superjson = {
         profiles: {
           [mockProfileName]: {
             defaults: {},
@@ -309,11 +362,21 @@ describe('superjson mutate', () => {
             providers: {},
           },
         },
-      });
-      expect(superjson.mergeProfile(mockProfileName, mockProfileEntry)).toEqual(
-        true
-      );
-      expect(superjson.normalized.profiles[mockProfileName]).toEqual({
+      };
+      expect(
+        mergeProfile(
+          superjson,
+          mockProfileName,
+          mockProfileEntry,
+          filesystem,
+          environment
+        )
+      ).toEqual(true);
+      expect(
+        normalizeSuperJsonDocument(superjson, environment).profiles[
+          mockProfileName
+        ]
+      ).toEqual({
         defaults: {},
         priority: [],
         file: 'some/path',
@@ -325,7 +388,7 @@ describe('superjson mutate', () => {
       const mockProfileName = 'profile';
       const mockProfileEntry: ProfileEntry = 'file://some/path';
 
-      superjson = new SuperJson({
+      superjson = {
         profiles: {
           [mockProfileName]: {
             defaults: { input: { input: { test: 'test' } } },
@@ -333,11 +396,21 @@ describe('superjson mutate', () => {
             providers: {},
           },
         },
-      });
-      expect(superjson.mergeProfile(mockProfileName, mockProfileEntry)).toEqual(
-        true
-      );
-      expect(superjson.normalized.profiles[mockProfileName]).toEqual({
+      };
+      expect(
+        mergeProfile(
+          superjson,
+          mockProfileName,
+          mockProfileEntry,
+          filesystem,
+          environment
+        )
+      ).toEqual(true);
+      expect(
+        normalizeSuperJsonDocument(superjson, environment).profiles[
+          mockProfileName
+        ]
+      ).toEqual({
         defaults: {
           input: { input: { test: 'test' }, providerFailover: false },
         },
@@ -351,7 +424,7 @@ describe('superjson mutate', () => {
       const mockProfileName = 'profile';
       const mockProfileEntry: ProfileEntry = '1.0.0';
 
-      superjson = new SuperJson({
+      superjson = {
         profiles: {
           [mockProfileName]: {
             defaults: { input: { input: { test: 'test' } } },
@@ -359,11 +432,21 @@ describe('superjson mutate', () => {
             providers: {},
           },
         },
-      });
-      expect(superjson.mergeProfile(mockProfileName, mockProfileEntry)).toEqual(
-        true
-      );
-      expect(superjson.normalized.profiles[mockProfileName]).toEqual({
+      };
+      expect(
+        mergeProfile(
+          superjson,
+          mockProfileName,
+          mockProfileEntry,
+          filesystem,
+          environment
+        )
+      ).toEqual(true);
+      expect(
+        normalizeSuperJsonDocument(superjson, environment).profiles[
+          mockProfileName
+        ]
+      ).toEqual({
         defaults: {
           input: { input: { test: 'test' }, providerFailover: false },
         },
@@ -377,7 +460,7 @@ describe('superjson mutate', () => {
       const mockProfileName = 'profile';
       const mockProfileEntry: ProfileEntry = '1.0.0';
 
-      superjson = new SuperJson({
+      superjson = {
         profiles: {
           [mockProfileName]: {
             defaults: {},
@@ -385,11 +468,21 @@ describe('superjson mutate', () => {
             providers: {},
           },
         },
-      });
-      expect(superjson.mergeProfile(mockProfileName, mockProfileEntry)).toEqual(
-        true
-      );
-      expect(superjson.normalized.profiles[mockProfileName]).toEqual({
+      };
+      expect(
+        mergeProfile(
+          superjson,
+          mockProfileName,
+          mockProfileEntry,
+          filesystem,
+          environment
+        )
+      ).toEqual(true);
+      expect(
+        normalizeSuperJsonDocument(superjson, environment).profiles[
+          mockProfileName
+        ]
+      ).toEqual({
         defaults: {},
         priority: [],
         providers: {},
@@ -401,7 +494,7 @@ describe('superjson mutate', () => {
       const mockProfileName = 'profile';
       const mockProfileEntry: ProfileEntry = 'madeup';
 
-      superjson = new SuperJson({
+      superjson = {
         profiles: {
           [mockProfileName]: {
             defaults: { input: { input: { test: 'test' } } },
@@ -409,9 +502,15 @@ describe('superjson mutate', () => {
             providers: {},
           },
         },
-      });
+      };
       expect(() =>
-        superjson.mergeProfile(mockProfileName, mockProfileEntry)
+        mergeProfile(
+          superjson,
+          mockProfileName,
+          mockProfileEntry,
+          filesystem,
+          environment
+        )
       ).toThrowError(new Error('Invalid string payload format'));
     });
 
@@ -423,7 +522,7 @@ describe('superjson mutate', () => {
         providers: {},
       };
 
-      superjson = new SuperJson({
+      superjson = {
         profiles: {
           [mockProfileName]: {
             defaults: { input: { input: { test: 'test' } } },
@@ -431,11 +530,21 @@ describe('superjson mutate', () => {
             providers: { test: {} },
           },
         },
-      });
-      expect(superjson.mergeProfile(mockProfileName, mockProfileEntry)).toEqual(
-        true
-      );
-      expect(superjson.normalized.profiles[mockProfileName]).toEqual({
+      };
+      expect(
+        mergeProfile(
+          superjson,
+          mockProfileName,
+          mockProfileEntry,
+          filesystem,
+          environment
+        )
+      ).toEqual(true);
+      expect(
+        normalizeSuperJsonDocument(superjson, environment).profiles[
+          mockProfileName
+        ]
+      ).toEqual({
         defaults: {
           input: { input: { test: 'test' }, providerFailover: false },
         },
@@ -464,15 +573,25 @@ describe('superjson mutate', () => {
         providers: { test: {} },
       };
 
-      superjson = new SuperJson({
+      superjson = {
         profiles: {
           [mockProfileName]: '0.0.0',
         },
-      });
-      expect(superjson.mergeProfile(mockProfileName, mockProfileEntry)).toEqual(
-        true
-      );
-      expect(superjson.normalized.profiles[mockProfileName]).toEqual({
+      };
+      expect(
+        mergeProfile(
+          superjson,
+          mockProfileName,
+          mockProfileEntry,
+          filesystem,
+          environment
+        )
+      ).toEqual(true);
+      expect(
+        normalizeSuperJsonDocument(superjson, environment).profiles[
+          mockProfileName
+        ]
+      ).toEqual({
         defaults: {},
         file: 'some/path',
         priority: ['test'],
@@ -501,15 +620,25 @@ describe('superjson mutate', () => {
         providers: { test: {} },
       };
 
-      superjson = new SuperJson({
+      superjson = {
         profiles: {
           [mockProfileName]: '0.0.0',
         },
-      });
-      expect(superjson.mergeProfile(mockProfileName, mockProfileEntry)).toEqual(
-        true
-      );
-      expect(superjson.normalized.profiles[mockProfileName]).toEqual({
+      };
+      expect(
+        mergeProfile(
+          superjson,
+          mockProfileName,
+          mockProfileEntry,
+          filesystem,
+          environment
+        )
+      ).toEqual(true);
+      expect(
+        normalizeSuperJsonDocument(superjson, environment).profiles[
+          mockProfileName
+        ]
+      ).toEqual({
         defaults: {
           [mockUseCaseName]: {
             input: {},
@@ -550,15 +679,25 @@ describe('superjson mutate', () => {
         providers: { test: {} },
       };
 
-      superjson = new SuperJson({
+      superjson = {
         profiles: {
           [mockProfileName]: '0.0.0',
         },
-      });
-      expect(superjson.mergeProfile(mockProfileName, mockProfileEntry)).toEqual(
-        true
-      );
-      expect(superjson.normalized.profiles[mockProfileName]).toEqual({
+      };
+      expect(
+        mergeProfile(
+          superjson,
+          mockProfileName,
+          mockProfileEntry,
+          filesystem,
+          environment
+        )
+      ).toEqual(true);
+      expect(
+        normalizeSuperJsonDocument(superjson, environment).profiles[
+          mockProfileName
+        ]
+      ).toEqual({
         defaults: {
           [mockUseCaseName]: {
             input: {},
@@ -615,7 +754,7 @@ describe('superjson mutate', () => {
         },
       };
 
-      superjson = new SuperJson({
+      superjson = {
         profiles: {
           [mockProfileName]: {
             defaults: {
@@ -643,11 +782,21 @@ describe('superjson mutate', () => {
             },
           },
         },
-      });
-      expect(superjson.mergeProfile(mockProfileName, mockProfileEntry)).toEqual(
-        true
-      );
-      expect(superjson.normalized.profiles[mockProfileName]).toEqual({
+      };
+      expect(
+        mergeProfile(
+          superjson,
+          mockProfileName,
+          mockProfileEntry,
+          filesystem,
+          environment
+        )
+      ).toEqual(true);
+      expect(
+        normalizeSuperJsonDocument(superjson, environment).profiles[
+          mockProfileName
+        ]
+      ).toEqual({
         defaults: {
           [mockUseCaseName]: {
             input: {},
@@ -769,10 +918,16 @@ describe('superjson mutate', () => {
         if (from.profile !== undefined) {
           profiles[TEST_PROFILE_NAME] = from.profile;
         }
-        superjson = new SuperJson({ profiles });
+        superjson = { profiles };
 
         expect(
-          superjson.setProfile(TEST_PROFILE_NAME, to.profile)
+          setProfile(
+            superjson,
+            TEST_PROFILE_NAME,
+            to.profile,
+            environment,
+            filesystem
+          )
         ).toStrictEqual(expectedChanged);
 
         let expected: SuperJsonDocument = {};
@@ -784,13 +939,13 @@ describe('superjson mutate', () => {
           };
         }
 
-        expect(superjson.document).toStrictEqual(expected);
-        expect(superjson.document.providers).toBeUndefined();
+        expect(superjson).toStrictEqual(expected);
+        expect(superjson.providers).toBeUndefined();
       }
     );
 
     it('preserves existing profiles when deleting', () => {
-      superjson = new SuperJson({
+      superjson = {
         profiles: {
           [TEST_PROFILE_NAME]: {
             version: '1.0.0',
@@ -799,13 +954,19 @@ describe('superjson mutate', () => {
             version: '0.0.1',
           },
         },
-      });
+      };
 
-      expect(superjson.setProfile(TEST_PROFILE_NAME, undefined)).toStrictEqual(
-        true
-      );
+      expect(
+        setProfile(
+          superjson,
+          TEST_PROFILE_NAME,
+          undefined,
+          environment,
+          filesystem
+        )
+      ).toStrictEqual(true);
 
-      expect(superjson.document).toStrictEqual({
+      expect(superjson).toStrictEqual({
         profiles: {
           otherProfile: {
             version: '0.0.1',
@@ -822,13 +983,20 @@ describe('superjson mutate', () => {
       const mockProfileProviderEntry: ProfileProviderEntry = 'file://some/path';
 
       expect(
-        superjson.mergeProfileProvider(
+        mergeProfileProvider(
+          superjson,
           mockProfileName,
           mockProviderName,
-          mockProfileProviderEntry
+          mockProfileProviderEntry,
+          filesystem,
+          environment
         )
       ).toEqual(true);
-      expect(superjson.normalized.profiles[mockProfileName]).toEqual({
+      expect(
+        normalizeSuperJsonDocument(superjson, environment).profiles[
+          mockProfileName
+        ]
+      ).toEqual({
         defaults: {},
         priority: [mockProviderName],
         providers: {
@@ -843,14 +1011,19 @@ describe('superjson mutate', () => {
       mockProviderName = 'second-provider';
 
       expect(
-        superjson.mergeProfileProvider(
+        mergeProfileProvider(
+          superjson,
           mockProfileName,
           mockProviderName,
-          mockProfileProviderEntry
+          mockProfileProviderEntry,
+          filesystem,
+          environment
         )
       ).toEqual(true);
 
-      expect(superjson.normalized.profiles).toEqual({
+      expect(
+        normalizeSuperJsonDocument(superjson, environment).profiles
+      ).toEqual({
         profile: {
           defaults: {},
           priority: ['provider', mockProviderName],
@@ -875,13 +1048,20 @@ describe('superjson mutate', () => {
       const mockProfileProviderEntry: ProfileProviderEntry = 'file://some/path';
 
       expect(
-        superjson.mergeProfileProvider(
+        mergeProfileProvider(
+          superjson,
           mockProfileName,
           mockProviderName,
-          mockProfileProviderEntry
+          mockProfileProviderEntry,
+          filesystem,
+          environment
         )
       ).toEqual(true);
-      expect(superjson.normalized.profiles[mockProfileName]).toEqual({
+      expect(
+        normalizeSuperJsonDocument(superjson, environment).profiles[
+          mockProfileName
+        ]
+      ).toEqual({
         defaults: {},
         priority: [mockProviderName],
         providers: {
@@ -899,20 +1079,27 @@ describe('superjson mutate', () => {
       const mockProviderName = 'provider';
       const mockProfileProviderEntry: ProfileProviderEntry = 'file://some/path';
 
-      superjson = new SuperJson({
+      superjson = {
         profiles: {
           [mockProfileName]: { defaults: {}, file: 'some/path' },
         },
-      });
+      };
 
       expect(
-        superjson.mergeProfileProvider(
+        mergeProfileProvider(
+          superjson,
           mockProfileName,
           mockProviderName,
-          mockProfileProviderEntry
+          mockProfileProviderEntry,
+          filesystem,
+          environment
         )
       ).toEqual(true);
-      expect(superjson.normalized.profiles[mockProfileName]).toEqual({
+      expect(
+        normalizeSuperJsonDocument(superjson, environment).profiles[
+          mockProfileName
+        ]
+      ).toEqual({
         defaults: {},
         file: 'some/path',
         priority: [mockProviderName],
@@ -930,7 +1117,7 @@ describe('superjson mutate', () => {
       const mockProviderName = 'provider';
       const mockProfileProviderEntry: ProfileProviderEntry = 'file://some/path';
 
-      superjson = new SuperJson({
+      superjson = {
         profiles: {
           [mockProfileName]: {
             defaults: {},
@@ -938,16 +1125,23 @@ describe('superjson mutate', () => {
             providers: { [mockProviderName]: {} },
           },
         },
-      });
+      };
 
       expect(
-        superjson.mergeProfileProvider(
+        mergeProfileProvider(
+          superjson,
           mockProfileName,
           mockProviderName,
-          mockProfileProviderEntry
+          mockProfileProviderEntry,
+          filesystem,
+          environment
         )
       ).toEqual(true);
-      expect(superjson.normalized.profiles[mockProfileName]).toEqual({
+      expect(
+        normalizeSuperJsonDocument(superjson, environment).profiles[
+          mockProfileName
+        ]
+      ).toEqual({
         defaults: {},
         file: 'some/path',
         priority: [mockProviderName],
@@ -965,7 +1159,7 @@ describe('superjson mutate', () => {
       const mockProviderName = 'provider';
       const mockProfileProviderEntry: ProfileProviderEntry = 'file://some/path';
 
-      superjson = new SuperJson({
+      superjson = {
         profiles: {
           [mockProfileName]: {
             defaults: {},
@@ -978,16 +1172,23 @@ describe('superjson mutate', () => {
             },
           },
         },
-      });
+      };
 
       expect(
-        superjson.mergeProfileProvider(
+        mergeProfileProvider(
+          superjson,
           mockProfileName,
           mockProviderName,
-          mockProfileProviderEntry
+          mockProfileProviderEntry,
+          filesystem,
+          environment
         )
       ).toEqual(true);
-      expect(superjson.normalized.profiles[mockProfileName]).toEqual({
+      expect(
+        normalizeSuperJsonDocument(superjson, environment).profiles[
+          mockProfileName
+        ]
+      ).toEqual({
         defaults: {},
         file: 'some/path',
         priority: [mockProviderName],
@@ -1013,7 +1214,7 @@ describe('superjson mutate', () => {
         defaults: { input: { input: { test: 'test' } } },
       };
 
-      superjson = new SuperJson({
+      superjson = {
         profiles: {
           [mockProfileName]: {
             defaults: {},
@@ -1026,16 +1227,23 @@ describe('superjson mutate', () => {
             },
           },
         },
-      });
+      };
 
       expect(
-        superjson.mergeProfileProvider(
+        mergeProfileProvider(
+          superjson,
           mockProfileName,
           mockProviderName,
-          mockProfileProviderEntry
+          mockProfileProviderEntry,
+          filesystem,
+          environment
         )
       ).toEqual(true);
-      expect(superjson.normalized.profiles[mockProfileName]).toEqual({
+      expect(
+        normalizeSuperJsonDocument(superjson, environment).profiles[
+          mockProfileName
+        ]
+      ).toEqual({
         defaults: {},
         file: 'some/path',
         priority: [mockProviderName],
@@ -1062,7 +1270,7 @@ describe('superjson mutate', () => {
         defaults: { input: { input: { test: 'test' } } },
       };
 
-      superjson = new SuperJson({
+      superjson = {
         profiles: {
           [mockProfileName]: {
             defaults: {},
@@ -1075,16 +1283,23 @@ describe('superjson mutate', () => {
             },
           },
         },
-      });
+      };
 
       expect(
-        superjson.mergeProfileProvider(
+        mergeProfileProvider(
+          superjson,
           mockProfileName,
           mockProviderName,
-          mockProfileProviderEntry
+          mockProfileProviderEntry,
+          filesystem,
+          environment
         )
       ).toEqual(true);
-      expect(superjson.normalized.profiles[mockProfileName]).toEqual({
+      expect(
+        normalizeSuperJsonDocument(superjson, environment).profiles[
+          mockProfileName
+        ]
+      ).toEqual({
         defaults: {},
         file: 'some/path',
         priority: [mockProviderName],
@@ -1112,7 +1327,7 @@ describe('superjson mutate', () => {
         defaults: { input: { input: { test: 'test' } } },
       };
 
-      superjson = new SuperJson({
+      superjson = {
         profiles: {
           [mockProfileName]: {
             defaults: {},
@@ -1122,16 +1337,23 @@ describe('superjson mutate', () => {
             },
           },
         },
-      });
+      };
 
       expect(
-        superjson.mergeProfileProvider(
+        mergeProfileProvider(
+          superjson,
           mockProfileName,
           mockProviderName,
-          mockProfileProviderEntry
+          mockProfileProviderEntry,
+          filesystem,
+          environment
         )
       ).toEqual(true);
-      expect(superjson.normalized.profiles[mockProfileName]).toEqual({
+      expect(
+        normalizeSuperJsonDocument(superjson, environment).profiles[
+          mockProfileName
+        ]
+      ).toEqual({
         defaults: {},
         file: 'some/path',
         priority: [mockProviderName],
@@ -1157,7 +1379,7 @@ describe('superjson mutate', () => {
         defaults: { input: { input: { test: 'test' } } },
       };
 
-      superjson = new SuperJson({
+      superjson = {
         profiles: {
           [mockProfileName]: {
             defaults: {},
@@ -1169,16 +1391,23 @@ describe('superjson mutate', () => {
             },
           },
         },
-      });
+      };
 
       expect(
-        superjson.mergeProfileProvider(
+        mergeProfileProvider(
+          superjson,
           mockProfileName,
           mockProviderName,
-          mockProfileProviderEntry
+          mockProfileProviderEntry,
+          filesystem,
+          environment
         )
       ).toEqual(true);
-      expect(superjson.normalized.profiles[mockProfileName]).toEqual({
+      expect(
+        normalizeSuperJsonDocument(superjson, environment).profiles[
+          mockProfileName
+        ]
+      ).toEqual({
         defaults: {},
         file: 'some/path',
         priority: [mockProviderName],
@@ -1201,7 +1430,7 @@ describe('superjson mutate', () => {
       const mockProviderName = 'provider';
       const mockProfileProviderEntry: ProfileProviderEntry = {};
 
-      superjson = new SuperJson({
+      superjson = {
         profiles: {
           [mockProfileName]: {
             defaults: {},
@@ -1213,16 +1442,23 @@ describe('superjson mutate', () => {
             },
           },
         },
-      });
+      };
 
       expect(
-        superjson.mergeProfileProvider(
+        mergeProfileProvider(
+          superjson,
           mockProfileName,
           mockProviderName,
-          mockProfileProviderEntry
+          mockProfileProviderEntry,
+          filesystem,
+          environment
         )
       ).toEqual(false);
-      expect(superjson.normalized.profiles[mockProfileName]).toEqual({
+      expect(
+        normalizeSuperJsonDocument(superjson, environment).profiles[
+          mockProfileName
+        ]
+      ).toEqual({
         defaults: {},
         file: 'some/path',
         priority: [mockProviderName],
@@ -1332,17 +1568,20 @@ describe('superjson mutate', () => {
           };
           profileEntry.priority = [TEST_PROFILE_PROVIDER];
         }
-        superjson = new SuperJson({
+        superjson = {
           profiles: {
             [TEST_PROFILE_NAME]: profileEntry,
           },
-        });
+        };
 
         expect(
-          superjson.setProfileProvider(
+          setProfileProvider(
+            superjson,
             TEST_PROFILE_NAME,
             TEST_PROFILE_PROVIDER,
-            to.profileProvider
+            to.profileProvider,
+            filesystem,
+            environment
           )
         ).toStrictEqual(expectedChanged);
 
@@ -1356,7 +1595,7 @@ describe('superjson mutate', () => {
           };
         }
 
-        expect(superjson.document).toStrictEqual({
+        expect(superjson).toStrictEqual({
           profiles: {
             [TEST_PROFILE_NAME]: {
               version: '0.0.0',
@@ -1368,7 +1607,7 @@ describe('superjson mutate', () => {
     );
 
     it('preserves existing profile providers when deleting', () => {
-      superjson = new SuperJson({
+      superjson = {
         profiles: {
           [TEST_PROFILE_NAME]: {
             version: '0.0.0',
@@ -1379,17 +1618,20 @@ describe('superjson mutate', () => {
             },
           },
         },
-      });
+      };
 
       expect(
-        superjson.setProfileProvider(
+        setProfileProvider(
+          superjson,
           TEST_PROFILE_NAME,
           TEST_PROFILE_PROVIDER,
-          undefined
+          undefined,
+          filesystem,
+          environment
         )
       ).toStrictEqual(true);
 
-      expect(superjson.document).toStrictEqual({
+      expect(superjson).toStrictEqual({
         profiles: {
           [TEST_PROFILE_NAME]: {
             version: '0.0.0',
@@ -1403,7 +1645,7 @@ describe('superjson mutate', () => {
     });
 
     it('preserves existing profile priority when overwriting', () => {
-      superjson = new SuperJson({
+      superjson = {
         profiles: {
           [TEST_PROFILE_NAME]: {
             version: '0.0.0',
@@ -1414,15 +1656,22 @@ describe('superjson mutate', () => {
             },
           },
         },
-      });
+      };
 
       expect(
-        superjson.setProfileProvider(TEST_PROFILE_NAME, TEST_PROFILE_PROVIDER, {
-          file: 'file',
-        })
+        setProfileProvider(
+          superjson,
+          TEST_PROFILE_NAME,
+          TEST_PROFILE_PROVIDER,
+          {
+            file: 'file',
+          },
+          filesystem,
+          environment
+        )
       ).toStrictEqual(true);
 
-      expect(superjson.document).toStrictEqual({
+      expect(superjson).toStrictEqual({
         profiles: {
           [TEST_PROFILE_NAME]: {
             version: '0.0.0',
@@ -1441,7 +1690,7 @@ describe('superjson mutate', () => {
     const PROFILE = 'profile';
 
     beforeEach(() => {
-      superjson = new SuperJson({
+      superjson = {
         profiles: {
           [PROFILE]: {
             defaults: {},
@@ -1473,13 +1722,13 @@ describe('superjson mutate', () => {
             },
           },
         },
-      });
+      };
     });
 
     it.each<{
       name: string;
       provider: string;
-      variant: Parameters<SuperJson['swapProfileProviderVariant']>[2];
+      variant: Parameters<typeof swapProfileProviderVariant>[3];
       expected: [boolean, ProfileProviderEntry];
     }>([
       {
@@ -1592,15 +1841,18 @@ describe('superjson mutate', () => {
       },
     ])('swaps $name', ({ name: _name, provider, variant, expected }) => {
       expect(
-        superjson.swapProfileProviderVariant(PROFILE, provider, variant)
+        swapProfileProviderVariant(
+          superjson,
+          PROFILE,
+          provider,
+          variant,
+          filesystem,
+          environment
+        )
       ).toEqual(expected[0]);
       expect(
-        (
-          superjson.document.profiles?.[PROFILE] as Exclude<
-            ProfileEntry,
-            string
-          >
-        ).providers?.[provider]
+        (superjson.profiles?.[PROFILE] as Exclude<ProfileEntry, string>)
+          .providers?.[provider]
       ).toEqual(expected[1]);
     });
   });
@@ -1610,8 +1862,12 @@ describe('superjson mutate', () => {
       const mockProviderName = 'provider';
       const mockProviderEntry: ProviderEntry = 'file://some/path';
 
-      superjson.mergeProvider(mockProviderName, mockProviderEntry);
-      expect(superjson.normalized.providers[mockProviderName]).toEqual({
+      mergeProvider(superjson, mockProviderName, mockProviderEntry, filesystem);
+      expect(
+        normalizeSuperJsonDocument(superjson, environment).providers[
+          mockProviderName
+        ]
+      ).toEqual({
         file: 'some/path',
         security: [],
         parameters: {},
@@ -1622,8 +1878,10 @@ describe('superjson mutate', () => {
       let mockProviderName = 'provider';
       const mockProviderEntry: ProviderEntry = 'file://some/path';
 
-      superjson.mergeProvider(mockProviderName, mockProviderEntry);
-      expect(superjson.normalized.providers).toEqual({
+      mergeProvider(superjson, mockProviderName, mockProviderEntry, filesystem);
+      expect(
+        normalizeSuperJsonDocument(superjson, environment).providers
+      ).toEqual({
         [mockProviderName]: {
           file: 'some/path',
           security: [],
@@ -1633,8 +1891,10 @@ describe('superjson mutate', () => {
 
       mockProviderName = 'second-provider';
 
-      superjson.mergeProvider(mockProviderName, mockProviderEntry);
-      expect(superjson.normalized.providers).toEqual({
+      mergeProvider(superjson, mockProviderName, mockProviderEntry, filesystem);
+      expect(
+        normalizeSuperJsonDocument(superjson, environment).providers
+      ).toEqual({
         provider: {
           file: 'some/path',
           security: [],
@@ -1651,14 +1911,18 @@ describe('superjson mutate', () => {
     it('merges provider using uri path with existing targed provider correctly', () => {
       const mockProviderName = 'provider';
       const mockProviderEntry: ProviderEntry = 'file://some/path';
-      superjson = new SuperJson({
+      superjson = {
         providers: {
           [mockProviderName]: 'targed/provider/path',
         },
-      });
+      };
 
-      superjson.mergeProvider(mockProviderName, mockProviderEntry);
-      expect(superjson.normalized.providers[mockProviderName]).toEqual({
+      mergeProvider(superjson, mockProviderName, mockProviderEntry, filesystem);
+      expect(
+        normalizeSuperJsonDocument(superjson, environment).providers[
+          mockProviderName
+        ]
+      ).toEqual({
         file: 'some/path',
         security: [],
         parameters: {},
@@ -1680,8 +1944,12 @@ describe('superjson mutate', () => {
         },
       };
 
-      superjson.mergeProvider(mockProviderName, mockProviderEntry);
-      expect(superjson.normalized.providers[mockProviderName]).toEqual({
+      mergeProvider(superjson, mockProviderName, mockProviderEntry, filesystem);
+      expect(
+        normalizeSuperJsonDocument(superjson, environment).providers[
+          mockProviderName
+        ]
+      ).toEqual({
         file: 'some/path',
         security: [
           {
@@ -1710,7 +1978,7 @@ describe('superjson mutate', () => {
           second: 'second',
         },
       };
-      superjson = new SuperJson({
+      superjson = {
         providers: {
           [mockProviderName]: {
             file: 'some/path',
@@ -1727,10 +1995,14 @@ describe('superjson mutate', () => {
             },
           },
         },
-      });
+      };
 
-      superjson.mergeProvider(mockProviderName, mockProviderEntry);
-      expect(superjson.normalized.providers[mockProviderName]).toEqual({
+      mergeProvider(superjson, mockProviderName, mockProviderEntry, filesystem);
+      expect(
+        normalizeSuperJsonDocument(superjson, environment).providers[
+          mockProviderName
+        ]
+      ).toEqual({
         file: 'some/path',
         security: [
           {
@@ -1757,14 +2029,18 @@ describe('superjson mutate', () => {
           },
         ],
       };
-      superjson = new SuperJson({
+      superjson = {
         providers: {
           [mockProviderName]: 'targed/provider/path',
         },
-      });
+      };
 
-      superjson.mergeProvider(mockProviderName, mockProviderEntry);
-      expect(superjson.normalized.providers[mockProviderName]).toEqual({
+      mergeProvider(superjson, mockProviderName, mockProviderEntry, filesystem);
+      expect(
+        normalizeSuperJsonDocument(superjson, environment).providers[
+          mockProviderName
+        ]
+      ).toEqual({
         file: 'some/path',
         security: [
           {
@@ -1781,7 +2057,12 @@ describe('superjson mutate', () => {
       const mockProviderEntry: ProviderEntry = 'made-up';
 
       expect(() =>
-        superjson.mergeProvider(mockProviderName, mockProviderEntry)
+        mergeProvider(
+          superjson,
+          mockProviderName,
+          mockProviderEntry,
+          filesystem
+        )
       ).toThrowError(new Error('Invalid string payload format'));
     });
   });
@@ -1863,10 +2144,10 @@ describe('superjson mutate', () => {
         if (from.provider !== undefined) {
           providers[TEST_PROVIDER_NAME] = from.provider;
         }
-        superjson = new SuperJson({ providers });
+        superjson = { providers };
 
         expect(
-          superjson.setProvider(TEST_PROVIDER_NAME, to.provider)
+          setProvider(superjson, TEST_PROVIDER_NAME, to.provider, filesystem)
         ).toStrictEqual(expectedChanged);
 
         let expected: SuperJsonDocument = {};
@@ -1878,25 +2159,25 @@ describe('superjson mutate', () => {
           };
         }
 
-        expect(superjson.document).toStrictEqual(expected);
+        expect(superjson).toStrictEqual(expected);
       }
     );
 
     it('preserves existing providers when deleting', () => {
-      superjson = new SuperJson({
+      superjson = {
         providers: {
           [TEST_PROVIDER_NAME]: {},
           otherProvider: {
             file: 'path',
           },
         },
-      });
+      };
 
       expect(
-        superjson.setProvider(TEST_PROVIDER_NAME, undefined)
+        setProvider(superjson, TEST_PROVIDER_NAME, undefined, filesystem)
       ).toStrictEqual(true);
 
-      expect(superjson.document).toStrictEqual({
+      expect(superjson).toStrictEqual({
         providers: {
           otherProvider: {
             file: 'path',
@@ -1908,7 +2189,7 @@ describe('superjson mutate', () => {
 
   describe('when swapping provider variant', () => {
     beforeEach(() => {
-      superjson = new SuperJson({
+      superjson = {
         providers: {
           localShort: 'file://path',
           local: {
@@ -1930,13 +2211,13 @@ describe('superjson mutate', () => {
             ],
           },
         },
-      });
+      };
     });
 
     it.each<{
       name: string;
       provider: string;
-      variant: Parameters<SuperJson['swapProviderVariant']>[1];
+      variant: Parameters<typeof swapProviderVariant>[2];
       expected: [boolean, ProviderEntry];
     }>([
       {
@@ -2042,10 +2323,10 @@ describe('superjson mutate', () => {
         expected: [true, {}],
       },
     ])('swaps $name', ({ name: _name, provider, variant, expected }) => {
-      expect(superjson.swapProviderVariant(provider, variant)).toEqual(
-        expected[0]
-      );
-      expect(superjson.document.providers?.[provider]).toEqual(expected[1]);
+      expect(
+        swapProviderVariant(superjson, provider, variant, filesystem)
+      ).toEqual(expected[0]);
+      expect(superjson.providers?.[provider]).toEqual(expected[1]);
     });
   });
 
@@ -2055,7 +2336,12 @@ describe('superjson mutate', () => {
       const mockPriorityArray = ['first', 'second', 'third'];
 
       expect(() =>
-        superjson.setPriority(mockProfileName, mockPriorityArray)
+        setPriority(
+          superjson,
+          mockProfileName,
+          mockPriorityArray,
+          environment
+        ).unwrap()
       ).toThrowError(new RegExp(`Profile "${mockProfileName}" not found`));
     });
 
@@ -2063,13 +2349,18 @@ describe('superjson mutate', () => {
       const mockProfileName = 'profile';
       const mockPriorityArray = ['first', 'second', 'third'];
 
-      superjson = new SuperJson({
+      superjson = {
         profiles: {
           [mockProfileName]: '1.2.3',
         },
-      });
+      };
       expect(() =>
-        superjson.setPriority(mockProfileName, mockPriorityArray)
+        setPriority(
+          superjson,
+          mockProfileName,
+          mockPriorityArray,
+          environment
+        ).unwrap()
       ).toThrowError(
         new RegExp(`Unable to set priority for "${mockProfileName}"`)
       );
@@ -2079,16 +2370,21 @@ describe('superjson mutate', () => {
       const mockProfileName = 'profile';
       const mockPriorityArray = ['first', 'second', 'third'];
 
-      superjson = new SuperJson({
+      superjson = {
         profiles: {
           [mockProfileName]: {
             defaults: {},
             file: 'some/path',
           },
         },
-      });
+      };
       expect(() =>
-        superjson.setPriority(mockProfileName, mockPriorityArray)
+        setPriority(
+          superjson,
+          mockProfileName,
+          mockPriorityArray,
+          environment
+        ).unwrap()
       ).toThrowError(
         new RegExp(`Unable to set priority for "${mockProfileName}"`)
       );
@@ -2098,7 +2394,7 @@ describe('superjson mutate', () => {
       const mockProfileName = 'profile';
       const mockPriorityArray = ['first', 'second', 'third'];
 
-      superjson = new SuperJson({
+      superjson = {
         profiles: {
           [mockProfileName]: {
             defaults: {},
@@ -2109,9 +2405,14 @@ describe('superjson mutate', () => {
             },
           },
         },
-      });
+      };
       expect(() =>
-        superjson.setPriority(mockProfileName, mockPriorityArray)
+        setPriority(
+          superjson,
+          mockProfileName,
+          mockPriorityArray,
+          environment
+        ).unwrap()
       ).toThrowError(
         new RegExp(`Unable to set priority for "${mockProfileName}"`)
       );
@@ -2121,7 +2422,7 @@ describe('superjson mutate', () => {
       const mockProfileName = 'profile';
       const mockPriorityArray = ['first', 'second', 'third'];
 
-      superjson = new SuperJson({
+      superjson = {
         profiles: {
           [mockProfileName]: {
             defaults: {},
@@ -2133,9 +2434,14 @@ describe('superjson mutate', () => {
             },
           },
         },
-      });
+      };
       expect(() =>
-        superjson.setPriority(mockProfileName, mockPriorityArray)
+        setPriority(
+          superjson,
+          mockProfileName,
+          mockPriorityArray,
+          environment
+        ).unwrap()
       ).toThrowError(
         new RegExp(`Unable to set priority for "${mockProfileName}"`)
       );
@@ -2145,7 +2451,7 @@ describe('superjson mutate', () => {
       const mockProfileName = 'profile';
       const mockPriorityArray = ['first', 'second', 'third'];
 
-      superjson = new SuperJson({
+      superjson = {
         profiles: {
           [mockProfileName]: {
             defaults: {},
@@ -2161,19 +2467,22 @@ describe('superjson mutate', () => {
           first: {},
           second: {},
         },
-      });
+      };
       expect(() =>
-        superjson.setPriority(mockProfileName, mockPriorityArray)
-      ).toThrowError(
-        new RegExp(`Unable to set priority for "${mockProfileName}"`)
-      );
+        setPriority(
+          superjson,
+          mockProfileName,
+          mockPriorityArray,
+          environment
+        ).unwrap()
+      ).toThrow(new RegExp(`Unable to set priority for "${mockProfileName}"`));
     });
 
     it('sets priority to super.json - exisiting priority is same as new priority', () => {
       const mockProfileName = 'profile';
       const mockPriorityArray = ['first', 'second', 'third'];
 
-      superjson = new SuperJson({
+      superjson = {
         profiles: {
           [mockProfileName]: {
             defaults: {},
@@ -2191,17 +2500,17 @@ describe('superjson mutate', () => {
           second: {},
           third: {},
         },
-      });
-      expect(superjson.setPriority(mockProfileName, mockPriorityArray)).toEqual(
-        false
-      );
+      };
+      expect(
+        setPriority(superjson, mockProfileName, mockPriorityArray, environment)
+      ).toEqual({ value: false });
     });
 
     it('sets priority to super.json', () => {
       const mockProfileName = 'profile';
       const mockPriorityArray = ['first', 'second', 'third'];
 
-      superjson = new SuperJson({
+      superjson = {
         profiles: {
           [mockProfileName]: {
             defaults: {},
@@ -2218,12 +2527,16 @@ describe('superjson mutate', () => {
           second: {},
           third: {},
         },
-      });
-      expect(superjson.setPriority(mockProfileName, mockPriorityArray)).toEqual(
-        true
-      );
+      };
+      expect(
+        setPriority(superjson, mockProfileName, mockPriorityArray, environment)
+      ).toEqual({ value: true });
 
-      expect(superjson.normalized.profiles[mockProfileName]).toEqual({
+      expect(
+        normalizeSuperJsonDocument(superjson, environment).profiles[
+          mockProfileName
+        ]
+      ).toEqual({
         defaults: {},
         priority: mockPriorityArray,
         providers: {
@@ -2239,6 +2552,71 @@ describe('superjson mutate', () => {
         },
         file: 'some/path',
       });
+    });
+  });
+
+  describe('when merging security', () => {
+    it('merges security correctly', () => {
+      const mockLeft: SecurityValues[] = [
+        {
+          id: 'left-api-id',
+          apikey: 'left-api-key',
+        },
+      ];
+
+      const mockRight: SecurityValues[] = [
+        {
+          id: 'right-digest-id',
+          username: 'right-digest-user',
+          password: 'right-digest-password',
+        },
+      ];
+
+      expect(mergeSecurity(mockLeft, mockRight)).toEqual([
+        {
+          id: 'left-api-id',
+          apikey: 'left-api-key',
+        },
+        {
+          id: 'right-digest-id',
+          username: 'right-digest-user',
+          password: 'right-digest-password',
+        },
+      ]);
+    });
+
+    it('overwrites existing security', () => {
+      const mockLeft: SecurityValues[] = [
+        {
+          id: 'left-api-id',
+          apikey: 'left-api-key',
+        },
+        {
+          id: 'digest-id',
+          username: 'left-digest-user',
+          password: 'left-digest-password',
+        },
+      ];
+
+      const mockRight: SecurityValues[] = [
+        {
+          id: 'digest-id',
+          username: 'right-digest-user',
+          password: 'right-digest-password',
+        },
+      ];
+
+      expect(mergeSecurity(mockLeft, mockRight)).toEqual([
+        {
+          id: 'left-api-id',
+          apikey: 'left-api-key',
+        },
+        {
+          id: 'digest-id',
+          username: 'right-digest-user',
+          password: 'right-digest-password',
+        },
+      ]);
     });
   });
 });

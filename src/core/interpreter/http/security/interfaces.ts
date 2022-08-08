@@ -1,4 +1,4 @@
-import {
+import type {
   ApiKeySecurityScheme,
   ApiKeySecurityValues,
   BasicAuthSecurityScheme,
@@ -10,10 +10,9 @@ import {
   HttpSecurityRequirement,
 } from '@superfaceai/ast';
 
-import { SuperCache } from '../../../../lib';
-import { NonPrimitive, Variables } from '../../variables';
-import { FetchParameters } from '../interfaces';
-import { HttpResponse } from '../types';
+import type { NonPrimitive, SuperCache, Variables } from '../../../../lib';
+import type { FetchParameters } from '../interfaces';
+import type { HttpResponse } from '../types';
 
 export const DEFAULT_AUTHORIZATION_HEADER_NAME = 'Authorization';
 

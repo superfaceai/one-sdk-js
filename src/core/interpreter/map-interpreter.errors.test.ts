@@ -1,4 +1,4 @@
-import {
+import type {
   AstMetadata,
   MapASTNode,
   MapDocumentNode,
@@ -7,10 +7,10 @@ import {
 import { parseMap, Source } from '@superfaceai/parser';
 import { getLocal } from 'mockttp';
 
+import { UnexpectedError } from '../../lib';
 import { MockTimers } from '../../mock';
 import { NodeCrypto, NodeFetch, NodeFileSystem } from '../../node';
 import { Config } from '../config';
-import { UnexpectedError } from '../errors';
 import { ServiceSelector } from '../services';
 import { MapInterpreter } from './map-interpreter';
 import {

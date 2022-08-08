@@ -1,13 +1,18 @@
-import { SuperJsonDocument } from '@superfaceai/ast';
+import type { SuperJsonDocument } from '@superfaceai/ast';
 
 import { SuperCache } from '../../lib';
 import { mockProfileDocumentNode, MockTimers } from '../../mock';
-import { NodeCrypto, NodeFetch, NodeFileSystem } from '../../node';
-import { SuperJson } from '../../schema-tools';
+import {
+  NodeCrypto,
+  NodeEnvironment,
+  NodeFetch,
+  NodeFileSystem,
+} from '../../node';
+import { normalizeSuperJsonDocument } from '../../schema-tools/superjson/normalize';
 import { Config } from '../config';
 import { usecaseNotFoundError } from '../errors';
 import { Events } from '../events';
-import { IBoundProfileProvider } from '../profile-provider';
+import type { IBoundProfileProvider } from '../profile-provider';
 import { Profile } from './profile';
 import { ProfileConfiguration } from './profile-configuration';
 
@@ -28,7 +33,7 @@ function createProfile(superJson: SuperJsonDocument): Profile {
     configuration,
     ast,
     events,
-    new SuperJson(superJson),
+    normalizeSuperJsonDocument(superJson, new NodeEnvironment()),
     config,
     timers,
     NodeFileSystem,

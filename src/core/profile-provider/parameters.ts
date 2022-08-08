@@ -1,4 +1,5 @@
-import { prepareProviderParameters, ProviderJson } from '@superfaceai/ast';
+import type { ProviderJson } from '@superfaceai/ast';
+import { prepareProviderParameters } from '@superfaceai/ast';
 
 export function resolveIntegrationParameters(
   providerJson: ProviderJson,

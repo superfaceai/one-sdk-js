@@ -1,7 +1,7 @@
 import { HttpScheme, SecurityType } from '@superfaceai/ast';
 
 import { URLENCODED_CONTENT } from '../../interfaces';
-import { RequestParameters, SecurityConfiguration } from '../../security';
+import type { RequestParameters, SecurityConfiguration } from '../../security';
 import { HttpHandler } from './http';
 
 describe('HttpHandler', () => {

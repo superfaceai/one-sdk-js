@@ -1,15 +1,24 @@
-import { ProfileDocumentNode } from '@superfaceai/ast';
+import type {
+  NormalizedSuperJsonDocument,
+  ProfileDocumentNode,
+} from '@superfaceai/ast';
 
-import { SuperCache } from '../../lib';
-import { SuperJson } from '../../schema-tools';
-import { UnexpectedError, usecaseNotFoundError } from '../errors';
-import { Events, Interceptable } from '../events';
-import { IConfig, ICrypto, IFileSystem, ILogger, ITimers } from '../interfaces';
-import { AuthCache, IFetch, NonPrimitive } from '../interpreter';
-import { IBoundProfileProvider } from '../profile-provider';
+import type {
+  IConfig,
+  ICrypto,
+  IFileSystem,
+  ILogger,
+  ITimers,
+} from '../../interfaces';
+import type { NonPrimitive, SuperCache } from '../../lib';
+import { UnexpectedError } from '../../lib';
+import { usecaseNotFoundError } from '../errors';
+import type { Events, Interceptable } from '../events';
+import type { AuthCache, IFetch } from '../interpreter';
+import type { IBoundProfileProvider } from '../profile-provider';
 import { TypedUseCase } from '../usecase';
 import { ProfileBase } from './profile';
-import { ProfileConfiguration } from './profile-configuration';
+import type { ProfileConfiguration } from './profile-configuration';
 
 export type UsecaseType<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -34,7 +43,9 @@ export class TypedProfile<
     public override readonly configuration: ProfileConfiguration,
     public override readonly ast: ProfileDocumentNode,
     protected override readonly events: Events,
-    protected override readonly superJson: SuperJson | undefined,
+    protected override readonly superJson:
+      | NormalizedSuperJsonDocument
+      | undefined,
     protected override readonly boundProfileProviderCache: SuperCache<{
       provider: IBoundProfileProvider;
       expiresAt: number;

@@ -1,3 +1,13 @@
+export function ensureErrorSubclass(error: unknown): Error {
+  if (typeof error === 'string') {
+    return new Error(error);
+  } else if (error instanceof Error) {
+    return error;
+  }
+
+  return new Error(JSON.stringify(error));
+}
+
 export class ErrorBase {
   constructor(public kind: string, public message: string) {}
 
@@ -31,12 +41,12 @@ export class SDKExecutionError extends Error {
     private hints: string[]
   ) {
     super(shortMessage);
-    this.name = 'SdkExecutionError';
 
     // https://github.com/Microsoft/TypeScript/wiki/Breaking-Changes#extending-built-ins-like-error-array-and-map-may-no-longer-work
-    Object.setPrototypeOf(this, SDKExecutionError.prototype);
+    Object.setPrototypeOf(this, SDKBindError.prototype);
 
     this.message = this.formatLong();
+    this.name = 'SDKExecutionError';
   }
 
   /**
