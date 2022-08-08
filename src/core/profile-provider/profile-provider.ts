@@ -23,6 +23,7 @@ import type {
 import { forceCast, profileAstId, UnexpectedError } from '../../lib';
 import { mergeSecurity } from '../../schema-tools';
 import {
+  invalidMapASTResponseError,
   localProviderAndRemoteMapError,
   providersDoNotMatchError,
   referencedFileNotFoundError,
@@ -30,7 +31,7 @@ import {
 import type { Events, Interceptable } from '../events';
 import type { AuthCache, IFetch } from '../interpreter';
 import type { ProviderConfiguration } from '../provider';
-import { fetchBind, fetchMapAST, fetchProviderInfo } from '../registry';
+import { fetchBind, fetchProviderInfo } from '../registry';
 import { ServiceSelector } from '../services';
 import type { IBoundProfileProvider } from './bound-profile-provider';
 import { BoundProfileProvider } from './bound-profile-provider';
@@ -173,20 +174,8 @@ export class ProfileProvider {
       await this.writeProviderCache(providerInfo);
       this.providerJson = providerInfo;
       mapAst = fetchResponse.mapAst;
-      // If we don't have a map (probably due to validation issue) we try to get map source and parse it on our own
       if (!mapAst) {
-        const version = `${this.profile.header.version.major}.${this.profile.header.version.minor}.${this.profile.header.version.patch}`;
-        const mapId =
-          mapVariant !== undefined
-            ? `${profileId}.${providerName}.${mapVariant}@${version}`
-            : `${profileId}.${providerName}@${version}`;
-        mapAst = await fetchMapAST(
-          mapId,
-          this.config,
-          this.crypto,
-          this.fetchInstance,
-          this.logger
-        );
+        throw invalidMapASTResponseError();
       }
     } else if (providerInfo === undefined) {
       // resolve only provider info if map is specified locally

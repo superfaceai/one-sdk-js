@@ -15,7 +15,10 @@ import { NodeCrypto, NodeFetch, NodeFileSystem } from '../../node';
 import * as SuperJsonMutate from '../../schema-tools/superjson/mutate';
 import { normalizeSuperJsonDocument } from '../../schema-tools/superjson/normalize';
 import { Config } from '../config';
-import { localProviderAndRemoteMapError } from '../errors';
+import {
+  invalidMapASTResponseError,
+  localProviderAndRemoteMapError,
+} from '../errors';
 import { Events } from '../events';
 import { ProviderConfiguration } from '../provider';
 import { fetchBind, fetchProviderInfo } from '../registry';
@@ -928,6 +931,50 @@ describe('profile provider', () => {
         const result = await mockProfileProvider.bind();
 
         expect(result).toMatchObject(expectedBoundProfileProvider);
+      });
+
+      it('throws error when bind response contains invalid map AST', async () => {
+        mocked(fetchBind).mockResolvedValue({
+          ...mockFetchResponse,
+          mapAst: undefined,
+        });
+        const superJson = normalizeSuperJsonDocument(
+          {
+            profiles: {
+              ['test-profile']: {
+                file: 'file://some/file',
+                version: '1.0.0',
+                defaults: {},
+                providers: {},
+              },
+            },
+            providers: {
+              test: {
+                security: mockSecurityValues,
+              },
+            },
+          },
+          new MockEnvironment()
+        );
+
+        mocked(fileSystem.readFile)
+          .mockResolvedValueOnce(ok(JSON.stringify(mockProfileDocument)))
+          .mockResolvedValueOnce(ok(JSON.stringify(mockProviderJson)));
+
+        const mockProfileProvider = new ProfileProvider(
+          superJson,
+          mockProfileDocument,
+          mockProviderConfiguration,
+          mockProfileProviderConfiguration,
+          mockConfig,
+          new Events(timers),
+          fileSystem,
+          crypto,
+          new NodeFetch(timers)
+        );
+        await expect(() => mockProfileProvider.bind()).rejects.toThrow(
+          invalidMapASTResponseError()
+        );
       });
 
       it('returns new BoundProfileProvider with merged security', async () => {

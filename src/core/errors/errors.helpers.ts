@@ -540,6 +540,14 @@ export function invalidProviderResponseError(error: unknown): SDKBindError {
   );
 }
 
+export function invalidMapASTResponseError(): SDKBindError {
+  return new SDKBindError(
+    'Bind call response did not contain valid map',
+    [],
+    []
+  );
+}
+
 export function bindResponseError({
   statusCode,
   profileId,
