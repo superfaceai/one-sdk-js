@@ -12,6 +12,7 @@ import {
   invalidIdentifierIdError,
   invalidVersionError,
   profileNotInstalledError,
+  unconfiguredProviderInPriorityError,
 } from '../errors';
 import type { Events, Interceptable } from '../events';
 import type { AuthCache, IFetch } from '../interpreter';
@@ -74,6 +75,18 @@ export class InternalClient {
       const profileSettings = this.superJson.profiles[profileId];
       if (profileSettings === undefined) {
         throw profileNotInstalledError(profileId);
+      }
+
+      if ('file' in profileSettings) {
+        // TODO: load priority and add it to ProfileConfiguration?
+        const priority = profileSettings.priority;
+        if (!priority.every(p => this.superJson?.providers[p])) {
+          throw unconfiguredProviderInPriorityError(
+            profileId,
+            priority,
+            Object.keys(this.superJson.providers ?? [])
+          );
+        }
       }
     }
 
