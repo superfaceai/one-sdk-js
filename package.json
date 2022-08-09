@@ -1,6 +1,6 @@
 {
   "name": "@superfaceai/one-sdk",
-  "version": "2.0.0-beta.0",
+  "version": "2.0.0-rc.0",
   "description": "OneSDK is a universal API client which provides an unparalleled developer experience for every HTTP API",
   "license": "MIT",
   "author": "Superface Team <hello@superface.ai>",
