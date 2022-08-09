@@ -20,10 +20,11 @@ import type {
   OutcomeStatementNode,
   PrimitiveLiteralNode,
   SetStatementNode,
-  Substatement} from '@superfaceai/ast';
+  Substatement,
+} from '@superfaceai/ast';
 import {
   isMapDefinitionNode,
-  isOperationDefinitionNode
+  isOperationDefinitionNode,
 } from '@superfaceai/ast';
 
 import type {
@@ -33,27 +34,18 @@ import type {
   LogFunction,
   MapInterpreterError,
 } from '../../interfaces';
-import type {
-  NonPrimitive,
-  Primitive,
-  Result,
-  Variables} from '../../lib';
+import type { NonPrimitive, Primitive, Result, Variables } from '../../lib';
 import {
   castToVariables,
   err,
   mergeVariables,
   ok,
-  UnexpectedError
+  UnexpectedError,
 } from '../../lib';
 import type { IServiceSelector } from '../services';
 import type { MapInterpreterExternalHandler } from './external-handler';
-import type {
-  AuthCache,
-  HttpResponse,
-  SecurityConfiguration} from './http';
-import {
-  HttpClient
-} from './http';
+import type { AuthCache, HttpResponse, SecurityConfiguration } from './http';
+import { HttpClient } from './http';
 import type { IFetch } from './http/interfaces';
 import {
   HTTPError,

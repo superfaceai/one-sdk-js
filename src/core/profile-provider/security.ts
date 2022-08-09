@@ -1,13 +1,11 @@
-import type {
-  SecurityScheme,
-  SecurityValues} from '@superfaceai/ast';
+import type { SecurityScheme, SecurityValues } from '@superfaceai/ast';
 import {
   HttpScheme,
   isApiKeySecurityValues,
   isBasicAuthSecurityValues,
   isBearerTokenSecurityValues,
   isDigestSecurityValues,
-  SecurityType
+  SecurityType,
 } from '@superfaceai/ast';
 
 import { invalidSecurityValuesError, securityNotFoundError } from '../errors';

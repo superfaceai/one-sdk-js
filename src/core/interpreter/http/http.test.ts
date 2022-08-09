@@ -1,6 +1,6 @@
 import { getLocal } from 'mockttp';
 
-import type { Primitive} from '../../../lib';
+import type { Primitive } from '../../../lib';
 import { SuperCache } from '../../../lib';
 import { MockTimers } from '../../../mock';
 import { NodeCrypto, NodeFetch } from '../../../node';

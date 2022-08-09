@@ -2,7 +2,8 @@ import type {
   AstMetadata,
   MapDocumentNode,
   ProfileDocumentNode,
-  ProviderJson} from '@superfaceai/ast';
+  ProviderJson,
+} from '@superfaceai/ast';
 import {
   ApiKeyPlacement,
   HttpScheme,

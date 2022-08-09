@@ -20,24 +20,28 @@ import type {
   UnionDefinitionNode,
   UseCaseDefinitionNode,
   UseCaseExampleNode,
-  UseCaseSlotDefinitionNode} from '@superfaceai/ast';
+  UseCaseSlotDefinitionNode,
+} from '@superfaceai/ast';
 import {
   isNamedFieldDefinitionNode,
-  isNamedModelDefinitionNode
+  isNamedModelDefinitionNode,
 } from '@superfaceai/ast';
 
-import type { ILogger, LogFunction, ProfileParameterError } from '../../interfaces';
-import type { Result} from '../../lib';
+import type {
+  ILogger,
+  LogFunction,
+  ProfileParameterError,
+} from '../../interfaces';
+import type { Result } from '../../lib';
 import { err, ok, UnexpectedError } from '../../lib';
 import type { ProfileVisitor } from './interfaces';
-import type {
-  ValidationError} from './profile-parameter-validator.errors';
+import type { ValidationError } from './profile-parameter-validator.errors';
 import {
   addFieldToErrors,
   formatErrors,
   InputValidationError,
   isWrongTypeError,
-  ResultValidationError
+  ResultValidationError,
 } from './profile-parameter-validator.errors';
 
 const DEBUG_NAMESPACE = 'profile-parameter-validator';

@@ -6,10 +6,9 @@ import type {
   AuthenticateRequestAsync,
   ISecurityHandler,
   RequestParameters,
-  SecurityConfiguration} from '../interfaces';
-import {
-  DEFAULT_AUTHORIZATION_HEADER_NAME
+  SecurityConfiguration,
 } from '../interfaces';
+import { DEFAULT_AUTHORIZATION_HEADER_NAME } from '../interfaces';
 
 const DEBUG_NAMESPACE = 'http:security:http-handler';
 

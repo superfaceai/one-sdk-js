@@ -1,6 +1,5 @@
 import type { ILogger } from '../../../interfaces';
-import type {
-  NonPrimitive} from '../../../lib';
+import type { NonPrimitive } from '../../../lib';
 import {
   getValue,
   recursiveKeyList,

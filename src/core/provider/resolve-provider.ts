@@ -1,4 +1,7 @@
-import type { NormalizedSuperJsonDocument, SecurityValues } from '@superfaceai/ast';
+import type {
+  NormalizedSuperJsonDocument,
+  SecurityValues,
+} from '@superfaceai/ast';
 
 import {
   noConfiguredProviderError,

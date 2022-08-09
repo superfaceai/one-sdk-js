@@ -1,16 +1,9 @@
 import type { ILogger } from '../../../interfaces';
-import type {
-  MaybePromise} from '../../../lib';
-import {
-  pipe,
-  UnexpectedError,
-  variablesToStrings,
-} from '../../../lib';
+import type { MaybePromise } from '../../../lib';
+import { pipe, UnexpectedError, variablesToStrings } from '../../../lib';
 import { USER_AGENT } from '../../../user-agent';
 import { unsupportedContentType } from '../../errors';
-import type {
-  FetchBody,
-  IFetch} from './interfaces';
+import type { FetchBody, IFetch } from './interfaces';
 import {
   BINARY_CONTENT_REGEXP,
   BINARY_CONTENT_TYPES,

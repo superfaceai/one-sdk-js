@@ -1,4 +1,7 @@
-import type { DigestSecurityScheme, DigestSecurityValues } from '@superfaceai/ast';
+import type {
+  DigestSecurityScheme,
+  DigestSecurityValues,
+} from '@superfaceai/ast';
 
 import type { ICrypto, ILogger, LogFunction } from '../../../../../interfaces';
 import { pipe } from '../../../../../lib';
@@ -20,10 +23,9 @@ import type {
   AuthenticateRequestAsync,
   HandleResponseAsync,
   ISecurityHandler,
-  RequestParameters} from '../interfaces';
-import {
-  DEFAULT_AUTHORIZATION_HEADER_NAME
+  RequestParameters,
 } from '../interfaces';
+import { DEFAULT_AUTHORIZATION_HEADER_NAME } from '../interfaces';
 
 const DEBUG_NAMESPACE = 'http:security:digest-handler';
 const DEBUG_NAMESPACE_SENSITIVE = 'http:security:digest-handler:sensitive';
