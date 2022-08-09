@@ -15,17 +15,18 @@ import { NodeCrypto, NodeFetch, NodeFileSystem } from '../../node';
 import * as SuperJsonMutate from '../../schema-tools/superjson/mutate';
 import { normalizeSuperJsonDocument } from '../../schema-tools/superjson/normalize';
 import { Config } from '../config';
-import { localProviderAndRemoteMapError } from '../errors';
+import {
+  invalidMapASTResponseError,
+  localProviderAndRemoteMapError,
+} from '../errors';
 import { Events } from '../events';
-import { Parser } from '../parser';
 import { ProviderConfiguration } from '../provider';
-import { fetchBind, fetchMapSource, fetchProviderInfo } from '../registry';
+import { fetchBind, fetchProviderInfo } from '../registry';
 import { ServiceSelector } from '../services';
 import { ProfileProvider } from './profile-provider';
 import { ProfileProviderConfiguration } from './profile-provider-configuration';
 
 jest.mock('../registry/registry');
-jest.mock('../parser/parser');
 
 const mockConfig = new Config(NodeFileSystem);
 const crypto = new NodeCrypto();
@@ -546,58 +547,6 @@ describe('profile provider', () => {
         expect(result).toMatchObject(expectedBoundProfileProvider);
       });
 
-      it('returns new BoundProfileProvider get map source affter failed validation', async () => {
-        const mockMapSource = 'test source';
-        mocked(fetchBind).mockResolvedValue({
-          provider: mockFetchResponse.provider,
-          mapAst: undefined,
-        });
-        const superJson = normalizeSuperJsonDocument(
-          {
-            profiles: {
-              ['test-profile']: {
-                version: '1.0.0',
-                defaults: {},
-                providers: {
-                  test: {},
-                },
-              },
-            },
-            providers: {
-              test: {
-                security: mockSecurityValues,
-              },
-            },
-          },
-          new MockEnvironment()
-        );
-
-        mocked(fetchMapSource).mockResolvedValue(mockMapSource);
-
-        jest
-          .spyOn(Parser, 'parseMap')
-          .mockResolvedValue(mockFetchResponse.mapAst);
-
-        fileSystem.readFile = () =>
-          Promise.resolve(ok(JSON.stringify(mockProfileDocument)));
-
-        const mockProfileProvider = new ProfileProvider(
-          superJson,
-          mockProfileDocument,
-          mockProviderConfiguration,
-          mockProfileProviderConfiguration,
-          mockConfig,
-          new Events(timers),
-          fileSystem,
-          crypto,
-          new NodeFetch(timers)
-        );
-
-        const result = await mockProfileProvider.bind();
-
-        expect(result).toMatchObject(expectedBoundProfileProvider);
-      });
-
       it('returns new BoundProfileProvider load locally', async () => {
         mocked(fetchBind).mockResolvedValue(mockFetchResponse);
         const superJson = normalizeSuperJsonDocument(
@@ -982,6 +931,50 @@ describe('profile provider', () => {
         const result = await mockProfileProvider.bind();
 
         expect(result).toMatchObject(expectedBoundProfileProvider);
+      });
+
+      it('throws error when bind response contains invalid map AST', async () => {
+        mocked(fetchBind).mockResolvedValue({
+          ...mockFetchResponse,
+          mapAst: undefined,
+        });
+        const superJson = normalizeSuperJsonDocument(
+          {
+            profiles: {
+              ['test-profile']: {
+                file: 'file://some/file',
+                version: '1.0.0',
+                defaults: {},
+                providers: {},
+              },
+            },
+            providers: {
+              test: {
+                security: mockSecurityValues,
+              },
+            },
+          },
+          new MockEnvironment()
+        );
+
+        mocked(fileSystem.readFile)
+          .mockResolvedValueOnce(ok(JSON.stringify(mockProfileDocument)))
+          .mockResolvedValueOnce(ok(JSON.stringify(mockProviderJson)));
+
+        const mockProfileProvider = new ProfileProvider(
+          superJson,
+          mockProfileDocument,
+          mockProviderConfiguration,
+          mockProfileProviderConfiguration,
+          mockConfig,
+          new Events(timers),
+          fileSystem,
+          crypto,
+          new NodeFetch(timers)
+        );
+        await expect(() => mockProfileProvider.bind()).rejects.toThrow(
+          invalidMapASTResponseError()
+        );
       });
 
       it('returns new BoundProfileProvider with merged security', async () => {

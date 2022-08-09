@@ -4,7 +4,6 @@ export * from './errors';
 export * from './events';
 export * from '../interfaces';
 export * from './interpreter';
-export * from './parser';
 export * from './profile';
 export * from './profile-provider';
 export * from './provider';

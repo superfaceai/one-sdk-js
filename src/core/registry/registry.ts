@@ -295,13 +295,13 @@ export async function fetchProfileAst(
   return assertProfileDocumentNode(JSON.parse(body as string));
 }
 
-export async function fetchMapSource(
+export async function fetchMapAST(
   mapId: string,
   config: IConfig,
   crypto: ICrypto,
   fetchInstance: IFetch & AuthCache,
   logger?: ILogger
-): Promise<string> {
+): Promise<MapDocumentNode> {
   const http = new HttpClient(fetchInstance, crypto, logger);
   const sdkToken = config.sdkAuthToken;
   logger?.log(DEBUG_NAMESPACE, `Getting source of map: "${mapId}"`);
@@ -313,8 +313,8 @@ export async function fetchMapSource(
         ? [`Authorization: SUPERFACE-SDK-TOKEN ${sdkToken}`]
         : undefined,
     baseUrl: config.superfaceApiUrl,
-    accept: 'application/vnd.superface.map',
+    accept: 'application/vnd.superface.map+json',
   });
 
-  return body as string;
+  return assertMapDocumentNode(JSON.parse(body as string));
 }
