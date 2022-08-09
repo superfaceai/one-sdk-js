@@ -1,10 +1,8 @@
 import type {
   DigestSecurityScheme,
-  DigestSecurityValues} from '@superfaceai/ast';
-import {
-  HttpScheme,
-  SecurityType,
+  DigestSecurityValues,
 } from '@superfaceai/ast';
+import { HttpScheme, SecurityType } from '@superfaceai/ast';
 import { createHash } from 'crypto';
 
 import { SuperCache } from '../../../../../lib';
@@ -14,16 +12,12 @@ import {
   missingPartOfDigestHeader,
   unexpectedDigestValue,
 } from '../../../../errors';
-import type { IFetch} from '../../interfaces';
+import type { IFetch } from '../../interfaces';
 import { URLENCODED_CONTENT } from '../../interfaces';
 import type { HttpResponse } from '../../types';
 import type { HttpRequest } from '..';
-import type {
-  AuthCache,
-  RequestParameters} from '../interfaces';
-import {
-  DEFAULT_AUTHORIZATION_HEADER_NAME
-} from '../interfaces';
+import type { AuthCache, RequestParameters } from '../interfaces';
+import { DEFAULT_AUTHORIZATION_HEADER_NAME } from '../interfaces';
 import { DigestHandler, hashDigestConfiguration } from './digest';
 
 const mockFetch = jest.fn();

@@ -12,7 +12,8 @@ import type {
   IFetch,
   Interceptable,
   InterceptableMetadata,
-  ITimers} from '../../core';
+  ITimers,
+} from '../../core';
 import {
   BINARY_CONTENT_REGEXP,
   FetchParameters,

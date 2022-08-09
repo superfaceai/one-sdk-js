@@ -1,9 +1,8 @@
 import type {
   ApiKeySecurityScheme,
-  ApiKeySecurityValues} from '@superfaceai/ast';
-import {
-  ApiKeyPlacement
+  ApiKeySecurityValues,
 } from '@superfaceai/ast';
+import { ApiKeyPlacement } from '@superfaceai/ast';
 
 import type { ILogger, LogFunction } from '../../../../../interfaces';
 import type { Variables } from '../../../../../lib';
@@ -11,10 +10,9 @@ import { apiKeyInBodyError } from '../../../../errors';
 import type {
   AuthenticateRequestAsync,
   ISecurityHandler,
-  RequestParameters} from '../interfaces';
-import {
-  DEFAULT_AUTHORIZATION_HEADER_NAME
+  RequestParameters,
 } from '../interfaces';
+import { DEFAULT_AUTHORIZATION_HEADER_NAME } from '../interfaces';
 
 const DEBUG_NAMESPACE = 'http:api-key-handler';
 

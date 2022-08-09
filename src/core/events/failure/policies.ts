@@ -4,11 +4,9 @@ import type {
   ExecutionFailure,
   ExecutionInfo,
   ExecutionSuccess,
-  UsecaseInfo} from './policy';
-import {
-  FailurePolicy,
-  FailurePolicyReason
+  UsecaseInfo,
 } from './policy';
+import { FailurePolicy, FailurePolicyReason } from './policy';
 import type {
   ExecutionResolution,
   FailureResolution,

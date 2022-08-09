@@ -2,12 +2,9 @@ import type {
   AstMetadata,
   MapDocumentNode,
   ProfileDocumentNode,
-  ProviderJson} from '@superfaceai/ast';
-import {
-  ApiKeyPlacement,
-  HttpScheme,
-  SecurityType,
+  ProviderJson,
 } from '@superfaceai/ast';
+import { ApiKeyPlacement, HttpScheme, SecurityType } from '@superfaceai/ast';
 import { getLocal } from 'mockttp';
 
 import { err } from '../../lib';

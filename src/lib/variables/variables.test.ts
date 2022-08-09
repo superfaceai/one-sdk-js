@@ -1,5 +1,4 @@
-import type {
-  NonPrimitive} from './variables';
+import type { NonPrimitive } from './variables';
 import {
   assertIsVariables,
   getValue,

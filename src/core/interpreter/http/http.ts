@@ -1,18 +1,9 @@
-import type {
-  HttpSecurityRequirement} from '@superfaceai/ast';
-import {
-  HttpScheme,
-  SecurityType,
-} from '@superfaceai/ast';
+import type { HttpSecurityRequirement } from '@superfaceai/ast';
+import { HttpScheme, SecurityType } from '@superfaceai/ast';
 
 import type { ICrypto, ILogger } from '../../../interfaces';
-import type {
-  NonPrimitive,
-  Variables} from '../../../lib';
-import {
-  UnexpectedError,
-  variablesToStrings,
-} from '../../../lib';
+import type { NonPrimitive, Variables } from '../../../lib';
+import { UnexpectedError, variablesToStrings } from '../../../lib';
 import { pipe } from '../../../lib/pipe/pipe';
 import { missingSecurityValuesError } from '../../errors';
 import {
@@ -28,12 +19,9 @@ import type {
   AuthCache,
   ISecurityHandler,
   RequestParameters,
-  SecurityConfiguration} from './security';
-import {
-  ApiKeyHandler,
-  DigestHandler,
-  HttpHandler
+  SecurityConfiguration,
 } from './security';
+import { ApiKeyHandler, DigestHandler, HttpHandler } from './security';
 import type { HttpResponse } from './types';
 
 export enum NetworkErrors {
