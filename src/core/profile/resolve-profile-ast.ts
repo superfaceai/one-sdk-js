@@ -8,6 +8,7 @@ import type { IConfig, ICrypto, IFileSystem, ILogger } from '../../interfaces';
 import {
   NotFoundError,
   profileFileNotFoundError,
+  sourceFileExtensionFoundError,
   unableToResolveProfileError,
   unsupportedFileExtensionError,
   versionMismatchError,
@@ -23,10 +24,10 @@ const DEBUG_NAMESPACE = 'profile-ast-resolution';
  * Resolves profile AST file.
  * File property:
  *  - loads directly passed file
- *  - can point only to .supr.ast.json file
+ *  - can point only to .supr or .supr.ast.json file
  *  - throws if file not found or not valid ProfileDocumentNode
  * Version property:
- *  - looks for [profileId]@[version].supr.ast.json file in superface/grid
+ *  - tries to load it from cache
  *  - if not found it tries to fetch profile AST from Registry
  * @returns ProfileDocumentNode
  */
@@ -96,6 +97,10 @@ export async function resolveProfileAst({
           EXTENSIONS.profile.source,
           EXTENSIONS.profile.build
         );
+
+        if (!(await fileSystem.exists(astPath))) {
+          throw sourceFileExtensionFoundError(EXTENSIONS.profile.source);
+        }
       } else if (filepath.endsWith(EXTENSIONS.profile.build)) {
         astPath = filepath;
       } else {
