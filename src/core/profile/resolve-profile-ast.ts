@@ -98,6 +98,7 @@ export async function resolveProfileAst({
           EXTENSIONS.profile.build
         );
 
+        // if we don't have build file next to source file
         if (!(await fileSystem.exists(astPath))) {
           throw sourceFileExtensionFoundError(EXTENSIONS.profile.source);
         }

@@ -69,9 +69,9 @@ export async function tryToLoadCachedAst({
   }
 
   // Check version
-  const cachedVersion = `${possibleAst.header.version.major}.${possibleAst.header.version.minor}.${possibleAst.header.version.patch}`;
+  let cachedVersion = `${possibleAst.header.version.major}.${possibleAst.header.version.minor}.${possibleAst.header.version.patch}`;
   if (possibleAst.header.version.label !== undefined) {
-    version += `-${possibleAst.header.version.label}`;
+    cachedVersion += `-${possibleAst.header.version.label}`;
   }
 
   if (version !== cachedVersion) {

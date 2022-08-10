@@ -22,11 +22,18 @@ describe('profile AST caching', () => {
 
   describe('cacheProfileAst', () => {
     it('should cache profile ast', async () => {
-      const ast = mockProfileDocumentNode();
+      const ast = mockProfileDocumentNode({
+        version: {
+          major: 1,
+          minor: 2,
+          patch: 3,
+          label: 'test',
+        },
+      });
 
       await expect(
         cacheProfileAst({
-          version: '1.0.1',
+          version: '1.2.3-test',
           ast,
           config,
           fileSystem,
@@ -44,7 +51,7 @@ describe('profile AST caching', () => {
         config.cachePath +
           '/profiles/' +
           ast.header.name +
-          '@1.0.1' +
+          '@1.2.3-test' +
           EXTENSIONS.profile.build,
         JSON.stringify(ast, undefined, 2)
       );
@@ -130,7 +137,15 @@ describe('profile AST caching', () => {
 
   describe('tryToLoadCachedAst', () => {
     it('should load profile ast', async () => {
-      const ast = mockProfileDocumentNode({ scope: 'scope' });
+      const ast = mockProfileDocumentNode({
+        scope: 'scope',
+        version: {
+          major: 1,
+          minor: 2,
+          patch: 3,
+          label: 'test',
+        },
+      });
       fileSystem = MockFileSystem({
         readFile: jest.fn(() => Promise.resolve(ok(JSON.stringify(ast)))),
       });
@@ -138,7 +153,7 @@ describe('profile AST caching', () => {
       await expect(
         tryToLoadCachedAst({
           profileId: 'scope/test',
-          version: '1.0.0',
+          version: '1.2.3-test',
           config,
           fileSystem,
         })
@@ -149,7 +164,7 @@ describe('profile AST caching', () => {
           '/profiles' +
           '/scope/' +
           ast.header.name +
-          '@1.0.0' +
+          '@1.2.3-test' +
           EXTENSIONS.profile.build
       );
     });
