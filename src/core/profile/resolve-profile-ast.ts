@@ -24,10 +24,10 @@ const DEBUG_NAMESPACE = 'profile-ast-resolution';
  * Resolves profile AST file.
  * File property:
  *  - loads directly passed file
- *  - can point only to .supr.ast.json file
+ *  - can point only to .supr or .supr.ast.json file
  *  - throws if file not found or not valid ProfileDocumentNode
  * Version property:
- *  - looks for [profileId]@[version].supr.ast.json file in superface/grid
+ *  - tries to load it from cache
  *  - if not found it tries to fetch profile AST from Registry
  * @returns ProfileDocumentNode
  */
@@ -81,52 +81,44 @@ export async function resolveProfileAst({
   ) {
     throw versionMismatchError(profileSettings.version, version);
   }
-  let filepath: string;
+  let filepath: string, astPath: string;
 
   let resolvedVersion: string;
   // TODO: do we want to check `file` if we have version from getProfile?
   if (superJson !== undefined && profileSettings !== undefined) {
     if ('file' in profileSettings) {
       filepath = fileSystem.path.resolve(
-        config.superfacePath,
+        fileSystem.path.dirname(config.superfacePath),
         profileSettings.file
       );
-      logFunction?.('Reading possible profile file: %s', filepath);
-      // check extensions
+      // if we find source file we assume compiled file next to it
       if (filepath.endsWith(EXTENSIONS.profile.source)) {
+        astPath = filepath.replace(
+          EXTENSIONS.profile.source,
+          EXTENSIONS.profile.build
+        );
+
+        // if we don't have build file next to source file
+        if (!(await fileSystem.exists(astPath))) {
+          throw sourceFileExtensionFoundError(EXTENSIONS.profile.source);
+        }
+      } else if (filepath.endsWith(EXTENSIONS.profile.build)) {
+        astPath = filepath;
+      } else {
         // FIX:  SDKExecutionError is used to ensure correct formatting. Improve formatting of UnexpectedError
-        throw sourceFileExtensionFoundError(EXTENSIONS.profile.source);
-      } else if (!filepath.endsWith(EXTENSIONS.profile.build)) {
-        // FIX:  SDKExecutionError is used to ensure correct formatting. Improve formatting of UnexpectedError
-        throw unsupportedFileExtensionError(filepath, EXTENSIONS.profile.build);
+        throw unsupportedFileExtensionError(
+          filepath,
+          EXTENSIONS.profile.source
+        );
       }
 
-      return await loadProfileAstFile(filepath);
+      logFunction?.('Reading possible profile file: %s', astPath);
+
+      return await loadProfileAstFile(astPath);
     }
     resolvedVersion = version ?? profileSettings.version;
   } else {
     resolvedVersion = version as string;
-  }
-  const gridPath = fileSystem.path.join(
-    'grid',
-    `${profileId}@${resolvedVersion}`
-  );
-  const superfaceFolderPath = fileSystem.path.dirname(config.superfacePath);
-
-  filepath =
-    fileSystem.path.resolve(superfaceFolderPath, gridPath) +
-    EXTENSIONS.profile.build;
-
-  logFunction?.('Reading possible profile file: %S', filepath);
-  try {
-    // TODO: do we want to cache it on cachePath?
-    return await loadProfileAstFile(filepath);
-  } catch (error) {
-    logFunction?.(
-      'Reading of possible profile file failed with error %O',
-      error
-    );
-    void error;
   }
 
   logFunction?.('Trying to load profile file from cache');
@@ -156,6 +148,7 @@ export async function resolveProfileAst({
 
   await cacheProfileAst({
     ast,
+    version: resolvedVersion,
     config,
     fileSystem,
     log: logFunction,

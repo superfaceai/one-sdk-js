@@ -22,22 +22,37 @@ describe('profile AST caching', () => {
 
   describe('cacheProfileAst', () => {
     it('should cache profile ast', async () => {
-      const ast = mockProfileDocumentNode();
+      const ast = mockProfileDocumentNode({
+        version: {
+          major: 1,
+          minor: 2,
+          patch: 3,
+          label: 'test',
+        },
+      });
 
       await expect(
         cacheProfileAst({
+          version: '1.2.3-test',
           ast,
           config,
           fileSystem,
         })
       ).resolves.toBeUndefined();
 
-      expect(fileSystem.mkdir).toHaveBeenCalledWith(config.cachePath, {
-        recursive: true,
-      });
+      expect(fileSystem.mkdir).toHaveBeenCalledWith(
+        config.cachePath + '/profiles',
+        {
+          recursive: true,
+        }
+      );
 
       expect(fileSystem.writeFile).toHaveBeenCalledWith(
-        config.cachePath + '/' + ast.header.name + EXTENSIONS.profile.build,
+        config.cachePath +
+          '/profiles/' +
+          ast.header.name +
+          '@1.2.3-test' +
+          EXTENSIONS.profile.build,
         JSON.stringify(ast, undefined, 2)
       );
     });
@@ -48,18 +63,25 @@ describe('profile AST caching', () => {
 
       await expect(
         cacheProfileAst({
+          version: '1.0.1',
           ast,
           config,
           fileSystem,
         })
       ).resolves.toBeUndefined();
 
-      expect(fileSystem.mkdir).toHaveBeenCalledWith('custom/path/scope', {
-        recursive: true,
-      });
+      expect(fileSystem.mkdir).toHaveBeenCalledWith(
+        'custom/path/profiles/scope',
+        {
+          recursive: true,
+        }
+      );
 
       expect(fileSystem.writeFile).toHaveBeenCalledWith(
-        'custom/path/scope/' + ast.header.name + EXTENSIONS.profile.build,
+        'custom/path/profiles/scope/' +
+          ast.header.name +
+          '@1.0.1' +
+          EXTENSIONS.profile.build,
         JSON.stringify(ast, undefined, 2)
       );
     });
@@ -69,6 +91,7 @@ describe('profile AST caching', () => {
 
       await expect(
         cacheProfileAst({
+          version: '1.0.1',
           ast,
           config,
           fileSystem,
@@ -76,7 +99,7 @@ describe('profile AST caching', () => {
       ).resolves.toBeUndefined();
 
       expect(fileSystem.mkdir).toHaveBeenCalledWith(
-        config.cachePath + '/scope',
+        config.cachePath + '/profiles/scope',
         {
           recursive: true,
         }
@@ -84,8 +107,10 @@ describe('profile AST caching', () => {
 
       expect(fileSystem.writeFile).toHaveBeenCalledWith(
         config.cachePath +
+          '/profiles' +
           '/scope/' +
           ast.header.name +
+          '@1.0.1' +
           EXTENSIONS.profile.build,
         JSON.stringify(ast, undefined, 2)
       );
@@ -97,6 +122,7 @@ describe('profile AST caching', () => {
 
       await expect(
         cacheProfileAst({
+          version: '1.0.1',
           ast,
           config,
           fileSystem,
@@ -111,7 +137,15 @@ describe('profile AST caching', () => {
 
   describe('tryToLoadCachedAst', () => {
     it('should load profile ast', async () => {
-      const ast = mockProfileDocumentNode({ scope: 'scope' });
+      const ast = mockProfileDocumentNode({
+        scope: 'scope',
+        version: {
+          major: 1,
+          minor: 2,
+          patch: 3,
+          label: 'test',
+        },
+      });
       fileSystem = MockFileSystem({
         readFile: jest.fn(() => Promise.resolve(ok(JSON.stringify(ast)))),
       });
@@ -119,7 +153,7 @@ describe('profile AST caching', () => {
       await expect(
         tryToLoadCachedAst({
           profileId: 'scope/test',
-          version: '1.0.0',
+          version: '1.2.3-test',
           config,
           fileSystem,
         })
@@ -127,8 +161,10 @@ describe('profile AST caching', () => {
 
       expect(fileSystem.readFile).toHaveBeenCalledWith(
         config.cachePath +
+          '/profiles' +
           '/scope/' +
           ast.header.name +
+          '@1.2.3-test' +
           EXTENSIONS.profile.build
       );
     });
@@ -151,7 +187,10 @@ describe('profile AST caching', () => {
       ).resolves.toEqual(ast);
 
       expect(fileSystem.readFile).toHaveBeenCalledWith(
-        'custom/path/scope/' + ast.header.name + EXTENSIONS.profile.build
+        'custom/path/profiles/scope/' +
+          ast.header.name +
+          '@1.0.0' +
+          EXTENSIONS.profile.build
       );
     });
 
@@ -188,7 +227,9 @@ describe('profile AST caching', () => {
       ).resolves.toBeUndefined();
 
       expect(fileSystem.readFile).toHaveBeenCalledWith(
-        config.cachePath + '/scope/test' + EXTENSIONS.profile.build
+        config.cachePath +
+          '/profiles/scope/test@1.0.0' +
+          EXTENSIONS.profile.build
       );
     });
 
@@ -208,7 +249,9 @@ describe('profile AST caching', () => {
       ).resolves.toBeUndefined();
 
       expect(fileSystem.readFile).toHaveBeenCalledWith(
-        config.cachePath + '/scope/test' + EXTENSIONS.profile.build
+        config.cachePath +
+          '/profiles/scope/test@1.0.0' +
+          EXTENSIONS.profile.build
       );
     });
 
@@ -228,7 +271,9 @@ describe('profile AST caching', () => {
       ).resolves.toBeUndefined();
 
       expect(fileSystem.readFile).toHaveBeenCalledWith(
-        config.cachePath + '/scope/test' + EXTENSIONS.profile.build
+        config.cachePath +
+          '/profiles/scope/test@1.0.0' +
+          EXTENSIONS.profile.build
       );
     });
 
@@ -252,7 +297,9 @@ describe('profile AST caching', () => {
       ).resolves.toBeUndefined();
 
       expect(fileSystem.readFile).toHaveBeenCalledWith(
-        config.cachePath + '/scope/test' + EXTENSIONS.profile.build
+        config.cachePath +
+          '/profiles/scope/test@1.0.0' +
+          EXTENSIONS.profile.build
       );
     });
 
@@ -283,7 +330,9 @@ describe('profile AST caching', () => {
       ).resolves.toBeUndefined();
 
       expect(fileSystem.readFile).toHaveBeenCalledWith(
-        config.cachePath + '/scope/test' + EXTENSIONS.profile.build
+        config.cachePath +
+          '/profiles/scope/test@1.0.0' +
+          EXTENSIONS.profile.build
       );
     });
   });

@@ -11,7 +11,7 @@ export async function tryToLoadCachedAst({
   log,
 }: {
   profileId: string;
-  version?: string;
+  version: string;
   fileSystem: IFileSystem;
   config: IConfig;
   log?: LogFunction;
@@ -22,7 +22,8 @@ export async function tryToLoadCachedAst({
 
   const profileCachePath = fileSystem.path.join(
     config.cachePath,
-    `${profileId}${EXTENSIONS.profile.build}`
+    'profiles',
+    `${profileId}@${version}${EXTENSIONS.profile.build}`
   );
 
   const contents = await fileSystem.readFile(profileCachePath);
@@ -68,21 +69,19 @@ export async function tryToLoadCachedAst({
   }
 
   // Check version
-  if (version !== undefined) {
-    const cachedVersion = `${possibleAst.header.version.major}.${possibleAst.header.version.minor}.${possibleAst.header.version.patch}`;
-    if (possibleAst.header.version.label !== undefined) {
-      version += `-${possibleAst.header.version.label}`;
-    }
+  let cachedVersion = `${possibleAst.header.version.major}.${possibleAst.header.version.minor}.${possibleAst.header.version.patch}`;
+  if (possibleAst.header.version.label !== undefined) {
+    cachedVersion += `-${possibleAst.header.version.label}`;
+  }
 
-    if (version !== cachedVersion) {
-      log?.(
-        'Cached profile version (%S) does not matched to used version (%S)',
-        cachedVersion,
-        version
-      );
+  if (version !== cachedVersion) {
+    log?.(
+      'Cached profile version (%S) does not matched to used version (%S)',
+      cachedVersion,
+      version
+    );
 
-      return undefined;
-    }
+    return undefined;
   }
 
   return possibleAst;
@@ -90,19 +89,21 @@ export async function tryToLoadCachedAst({
 
 export async function cacheProfileAst({
   ast,
+  version,
   fileSystem,
   config,
   log,
 }: {
   ast: ProfileDocumentNode;
+  version: string;
   fileSystem: IFileSystem;
   config: IConfig;
   log?: LogFunction;
 }): Promise<void> {
   const profileCachePath =
     ast.header.scope !== undefined
-      ? fileSystem.path.join(config.cachePath, ast.header.scope)
-      : config.cachePath;
+      ? fileSystem.path.join(config.cachePath, 'profiles', ast.header.scope)
+      : fileSystem.path.join(config.cachePath, 'profiles');
 
   if (config.cache === true) {
     try {
@@ -111,7 +112,7 @@ export async function cacheProfileAst({
       });
       const path = fileSystem.path.join(
         profileCachePath,
-        ast.header.name + EXTENSIONS.profile.build
+        `${ast.header.name}@${version}${EXTENSIONS.profile.build}`
       );
       await fileSystem.writeFile(path, JSON.stringify(ast, undefined, 2));
     } catch (error) {

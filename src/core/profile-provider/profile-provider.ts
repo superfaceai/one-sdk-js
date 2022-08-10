@@ -319,7 +319,7 @@ export class ProfileProvider {
           return (
             FILE_URI_PROTOCOL +
             this.fileSystem.path.resolve(
-              this.config.superfacePath,
+              this.fileSystem.path.dirname(this.config.superfacePath),
               providerSettings.file
             )
           );
@@ -370,7 +370,7 @@ export class ProfileProvider {
           return (
             FILE_URI_PROTOCOL +
             this.fileSystem.path.resolve(
-              this.config.superfacePath,
+              this.fileSystem.path.dirname(this.config.superfacePath),
               profileProviderSettings.file
             )
           );
