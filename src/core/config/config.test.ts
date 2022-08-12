@@ -173,7 +173,7 @@ describe('Config', () => {
           },
           NodeFileSystem
         )
-      ).toThrowError(new TypeError('Invalid URL'));
+      ).toThrowError('Invalid URL');
     });
 
     it('replaces invalid values with defaults', async () => {
