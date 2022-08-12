@@ -133,14 +133,15 @@ You can find more options for reaching us on the [Support page](https://superfac
 
 ## Public API
 
-If you decide to use some function from this package in your own code you definetly can but be aware that not every part of package is version controlled.
 
-Only function and API of entities below is under version control:
+Only functions and APIs of entities below are a part of the public API, and can be safely relied upon not to break between semver-compatible releases.
+
+Using other parts of this package is at your own risk.
 
 * SuperfaceClient API
 * Profile API
 * UseCase API
-* SuperJsonDocument object
+* SuperJsonDocument Object
 * Result API
 
 ## Contributing
