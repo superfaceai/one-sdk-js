@@ -101,7 +101,7 @@ To find out more, visit [Advanced Usage](https://superface.ai/docs/advanced-usag
 
 Superface is not a proxy. The calls are always going directly from your application to API providers. Their contents are **never** sent anywhere else but to the selected provider's API.
 
-OneSDK accesses `superface/super.json` file if instructed to, and accesses cache in `superface/.cache` directory. It also accesses local maps, profiles, and provider configuration as per configuration. Non-local maps, profiles and providers are loaded from the Superface remote registry at runtime, and cached locally. OneSDK also sends diagnostic usage report to Superface as described [below](#metrics-reporting).
+OneSDK accesses `superface/super.json` file if instructed to, and accesses cache in `node_modules/superface/.cache` directory. It also accesses local maps, profiles, and provider configuration as per configuration. Non-local maps, profiles and providers are loaded from the Superface remote registry at runtime, and cached locally. OneSDK also sends diagnostic usage report to Superface as described [below](#metrics-reporting).
 
 More about how OneSDK handles secrets can be found in [SECURITY](SECURITY.md).
 
@@ -130,6 +130,18 @@ For metrics to be successfuly sent, the application needs to exit properly, i.e.
 If you have any questions, want to report a bug, request a feature or you just want to talk, feel free to [open an issue](https://github.com/superfaceai/one-sdk-js/issues/new/choose) or hop on our [Discord server](https://sfc.is/discord).
 
 You can find more options for reaching us on the [Support page](https://superface.ai/support).
+
+## Public API
+
+If you decide to use some function from this package in your own code you definetly can but be aware that not every part of package is version controlled.
+
+Only function and API of entities below is under version control:
+
+* SuperfaceClient API
+* Profile API
+* UseCase API
+* SuperJsonDocument object
+* Result API
 
 ## Contributing
 
