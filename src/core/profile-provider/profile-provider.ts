@@ -382,7 +382,7 @@ export class ProfileProvider {
         }
       },
       this.fileSystem,
-      ['.ast.json', '']
+      ['.ast.json']
     );
 
     return {
