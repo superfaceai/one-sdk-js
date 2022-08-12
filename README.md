@@ -133,7 +133,6 @@ You can find more options for reaching us on the [Support page](https://superfac
 
 ## Public API
 
-
 Only functions and APIs of entities below are a part of the public API, and can be safely relied upon not to break between semver-compatible releases.
 
 Using other parts of this package is at your own risk.
