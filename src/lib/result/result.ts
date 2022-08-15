@@ -34,47 +34,47 @@ interface IAsyncResult<T, E> {
 }
 
 export class Ok<T, E> implements IResult<T, E>, IAsyncResult<T, E> {
-  constructor(readonly value: T) {}
+  constructor(public readonly value: T) {}
 
-  isOk(): this is Ok<T, E> {
+  public isOk(): this is Ok<T, E> {
     return true;
   }
 
-  isErr(): this is Err<T, E> {
+  public isErr(): this is Err<T, E> {
     return !this.isOk();
   }
 
-  map<U>(f: (t: T) => U): Result<U, E> {
+  public map<U>(f: (t: T) => U): Result<U, E> {
     return ok(f(this.value));
   }
 
-  mapErr<U>(_: (e: E) => U): Result<T, U> {
+  public mapErr<U>(_: (e: E) => U): Result<T, U> {
     return ok(this.value);
   }
 
-  andThen<U>(f: (t: T) => Result<U, E>): Result<U, E> {
+  public andThen<U>(f: (t: T) => Result<U, E>): Result<U, E> {
     return f(this.value);
   }
 
-  match<U>(ok: (t: T) => U, _: (e: E) => U): U {
+  public match<U>(ok: (t: T) => U, _: (e: E) => U): U {
     return ok(this.value);
   }
 
-  unwrap(): T {
+  public unwrap(): T {
     return this.value;
   }
 
-  async mapAsync<U>(f: (t: T) => Promise<U>): Promise<Result<U, E>> {
+  public async mapAsync<U>(f: (t: T) => Promise<U>): Promise<Result<U, E>> {
     const inner = await f(this.value);
 
     return ok(inner);
   }
 
-  async mapErrAsync<U>(_: (t: E) => Promise<U>): Promise<Result<T, U>> {
+  public async mapErrAsync<U>(_: (t: E) => Promise<U>): Promise<Result<T, U>> {
     return ok(this.value);
   }
 
-  async andThenAsync<U>(
+  public async andThenAsync<U>(
     f: (t: T) => Promise<Result<U, E>>
   ): Promise<Result<U, E>> {
     return f(this.value);
@@ -82,47 +82,47 @@ export class Ok<T, E> implements IResult<T, E>, IAsyncResult<T, E> {
 }
 
 export class Err<T, E> implements IResult<T, E>, IAsyncResult<T, E> {
-  constructor(readonly error: E) {}
+  constructor(public readonly error: E) {}
 
-  isOk(): this is Ok<T, E> {
+  public isOk(): this is Ok<T, E> {
     return false;
   }
 
-  isErr(): this is Err<T, E> {
+  public isErr(): this is Err<T, E> {
     return !this.isOk();
   }
 
-  map<U>(_: (t: T) => U): Result<U, E> {
+  public map<U>(_: (t: T) => U): Result<U, E> {
     return err(this.error);
   }
 
-  mapErr<U>(f: (e: E) => U): Result<T, U> {
+  public mapErr<U>(f: (e: E) => U): Result<T, U> {
     return err(f(this.error));
   }
 
-  andThen<U>(_: (t: T) => Result<U, E>): Result<U, E> {
+  public andThen<U>(_: (t: T) => Result<U, E>): Result<U, E> {
     return err(this.error);
   }
 
-  match<U>(_: (t: T) => U, err: (e: E) => U): U {
+  public match<U>(_: (t: T) => U, err: (e: E) => U): U {
     return err(this.error);
   }
 
-  unwrap(): T {
+  public unwrap(): T {
     throw this.error;
   }
 
-  async mapAsync<U>(_: (t: T) => Promise<U>): Promise<Result<U, E>> {
+  public async mapAsync<U>(_: (t: T) => Promise<U>): Promise<Result<U, E>> {
     return err(this.error);
   }
 
-  async mapErrAsync<U>(f: (t: E) => Promise<U>): Promise<Result<T, U>> {
+  public async mapErrAsync<U>(f: (t: E) => Promise<U>): Promise<Result<T, U>> {
     const inner = await f(this.error);
 
     return err(inner);
   }
 
-  async andThenAsync<U>(
+  public async andThenAsync<U>(
     _: (t: T) => Promise<Result<U, E>>
   ): Promise<Result<U, E>> {
     return err(this.error);

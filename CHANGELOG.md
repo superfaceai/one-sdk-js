@@ -6,14 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- Pass `cache` flag to SuperfaceClient constructor
+- Pass `debug` flag to SuperfaceClient constructor
+- Pass `mapVariant` and `mapRevision` values in `perform`
+- Optionally pass `version` to `getProfile`
+- Pass `security` and `parameters` values in `getProvider`
+
+### Changed
+- **BREAKING CHANGE**: .supr files are no longer allowed
+- **BREAKING CHANGE**: removed SuperJson class
+- Default cache location is `node_modules/.cache/superface`
+- ***BREAKING CHANGE**: removed Parser
 
 ## [1.5.2] - 2022-06-15
+### Fixed
+- Do not call `Config.instance()` in the global scope to defer reading of env variables
+- Refactor security values passing in `perform`
 
 ## [1.5.1] - 2022-06-14
 ### Fixed
 - Do not recache ProviderConfiguration on security values change
-- Do not call `Config.instance()` in the global scope to defer reading of env variables
-- Refactor security values passing in `perform`
 
 ## [1.5.0] - 2022-06-09
 ### Added

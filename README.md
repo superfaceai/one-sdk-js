@@ -12,9 +12,9 @@
 ![TypeScript](https://img.shields.io/static/v1?message=TypeScript&&logoColor=ffffff&color=007acc&labelColor=5c5c5c&label=built%20with)
 [![Discord](https://img.shields.io/discord/819563244418105354?logo=discord&logoColor=fff)](https://sfc.is/discord)
 
-OneSDK is a universal API client which provides an unparalleled developer experience for every HTTP API. It enhances resiliency to API changes and comes with built-in integration monitoring and fail-overs.
+OneSDK is a universal API client which provides an unparalleled developer experience for every HTTP API. It enhances resiliency to API changes, and comes with built-in integration monitoring and provider failover.
 
-For more details about Superface visit [how it works](https://superface.ai/how-it-works) and [get started](https://superface.ai/docs/getting-started).
+For more details about Superface, visit [How it Works](https://superface.ai/how-it-works) and [Get Started](https://superface.ai/docs/getting-started).
 
 ## Important Links
 
@@ -25,7 +25,7 @@ For more details about Superface visit [how it works](https://superface.ai/how-i
 
 ## Install
 
-To install OneSDK into a Node.js project run:
+To install OneSDK into a Node.js project, run:
 
 ```shell
 npm install @superfaceai/one-sdk
@@ -39,26 +39,21 @@ yarn add @superfaceai/one-sdk
 
 ## Usage
 
-💡 **For quick usage example, check [get started](https://superface.ai/docs/getting-started) documentation.**
+### First time use
 
-With OneSDK everything revolves about your application's use cases for an API.
-To get started, first install a use case profile using the [Superface CLI](https://github.com/superfaceai/cli). In the project directory, run:
+💡 **For a quick usage example, check out [Get Started](https://superface.ai/docs/getting-started).**
 
-```shell
-npx @superfaceai/cli install <profileName>
-```
+Superface is all about use cases. You can start with one of the publically available use cases from the [Superface Catalog](https://superface.ai/catalog).
 
-The CLI creates a configuration file in `superface/super.json`.
+Once you've got your use case, you need to provide OneSDK with:
+* profile name and version
+* use case name
+* provider name
+* input parameters
+* (if necessary) provider-specific integration parameters
+* (if necessary) provider-specific security values
 
-Next you configure a provider for the use-case:
-
-```shell
-npx @superfaceai/cli configure <providerName> -p <profileName>
-```
-
-CLI may instruct you about setting up API keys if the provider needs them.
-
-In your code, you initialize the SDK instance, load the profile and perform the use-case:
+These can be found on the profile page (e.g. [vcs/user-repos](https://superface.ai/vcs/user-repos)). Security values need to be obtained through the relevant provider (e.g. on their website, in your account settings, by contacting them, etc.).
 
 ```js
 const { SuperfaceClient } = require('@superfaceai/one-sdk');
@@ -66,10 +61,24 @@ const { SuperfaceClient } = require('@superfaceai/one-sdk');
 const sdk = new SuperfaceClient();
 
 async function run() {
-  const profile = await sdk.getProfile('<profileName>');
+  const profile = await sdk.getProfile({ id: '<profileName>', version: '<profileVersion>'});
 
   const result = await profile.getUseCase('<usecaseName>').perform({
-    // Input parameters
+    // Input parameters in format:
+    '<key>': '<value>'
+  },
+  {
+    provider: '<providerName>',
+    parameters: {
+      // Provider specific integration parameters in format:
+      '<integrationParameterName>': '<integrationParameterValue>'
+    },
+    security: {
+      // Provider specific security values in format:
+      '<securityValueId>': {
+        // Security values as described on profile page
+      }
+    }
   });
 
   console.log(result.unwrap());
@@ -78,28 +87,43 @@ async function run() {
 run();
 ```
 
-This code will use the first provider by priority as defined in `super.json` file. You can explicitly set the provider for `perform`:
+If you are missing a use case, [let us know](#support)! You can also always [add your own use-case or API provider](https://superface.ai/docs/guides/how-to-create).
 
-```diff
- async function run() {
-   const profile = await sdk.getProfile('<profileName>');
+### Advanced usage
+As your project grows in size and complexity, you may find it useful to have a central location for configuring details concerning your API integrations. There are also some features that cannot be used with the simple approach described above, namely:
+  - Using [locally stored profiles, maps and providers](https://superface.ai/docs/advanced-usage#local); e.g. (yet) unpublished integrations, or integrations with APIs internal to your organization. 
+  - Configuring [provider failover](https://superface.ai/docs/guides/using-multiple-providers#failover).
 
-+  const provider = await sdk.getProvider('<providerName>');
+For these cases, there's Superface configuration. 
+To find out more, visit [Advanced Usage](https://superface.ai/docs/advanced-usage).
 
-   const result = await profile.getUseCase('<usecaseName>').perform(
-     {
-       // Input parameters
-     },
-+    { provider }
-   );
+## Security
 
-   console.log(result.unwrap());
- }
+Superface is not a proxy. The calls are always going directly from your application to API providers. Their contents are **never** sent anywhere else but to the selected provider's API.
+
+OneSDK accesses `superface/super.json` file if instructed to, and accesses cache in `node_modules/superface/.cache` directory. It also accesses local maps, profiles, and provider configuration as per configuration. Non-local maps, profiles and providers are loaded from the Superface remote registry at runtime, and cached locally. OneSDK also sends diagnostic usage report to Superface as described [below](#metrics-reporting).
+
+More about how OneSDK handles secrets can be found in [SECURITY](SECURITY.md).
+
+## Metrics Reporting
+
+Superface allows you to [monitor your integrations](https://superface.ai/docs/guides/integrations-monitoring) and display the metrics on a dashboard. There are three kinds of metrics reported:
+
+1. When an OneSDK instance is created
+2. After each perform - reporting success or failure of a given use case
+3. When provider failover is triggered - what provider failed and which one was switched to
+
+These metrics contain no personal information nor the contents of the API calls and are rate limited as to not impact performance.
+
+Utilizing this functionality requires you to obtain and set a `SUPERFACE_SDK_TOKEN`. For more information, see [Integrations Monitoring](https://superface.ai/docs/guides/integrations-monitoring).
+
+However, even without an `SUPERFACE_SDK_TOKEN` set, this data is sent anonymized to Superface services for diagnostic purposes. All metrics reporting can be disabled by setting an environment variable:
+
+```shell
+SUPERFACE_DISABLE_METRIC_REPORTING=true
 ```
 
-To find available use-cases, sign up for Superface and visit [Use-cases Catalog](https://superface.ai/catalog). If you are missing a use case, [let us know](#support). You can always [add your own use-case or API provider](https://superface.ai/docs/guides/how-to-create).
-
-<!-- TODO: point to docs for working with the result object -->
+For metrics to be successfuly sent, the application needs to exit properly, i.e. there should be no unhandled `Promise` rejections or exceptions.
 
 ## Support
 
@@ -107,27 +131,19 @@ If you have any questions, want to report a bug, request a feature or you just w
 
 You can find more options for reaching us on the [Support page](https://superface.ai/support).
 
-## Security
+## Public API
 
-Superface is not a proxy. The calls are always going directly from your application to API providers. The API secrets are never sent anywhere else but to the used provider's API.
+Only functions and APIs of entities below are a part of the public API, and can be safely relied upon not to break between semver-compatible releases.
 
-OneSDK accesses `superface/super.json` file and accesses cache in `superface/.cache` directory. It also accesses local maps, profiles, and provider configuration if specified in the `super.json` file. Non-local maps, profiles and provider configuration are loaded from the Superface network registry in the runtime and cached locally. OneSDK sends diagnostic usage report to Superface as described [below](#metrics-reporting).
+Using other parts of this package is at your own risk.
 
-More about the journey of the secrets within OneSDK can be found in [Security](SECURITY.md).
+* SuperfaceClient API
+* Profile API
+* UseCase API
+* SuperJsonDocument Object
+* Result API
 
-## Metrics Reporting
-
-OneSDK sends anonymized information about use-cases usage to Superface services. This info is anonymized, rate limited and allows you to [monitor your integrations](https://superface.ai/docs/integrations-monitoring) on the dashboard.
-
-There are three kinds of metrics reported one is sent when the client instance is created, one after each perform (reporting success or failure), and one when a provider failover happens.
-
-The reports can be disabled with environment variable:
-
-```shell
-SUPERFACE_DISABLE_METRIC_REPORTING=true
-```
-
-For metrics to be successfuly sent, the application needs to be properly exited, i.e. there should be no unhandled Promise rejections or exceptions.
+Use of public APIs is described in the [reference](https://superface.ai/docs/reference/one-sdk).
 
 ## Contributing
 
@@ -137,6 +153,6 @@ We welcome all kinds of contributions! Please see the [Contribution Guide](CONTR
 
 OneSDK is licensed under the [MIT License](LICENSE).
 
-© 2021 Superface s.r.o.
+© 2022 Superface s.r.o.
 
 <!-- TODO: allcontributors -->
