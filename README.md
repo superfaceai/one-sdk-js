@@ -143,7 +143,7 @@ Using other parts of this package is at your own risk.
 * SuperJsonDocument Object
 * Result API
 
-Use of public API is described in [reference](https://superface.ai/docs/reference/one-sdk).
+Use of public APIs is described in the [reference](https://superface.ai/docs/reference/one-sdk).
 
 ## Contributing
 
