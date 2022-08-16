@@ -192,7 +192,7 @@ export function variantMismatchError(
     `Variant from compiled map (${
       astVariant ?? 'undefined'
     }) and passed variant (${passedVariant ?? 'undefined'}) does not match.`,
-    ['If variant in map and passee variant is used they must match'],
+    ['If variant in map and passed variant is used, they must match'],
     []
   );
 }
