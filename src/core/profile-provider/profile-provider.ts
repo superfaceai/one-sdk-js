@@ -1,16 +1,10 @@
 import type {
-  MapDocumentNode,
   NormalizedSuperJsonDocument,
   ProfileDocumentNode,
   ProviderJson,
   SecurityValues,
 } from '@superfaceai/ast';
-import {
-  assertMapDocumentNode,
-  assertProviderJson,
-  FILE_URI_PROTOCOL,
-  isFileURIString,
-} from '@superfaceai/ast';
+import { assertProviderJson } from '@superfaceai/ast';
 
 import type {
   IConfig,
@@ -20,23 +14,24 @@ import type {
   ITimers,
   LogFunction,
 } from '../../interfaces';
-import { forceCast, profileAstId, UnexpectedError } from '../../lib';
+import { profileAstId, UnexpectedError } from '../../lib';
 import { mergeSecurity } from '../../schema-tools';
 import {
   invalidMapASTResponseError,
   localProviderAndRemoteMapError,
   providersDoNotMatchError,
-  referencedFileNotFoundError,
 } from '../errors';
 import type { Events, Interceptable } from '../events';
 import type { AuthCache, IFetch } from '../interpreter';
 import type { ProviderConfiguration } from '../provider';
+import { resolveProviderJson } from '../provider';
 import { fetchBind, fetchProviderInfo } from '../registry';
 import { ServiceSelector } from '../services';
 import type { IBoundProfileProvider } from './bound-profile-provider';
 import { BoundProfileProvider } from './bound-profile-provider';
 import { resolveIntegrationParameters } from './parameters';
 import type { ProfileProviderConfiguration } from './profile-provider-configuration';
+import { resolveMapAst } from './resolve-map-ast';
 import { resolveSecurityConfiguration } from './security';
 
 const DEBUG_NAMESPACE = 'profile-provider';
@@ -84,7 +79,6 @@ export class ProfileProvider {
   private readonly log: LogFunction | undefined;
 
   constructor(
-    /** Preloaded superJson instance */
     // TODO: Use superJson from events/Client?
     public readonly superJson: NormalizedSuperJsonDocument | undefined,
     /** profile ast node */
@@ -97,9 +91,7 @@ export class ProfileProvider {
     private readonly fileSystem: IFileSystem,
     private readonly crypto: ICrypto,
     private readonly fetchInstance: IFetch & Interceptable & AuthCache,
-    private readonly logger?: ILogger,
-    /** url or ast node */
-    private map?: string | MapDocumentNode
+    private readonly logger?: ILogger
   ) {
     this.profileId = profileAstId(this.profile);
     this.providersCachePath = fileSystem.path.join(
@@ -120,9 +112,14 @@ export class ProfileProvider {
     const profileId = profileAstId(this.profile);
 
     // resolve provider from parameters or defer until later
-    const resolvedProviderInfo = await this.resolveProviderInfo();
-    let providerInfo = resolvedProviderInfo.providerInfo;
-    const providerName = resolvedProviderInfo.providerName;
+    const providerName = this.providerConfig.name;
+    let providerInfo = await resolveProviderJson({
+      providerName: this.providerConfig.name,
+      superJson: this.superJson,
+      fileSystem: this.fileSystem,
+      config: this.config,
+      logger: this.logger,
+    });
     const securityValues = this.resolveSecurityValues(
       providerName,
       configuration?.security ?? this.providerConfig.security
@@ -139,14 +136,15 @@ export class ProfileProvider {
     }
 
     // resolve map from parameters or defer until later
-    const resolvedMapAst = await this.resolveMapAst(
-      `${profileId}.${providerName}`
-    );
-    let mapAst = resolvedMapAst.mapAst;
-    const mapVariant =
-      this.profileProviderConfig.variant ?? resolvedMapAst.mapVariant;
-    const mapRevision =
-      this.profileProviderConfig.revision ?? resolvedMapAst.mapRevision;
+    let mapAst = await resolveMapAst({
+      profileId,
+      providerName,
+      variant: this.profileProviderConfig.variant,
+      superJson: this.superJson,
+      fileSystem: this.fileSystem,
+      config: this.config,
+      logger: this.logger,
+    });
 
     // resolve map ast using bind and fill in provider info if not specified
     if (mapAst === undefined) {
@@ -161,8 +159,8 @@ export class ProfileProvider {
             profileId +
             `@${this.profile.header.version.major}.${this.profile.header.version.minor}.${this.profile.header.version.patch}`,
           provider: providerName,
-          mapVariant,
-          mapRevision,
+          mapVariant: this.profileProviderConfig.variant,
+          mapRevision: this.profileProviderConfig.revision,
         },
         this.config,
         this.crypto,
@@ -296,155 +294,6 @@ export class ProfileProvider {
           error
         );
       }
-    }
-  }
-
-  private async resolveProviderInfo(): Promise<{
-    providerInfo?: ProviderJson;
-    providerName: string;
-  }> {
-    const resolveInput = this.providerConfig.name;
-
-    const providerInfo = await ProfileProvider.resolveValue<ProviderJson>(
-      resolveInput,
-      async fileContents => JSON.parse(fileContents) as ProviderJson, // TODO: validate
-      providerName => {
-        if (this.superJson === undefined) {
-          return undefined;
-        }
-
-        const providerSettings = this.superJson.providers[providerName];
-        if (providerSettings?.file !== undefined) {
-          // local file is resolved
-          return (
-            FILE_URI_PROTOCOL +
-            this.fileSystem.path.resolve(
-              this.fileSystem.path.dirname(this.config.superfacePath),
-              providerSettings.file
-            )
-          );
-        } else {
-          // local file not specified
-          return undefined;
-        }
-      },
-      this.fileSystem
-    );
-
-    let providerName;
-    if (providerInfo === undefined) {
-      // if the providerInfo is undefined then this must be a string that resolveValue returned undefined for.
-      forceCast<string>(resolveInput);
-
-      providerName = resolveInput;
-    } else {
-      providerName = providerInfo.name;
-    }
-
-    return { providerInfo, providerName };
-  }
-
-  private async resolveMapAst(mapId: string): Promise<{
-    mapAst?: MapDocumentNode;
-    mapVariant?: string;
-    mapRevision?: string;
-  }> {
-    const mapInfo: { mapVariant?: string; mapRevision?: string } = {};
-    const mapAst = await ProfileProvider.resolveValue<MapDocumentNode>(
-      this.map ?? mapId,
-      async fileContents => {
-        return assertMapDocumentNode(JSON.parse(fileContents));
-      },
-      mapId => {
-        const [profileId, providerName] = mapId.split('.');
-
-        if (this.superJson === undefined) {
-          return undefined;
-        }
-        const profileProviderSettings =
-          this.superJson.profiles[profileId].providers[providerName];
-
-        if (profileProviderSettings === undefined) {
-          return undefined;
-        } else if ('file' in profileProviderSettings) {
-          return (
-            FILE_URI_PROTOCOL +
-            this.fileSystem.path.resolve(
-              this.fileSystem.path.dirname(this.config.superfacePath),
-              profileProviderSettings.file
-            )
-          );
-        } else {
-          mapInfo.mapVariant = profileProviderSettings.mapVariant;
-          mapInfo.mapRevision = profileProviderSettings.mapRevision;
-
-          return undefined;
-        }
-      },
-      this.fileSystem,
-      ['.ast.json']
-    );
-
-    return {
-      mapAst,
-      ...mapInfo,
-    };
-  }
-
-  /**
-   * Returns the value resolved from the input.
-   *
-   * The recognized input values are:
-   * * The value itself, returned straight away
-   * * `undefined`, returned straight away
-   * * File URI that is read and the contents are passed to the `parseFile` function
-   * * For other values `unpackNested(input)` is called recursively
-   */
-  private static async resolveValue<T>(
-    input: T | string | undefined,
-    parseFile: (contents: string, fileName?: string) => Promise<T>,
-    unpackNested: (input: string) => T | string | undefined,
-    fileSystem: IFileSystem,
-    extensions: string[] = [''],
-    log?: LogFunction
-  ): Promise<T | undefined> {
-    if (typeof input === 'string') {
-      if (isFileURIString(input)) {
-        const fileName = input.slice(FILE_URI_PROTOCOL.length);
-        log?.('Resolving input as file:', fileName);
-
-        // read in files
-        let contents, fileNameWithExtension;
-        for (const extension of extensions) {
-          fileNameWithExtension = fileName + extension;
-          contents = await fileSystem.readFile(fileNameWithExtension);
-          if (contents.isOk()) {
-            break;
-          }
-        }
-
-        if (contents === undefined || contents.isErr()) {
-          throw referencedFileNotFoundError(fileName, extensions);
-        }
-
-        return parseFile(contents.value, fileNameWithExtension);
-      } else {
-        // TODO: detect remote url and fetch it, or call a callback?
-        log?.('Resolving input as nested value: %O', input);
-        // unpack nested and recursively process them
-        const nested = unpackNested(input);
-
-        return ProfileProvider.resolveValue(
-          nested,
-          parseFile,
-          unpackNested,
-          fileSystem,
-          extensions
-        );
-      }
-    } else {
-      // return undefined and T
-      return input;
     }
   }
 
