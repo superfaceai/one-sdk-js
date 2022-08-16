@@ -210,7 +210,7 @@ export function profileProviderNotFoundError(
   providerName: string
 ): SDKExecutionError {
   return new SDKExecutionError(
-    `Provider "${providerName}" not found in profile "${profileId}" in super.json`,
+    `Provider "${providerName}" not found for profile "${profileId}" in super.json`,
     [],
     [
       `Optionally, check that a provider is configured for a profile in super.json -> profiles["${profileId}"].providers`,
