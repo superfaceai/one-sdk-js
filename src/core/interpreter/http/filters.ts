@@ -26,7 +26,7 @@ import type {
   RequestParameters,
 } from './security';
 import type { HttpResponse } from './types';
-import { createUrl, fetchRequest } from './utils';
+import { createUrl, fetchRequest, hasAcceptHeader } from './utils';
 
 /**
  * Represents input of pipe filter which works with http response
@@ -258,8 +258,12 @@ export const headersFilter: Filter = ({
   request,
   response,
 }: FilterInputOutput) => {
-  const headers: Record<string, string> = parameters.headers || {};
-  headers['accept'] = parameters.accept ?? '*/*';
+  const headers: Record<string, string> = parameters.headers ?? {};
+
+  if (!hasAcceptHeader(headers)) {
+    headers['accept'] = parameters.accept ?? '*/*';
+  }
+
   headers['user-agent'] ??= USER_AGENT;
   if (parameters.contentType === JSON_CONTENT) {
     headers['content-type'] ??= JSON_CONTENT;

@@ -327,7 +327,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
       this.visit(responseHandler)
     );
 
-    let accept = '';
+    let accept: string;
     if (responseHandlers.some(([, accept]) => accept === undefined)) {
       accept = '*/*';
     } else {
