@@ -1,7 +1,6 @@
-import 'isomorphic-form-data';
-
 import { AbortController } from 'abort-controller';
 import fetch, { Headers } from 'cross-fetch';
+import FormData from 'form-data';
 
 import type {
   AuthCache,
@@ -34,7 +33,7 @@ export class NodeFetch implements IFetch, Interceptable, AuthCache {
   public events: Events | undefined;
   public digest: SuperCache<string> = new SuperCache();
 
-  constructor(private readonly timers: ITimers) {}
+  constructor(private readonly timers: ITimers) { }
 
   @eventInterceptor({
     eventName: 'fetch',
@@ -46,13 +45,16 @@ export class NodeFetch implements IFetch, Interceptable, AuthCache {
   ): Promise<FetchResponse> {
     const headersInit = parameters.headers
       ? Object.entries(parameters.headers).map(([key, value]) => [
-          key,
-          ...(Array.isArray(value) ? value : [value]),
-        ])
+        key,
+        ...(Array.isArray(value) ? value : [value]),
+      ])
       : undefined;
+
     const request: RequestInit = {
       headers: new Headers(headersInit),
       method: parameters.method,
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore https://github.com/form-data/form-data/issues/513
       body: this.body(parameters.body),
     };
 
@@ -171,7 +173,7 @@ export class NodeFetch implements IFetch, Interceptable, AuthCache {
     return '';
   }
 
-  private body(body?: FetchBody): string | FormData | Buffer | undefined {
+  private body(body?: FetchBody): string | URLSearchParams | FormData | Buffer | undefined {
     if (body) {
       if (isStringBody(body) || isBinaryBody(body)) {
         return body.data;
@@ -189,13 +191,17 @@ export class NodeFetch implements IFetch, Interceptable, AuthCache {
     return undefined;
   }
 
-  private formData(data?: Record<string, string>): FormData {
+  private formData(data?: Record<string, unknown>): FormData {
     const formData = new FormData();
 
     if (data) {
-      Object.entries(data).forEach(([key, value]) =>
-        formData.append(key, value)
-      );
+      Object.entries(data).forEach(([key, value]) => {
+        if (Array.isArray(value)) {
+          value.forEach((item) => formData.append(key, item));
+        } else {
+          formData.append(key, value);
+        }
+      });
     }
 
     return formData;

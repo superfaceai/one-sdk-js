@@ -1,5 +1,5 @@
 type StringBody = { _type: 'string'; data: string };
-type FormDataBody = { _type: 'formdata'; data: Record<string, string> };
+type FormDataBody = { _type: 'formdata'; data: Record<string, unknown> };
 type BinaryBody = { _type: 'binary'; data: Buffer };
 type URLSearchParamsBody = {
   _type: 'urlsearchparams';
@@ -9,7 +9,7 @@ export const stringBody = (data: string): StringBody => ({
   _type: 'string',
   data,
 });
-export const formDataBody = (data: Record<string, string>): FormDataBody => ({
+export const formDataBody = (data: Record<string, unknown>): FormDataBody => ({
   _type: 'formdata',
   data,
 });
