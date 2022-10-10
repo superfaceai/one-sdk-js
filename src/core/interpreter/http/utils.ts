@@ -140,3 +140,9 @@ export async function fetchRequest(
     },
   };
 }
+
+export function hasAcceptHeader(headers: NonPrimitive): boolean {
+  return Object.keys(headers).some(
+    header => header.toLowerCase() === 'accept'
+  );
+}

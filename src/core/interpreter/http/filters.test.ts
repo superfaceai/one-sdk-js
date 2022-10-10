@@ -360,5 +360,22 @@ describe('HTTP Filters', () => {
         })
       );
     });
+
+    it("doesn't set accept header if already exists", async () => {
+      const result = await headersFilter({
+        parameters: {
+          url: '/test',
+          method: '',
+          baseUrl: 'https://example.com',
+          headers: {
+            aCcEpT: 'application/json',
+          },
+          accept: 'text/plain',
+          contentType: JSON_CONTENT,
+        },
+      });
+
+      expect(result.request?.headers?.accept).toBe(undefined);
+    })
   });
 });
