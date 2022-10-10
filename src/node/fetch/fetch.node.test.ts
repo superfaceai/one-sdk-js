@@ -21,7 +21,7 @@ describe('fetch', () => {
     jest.resetModules();
   });
 
-  describe('timeout', () => {
+  describe.skip('timeout', () => {
     it('timeouts on network timeout', async () => {
       const { NodeFetch } = await import('./fetch.node');
 
