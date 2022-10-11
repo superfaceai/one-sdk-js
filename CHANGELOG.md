@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Do not set `accept` header when defined in [HTTP request headers](https://spec.superface.dev/latest/map-spec.html#HTTPHeaders) - [#264](https://github.com/superfaceai/one-sdk-js/issues/264)
 - Replaced `isomorphic-form-data` with `form-data` package to fix `FormData` serialization - [#291](https://github.com/superfaceai/one-sdk-js/issues/291)
+- Create valid `headersInit` shape in `NodeFetch.fetch`
 
 ### Added
 - `multipart/form-data` supports array values to define duplicate fields
