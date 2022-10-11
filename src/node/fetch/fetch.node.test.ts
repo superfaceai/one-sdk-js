@@ -336,19 +336,23 @@ describe('fetch', () => {
   });
 
   describe('when request body is multipart/form-data', () => {
+    let fetchInstance: NodeFetch;
+
+    beforeEach(() => {
+      fetchInstance = new NodeFetch(timers);
+
+      mocked(fetch).mockResolvedValue({
+        headers: {
+          forEach: jest.fn((callbackfn: ForEachCallbackFunction) => {
+            callbackfn(undefined, undefined);
+          }),
+        },
+        text: jest.fn(),
+      } as any);
+    });
+
     describe('field value is a Buffer', () => {
       it('passes FormData instance as body', async () => {
-        mocked(fetch).mockResolvedValue({
-          headers: {
-            forEach: jest.fn((callbackfn: ForEachCallbackFunction) => {
-              callbackfn(undefined, undefined);
-            }),
-          },
-          text: jest.fn(),
-        } as any);
-
-        const fetchInstance = new NodeFetch(timers);
-
         await fetchInstance.fetch(`${mockServer.url}/test`, {
           method: 'POST',
           body: { _type: 'formdata', data: { bufferField: Buffer.from('data') } },
@@ -358,6 +362,20 @@ describe('fetch', () => {
       });
     });
 
-    describe('field value is an Array', () => { });
+    describe('field value is an Array', () => {
+      it('expands array to duplicate fields in FormData', async () => {
+        await fetchInstance.fetch(`${mockServer.url}/test`, {
+          method: 'POST',
+          body: { _type: 'formdata', data: { arrayField: [1, 2] } },
+        });
+
+        // form-data library doesn't have getAll, so need to get buffer,
+        // create string and regex for number of entries
+        expect(
+          (mocked(fetch).mock.calls[0][1]?.body as unknown as FormData)
+            .getBuffer().toString().match(/arrayField/g)?.length,
+        ).toBe(2)
+      });
+    });
   });
 });
