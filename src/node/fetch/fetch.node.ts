@@ -1,6 +1,7 @@
 import { AbortController } from 'abort-controller';
-import fetch, { Headers } from 'cross-fetch';
-import FormData from 'form-data';
+import type { HeadersInit, RequestInit, Response } from 'node-fetch';
+import fetch, { Blob, FormData, Headers } from 'node-fetch';
+import { URLSearchParams } from 'url';
 
 import type {
   AuthCache,
@@ -11,7 +12,7 @@ import type {
   IFetch,
   Interceptable,
   InterceptableMetadata,
-  ITimers,
+  ITimers
 } from '../../core';
 import {
   BINARY_CONTENT_REGEXP,
@@ -23,7 +24,7 @@ import {
   JSON_CONTENT,
   JSON_PROBLEM_CONTENT,
   NetworkFetchError,
-  RequestFetchError,
+  RequestFetchError
 } from '../../core';
 import { eventInterceptor } from '../../core/events/events';
 import { SuperCache } from '../../lib';
@@ -187,14 +188,22 @@ export class NodeFetch implements IFetch, Interceptable, AuthCache {
   }
 
   private formData(data?: Record<string, unknown>): FormData {
+    const appendFormData = (formData: FormData, key: string, value: unknown): void => {
+      if (value instanceof Blob) {
+        formData.append(key, value);
+      } else {
+        formData.append(key, JSON.stringify(value));
+      }
+    }
+
     const formData = new FormData();
 
     if (data) {
       Object.entries(data).forEach(([key, value]) => {
         if (Array.isArray(value)) {
-          value.forEach((item) => formData.append(key, item));
+          value.forEach((item) => appendFormData(formData, key, item));
         } else {
-          formData.append(key, value);
+          appendFormData(formData, key, value);
         }
       });
     }

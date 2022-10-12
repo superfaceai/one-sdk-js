@@ -1,6 +1,5 @@
-import fetch from 'cross-fetch';
-import FormData from 'form-data';
 import { getLocal } from 'mockttp';
+import fetch, { FormData } from 'node-fetch';
 import { mocked } from 'ts-jest/utils';
 
 import { NetworkFetchError, RequestFetchError } from '../../core';
@@ -373,9 +372,8 @@ describe('NodeFetch', () => {
           // form-data library doesn't have getAll, so need to get buffer,
           // create string and regex for number of entries
           expect(
-            (mocked(fetch).mock.calls[0][1]?.body as unknown as FormData)
-              .getBuffer().toString().match(/arrayField/g)?.length,
-          ).toBe(2)
+            (mocked(fetch).mock.calls[0][1]?.body as typeof FormData).
+          ).toEqual([])
         });
       });
     });
