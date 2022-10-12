@@ -1,9 +1,14 @@
+import fetch from 'cross-fetch';
+import FormData from 'form-data';
 import { getLocal } from 'mockttp';
 import { mocked } from 'ts-jest/utils';
 
 import { NetworkFetchError, RequestFetchError } from '../../core';
 import { MockTimers } from '../../mock';
 import { NodeTimers } from '../timers';
+import { NodeFetch } from './fetch.node';
+
+jest.mock('cross-fetch');
 
 const mockServer = getLocal();
 const timers = new MockTimers();
@@ -23,34 +28,31 @@ describe('fetch', () => {
 
   describe('timeout', () => {
     it('timeouts on network timeout', async () => {
-      const { NodeFetch } = await import('./fetch.node');
+      // we want to use actuall fetch implementation
+      mocked(fetch).mockImplementation(jest.requireActual('cross-fetch').fetch);
 
       await mockServer.forGet('/test').thenTimeout();
       const realTimers = new NodeTimers();
-      const fetch = new NodeFetch(realTimers);
+      const nodeFetch = new NodeFetch(realTimers);
 
       await expect(
-        fetch.fetch(`${mockServer.url}/test`, { method: 'GET', timeout: 2000 })
+        nodeFetch.fetch(`${mockServer.url}/test`, { method: 'GET', timeout: 2000 })
       ).rejects.toEqual(new NetworkFetchError('timeout'));
     });
 
     it('rejects on rejected connection', async () => {
-      const { NodeFetch } = await import('./fetch.node');
+      // we want to use actuall fetch implementation
+      mocked(fetch).mockImplementation(jest.requireActual('cross-fetch').fetch);
 
       await mockServer.forGet('/test').thenCloseConnection();
-      const fetch = new NodeFetch(timers);
+      const nodeFetch = new NodeFetch(timers);
 
       await expect(
-        fetch.fetch(`${mockServer.url}/test`, { method: 'GET', timeout: 2000 })
+        nodeFetch.fetch(`${mockServer.url}/test`, { method: 'GET', timeout: 2000 })
       ).rejects.toEqual(new NetworkFetchError('reject'));
     });
 
     it('rethrows error if it is string', async () => {
-      const { NodeFetch } = await import('./fetch.node');
-
-      // We are mocking node-fetch
-      const { fetch } = await import('cross-fetch');
-      jest.mock('cross-fetch');
       mocked(fetch).mockRejectedValue('something-bad');
 
       const fetchInstance = new NodeFetch(timers);
@@ -64,11 +66,7 @@ describe('fetch', () => {
     });
 
     it('rethrows error if it does not contain type property', async () => {
-      const { NodeFetch } = await import('./fetch.node');
-
       // We are mocking node-fetch
-      const { fetch } = await import('cross-fetch');
-      jest.mock('cross-fetch');
       mocked(fetch).mockRejectedValue({ some: 'something-bad' });
 
       const fetchInstance = new NodeFetch(timers);
@@ -82,11 +80,7 @@ describe('fetch', () => {
     });
 
     it('throws request abort if error does not get recognized', async () => {
-      const { NodeFetch } = await import('./fetch.node');
-
       // We are mocking node-fetch
-      const { fetch } = await import('cross-fetch');
-      jest.mock('cross-fetch');
       mocked(fetch).mockRejectedValue({ type: 'something-bad' });
 
       const fetchInstance = new NodeFetch(timers);
@@ -100,11 +94,7 @@ describe('fetch', () => {
     });
 
     it('throws on dns ENOTFOUND', async () => {
-      const { NodeFetch } = await import('./fetch.node');
-
       // We are mocking node-fetch
-      const { fetch } = await import('cross-fetch');
-      jest.mock('cross-fetch');
       mocked(fetch).mockRejectedValue({
         type: 'system',
         code: 'ENOTFOUND',
@@ -122,11 +112,7 @@ describe('fetch', () => {
     });
 
     it('throws on dns EAI_AGAIN', async () => {
-      const { NodeFetch } = await import('./fetch.node');
-
       // We are mocking node-fetch
-      const { fetch } = await import('cross-fetch');
-      jest.mock('cross-fetch');
       mocked(fetch).mockRejectedValue({
         type: 'system',
         code: 'EAI_AGAIN',
@@ -149,10 +135,6 @@ describe('fetch', () => {
     let result: any;
 
     beforeEach(async () => {
-      const { fetch } = await import('cross-fetch');
-
-      jest.mock('cross-fetch');
-
       responseJsonMock = jest.fn().mockResolvedValue({
         foo: 'bar',
       });
@@ -166,7 +148,6 @@ describe('fetch', () => {
         json: responseJsonMock,
       } as any);
 
-      const { NodeFetch } = await import('./fetch.node');
 
       const fetchInstance = new NodeFetch(timers);
 
@@ -192,10 +173,6 @@ describe('fetch', () => {
     let result: any;
 
     beforeEach(async () => {
-      const { fetch } = await import('cross-fetch');
-
-      jest.mock('cross-fetch');
-
       responseTextMock = jest.fn().mockResolvedValue('foobar');
 
       mocked(fetch).mockResolvedValue({
@@ -207,7 +184,6 @@ describe('fetch', () => {
         text: responseTextMock,
       } as any);
 
-      const { NodeFetch } = await import('./fetch.node');
 
       const fetchInstance = new NodeFetch(timers);
 
@@ -241,10 +217,6 @@ describe('fetch', () => {
         let result: any;
 
         beforeEach(async () => {
-          const { fetch } = await import('cross-fetch');
-
-          jest.mock('cross-fetch');
-
           responseArrayBufferMock = jest
             .fn()
             .mockResolvedValue(Buffer.from('foobar'));
@@ -257,8 +229,6 @@ describe('fetch', () => {
             },
             arrayBuffer: responseArrayBufferMock,
           } as any);
-
-          const { NodeFetch } = await import('./fetch.node');
 
           const fetchInstance = new NodeFetch(timers);
 
@@ -282,10 +252,6 @@ describe('fetch', () => {
     let responseArrayBufferMock: jest.Mock;
 
     beforeEach(async () => {
-      const { fetch } = await import('cross-fetch');
-
-      jest.mock('cross-fetch');
-
       responseArrayBufferMock = jest
         .fn()
         .mockResolvedValue(Buffer.from('foobar'));
@@ -304,8 +270,6 @@ describe('fetch', () => {
       let result: any;
 
       beforeEach(async () => {
-        const { NodeFetch } = await import('./fetch.node');
-
         const fetchInstance = new NodeFetch(timers);
 
         result = await fetchInstance.fetch(`${mockServer.url}/test`, {
@@ -329,8 +293,6 @@ describe('fetch', () => {
       let result: any;
 
       beforeEach(async () => {
-        const { NodeFetch } = await import('./fetch.node');
-
         const fetchInstance = new NodeFetch(timers);
 
         result = await fetchInstance.fetch(`${mockServer.url}/test`, {
@@ -353,11 +315,6 @@ describe('fetch', () => {
 
   describe('when request body contains binary data', () => {
     it('should call cross-fetch with Buffer in body', async () => {
-      const { fetch } = await import('cross-fetch');
-      jest.mock('cross-fetch');
-
-      const { NodeFetch } = await import('./fetch.node');
-
       mocked(fetch).mockResolvedValue({
         headers: {
           forEach: jest.fn((callbackfn: ForEachCallbackFunction) => {
@@ -375,6 +332,50 @@ describe('fetch', () => {
       });
 
       expect((fetch as jest.Mock).mock.calls[0][1].body).toBeInstanceOf(Buffer);
+    });
+  });
+
+  describe('when request body is multipart/form-data', () => {
+    let fetchInstance: NodeFetch;
+
+    beforeEach(() => {
+      fetchInstance = new NodeFetch(timers);
+
+      mocked(fetch).mockResolvedValue({
+        headers: {
+          forEach: jest.fn((callbackfn: ForEachCallbackFunction) => {
+            callbackfn(undefined, undefined);
+          }),
+        },
+        text: jest.fn(),
+      } as any);
+    });
+
+    describe('field value is a Buffer', () => {
+      it('passes FormData instance as body', async () => {
+        await fetchInstance.fetch(`${mockServer.url}/test`, {
+          method: 'POST',
+          body: { _type: 'formdata', data: { bufferField: Buffer.from('data') } },
+        });
+
+        expect(mocked(fetch).mock.calls[0][1]?.body).toBeInstanceOf(FormData);
+      });
+    });
+
+    describe('field value is an Array', () => {
+      it('expands array to duplicate fields in FormData', async () => {
+        await fetchInstance.fetch(`${mockServer.url}/test`, {
+          method: 'POST',
+          body: { _type: 'formdata', data: { arrayField: [1, 2] } },
+        });
+
+        // form-data library doesn't have getAll, so need to get buffer,
+        // create string and regex for number of entries
+        expect(
+          (mocked(fetch).mock.calls[0][1]?.body as unknown as FormData)
+            .getBuffer().toString().match(/arrayField/g)?.length,
+        ).toBe(2)
+      });
     });
   });
 });
