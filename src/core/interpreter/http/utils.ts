@@ -141,8 +141,47 @@ export async function fetchRequest(
   };
 }
 
-export function hasAcceptHeader(headers: NonPrimitive): boolean {
+/**
+ * Get header value. For duplicate headers all delimited by `,` are returned
+ */
+export function getHeader(headers: NonPrimitive, headerName: string): string {
+  const values = Object.entries(headers).flatMap(([key, value]) => {
+    if (key.toLowerCase() === headerName.toLowerCase()) {
+      return value;
+    }
+
+    return undefined;
+  }).filter(value => value !== undefined);
+
+  return values.join(', ');
+}
+
+/**
+ * Checks in case-insensitive way if the given header is present
+ */
+export function hasHeader(headers: NonPrimitive, headerName: string): boolean {
   return Object.keys(headers).some(
-    header => header.toLowerCase() === 'accept'
+    header => header.toLowerCase() === headerName.toLowerCase()
   );
+}
+
+export function setHeader(
+  headers: NonPrimitive,
+  headerName: string,
+  value: string
+): void {
+  if (!hasHeader(headers, headerName)) {
+    headers[headerName] = value;
+  }
+}
+
+/**
+ * Deletes header
+ */
+export function deleteHeader(headers: NonPrimitive, headerName: string): void {
+  Object.keys(headers).forEach(header => {
+    if (header.toLowerCase() === headerName.toLowerCase()) {
+      delete headers[header];
+    }
+  });
 }
