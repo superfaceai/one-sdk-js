@@ -43,12 +43,7 @@ export class NodeFetch implements IFetch, Interceptable, AuthCache {
     url: string,
     parameters: FetchParameters
   ): Promise<FetchResponse> {
-    const headersInit = parameters.headers
-      ? Object.entries(parameters.headers).map(([key, value]) => [
-        key,
-        ...(Array.isArray(value) ? value : [value]),
-      ])
-      : undefined;
+    const headersInit = this.prepareHeadersInit(parameters.headers);
 
     const request: RequestInit = {
       headers: new Headers(headersInit),
@@ -238,5 +233,23 @@ export class NodeFetch implements IFetch, Interceptable, AuthCache {
     }
 
     return false;
+  }
+
+  private prepareHeadersInit(data: FetchParameters['headers'] | undefined): HeadersInit {
+    if (data === undefined) {
+      return [];
+    }
+
+    const headers: [string, string][] = [];
+
+    Object.entries(data).forEach(([key, value]) => {
+      if (Array.isArray(value)) {
+        value.forEach((val) => headers.push([key, val]));
+      } else {
+        headers.push([key, value]);
+      }
+    });
+
+    return headers;
   }
 }
