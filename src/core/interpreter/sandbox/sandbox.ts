@@ -1,41 +1,14 @@
-import { VM } from 'vm2';
+import 'ses';
+
+import { readFileSync } from 'fs';
+import vm from 'vm';
 
 import type { IConfig, ILogger } from '../../../interfaces';
 import type { NonPrimitive } from '../../../lib';
 import { getStdlib } from './stdlib';
 
-const DEBUG_NAMESPACE = 'sandbox';
-
-function vm2ExtraArrayKeysFixup<T>(value: T): T {
-  if (typeof value !== 'object') {
-    return value;
-  }
-
-  if (value === null) {
-    return value;
-  }
-
-  if (Buffer.isBuffer(value) || value instanceof ArrayBuffer) {
-    return value;
-  }
-
-  if (Array.isArray(value)) {
-    const newArray: unknown[] = [];
-    for (let i = 0; i < value.length; i += 1) {
-      newArray[i] = vm2ExtraArrayKeysFixup(value[i]);
-    }
-
-    return newArray as unknown as T;
-  }
-
-  const newObject: Record<string, unknown> = {};
-  const currentObject = value as Record<string, unknown>;
-  for (const key of Object.keys(value)) {
-    newObject[key] = vm2ExtraArrayKeysFixup(currentObject[key]);
-  }
-
-  return newObject as T;
-}
+const sesLockDownPath = require.resolve('ses/dist/lockdown.umd.js');
+const lockdown = readFileSync(sesLockDownPath, { encoding: 'utf8' });
 
 export function evalScript(
   config: IConfig,
@@ -43,65 +16,19 @@ export function evalScript(
   logger?: ILogger,
   variableDefinitions?: NonPrimitive
 ): unknown {
-  const vm = new VM({
-    sandbox: {
-      std: getStdlib(logger),
-      ...variableDefinitions,
-    },
-    compiler: 'javascript',
-    wasm: false,
-    eval: false,
-    timeout: config.sandboxTimeout,
-    fixAsync: true,
-  });
+  const context = vm.createContext({ STD: getStdlib(logger), ...variableDefinitions });
+  vm.runInContext(lockdown, context);
 
-  const log = logger?.log(DEBUG_NAMESPACE);
+  /*
+  // SES Compartment
+  // can't be used, because can't be controlled timeout
+  const comparement = vm.runInContext('new Compartment()', context) as Compartment;
+  return comparement.evaluate(js);
+  */
 
-  // Defensively delete global objects
-  // These deletions mostly don't protect, but produce "nicer" errors for the user
-  vm.run(
-    `
-    'use strict'
+  // https://github.com/endojs/endo/blob/master/packages/ses/docs/guide.md#what-lockdown-does-to-javascript
+  // https://github.com/endojs/endo/blob/master/packages/ses/docs/guide.md#what-lockdown-removes-from-standard-javascript
+  vm.runInContext('lockdown()', context);
 
-    delete global.require // Forbidden
-    delete global.process // Forbidden
-    delete global.console // Forbidden/useless
-
-    delete global.setTimeout
-    delete global.setInterval
-    delete global.setImmediate
-    delete global.clearTimeout
-    delete global.clearInterval
-    delete global.clearImmediate
-    // delete global.String
-    // delete global.Number
-    // delete global.Buffer
-    // delete global.Boolean
-    // delete global.Array
-    // delete global.Date
-    // delete global.RegExp // Forbidden - needed for object literals to work, weirdly
-    delete global.Function // Can be restored by taking .constructor of any function, but the VM protection kicks in
-    // delete global.Object
-    delete global.VMError // Useless
-    delete global.Proxy // Forbidden
-    delete global.Reflect // Forbidden
-    // delete global.Promise // Forbidden, also VM protection - BUT needed for object literals to work, weirdly
-    delete global.Symbol // Forbidden
-
-    delete global.eval // Forbidden, also VM protects
-    delete global.WebAssembly // Forbidden, also VM protects
-    delete global.AsyncFunction // Forbidden, also VM protects
-    delete global.SharedArrayBuffer // Just in case
-    `
-  );
-
-  log?.('Evaluating:', js);
-  const result = vm.run(
-    `'use strict';const vmResult = ${js};vmResult`
-  ) as unknown;
-  const resultVm2Fixed = vm2ExtraArrayKeysFixup(result);
-
-  log?.('Result: %O', resultVm2Fixed);
-
-  return resultVm2Fixed;
+  return vm.runInContext(js, context, { timeout: config.sandboxTimeout });
 }
