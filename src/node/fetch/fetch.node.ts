@@ -26,7 +26,7 @@ import {
   RequestFetchError,
 } from '../../core';
 import { eventInterceptor } from '../../core/events/events';
-import { SuperCache } from '../../lib';
+import { assertIsVariables, isFile, SuperCache } from '../../lib';
 
 export class NodeFetch implements IFetch, Interceptable, AuthCache {
   public metadata: InterceptableMetadata | undefined;
@@ -191,8 +191,14 @@ export class NodeFetch implements IFetch, Interceptable, AuthCache {
 
     if (data) {
       Object.entries(data).forEach(([key, value]) => {
+        assertIsVariables(value);
+
+        if (value === undefined) return;
+
         if (Array.isArray(value)) {
           value.forEach((item) => formData.append(key, item));
+        } else if (isFile(value)) {
+          formData.append(key, value.buffer, { filename: value.filename, contentType: value.mimetype });
         } else {
           formData.append(key, value);
         }

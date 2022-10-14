@@ -4,9 +4,14 @@ import { indexRecord } from '../object';
 // Arrays should be considered opaque value and therefore act as a primitive
 export type Primitive = string | boolean | number | unknown[];
 export type NonPrimitive = {
-  [key: string]: Primitive | NonPrimitive | undefined;
+  [key: string]: Primitive | NonPrimitive | File | undefined;
 };
-export type Variables = Primitive | NonPrimitive;
+export type File = {
+  buffer: Buffer, // not cool
+  filename?: string,
+  mimetype?: string,
+};
+export type Variables = Primitive | NonPrimitive | File;
 
 export function assertIsVariables(
   input: unknown
@@ -50,7 +55,16 @@ export function isNonPrimitive(input: Variables): input is NonPrimitive {
   return (
     typeof input === 'object' &&
     !Array.isArray(input) &&
-    !Buffer.isBuffer(input)
+    !Buffer.isBuffer(input) &&
+    input.buffer === undefined
+  );
+}
+
+export function isFile(input: unknown): input is File {
+  return (
+    typeof input === 'object' &&
+    input !== null &&
+    Buffer.isBuffer((input as File).buffer)
   );
 }
 
@@ -121,6 +135,8 @@ export const variableToString = (variable: Variables): string => {
   if (typeof variable === 'string') {
     return variable;
   }
+
+  // TODO: File to string
 
   return JSON.stringify(variable);
 };

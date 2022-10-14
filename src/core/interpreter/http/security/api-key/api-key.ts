@@ -6,6 +6,7 @@ import { ApiKeyPlacement } from '@superfaceai/ast';
 
 import type { ILogger, LogFunction } from '../../../../../interfaces';
 import type { Variables } from '../../../../../lib';
+import { isFile } from '../../../../../lib';
 import { apiKeyInBodyError } from '../../../../errors';
 import type {
   AuthenticateRequestAsync,
@@ -79,13 +80,18 @@ function applyApiKeyAuthInBody(
   apikey: string,
   visitedReferenceTokens: string[] = []
 ): Variables {
+  const valueLocation = visitedReferenceTokens.length
+    ? `value at /${visitedReferenceTokens.join('/')}`
+    : 'body';
+
   if (typeof requestBody !== 'object' || Array.isArray(requestBody)) {
-    const valueLocation = visitedReferenceTokens.length
-      ? `value at /${visitedReferenceTokens.join('/')}`
-      : 'body';
     const bodyType = Array.isArray(requestBody) ? 'Array' : typeof requestBody;
 
     throw apiKeyInBodyError(valueLocation, bodyType);
+  }
+
+  if (isFile(requestBody)) {
+    throw apiKeyInBodyError(valueLocation, 'File');
   }
 
   const token = referenceTokens.shift();
