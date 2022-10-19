@@ -12,7 +12,7 @@ const timers = new MockTimers();
 const fetchInstance = new NodeFetch(timers);
 const config = new Config(NodeFileSystem);
 const crypto = new NodeCrypto();
-const logger = new NodeLogger()
+const logger = new NodeLogger();
 
 const parseMapFromSource = (source: string) =>
   parseMap(
@@ -38,12 +38,12 @@ describe('MapInterpreter', () => {
 
   it('should execute', async () => {
     await mockServer.forGet('/test').thenJson(200, { value: 1 });
-    
+
     const interpreter = new MapInterpreter2(
       {
         usecase: 'SimpleMap',
         security: [],
-        services: mockServicesSelector
+        services: mockServicesSelector,
       },
       { fetchInstance, config, crypto, logger }
     );
