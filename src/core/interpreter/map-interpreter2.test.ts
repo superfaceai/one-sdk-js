@@ -37,7 +37,7 @@ describe('MapInterpreter', () => {
   });
 
   it('should execute', async () => {
-    await mockServer.forGet('/test').thenJson(200, { data: 0 });
+    await mockServer.forGet('/test').thenJson(200, { value: 1 });
     
     const interpreter = new MapInterpreter2(
       {
@@ -62,9 +62,9 @@ describe('MapInterpreter', () => {
 
         x = 0
 
-        call foreach(x of A) Op(arg = x) if (x % 2 === 0) {
-          // yield
-          map result outcome.data
+        call foreach(x of [1, 2, 3, 4]) Op(arg = x) if (x % 2 === 0) {
+          // yield?
+          // map result outcome.error
         }
       }
 
@@ -76,9 +76,13 @@ describe('MapInterpreter', () => {
 
         return v
       }
+
+      operation Op {
+        fail args.arg
+      }
     `);
     const result = await interpreter.perform(ast);
 
-    expect(result.isOk() && result.value).toEqual(true);
+    expect(result.isOk() && result.value).toEqual({ value: true });
   });
 });
