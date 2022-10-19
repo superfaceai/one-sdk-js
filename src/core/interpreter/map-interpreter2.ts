@@ -3,6 +3,7 @@ import {
   CallStatementNode,
   ConditionAtomNode,
   HttpCallStatementNode,
+  HttpRequestNode,
   HttpResponseHandlerNode,
   HttpSecurityRequirement,
   InlineCallNode,
@@ -63,14 +64,14 @@ type VisitorResultExplore = {
   childIdentifier: string,
 }
 /** Final result of this visitor - this visitor is done. */
-type VisitorResultDone = {
+type VisitorResultDone<V = unknown> = {
   kind: 'done',
   /** Updated variable stack value. */
   stack: NonPrimitive
   /** Identifier assigned to the child by its parent. */
   childIdentifier: string
   /** The return value to be given to the parent node. */
-  value?: unknown
+  value?: V
   /** The outcome passed to nearest Map/Operation ancestor. */
   outcome?: { terminate: boolean, value: VisitorOutcomeValue }
 }
@@ -81,8 +82,8 @@ type VisitorResultYield = {
   value: { kind: 'outcome' } & VisitorOutcomeValue
 }
 
-type VisitorGenerator = AsyncGenerator<VisitorResultExplore | VisitorResultYield, VisitorResultDone, VisitorResultDone>;
-abstract class NodeVisitor<N extends MapASTNode> implements VisitorGenerator {
+type VisitorGenerator<V = undefined> = AsyncGenerator<VisitorResultExplore | VisitorResultYield, VisitorResultDone<V>, VisitorResultDone>;
+abstract class NodeVisitor<N extends MapASTNode, V = undefined> implements VisitorGenerator<V> {
   protected static mergeOutcome(current: VisitorOutcomeValue | undefined, other: VisitorOutcomeValue): VisitorOutcomeValue {
     if ('error' in other) {
       return { error: other.error }
@@ -101,7 +102,7 @@ abstract class NodeVisitor<N extends MapASTNode> implements VisitorGenerator {
     protected readonly log: LogFunction | undefined
   ) { }
 
-  protected prepareResultDone(value?: unknown, terminate?: boolean): VisitorResultDone {
+  protected prepareResultDone(value?: V, terminate?: boolean): VisitorResultDone<V> {
     let outcome = undefined
     if (this.outcome !== undefined) {
       outcome = { terminate: terminate ?? false, value: this.outcome }
@@ -118,7 +119,7 @@ abstract class NodeVisitor<N extends MapASTNode> implements VisitorGenerator {
     }
   }
 
-  protected checkMergeOutcome(result: VisitorResultDone): boolean {
+  protected checkMergeOutcome(result: VisitorResultDone<unknown>): boolean {
     if (result.outcome !== undefined) {
       this.log?.('Merging outcome:', this.outcome, 'with', result.outcome)
       this.outcome = NodeVisitor.mergeOutcome(this.outcome, result.outcome.value)
@@ -132,14 +133,14 @@ abstract class NodeVisitor<N extends MapASTNode> implements VisitorGenerator {
   }
 
   // Helps implementors use the generator syntax.
-  protected abstract visit(): VisitorGenerator
+  protected abstract visit(): VisitorGenerator<V>
 
   // TODO: signature unsure, resolve later
   // abstract childYield(result: VisitorResultYield): undefined | VisitorResultYield
 
-  private visitGenerator?: VisitorGenerator = undefined
+  private visitGenerator?: VisitorGenerator<V> = undefined
   private expectedChildIdentifier?: string = undefined
-  async next(...args: [] | [VisitorResultDone]): Promise<IteratorResult<VisitorResultExplore | VisitorResultYield, VisitorResultDone>> {
+  async next(...args: [] | [VisitorResultDone]): Promise<IteratorResult<VisitorResultExplore | VisitorResultYield, VisitorResultDone<V>>> {
     if (this.visitGenerator === undefined) {
       this.visitGenerator = this.visit()
     }
@@ -162,13 +163,13 @@ abstract class NodeVisitor<N extends MapASTNode> implements VisitorGenerator {
     return result
   }
 
-  return(_value: VisitorResultDone | PromiseLike<VisitorResultDone>): Promise<IteratorResult<VisitorResultExplore | VisitorResultYield, VisitorResultDone>> {
+  return(_value: VisitorResultDone | PromiseLike<VisitorResultDone>): Promise<IteratorResult<VisitorResultExplore | VisitorResultYield, VisitorResultDone<V>>> {
     throw new Error('Method not implemented.')
   }
-  throw(_e: any): Promise<IteratorResult<VisitorResultExplore | VisitorResultYield, VisitorResultDone>> {
+  throw(_e: any): Promise<IteratorResult<VisitorResultExplore | VisitorResultYield, VisitorResultDone<V>>> {
     throw new Error('Method not implemented.')
   }
-  [Symbol.asyncIterator](): AsyncGenerator<VisitorResultExplore | VisitorResultYield, VisitorResultDone, VisitorResultDone> {
+  [Symbol.asyncIterator](): VisitorGenerator<V> {
     return this
   }
 
@@ -179,8 +180,8 @@ abstract class NodeVisitor<N extends MapASTNode> implements VisitorGenerator {
   }
 }
 
-class MapDefinitionVisitor extends NodeVisitor<MapDefinitionNode> {
-  override async * visit(): VisitorGenerator {
+class MapDefinitionVisitor extends NodeVisitor<MapDefinitionNode, undefined> {
+  override async * visit(): VisitorGenerator<undefined> {
     for (let i = 0; i < this.node.statements.length; i += 1) {
       const result = yield {
         kind: 'explore',
@@ -271,8 +272,8 @@ class SetStatementVisitor extends NodeVisitor<SetStatementNode> {
   }
 }
 
-class ConditionAtomVisitor extends NodeVisitor<ConditionAtomNode> {
-  override async * visit(): VisitorGenerator {
+class ConditionAtomVisitor extends NodeVisitor<ConditionAtomNode, boolean> {
+  override async * visit(): VisitorGenerator<boolean> {
     const result = yield {
       kind: 'explore',
       what: { node: this.node.expression },
@@ -288,7 +289,7 @@ class ConditionAtomVisitor extends NodeVisitor<ConditionAtomNode> {
   }
 }
 
-class AssignmentVisitor extends NodeVisitor<AssignmentNode> {
+class AssignmentVisitor extends NodeVisitor<AssignmentNode, NonPrimitive> {
   private static constructObject(keys: string[], value: Variables): NonPrimitive {
     const result: NonPrimitive = {};
     let current = result;
@@ -304,7 +305,7 @@ class AssignmentVisitor extends NodeVisitor<AssignmentNode> {
     return result;
   }
   
-  override async * visit(): VisitorGenerator {
+  override async * visit(): VisitorGenerator<NonPrimitive> {
     const result = yield {
       kind: 'explore',
       what: { node: this.node.value },
@@ -323,8 +324,8 @@ class AssignmentVisitor extends NodeVisitor<AssignmentNode> {
   }
 }
 
-class PrimitiveLiteralVisitor extends NodeVisitor<PrimitiveLiteralNode> {
-  override async * visit(): VisitorGenerator {
+class PrimitiveLiteralVisitor extends NodeVisitor<PrimitiveLiteralNode, string | number | boolean> {
+  override async * visit(): VisitorGenerator<string | number | boolean> {
     return this.prepareResultDone(this.node.value)
   }
 
@@ -333,8 +334,8 @@ class PrimitiveLiteralVisitor extends NodeVisitor<PrimitiveLiteralNode> {
   }
 }
 
-class ObjectLiteralVisitor extends NodeVisitor<ObjectLiteralNode> {
-  override async * visit(): VisitorGenerator {
+class ObjectLiteralVisitor extends NodeVisitor<ObjectLiteralNode, NonPrimitive> {
+  override async * visit(): VisitorGenerator<NonPrimitive> {
     let object: NonPrimitive = {};
 
     for (let i = 0; i < this.node.fields.length; i += 1) {
@@ -357,7 +358,7 @@ class ObjectLiteralVisitor extends NodeVisitor<ObjectLiteralNode> {
   }
 }
 
-class JessieExpressionVisitor extends NodeVisitor<JessieExpressionNode> {
+class JessieExpressionVisitor extends NodeVisitor<JessieExpressionNode, Variables | undefined> {
   constructor(
     node: JessieExpressionNode,
     stack: NonPrimitive,
@@ -371,7 +372,7 @@ class JessieExpressionVisitor extends NodeVisitor<JessieExpressionNode> {
     super(node, stack, childIdentifier, log)
   }
   
-  override async * visit(): VisitorGenerator {
+  override async * visit(): VisitorGenerator<Variables | undefined> {
     try {
       const result = evalScript(
         this.config,
@@ -404,14 +405,14 @@ class JessieExpressionVisitor extends NodeVisitor<JessieExpressionNode> {
   }
 }
 
-class IterationAtomVisitor extends NodeVisitor<IterationAtomNode> {
+class IterationAtomVisitor extends NodeVisitor<IterationAtomNode, Iterable<Variables>> {
   private static isIterable(input: unknown): input is Iterable<Variables> {
     return (
       typeof input === 'object' && input !== null && Symbol.iterator in input
     );
   }
   
-  override async * visit(): VisitorGenerator {
+  override async * visit(): VisitorGenerator<Iterable<Variables>> {
     const result = yield {
       kind: 'explore',
       what: { node: this.node.iterable },
@@ -434,8 +435,8 @@ class IterationAtomVisitor extends NodeVisitor<IterationAtomNode> {
   }
 }
 
-class CallVisitor extends NodeVisitor<InlineCallNode | CallStatementNode> {  
-  override async * visit(): VisitorGenerator {
+class CallVisitor extends NodeVisitor<InlineCallNode | CallStatementNode, Variables | undefined> {  
+  override async * visit(): VisitorGenerator<Variables | undefined> {
     // generalized case for iterated and non-iterated call
     let iterable: Iterable<Variables> = [0]
     let iterationVariable: string | undefined = undefined
@@ -674,7 +675,63 @@ class HttpCallStatementVisitor extends NodeVisitor<HttpCallStatementNode> {
   }
 }
 
-class HttpResponseHandlerVisitor extends NodeVisitor<HttpResponseHandlerNode> {
+class HttpRequestVisitor extends NodeVisitor<HttpRequestNode, HttpRequest> {
+  override async * visit(): VisitorGenerator<HttpRequest> {
+    let headers: undefined | NonPrimitive
+    if (this.node.headers !== undefined) {
+      const result = yield {
+        kind: 'explore',
+        what: { node: this.node.headers },
+        stack: this.stack,
+        childIdentifier: `${this.childIdentifier}.headers`
+      }
+
+      // TODO: typecheck
+      headers = result.value as NonPrimitive
+    }
+
+    let queryParameters: undefined | NonPrimitive
+    if (this.node.query !== undefined) {
+      const result = yield {
+        kind: 'explore',
+        what: { node: this.node.query },
+        stack: this.stack,
+        childIdentifier: `${this.childIdentifier}.query`
+      }
+
+      // TODO: typecheck
+      queryParameters = result.value as NonPrimitive
+    }
+
+    let body: undefined | Variables
+    if (this.node.body !== undefined) {
+      const result = yield {
+        kind: 'explore',
+        what: { node: this.node.body },
+        stack: this.stack,
+        childIdentifier: `${this.childIdentifier}.body`
+      }
+
+      // TODO: typecheck
+      body = result.value as Variables
+    }
+
+    return this.prepareResultDone({
+      contentType: this.node.contentType,
+      contentLanguage: this.node.contentLanguage,
+      headers,
+      queryParameters,
+      body,
+      security: this.node.security
+    })
+  }
+  
+  override [Symbol.toStringTag](): string {
+    return 'HttpRequestVisitor'
+  }
+}
+
+class HttpResponseHandlerVisitor extends NodeVisitor<HttpResponseHandlerNode, boolean> {
   private matchResponse(): boolean {
     if (
       this.node.statusCode !== undefined &&
@@ -707,7 +764,7 @@ class HttpResponseHandlerVisitor extends NodeVisitor<HttpResponseHandlerNode> {
     return true;
   }
   
-  override async * visit(): VisitorGenerator {
+  override async * visit(): VisitorGenerator<boolean> {
     if (!this.matchResponse()) {
       return this.prepareResultDone(false)
     }
@@ -843,7 +900,7 @@ export class MapInterpreter2<TInput extends NonPrimitive | undefined> {
     const entry = this.findEntry(ast);
 
     // create a visitor of the root node and put it on the stack
-    const nodeStack: NodeVisitor<MapASTNode>[] = [
+    const nodeStack: NodeVisitor<MapASTNode, unknown>[] = [
       this.createVisitor(entry, {}, 'root')
     ];
 
@@ -911,7 +968,7 @@ export class MapInterpreter2<TInput extends NonPrimitive | undefined> {
     node: MapASTNode,
     stack: NonPrimitive,
     childIdentifier: string,
-  ): NodeVisitor<MapASTNode> {
+  ): NodeVisitor<MapASTNode, unknown> {
     if (this.log?.enabled === true) {
       let loc = ''
       if (node.location !== undefined) {
@@ -959,20 +1016,26 @@ export class MapInterpreter2<TInput extends NonPrimitive | undefined> {
       
       case 'HttpCallStatement':
         return new HttpCallStatementVisitor(node, stack, childIdentifier, this.log, this.http, this.externalHandler, this.parameters.services, this.parameters.parameters, this.parameters.security)
+      
+      case 'HttpRequest':
+        return new HttpRequestVisitor(node, stack, childIdentifier, this.log)
 
       case 'HttpResponseHandler':
         return new HttpResponseHandlerVisitor(node, stack, childIdentifier, this.log)
       
       case 'OutcomeStatement':
         return new OutcomeStatementVisitor(node, stack, childIdentifier, this.log)
+      
+      case 'MapHeader':
+        throw new UnexpectedError('Method not implemented.')
+      
+      case 'MapDocument':
+        throw new UnexpectedError('Method not implemented.')
 
       default:
-        throw new UnexpectedError('TODO')
-        // assertUnreachable(node);
+        assertUnreachable(node);
     }
   }
 }
 
-// function assertUnreachable(node: never): never {
-//   throw ''
-// }
+function assertUnreachable(_: never): never { throw '' }

@@ -15,7 +15,7 @@ import {
 } from '../../node';
 import { Config } from '../config';
 import { ServiceSelector } from '../services';
-import { MapInterpreter } from './map-interpreter';
+import { MapInterpreter2 as MapInterpreter } from './map-interpreter2';
 
 const mockServer = getLocal();
 const timers = new MockTimers();
