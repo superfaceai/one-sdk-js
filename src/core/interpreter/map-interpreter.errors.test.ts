@@ -27,7 +27,7 @@ const interpreterDependencies = {
   fetchInstance: new NodeFetch(timers),
   config: new Config(NodeFileSystem),
   crypto: new NodeCrypto(),
-  logger: new NodeLogger()
+  logger: new NodeLogger(),
 };
 const header: MapHeaderNode = {
   kind: 'MapHeader',

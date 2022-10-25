@@ -1033,6 +1033,12 @@ class OutcomeStatementVisitor extends NodeVisitor<OutcomeStatementNode> {
     } catch (e: unknown) {
       return { kind: 'error', error: e as UnexpectedError };
     }
+    if (result.value === undefined) {
+      return {
+        kind: 'error',
+        error: new UnexpectedError('Outcome value is undefined'),
+      };
+    }
 
     if (this.node.isError) {
       if (result.value === undefined) {
@@ -1285,7 +1291,10 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined> {
     const nodeStack: NodeVisitor<MapASTNode, unknown>[] = [
       this.createVisitor(
         entry,
-        {},
+        {
+          input: this.parameters.input ?? {},
+          parameters: this.parameters.parameters ?? {},
+        },
         'root'
       ),
     ];

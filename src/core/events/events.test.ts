@@ -243,7 +243,7 @@ describe('events', () => {
       events
     );
 
-    const error = new UnexpectedError('modified rejection')
+    const error = new UnexpectedError('modified rejection');
     events.on(
       'post-fetch',
       { priority: 1 },
