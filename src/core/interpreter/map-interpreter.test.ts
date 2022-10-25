@@ -1195,7 +1195,7 @@ describe('MapInterpreter', () => {
         usecase: 'Test',
         parameters: { path: 'thirteen' },
         security: [],
-        services: mockServicesSelector
+        services: mockServicesSelector,
       },
       interpreterDependencies
     );

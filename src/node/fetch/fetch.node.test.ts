@@ -396,22 +396,28 @@ describe('NodeFetch', () => {
     let nodeFetch: NodeFetch;
 
     type OverrideNodeFetch = {
-      prepareHeadersInit: (data: any) => any | undefined
-    }
+      prepareHeadersInit: (data: any) => any | undefined;
+    };
 
     beforeEach(() => {
       nodeFetch = new NodeFetch(timers);
     });
 
     it('returns empty array if data are undefined', () => {
-      expect((nodeFetch as any as OverrideNodeFetch).prepareHeadersInit(undefined)).toEqual([]);
+      expect(
+        (nodeFetch as any as OverrideNodeFetch).prepareHeadersInit(undefined)
+      ).toEqual([]);
     });
 
     it('returns array of tuples if header value is array', () => {
       expect(
-        (nodeFetch as any as OverrideNodeFetch)
-          .prepareHeadersInit({ header: ['val1', 'val2'] })
-      ).toEqual([['header', 'val1'], ['header', 'val2']]);
+        (nodeFetch as any as OverrideNodeFetch).prepareHeadersInit({
+          header: ['val1', 'val2'],
+        })
+      ).toEqual([
+        ['header', 'val1'],
+        ['header', 'val2'],
+      ]);
     });
   });
 });
