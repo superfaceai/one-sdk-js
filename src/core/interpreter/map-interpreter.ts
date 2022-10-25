@@ -642,7 +642,7 @@ class CallVisitor extends NodeVisitor<
       const result = yield {
         kind: 'explore',
         what: { operation: this.node.operationName },
-        stack: { args },
+        stack: { args, parameters: this.stack.parameters },
         childIdentifier: `${childIdentifier}.operation`,
       };
 
@@ -1032,12 +1032,6 @@ class OutcomeStatementVisitor extends NodeVisitor<OutcomeStatementNode> {
       assertIsVariables(result.value);
     } catch (e: unknown) {
       return { kind: 'error', error: e as UnexpectedError };
-    }
-    if (result.value === undefined) {
-      return {
-        kind: 'error',
-        error: new UnexpectedError('Outcome value is undefined'),
-      };
     }
 
     if (this.node.isError) {

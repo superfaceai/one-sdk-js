@@ -1173,6 +1173,38 @@ describe('MapInterpreter', () => {
     expect(result.isOk() && result.value).toEqual({ result: 12 });
   });
 
+  it('should pass integration parameters to operations', async () => {
+    await mockServer.forGet('/thirteen').thenJson(200, { data: 13 });
+    const ast = parseMapFromSource(`
+      map Test {
+        map result {
+          x = call Op()
+        }
+      }
+
+      operation Op {
+        http GET "/{parameters.path}" {
+          response 200 "application/json" {
+            return body.data
+          }
+        }
+      }
+    `);
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        parameters: { path: 'thirteen' },
+        security: [],
+        services: mockServicesSelector
+      },
+      interpreterDependencies
+    );
+
+    const result = await interpreter.perform(ast);
+
+    expect(result.isOk() && result.value).toEqual({ x: 13 });
+  });
+
   it('should correctly select service', async () => {
     const urlOne = '/one/something';
     await mockServer.forGet(urlOne).thenJson(200, { data: 1 });
@@ -1945,5 +1977,35 @@ describe('MapInterpreter', () => {
     const result = await interpreter.perform(ast);
 
     expect(result.unwrap()).toEqual({ field: null });
+  });
+
+
+  it('should allow success outcome to be undefined', async () => {
+    const ast = parseMapFromSource(`    
+    map Test {
+      map result undefined
+    
+      map result {
+        x = call Op()
+      }
+    }
+    
+    operation Op {
+      return undefined
+    }`);
+
+
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+        services: ServiceSelector.withDefaultUrl(''),
+        input: {},
+      },
+      interpreterDependencies
+    );
+
+    const result = await interpreter.perform(ast);
+    expect(result.isOk() && result.value).toStrictEqual({ x: undefined });
   });
 });
