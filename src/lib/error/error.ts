@@ -20,10 +20,10 @@ export class ErrorBase {
   }
 }
 
-export class UnexpectedError extends ErrorBase {
+export class UnexpectedError<C = unknown> extends ErrorBase {
   constructor(
     public override message: string,
-    public additionalContext?: unknown
+    public additionalContext?: C
   ) {
     super('UnexpectedError', message);
   }
