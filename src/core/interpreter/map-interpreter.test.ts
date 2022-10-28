@@ -1,9 +1,17 @@
 import { ApiKeyPlacement, HttpScheme, SecurityType } from '@superfaceai/ast';
 import { parseMap, Source } from '@superfaceai/parser';
+import { readFileSync } from 'fs';
 import { getLocal } from 'mockttp';
+import * as path from 'path';
 
 import { MockTimers } from '../../mock';
-import { NodeCrypto, NodeFetch, NodeFileSystem } from '../../node';
+import {
+  BinaryFile,
+  NodeCrypto,
+  NodeFetch,
+  NodeFileSystem,
+  NodeLogger,
+} from '../../node';
 import { Config } from '../config';
 import { ServiceSelector } from '../services';
 import { MapInterpreter } from './map-interpreter';
@@ -1451,5 +1459,229 @@ describe('MapInterpreter', () => {
     expect(result.isOk()).toBe(true);
 
     expect(result.unwrap()).toStrictEqual(12);
+  
+  it('should chunk async binary data', async () => {
+    const logger = new NodeLogger();
+    const ast = parseMapFromSource(`
+    map Test {
+      mappedItems = call foreach(item of input.items.chunkBy(10)) DoSomething(item = item)
+
+      map result {
+        items: mappedItems
+      }
+    }
+
+    operation DoSomething {
+      return args.item.toUpperCase()
+    }`);
+    const filePath = path.resolve(process.cwd(), 'fixtures', 'binary.txt');
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+        services: ServiceSelector.withDefaultUrl(''),
+        input: {
+          items: new BinaryFile(filePath),
+        },
+      },
+      { fetchInstance, config, crypto, logger }
+    );
+
+    const result = await interpreter.perform(ast);
+    if (result.isErr()) {
+      console.error(result.error);
+    }
+    expect(result.isOk()).toBe(true);
+    const items = (result.unwrap() as any).items;
+    const expected = readFileSync(filePath, 'utf8')
+      .toUpperCase()
+      // Splits file into chunks of 10 characters, pretty neat huh?
+      .match(/(.|[\r\n]){1,10}/g);
+
+    expect(items).toStrictEqual(expected);
+  });
+});
+
+  it('should peek first few bytes of a binary file', async () => {
+    const ast = parseMapFromSource(`
+    map Test {
+      map result {
+        firstBytes: input.items.peek(10)
+      }
+    }`);
+
+    const filePath = path.resolve(process.cwd(), 'fixtures', 'binary.txt');
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+        services: ServiceSelector.withDefaultUrl(''),
+        input: {
+          items: new BinaryFile(filePath),
+        },
+      },
+      { fetchInstance, config, crypto }
+    );
+
+    const result = await interpreter.perform(ast);
+    if (result.isErr()) {
+      console.error(result.error);
+    }
+    expect(result.isOk()).toBe(true);
+    const firstBytes = (result.unwrap() as any).firstBytes;
+    const expected = readFileSync(filePath, 'utf8').slice(0, 10);
+
+    expect(firstBytes).toStrictEqual(expected);
+  });
+
+  it('should peek first few bytes of a binary file and then return entire file', async () => {
+    const ast = parseMapFromSource(`
+    map Test {
+      firstBytes = input.items.peek(10)
+
+      map result {
+        firstBytes: firstBytes,
+        items: input.items
+      }
+    }`);
+
+    const filePath = path.resolve(process.cwd(), 'fixtures', 'binary.txt');
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+        services: ServiceSelector.withDefaultUrl(''),
+        input: {
+          items: new BinaryFile(filePath),
+        },
+      },
+      { fetchInstance, config, crypto }
+    );
+
+    const result = await interpreter.perform(ast);
+    if (result.isErr()) {
+      console.error(result.error);
+    }
+    expect(result.isOk()).toBe(true);
+    const firstBytes = (result.unwrap() as any).firstBytes;
+    const items = (result.unwrap() as any).items;
+    const expected = readFileSync(filePath);
+
+    expect(firstBytes).toStrictEqual(expected.slice(0, 10).toString('utf8'));
+    expect(items).toStrictEqual(expected);
+  });
+
+  it('should return the file in its entirety as base64', async () => {
+    const ast = parseMapFromSource(`
+    map Test {
+      map result {
+        items: input.items.encode('base64')
+      }
+    }`);
+
+    const filePath = path.resolve(process.cwd(), 'fixtures', 'binary.txt');
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+        services: ServiceSelector.withDefaultUrl(''),
+        input: {
+          items: new BinaryFile(filePath),
+        },
+      },
+      { fetchInstance, config, crypto }
+    );
+
+    const result = await interpreter.perform(ast);
+    if (result.isErr()) {
+      console.error(result.error);
+    }
+    expect(result.isOk()).toBe(true);
+    const items = (result.unwrap() as any).items;
+    const expected = readFileSync(filePath, 'base64');
+
+    expect(items).toStrictEqual(expected);
+  });
+
+  it('should peek first few bytes as base64 and then return entire file as binary', async () => {
+    const ast = parseMapFromSource(`
+    map Test {
+      firstBytes = input.items.encode('base64').peek(10)
+      
+      map result {
+        firstBytes: firstBytes,
+        items: input.items.encode('binary')
+      }
+    }`);
+
+    const filePath = path.resolve(process.cwd(), 'fixtures', 'binary.txt');
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+        services: ServiceSelector.withDefaultUrl(''),
+        input: {
+          items: new BinaryFile(filePath),
+        },
+      },
+      { fetchInstance, config, crypto }
+    );
+
+    const result = await interpreter.perform(ast);
+    if (result.isErr()) {
+      console.error(result.error);
+    }
+    expect(result.isOk()).toBe(true);
+    const firstBytes = (result.unwrap() as any).firstBytes;
+    const items = (result.unwrap() as any).items;
+    const expected = readFileSync(filePath);
+
+    expect(firstBytes).toStrictEqual(expected.slice(0, 10).toString('base64'));
+    expect(items).toStrictEqual(expected.toString('binary'));
+  });
+
+  it('should send file in its entirety as body', async () => {
+    const filePath = path.resolve(process.cwd(), 'fixtures', 'binary.txt');
+    const file = new BinaryFile(filePath);
+    const expected = readFileSync(filePath, 'utf8');
+    await mockServer.forPost('/test').thenCallback(async req => {
+      expect(await req.body.getText()).toStrictEqual(expected);
+
+      return { status: 200, json: { ok: true } };
+    });
+
+    const ast = parseMapFromSource(`
+    map Test {
+      http POST "/test" {
+          request "video/notreallyvideo" {
+            body = input.items 
+          }
+
+          response 200 {
+            map result body
+          }
+        }
+      }`);
+
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+        services: ServiceSelector.withDefaultUrl(mockServer.url),
+        input: {
+          items: file,
+        },
+      },
+      { fetchInstance, config, crypto }
+    );
+
+    const result = await interpreter.perform(ast);
+    if (result.isErr()) {
+      console.error(result.error);
+    }
+    expect(result.isOk()).toBe(true);
+
+    const response = result.unwrap();
+    expect(response).toStrictEqual({ ok: true });
   });
 });

@@ -4,7 +4,13 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import type { ILogger, ITimers, LogFunction } from '../../interfaces';
+import type {
+  EventFilter,
+  IEvents,
+  ILogger,
+  ITimers,
+  LogFunction,
+} from '../../interfaces';
 import { UnexpectedError } from '../../lib';
 import type { HttpResponse, IFetch, RequestParameters } from '../interpreter';
 import type { UseCase } from '../usecase';
@@ -162,17 +168,16 @@ export type EventParams = {
 type EventListeners = {
   [E in keyof EventParams]?: PriorityCallbackTuple[];
 };
-type Filter = { usecase?: string; profile?: string };
-type PriorityCallbackTuple = [number, AnyFunction, Filter?];
+type PriorityCallbackTuple = [number, AnyFunction, EventFilter?];
 function priorityCallbackTuple<T extends keyof EventParams>(
   priority: number,
   callback: EventParams[T],
-  filter?: Filter
+  filter?: EventFilter
 ): PriorityCallbackTuple {
   return [priority, callback, filter];
 }
 
-export class Events {
+export class Events implements IEvents<EventParams> {
   public hookContext: HooksContext = {};
 
   private listeners: EventListeners = {};
@@ -186,7 +191,7 @@ export class Events {
     event: E,
     options: {
       priority: number;
-      filter?: Filter;
+      filter?: EventFilter;
     },
     callback: EventParams[E]
   ): void {

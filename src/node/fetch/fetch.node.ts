@@ -33,7 +33,7 @@ export class NodeFetch implements IFetch, Interceptable, AuthCache {
   public events: Events | undefined;
   public digest: SuperCache<string> = new SuperCache();
 
-  constructor(private readonly timers: ITimers) { }
+  constructor(private readonly timers: ITimers) {}
 
   @eventInterceptor({
     eventName: 'fetch',
@@ -168,7 +168,9 @@ export class NodeFetch implements IFetch, Interceptable, AuthCache {
     return '';
   }
 
-  private body(body?: FetchBody): string | URLSearchParams | FormData | Buffer | undefined {
+  private body(
+    body?: FetchBody
+  ): string | URLSearchParams | FormData | Buffer | undefined {
     if (body) {
       if (isStringBody(body) || isBinaryBody(body)) {
         return body.data;
@@ -192,7 +194,7 @@ export class NodeFetch implements IFetch, Interceptable, AuthCache {
     if (data) {
       Object.entries(data).forEach(([key, value]) => {
         if (Array.isArray(value)) {
-          value.forEach((item) => formData.append(key, item));
+          value.forEach(item => formData.append(key, item));
         } else {
           formData.append(key, value);
         }

@@ -1,4 +1,6 @@
+// import { isChunked } from '../../interfaces';
 import { UnexpectedError } from '../error';
+import { isClassInstance } from '../variables';
 
 /**
  * Creates a deep clone of the value.
@@ -23,6 +25,10 @@ export function clone<T>(value: T): T {
 
   if (Buffer.isBuffer(value)) {
     return Buffer.from(value) as unknown as T;
+  }
+
+  if (isClassInstance(value)) {
+    return value;
   }
 
   if (typeof value === 'object') {

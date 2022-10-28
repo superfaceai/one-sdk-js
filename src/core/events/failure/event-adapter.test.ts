@@ -1837,6 +1837,9 @@ describe('event-adapter', () => {
     )
       .getUseCase('Test')
       .perform(undefined);
+    if (result.isErr()) {
+      console.error(result.error);
+    }
     expect(result.isOk() && result.value).toEqual({
       message: 'hello from second provider',
     });

@@ -5,6 +5,7 @@ import type {
 import { ApiKeyPlacement } from '@superfaceai/ast';
 
 import type { ILogger, LogFunction } from '../../../../../interfaces';
+import { isBinaryData } from '../../../../../interfaces';
 import type { Variables } from '../../../../../lib';
 import { apiKeyInBodyError } from '../../../../errors';
 import type {
@@ -79,7 +80,12 @@ function applyApiKeyAuthInBody(
   apikey: string,
   visitedReferenceTokens: string[] = []
 ): Variables {
-  if (typeof requestBody !== 'object' || Array.isArray(requestBody)) {
+  if (
+    typeof requestBody !== 'object' ||
+    Array.isArray(requestBody) ||
+    Buffer.isBuffer(requestBody) ||
+    isBinaryData(requestBody)
+  ) {
     const valueLocation = visitedReferenceTokens.length
       ? `value at /${visitedReferenceTokens.join('/')}`
       : 'body';

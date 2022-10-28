@@ -3,6 +3,7 @@ export * from './config';
 export * from './crypto';
 export * from './errors';
 export * from './environment';
+export * from './events';
 export * from './filesystem';
 export * from './logger';
 export * from './profile';

@@ -837,6 +837,11 @@
   resolved "https://registry.yarnpkg.com/@types/node/-/node-16.11.47.tgz#efa9e3e0f72e7aa6a138055dace7437a83d9f91c"
   integrity sha512-fpP+jk2zJ4VW66+wAMFoBJlx1bxmBKx4DUFf68UHgdGCOuyUTDlLWqsaNPJh7xhNDykyJ9eIzAygilP/4WoN8g==
 
+"@types/node@^18.11.7":
+  version "18.11.7"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-18.11.7.tgz#8ccef136f240770c1379d50100796a6952f01f94"
+  integrity sha512-LhFTglglr63mNXUSRYD8A+ZAIu5sFqNJ4Y2fPuY7UlrySJH87rRRlhtVmMHplmfk5WkoJGmDjE9oiTfyX94CpQ==
+
 "@types/prettier@^2.1.5":
   version "2.3.2"
   resolved "https://registry.yarnpkg.com/@types/prettier/-/prettier-2.3.2.tgz#fc8c2825e4ed2142473b4a81064e6e081463d1b3"

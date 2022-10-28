@@ -1,4 +1,4 @@
-import type { ICrypto } from '../../core';
+import type { ICrypto } from '../../interfaces';
 
 export function configHash(values: unknown[], crypto: ICrypto): string {
   const data = values

@@ -10,6 +10,9 @@
     "url": "https://github.com/superfaceai/one-sdk-js/issues",
     "email": "support@superface.ai"
   },
+  "engines": {
+    "node": ">=16"
+  },
   "keywords": [
     "api",
     "client",
@@ -49,6 +52,7 @@
     "@superfaceai/parser": "^1.2.0",
     "@types/debug": "^4.1.7",
     "@types/jest": "^27.0.1",
+    "@types/node": "^18.11.7",
     "@typescript-eslint/eslint-plugin": "^4.29.3",
     "@typescript-eslint/parser": "^4.29.3",
     "eslint": "^7.32.0",
