@@ -77,6 +77,7 @@ type FailurePolicyReasonData =
       kind: 'policy';
       reason: string;
     };
+
 export class FailurePolicyReason {
   private prefixMessages: string[] = [];
 

@@ -34,10 +34,13 @@ import type {
   LogFunction,
   MapInterpreterError,
 } from '../../interfaces';
+import { isBuffered, isChunked, isInitializable } from '../../interfaces';
 import type { NonPrimitive, Primitive, Result, Variables } from '../../lib';
 import {
   castToVariables,
   err,
+  isNonPrimitive,
+  isPrimitive,
   mergeVariables,
   ok,
   UnexpectedError,
@@ -173,6 +176,10 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
     ast: MapDocumentNode
   ): Promise<Result<Variables | undefined, MapInterpreterError>> {
     this.ast = ast;
+    if (this.parameters.input !== undefined) {
+      await this.initializeInput(this.parameters.input);
+    }
+
     try {
       const result = await this.visit(ast);
 
@@ -349,7 +356,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
         baseUrl: serviceUrl,
         queryParameters: request?.queryParameters,
         pathParameters: this.variables,
-        body: request?.body,
+        body: await this.resolveVariables(request?.body),
         securityRequirements: request?.security,
         securityConfiguration: this.parameters.security,
         integrationParameters: this.parameters.parameters,
@@ -676,7 +683,10 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
     const result = await this.visit(node.value);
 
     return {
-      result,
+      result:
+        this.stackTop().type === 'map'
+          ? await this.resolveVariables(result)
+          : result,
       error: node.isError,
       terminateFlow: node.terminateFlow,
     };
@@ -834,7 +844,15 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
     const iterationParams = await this.visit(node.iteration);
     for (const variable of iterationParams.iterable) {
       // overwrite the iteration variable instead of merging
-      this.stackTop().variables[iterationParams.iterationVariable] = variable;
+      let variableValue: Variables;
+      if (isChunked(variable)) {
+        variableValue = await variable.getChunk();
+      } else {
+        variableValue = variable;
+      }
+
+      this.stackTop().variables[iterationParams.iterationVariable] =
+        variableValue;
 
       if (node.condition) {
         const condition = await this.visit(node.condition);
@@ -850,5 +868,36 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
         break;
       }
     }
+  }
+
+  private async initializeInput(input: NonPrimitive): Promise<void> {
+    for (const value of Object.values(input)) {
+      if (isInitializable(value)) {
+        await value.initialize();
+      } else if (value !== undefined && isNonPrimitive(value)) {
+        await this.initializeInput(value);
+      }
+    }
+  }
+
+  private async resolveVariables(
+    input: Variables | undefined
+  ): Promise<Variables | undefined> {
+    if (isBuffered(input)) {
+      const result = await input.getAllData();
+
+      return result;
+    }
+
+    if (input === undefined || isPrimitive(input)) {
+      return input;
+    }
+
+    const result: Variables = {};
+    for (const [key, value] of Object.entries(input)) {
+      result[key] = await this.resolveVariables(value);
+    }
+
+    return result;
   }
 }

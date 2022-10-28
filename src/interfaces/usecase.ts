@@ -24,3 +24,44 @@ export interface IUseCase {
     options?: PerformOptions
   ): Promise<Result<TOutput, PerformError | UnexpectedError>>;
 }
+
+export interface IChunked {
+  getChunk(): Promise<string>;
+}
+
+export interface IBinaryData {
+  chunkBy(offset: number): Iterable<IChunked>;
+  peek(size: number): string;
+}
+
+export interface IInitializable {
+  initialize(): Promise<void>;
+}
+
+export interface IEncodable {
+  encode(encoding: string): this;
+}
+
+export interface IBuffered {
+  getAllData(): Promise<Buffer | string>;
+}
+
+export function isChunked(input: unknown): input is IChunked {
+  return typeof input === 'object' && input !== null && 'getChunk' in input;
+}
+
+export function isBinaryData(input: unknown): input is IBinaryData {
+  return typeof input === 'object' && input !== null && 'chunkBy' in input;
+}
+
+export function isInitializable(input: unknown): input is IInitializable {
+  return typeof input === 'object' && input !== null && 'initialize' in input;
+}
+
+export function isEncodable(input: unknown): input is IEncodable {
+  return typeof input === 'object' && input !== null && 'encode' in input;
+}
+
+export function isBuffered(input: unknown): input is IBuffered {
+  return typeof input === 'object' && input !== null && 'getAllData' in input;
+}
