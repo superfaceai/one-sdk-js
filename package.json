@@ -11,7 +11,7 @@
     "email": "support@superface.ai"
   },
   "engines": {
-    "node": ">=16"
+    "node": ">=14"
   },
   "keywords": [
     "api",
