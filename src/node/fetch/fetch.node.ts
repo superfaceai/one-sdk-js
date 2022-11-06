@@ -1,12 +1,11 @@
-import { AbortController } from 'abort-controller';
-import fetch, { Headers } from 'cross-fetch';
-import FormData from 'form-data';
+import type { RequestInit, Response } from 'undici';
+import { errors, fetch, FormData, Headers } from 'undici';
 
 import type {
   AuthCache,
-  CrossFetchError,
   Events,
   FetchBody,
+  FetchError,
   FetchResponse,
   IFetch,
   Interceptable,
@@ -117,19 +116,48 @@ export class NodeFetch implements IFetch, Interceptable, AuthCache {
     }
   }
 
-  private static normalizeError(err: unknown): CrossFetchError {
+  private static normalizeError(err: unknown): FetchError {
     if (typeof err !== 'object' || err === null) {
       throw err;
     }
 
-    if (!('type' in err)) {
+    if (!('name' in err) && !('type' in err) && !('cause' in err)) {
       throw err;
     }
 
-    const error: { type: string } = err as { type: string };
-    if (error.type === 'aborted') {
-      return new NetworkFetchError('timeout');
+    if ('name' in err) {
+      const error: { name: string } = err as { name: string };
+      if (error.name === 'AbortError') {
+        return new NetworkFetchError('timeout');
+      }
+
+      if (!('cause' in err)) {
+        throw err;
+      }
+
+      const undiciError: { cause: unknown } = err as {
+        cause: unknown;
+      };
+      if (undiciError.cause instanceof errors.SocketError) {
+        return new NetworkFetchError('reject');
+      }
+
+      if (
+        typeof undiciError.cause !== 'object' ||
+        undiciError.cause === null ||
+        !('code' in undiciError.cause)
+      ) {
+        throw err;
+      }
+
+      const cause = undiciError.cause as { code: string };
+
+      if (cause.code === 'ENOTFOUND' || cause.code === 'EAI_AGAIN') {
+        return new NetworkFetchError('dns');
+      }
     }
+
+    const error: { type: string } = err as { type: string };
 
     if (error.type === 'system') {
       const systemError: { type: 'system'; code: string; errno: string } =

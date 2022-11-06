@@ -1,21 +1,23 @@
-import fetch from 'cross-fetch';
-import FormData from 'form-data';
 import { getLocal } from 'mockttp';
-import { mocked } from 'ts-jest/utils';
+import type Undici from 'undici';
+import { fetch, FormData } from 'undici';
 
 import { NetworkFetchError, RequestFetchError } from '../../core';
 import { MockTimers } from '../../mock';
 import { NodeTimers } from '../timers';
 import { NodeFetch } from './fetch.node';
 
-jest.mock('cross-fetch');
+jest.mock('undici', () => ({
+  ...jest.requireActual<typeof Undici>('undici'),
+  fetch: jest.fn(),
+}));
 
 const mockServer = getLocal();
 const timers = new MockTimers();
 
 type ForEachCallbackFunction = (value?: string, type?: string) => void;
 
-describe('fetch', () => {
+describe('Node fetch implementation', () => {
   beforeEach(async () => {
     await mockServer.start();
   });
@@ -28,32 +30,38 @@ describe('fetch', () => {
 
   describe('timeout', () => {
     it('timeouts on network timeout', async () => {
-      // we want to use actuall fetch implementation
-      mocked(fetch).mockImplementation(jest.requireActual('cross-fetch').fetch);
+      // we want to use actual fetch implementation
+      jest.mocked(fetch).mockImplementation(jest.requireActual('undici').fetch);
 
       await mockServer.forGet('/test').thenTimeout();
       const realTimers = new NodeTimers();
       const nodeFetch = new NodeFetch(realTimers);
 
       await expect(
-        nodeFetch.fetch(`${mockServer.url}/test`, { method: 'GET', timeout: 2000 })
+        nodeFetch.fetch(`${mockServer.url}/test`, {
+          method: 'GET',
+          timeout: 2000,
+        })
       ).rejects.toEqual(new NetworkFetchError('timeout'));
     });
 
     it('rejects on rejected connection', async () => {
-      // we want to use actuall fetch implementation
-      mocked(fetch).mockImplementation(jest.requireActual('cross-fetch').fetch);
+      // we want to use actual fetch implementation
+      jest.mocked(fetch).mockImplementation(jest.requireActual('undici').fetch);
 
       await mockServer.forGet('/test').thenCloseConnection();
       const nodeFetch = new NodeFetch(timers);
 
       await expect(
-        nodeFetch.fetch(`${mockServer.url}/test`, { method: 'GET', timeout: 2000 })
+        nodeFetch.fetch(`${mockServer.url}/test`, {
+          method: 'GET',
+          timeout: 2000,
+        })
       ).rejects.toEqual(new NetworkFetchError('reject'));
     });
 
     it('rethrows error if it is string', async () => {
-      mocked(fetch).mockRejectedValue('something-bad');
+      jest.mocked(fetch).mockRejectedValue('something-bad');
 
       const fetchInstance = new NodeFetch(timers);
 
@@ -67,7 +75,7 @@ describe('fetch', () => {
 
     it('rethrows error if it does not contain type property', async () => {
       // We are mocking node-fetch
-      mocked(fetch).mockRejectedValue({ some: 'something-bad' });
+      jest.mocked(fetch).mockRejectedValue({ some: 'something-bad' });
 
       const fetchInstance = new NodeFetch(timers);
 
@@ -81,7 +89,7 @@ describe('fetch', () => {
 
     it('throws request abort if error does not get recognized', async () => {
       // We are mocking node-fetch
-      mocked(fetch).mockRejectedValue({ type: 'something-bad' });
+      jest.mocked(fetch).mockRejectedValue({ type: 'something-bad' });
 
       const fetchInstance = new NodeFetch(timers);
 
@@ -95,7 +103,7 @@ describe('fetch', () => {
 
     it('throws on dns ENOTFOUND', async () => {
       // We are mocking node-fetch
-      mocked(fetch).mockRejectedValue({
+      jest.mocked(fetch).mockRejectedValue({
         type: 'system',
         code: 'ENOTFOUND',
         errno: '',
@@ -113,7 +121,7 @@ describe('fetch', () => {
 
     it('throws on dns EAI_AGAIN', async () => {
       // We are mocking node-fetch
-      mocked(fetch).mockRejectedValue({
+      jest.mocked(fetch).mockRejectedValue({
         type: 'system',
         code: 'EAI_AGAIN',
         errno: '',
@@ -139,7 +147,7 @@ describe('fetch', () => {
         foo: 'bar',
       });
 
-      mocked(fetch).mockResolvedValue({
+      jest.mocked(fetch).mockResolvedValue({
         headers: {
           forEach: jest.fn((callbackfn: ForEachCallbackFunction) => {
             callbackfn('application/json', 'content-type');
@@ -147,7 +155,6 @@ describe('fetch', () => {
         },
         json: responseJsonMock,
       } as any);
-
 
       const fetchInstance = new NodeFetch(timers);
 
@@ -157,7 +164,7 @@ describe('fetch', () => {
     });
 
     it('should call json', async () => {
-      expect(responseJsonMock).toBeCalled();
+      expect(responseJsonMock).toHaveBeenCalled();
     });
 
     it('should return json object in body', async () => {
@@ -175,7 +182,7 @@ describe('fetch', () => {
     beforeEach(async () => {
       responseTextMock = jest.fn().mockResolvedValue('foobar');
 
-      mocked(fetch).mockResolvedValue({
+      jest.mocked(fetch).mockResolvedValue({
         headers: {
           forEach: jest.fn((callbackfn: ForEachCallbackFunction) => {
             callbackfn('text/plain', 'content-type');
@@ -183,7 +190,6 @@ describe('fetch', () => {
         },
         text: responseTextMock,
       } as any);
-
 
       const fetchInstance = new NodeFetch(timers);
 
@@ -193,7 +199,7 @@ describe('fetch', () => {
     });
 
     it('should call text', async () => {
-      expect(responseTextMock).toBeCalled();
+      expect(responseTextMock).toHaveBeenCalled();
     });
 
     it('should return plain text in body', async () => {
@@ -221,7 +227,7 @@ describe('fetch', () => {
             .fn()
             .mockResolvedValue(Buffer.from('foobar'));
 
-          mocked(fetch).mockResolvedValue({
+          jest.mocked(fetch).mockResolvedValue({
             headers: {
               forEach: jest.fn((callbackfn: ForEachCallbackFunction) => {
                 callbackfn(contentType, 'content-type');
@@ -238,7 +244,7 @@ describe('fetch', () => {
         });
 
         it('should call arrayBuffer', async () => {
-          expect(responseArrayBufferMock).toBeCalled();
+          expect(responseArrayBufferMock).toHaveBeenCalled();
         });
 
         it('should return instance of Buffer in body', async () => {
@@ -256,7 +262,7 @@ describe('fetch', () => {
         .fn()
         .mockResolvedValue(Buffer.from('foobar'));
 
-      mocked(fetch).mockResolvedValue({
+      jest.mocked(fetch).mockResolvedValue({
         headers: {
           forEach: jest.fn((callbackfn: ForEachCallbackFunction) => {
             callbackfn(undefined, undefined);
@@ -281,7 +287,7 @@ describe('fetch', () => {
       });
 
       it('should call arrayBuffer', async () => {
-        expect(responseArrayBufferMock).toBeCalled();
+        expect(responseArrayBufferMock).toHaveBeenCalled();
       });
 
       it('should return instance of Buffer in body', async () => {
@@ -304,7 +310,7 @@ describe('fetch', () => {
       });
 
       it('should call arrayBuffer', async () => {
-        expect(responseArrayBufferMock).toBeCalled();
+        expect(responseArrayBufferMock).toHaveBeenCalled();
       });
 
       it('should return instance of Buffer in body', async () => {
@@ -314,8 +320,8 @@ describe('fetch', () => {
   });
 
   describe('when request body contains binary data', () => {
-    it('should call cross-fetch with Buffer in body', async () => {
-      mocked(fetch).mockResolvedValue({
+    it('should call fetch with Buffer in body', async () => {
+      jest.mocked(fetch).mockResolvedValue({
         headers: {
           forEach: jest.fn((callbackfn: ForEachCallbackFunction) => {
             callbackfn(undefined, undefined);
@@ -341,7 +347,7 @@ describe('fetch', () => {
     beforeEach(() => {
       fetchInstance = new NodeFetch(timers);
 
-      mocked(fetch).mockResolvedValue({
+      jest.mocked(fetch).mockResolvedValue({
         headers: {
           forEach: jest.fn((callbackfn: ForEachCallbackFunction) => {
             callbackfn(undefined, undefined);
@@ -355,10 +361,15 @@ describe('fetch', () => {
       it('passes FormData instance as body', async () => {
         await fetchInstance.fetch(`${mockServer.url}/test`, {
           method: 'POST',
-          body: { _type: 'formdata', data: { bufferField: Buffer.from('data') } },
+          body: {
+            _type: 'formdata',
+            data: { bufferField: Buffer.from('data') },
+          },
         });
 
-        expect(mocked(fetch).mock.calls[0][1]?.body).toBeInstanceOf(FormData);
+        expect(jest.mocked(fetch).mock.calls[0][1]?.body).toBeInstanceOf(
+          FormData
+        );
       });
     });
 
@@ -369,12 +380,11 @@ describe('fetch', () => {
           body: { _type: 'formdata', data: { arrayField: [1, 2] } },
         });
 
-        // form-data library doesn't have getAll, so need to get buffer,
-        // create string and regex for number of entries
         expect(
-          (mocked(fetch).mock.calls[0][1]?.body as unknown as FormData)
-            .getBuffer().toString().match(/arrayField/g)?.length,
-        ).toBe(2)
+          (jest.mocked(fetch).mock.calls[0][1]?.body as FormData).getAll(
+            'arrayField'
+          ).length
+        ).toBe(2);
       });
     });
   });

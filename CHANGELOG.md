@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - `multipart/form-data` supports array values to define duplicate fields
 
+### Changed
+- replaced `cross-fetch` with `undici`
+
 ## [2.0.0] - 2022-08-15
 ### Added
 - Pass `cache` flag to SuperfaceClient constructor

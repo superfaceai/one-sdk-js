@@ -215,7 +215,7 @@ describe('ApiKeyHandler', () => {
       parameters.contentType = JSON_CONTENT;
       await expect(async () =>
         apiKeyHandler.authenticate(parameters)
-      ).rejects.toThrowError(
+      ).rejects.toThrow(
         new SDKExecutionError(
           'ApiKey in body can be used only on object.',
           ['Actual body is Array'],
@@ -230,7 +230,7 @@ describe('ApiKeyHandler', () => {
       configuration.name = '/a/b/c';
       await expect(async () =>
         apiKeyHandler.authenticate(parameters)
-      ).rejects.toThrowError(
+      ).rejects.toThrow(
         new SDKExecutionError(
           'ApiKey in body can be used only on object.',
           ['Actual value at /a/b is Array'],
@@ -245,7 +245,7 @@ describe('ApiKeyHandler', () => {
       configuration.name = '/a/b/c';
       await expect(async () =>
         apiKeyHandler.authenticate(parameters)
-      ).rejects.toThrowError(
+      ).rejects.toThrow(
         new SDKExecutionError(
           'ApiKey in body can be used only on object.',
           ['Actual value at /a/b/c is string'],

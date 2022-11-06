@@ -228,7 +228,7 @@ describe('UseCase', () => {
           )
         ).resolves.toBeUndefined();
 
-        expect(rebindSpy).toBeCalledWith(
+        expect(rebindSpy).toHaveBeenCalledWith(
           profileConfiguration.cacheKey + providerConfiguration.cacheKey,
           providerConfiguration,
           new ProfileProviderConfiguration('rev', 'var')
@@ -376,7 +376,7 @@ describe('UseCase', () => {
           )
         ).resolves.toBeUndefined();
 
-        expect(rebindSpy).toBeCalledWith(
+        expect(rebindSpy).toHaveBeenCalledWith(
           profileConfiguration.cacheKey + providerConfiguration.cacheKey,
           providerConfiguration,
           new ProfileProviderConfiguration('rev', 'var')
