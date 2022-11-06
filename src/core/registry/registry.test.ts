@@ -127,7 +127,7 @@ describe('registry', () => {
 
     it('throws error on null record', () => {
       const record = null;
-      expect(() => assertIsRegistryProviderInfo(record)).toThrowError(
+      expect(() => assertIsRegistryProviderInfo(record)).toThrow(
         'Invalid response from registry'
       );
     });
@@ -140,7 +140,7 @@ describe('registry', () => {
         mappingUrl: 'test/mapping/url',
         semanticProfile: 'test/profile',
       };
-      expect(() => assertIsRegistryProviderInfo(record)).toThrowError(
+      expect(() => assertIsRegistryProviderInfo(record)).toThrow(
         'Invalid response from registry'
       );
     });

@@ -511,7 +511,7 @@ describe('superjson mutate', () => {
           filesystem,
           environment
         )
-      ).toThrowError(new Error('Invalid string payload format'));
+      ).toThrow(new Error('Invalid string payload format'));
     });
 
     it('merges profile to super.json', () => {
@@ -2063,7 +2063,7 @@ describe('superjson mutate', () => {
           mockProviderEntry,
           filesystem
         )
-      ).toThrowError(new Error('Invalid string payload format'));
+      ).toThrow(new Error('Invalid string payload format'));
     });
   });
 
@@ -2342,7 +2342,7 @@ describe('superjson mutate', () => {
           mockPriorityArray,
           environment
         ).unwrap()
-      ).toThrowError(new RegExp(`Profile "${mockProfileName}" not found`));
+      ).toThrow(new RegExp(`Profile "${mockProfileName}" not found`));
     });
 
     it('sets priority to super.json - profile with shorthand notations', () => {
@@ -2361,9 +2361,7 @@ describe('superjson mutate', () => {
           mockPriorityArray,
           environment
         ).unwrap()
-      ).toThrowError(
-        new RegExp(`Unable to set priority for "${mockProfileName}"`)
-      );
+      ).toThrow(new RegExp(`Unable to set priority for "${mockProfileName}"`));
     });
 
     it('sets priority to super.json - profile without profile providers', () => {
@@ -2385,9 +2383,7 @@ describe('superjson mutate', () => {
           mockPriorityArray,
           environment
         ).unwrap()
-      ).toThrowError(
-        new RegExp(`Unable to set priority for "${mockProfileName}"`)
-      );
+      ).toThrow(new RegExp(`Unable to set priority for "${mockProfileName}"`));
     });
 
     it('sets priority to super.json - some of providers are missing in profile providers', () => {
@@ -2413,9 +2409,7 @@ describe('superjson mutate', () => {
           mockPriorityArray,
           environment
         ).unwrap()
-      ).toThrowError(
-        new RegExp(`Unable to set priority for "${mockProfileName}"`)
-      );
+      ).toThrow(new RegExp(`Unable to set priority for "${mockProfileName}"`));
     });
 
     it('sets priority to super.json - missing providers', () => {
@@ -2442,9 +2436,7 @@ describe('superjson mutate', () => {
           mockPriorityArray,
           environment
         ).unwrap()
-      ).toThrowError(
-        new RegExp(`Unable to set priority for "${mockProfileName}"`)
-      );
+      ).toThrow(new RegExp(`Unable to set priority for "${mockProfileName}"`));
     });
 
     it('sets priority to super.json - some of providers in priority array are missing in providers property', () => {

@@ -1,5 +1,4 @@
 import type { SecurityValues } from '@superfaceai/ast';
-import { mocked } from 'ts-jest/utils';
 
 import {
   MetricReporter,
@@ -107,7 +106,7 @@ describe('superface client', () => {
             patch: 0,
           },
         });
-        mocked(resolveProfileAst).mockResolvedValue(ast);
+        jest.mocked(resolveProfileAst).mockResolvedValue(ast);
         const client = new MockClient();
 
         const profile = await client.getProfile('testy/mctestface@1.0.0');
@@ -129,7 +128,7 @@ describe('superface client', () => {
             patch: 0,
           },
         });
-        mocked(resolveProfileAst).mockResolvedValue(ast);
+        jest.mocked(resolveProfileAst).mockResolvedValue(ast);
         const client = new MockClient(mockSuperJson);
 
         const profile = await client.getProfile('testy/mctestface');
