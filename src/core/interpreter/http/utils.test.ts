@@ -1,4 +1,4 @@
-import { deleteHeader, getHeader, hasHeader, setHeader } from './utils';
+import { createUrl, deleteHeader, getHeader, hasHeader, setHeader } from './utils';
 
 describe('interpreter · http · utils', () => {
   describe('getHeader', () => {
@@ -42,4 +42,27 @@ describe('interpreter · http · utils', () => {
       expect(headers).toEqual({});
     });
   })
+
+  describe('createUrl', () => {
+    it('correctly creates url for empty string', () => {
+      const mapUrl = '';
+      expect(
+        createUrl(mapUrl, { baseUrl: 'http://example.com' })
+      ).toBe('http://example.com')
+    });
+
+    it('correctly creates url for single slash', () => {
+      const mapUrl = '/';
+      expect(
+        createUrl(mapUrl, { baseUrl: 'http://example.com' })
+      ).toBe('http://example.com/')
+    });
+
+    it('returns an error for absolute url', () => {
+      const mapUrl = 'something';
+      expect(
+        () => createUrl(mapUrl, { baseUrl: 'http://example.com' })
+      ).toThrow('Expected relative url')
+    });
+  });
 });
