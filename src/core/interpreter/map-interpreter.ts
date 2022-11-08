@@ -642,7 +642,7 @@ class CallVisitor extends NodeVisitor<
       const result = yield {
         kind: 'explore',
         what: { operation: this.node.operationName },
-        stack: { args, parameters: this.stack.parameters },
+        stack: { args },
         childIdentifier: `${childIdentifier}.operation`,
       };
 
@@ -1285,10 +1285,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined> {
     const nodeStack: NodeVisitor<MapASTNode, unknown>[] = [
       this.createVisitor(
         entry,
-        {
-          input: this.parameters.input ?? {},
-          parameters: this.parameters.parameters ?? {},
-        },
+        {},
         'root'
       ),
     ];

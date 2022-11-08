@@ -2008,4 +2008,49 @@ describe('MapInterpreter', () => {
     const result = await interpreter.perform(ast);
     expect(result.isOk() && result.value).toStrictEqual({ x: undefined });
   });
+
+  it('should not allow input to be mutated', async () => {
+    const ast = parseMapFromSource(`    
+    map Test {
+      input.a = input.a + 7
+
+      map result input.a
+    }`);
+
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+        services: ServiceSelector.withDefaultUrl(''),
+        input: { a: 1 },
+      },
+      interpreterDependencies
+    );
+
+    const result = await interpreter.perform(ast);
+    expect(result.isOk() && result.value).toStrictEqual(1);
+  });
+
+  it('should not allow integration parameters to be mutated', async () => {
+    const ast = parseMapFromSource(`    
+    map Test {
+      parameters.a = parameters.a + "7"
+
+      map result parameters.a
+    }`);
+
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+        services: ServiceSelector.withDefaultUrl(''),
+        input: {},
+        parameters: { a: '1' }
+      },
+      interpreterDependencies
+    );
+
+    const result = await interpreter.perform(ast);
+    expect(result.isOk() && result.value).toStrictEqual('1');
+  });
 });
