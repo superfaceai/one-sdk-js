@@ -1,16 +1,13 @@
+import FormData from 'form-data';
 import { getLocal } from 'mockttp';
-import type Undici from 'undici';
-import { fetch, FormData } from 'undici';
+import fetch from 'node-fetch';
 
 import { NetworkFetchError, RequestFetchError } from '../../core';
 import { MockTimers } from '../../mock';
 import { NodeTimers } from '../timers';
 import { NodeFetch } from './fetch.node';
 
-jest.mock('undici', () => ({
-  ...jest.requireActual<typeof Undici>('undici'),
-  fetch: jest.fn(),
-}));
+jest.mock('node-fetch');
 
 const mockServer = getLocal();
 const timers = new MockTimers();
@@ -31,7 +28,9 @@ describe('Node fetch implementation', () => {
   describe('timeout', () => {
     it('timeouts on network timeout', async () => {
       // we want to use actual fetch implementation
-      jest.mocked(fetch).mockImplementation(jest.requireActual('undici').fetch);
+      jest
+        .mocked(fetch)
+        .mockImplementation(jest.requireActual('node-fetch').default);
 
       await mockServer.forGet('/test').thenTimeout();
       const realTimers = new NodeTimers();
@@ -47,7 +46,9 @@ describe('Node fetch implementation', () => {
 
     it('rejects on rejected connection', async () => {
       // we want to use actual fetch implementation
-      jest.mocked(fetch).mockImplementation(jest.requireActual('undici').fetch);
+      jest
+        .mocked(fetch)
+        .mockImplementation(jest.requireActual('node-fetch').default);
 
       await mockServer.forGet('/test').thenCloseConnection();
       const nodeFetch = new NodeFetch(timers);
@@ -87,8 +88,7 @@ describe('Node fetch implementation', () => {
       ).rejects.toEqual({ some: 'something-bad' });
     });
 
-    it('throws request abort if error does not get recognized', async () => {
-      // We are mocking node-fetch
+    it('throws fetch abort if error does not get recognized', async () => {
       jest.mocked(fetch).mockRejectedValue({ type: 'something-bad' });
 
       const fetchInstance = new NodeFetch(timers);
@@ -102,7 +102,6 @@ describe('Node fetch implementation', () => {
     });
 
     it('throws on dns ENOTFOUND', async () => {
-      // We are mocking node-fetch
       jest.mocked(fetch).mockRejectedValue({
         type: 'system',
         code: 'ENOTFOUND',
@@ -120,7 +119,6 @@ describe('Node fetch implementation', () => {
     });
 
     it('throws on dns EAI_AGAIN', async () => {
-      // We are mocking node-fetch
       jest.mocked(fetch).mockRejectedValue({
         type: 'system',
         code: 'EAI_AGAIN',
@@ -337,7 +335,7 @@ describe('Node fetch implementation', () => {
         body: { _type: 'binary', data: Buffer.from('data') },
       });
 
-      expect((fetch as jest.Mock).mock.calls[0][1].body).toBeInstanceOf(Buffer);
+      expect(jest.mocked(fetch).mock.calls[0][1]!.body).toBeInstanceOf(Buffer);
     });
   });
 
@@ -380,10 +378,13 @@ describe('Node fetch implementation', () => {
           body: { _type: 'formdata', data: { arrayField: [1, 2] } },
         });
 
+        // form-data library doesn't have getAll, so need to get buffer,
+        // create string and regex for number of entries
         expect(
-          (jest.mocked(fetch).mock.calls[0][1]?.body as FormData).getAll(
-            'arrayField'
-          ).length
+          (jest.mocked(fetch).mock.calls[0][1]?.body as unknown as FormData)
+            .getBuffer()
+            .toString()
+            .match(/arrayField/g)?.length
         ).toBe(2);
       });
     });
