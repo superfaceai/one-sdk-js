@@ -1650,4 +1650,38 @@ describe('MapInterpreter', () => {
     const response = result.unwrap();
     expect(response).toStrictEqual({ ok: true });
   });
+
+  it('should correctly send request to / relative url', async () => {
+    const url = '/';
+    await mockServer.forGet(url).thenJson(200, { data: 12 });
+
+    const ast = parseMapFromSource(`    
+    map Test {
+      http GET "/" {
+        response 200 {
+          return map result body.data
+        }
+      }
+
+      map error "wrong"
+    }
+    `);
+
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+        services: ServiceSelector.withDefaultUrl(
+          mockServicesSelector.getUrl()!
+        ),
+        input: {},
+      },
+      { fetchInstance, config, crypto }
+    );
+
+    const result = await interpreter.perform(ast);
+    expect(result.isOk()).toBe(true);
+
+    expect(result.unwrap()).toStrictEqual(12);
+  });
 });

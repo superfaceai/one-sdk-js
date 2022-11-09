@@ -31,7 +31,7 @@ import type {
   RequestParameters,
 } from './security';
 import type { HttpResponse } from './types';
-import { createUrl, fetchRequest, hasAcceptHeader } from './utils';
+import { createUrl, fetchRequest, setHeader } from './utils';
 
 /**
  * Represents input of pipe filter which works with http response
@@ -268,22 +268,20 @@ export const headersFilter: Filter = ({
 }: FilterInputOutput) => {
   const headers: Record<string, string> = parameters.headers ?? {};
 
-  if (!hasAcceptHeader(headers)) {
-    headers['accept'] = parameters.accept ?? '*/*';
-  }
+  setHeader(headers, 'user-agent', USER_AGENT);
+  setHeader(headers, 'accept', parameters.accept ?? '*/*');
 
-  headers['user-agent'] ??= USER_AGENT;
   if (parameters.contentType === JSON_CONTENT) {
-    headers['content-type'] ??= JSON_CONTENT;
+    setHeader(headers, 'content-type', JSON_CONTENT);
   } else if (parameters.contentType === URLENCODED_CONTENT) {
-    headers['content-type'] ??= URLENCODED_CONTENT;
+    setHeader(headers, 'content-type', URLENCODED_CONTENT);
   } else if (parameters.contentType === FORMDATA_CONTENT) {
     // NOTE: Do not set content-type explicitly, it will be read from FormData along with boundary
   } else if (
     parameters.contentType !== undefined &&
     BINARY_CONTENT_REGEXP.test(parameters.contentType)
   ) {
-    headers['Content-Type'] ??= parameters.contentType;
+    setHeader(headers, 'content-type', parameters.contentType);
   } else {
     if (parameters.body !== undefined) {
       const supportedTypes = [
