@@ -34,6 +34,7 @@ import type {
   LogFunction,
   MapInterpreterError,
 } from '../../interfaces';
+import { isDestructible } from '../../interfaces';
 import { isBuffered, isChunked, isInitializable } from '../../interfaces';
 import type { NonPrimitive, Primitive, Result, Variables } from '../../lib';
 import {
@@ -185,6 +186,10 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
 
       if (result.error) {
         return err(result.error);
+      }
+
+      if (this.parameters.input !== undefined) {
+        await this.destroyInput(this.parameters.input);
       }
 
       return ok(result.result);
@@ -876,6 +881,16 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
         await value.initialize();
       } else if (value !== undefined && isNonPrimitive(value)) {
         await this.initializeInput(value);
+      }
+    }
+  }
+
+  private async destroyInput(input: NonPrimitive): Promise<void> {
+    for (const value of Object.values(input)) {
+      if (isDestructible(value)) {
+        await value.destroy();
+      } else if (value !== undefined && isNonPrimitive(value)) {
+        await this.destroyInput(value);
       }
     }
   }

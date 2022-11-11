@@ -38,12 +38,24 @@ export interface IInitializable {
   initialize(): Promise<void>;
 }
 
+export interface IDestructible {
+  destroy(): Promise<void>;
+}
+
 export interface IEncodable {
   encode(encoding: string): this;
 }
 
 export interface IBuffered {
   getAllData(): Promise<Buffer | string>;
+}
+
+export interface IStreamed {
+  stream(): unknown;
+}
+
+export interface IStreamable {
+  toStream(): IStreamed;
 }
 
 export function isChunked(input: unknown): input is IChunked {
@@ -64,4 +76,16 @@ export function isEncodable(input: unknown): input is IEncodable {
 
 export function isBuffered(input: unknown): input is IBuffered {
   return typeof input === 'object' && input !== null && 'getAllData' in input;
+}
+
+export function isStreamable(input: unknown): input is IStreamable {
+  return typeof input === 'object' && input !== null && 'toStream' in input;
+}
+
+export function isStreamed(input: unknown): input is IStreamed {
+  return typeof input === 'object' && input !== null && 'stream' in input;
+}
+
+export function isDestructible(input: unknown): input is IDestructible {
+  return typeof input === 'object' && input !== null && 'destroy' in input;
 }
