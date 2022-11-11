@@ -34,8 +34,12 @@ import type {
   LogFunction,
   MapInterpreterError,
 } from '../../interfaces';
-import { isDestructible } from '../../interfaces';
-import { isBuffered, isChunked, isInitializable } from '../../interfaces';
+import {
+  isBuffered,
+  isChunked,
+  isDestructible,
+  isInitializable,
+} from '../../interfaces';
 import type { NonPrimitive, Primitive, Result, Variables } from '../../lib';
 import {
   castToVariables,
