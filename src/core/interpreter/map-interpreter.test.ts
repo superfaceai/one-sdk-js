@@ -1651,6 +1651,100 @@ describe('MapInterpreter', () => {
     expect(response).toStrictEqual({ ok: true });
   });
 
+  it('should send file as a stream in body', async () => {
+    const filePath = path.resolve(process.cwd(), 'fixtures', 'binary.txt');
+    const file = new BinaryFile(filePath);
+    const expected = readFileSync(filePath, 'utf8');
+    await mockServer.forPost('/test').thenCallback(async req => {
+      const body = await req.body.getText();
+      expect(body).toStrictEqual(expected);
+
+      return { status: 200, json: { ok: true } };
+    });
+
+    const ast = parseMapFromSource(`
+    map Test {
+      http POST "/test" {
+          request "video/notreallyvideo" {
+            body = input.items.toStream()
+          }
+
+          response 200 {
+            map result body
+          }
+        }
+      }`);
+
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+        services: ServiceSelector.withDefaultUrl(mockServer.url),
+        input: {
+          items: file,
+        },
+      },
+      { fetchInstance, config, crypto }
+    );
+
+    const result = await interpreter.perform(ast);
+    if (result.isErr()) {
+      console.error(result.error);
+    }
+    expect(result.isOk()).toBe(true);
+
+    const response = result.unwrap();
+    expect(response).toStrictEqual({ ok: true });
+  });
+
+  it('should send file as a stream in FormData', async () => {
+    const filePath = path.resolve(process.cwd(), 'fixtures', 'binary.txt');
+    const file = new BinaryFile(filePath);
+    const expected = readFileSync(filePath, 'utf8');
+    await mockServer.forPost('/test').thenCallback(async req => {
+      const data = await req.body.getText();
+      expect(data).toMatch(expected);
+
+      return { status: 200, json: { ok: true } };
+    });
+
+    const ast = parseMapFromSource(`
+    map Test {
+      http POST "/test" {
+        request "multipart/form-data" {
+          body = {
+            data: input.items.toStream()
+          }
+        }
+
+        response 200 {
+          map result body
+        }
+      }
+    }`);
+
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+        services: ServiceSelector.withDefaultUrl(mockServer.url),
+        input: {
+          items: file,
+        },
+      },
+      { fetchInstance, config, crypto }
+    );
+
+    const result = await interpreter.perform(ast);
+    if (result.isErr()) {
+      console.error(result.error);
+    }
+    expect(result.isOk()).toBe(true);
+
+    const response = result.unwrap();
+    expect(response).toStrictEqual({ ok: true });
+  });
+
   it('should correctly send request to / relative url', async () => {
     const url = '/';
     await mockServer.forGet(url).thenJson(200, { data: 12 });

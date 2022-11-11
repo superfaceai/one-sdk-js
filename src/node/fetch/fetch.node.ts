@@ -1,5 +1,6 @@
 import { AbortController } from 'abort-controller';
 import FormData from 'form-data';
+import type { ReadStream } from 'fs';
 import type { HeadersInit, RequestInit, Response } from 'node-fetch';
 import fetch, { Headers } from 'node-fetch';
 
@@ -19,6 +20,7 @@ import {
   FetchParameters,
   isBinaryBody,
   isFormDataBody,
+  isStreamed,
   isStringBody,
   isUrlSearchParamsBody,
   JSON_CONTENT,
@@ -171,9 +173,13 @@ export class NodeFetch implements IFetch, Interceptable, AuthCache {
 
   private body(
     body?: FetchBody
-  ): string | URLSearchParams | FormData | Buffer | undefined {
+  ): string | URLSearchParams | FormData | Buffer | ReadStream | undefined {
     if (body) {
       if (isStringBody(body) || isBinaryBody(body)) {
+        if (isStreamed(body.data)) {
+          return body.data.stream() as ReadStream;
+        }
+
         return body.data;
       }
 
@@ -196,6 +202,8 @@ export class NodeFetch implements IFetch, Interceptable, AuthCache {
       Object.entries(data).forEach(([key, value]) => {
         if (Array.isArray(value)) {
           value.forEach(item => formData.append(key, item));
+        } else if (isStreamed(value)) {
+          formData.append(key, value.stream());
         } else {
           formData.append(key, value);
         }

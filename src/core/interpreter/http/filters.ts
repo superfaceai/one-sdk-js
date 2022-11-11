@@ -1,4 +1,5 @@
-import type { ILogger } from '../../../interfaces';
+import type { ILogger, IStreamed } from '../../../interfaces';
+import { isStreamed } from '../../../interfaces';
 import type { MaybePromise } from '../../../lib';
 import {
   castToNonPrimitive,
@@ -191,8 +192,8 @@ export const bodyFilter: Filter = ({
       parameters.contentType !== undefined &&
       BINARY_CONTENT_REGEXP.test(parameters.contentType)
     ) {
-      let buffer: Buffer;
-      if (Buffer.isBuffer(parameters.body)) {
+      let buffer: Buffer | IStreamed;
+      if (Buffer.isBuffer(parameters.body) || isStreamed(parameters.body)) {
         buffer = parameters.body;
       } else {
         // convert to string then buffer

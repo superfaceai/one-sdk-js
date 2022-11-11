@@ -1,5 +1,4 @@
 import type { IBinaryData } from '../../interfaces';
-// import { isBinaryData, isChunked } from '../../interfaces';
 import { UnexpectedError } from '../error';
 import { indexRecord } from '../object';
 

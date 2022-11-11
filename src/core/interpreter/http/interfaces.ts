@@ -1,6 +1,8 @@
+import type { IStreamed } from '../../../interfaces';
+
 type StringBody = { _type: 'string'; data: string };
 type FormDataBody = { _type: 'formdata'; data: Record<string, unknown> };
-type BinaryBody = { _type: 'binary'; data: Buffer };
+type BinaryBody = { _type: 'binary'; data: Buffer | IStreamed };
 type URLSearchParamsBody = {
   _type: 'urlsearchparams';
   data: Record<string, string>;
@@ -16,7 +18,7 @@ export const formDataBody = (data: Record<string, unknown>): FormDataBody => ({
 export const urlSearchParamsBody = (
   data: Record<string, string>
 ): URLSearchParamsBody => ({ _type: 'urlsearchparams', data });
-export const binaryBody = (data: Buffer): BinaryBody => ({
+export const binaryBody = (data: Buffer | IStreamed): BinaryBody => ({
   _type: 'binary',
   data,
 });
