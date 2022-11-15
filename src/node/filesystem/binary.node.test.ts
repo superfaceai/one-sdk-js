@@ -3,6 +3,7 @@ import { readFile } from 'fs/promises';
 import { join as joinPath } from 'path';
 
 import { NotFoundError } from '../../core';
+import { UnexpectedError } from '../../lib';
 import { BinaryFile } from './binary.node';
 
 const path = joinPath('fixtures', 'binary.txt');
@@ -75,10 +76,9 @@ describe('BinaryFile class', () => {
       });
 
       // This test is fucked up for no damn reason?!
-      // IT MAKES NO SENSE WHAT AM I DOING WRONG
       it('should throw an error if trying to get all data from a file that is not initialized', async () => {
         const differentBinaryFile = new BinaryFile(path);
-        await expect(differentBinaryFile.getAllData()).rejects.toThrow();
+        await expect(differentBinaryFile.getAllData()).rejects.toBeInstanceOf(UnexpectedError);
       });
     });
 
