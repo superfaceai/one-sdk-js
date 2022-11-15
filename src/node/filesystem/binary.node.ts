@@ -145,7 +145,6 @@ export class BinaryFile
 
   public async getAllData(): Promise<Buffer | string> {
     if (this.handle === undefined) {
-      console.log('throwing');
       throw new UnexpectedError('File is not open');
     }
 
