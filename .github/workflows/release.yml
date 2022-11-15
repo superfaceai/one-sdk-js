@@ -9,19 +9,48 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
+      - name: Release level check
+        run: |
+          case "$RELEASE_LEVEL" in
+            major|minor|patch|premajor|preminor|prepatch|prerelease)
+              echo "Release-level is OK"
+              ;;
+            *)
+              echo "Unknown release-level"
+              exit 1
+              ;;
+          esac
+        env:
+          RELEASE_LEVEL: ${{ github.event.inputs.release-level }}
+
       - name: Branch check
-        if: startsWith(github.event.inputs.release-level, 'pre') != true && github.ref_name != 'main'
-        run: exit 1
+        run: |
+          if [[ $RELEASE_LEVEL == pre* ]] && [[ $BRANCH == main ]]
+          then
+            echo "Pre-release on main branch is not allowed"
+            exit 1
+          fi
+
+          if [[ $RELEASE_LEVEL != pre* ]] && [[ $BRANCH != main ]]
+          then
+            echo "Stable release on other then main branch is not allowed"
+            exit 1
+          fi
+
+          echo "Release-level and branch combination is VALID"
+        env:
+          BRANCH: ${{ github.ref_name }}
+          RELEASE_LEVEL: ${{ github.event.inputs.release-level }}
 
       # Checkout project main and setup environment
       - name: Checkout
-        uses: actions/checkout@v2.3.4
+        uses: actions/checkout@v2
 
       - name: Setup Node.js environment
         uses: actions/setup-node@v2
         with:
           registry-url: https://registry.npmjs.org/
-          node-version: '16'
+          node-version: '18'
 
       # Install dependencies and run test
       - name: Install dependencies
