@@ -1,6 +1,6 @@
 import { ApiKeyPlacement, HttpScheme, SecurityType } from '@superfaceai/ast';
 import { parseMap, Source } from '@superfaceai/parser';
-import { readFileSync } from 'fs';
+import { readFile } from 'fs/promises';
 import { getLocal } from 'mockttp';
 import * as path from 'path';
 
@@ -1454,7 +1454,7 @@ describe('MapInterpreter', () => {
     }
     expect(result.isOk()).toBe(true);
     const firstBytes = (result.unwrap() as any).firstBytes;
-    const expected = readFileSync(filePath, 'utf8').slice(0, 10);
+    const expected = (await readFile(filePath, 'utf8')).slice(0, 10);
 
     expect(firstBytes).toStrictEqual(expected);
   });
@@ -1490,7 +1490,7 @@ describe('MapInterpreter', () => {
     expect(result.isOk()).toBe(true);
     const firstBytes = (result.unwrap() as any).firstBytes;
     const items = (result.unwrap() as any).items;
-    const expected = readFileSync(filePath);
+    const expected = await readFile(filePath);
 
     expect(firstBytes).toStrictEqual(expected.slice(0, 10).toString('utf8'));
     expect(items).toStrictEqual(expected);
@@ -1523,7 +1523,7 @@ describe('MapInterpreter', () => {
     }
     expect(result.isOk()).toBe(true);
     const items = (result.unwrap() as any).items;
-    const expected = readFileSync(filePath, 'base64');
+    const expected = await readFile(filePath, 'base64');
 
     expect(items).toStrictEqual(expected);
   });
@@ -1561,7 +1561,7 @@ describe('MapInterpreter', () => {
     }
     expect(result.isOk()).toBe(true);
     const items = (result.unwrap() as any).items;
-    const expected = readFileSync(filePath, 'utf8')
+    const expected = (await readFile(filePath, 'utf8'))
       .toUpperCase()
       // Splits file into chunks of 10 characters, pretty neat huh?
       .match(/(.|[\r\n]){1,10}/g);
@@ -1600,7 +1600,7 @@ describe('MapInterpreter', () => {
     expect(result.isOk()).toBe(true);
     const firstBytes = (result.unwrap() as any).firstBytes;
     const items = (result.unwrap() as any).items;
-    const expected = readFileSync(filePath);
+    const expected = await readFile(filePath);
 
     expect(firstBytes).toStrictEqual(expected.slice(0, 10).toString('base64'));
     expect(items).toStrictEqual(expected.toString('binary'));
@@ -1609,7 +1609,7 @@ describe('MapInterpreter', () => {
   it('should send file in its entirety as body', async () => {
     const filePath = path.resolve(process.cwd(), 'fixtures', 'binary.txt');
     const file = new BinaryFile(filePath);
-    const expected = readFileSync(filePath, 'utf8');
+    const expected = await readFile(filePath, 'utf8');
     await mockServer.forPost('/test').thenCallback(async req => {
       expect(await req.body.getText()).toStrictEqual(expected);
 
@@ -1654,7 +1654,7 @@ describe('MapInterpreter', () => {
   it('should send file as a stream in body', async () => {
     const filePath = path.resolve(process.cwd(), 'fixtures', 'binary.txt');
     const file = new BinaryFile(filePath);
-    const expected = readFileSync(filePath, 'utf8');
+    const expected = await readFile(filePath, 'utf8');
     await mockServer.forPost('/test').thenCallback(async req => {
       const body = await req.body.getText();
       expect(body).toStrictEqual(expected);
@@ -1700,7 +1700,7 @@ describe('MapInterpreter', () => {
   it('should send file as a stream in FormData', async () => {
     const filePath = path.resolve(process.cwd(), 'fixtures', 'binary.txt');
     const file = new BinaryFile(filePath);
-    const expected = readFileSync(filePath, 'utf8');
+    const expected = await readFile(filePath, 'utf8');
     await mockServer.forPost('/test').thenCallback(async req => {
       const data = await req.body.getText();
       expect(data).toMatch(expected);
