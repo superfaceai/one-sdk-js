@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- `multipart/form-data` supports array values to define duplicate fields
+
+### Fixed
+- Do not set `Accept` and `Content-Type` header when defined in [HTTP request headers](https://spec.superface.dev/latest/map-spec.html#HTTPHeaders) - [#264](https://github.com/superfaceai/one-sdk-js/issues/264)
+- Replaced `isomorphic-form-data` with `form-data` package to fix `FormData` serialization - [#291](https://github.com/superfaceai/one-sdk-js/issues/291)
+- Create valid `headersInit` shape in `NodeFetch.fetch`
+- An http call to `/` url returning an error about it being an absolute url
 
 ## [2.0.0] - 2022-08-15
 ### Added

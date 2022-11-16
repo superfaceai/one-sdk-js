@@ -1,6 +1,6 @@
 import type { ILogger } from '../../../interfaces';
 import type { MaybePromise } from '../../../lib';
-import { pipe, UnexpectedError, variablesToStrings } from '../../../lib';
+import { castToNonPrimitive, pipe, UnexpectedError, variablesToStrings } from '../../../lib';
 import { USER_AGENT } from '../../../user-agent';
 import { unsupportedContentType } from '../../errors';
 import type { FetchBody, IFetch } from './interfaces';
@@ -26,7 +26,7 @@ import type {
   RequestParameters,
 } from './security';
 import type { HttpResponse } from './types';
-import { createUrl, fetchRequest } from './utils';
+import { createUrl, fetchRequest, setHeader } from './utils';
 
 /**
  * Represents input of pipe filter which works with http response
@@ -99,31 +99,31 @@ export const fetchFilter: (
   logger?: ILogger
 ) => FilterWithRequest =
   (fetchInstance, logger) =>
-  async ({ parameters, request }: FilterInputWithRequest) => {
-    return {
-      parameters,
-      request,
-      response: await fetchRequest(fetchInstance, request, logger),
+    async ({ parameters, request }: FilterInputWithRequest) => {
+      return {
+        parameters,
+        request,
+        response: await fetchRequest(fetchInstance, request, logger),
+      };
     };
-  };
 
 export const authenticateFilter: (handler?: ISecurityHandler) => Filter =
   handler =>
-  async ({ parameters, request, response }: FilterInputOutput) => {
-    if (handler !== undefined) {
+    async ({ parameters, request, response }: FilterInputOutput) => {
+      if (handler !== undefined) {
+        return {
+          parameters: await handler.authenticate(parameters),
+          request,
+          response,
+        };
+      }
+
       return {
-        parameters: await handler.authenticate(parameters),
+        parameters,
         request,
         response,
       };
-    }
-
-    return {
-      parameters,
-      request,
-      response,
     };
-  };
 
 // This is handling the cases when we are authenticated but eg. digest credentials expired or OAuth access token is no longer valid
 export const handleResponseFilter: (
@@ -132,18 +132,18 @@ export const handleResponseFilter: (
   handler?: ISecurityHandler
 ) => FilterWithResponse =
   (fetchInstance, logger, handler) =>
-  async ({ parameters, request, response }: FilterInputWithResponse) => {
-    if (handler?.handleResponse !== undefined) {
-      // We get new parameters (with updated auth, also updated cache)
-      const authRequest = await handler.handleResponse(response, parameters);
-      // We retry the request
-      if (authRequest !== undefined) {
-        response = await fetchRequest(fetchInstance, authRequest, logger);
+    async ({ parameters, request, response }: FilterInputWithResponse) => {
+      if (handler?.handleResponse !== undefined) {
+        // We get new parameters (with updated auth, also updated cache)
+        const authRequest = await handler.handleResponse(response, parameters);
+        // We retry the request
+        if (authRequest !== undefined) {
+          response = await fetchRequest(fetchInstance, authRequest, logger);
+        }
       }
-    }
 
-    return { parameters, request, response };
-  };
+      return { parameters, request, response };
+    };
 
 export const urlFilter: Filter = ({
   parameters,
@@ -178,7 +178,10 @@ export const bodyFilter: Filter = ({
     } else if (parameters.contentType === URLENCODED_CONTENT) {
       finalBody = urlSearchParamsBody(variablesToStrings(parameters.body));
     } else if (parameters.contentType === FORMDATA_CONTENT) {
-      finalBody = formDataBody(variablesToStrings(parameters.body));
+      const body = castToNonPrimitive(parameters.body);
+      if (body) {
+        finalBody = formDataBody(body);
+      }
     } else if (
       parameters.contentType !== undefined &&
       BINARY_CONTENT_REGEXP.test(parameters.contentType)
@@ -258,20 +261,22 @@ export const headersFilter: Filter = ({
   request,
   response,
 }: FilterInputOutput) => {
-  const headers: Record<string, string> = parameters.headers || {};
-  headers['accept'] = parameters.accept ?? '*/*';
-  headers['user-agent'] ??= USER_AGENT;
+  const headers: Record<string, string> = parameters.headers ?? {};
+
+  setHeader(headers, 'user-agent', USER_AGENT);
+  setHeader(headers, 'accept', parameters.accept ?? '*/*');
+
   if (parameters.contentType === JSON_CONTENT) {
-    headers['content-type'] ??= JSON_CONTENT;
+    setHeader(headers, 'content-type', JSON_CONTENT);
   } else if (parameters.contentType === URLENCODED_CONTENT) {
-    headers['content-type'] ??= URLENCODED_CONTENT;
+    setHeader(headers, 'content-type', URLENCODED_CONTENT);
   } else if (parameters.contentType === FORMDATA_CONTENT) {
     // NOTE: Do not set content-type explicitly, it will be read from FormData along with boundary
   } else if (
     parameters.contentType !== undefined &&
     BINARY_CONTENT_REGEXP.test(parameters.contentType)
   ) {
-    headers['Content-Type'] ??= parameters.contentType;
+    setHeader(headers, 'content-type', parameters.contentType);
   } else {
     if (parameters.body !== undefined) {
       const supportedTypes = [
