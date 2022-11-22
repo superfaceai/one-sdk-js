@@ -38,8 +38,7 @@ import {
   isBuffered,
   isChunked,
   isDestructible,
-  isInitializable,
-} from '../../interfaces';
+  isInitializable} from '../../interfaces';
 import type { NonPrimitive, Primitive, Result, Variables } from '../../lib';
 import {
   castToVariables,
@@ -198,7 +197,8 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
 
       return ok(result.result);
     } catch (e) {
-      return err(e);
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion, @typescript-eslint/no-explicit-any
+      return err(e as any); // TODO: this can be HTTPError, UnexpectedError, MappedError, JessieError, MappedHTTPError, SDKBindError
     }
   }
 
@@ -547,10 +547,14 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
 
       return castToVariables(result);
     } catch (e) {
-      throw new JessieError('Error in Jessie script', e, {
-        node,
-        ast: this.ast,
-      });
+      if (e instanceof Error) {
+        throw new JessieError('Error in Jessie script', e, {
+          node,
+          ast: this.ast,
+        });  
+      }
+
+      throw e;
     }
   }
 
