@@ -1,6 +1,7 @@
 import { VM } from 'vm2';
 
-import type { IConfig, ILogger } from '../../../interfaces';
+import type { IConfig, ILogger} from '../../../interfaces';
+import { isBinaryData } from '../../../interfaces';
 // import { isBinaryData, isChunked } from '../../../interfaces';
 import type { NonPrimitive } from '../../../lib';
 import { isClassInstance } from '../../../lib';
@@ -20,10 +21,10 @@ function vm2ExtraArrayKeysFixup<T>(value: T): T {
   if (
     Buffer.isBuffer(value) ||
     value instanceof ArrayBuffer ||
-    // isChunked(value) ||
-    // isBinaryData(value) ||
+    isBinaryData(value) || // maybe not needed?
     isClassInstance(value) ||
-    Symbol.iterator in value
+    Symbol.iterator in value ||
+    Symbol.asyncIterator in value
   ) {
     return value;
   }

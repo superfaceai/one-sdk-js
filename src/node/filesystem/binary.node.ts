@@ -1,67 +1,108 @@
-import type { ReadStream } from 'fs';
-import { createReadStream, readSync } from 'fs';
+import { createReadStream } from 'fs';
 import type { FileHandle } from 'fs/promises';
 import { open } from 'fs/promises';
+import type { Readable } from 'stream';
 
 import type {
   IBinaryData,
-  IBuffered,
-  IChunked,
   IDestructible,
-  IEncodable,
-  IInitializable,
-  IStreamable,
-  IStreamed,
+  IInitializable} from '../../interfaces';
+import {
+  isDestructible,
+  isInitializable,
 } from '../../interfaces';
 import { UnexpectedError } from '../../lib';
 import { handleNodeError } from './filesystem.node';
 
-const BUFFER_ENCODINGS = [
-  'ascii',
-  'utf8',
-  'utf-8',
-  'utf16le',
-  'ucs2',
-  'ucs-2',
-  'base64',
-  'base64url',
-  'latin1',
-  'binary',
-  'hex',
-];
 
-class ChunkedFile implements IChunked {
-  constructor(private binaryFile: BinaryFile, private offset: number) {}
+export interface IDataContainer {
+  read(size?: number): Promise<Buffer | undefined>;
+  toStream(): Readable;
+}
 
-  public async getChunk(): Promise<string> {
-    return this.binaryFile.getNextChunk(this.offset);
+class StreamReader {
+  private buffer: Buffer;
+  private ended = false;
+
+  private pendingReadResolve: (() => void) | undefined
+
+  constructor(public stream: Readable) {
+    this.buffer = Buffer.from([]);
+
+    this.stream.on('data', this.onData.bind(this));
+    this.stream.on('end', this.onEnd.bind(this));
+  }
+
+  private onData(chunk: Buffer) {
+    this.buffer = Buffer.concat([this.buffer, chunk]);
+    this.notifyData();
+  }
+
+  private onEnd() {
+    this.ended = true;
+    this.notifyData();
+  }
+
+  // assumption: this function is never called twice without awaiting its promise in between
+  private async waitForData(): Promise<void> {
+
+    this.stream.resume()
+
+    return new Promise((resolve, reject) => {
+      if (this.pendingReadResolve !== undefined) {
+        reject(new UnexpectedError('Waiting for data failed. Unable to resolve pending read'));
+      }
+      this.pendingReadResolve = resolve;
+    })
+  }
+
+  private notifyData() {
+
+    if (this.pendingReadResolve !== undefined) {
+      this.pendingReadResolve();
+    }
+
+    this.stream.pause();
+    this.pendingReadResolve = undefined;
+  }
+
+  public async read(size = 1): Promise<Buffer | undefined> {
+    while (this.buffer.length < size) {
+
+      if (this.ended) {
+        if (this.buffer.length > 0) {
+          // yield remaining data
+          break;
+        } else {
+          // signal EOF
+          return undefined;
+        }
+      }
+
+      await this.waitForData();
+    }
+
+    const chunk = this.buffer.subarray(0, size); // this might need to be a copy
+    this.buffer = this.buffer.subarray(size);
+
+    return chunk;
   }
 }
 
-class StreamedFile implements IStreamed {
-  constructor(private binaryFile: BinaryFile) {}
-
-  public stream(): ReadStream {
-    return this.binaryFile.getStream();
-  }
-}
-
-export class BinaryFile
-  implements
-    IBinaryData,
-    IDestructible,
-    IInitializable,
-    IEncodable,
-    IBuffered,
-    IStreamable
-{
+class File implements IDataContainer, IInitializable, IDestructible {
   private handle: FileHandle | undefined;
-  private chunkSize: number | undefined;
-  private position = 0;
-  private fileSize = Infinity;
-  private encoding: BufferEncoding | undefined;
+  private streamReader: StreamReader | undefined;
+  public fileSize = Infinity;
 
   constructor(public filename: string) {}
+
+  public async read(size?: number): Promise<Buffer | undefined> {
+    if (!this.streamReader) {
+      throw new UnexpectedError('File not initialized');
+    }
+
+    return await this.streamReader.read(size);
+  }
 
   public async initialize(): Promise<void> {
     if (this.handle === undefined) {
@@ -77,6 +118,16 @@ export class BinaryFile
     if (this.handle === undefined) {
       throw new UnexpectedError('Unable to initialize file');
     }
+
+    let stream: Readable;
+    // We need to create a stream the old fashioned way for Node < 16.11.0
+    if (typeof this.handle.createReadStream !== 'function') {
+      stream = createReadStream(this.filename);
+    } else {
+      stream = this.handle.createReadStream();
+    }
+
+    this.streamReader = new StreamReader(stream);
   }
 
   public async destroy(): Promise<void> {
@@ -89,10 +140,89 @@ export class BinaryFile
     }
   }
 
-  public chunkBy(chunkSize: number): Iterable<IChunked> {
-    if (this.handle === undefined) {
-      throw new UnexpectedError('File is not initialized');
+  public toStream(): Readable {
+    if (this.streamReader === undefined) {
+      throw new UnexpectedError('File not initialized');
     }
+
+    return this.streamReader.stream;
+  }
+}
+
+class Stream implements IDataContainer {
+  private streamReader: StreamReader;
+
+  constructor(stream: Readable) {
+    this.streamReader = new StreamReader(stream);
+  }
+
+  public read(size?: number): Promise<Buffer | undefined> {
+    return this.streamReader?.read(size);
+  }
+
+  public toStream(): Readable {
+    return this.streamReader.stream;
+  }
+}
+
+export class BinaryData
+  implements
+    IBinaryData,
+    IDestructible,
+    IInitializable
+{
+  private buffer: Buffer;
+   
+  public static fromPath(filename: string): BinaryData {
+    return new BinaryData(new File(filename));
+  }
+
+  public static fromStream(stream: Readable): BinaryData {
+    return new BinaryData(new Stream(stream));
+  }
+
+  private constructor(private dataContainer: IDataContainer) {
+    this.buffer = Buffer.from([]);
+  }
+
+  public async initialize(): Promise<void> {
+    if (isInitializable(this.dataContainer)) {
+      await this.dataContainer.initialize();
+    }
+  }
+
+  public async destroy(): Promise<void> {
+    if (isDestructible(this.dataContainer)) {
+      await this.dataContainer.destroy();
+    }
+
+    this.buffer = Buffer.from([]);
+  }
+
+  private async fillBuffer(sizeAtLeast: number): Promise<void> {
+    if (this.buffer.length < sizeAtLeast) {
+      const read = await this.dataContainer.read(sizeAtLeast - this.buffer.length);
+      if (read !== undefined) {
+        this.buffer = Buffer.concat([this.buffer, read]);
+      }
+    }
+  }
+
+  private consumeBuffer(size?: number): Buffer {
+    let data: Buffer;
+
+    if (size === undefined) {
+      data = this.buffer;
+      this.buffer = Buffer.from([]);
+    } else {
+      data = this.buffer.subarray(0, size);
+      this.buffer = this.buffer.subarray(size);
+    }
+
+    return data;
+  }
+
+  public chunkBy(chunkSize: number): AsyncIterable<Buffer> {
     if (
       chunkSize === undefined ||
       chunkSize === null ||
@@ -103,109 +233,43 @@ export class BinaryFile
       throw new UnexpectedError('Invalid chunk size');
     }
 
-    if (this.chunkSize === undefined) {
-      this.chunkSize = chunkSize;
-    }
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const self = this;
 
     return {
-      [Symbol.iterator]: () => ({
-        next: () => {
-          if (this.position >= this.fileSize) {
+      [Symbol.asyncIterator]: () => ({
+        async next() {          
+          await self.fillBuffer(chunkSize);
+          const data = self.consumeBuffer(chunkSize);
+
+          if (!data.length) {
             return { done: true, value: undefined };
           }
 
-          const value = new ChunkedFile(this, this.position);
-          this.position += chunkSize;
-
-          return { done: false, value };
+          return { done: false, value: data };
         },
       }),
     };
   }
 
-  public async getNextChunk(offset: number): Promise<string> {
-    if (this.handle === undefined) {
-      throw new UnexpectedError('File is not open');
+  public async getAllData(): Promise<Buffer> {
+    let size = this.buffer.length;
+
+    while (this.buffer.length >= size) {
+      size += 1000; // TODO constant
+      await this.fillBuffer(size);
     }
 
-    if (this.chunkSize === undefined) {
-      throw new UnexpectedError('Chunk size is not set');
-    }
-
-    const buffer = Buffer.alloc(this.chunkSize);
-    const { bytesRead } = await this.handle.read(
-      buffer,
-      0,
-      this.chunkSize,
-      offset
-    );
-
-    return buffer.toString(this.encoding, 0, bytesRead);
+    return this.consumeBuffer();
   }
 
-  public async getAllData(): Promise<Buffer | string> {
-    if (this.handle === undefined) {
-      throw new UnexpectedError('File is not open');
-    }
+  public async peek(size = 1): Promise<Buffer> {
+    await this.fillBuffer(size);
 
-    const buffer = Buffer.alloc(this.fileSize);
-    const { bytesRead } = await this.handle.read(buffer, 0, this.fileSize, 0);
-
-    const slice = buffer.subarray(0, bytesRead);
-
-    if (this.encoding !== undefined) {
-      return slice.toString(this.encoding);
-    }
-
-    return slice;
+    return this.buffer.subarray(0, size);
   }
 
-  public peek(size: number, offset = 0): string {
-    if (this.handle === undefined) {
-      throw new UnexpectedError('File is not open');
-    }
-
-    const buffer = Buffer.alloc(size);
-
-    const read = readSync(this.handle.fd, buffer, 0, size, offset);
-
-    return buffer.toString(this.encoding, 0, read);
-  }
-
-  public encode(encoding: BufferEncoding): this {
-    // We need to check if the encoding is valid because this is called in Jessie
-    if (!BUFFER_ENCODINGS.includes(encoding.toLowerCase())) {
-      throw new UnexpectedError('Invalid encoding');
-    }
-
-    this.encoding = encoding;
-
-    return this;
-  }
-
-  public toStream(): IStreamed {
-    if (this.handle === undefined) {
-      throw new UnexpectedError('File is not open');
-    }
-
-    return new StreamedFile(this);
-  }
-
-  public getStream(): ReadStream {
-    if (this.handle === undefined) {
-      throw new UnexpectedError('File is not open');
-    }
-
-    const options =
-      this.encoding !== undefined ? { encoding: this.encoding } : {};
-
-    // We need to create a stream the old fashioned way for Node < 16.11.0
-    if (typeof this.handle.createReadStream !== 'function') {
-      const stream = createReadStream(this.filename);
-
-      return stream;
-    }
-
-    return this.handle.createReadStream(options);
+  public toStream(): Readable {
+    return this.dataContainer.toStream();
   }
 }

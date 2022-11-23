@@ -1,5 +1,4 @@
-import type { ILogger, IStreamed } from '../../../interfaces';
-import { isStreamed } from '../../../interfaces';
+import type { IBinaryData, ILogger } from '../../../interfaces';
 import type { MaybePromise } from '../../../lib';
 import {
   castToNonPrimitive,
@@ -7,6 +6,7 @@ import {
   UnexpectedError,
   variablesToStrings,
 } from '../../../lib';
+import { BinaryData } from '../../../node';
 import { USER_AGENT } from '../../../user-agent';
 import { unsupportedContentType } from '../../errors';
 import type { FetchBody, IFetch } from './interfaces';
@@ -192,14 +192,14 @@ export const bodyFilter: Filter = ({
       parameters.contentType !== undefined &&
       BINARY_CONTENT_REGEXP.test(parameters.contentType)
     ) {
-      let buffer: Buffer | IStreamed;
-      if (Buffer.isBuffer(parameters.body) || isStreamed(parameters.body)) {
-        buffer = parameters.body;
+      let data: Buffer | IBinaryData;
+      if (Buffer.isBuffer(parameters.body) || parameters.body instanceof BinaryData) { // TODO: instanceof vs isIBinaryData
+        data = parameters.body;
       } else {
         // convert to string then buffer
-        buffer = Buffer.from(String(parameters.body));
+        data = Buffer.from(String(parameters.body));
       }
-      finalBody = binaryBody(buffer);
+      finalBody = binaryBody(data);
     } else {
       const supportedTypes = [
         JSON_CONTENT,

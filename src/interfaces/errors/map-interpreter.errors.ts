@@ -52,5 +52,14 @@ export type MapInterpreterError =
 
 
 export const isMapInterpreterError = (e: unknown): e is MapInterpreterError => {
-  return e instanceof Error && e.name in ['MapASTError', 'MappedHTTPError', 'MappedError', 'HTTPError', 'JessieError'];
+  return typeof e === 'object'
+    && e !== null
+    && 'name' in e
+    && [
+      'MapASTError',
+      'MappedHTTPError',
+      'MappedError',
+      'HTTPError',
+      'JessieError'
+    ].includes((e as { name: string }).name);
 }

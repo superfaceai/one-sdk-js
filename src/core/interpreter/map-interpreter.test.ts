@@ -6,7 +6,7 @@ import * as path from 'path';
 
 import { MockTimers } from '../../mock';
 import {
-  BinaryFile,
+  BinaryData,
   NodeCrypto,
   NodeFetch,
   NodeFileSystem,
@@ -1249,7 +1249,7 @@ describe('MapInterpreter', () => {
     expect(result.isOk() && result.value).toEqual('Y');
   });
 
-  it('scope does not leak into callee', async () => {
+  it('should not leak scope into callee', async () => {
     const ast = parseMapFromSource(`
       map Test {
         notVisible = 15
@@ -1269,6 +1269,7 @@ describe('MapInterpreter', () => {
       },
       { fetchInstance, config, crypto }
     );
+
     const result = await interpreter.perform(ast);
     expect(result.isErr()).toEqual(true);
   });
@@ -1442,19 +1443,16 @@ describe('MapInterpreter', () => {
         security: [],
         services: ServiceSelector.withDefaultUrl(''),
         input: {
-          items: new BinaryFile(filePath),
+          items: BinaryData.fromPath(filePath),
         },
       },
       { fetchInstance, config, crypto }
     );
 
     const result = await interpreter.perform(ast);
-    if (result.isErr()) {
-      console.error(result.error);
-    }
     expect(result.isOk()).toBe(true);
-    const firstBytes = (result.unwrap() as any).firstBytes;
-    const expected = (await readFile(filePath, 'utf8')).slice(0, 10);
+    const firstBytes = (result.unwrap() as { firstBytes: Buffer }).firstBytes.toString('utf8');
+    const expected = (await readFile(filePath)).subarray(0, 10).toString('utf8');
 
     expect(firstBytes).toStrictEqual(expected);
   });
@@ -1477,7 +1475,7 @@ describe('MapInterpreter', () => {
         security: [],
         services: ServiceSelector.withDefaultUrl(''),
         input: {
-          items: new BinaryFile(filePath),
+          items: BinaryData.fromPath(filePath),
         },
       },
       { fetchInstance, config, crypto }
@@ -1488,21 +1486,34 @@ describe('MapInterpreter', () => {
       console.error(result.error);
     }
     expect(result.isOk()).toBe(true);
-    const firstBytes = (result.unwrap() as any).firstBytes;
+    const firstBytes = (result.unwrap() as { firstBytes: Buffer }).firstBytes.toString('utf8');
     const items = (result.unwrap() as any).items;
     const expected = await readFile(filePath);
 
-    expect(firstBytes).toStrictEqual(expected.slice(0, 10).toString('utf8'));
+    expect(firstBytes).toStrictEqual(expected.subarray(0, 10).toString('utf8'));
     expect(items).toStrictEqual(expected);
   });
 
   it('should return the file in its entirety as base64', async () => {
+    // Comlink Map contains hack to solve async getAllData() call,
+    // by setting it variable first
+    const ast = parseMapFromSource(`
+    map Test {
+      data = input.items.getAllData() // getAllData is async needs to be set to variable
+
+      map result {
+        items: data.toString('base64')
+      }
+    }`);
+
+    /*
     const ast = parseMapFromSource(`
     map Test {
       map result {
-        items: input.items.encode('base64')
+        items: input.items.getAllData().then((data) => data.toString('base64'))
       }
     }`);
+    */
 
     const filePath = path.resolve(process.cwd(), 'fixtures', 'binary.txt');
     const interpreter = new MapInterpreter(
@@ -1511,7 +1522,7 @@ describe('MapInterpreter', () => {
         security: [],
         services: ServiceSelector.withDefaultUrl(''),
         input: {
-          items: new BinaryFile(filePath),
+          items: BinaryData.fromPath(filePath),
         },
       },
       { fetchInstance, config, crypto }
@@ -1532,7 +1543,7 @@ describe('MapInterpreter', () => {
     const logger = new NodeLogger();
     const ast = parseMapFromSource(`
     map Test {
-      mappedItems = call foreach(item of input.items.chunkBy(10)) DoSomething(item = item)
+      mappedItems = call foreach(item of input.items.chunkBy(10)) DoSomething(item = item.toString('utf8'))
 
       map result {
         items: mappedItems
@@ -1549,7 +1560,7 @@ describe('MapInterpreter', () => {
         security: [],
         services: ServiceSelector.withDefaultUrl(''),
         input: {
-          items: new BinaryFile(filePath),
+          items: BinaryData.fromPath(filePath),
         },
       },
       { fetchInstance, config, crypto, logger }
@@ -1572,11 +1583,12 @@ describe('MapInterpreter', () => {
   it('should peek first few bytes as base64 and then return entire file as binary', async () => {
     const ast = parseMapFromSource(`
     map Test {
-      firstBytes = input.items.encode('base64').peek(10)
+      firstBytes = input.items.peek(10) // peek is async needs to be set to variable
+      allData = input.items.getAllData() // getAllData is async needs to be set to variable
       
       map result {
-        firstBytes: firstBytes,
-        items: input.items.encode('binary')
+        firstBytes: firstBytes.toString('base64'),
+        items: allData.toString('binary')
       }
     }`);
 
@@ -1587,7 +1599,7 @@ describe('MapInterpreter', () => {
         security: [],
         services: ServiceSelector.withDefaultUrl(''),
         input: {
-          items: new BinaryFile(filePath),
+          items: BinaryData.fromPath(filePath),
         },
       },
       { fetchInstance, config, crypto }
@@ -1608,7 +1620,7 @@ describe('MapInterpreter', () => {
 
   it('should send file in its entirety as body', async () => {
     const filePath = path.resolve(process.cwd(), 'fixtures', 'binary.txt');
-    const file = new BinaryFile(filePath);
+    const file = BinaryData.fromPath(filePath);
     const expected = await readFile(filePath, 'utf8');
     await mockServer.forPost('/test').thenCallback(async req => {
       expect(await req.body.getText()).toStrictEqual(expected);
@@ -1619,15 +1631,15 @@ describe('MapInterpreter', () => {
     const ast = parseMapFromSource(`
     map Test {
       http POST "/test" {
-          request "video/notreallyvideo" {
-            body = input.items 
-          }
-
-          response 200 {
-            map result body
-          }
+        request "video/notreallyvideo" {
+          body = input.items
         }
-      }`);
+
+        response 200 {
+          map result body
+        }
+      }
+    }`);
 
     const interpreter = new MapInterpreter(
       {
@@ -1653,7 +1665,7 @@ describe('MapInterpreter', () => {
 
   it('should send file as a stream in body', async () => {
     const filePath = path.resolve(process.cwd(), 'fixtures', 'binary.txt');
-    const file = new BinaryFile(filePath);
+    const file = BinaryData.fromPath(filePath);
     const expected = await readFile(filePath, 'utf8');
     await mockServer.forPost('/test').thenCallback(async req => {
       const body = await req.body.getText();
@@ -1665,15 +1677,15 @@ describe('MapInterpreter', () => {
     const ast = parseMapFromSource(`
     map Test {
       http POST "/test" {
-          request "video/notreallyvideo" {
-            body = input.items.toStream()
-          }
-
-          response 200 {
-            map result body
-          }
+        request "video/notreallyvideo" {
+          body = input.items
         }
-      }`);
+
+        response 200 {
+          map result body
+        }
+      }
+    }`);
 
     const interpreter = new MapInterpreter(
       {
@@ -1699,7 +1711,7 @@ describe('MapInterpreter', () => {
 
   it('should send file as a stream in FormData', async () => {
     const filePath = path.resolve(process.cwd(), 'fixtures', 'binary.txt');
-    const file = new BinaryFile(filePath);
+    const file = BinaryData.fromPath(filePath);
     const expected = await readFile(filePath, 'utf8');
     await mockServer.forPost('/test').thenCallback(async req => {
       const data = await req.body.getText();
@@ -1713,7 +1725,7 @@ describe('MapInterpreter', () => {
       http POST "/test" {
         request "multipart/form-data" {
           body = {
-            data: input.items.toStream()
+            data: input.items
           }
         }
 

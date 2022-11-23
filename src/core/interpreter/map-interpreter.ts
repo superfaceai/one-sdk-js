@@ -32,11 +32,9 @@ import type {
   ICrypto,
   ILogger,
   LogFunction,
-  MapInterpreterError,
-} from '../../interfaces';
+  MapInterpreterError} from '../../interfaces';
 import {
-  isBuffered,
-  isChunked,
+  isBinaryData,
   isDestructible,
   isInitializable} from '../../interfaces';
 import type { NonPrimitive, Primitive, Result, Variables } from '../../lib';
@@ -72,7 +70,7 @@ function assertUnreachable(node: MapASTNode): never {
 
 function isIterable(input: unknown): input is Iterable<Variables> {
   return (
-    typeof input === 'object' && input !== null && Symbol.iterator in input
+    typeof input === 'object' && input !== null && (Symbol.iterator in input || Symbol.asyncIterator in input)
   );
 }
 
@@ -521,6 +519,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
     node: IterationAtomNode
   ): Promise<IterationDefinition> {
     const iterable = await this.visit(node.iterable);
+
     if (isIterable(iterable)) {
       return {
         iterationVariable: node.iterationVariable,
@@ -855,17 +854,9 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
     ) => unknown | Promise<unknown>
   ): Promise<void> {
     const iterationParams = await this.visit(node.iteration);
-    for (const variable of iterationParams.iterable) {
+    for await (const variable of iterationParams.iterable) {
       // overwrite the iteration variable instead of merging
-      let variableValue: Variables;
-      if (isChunked(variable)) {
-        variableValue = await variable.getChunk();
-      } else {
-        variableValue = variable;
-      }
-
-      this.stackTop().variables[iterationParams.iterationVariable] =
-        variableValue;
+      this.stackTop().variables[iterationParams.iterationVariable] = variable;
 
       if (node.condition) {
         const condition = await this.visit(node.condition);
@@ -906,8 +897,8 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
   private async resolveVariables(
     input: Variables | undefined
   ): Promise<Variables | undefined> {
-    if (isBuffered(input)) {
-      const result = await input.getAllData();
+    if (isBinaryData(input)) {
+      const result = input.getAllData();
 
       return result;
     }

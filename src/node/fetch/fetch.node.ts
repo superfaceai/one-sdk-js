@@ -1,8 +1,8 @@
 import { AbortController } from 'abort-controller';
 import FormData from 'form-data';
-import type { ReadStream } from 'fs';
 import type { HeadersInit, RequestInit, Response } from 'node-fetch';
 import fetch, { Headers } from 'node-fetch';
+import type { Readable } from 'stream';
 
 import type {
   AuthCache,
@@ -13,14 +13,13 @@ import type {
   IFetch,
   Interceptable,
   InterceptableMetadata,
-  ITimers,
-} from '../../core';
+  ITimers} from '../../core';
 import {
   BINARY_CONTENT_REGEXP,
   FetchParameters,
   isBinaryBody,
+  isBinaryData,
   isFormDataBody,
-  isStreamed,
   isStringBody,
   isUrlSearchParamsBody,
   JSON_CONTENT,
@@ -173,11 +172,11 @@ export class NodeFetch implements IFetch, Interceptable, AuthCache {
 
   private body(
     body?: FetchBody
-  ): string | URLSearchParams | FormData | Buffer | ReadStream | undefined {
+  ): string | URLSearchParams | FormData | Buffer | Readable | undefined {
     if (body) {
       if (isStringBody(body) || isBinaryBody(body)) {
-        if (isStreamed(body.data)) {
-          return body.data.stream() as ReadStream;
+        if (isBinaryData(body.data)) {
+          return body.data.toStream();
         }
 
         return body.data;
@@ -202,8 +201,8 @@ export class NodeFetch implements IFetch, Interceptable, AuthCache {
       Object.entries(data).forEach(([key, value]) => {
         if (Array.isArray(value)) {
           value.forEach(item => formData.append(key, item));
-        } else if (isStreamed(value)) {
-          formData.append(key, value.stream());
+        } else if (isBinaryData(value)) {
+          formData.append(key, value.toStream());
         } else {
           formData.append(key, value);
         }

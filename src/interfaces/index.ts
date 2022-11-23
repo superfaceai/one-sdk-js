@@ -1,3 +1,4 @@
+export * from './binary';
 export * from './client';
 export * from './config';
 export * from './crypto';
