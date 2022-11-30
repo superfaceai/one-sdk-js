@@ -35,6 +35,7 @@ import type {
   MapInterpreterError} from '../../interfaces';
 import {
   isBinaryData,
+  // isBinaryData,
   isDestructible,
   isInitializable} from '../../interfaces';
 import type { NonPrimitive, Primitive, Result, Variables } from '../../lib';
@@ -363,7 +364,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
         baseUrl: serviceUrl,
         queryParameters: request?.queryParameters,
         pathParameters: this.variables,
-        body: await this.resolveVariables(request?.body),
+        body: request?.body,
         securityRequirements: request?.security,
         securityConfiguration: this.parameters.security,
         integrationParameters: this.parameters.parameters,
@@ -898,9 +899,10 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
     input: Variables | undefined
   ): Promise<Variables | undefined> {
     if (isBinaryData(input)) {
-      const result = input.getAllData();
+      // const result = input.getAllData(); // AY: this is async
+      // return result;
 
-      return result;
+      return input;
     }
 
     if (input === undefined || isPrimitive(input)) {

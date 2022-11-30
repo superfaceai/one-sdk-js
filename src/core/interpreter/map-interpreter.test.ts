@@ -1461,10 +1461,12 @@ describe('MapInterpreter', () => {
     const ast = parseMapFromSource(`
     map Test {
       firstBytes = input.items.peek(10)
+      data = input.items.getAllData()
 
       map result {
-        firstBytes: firstBytes,
-        items: input.items
+        firstBytes = firstBytes,
+        // items = input.items // TODO: this returns BinaryData as result, is it correct?
+        items = data
       }
     }`);
 
@@ -1487,7 +1489,7 @@ describe('MapInterpreter', () => {
     }
     expect(result.isOk()).toBe(true);
     const firstBytes = (result.unwrap() as { firstBytes: Buffer }).firstBytes.toString('utf8');
-    const items = (result.unwrap() as any).items;
+    const items = (result.unwrap() as { items: Buffer }).items;
     const expected = await readFile(filePath);
 
     expect(firstBytes).toStrictEqual(expected.subarray(0, 10).toString('utf8'));
@@ -1742,6 +1744,55 @@ describe('MapInterpreter', () => {
         services: ServiceSelector.withDefaultUrl(mockServer.url),
         input: {
           items: file,
+        },
+      },
+      { fetchInstance, config, crypto }
+    );
+
+    const result = await interpreter.perform(ast);
+    if (result.isErr()) {
+      console.error(result.error);
+    }
+    expect(result.isOk()).toBe(true);
+
+    const response = result.unwrap();
+    expect(response).toStrictEqual({ ok: true });
+  });
+
+  it('should send file as a stream in FormData with passed mimetype and filename', async () => {
+    const filePath = path.resolve(process.cwd(), 'fixtures', 'binary.txt');
+    const file = BinaryData.fromPath(filePath, { filename: 'binary.txt', mimetype: 'text/plain' });
+
+    // OK is problem in mockttp, that it cant handle stream? Or in formdata that it sends it badly. :((((
+    await mockServer.forPost('/test').thenCallback(async req => {
+      const data = await req.body.getText();
+      expect(data).toContain('Content-Disposition: form-data; name="file"; filename="binary.txt"');
+
+      return { status: 200, json: { ok: true } };
+    });
+
+    const ast = parseMapFromSource(`
+    map Test {
+      http POST "/test" {
+        request "multipart/form-data" {
+          body = {
+            file: input.file
+          }
+        }
+
+        response 200 {
+          map result body
+        }
+      }
+    }`);
+
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+        services: ServiceSelector.withDefaultUrl(mockServer.url),
+        input: {
+          file,
         },
       },
       { fetchInstance, config, crypto }

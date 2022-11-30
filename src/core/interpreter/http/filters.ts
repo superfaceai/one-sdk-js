@@ -1,4 +1,5 @@
-import type { IBinaryData, ILogger } from '../../../interfaces';
+import type { IBinaryData, ILogger} from '../../../interfaces';
+import { isBinaryData } from '../../../interfaces';
 import type { MaybePromise } from '../../../lib';
 import {
   castToNonPrimitive,
@@ -6,7 +7,6 @@ import {
   UnexpectedError,
   variablesToStrings,
 } from '../../../lib';
-import { BinaryData } from '../../../node';
 import { USER_AGENT } from '../../../user-agent';
 import { unsupportedContentType } from '../../errors';
 import type { FetchBody, IFetch } from './interfaces';
@@ -193,7 +193,7 @@ export const bodyFilter: Filter = ({
       BINARY_CONTENT_REGEXP.test(parameters.contentType)
     ) {
       let data: Buffer | IBinaryData;
-      if (Buffer.isBuffer(parameters.body) || parameters.body instanceof BinaryData) { // TODO: instanceof vs isIBinaryData
+      if (Buffer.isBuffer(parameters.body) || isBinaryData(parameters.body)) { // TODO: instanceof vs isIBinaryData
         data = parameters.body;
       } else {
         // convert to string then buffer

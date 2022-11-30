@@ -1,6 +1,6 @@
-import { ReadStream } from 'fs';
 import { readFile } from 'fs/promises';
 import { join as joinPath } from 'path';
+import { Readable } from 'stream';
 
 import { NotFoundError } from '../../core';
 import { UnexpectedError } from '../../lib';
@@ -101,7 +101,7 @@ describe('BinaryData class', () => {
     describe('stream', () => {
       it('should stream data correctly', async () => {
         const stream = binaryData.toStream();
-        expect(stream).toBeInstanceOf(ReadStream);
+        expect(stream).toBeInstanceOf(Readable);
       });
 
       it('should throw an error if trying to stream a file that is not initialized', async () => {

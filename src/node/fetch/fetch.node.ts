@@ -19,6 +19,7 @@ import {
   FetchParameters,
   isBinaryBody,
   isBinaryData,
+  isBinaryFileMeta,
   isFormDataBody,
   isStringBody,
   isUrlSearchParamsBody,
@@ -202,7 +203,11 @@ export class NodeFetch implements IFetch, Interceptable, AuthCache {
         if (Array.isArray(value)) {
           value.forEach(item => formData.append(key, item));
         } else if (isBinaryData(value)) {
-          formData.append(key, value.toStream());
+          if (isBinaryFileMeta(value)) {
+            formData.append(key, value.toStream(), { contentType: value.mimetype, filename: value.filename });
+          } else {
+            formData.append(key, value.toStream());
+          }
         } else {
           formData.append(key, value);
         }

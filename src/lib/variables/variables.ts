@@ -1,4 +1,5 @@
-import type { IBinaryData } from '../../interfaces';
+import type { IBinaryData} from '../../interfaces';
+import { isBinaryData } from '../../interfaces';
 import { UnexpectedError } from '../error';
 import { indexRecord } from '../object';
 
@@ -60,8 +61,8 @@ export function isPrimitive(input: Variables): input is Primitive {
     ['string', 'number', 'boolean'].includes(typeof input) ||
     Array.isArray(input) ||
     isClassInstance(input) ||
-    Buffer.isBuffer(input)
-    // input instanceof BinaryFile
+    Buffer.isBuffer(input) ||
+    isBinaryData(input)
   );
 }
 
@@ -69,12 +70,9 @@ export function isNonPrimitive(input: Variables): input is NonPrimitive {
   return (
     typeof input === 'object' &&
     !Array.isArray(input) &&
+    !isClassInstance(input) &&
     !Buffer.isBuffer(input) &&
-    // !isBinaryData(input) &&
-    // !isChunked(input)
-    !isClassInstance(input)
-    // !(input instanceof ChunkedFile) &&
-    // !(input instanceof BinaryFile)
+    !isBinaryData(input)
   );
 }
 
