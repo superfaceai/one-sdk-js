@@ -18,7 +18,7 @@ import {
 import { UnexpectedError } from '../../lib';
 import { handleNodeError } from './filesystem.node';
 
-class StreamReader {
+export class StreamReader {
   private stream: Readable;
   private buffer: Buffer;
   private ended = false;
@@ -27,8 +27,7 @@ class StreamReader {
 
   constructor(stream: Readable) {
     this.buffer = Buffer.from([]);
-
-    this.stream = new ReadableClone(stream);
+    this.stream = stream;
     this.stream.on('data', this.onData.bind(this));
     this.stream.on('end', this.onEnd.bind(this));
   }
@@ -86,7 +85,7 @@ class StreamReader {
   }
 }
 
-class ReadableClone extends Readable {
+export class ReadableClone extends Readable {
   constructor(private stream: Readable, options?: ReadableOptions) {
     super(options);
 
@@ -106,9 +105,9 @@ class ReadableClone extends Readable {
   public override _read(): void {}
 }
 
-class File implements IDataContainer, IBinaryFileMeta, IInitializable, IDestructible {
+export class FileContainer implements IDataContainer, IBinaryFileMeta, IInitializable, IDestructible {
   private handle: FileHandle | undefined;
-  public stream: Readable | undefined;
+  private stream: Readable | undefined;
   private streamReader: StreamReader | undefined;
   public filesize = Infinity;
   public filename: string | undefined;
@@ -142,20 +141,26 @@ class File implements IDataContainer, IBinaryFileMeta, IInitializable, IDestruct
       throw new UnexpectedError('Unable to initialize file');
     }
 
+    let stream: Readable;
     // We need to create a stream the old fashioned way for Node < 16.11.0
     if (typeof this.handle.createReadStream !== 'function') {
-      this.stream = createReadStream(this.path);
+      stream = createReadStream(this.path);
     } else {
-      this.stream = this.handle.createReadStream();
+      stream = this.handle.createReadStream();
     }
 
-    this.streamReader = new StreamReader(this.stream);
+    this.stream = new ReadableClone(stream);
+    this.streamReader = new StreamReader(new ReadableClone(stream));
   }
 
   public async destroy(): Promise<void> {
     if (this.handle !== undefined) {
       try {
         await this.handle.close();
+        this.stream = undefined;
+        this.streamReader = undefined;
+        this.filesize = Infinity;
+        this.handle = undefined;
       } catch (_) {
         // Ignore
       }
@@ -171,11 +176,13 @@ class File implements IDataContainer, IBinaryFileMeta, IInitializable, IDestruct
   }
 }
 
-class Stream implements IDataContainer {
+export class StreamContainer implements IDataContainer {
+  private stream: Readable;
   private streamReader: StreamReader;
 
-  constructor(private stream: Readable) {
-    this.streamReader = new StreamReader(stream);
+  constructor(stream: Readable) {
+    this.stream = new ReadableClone(stream);
+    this.streamReader = new StreamReader(new ReadableClone(stream));
   }
 
   public read(size?: number): Promise<Buffer | undefined> {
@@ -197,11 +204,11 @@ export class BinaryData
   private buffer: Buffer;
    
   public static fromPath(filename: string, options: { filename?: string, mimetype?: string } = {}): BinaryData {
-    return new BinaryData(new File(filename, options));
+    return new BinaryData(new FileContainer(filename, options));
   }
 
   public static fromStream(stream: Readable): BinaryData {
-    return new BinaryData(new Stream(stream));
+    return new BinaryData(new StreamContainer(stream));
   }
 
   private constructor(private dataContainer: IDataContainer) {
