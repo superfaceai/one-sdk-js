@@ -35,7 +35,6 @@ import type {
   MapInterpreterError} from '../../interfaces';
 import {
   isBinaryData,
-  // isBinaryData,
   isDestructible,
   isInitializable} from '../../interfaces';
 import type { NonPrimitive, Primitive, Result, Variables } from '../../lib';
@@ -898,11 +897,8 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
   private async resolveVariables(
     input: Variables | undefined
   ): Promise<Variables | undefined> {
-    if (isBinaryData(input)) {
-      // const result = input.getAllData(); // AY: this is async
-      // return result;
-
-      return input;
+    if (isBinaryData(input)) {      
+      return await input.getAllData(); // resolve to return Buffer, but it doesnt work
     }
 
     if (input === undefined || isPrimitive(input)) {

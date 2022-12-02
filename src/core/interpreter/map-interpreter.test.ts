@@ -1465,7 +1465,6 @@ describe('MapInterpreter', () => {
 
       map result {
         firstBytes = firstBytes,
-        // items = input.items // TODO: this returns BinaryData as result, is it correct?
         items = data
       }
     }`);
@@ -1494,6 +1493,71 @@ describe('MapInterpreter', () => {
 
     expect(firstBytes).toStrictEqual(expected.subarray(0, 10).toString('utf8'));
     expect(items).toStrictEqual(expected);
+  });
+
+  it('should resolve BinarData as Buffer if mapped as result', async () => {
+    const ast = parseMapFromSource(`
+    map Test {
+      map result {
+        items = input.items
+      }
+    }`);
+
+    const filePath = path.resolve(process.cwd(), 'fixtures', 'binary.txt');
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+        services: ServiceSelector.withDefaultUrl(''),
+        input: {
+          items: BinaryData.fromPath(filePath),
+        },
+      },
+      { fetchInstance, config, crypto }
+    );
+
+    const result = await interpreter.perform(ast);
+    if (result.isErr()) {
+      console.error(result.error);
+    }
+    expect(result.isOk()).toBe(true);
+    const items = (result.unwrap() as { items: Buffer }).items;
+    const expected = await readFile(filePath);
+
+    expect(items).toStrictEqual(expected);
+  });
+
+  it('should resolve BinarData as empty Buffer if mapped as result and data already read', async () => {
+    const ast = parseMapFromSource(`
+    map Test {
+      data = input.items.getAllData()
+
+      map result {
+        items = input.items
+      }
+    }`);
+
+    const filePath = path.resolve(process.cwd(), 'fixtures', 'binary.txt');
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+        services: ServiceSelector.withDefaultUrl(''),
+        input: {
+          items: BinaryData.fromPath(filePath),
+        },
+      },
+      { fetchInstance, config, crypto }
+    );
+
+    const result = await interpreter.perform(ast);
+    if (result.isErr()) {
+      console.error(result.error);
+    }
+    expect(result.isOk()).toBe(true);
+    const items = (result.unwrap() as { items: Buffer }).items;
+
+    expect(items).toStrictEqual(Buffer.from(''));
   });
 
   it('should return the file in its entirety as base64', async () => {
