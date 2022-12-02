@@ -895,7 +895,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
     input: Variables | undefined
   ): Promise<Variables | undefined> {
     if (isBinaryData(input)) {      
-      return await input.getAllData(); // resolve to return Buffer, but it doesnt work
+      return await input.getAllData();
     }
 
     if (input === undefined || isPrimitive(input)) {
