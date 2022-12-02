@@ -546,14 +546,11 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
 
       return castToVariables(result);
     } catch (e) {
-      if (e instanceof Error) {
-        throw new JessieError('Error in Jessie script', e, {
-          node,
-          ast: this.ast,
-        });  
-      }
-
-      throw e;
+      // TODO: fix error types
+      throw new JessieError('Error in Jessie script', e as Error, {
+        node,
+        ast: this.ast,
+      });
     }
   }
 
