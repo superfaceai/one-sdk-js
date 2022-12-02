@@ -193,7 +193,7 @@ export const bodyFilter: Filter = ({
       BINARY_CONTENT_REGEXP.test(parameters.contentType)
     ) {
       let data: Buffer | IBinaryData;
-      if (Buffer.isBuffer(parameters.body) || isBinaryData(parameters.body)) { // TODO: instanceof vs isIBinaryData
+      if (Buffer.isBuffer(parameters.body) || isBinaryData(parameters.body)) {
         data = parameters.body;
       } else {
         // convert to string then buffer
