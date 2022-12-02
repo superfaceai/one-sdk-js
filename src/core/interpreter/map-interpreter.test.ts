@@ -1460,12 +1460,9 @@ describe('MapInterpreter', () => {
   it('should peek first few bytes of a binary file and then return entire file', async () => {
     const ast = parseMapFromSource(`
     map Test {
-      firstBytes = input.items.peek(10)
-      data = input.items.getAllData()
-
       map result {
-        firstBytes = firstBytes,
-        items = data
+        firstBytes = input.items.peek(10)
+        items = input.items.getAllData()
       }
     }`);
 
@@ -1495,7 +1492,7 @@ describe('MapInterpreter', () => {
     expect(items).toStrictEqual(expected);
   });
 
-  it('should resolve BinarData as Buffer if mapped as result', async () => {
+  it('should resolve BinaryData as Buffer if mapped as result', async () => {
     const ast = parseMapFromSource(`
     map Test {
       map result {
@@ -1527,7 +1524,7 @@ describe('MapInterpreter', () => {
     expect(items).toStrictEqual(expected);
   });
 
-  it('should resolve BinarData as empty Buffer if mapped as result and data already read', async () => {
+  it('should resolve BinaryData as empty Buffer if mapped as result and data already read', async () => {
     const ast = parseMapFromSource(`
     map Test {
       data = input.items.getAllData()
@@ -1561,8 +1558,6 @@ describe('MapInterpreter', () => {
   });
 
   it('should return the file in its entirety as base64', async () => {
-    // Comlink Map contains hack to solve async getAllData() call,
-    // by setting it variable first
     const ast = parseMapFromSource(`
     map Test {
       data = input.items.getAllData() // getAllData is async needs to be set to variable
@@ -1729,53 +1724,7 @@ describe('MapInterpreter', () => {
     expect(response).toStrictEqual({ ok: true });
   });
 
-  it('should send file as a stream in body', async () => {
-    const filePath = path.resolve(process.cwd(), 'fixtures', 'binary.txt');
-    const file = BinaryData.fromPath(filePath);
-    const expected = await readFile(filePath, 'utf8');
-    await mockServer.forPost('/test').thenCallback(async req => {
-      const body = await req.body.getText();
-      expect(body).toStrictEqual(expected);
-
-      return { status: 200, json: { ok: true } };
-    });
-
-    const ast = parseMapFromSource(`
-    map Test {
-      http POST "/test" {
-        request "video/notreallyvideo" {
-          body = input.items
-        }
-
-        response 200 {
-          map result body
-        }
-      }
-    }`);
-
-    const interpreter = new MapInterpreter(
-      {
-        usecase: 'Test',
-        security: [],
-        services: ServiceSelector.withDefaultUrl(mockServer.url),
-        input: {
-          items: file,
-        },
-      },
-      { fetchInstance, config, crypto }
-    );
-
-    const result = await interpreter.perform(ast);
-    if (result.isErr()) {
-      console.error(result.error);
-    }
-    expect(result.isOk()).toBe(true);
-
-    const response = result.unwrap();
-    expect(response).toStrictEqual({ ok: true });
-  });
-
-  it('should send file as a stream in FormData', async () => {
+  it('should send file in its entirety as FormData', async () => {
     const filePath = path.resolve(process.cwd(), 'fixtures', 'binary.txt');
     const file = BinaryData.fromPath(filePath);
     const expected = await readFile(filePath, 'utf8');
