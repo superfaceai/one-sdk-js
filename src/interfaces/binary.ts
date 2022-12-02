@@ -23,6 +23,7 @@ export interface IDestructible {
 export interface IBinaryFileMeta {
   readonly filename: string | undefined;
   readonly mimetype: string | undefined;
+  readonly filesize: number | undefined;
 }
 
 export function isBinaryData(input: unknown): input is IBinaryData {

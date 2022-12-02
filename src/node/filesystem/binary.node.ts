@@ -224,6 +224,14 @@ export class BinaryData
     return undefined;
   }
 
+  public get filesize(): number | undefined {
+    if (isBinaryFileMeta(this.dataContainer)) {
+      return this.dataContainer.filesize;
+    }
+
+    return undefined;
+  }
+
   public async initialize(): Promise<void> {
     if (isInitializable(this.dataContainer)) {
       await this.dataContainer.initialize();
