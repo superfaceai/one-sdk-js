@@ -1,8 +1,7 @@
 import { createReadStream } from 'fs';
 import type { FileHandle } from 'fs/promises';
 import { open } from 'fs/promises';
-import type { ReadableOptions } from 'stream';
-import { Readable } from 'stream';
+import type { Readable } from 'stream';
 
 import type {
   IBinaryData,
@@ -25,11 +24,27 @@ export class StreamReader {
 
   private pendingReadResolve: (() => void) | undefined
 
+  private dataCallback: (chunk: Buffer) => void;
+  private endCallback: (this: () => void) => void;
+
   constructor(stream: Readable) {
     this.buffer = Buffer.from([]);
     this.stream = stream;
-    this.stream.on('data', this.onData.bind(this));
-    this.stream.on('end', this.onEnd.bind(this));
+
+    this.dataCallback = this.onData.bind(this);
+    this.endCallback = this.onEnd.bind(this);
+
+    this.hook();
+  }
+
+  private hook() {
+    this.stream.on('data', this.dataCallback);
+    this.stream.on('end', this.endCallback);
+  }
+
+  private unhook() {
+    this.stream.off('data', this.dataCallback);
+    this.stream.off('end', this.endCallback);
   }
 
   private onData(chunk: Buffer) {
@@ -83,26 +98,10 @@ export class StreamReader {
 
     return chunk;
   }
-}
 
-export class ReadableClone extends Readable {
-  constructor(private stream: Readable, options?: ReadableOptions) {
-    super(options);
-
-    this.stream.on('data', (chunk) => {
-      this.push(chunk);
-    });
-
-    this.stream.on('end', () => {
-      this.push(null);
-    });
-
-    this.stream.on('error', (error) => {
-      this.emit('error', error);
-    })
+  public ejectStream(): void {
+    this.unhook();
   }
-
-  public override _read(): void {}
 }
 
 export class FileContainer implements IDataContainer, IBinaryFileMeta, IInitializable, IDestructible {
@@ -120,7 +119,11 @@ export class FileContainer implements IDataContainer, IBinaryFileMeta, IInitiali
 
   public async read(size?: number): Promise<Buffer | undefined> {
     if (!this.streamReader) {
-      throw new UnexpectedError('File not initialized');
+      if (!this.stream) {
+        throw new UnexpectedError('File not initialized');
+      }
+      
+      throw new UnexpectedError('File being streamed');
     }
 
     return await this.streamReader.read(size);
@@ -141,16 +144,14 @@ export class FileContainer implements IDataContainer, IBinaryFileMeta, IInitiali
       throw new UnexpectedError('Unable to initialize file');
     }
 
-    let stream: Readable;
     // We need to create a stream the old fashioned way for Node < 16.11.0
     if (typeof this.handle.createReadStream !== 'function') {
-      stream = createReadStream(this.path);
+      this.stream = createReadStream(this.path);
     } else {
-      stream = this.handle.createReadStream();
+      this.stream = this.handle.createReadStream();
     }
 
-    this.stream = new ReadableClone(stream);
-    this.streamReader = new StreamReader(new ReadableClone(stream));
+    this.streamReader = new StreamReader(this.stream);
   }
 
   public async destroy(): Promise<void> {
@@ -172,24 +173,34 @@ export class FileContainer implements IDataContainer, IBinaryFileMeta, IInitiali
       throw new UnexpectedError('File not initialized');
     }
 
+    this.streamReader?.ejectStream();
+    this.streamReader = undefined;
+
     return this.stream;
   }
 }
 
 export class StreamContainer implements IDataContainer {
   private stream: Readable;
-  private streamReader: StreamReader;
+  private streamReader: StreamReader | undefined;
 
   constructor(stream: Readable) {
-    this.stream = new ReadableClone(stream);
-    this.streamReader = new StreamReader(new ReadableClone(stream));
+    this.stream = stream;
+    this.streamReader = new StreamReader(this.stream);
   }
 
   public read(size?: number): Promise<Buffer | undefined> {
-    return this.streamReader?.read(size);
+    if (!this.streamReader) {
+      throw new UnexpectedError('File being streamed');
+    }
+
+    return this.streamReader.read(size);
   }
 
   public toStream(): Readable {
+    this.streamReader?.ejectStream();
+    this.streamReader = undefined;
+
     return this.stream;
   }
 }
@@ -276,6 +287,12 @@ export class BinaryData
     return data;
   }
 
+  /**
+   * Reads data from stream and returns chunk once filled with requested size
+   * 
+   * @param chunkSize Specifies how many bytes should be in one chunk, except last which can be smaller
+   * @returns Async interable returning one chunk
+   */
   public chunkBy(chunkSize: number): AsyncIterable<Buffer> {
     if (
       chunkSize === undefined ||
@@ -306,36 +323,42 @@ export class BinaryData
     };
   }
 
-  public async getAllData(): Promise<Buffer> {
+  /**
+   * Reads data from Stream until the stream is closed
+   * 
+   * @param [chunkSize=16000] specifies how much data in bytes to read in one chunk
+   * @returns Read data as Buffer
+   */
+  public async getAllData(chunkSize = 16000): Promise<Buffer> {
     let size = this.buffer.length;
 
     while (this.buffer.length >= size) {
-      size += 1000; // TODO constant
+      size += chunkSize;
       await this.fillBuffer(size);
     }
 
     return this.consumeBuffer();
   }
 
+  /**
+   * Reads data from stream and stores them
+   * in internal buffer for later consupmtion
+   * 
+   * @param [size=1] Specifies how much data to peek
+   * @returns Read data as Buffer
+   */
   public async peek(size = 1): Promise<Buffer> {
     await this.fillBuffer(size);
 
     return this.buffer.subarray(0, size);
   }
 
+  /**
+   * Converts BinaryData to Readable stream
+   * 
+   * @returns Readable instance
+   */
   public toStream(): Readable {
     return this.dataContainer.toStream();
-    /*
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const self = this;
-
-    return new Readable({
-      async read(size) {
-        console.log('reading', { size });
-
-        return await self.dataContainer.read(size);
-      },
-    });
-    */
   }
 }

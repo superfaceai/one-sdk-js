@@ -5,7 +5,7 @@ import { Readable } from 'stream';
 
 import { NotFoundError } from '../../core';
 import { UnexpectedError } from '../../lib';
-import { BinaryData, FileContainer, ReadableClone, StreamContainer, StreamReader } from './binary.node';
+import { BinaryData, FileContainer, StreamContainer, StreamReader } from './binary.node';
 
 const fixturePath = joinPath('fixtures', 'binary.txt');
 
@@ -62,25 +62,43 @@ describe('Node Binary', () => {
       await reader.read();
       expect(pauseSpy).toHaveBeenCalledTimes(1)  
     });
-  });
 
-  describe('RedableClone class', () => {
-    it('gets same data through both clones', async () => {
-      const original = new MockStream();
-      const firstClone = new ReadableClone(original);
-      const secondClone = new ReadableClone(original);
+    it('clears hooks from stream', async () => {
+      // add own hook to read all data
+      const hooked: string[] = [];
+      const testHook = (x?: Buffer) => { 
+        if (x !== undefined) hooked.push(x.toString('utf8'));
+      };
 
-      const firstChunks = [];
-      for await (const chunk of firstClone) {
-        firstChunks.push(chunk);
+      stream.on('data', testHook);
+      stream.on('end', testHook);
+
+      expect(stream.listenerCount('data')).toBe(2);
+      expect(stream.listenerCount('end')).toBe(2);
+
+      // Read one byte using stream reders
+      await reader.read(1);
+      expect(hooked.join('')).toBe('1');
+
+      // Eject stream from reader
+      reader.ejectStream();
+      expect(stream.listenerCount('data')).toBe(1);
+      expect(stream.listenerCount('end')).toBe(1);
+
+      // read remaining data directly from stream
+      const chunks = [];
+      for await (const chunk of stream) {
+        if (Buffer.isBuffer(chunk)) {
+          chunks.push(chunk.toString('utf8'));
+        } else {
+          chunks.push(chunk);
+        }
       }
 
-      const secondChunks = [];
-      for await (const chunk of secondClone) {
-        secondChunks.push(chunk);
-      }
-
-      expect(firstChunks).toEqual(secondChunks);
+      // all data from own hook
+      expect(hooked.join('')).toBe('12345678910');
+      // read directly from stream
+      expect(chunks.join('')).toBe('2345678910');
     });
   });
 
@@ -120,14 +138,6 @@ describe('Node Binary', () => {
     it('sets filesize', async () => {
       expect(fileContainer.filesize).not.toBe(Infinity);
     });
-
-    it('creates ReadableClone for data stream', async () => {
-      expect((fileContainer as any).stream).toBeInstanceOf(ReadableClone);
-    });
-
-    it('passes ReadableClone to StreamReader', async () => {
-      expect((fileContainer as any).streamReader.stream).toBeInstanceOf(ReadableClone);
-    });
   });
 
   describe('StreamContainer class', () => {
@@ -137,12 +147,10 @@ describe('Node Binary', () => {
       streamContainer = new StreamContainer(new MockStream());
     });
 
-    it('creates ReadableClone for data stream', async () => {
-      expect((streamContainer as any).stream).toBeInstanceOf(ReadableClone);
-    });
-
-    it('passes ReadableClone to StreamReader', async () => {
-      expect((streamContainer as any).streamReader.stream).toBeInstanceOf(ReadableClone);
+    describe('toStream', () => {
+      it('returns readable', () => {
+        expect(streamContainer.toStream()).toBeInstanceOf(Readable);
+      });
     });
   });
 

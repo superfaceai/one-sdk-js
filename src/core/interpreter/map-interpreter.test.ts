@@ -1406,7 +1406,7 @@ describe('MapInterpreter', () => {
     }
     
     operation mapItem {
-        return args.item
+      return args.item
     }`);
 
     const interpreter = new MapInterpreter(
@@ -1772,7 +1772,7 @@ describe('MapInterpreter', () => {
     expect(response).toStrictEqual({ ok: true });
   });
 
-  it('should send file as a stream in FormData with passed mimetype and filename', async () => {
+  it('should send file in its entirety as FormData with passed mimetype and filename', async () => {
     const filePath = path.resolve(process.cwd(), 'fixtures', 'binary.txt');
     const file = BinaryData.fromPath(filePath, { filename: 'binary.txt', mimetype: 'text/plain' });
 
