@@ -197,9 +197,9 @@ describe('NodeFetch', () => {
         });
       });
 
-    it('should call text', async () => {
-      expect(responseTextMock).toHaveBeenCalled();
-    });
+      it('should call text', async () => {
+        expect(responseTextMock).toHaveBeenCalled();
+      });
 
       it('should return plain text in body', async () => {
         expect(result.body).toBe('foobar');

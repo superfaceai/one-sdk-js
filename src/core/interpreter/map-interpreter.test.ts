@@ -1854,4 +1854,32 @@ describe('MapInterpreter', () => {
 
     expect(result.unwrap()).toStrictEqual(12);
   });
+
+  it('should return ArrayBuffer when for binary response', async () => {
+    const url = '/twelve';
+    const filePath = path.resolve(process.cwd(), 'fixtures', 'binary.txt');
+    await mockServer.forGet(url).thenFromFile(200, filePath, { 'content-type': 'application/octet-stream' });
+
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+        services: mockServicesSelector,
+      },
+      { fetchInstance, config, crypto }
+    );
+    const ast = parseMapFromSource(`
+      map Test {
+        http GET "${url}" {
+          response 200 "application/octet-stream" {
+            map result body
+          }
+        }
+      }`);
+    const result = await interpreter.perform(ast);
+    const expected = (await readFile(filePath)).toString('utf8');
+
+    expect(result.unwrap() instanceof ArrayBuffer).toBe(true);
+    expect(Buffer.from(result.unwrap() as ArrayBuffer).toString('utf8')).toBe(expected);
+  });
 });
