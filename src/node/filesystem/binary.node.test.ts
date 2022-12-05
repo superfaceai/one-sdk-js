@@ -242,7 +242,7 @@ describe('Node Binary', () => {
       });
 
       describe('stream', () => {
-        it('should stream data correctly', async () => {
+        it('should stream data correctly', () => {
           const stream = binaryData.toStream();
           expect(stream).toBeInstanceOf(Readable);
         });

@@ -1883,3 +1883,4 @@ describe('MapInterpreter', () => {
     expect(Buffer.from(result.unwrap() as ArrayBuffer).toString('utf8')).toBe(expected);
   });
 });
+  

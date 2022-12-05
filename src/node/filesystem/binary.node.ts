@@ -1,7 +1,7 @@
 import { createReadStream } from 'fs';
 import type { FileHandle } from 'fs/promises';
 import { open } from 'fs/promises';
-import type { Readable } from 'stream';
+import { Readable } from 'stream';
 
 import type {
   IBinaryData,
@@ -78,7 +78,7 @@ export class StreamReader {
     this.pendingReadResolve = undefined;
   }
 
-  public async read(size = 1): Promise<Buffer | undefined> {
+  public async read(size = 1): Promise<Buffer> {
     while (this.buffer.length < size) {
       if (this.ended) {
         if (this.buffer.length > 0) {
@@ -86,7 +86,7 @@ export class StreamReader {
           break;
         } else {
           // signal EOF
-          return undefined;
+          return Buffer.from([]);
         }
       }
 
@@ -117,7 +117,7 @@ export class FileContainer implements IDataContainer, IBinaryFileMeta, IInitiali
     this.filename = options.filename;
   }
 
-  public async read(size?: number): Promise<Buffer | undefined> {
+  public async read(size?: number): Promise<Buffer> {
     if (!this.streamReader) {
       if (!this.stream) {
         throw new UnexpectedError('File not initialized');
@@ -189,7 +189,7 @@ export class StreamContainer implements IDataContainer {
     this.streamReader = new StreamReader(this.stream);
   }
 
-  public read(size?: number): Promise<Buffer | undefined> {
+  public read(size?: number): Promise<Buffer> {
     if (!this.streamReader) {
       throw new UnexpectedError('File being streamed');
     }
@@ -267,7 +267,7 @@ export class BinaryData
   private async fillBuffer(sizeAtLeast: number): Promise<void> {
     if (this.buffer.length < sizeAtLeast) {
       const read = await this.dataContainer.read(sizeAtLeast - this.buffer.length);
-      if (read !== undefined) {
+      if (read.length > 0) {
         this.buffer = Buffer.concat([this.buffer, read]);
       }
     }
@@ -359,6 +359,24 @@ export class BinaryData
    * @returns Readable instance
    */
   public toStream(): Readable {
-    return this.dataContainer.toStream();
+    const source = this.dataContainer.toStream();
+
+    const readable = new Readable({
+      async read() {
+        for await (const chunk of source) {
+          if (!this.push(chunk)) {
+            return;
+          }
+        }
+
+        this.push(null);
+      }
+    });
+
+    if (this.buffer.length > 0) {
+      readable.push(this.buffer);
+    }
+  
+    return readable;
   }
 }
