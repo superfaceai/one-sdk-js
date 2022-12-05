@@ -1,15 +1,13 @@
-import type { Readable } from 'stream';
-
 export interface IDataContainer {
   read(size?: number): Promise<Buffer>;
-  toStream(): Readable;
+  toStream(): NodeJS.ReadableStream;
 }
 
 export interface IBinaryData {
   peek(size?: number): Promise<Buffer>;
   getAllData(): Promise<Buffer>;
   chunkBy(chunkSize: number): AsyncIterable<Buffer>;
-  toStream(): Readable;
+  toStream(): NodeJS.ReadableStream;
 }
 
 export interface IInitializable {

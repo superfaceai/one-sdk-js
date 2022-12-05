@@ -18,7 +18,7 @@ import { UnexpectedError } from '../../lib';
 import { handleNodeError } from './filesystem.node';
 
 export class StreamReader {
-  private stream: Readable;
+  private stream: NodeJS.ReadableStream;
   private buffer: Buffer;
   private ended = false;
 
@@ -27,7 +27,7 @@ export class StreamReader {
   private dataCallback: (chunk: Buffer) => void;
   private endCallback: (this: () => void) => void;
 
-  constructor(stream: Readable) {
+  constructor(stream: NodeJS.ReadableStream) {
     this.buffer = Buffer.from([]);
     this.stream = stream;
 
@@ -106,7 +106,7 @@ export class StreamReader {
 
 export class FileContainer implements IDataContainer, IBinaryFileMeta, IInitializable, IDestructible {
   private handle: FileHandle | undefined;
-  private stream: Readable | undefined;
+  private stream: NodeJS.ReadableStream | undefined;
   private streamReader: StreamReader | undefined;
   public filesize = Infinity;
   public filename: string | undefined;
@@ -168,7 +168,7 @@ export class FileContainer implements IDataContainer, IBinaryFileMeta, IInitiali
     }
   }
 
-  public toStream(): Readable {
+  public toStream(): NodeJS.ReadableStream {
     if (this.stream === undefined) {
       throw new UnexpectedError('File not initialized');
     }
@@ -181,10 +181,10 @@ export class FileContainer implements IDataContainer, IBinaryFileMeta, IInitiali
 }
 
 export class StreamContainer implements IDataContainer {
-  private stream: Readable;
+  private stream: NodeJS.ReadableStream;
   private streamReader: StreamReader | undefined;
 
-  constructor(stream: Readable) {
+  constructor(stream: NodeJS.ReadableStream) {
     this.stream = stream;
     this.streamReader = new StreamReader(this.stream);
   }
@@ -197,7 +197,7 @@ export class StreamContainer implements IDataContainer {
     return this.streamReader.read(size);
   }
 
-  public toStream(): Readable {
+  public toStream(): NodeJS.ReadableStream {
     this.streamReader?.ejectStream();
     this.streamReader = undefined;
 
@@ -218,7 +218,7 @@ export class BinaryData
     return new BinaryData(new FileContainer(filename, options));
   }
 
-  public static fromStream(stream: Readable): BinaryData {
+  public static fromStream(stream: NodeJS.ReadableStream): BinaryData {
     return new BinaryData(new StreamContainer(stream));
   }
 
@@ -358,7 +358,7 @@ export class BinaryData
    * 
    * @returns Readable instance
    */
-  public toStream(): Readable {
+  public toStream(): NodeJS.ReadableStream {
     const source = this.dataContainer.toStream();
 
     const readable = new Readable({

@@ -2,7 +2,6 @@ import { AbortController } from 'abort-controller';
 import FormData from 'form-data';
 import type { HeadersInit, RequestInit, Response } from 'node-fetch';
 import fetch, { Headers } from 'node-fetch';
-import type { Readable } from 'stream';
 
 import type {
   AuthCache,
@@ -173,7 +172,7 @@ export class NodeFetch implements IFetch, Interceptable, AuthCache {
 
   private body(
     body?: FetchBody
-  ): string | URLSearchParams | FormData | Buffer | Readable | undefined {
+  ): string | URLSearchParams | FormData | Buffer | NodeJS.ReadableStream | undefined {
     if (body) {
       if (isStringBody(body) || isBinaryBody(body)) {
         if (isBinaryData(body.data)) {
