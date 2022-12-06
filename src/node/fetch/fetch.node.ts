@@ -77,7 +77,7 @@ export class NodeFetch implements IFetch, Interceptable, AuthCache {
     ) {
       body = await response.json();
     } else if (this.isBinaryContent(headers, parameters.headers)) {
-      body = await response.arrayBuffer();
+      body = await response.arrayBuffer(); // TODO: BinaryData.fromStream(response.body)
     } else {
       body = await response.text();
     }
