@@ -1,7 +1,8 @@
 import { createReadStream } from 'fs';
 import type { FileHandle } from 'fs/promises';
 import { open } from 'fs/promises';
-import { PassThrough, Readable } from 'stream';
+import type { Readable } from 'stream';
+import { PassThrough } from 'stream';
 
 import type {
   IBinaryData,
@@ -360,32 +361,17 @@ export class BinaryData
   }
 
   /**
-   * Converts BinaryData to Readable stream
+   * Returns stream to read BinaryData
    * 
    * @returns Readable instance
    */
   public toStream(): NodeJS.ReadableStream {
-    const source = this.dataContainer.toStream();
+    const stream = this.dataContainer.toStream();
 
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const self = this;
+    if (this.buffer.length > 0) {
+      stream.unshift(this.consumeBuffer());
+    }
 
-    // TODO just unshift buffered data?
-    return new Readable({
-      async read() {
-        // If some data were peeked we push them to stream at the beginning
-        if (self.buffer.length > 0) {
-          this.push(self.consumeBuffer());
-        }
-
-        for await (const chunk of source) {
-          if (!this.push(chunk)) {
-            return; // All read stop reading
-          }
-        }
-
-        this.push(null); // Source didn't return any data, but can do so later
-      }
-    });
+    return stream;
   }
 }
