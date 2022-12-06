@@ -288,6 +288,29 @@ export class BinaryData
   }
 
   /**
+   * Reads data and stores them in internal buffer for later consumption
+   * 
+   * @param [size=1] Specifies how much data to peek
+   * @returns Peeked data as Buffer
+   */
+  public async peek(size = 1): Promise<Buffer> {
+    await this.fillBuffer(size);
+
+    return this.buffer.subarray(0, size);
+  }
+
+  /**
+   * Reads data
+   * @param [size=1] Specifies how much data to read
+   * @returns Read data as Buffer
+   */
+  public async read(size = 1): Promise<Buffer> {
+    await this.fillBuffer(size);
+
+    return this.consumeBuffer();
+  }
+
+  /**
    * Reads data from stream and returns chunk once filled with requested size
    * 
    * @param chunkSize Specifies how many bytes should be in one chunk, except last which can be smaller
@@ -338,19 +361,6 @@ export class BinaryData
     }
 
     return this.consumeBuffer();
-  }
-
-  /**
-   * Reads data from stream and stores them
-   * in internal buffer for later consupmtion
-   * 
-   * @param [size=1] Specifies how much data to peek
-   * @returns Read data as Buffer
-   */
-  public async peek(size = 1): Promise<Buffer> {
-    await this.fillBuffer(size);
-
-    return this.buffer.subarray(0, size);
   }
 
   /**

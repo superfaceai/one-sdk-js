@@ -4,7 +4,6 @@ import type { ReadableOptions } from 'stream';
 import { Readable } from 'stream';
 
 import { NotFoundError } from '../../core';
-import { UnexpectedError } from '../../lib';
 import { BinaryData, FileContainer, StreamContainer, StreamReader } from './binary.node';
 
 const fixturePath = joinPath('fixtures', 'binary.txt');
@@ -187,6 +186,27 @@ describe('Node Binary', () => {
         await binaryData.destroy();
       });
 
+      describe('peek 10', () => {
+        it('peeks data correctly', async () => {
+          const peekedData = await binaryData.peek(10);
+          expect(peekedData.toString('utf8')).toEqual(originalData.subarray(0, 10).toString());
+        });
+      });
+
+      describe('read 10', () => {
+        it('reads data correctly', async () => {
+          const readData = await binaryData.read(10);
+          expect(readData.toString('utf8')).toEqual(originalData.subarray(0, 10).toString());
+        });
+      });
+
+      describe('get all data', () => {
+        it('gets all data correctly', async () => {
+          const allData = (await binaryData.getAllData()).toString('utf8');
+          expect(allData).toEqual(originalData.toString());
+        });
+      });
+
       describe('chunk by 10', () => {
         it('chunks file correctly', async () => {
           let offset = 0;
@@ -214,30 +234,6 @@ describe('Node Binary', () => {
           expect(() =>
             binaryData.chunkBy(Buffer.from('hello world!') as any)
           ).toThrow();
-        });
-      });
-
-      describe('get all data', () => {
-        it('gets all data correctly', async () => {
-          const allData = (await binaryData.getAllData()).toString('utf8');
-          expect(allData).toEqual(originalData.toString());
-        });
-
-        it('throws an error if trying to get all data from a file that is not initialized', async () => {
-          const differentBinaryFile = BinaryData.fromPath(fixturePath);
-          await expect(differentBinaryFile.getAllData()).rejects.toBeInstanceOf(UnexpectedError);
-        });
-      });
-
-      describe('peek 10', () => {
-        it('peeks data correctly', async () => {
-          const peekedData = await binaryData.peek(10);
-          expect(peekedData?.toString('utf8')).toEqual(originalData.subarray(0, 10).toString());
-        });
-
-        it('throws an error if trying to peek a file that is not initialized', async () => {
-          const differentBinaryFile = BinaryData.fromPath(fixturePath);
-          await expect(differentBinaryFile.peek(10)).rejects.toBeInstanceOf(UnexpectedError);
         });
       });
 

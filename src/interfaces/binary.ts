@@ -5,6 +5,7 @@ export interface IDataContainer {
 
 export interface IBinaryData {
   peek(size?: number): Promise<Uint8Array>;
+  read(size?: number): Promise<Uint8Array>;
   getAllData(): Promise<Uint8Array>;
   chunkBy(chunkSize: number): AsyncIterable<Uint8Array>;
   toStream(): NodeJS.ReadableStream;
