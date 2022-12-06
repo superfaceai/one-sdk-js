@@ -11,23 +11,34 @@ const fixturePath = joinPath('fixtures', 'binary.txt');
 
 class MockStream extends Readable {
   private max: number;
+  private readSize: number;
   private index: number;
 
-  constructor(max = 10, options?: ReadableOptions) {
+  constructor(max = 10, readSize = 1, options?: ReadableOptions) {
     super(options);
     this.max = max;
-    this.index = 1;
+    this.readSize = readSize;
+    this.index = 0;
   }
 
   public override _read() {
-    const i = this.index++;
-    if (i > this.max) {
-      this.push(null);
-    } else {
-      const str = String(i);
-      const buf = Buffer.from(str);
-      this.push(buf);
+    let i = this.index;
+    this.index += this.readSize;
+
+    let str = '';
+
+    while (i < this.index) {
+      str += String(i);
+      i += 1;
     }
+
+    if (str.length !== 0) {
+      this.push(Buffer.from(str));
+    }
+
+    if (i >= this.max) {
+      this.push(null);
+    } 
   }
 }
 
@@ -43,17 +54,17 @@ describe('Node Binary', () => {
 
     it('reads one byte as default', async () => {
       const read = await reader.read();
-      expect(read.toString('utf8')).toBe('1');
+      expect(read.toString('utf8')).toBe('0');
     });
 
     it('reads at least 5', async () => {
       const read = await reader.read(5);
-      expect(read.toString('utf8')).toBe('12345');
+      expect(read.toString('utf8')).toBe('01234');
     });
 
     it('reads all data if read size is more than stream size', async () => {
       const read = await reader.read(100);
-      expect(read.toString('utf8')).toBe('12345678910');
+      expect(read.toString('utf8')).toBe('0123456789');
     });
 
     it('pauses stream after readding byte', async () => {
@@ -90,7 +101,10 @@ describe('Node Binary', () => {
       it('reads first byte using read and rest from stream', async () => {
         // Read one byte using stream reders
         const read = await reader.read(1);
-        expect(read.toString('utf8')).toBe('1');
+        expect(read.toString('utf8')).toBe('0');
+
+        // Eject stream from reader
+        reader.ejectStream();
 
         // read remaining data directly from stream
         const chunks = [];
@@ -103,11 +117,39 @@ describe('Node Binary', () => {
         }
 
         // read directly from stream
-        expect(chunks.join('')).toBe('2345678910');
+        expect(chunks.join('')).toBe('123456789');
       });
 
       it('pushes back read data from internal buffer to original stream', async () => {
-        // TODO
+        stream = new MockStream(10, 5);
+        reader = new StreamReader(stream);
+
+        const read = await reader.read(4); // leaves one byte in buffer
+
+        reader.ejectStream();
+
+        const chunks = [read];
+        for await (const chunk of stream) {
+          chunks.push(chunk);
+        }
+
+        expect(Buffer.concat(chunks).toString('utf8')).toBe('0123456789');
+      });
+
+      it('consumes all stream and still pushes back inner buffer', async () => {
+        stream = new MockStream(10, 10);
+        reader = new StreamReader(stream);
+
+        const read = await reader.read(9); // leaves one byte in buffer
+
+        reader.ejectStream();
+
+        const chunks = [read];
+        for await (const chunk of stream) {
+          chunks.push(chunk);
+        }
+
+        expect(Buffer.concat(chunks).toString('utf8')).toBe('0123456789');
       });
     });
   });
