@@ -119,7 +119,6 @@ export class StreamReader {
 
 export class FileContainer implements IDataContainer, IBinaryFileMeta, IInitializable, IDestructible {
   private handle: FileHandle | undefined;
-  private stream: NodeJS.ReadableStream | undefined;
   private streamReader: StreamReader | undefined;
   public filesize = Infinity;
   public filename: string | undefined;
@@ -132,11 +131,7 @@ export class FileContainer implements IDataContainer, IBinaryFileMeta, IInitiali
 
   public async read(size?: number): Promise<Buffer> {
     if (!this.streamReader) {
-      if (!this.stream) {
-        throw new UnexpectedError('File not initialized');
-      }
-      
-      throw new UnexpectedError('File being streamed');
+      throw new UnexpectedError('File not initialized');
     }
 
     return await this.streamReader.read(size);
@@ -158,20 +153,20 @@ export class FileContainer implements IDataContainer, IBinaryFileMeta, IInitiali
     }
 
     // We need to create a stream the old fashioned way for Node < 16.11.0
+    let stream: Readable;
     if (typeof this.handle.createReadStream !== 'function') {
-      this.stream = createReadStream(this.path);
+      stream = createReadStream(this.path);
     } else {
-      this.stream = this.handle.createReadStream();
+      stream = this.handle.createReadStream();
     }
 
-    this.streamReader = new StreamReader(this.stream);
+    this.streamReader = new StreamReader(stream);
   }
 
   public async destroy(): Promise<void> {
     if (this.handle !== undefined) {
       try {
         await this.handle.close();
-        this.stream = undefined;
         this.streamReader = undefined;
         this.filesize = Infinity;
         this.handle = undefined;
@@ -191,12 +186,10 @@ export class FileContainer implements IDataContainer, IBinaryFileMeta, IInitiali
 }
 
 export class StreamContainer implements IDataContainer {
-  private stream: NodeJS.ReadableStream;
   private streamReader: StreamReader;
 
   constructor(stream: NodeJS.ReadableStream) {
-    this.stream = stream;
-    this.streamReader = new StreamReader(this.stream);
+    this.streamReader = new StreamReader(stream);
   }
 
   public read(size?: number): Promise<Buffer> {
