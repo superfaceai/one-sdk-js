@@ -4,6 +4,7 @@ import { readFile } from 'fs/promises';
 import { getLocal } from 'mockttp';
 import * as path from 'path';
 
+import { UnexpectedError } from '../../lib';
 import { MockTimers } from '../../mock';
 import {
   BinaryData,
@@ -1492,7 +1493,7 @@ describe('MapInterpreter', () => {
     expect(items).toStrictEqual(expected);
   });
 
-  it('should resolve BinaryData as Buffer if mapped as result', async () => {
+  it('should return UnexpectedError if BinaryData as result', async () => {
     const ast = parseMapFromSource(`
     map Test {
       map result {
@@ -1514,47 +1515,8 @@ describe('MapInterpreter', () => {
     );
 
     const result = await interpreter.perform(ast);
-    if (result.isErr()) {
-      console.error(result.error);
-    }
-    expect(result.isOk()).toBe(true);
-    const items = (result.unwrap() as { items: Buffer }).items;
-    const expected = await readFile(filePath);
-
-    expect(items).toStrictEqual(expected);
-  });
-
-  it('should resolve BinaryData as empty Buffer if mapped as result and data already read', async () => {
-    const ast = parseMapFromSource(`
-    map Test {
-      data = input.items.getAllData()
-
-      map result {
-        items = input.items
-      }
-    }`);
-
-    const filePath = path.resolve(process.cwd(), 'fixtures', 'binary.txt');
-    const interpreter = new MapInterpreter(
-      {
-        usecase: 'Test',
-        security: [],
-        services: ServiceSelector.withDefaultUrl(''),
-        input: {
-          items: BinaryData.fromPath(filePath),
-        },
-      },
-      { fetchInstance, config, crypto }
-    );
-
-    const result = await interpreter.perform(ast);
-    if (result.isErr()) {
-      console.error(result.error);
-    }
-    expect(result.isOk()).toBe(true);
-    const items = (result.unwrap() as { items: Buffer }).items;
-
-    expect(items).toStrictEqual(Buffer.from(''));
+    expect(result.isErr()).toBe(true);
+    expect(result.isErr() && result.error).toBeInstanceOf(UnexpectedError);
   });
 
   it('should return the file in its entirety as base64', async () => {
