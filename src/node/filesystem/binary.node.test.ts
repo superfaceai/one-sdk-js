@@ -74,7 +74,7 @@ describe('Node Binary', () => {
       expect(pauseSpy).toHaveBeenCalledTimes(1)  
     });
 
-    describe('ejectStream', () => {
+    describe('toStream', () => {
       // add own hook to read all data
       let hooked: string[];
       const testHook = (x?: Buffer) => { 
@@ -87,65 +87,60 @@ describe('Node Binary', () => {
         stream.on('end', testHook);
       });
 
-      it('clears hooks from stream', async () => {
+      it('clears StreamReader hooks from stream', async () => {
         expect(stream.listenerCount('data')).toBe(2);
         expect(stream.listenerCount('end')).toBe(2);
 
-        // Eject stream from reader
-        reader.ejectStream();
+        reader.toStream();
 
-        expect(stream.listenerCount('data')).toBe(1);
-        expect(stream.listenerCount('end')).toBe(1);
+        expect(stream.listenerCount('data')).toBe(2); // testHook + passThrough
+        expect(stream.listenerCount('end')).toBe(2);
       });
 
       it('reads first byte using read and rest from stream', async () => {
         // Read one byte using stream reders
         const read = await reader.read(1);
-        expect(read.toString('utf8')).toBe('0');
 
-        // Eject stream from reader
-        reader.ejectStream();
+        const newStream = reader.toStream();
 
         // read remaining data directly from stream
-        const chunks = [];
-        for await (const chunk of stream) {
+        const chunks = [read];
+        for await (const chunk of newStream) {
           if (Buffer.isBuffer(chunk)) {
-            chunks.push(chunk.toString('utf8'));
+            chunks.push(chunk);
           } else {
             chunks.push(chunk);
           }
         }
 
-        // read directly from stream
-        expect(chunks.join('')).toBe('123456789');
+        expect(Buffer.concat(chunks).toString('utf8')).toBe('0123456789');
       });
 
-      it('pushes back read data from internal buffer to original stream', async () => {
+      it('pushes read data to returned stream', async () => {
         stream = new MockStream(10, 5);
         reader = new StreamReader(stream);
 
         const read = await reader.read(4); // leaves one byte in buffer
 
-        reader.ejectStream();
+        const newStream = reader.toStream();
 
         const chunks = [read];
-        for await (const chunk of stream) {
+        for await (const chunk of newStream) {
           chunks.push(chunk);
         }
 
         expect(Buffer.concat(chunks).toString('utf8')).toBe('0123456789');
       });
 
-      it('consumes all stream and still pushes back inner buffer', async () => {
+      it('consumes all stream and still provides buffer data through returned stream', async () => {
         stream = new MockStream(10, 10);
         reader = new StreamReader(stream);
 
         const read = await reader.read(9); // leaves one byte in buffer
-
-        reader.ejectStream();
+        const newStream = reader.toStream();
 
         const chunks = [read];
-        for await (const chunk of stream) {
+        for await (const chunk of newStream) {
           chunks.push(chunk);
         }
 

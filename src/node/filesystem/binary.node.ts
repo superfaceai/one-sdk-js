@@ -1,7 +1,7 @@
 import { createReadStream } from 'fs';
 import type { FileHandle } from 'fs/promises';
 import { open } from 'fs/promises';
-import { Readable } from 'stream';
+import { PassThrough, Readable } from 'stream';
 
 import type {
   IBinaryData,
@@ -28,7 +28,7 @@ export class StreamReader {
   private endCallback: (this: () => void) => void;
 
   constructor(stream: NodeJS.ReadableStream) {
-    this.buffer = Buffer.from([]);
+    this.buffer = Buffer.alloc(0);
     this.stream = stream;
 
     this.dataCallback = this.onData.bind(this);
@@ -86,7 +86,7 @@ export class StreamReader {
           break;
         } else {
           // signal EOF
-          return Buffer.from([]);
+          return Buffer.alloc(0);
         }
       }
 
@@ -99,11 +99,21 @@ export class StreamReader {
     return chunk;
   }
 
-  public ejectStream(): void {
+  public toStream(): Readable {
     this.unhook();
 
-    this.stream.unshift(this.buffer); // return data that were read to stream buffer
-    this.buffer = Buffer.from([]);
+    const buffer = this.buffer;
+    this.buffer = Buffer.alloc(0);
+
+    const pass = new PassThrough();
+
+    if (buffer.length > 0) {
+      pass.push(buffer);
+    }
+    
+    this.stream.pipe(pass);
+
+    return pass;
   }
 }
 
@@ -172,24 +182,17 @@ export class FileContainer implements IDataContainer, IBinaryFileMeta, IInitiali
   }
 
   public toStream(): NodeJS.ReadableStream {
-    if (this.stream === undefined) {
+    if (this.streamReader === undefined) {
       throw new UnexpectedError('File not initialized');
     }
 
-    if (this.streamReader === undefined) {
-      return this.stream;
-    }
-
-    this.streamReader.ejectStream();
-    this.streamReader = undefined;
-
-    return this.stream;
+    return this.streamReader.toStream();
   }
 }
 
 export class StreamContainer implements IDataContainer {
   private stream: NodeJS.ReadableStream;
-  private streamReader: StreamReader | undefined;
+  private streamReader: StreamReader;
 
   constructor(stream: NodeJS.ReadableStream) {
     this.stream = stream;
@@ -197,18 +200,11 @@ export class StreamContainer implements IDataContainer {
   }
 
   public read(size?: number): Promise<Buffer> {
-    if (!this.streamReader) {
-      throw new UnexpectedError('File being streamed');
-    }
-
     return this.streamReader.read(size);
   }
 
   public toStream(): NodeJS.ReadableStream {
-    this.streamReader?.ejectStream();
-    this.streamReader = undefined;
-
-    return this.stream;
+    return this.streamReader.toStream();
   }
 }
 
@@ -230,7 +226,7 @@ export class BinaryData
   }
 
   private constructor(private dataContainer: IDataContainer) {
-    this.buffer = Buffer.from([]);
+    this.buffer = Buffer.alloc(0);
   }
 
   public get filename(): string | undefined {
@@ -268,7 +264,7 @@ export class BinaryData
       await this.dataContainer.destroy();
     }
 
-    this.buffer = Buffer.from([]);
+    this.buffer = Buffer.alloc(0);
   }
 
   private async fillBuffer(sizeAtLeast: number): Promise<void> {
@@ -285,7 +281,7 @@ export class BinaryData
 
     if (size === undefined) {
       data = this.buffer;
-      this.buffer = Buffer.from([]);
+      this.buffer = Buffer.alloc(0);
     } else {
       data = this.buffer.subarray(0, size);
       this.buffer = this.buffer.subarray(size);
@@ -381,6 +377,7 @@ export class BinaryData
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this;
 
+    // TODO just unshift buffered data?
     return new Readable({
       async read() {
         // If some data were peeked we push them to stream at the beginning
