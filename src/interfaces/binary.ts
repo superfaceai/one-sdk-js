@@ -1,12 +1,12 @@
 export interface IDataContainer {
-  read(size?: number): Promise<Buffer>;
-  toStream(): NodeJS.ReadableStream;
+  read(size?: number): Promise<Uint8Array>;
+  toStream(): NodeJS.ReadableStream; // FIXME: This should be ECMAScript ReadableStream
 }
 
 export interface IBinaryData {
-  peek(size?: number): Promise<Buffer>;
-  getAllData(): Promise<Buffer>;
-  chunkBy(chunkSize: number): AsyncIterable<Buffer>;
+  peek(size?: number): Promise<Uint8Array>;
+  getAllData(): Promise<Uint8Array>;
+  chunkBy(chunkSize: number): AsyncIterable<Uint8Array>;
   toStream(): NodeJS.ReadableStream;
 }
 
