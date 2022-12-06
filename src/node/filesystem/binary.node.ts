@@ -101,6 +101,9 @@ export class StreamReader {
 
   public ejectStream(): void {
     this.unhook();
+
+    this.stream.unshift(this.buffer); // return data that were read to stream buffer
+    this.buffer = Buffer.from([]);
   }
 }
 
@@ -173,7 +176,11 @@ export class FileContainer implements IDataContainer, IBinaryFileMeta, IInitiali
       throw new UnexpectedError('File not initialized');
     }
 
-    this.streamReader?.ejectStream();
+    if (this.streamReader === undefined) {
+      return this.stream;
+    }
+
+    this.streamReader.ejectStream();
     this.streamReader = undefined;
 
     return this.stream;
@@ -371,22 +378,24 @@ export class BinaryData
   public toStream(): NodeJS.ReadableStream {
     const source = this.dataContainer.toStream();
 
-    const readable = new Readable({
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const self = this;
+
+    return new Readable({
       async read() {
+        // If some data were peeked we push them to stream at the beginning
+        if (self.buffer.length > 0) {
+          this.push(self.consumeBuffer());
+        }
+
         for await (const chunk of source) {
           if (!this.push(chunk)) {
-            return;
+            return; // All read stop reading
           }
         }
 
-        this.push(null);
+        this.push(null); // Source didn't return any data, but can do so later
       }
     });
-
-    if (this.buffer.length > 0) {
-      readable.push(this.buffer);
-    }
-  
-    return readable;
   }
 }

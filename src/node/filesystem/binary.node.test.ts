@@ -4,6 +4,7 @@ import type { ReadableOptions } from 'stream';
 import { Readable } from 'stream';
 
 import { NotFoundError } from '../../core';
+import { UnexpectedError } from '../../lib';
 import { BinaryData, FileContainer, StreamContainer, StreamReader } from './binary.node';
 
 const fixturePath = joinPath('fixtures', 'binary.txt');
@@ -20,9 +21,9 @@ class MockStream extends Readable {
 
   public override _read() {
     const i = this.index++;
-    if (i > this.max)
+    if (i > this.max) {
       this.push(null);
-    else {
+    } else {
       const str = String(i);
       const buf = Buffer.from(str);
       this.push(buf);
@@ -42,17 +43,17 @@ describe('Node Binary', () => {
 
     it('reads one byte as default', async () => {
       const read = await reader.read();
-      expect(read).toStrictEqual(Buffer.from('1'));
+      expect(read.toString('utf8')).toBe('1');
     });
 
     it('reads at least 5', async () => {
       const read = await reader.read(5);
-      expect(read).toStrictEqual(Buffer.from('12345'));
+      expect(read.toString('utf8')).toBe('12345');
     });
 
     it('reads all data if read size is more than stream size', async () => {
       const read = await reader.read(100);
-      expect(read).toStrictEqual(Buffer.from('12345678910'));
+      expect(read.toString('utf8')).toBe('12345678910');
     });
 
     it('pauses stream after readding byte', async () => {
@@ -62,42 +63,52 @@ describe('Node Binary', () => {
       expect(pauseSpy).toHaveBeenCalledTimes(1)  
     });
 
-    it('clears hooks from stream', async () => {
+    describe('ejectStream', () => {
       // add own hook to read all data
-      const hooked: string[] = [];
+      let hooked: string[];
       const testHook = (x?: Buffer) => { 
         if (x !== undefined) hooked.push(x.toString('utf8'));
       };
 
-      stream.on('data', testHook);
-      stream.on('end', testHook);
+      beforeEach(() => {
+        hooked = [];
+        stream.on('data', testHook);
+        stream.on('end', testHook);
+      });
 
-      expect(stream.listenerCount('data')).toBe(2);
-      expect(stream.listenerCount('end')).toBe(2);
+      it('clears hooks from stream', async () => {
+        expect(stream.listenerCount('data')).toBe(2);
+        expect(stream.listenerCount('end')).toBe(2);
 
-      // Read one byte using stream reders
-      await reader.read(1);
-      expect(hooked.join('')).toBe('1');
+        // Eject stream from reader
+        reader.ejectStream();
 
-      // Eject stream from reader
-      reader.ejectStream();
-      expect(stream.listenerCount('data')).toBe(1);
-      expect(stream.listenerCount('end')).toBe(1);
+        expect(stream.listenerCount('data')).toBe(1);
+        expect(stream.listenerCount('end')).toBe(1);
+      });
 
-      // read remaining data directly from stream
-      const chunks = [];
-      for await (const chunk of stream) {
-        if (Buffer.isBuffer(chunk)) {
-          chunks.push(chunk.toString('utf8'));
-        } else {
-          chunks.push(chunk);
+      it('reads first byte using read and rest from stream', async () => {
+        // Read one byte using stream reders
+        const read = await reader.read(1);
+        expect(read.toString('utf8')).toBe('1');
+
+        // read remaining data directly from stream
+        const chunks = [];
+        for await (const chunk of stream) {
+          if (Buffer.isBuffer(chunk)) {
+            chunks.push(chunk.toString('utf8'));
+          } else {
+            chunks.push(chunk);
+          }
         }
-      }
 
-      // all data from own hook
-      expect(hooked.join('')).toBe('12345678910');
-      // read directly from stream
-      expect(chunks.join('')).toBe('2345678910');
+        // read directly from stream
+        expect(chunks.join('')).toBe('2345678910');
+      });
+
+      it('pushes back read data from internal buffer to original stream', async () => {
+        // TODO
+      });
     });
   });
 
@@ -160,6 +171,11 @@ describe('Node Binary', () => {
       it('returns BinaryData instance', () => {
         binaryData = BinaryData.fromPath(fixturePath);
         expect(binaryData).toBeInstanceOf(BinaryData);
+      });
+
+      it('throws an error if trying to read a file that is not initialized', async () => {
+        binaryData = BinaryData.fromPath(fixturePath);
+        await expect(binaryData.read(10)).rejects.toBeInstanceOf(UnexpectedError);
       });
     });
 
@@ -235,17 +251,19 @@ describe('Node Binary', () => {
             binaryData.chunkBy(Buffer.from('hello world!') as any)
           ).toThrow();
         });
-      });
+      });      
 
       describe('stream', () => {
-        it('should stream data correctly', () => {
+        it('should stream data correctly', async () => {
           const stream = binaryData.toStream();
           expect(stream).toBeInstanceOf(Readable);
-        });
 
-        it('should throw an error if trying to stream a file that is not initialized', async () => {
-          const differentBinaryFile = BinaryData.fromPath(fixturePath);
-          expect(() => differentBinaryFile.toStream()).toThrow();
+          let readData = '';
+          for await (const chunk of stream) {
+            readData += chunk.toString('utf8');
+          }
+
+          expect(readData).toBe(originalData.toString('utf8'));
         });
       });
 
@@ -272,7 +290,7 @@ describe('Node Binary', () => {
       describe('peek 10 then chunkBy 10', () => {
         it('chunks data correctly', async () => {
           const peekedData = await binaryData.peek(10);
-          expect(peekedData?.toString('utf8')).toEqual(originalData.subarray(0, 10).toString());
+          expect(peekedData.toString('utf8')).toEqual(originalData.subarray(0, 10).toString());
 
           for await (const chunk of binaryData.chunkBy(10)) {
             expect(chunk.toString('utf8')).toBe(originalData.subarray(0, 10).toString('utf8'));
@@ -289,7 +307,43 @@ describe('Node Binary', () => {
           }
 
           const peekedData = await binaryData.peek(10);
-          expect(peekedData?.toString('utf8')).toEqual(originalData.subarray(10, 20).toString());
+          expect(peekedData.toString('utf8')).toEqual(originalData.subarray(10, 20).toString());
+        });
+      });
+
+      describe('peek 10 and read 10', () => {
+        it('reads same data as peek', async() => {
+          const peekedData = await binaryData.peek(10);
+          const readData = await binaryData.read(10);
+
+          expect(readData).toEqual(peekedData);
+        });
+      });
+
+      describe('read 10 and read stream', () => {
+        it('reads remaining data from stream', async () => {
+          const readTenData = await binaryData.read(10);
+
+          let readData = '';
+          for await (const chunk of binaryData.toStream()) {
+            readData += chunk.toString('utf8');
+          }
+
+          expect(readTenData.toString('utf8') + readData).toBe(originalData.toString('utf8'));
+        });
+      });
+
+      describe('peek 10 and read stream', () => {
+        it('reads all data from stream', async () => {
+          const peekedData = await binaryData.peek(10);
+
+          let readData = '';
+          for await (const chunk of binaryData.toStream()) {
+            readData += chunk.toString('utf8');
+          }
+
+          expect(peekedData.toString('utf8')).toBe(originalData.subarray(0, 10).toString('utf8'));
+          expect(readData).toBe(originalData.toString('utf8'));
         });
       });
     });
