@@ -147,22 +147,17 @@ describe('Node Binary', () => {
         expect(Buffer.concat(chunks).toString('utf8')).toBe('0123456789');
       });
 
-      it('streams data to all returned streams', async () => {
-        const streamOne = reader.toStream();
-        const streamTwo = reader.toStream();
+      it('throws error when calling toStream() twice', () => {
+        reader.toStream();
 
-        const chunksOne = [];
-        for await (const chunk of streamOne) {
-          chunksOne.push(chunk);
+        let error: unknown;
+        try {
+          reader.toStream();
+        } catch (err: unknown) {
+          error = err;
         }
-
-        const chunksTwo = [];
-        for await (const chunk of streamTwo) {
-          chunksTwo.push(chunk);
-        }
-
-        expect(Buffer.concat(chunksOne).toString('utf8')).toBe('0123456789');
-        expect(chunksOne).toEqual(chunksTwo);
+        
+        expect(error).toBeInstanceOf(UnexpectedError);
       });
     });
   });

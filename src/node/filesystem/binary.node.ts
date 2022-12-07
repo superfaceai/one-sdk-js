@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
+
 import { createReadStream } from 'fs';
 import type { FileHandle } from 'fs/promises';
 import { open } from 'fs/promises';
@@ -19,7 +21,7 @@ import { UnexpectedError } from '../../lib';
 import { handleNodeError } from './filesystem.node';
 
 export class StreamReader {
-  private stream: NodeJS.ReadableStream;
+  private stream: NodeJS.ReadableStream | undefined;
   private buffer: Buffer;
   private ended = false;
 
@@ -39,13 +41,13 @@ export class StreamReader {
   }
 
   private hook() {
-    this.stream.on('data', this.dataCallback);
-    this.stream.on('end', this.endCallback);
+    this.stream!.on('data', this.dataCallback);
+    this.stream!.on('end', this.endCallback);
   }
 
   private unhook() {
-    this.stream.off('data', this.dataCallback);
-    this.stream.off('end', this.endCallback);
+    this.stream!.off('data', this.dataCallback);
+    this.stream!.off('end', this.endCallback);
   }
 
   private onData(chunk: Buffer) {
@@ -60,6 +62,10 @@ export class StreamReader {
 
   // assumption: this function is never called twice without awaiting its promise in between
   private async waitForData(): Promise<void> {
+    if (this.stream === undefined) {
+      throw new UnexpectedError('Stream ejected', { reason: 'Stream moved by calling toStream()' });
+    }
+
     this.stream.resume();
 
     return new Promise((resolve, reject) => {
@@ -75,7 +81,7 @@ export class StreamReader {
       this.pendingReadResolve();
     }
 
-    this.stream.pause();
+    this.stream!.pause();
     this.pendingReadResolve = undefined;
   }
 
@@ -101,6 +107,10 @@ export class StreamReader {
   }
 
   public toStream(): Readable {
+    if (this.stream === undefined) {
+      throw new UnexpectedError('Stream ejected', { reason: 'Stream moved by calling toStream()' });
+    }
+
     this.unhook();
 
     const buffer = this.buffer;
@@ -113,6 +123,7 @@ export class StreamReader {
     }
     
     this.stream.pipe(pass);
+    this.stream = undefined;
 
     return pass;
   }
