@@ -242,7 +242,8 @@ export class ProfileProvider {
           `Failed to fetch provider.json for ${providerName}: %O`,
           error
         );
-        errors.push(error);
+
+        errors.push(error as Error);
       }
 
       // If we can't fetch provider info from registry, we try to read it from cache

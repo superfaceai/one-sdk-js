@@ -179,24 +179,24 @@ export abstract class FailurePolicy {
    *
    * The policy can decide on values for timeouts, orchestrate a failover reattempt or cancel the perform.
    */
-  abstract beforeExecution(info: ExecutionInfo): ExecutionResolution;
+  public abstract beforeExecution(info: ExecutionInfo): ExecutionResolution;
 
   /**
    * Notifies this policy about a failed exeuction of a usecase.
    *
    * The policy may use this to update its inner state, open a circuit breaker, send a report, etc.
    */
-  abstract afterFailure(info: ExecutionFailure): FailureResolution;
+  public abstract afterFailure(info: ExecutionFailure): FailureResolution;
 
   /**
    * Notifies this policy about a successful execution of a usecase.
    *
    * The policy may use this to update its inner state, close a circuit breaker, etc.
    */
-  abstract afterSuccess(info: ExecutionSuccess): SuccessResolution;
+  public abstract afterSuccess(info: ExecutionSuccess): SuccessResolution;
 
   /**
    * Resets this policy as if it was just created.
    */
-  abstract reset(): void;
+  public abstract reset(): void;
 }

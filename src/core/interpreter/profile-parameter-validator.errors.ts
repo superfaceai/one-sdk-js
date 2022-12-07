@@ -106,7 +106,7 @@ export class InputValidationError
   extends ErrorBase
   implements IInputValidationError
 {
-  public name: 'InputValidationError' = 'InputValidationError';
+  public name = 'InputValidationError' as const;
 
   constructor(public errors?: ValidationError[]) {
     super(
@@ -120,7 +120,7 @@ export class ResultValidationError
   extends ErrorBase
   implements IResultValidationError
 {
-  public name: 'ResultValidationError' = 'ResultValidationError';
+  public name = 'ResultValidationError' as const;
 
   constructor(public errors?: ValidationError[]) {
     super(
