@@ -12,7 +12,8 @@ jest.mock('node-fetch');
 const mockServer = getLocal();
 const timers = new MockTimers();
 
-type ForEachCallbackFunction = (value?: string, type?: string) => void;
+type HeadersForEachParameters = Parameters<Headers['forEach']>;
+type ForEachCallbackFunction = HeadersForEachParameters[0];
 
 describe('NodeFetch', () => {
   describe('fetch', () => {
@@ -153,7 +154,7 @@ describe('NodeFetch', () => {
             }),
           },
           json: responseJsonMock,
-        } as any);
+        });
 
         const fetchInstance = new NodeFetch(timers);
 
@@ -184,11 +185,13 @@ describe('NodeFetch', () => {
         jest.mocked(fetch).mockResolvedValue({
           headers: {
             forEach: jest.fn((callbackfn: ForEachCallbackFunction) => {
-              callbackfn('text/plain', 'content-type');
+              callbackfn('text/plain', 'content-type', headers);
             }),
           },
           text: responseTextMock,
-        } as any);
+        } as unknown as Headers;
+
+        jest.mocked(fetch).mockResolvedValue({ headers } as unknown as Response);
 
         const fetchInstance = new NodeFetch(timers);
 
