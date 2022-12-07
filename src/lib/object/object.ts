@@ -1,4 +1,3 @@
-// import { isChunked } from '../../interfaces';
 import { UnexpectedError } from '../error';
 import { isClassInstance } from '../variables';
 
