@@ -33,9 +33,9 @@ describe('NodeFetch', () => {
           .mocked(fetch)
           .mockImplementation(jest.requireActual('node-fetch').default);
 
-          await mockServer.forGet('/test').thenTimeout();
-          const realTimers = new NodeTimers();
-          const nodeFetch = new NodeFetch(realTimers);
+        await mockServer.forGet('/test').thenTimeout();
+        const realTimers = new NodeTimers();
+        const nodeFetch = new NodeFetch(realTimers);
 
         await expect(
           nodeFetch.fetch(`${mockServer.url}/test`, {
@@ -51,8 +51,8 @@ describe('NodeFetch', () => {
           .mocked(fetch)
           .mockImplementation(jest.requireActual('node-fetch').default);
 
-          await mockServer.forGet('/test').thenCloseConnection();
-          const nodeFetch = new NodeFetch(timers);
+        await mockServer.forGet('/test').thenCloseConnection();
+        const nodeFetch = new NodeFetch(timers);
 
         await expect(
           nodeFetch.fetch(`${mockServer.url}/test`, {
@@ -181,16 +181,16 @@ describe('NodeFetch', () => {
       beforeEach(async () => {
         responseTextMock = jest.fn().mockResolvedValue('foobar');
 
-      jest.mocked(fetch).mockResolvedValue({
-        headers: {
-          forEach: jest.fn((callbackfn: ForEachCallbackFunction) => {
-            callbackfn('text/plain', 'content-type');
-          }),
-        },
-        text: responseTextMock,
-      } as any);
+        jest.mocked(fetch).mockResolvedValue({
+          headers: {
+            forEach: jest.fn((callbackfn: ForEachCallbackFunction) => {
+              callbackfn('text/plain', 'content-type');
+            }),
+          },
+          text: responseTextMock,
+        } as any);
 
-      const fetchInstance = new NodeFetch(timers);
+        const fetchInstance = new NodeFetch(timers);
 
         result = await fetchInstance.fetch(`${mockServer.url}/test`, {
           method: 'GET',
@@ -226,14 +226,14 @@ describe('NodeFetch', () => {
               .fn()
               .mockResolvedValue(Buffer.from('foobar'));
 
-          jest.mocked(fetch).mockResolvedValue({
-            headers: {
-              forEach: jest.fn((callbackfn: ForEachCallbackFunction) => {
-                callbackfn(contentType, 'content-type');
-              }),
-            },
-            arrayBuffer: responseArrayBufferMock,
-          } as any);
+            jest.mocked(fetch).mockResolvedValue({
+              headers: {
+                forEach: jest.fn((callbackfn: ForEachCallbackFunction) => {
+                  callbackfn(contentType, 'content-type');
+                }),
+              },
+              arrayBuffer: responseArrayBufferMock,
+            } as any);
 
             const fetchInstance = new NodeFetch(timers);
 
@@ -242,9 +242,9 @@ describe('NodeFetch', () => {
             });
           });
 
-        it('should call arrayBuffer', async () => {
-          expect(responseArrayBufferMock).toHaveBeenCalled();
-        });
+          it('should call arrayBuffer', async () => {
+            expect(responseArrayBufferMock).toHaveBeenCalled();
+          });
 
           it('should return instance of Buffer in body', async () => {
             expect(result.body).toBeInstanceOf(Buffer);
@@ -261,15 +261,15 @@ describe('NodeFetch', () => {
           .fn()
           .mockResolvedValue(Buffer.from('foobar'));
 
-      jest.mocked(fetch).mockResolvedValue({
-        headers: {
-          forEach: jest.fn((callbackfn: ForEachCallbackFunction) => {
-            callbackfn(undefined, undefined);
-          }),
-        },
-        arrayBuffer: responseArrayBufferMock,
-      } as any);
-    });
+        jest.mocked(fetch).mockResolvedValue({
+          headers: {
+            forEach: jest.fn((callbackfn: ForEachCallbackFunction) => {
+              callbackfn(undefined, undefined);
+            }),
+          },
+          arrayBuffer: responseArrayBufferMock,
+        } as any);
+      });
 
       describe('when accept header contains string value', () => {
         let result: any;
@@ -285,9 +285,9 @@ describe('NodeFetch', () => {
           });
         });
 
-      it('should call arrayBuffer', async () => {
-        expect(responseArrayBufferMock).toHaveBeenCalled();
-      });
+        it('should call arrayBuffer', async () => {
+          expect(responseArrayBufferMock).toHaveBeenCalled();
+        });
 
         it('should return instance of Buffer in body', async () => {
           expect(result.body).toBeInstanceOf(Buffer);
@@ -308,9 +308,9 @@ describe('NodeFetch', () => {
           });
         });
 
-      it('should call arrayBuffer', async () => {
-        expect(responseArrayBufferMock).toHaveBeenCalled();
-      });
+        it('should call arrayBuffer', async () => {
+          expect(responseArrayBufferMock).toHaveBeenCalled();
+        });
 
         it('should return instance of Buffer in body', async () => {
           expect(result.body).toBeInstanceOf(Buffer);

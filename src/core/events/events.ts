@@ -156,14 +156,12 @@ export type EventParams = {
     EventTypes[K][1],
     EventTypes[K][0]
   >;
-} &
-  {
-    [K in keyof EventTypes as `post-${K}`]: AfterHook<
-      EventTypes[K][1],
-      EventTypes[K][0]
-    >;
-  } &
-  { [K in keyof VoidEventTypes]: VoidEventHook<VoidEventTypes[K]> };
+} & {
+  [K in keyof EventTypes as `post-${K}`]: AfterHook<
+    EventTypes[K][1],
+    EventTypes[K][0]
+  >;
+} & { [K in keyof VoidEventTypes]: VoidEventHook<VoidEventTypes[K]> };
 
 type EventListeners = {
   [E in keyof EventParams]?: PriorityCallbackTuple[];

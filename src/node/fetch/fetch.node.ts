@@ -2,6 +2,7 @@ import { AbortController } from 'abort-controller';
 import FormData from 'form-data';
 import type { HeadersInit, RequestInit, Response } from 'node-fetch';
 import fetch, { Headers } from 'node-fetch';
+import { URLSearchParams } from 'url';
 
 import type {
   AuthCache,
@@ -12,7 +13,8 @@ import type {
   IFetch,
   Interceptable,
   InterceptableMetadata,
-  ITimers} from '../../core';
+  ITimers
+} from '../../core';
 import {
   BINARY_CONTENT_REGEXP,
   FetchParameters,
@@ -35,7 +37,7 @@ export class NodeFetch implements IFetch, Interceptable, AuthCache {
   public events: Events | undefined;
   public digest: SuperCache<string> = new SuperCache();
 
-  constructor(private readonly timers: ITimers) {}
+  constructor(private readonly timers: ITimers) { }
 
   @eventInterceptor({
     eventName: 'fetch',
