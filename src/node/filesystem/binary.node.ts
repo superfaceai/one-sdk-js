@@ -8,12 +8,12 @@ import { PassThrough } from 'stream';
 
 import type {
   IBinaryData,
-  IBinaryFileMeta,
+  IBinaryDataMeta,
   IDataContainer,
   IDestructible,
   IInitializable} from '../../interfaces';
 import {
-  isBinaryFileMeta,
+  isBinaryDataMeta,
   isDestructible,
   isInitializable,
 } from '../../interfaces';
@@ -129,16 +129,16 @@ export class StreamReader {
   }
 }
 
-export class FileContainer implements IDataContainer, IBinaryFileMeta, IInitializable, IDestructible {
+export class FileContainer implements IDataContainer, IBinaryDataMeta, IInitializable, IDestructible {
   private handle: FileHandle | undefined;
   private streamReader: StreamReader | undefined;
-  public filesize = Infinity;
-  public filename: string | undefined;
+  public size = Infinity;
+  public name: string | undefined;
   public mimetype: string | undefined;
 
   constructor(public path: string, options: { filename?: string, mimetype?: string } = {}) {
     this.mimetype = options.mimetype;
-    this.filename = options.filename;
+    this.name = options.filename;
   }
 
   public async read(size?: number): Promise<Buffer> {
@@ -154,7 +154,7 @@ export class FileContainer implements IDataContainer, IBinaryFileMeta, IInitiali
       try {
         this.handle = await open(this.path, 'r');
         const { size } = await this.handle.stat();
-        this.filesize = size;
+        this.size = size;
       } catch (error) {
         throw handleNodeError(error);
       }
@@ -180,7 +180,7 @@ export class FileContainer implements IDataContainer, IBinaryFileMeta, IInitiali
       try {
         await this.handle.close();
         this.streamReader = undefined;
-        this.filesize = Infinity;
+        this.size = Infinity;
         this.handle = undefined;
       } catch (_) {
         // Ignore
@@ -216,7 +216,7 @@ export class StreamContainer implements IDataContainer {
 export class BinaryData
   implements
     IBinaryData,
-    IBinaryFileMeta,
+    IBinaryDataMeta,
     IDestructible,
     IInitializable
 {
@@ -234,25 +234,34 @@ export class BinaryData
     this.buffer = Buffer.alloc(0);
   }
 
-  public get filename(): string | undefined {
-    if (isBinaryFileMeta(this.dataContainer)) {
-      return this.dataContainer.filename;
+  /**
+   * @returns filename for files or URL for sockets
+   */
+  public get name(): string | undefined {
+    if (isBinaryDataMeta(this.dataContainer)) {
+      return this.dataContainer.name;
     }
 
     return undefined;
   }
 
+  /**
+   * 
+   */
   public get mimetype(): string | undefined {
-    if (isBinaryFileMeta(this.dataContainer)) {
+    if (isBinaryDataMeta(this.dataContainer)) {
       return this.dataContainer.mimetype;
     }
 
     return undefined;
   }
 
-  public get filesize(): number | undefined {
-    if (isBinaryFileMeta(this.dataContainer)) {
-      return this.dataContainer.filesize;
+  /**
+   * @returns Size if known in bytes
+   */
+  public get size(): number | undefined {
+    if (isBinaryDataMeta(this.dataContainer)) {
+      return this.dataContainer.size;
     }
 
     return undefined;

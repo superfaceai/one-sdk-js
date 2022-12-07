@@ -19,10 +19,10 @@ export interface IDestructible {
   destroy(): Promise<void>;
 }
 
-export interface IBinaryFileMeta {
-  readonly filename: string | undefined;
+export interface IBinaryDataMeta {
+  readonly name: string | undefined;
   readonly mimetype: string | undefined;
-  readonly filesize: number | undefined;
+  readonly size: number | undefined;
 }
 
 export function isBinaryData(input: unknown): input is IBinaryData {
@@ -41,6 +41,6 @@ export function isDestructible(input: unknown): input is IDestructible {
   return typeof input === 'object' && input !== null && 'destroy' in input;
 }
 
-export function isBinaryFileMeta(input: unknown): input is IBinaryFileMeta {
-  return typeof input === 'object' && input !== null && 'filename' in input && 'mimetype' in input;
+export function isBinaryDataMeta(input: unknown): input is IBinaryDataMeta {
+  return typeof input === 'object' && input !== null && 'name' in input && 'mimetype' in input;
 }

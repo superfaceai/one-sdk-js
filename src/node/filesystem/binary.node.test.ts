@@ -156,7 +156,7 @@ describe('Node Binary', () => {
         } catch (err: unknown) {
           error = err;
         }
-        
+
         expect(error).toBeInstanceOf(UnexpectedError);
       });
     });
@@ -175,7 +175,7 @@ describe('Node Binary', () => {
     });
 
     it('opens file correctly', async () => {
-      expect(fileContainer.filesize).toBeGreaterThan(0);
+      expect(fileContainer.size).toBeGreaterThan(0);
     });
 
     it('throws an error if the file does not exist', async () => {
@@ -189,14 +189,14 @@ describe('Node Binary', () => {
       await fileContainer.destroy();
 
       expect(closeHandleSpy).toHaveBeenCalled();
-      expect(fileContainer.filesize).toBe(Infinity);
+      expect(fileContainer.size).toBe(Infinity);
       expect((fileContainer as any).handle).toBe(undefined);
       expect((fileContainer as any).stream).toBe(undefined);
       expect((fileContainer as any).streamReader).toBe(undefined);
     });
 
     it('sets filesize', async () => {
-      expect(fileContainer.filesize).not.toBe(Infinity);
+      expect(fileContainer.size).not.toBe(Infinity);
     });
   });
 
