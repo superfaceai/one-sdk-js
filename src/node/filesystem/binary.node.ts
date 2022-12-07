@@ -3,6 +3,7 @@
 import { createReadStream } from 'fs';
 import type { FileHandle } from 'fs/promises';
 import { open } from 'fs/promises';
+import { basename } from 'path';
 import type { Readable } from 'stream';
 import { PassThrough } from 'stream';
 
@@ -138,7 +139,7 @@ export class FileContainer implements IDataContainer, IBinaryDataMeta, IInitiali
 
   constructor(public path: string, options: { filename?: string, mimetype?: string } = {}) {
     this.mimetype = options.mimetype;
-    this.name = options.filename;
+    this.name = options.filename ?? basename(path);
   }
 
   public async read(size?: number): Promise<Buffer> {

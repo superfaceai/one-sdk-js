@@ -183,6 +183,11 @@ describe('Node Binary', () => {
       await expect(fileContainer.initialize()).rejects.toThrow(NotFoundError);
     });
 
+    it('sets name from file if not passed as option', () => {
+      const fileContainer = new FileContainer(fixturePath);
+      expect(fileContainer.name).toBe('binary.txt');
+    });
+
     it('closes handle and resets data container', async () => {
       const closeHandleSpy = jest.spyOn((fileContainer as any).handle, 'close');
 
