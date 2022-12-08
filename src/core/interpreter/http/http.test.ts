@@ -185,7 +185,7 @@ describe('HttpClient', () => {
       });
       expect(response.statusCode).toBe(200);
       const body = response.body as any;
-      expect(body.contentType).toMatch(/^multipart\/form-data;boundary=/);
+      expect(body.contentType).toMatch(/^multipart\/form-data;\s*boundary=/);
     });
   });
 });

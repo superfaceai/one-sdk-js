@@ -49,3 +49,17 @@ export type MapInterpreterError =
   | IMappedError<unknown>
   | IHTTPError
   | IJessieError;
+
+
+export const isMapInterpreterError = (e: unknown): e is MapInterpreterError => {
+  return typeof e === 'object'
+    && e !== null
+    && 'name' in e
+    && [
+      'MapASTError',
+      'MappedHTTPError',
+      'MappedError',
+      'HTTPError',
+      'JessieError'
+    ].includes((e as { name: string }).name);
+}

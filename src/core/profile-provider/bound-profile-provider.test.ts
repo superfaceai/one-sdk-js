@@ -202,7 +202,7 @@ describe('BoundProfileProvider', () => {
         )
       ).resolves.toEqual(ok('test'));
 
-      expect(MapInterpreter).toBeCalledWith(
+      expect(MapInterpreter).toHaveBeenCalledWith(
         {
           input: undefined,
           parameters: undefined,

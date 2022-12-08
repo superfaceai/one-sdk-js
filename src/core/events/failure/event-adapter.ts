@@ -1,6 +1,6 @@
 import type { ILogger, ITimers } from '../../../interfaces';
 import { clone, SDKBindError, UnexpectedError } from '../../../lib';
-import { isCrossFetchError } from '../../errors';
+import { isFetchError } from '../../errors';
 import type { Events } from '../events';
 import type { FailurePolicyRouter } from './policies';
 import type { ExecutionFailure, FailurePolicyReason } from './policy';
@@ -362,7 +362,7 @@ function registerNetworkHooks(
 
     let failure: ExecutionFailure;
 
-    if (isCrossFetchError(error)) {
+    if (isFetchError(error)) {
       failure = {
         time: context.time.getTime(),
         registryCacheAge: 0, // TODO,

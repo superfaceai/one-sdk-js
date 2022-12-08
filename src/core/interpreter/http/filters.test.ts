@@ -376,6 +376,6 @@ describe('HTTP Filters', () => {
       });
 
       expect(result.request?.headers?.accept).toBe(undefined);
-    })
+    });
   });
 });

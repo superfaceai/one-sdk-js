@@ -1,7 +1,8 @@
 import { VM } from 'vm2';
 
-import type { IConfig, ILogger } from '../../../interfaces';
+import type { IConfig, ILogger} from '../../../interfaces';
 import type { NonPrimitive } from '../../../lib';
+import { isClassInstance } from '../../../lib';
 import { getStdlib } from './stdlib';
 
 const DEBUG_NAMESPACE = 'sandbox';
@@ -11,11 +12,17 @@ function vm2ExtraArrayKeysFixup<T>(value: T): T {
     return value;
   }
 
-  if (value === null) {
+  if (value === null || value === undefined) {
     return value;
   }
 
-  if (Buffer.isBuffer(value) || value instanceof ArrayBuffer) {
+  if (
+    Buffer.isBuffer(value) ||
+    value instanceof ArrayBuffer ||
+    isClassInstance(value) ||
+    Symbol.iterator in value ||
+    Symbol.asyncIterator in value
+  ) {
     return value;
   }
 

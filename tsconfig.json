@@ -21,6 +21,7 @@
     ],
     "resolveJsonModule": true,
     "sourceMap": true,
+    "skipLibCheck": true,
     "strict": true,
     "strictPropertyInitialization": true,
     "target": "ES5",

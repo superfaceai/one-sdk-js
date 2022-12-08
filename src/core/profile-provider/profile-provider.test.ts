@@ -6,7 +6,6 @@ import type {
   SecurityValues,
 } from '@superfaceai/ast';
 import { ApiKeyPlacement, HttpScheme, SecurityType } from '@superfaceai/ast';
-import { mocked } from 'ts-jest/utils';
 
 import type { IFileSystem } from '../../interfaces';
 import { err, ok } from '../../lib';
@@ -240,7 +239,7 @@ describe('profile provider', () => {
             },
           ],
         };
-        mocked(fetchBind).mockResolvedValue({
+        jest.mocked(fetchBind).mockResolvedValue({
           provider: mockProviderJsonWithParameters,
           mapAst: mockMapDocument,
         });
@@ -338,7 +337,7 @@ describe('profile provider', () => {
             },
           ],
         };
-        mocked(fetchBind).mockResolvedValue({
+        jest.mocked(fetchBind).mockResolvedValue({
           provider: mockProviderJsonWithParameters,
           mapAst: mockMapDocument,
         });
@@ -388,7 +387,7 @@ describe('profile provider', () => {
       });
 
       it('returns new BoundProfileProvider', async () => {
-        mocked(fetchBind).mockResolvedValue(mockFetchResponse);
+        jest.mocked(fetchBind).mockResolvedValue(mockFetchResponse);
         const superJson = normalizeSuperJsonDocument(
           {
             profiles: {
@@ -430,7 +429,7 @@ describe('profile provider', () => {
           cache: false,
         });
 
-        mocked(fetchBind).mockResolvedValue(mockFetchResponse);
+        jest.mocked(fetchBind).mockResolvedValue(mockFetchResponse);
         const superJson = normalizeSuperJsonDocument(
           {
             profiles: {
@@ -468,7 +467,7 @@ describe('profile provider', () => {
       });
 
       it('returns new BoundProfileProvider use profile id', async () => {
-        mocked(fetchBind).mockResolvedValue(mockFetchResponse);
+        jest.mocked(fetchBind).mockResolvedValue(mockFetchResponse);
         const superJson = normalizeSuperJsonDocument(
           {
             profiles: {
@@ -508,7 +507,7 @@ describe('profile provider', () => {
       });
 
       it('returns new BoundProfileProvider use profile configuration', async () => {
-        mocked(fetchBind).mockResolvedValue(mockFetchResponse);
+        jest.mocked(fetchBind).mockResolvedValue(mockFetchResponse);
         const superJson = normalizeSuperJsonDocument(
           {
             profiles: {
@@ -548,7 +547,7 @@ describe('profile provider', () => {
       });
 
       it('returns new BoundProfileProvider load locally', async () => {
-        mocked(fetchBind).mockResolvedValue(mockFetchResponse);
+        jest.mocked(fetchBind).mockResolvedValue(mockFetchResponse);
         const superJson = normalizeSuperJsonDocument(
           {
             profiles: {
@@ -596,7 +595,7 @@ describe('profile provider', () => {
       });
 
       it('returns new BoundProfileProvider load localy and use map variant', async () => {
-        mocked(fetchBind).mockResolvedValue(mockFetchResponse);
+        jest.mocked(fetchBind).mockResolvedValue(mockFetchResponse);
         fileSystem.readFile = jest
           .fn()
           .mockResolvedValueOnce(ok(JSON.stringify(mockProviderJson)))
@@ -642,7 +641,7 @@ describe('profile provider', () => {
       });
 
       it('returns new BoundProfileProvider with passed map variant and revision', async () => {
-        mocked(fetchBind).mockResolvedValue(mockFetchResponse);
+        jest.mocked(fetchBind).mockResolvedValue(mockFetchResponse);
         const superJson = normalizeSuperJsonDocument(
           {
             profiles: {
@@ -681,7 +680,7 @@ describe('profile provider', () => {
         const result = await mockProfileProvider.bind();
 
         expect(result).toMatchObject(expectedBoundProfileProvider);
-        expect(fetchBind).toBeCalledWith(
+        expect(fetchBind).toHaveBeenCalledWith(
           {
             profileId: 'test-profile@1.0.0',
             provider: 'test',
@@ -696,7 +695,7 @@ describe('profile provider', () => {
       });
 
       it('returns new BoundProfileProvider when map is provided locally but provider is not', async () => {
-        mocked(fetchBind).mockResolvedValue(mockFetchResponse);
+        jest.mocked(fetchBind).mockResolvedValue(mockFetchResponse);
         const superJson = normalizeSuperJsonDocument(
           {
             profiles: {
@@ -723,7 +722,7 @@ describe('profile provider', () => {
           .fn()
           .mockResolvedValueOnce(ok(JSON.stringify(mockMapDocument)));
 
-        mocked(fetchProviderInfo).mockResolvedValue(mockProviderJson);
+        jest.mocked(fetchProviderInfo).mockResolvedValue(mockProviderJson);
 
         const mockProfileProvider = new ProfileProvider(
           superJson,
@@ -744,7 +743,7 @@ describe('profile provider', () => {
       });
 
       it('loads provider from cache when fetch fails', async () => {
-        mocked(fetchBind).mockResolvedValue(mockFetchResponse);
+        jest.mocked(fetchBind).mockResolvedValue(mockFetchResponse);
         const superJson = normalizeSuperJsonDocument(
           {
             profiles: {
@@ -776,7 +775,7 @@ describe('profile provider', () => {
           .mockResolvedValueOnce(ok(JSON.stringify(mockMapDocument)))
           .mockResolvedValueOnce(ok(JSON.stringify(mockProviderJson)));
 
-        mocked(fetchProviderInfo).mockRejectedValue('denied!');
+        jest.mocked(fetchProviderInfo).mockRejectedValue('denied!');
 
         const mockProfileProvider = new ProfileProvider(
           superJson,
@@ -796,7 +795,7 @@ describe('profile provider', () => {
       });
 
       it('throws when both fetch and cache read fails', async () => {
-        mocked(fetchBind).mockResolvedValue(mockFetchResponse);
+        jest.mocked(fetchBind).mockResolvedValue(mockFetchResponse);
         const superJson = normalizeSuperJsonDocument(
           {
             profiles: {
@@ -824,7 +823,7 @@ describe('profile provider', () => {
           .mockResolvedValueOnce(ok(JSON.stringify(mockMapDocument)))
           .mockRejectedValueOnce(err('denied!'));
 
-        mocked(fetchProviderInfo).mockRejectedValue('denied!');
+        jest.mocked(fetchProviderInfo).mockRejectedValue('denied!');
 
         const mockProfileProvider = new ProfileProvider(
           superJson,
@@ -869,7 +868,7 @@ describe('profile provider', () => {
           .fn()
           .mockResolvedValueOnce(ok(JSON.stringify(mockProviderJson)));
 
-        mocked(fetchProviderInfo).mockResolvedValue(mockProviderJson);
+        jest.mocked(fetchProviderInfo).mockResolvedValue(mockProviderJson);
 
         const mockProfileProvider = new ProfileProvider(
           superJson,
@@ -892,7 +891,7 @@ describe('profile provider', () => {
       });
 
       it('throws error without profile provider settings', async () => {
-        mocked(fetchBind).mockResolvedValue(mockFetchResponse);
+        jest.mocked(fetchBind).mockResolvedValue(mockFetchResponse);
         const superJson = normalizeSuperJsonDocument(
           {
             profiles: {
@@ -912,7 +911,8 @@ describe('profile provider', () => {
           new MockEnvironment()
         );
 
-        mocked(fileSystem.readFile)
+        jest
+          .mocked(fileSystem.readFile)
           .mockResolvedValueOnce(ok(JSON.stringify(mockProfileDocument)))
           .mockResolvedValueOnce(ok(JSON.stringify(mockProviderJson)))
           .mockResolvedValueOnce(ok(JSON.stringify(mockMapDocument)));
@@ -934,7 +934,7 @@ describe('profile provider', () => {
       });
 
       it('throws error when bind response contains invalid map AST', async () => {
-        mocked(fetchBind).mockResolvedValue({
+        jest.mocked(fetchBind).mockResolvedValue({
           ...mockFetchResponse,
           mapAst: undefined,
         });
@@ -957,7 +957,8 @@ describe('profile provider', () => {
           new MockEnvironment()
         );
 
-        mocked(fileSystem.readFile)
+        jest
+          .mocked(fileSystem.readFile)
           .mockResolvedValueOnce(ok(JSON.stringify(mockProfileDocument)))
           .mockResolvedValueOnce(ok(JSON.stringify(mockProviderJson)));
 
@@ -999,7 +1000,7 @@ describe('profile provider', () => {
             password: 'test-digest-password',
           },
         ]);
-        mocked(fetchBind).mockResolvedValue(mockFetchResponse);
+        jest.mocked(fetchBind).mockResolvedValue(mockFetchResponse);
 
         const superJson = normalizeSuperJsonDocument(
           {
@@ -1062,7 +1063,7 @@ describe('profile provider', () => {
           } as any,
           new MockEnvironment()
         );
-        mocked(fetchBind).mockResolvedValue(mockFetchResponse);
+        jest.mocked(fetchBind).mockResolvedValue(mockFetchResponse);
 
         const mockProfileProvider = new ProfileProvider(
           superJson,
@@ -1108,7 +1109,7 @@ but a secret value was provided for security scheme: made-up-id`
           new MockEnvironment()
         );
 
-        mocked(fetchBind).mockResolvedValue(mockFetchResponse);
+        jest.mocked(fetchBind).mockResolvedValue(mockFetchResponse);
 
         const mockProfileProvider = new ProfileProvider(
           superJson,
@@ -1154,7 +1155,7 @@ but apiKey scheme requires: apikey`
           new MockEnvironment()
         );
 
-        mocked(fetchBind).mockResolvedValue(mockFetchResponse);
+        jest.mocked(fetchBind).mockResolvedValue(mockFetchResponse);
 
         const mockProfileProvider = new ProfileProvider(
           superJson,
@@ -1200,7 +1201,7 @@ but http scheme requires: username, password`
           new MockEnvironment()
         );
 
-        mocked(fetchBind).mockResolvedValue(mockFetchResponse);
+        jest.mocked(fetchBind).mockResolvedValue(mockFetchResponse);
 
         const mockProfileProvider = new ProfileProvider(
           superJson,
@@ -1246,7 +1247,7 @@ but http scheme requires: token`
           new MockEnvironment()
         );
 
-        mocked(fetchBind).mockResolvedValue(mockFetchResponse);
+        jest.mocked(fetchBind).mockResolvedValue(mockFetchResponse);
 
         const mockProfileProvider = new ProfileProvider(
           superJson,
@@ -1267,7 +1268,7 @@ but http scheme requires: digest`
       });
 
       it('throws when super.json and provider.json provider names do not match', async () => {
-        mocked(fetchBind).mockResolvedValue(mockFetchResponse);
+        jest.mocked(fetchBind).mockResolvedValue(mockFetchResponse);
         const superJson = normalizeSuperJsonDocument(
           {
             profiles: {
@@ -1292,7 +1293,8 @@ but http scheme requires: digest`
           new MockEnvironment()
         );
 
-        mocked(fileSystem.readFile)
+        jest
+          .mocked(fileSystem.readFile)
           .mockResolvedValueOnce(ok(JSON.stringify(mockProviderJson)))
           .mockResolvedValueOnce(ok(JSON.stringify(mockMapDocument)));
 
@@ -1319,7 +1321,7 @@ but http scheme requires: digest`
       });
 
       it('throws when super.json and map provider names do not match', async () => {
-        mocked(fetchBind).mockResolvedValue(mockFetchResponse);
+        jest.mocked(fetchBind).mockResolvedValue(mockFetchResponse);
 
         const superJson = normalizeSuperJsonDocument(
           {

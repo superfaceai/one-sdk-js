@@ -1,22 +1,24 @@
 import { AbortController } from 'abort-controller';
-import fetch, { Headers } from 'cross-fetch';
 import FormData from 'form-data';
+import type { HeadersInit, RequestInit, Response } from 'node-fetch';
+import fetch, { Headers } from 'node-fetch';
 
 import type {
   AuthCache,
-  CrossFetchError,
   Events,
   FetchBody,
+  FetchError,
   FetchResponse,
   IFetch,
   Interceptable,
   InterceptableMetadata,
-  ITimers,
-} from '../../core';
+  ITimers} from '../../core';
 import {
   BINARY_CONTENT_REGEXP,
   FetchParameters,
   isBinaryBody,
+  isBinaryData,
+  isBinaryDataMeta,
   isFormDataBody,
   isStringBody,
   isUrlSearchParamsBody,
@@ -33,7 +35,7 @@ export class NodeFetch implements IFetch, Interceptable, AuthCache {
   public events: Events | undefined;
   public digest: SuperCache<string> = new SuperCache();
 
-  constructor(private readonly timers: ITimers) { }
+  constructor(private readonly timers: ITimers) {}
 
   @eventInterceptor({
     eventName: 'fetch',
@@ -75,7 +77,7 @@ export class NodeFetch implements IFetch, Interceptable, AuthCache {
     ) {
       body = await response.json();
     } else if (this.isBinaryContent(headers, parameters.headers)) {
-      body = await response.arrayBuffer();
+      body = await response.arrayBuffer(); // TODO: BinaryData.fromStream(response.body)
     } else {
       body = await response.text();
     }
@@ -112,7 +114,7 @@ export class NodeFetch implements IFetch, Interceptable, AuthCache {
     }
   }
 
-  private static normalizeError(err: unknown): CrossFetchError {
+  private static normalizeError(err: unknown): FetchError {
     if (typeof err !== 'object' || err === null) {
       throw err;
     }
@@ -168,9 +170,15 @@ export class NodeFetch implements IFetch, Interceptable, AuthCache {
     return '';
   }
 
-  private body(body?: FetchBody): string | URLSearchParams | FormData | Buffer | undefined {
+  private body(
+    body?: FetchBody
+  ): string | URLSearchParams | FormData | Buffer | NodeJS.ReadableStream | undefined {
     if (body) {
       if (isStringBody(body) || isBinaryBody(body)) {
+        if (isBinaryData(body.data)) {
+          return body.data.toStream();
+        }
+
         return body.data;
       }
 
@@ -192,7 +200,13 @@ export class NodeFetch implements IFetch, Interceptable, AuthCache {
     if (data) {
       Object.entries(data).forEach(([key, value]) => {
         if (Array.isArray(value)) {
-          value.forEach((item) => formData.append(key, item));
+          value.forEach(item => formData.append(key, item));
+        } else if (isBinaryData(value)) {
+          if (isBinaryDataMeta(value)) {
+            formData.append(key, value.toStream(), { contentType: value.mimetype, filename: value.name });
+          } else {
+            formData.append(key, value.toStream());
+          }
         } else {
           formData.append(key, value);
         }

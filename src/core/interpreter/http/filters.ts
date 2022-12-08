@@ -1,6 +1,12 @@
-import type { ILogger } from '../../../interfaces';
+import type { IBinaryData, ILogger} from '../../../interfaces';
+import { isBinaryData } from '../../../interfaces';
 import type { MaybePromise } from '../../../lib';
-import { castToNonPrimitive, pipe, UnexpectedError, variablesToStrings } from '../../../lib';
+import {
+  castToNonPrimitive,
+  pipe,
+  UnexpectedError,
+  variablesToStrings,
+} from '../../../lib';
 import { USER_AGENT } from '../../../user-agent';
 import { unsupportedContentType } from '../../errors';
 import type { FetchBody, IFetch } from './interfaces';
@@ -99,31 +105,31 @@ export const fetchFilter: (
   logger?: ILogger
 ) => FilterWithRequest =
   (fetchInstance, logger) =>
-    async ({ parameters, request }: FilterInputWithRequest) => {
-      return {
-        parameters,
-        request,
-        response: await fetchRequest(fetchInstance, request, logger),
-      };
+  async ({ parameters, request }: FilterInputWithRequest) => {
+    return {
+      parameters,
+      request,
+      response: await fetchRequest(fetchInstance, request, logger),
     };
+  };
 
 export const authenticateFilter: (handler?: ISecurityHandler) => Filter =
   handler =>
-    async ({ parameters, request, response }: FilterInputOutput) => {
-      if (handler !== undefined) {
-        return {
-          parameters: await handler.authenticate(parameters),
-          request,
-          response,
-        };
-      }
-
+  async ({ parameters, request, response }: FilterInputOutput) => {
+    if (handler !== undefined) {
       return {
-        parameters,
+        parameters: await handler.authenticate(parameters),
         request,
         response,
       };
+    }
+
+    return {
+      parameters,
+      request,
+      response,
     };
+  };
 
 // This is handling the cases when we are authenticated but eg. digest credentials expired or OAuth access token is no longer valid
 export const handleResponseFilter: (
@@ -132,18 +138,18 @@ export const handleResponseFilter: (
   handler?: ISecurityHandler
 ) => FilterWithResponse =
   (fetchInstance, logger, handler) =>
-    async ({ parameters, request, response }: FilterInputWithResponse) => {
-      if (handler?.handleResponse !== undefined) {
-        // We get new parameters (with updated auth, also updated cache)
-        const authRequest = await handler.handleResponse(response, parameters);
-        // We retry the request
-        if (authRequest !== undefined) {
-          response = await fetchRequest(fetchInstance, authRequest, logger);
-        }
+  async ({ parameters, request, response }: FilterInputWithResponse) => {
+    if (handler?.handleResponse !== undefined) {
+      // We get new parameters (with updated auth, also updated cache)
+      const authRequest = await handler.handleResponse(response, parameters);
+      // We retry the request
+      if (authRequest !== undefined) {
+        response = await fetchRequest(fetchInstance, authRequest, logger);
       }
+    }
 
-      return { parameters, request, response };
-    };
+    return { parameters, request, response };
+  };
 
 export const urlFilter: Filter = ({
   parameters,
@@ -186,14 +192,14 @@ export const bodyFilter: Filter = ({
       parameters.contentType !== undefined &&
       BINARY_CONTENT_REGEXP.test(parameters.contentType)
     ) {
-      let buffer: Buffer;
-      if (Buffer.isBuffer(parameters.body)) {
-        buffer = parameters.body;
+      let data: Buffer | IBinaryData;
+      if (Buffer.isBuffer(parameters.body) || isBinaryData(parameters.body)) {
+        data = parameters.body;
       } else {
         // convert to string then buffer
-        buffer = Buffer.from(String(parameters.body));
+        data = Buffer.from(String(parameters.body));
       }
-      finalBody = binaryBody(buffer);
+      finalBody = binaryBody(data);
     } else {
       const supportedTypes = [
         JSON_CONTENT,
