@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
-- `BinaryData` type, not surfaced in Comlink Profile - [#296]
+- `BinaryData` type, not surfaced in Comlink Profile
 
 ## [2.1.0] - 2022-11-16
 ### Added
