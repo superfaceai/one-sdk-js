@@ -1736,12 +1736,12 @@ describe('MapInterpreter', () => {
 
   it('should send file in its entirety as FormData with passed mimetype and filename', async () => {
     const filePath = path.resolve(process.cwd(), 'fixtures', 'binary.txt');
-    const file = BinaryData.fromPath(filePath, { filename: 'binary.txt', mimetype: 'text/plain' });
+    const file = BinaryData.fromPath(filePath, { filename: 'test.txt', mimetype: 'text/plain' });
 
-    // OK is problem in mockttp, that it cant handle stream? Or in formdata that it sends it badly. :((((
     await mockServer.forPost('/test').thenCallback(async req => {
       const data = await req.body.getText();
-      expect(data).toContain('Content-Disposition: form-data; name="file"; filename="binary.txt"');
+      expect(data).toContain('Content-Disposition: form-data; name="file"; filename="test.txt"');
+      expect(data).toContain('Content-Type: text/plain');
 
       return { status: 200, json: { ok: true } };
     });
