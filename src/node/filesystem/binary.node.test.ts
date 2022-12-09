@@ -166,7 +166,7 @@ describe('Node Binary', () => {
     let fileContainer: FileContainer;
 
     beforeEach(async () => {
-      fileContainer = new FileContainer(fixturePath, { filename: 'testfile.txt', mimetype: 'text/plain' });
+      fileContainer = new FileContainer(fixturePath);
       await fileContainer.initialize();
     });
 
@@ -183,9 +183,12 @@ describe('Node Binary', () => {
       await expect(fileContainer.initialize()).rejects.toThrow(NotFoundError);
     });
 
-    it('sets name from file if not passed as option', () => {
-      const fileContainer = new FileContainer(fixturePath);
+    it('sets name as basename of path', () => {
       expect(fileContainer.name).toBe('binary.txt');
+    });
+
+    it('sets size', () => {
+      expect(fileContainer.size).toBe(955);
     });
 
     it('closes handle and resets data container', async () => {
@@ -228,6 +231,17 @@ describe('Node Binary', () => {
         expect(binaryData).toBeInstanceOf(BinaryData);
       });
 
+      it('sets meta from options', () => {
+        binaryData = BinaryData.fromPath(fixturePath, { name: 'filename.txt', mimetype: 'text/plain' });
+        expect(binaryData.name).toBe('filename.txt');
+        expect(binaryData.mimetype).toBe('text/plain');
+      });
+
+      it('uses name from file container if not passed as option', () => {
+        binaryData = BinaryData.fromPath(fixturePath);
+        expect(binaryData.name).toBe('binary.txt');
+      })
+
       it('throws an error if trying to read a file that is not initialized', async () => {
         binaryData = BinaryData.fromPath(fixturePath);
         await expect(binaryData.read(10)).rejects.toBeInstanceOf(UnexpectedError);
@@ -238,6 +252,22 @@ describe('Node Binary', () => {
       it('returns BinaryData instance', () => {
         binaryData = BinaryData.fromStream(new MockStream());
         expect(binaryData).toBeInstanceOf(BinaryData);
+      });
+    });
+
+    describe('setting metadata', () => {
+      beforeEach(() => {
+        binaryData = BinaryData.fromStream(new MockStream());
+      });
+
+      it('allows to set name', () => {
+        binaryData.name = 'test.txt';
+        expect(binaryData.name).toBe('test.txt');
+      });
+
+      it('allows to set mimetype', () => {
+        binaryData.mimetype = 'text/plain';
+        expect(binaryData.mimetype).toBe('text/plain');
       });
     });
 

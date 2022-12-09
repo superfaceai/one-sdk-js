@@ -1736,12 +1736,12 @@ describe('MapInterpreter', () => {
 
   it('should send file in its entirety as FormData with passed mimetype and filename', async () => {
     const filePath = path.resolve(process.cwd(), 'fixtures', 'binary.txt');
-    const file = BinaryData.fromPath(filePath, { filename: 'binary.txt', mimetype: 'text/plain' });
+    const file = BinaryData.fromPath(filePath, { name: 'test.txt', mimetype: 'text/plain' });
 
-    // OK is problem in mockttp, that it cant handle stream? Or in formdata that it sends it badly. :((((
     await mockServer.forPost('/test').thenCallback(async req => {
       const data = await req.body.getText();
-      expect(data).toContain('Content-Disposition: form-data; name="file"; filename="binary.txt"');
+      expect(data).toContain('Content-Disposition: form-data; name="file"; filename="test.txt"');
+      expect(data).toContain('Content-Type: text/plain');
 
       return { status: 200, json: { ok: true } };
     });
@@ -1768,6 +1768,62 @@ describe('MapInterpreter', () => {
         services: ServiceSelector.withDefaultUrl(mockServer.url),
         input: {
           file,
+        },
+      },
+      { fetchInstance, config, crypto }
+    );
+
+    const result = await interpreter.perform(ast);
+    if (result.isErr()) {
+      console.error(result.error);
+    }
+    expect(result.isOk()).toBe(true);
+
+    const response = result.unwrap();
+    expect(response).toStrictEqual({ ok: true });
+  });
+
+  it('should send file with set name and mimetype from map', async () => {
+    const filePath = path.resolve(process.cwd(), 'fixtures', 'binary.txt');
+    const file = BinaryData.fromPath(filePath);
+
+    await mockServer.forPost('/test').thenCallback(async req => {
+      const data = await req.body.getText();
+
+      expect(data).toContain('Content-Disposition: form-data; name="file"; filename="mapset.txt"');
+      expect(data).toContain('Content-Type: vnd.test/mapset');
+
+      return { status: 200, json: { ok: true } };
+    });
+
+    const ast = parseMapFromSource(`
+    map Test {
+      // need to do comlink variable assign to be able to use Script expression
+      tmp = (input.file.name = input.filename)
+      tmp = (input.file.mimetype = input.mimetype)
+
+      http POST "/test" {
+        request "multipart/form-data" {
+          body = {
+            file: input.file
+          }
+        }
+
+        response 200 {
+          map result body
+        }
+      }
+    }`);
+
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+        services: ServiceSelector.withDefaultUrl(mockServer.url),
+        input: {
+          file,
+          filename: 'mapset.txt',
+          mimetype: 'vnd.test/mapset'
         },
       },
       { fetchInstance, config, crypto }
