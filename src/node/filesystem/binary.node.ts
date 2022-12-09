@@ -133,13 +133,20 @@ export class StreamReader {
 export class FileContainer implements IDataContainer, IBinaryDataMeta, IInitializable, IDestructible {
   private handle: FileHandle | undefined;
   private streamReader: StreamReader | undefined;
-  public size = Infinity;
-  public name: string | undefined;
-  public mimetype: string | undefined;
+  private _size = Infinity;
 
-  constructor(public path: string, options: { filename?: string, mimetype?: string } = {}) {
-    this.mimetype = options.mimetype;
-    this.name = options.filename ?? basename(path);
+  constructor(public readonly path: string) {}
+
+  public get name(): string | undefined {
+    return basename(this.path);
+  }
+
+  public get mimetype(): string | undefined {
+    return undefined;
+  }
+
+  public get size(): number {
+    return this._size;
   }
 
   public async read(size?: number): Promise<Buffer> {
@@ -155,7 +162,7 @@ export class FileContainer implements IDataContainer, IBinaryDataMeta, IInitiali
       try {
         this.handle = await open(this.path, 'r');
         const { size } = await this.handle.stat();
-        this.size = size;
+        this._size = size;
       } catch (error) {
         throw handleNodeError(error);
       }
@@ -181,7 +188,7 @@ export class FileContainer implements IDataContainer, IBinaryDataMeta, IInitiali
       try {
         await this.handle.close();
         this.streamReader = undefined;
-        this.size = Infinity;
+        this._size = Infinity;
         this.handle = undefined;
       } catch (_) {
         // Ignore
@@ -214,6 +221,12 @@ export class StreamContainer implements IDataContainer {
   }
 }
 
+export type BinaryDataOptions = {
+  /** filename for files or URL for sockets */
+  name?: string;
+  mimetype?: string;
+}
+
 export class BinaryData
   implements
     IBinaryData,
@@ -222,16 +235,20 @@ export class BinaryData
     IInitializable
 {
   private buffer: Buffer;
+  private _name: string | undefined;
+  private _mimetype: string | undefined;
    
-  public static fromPath(filename: string, options: { filename?: string, mimetype?: string } = {}): BinaryData {
-    return new BinaryData(new FileContainer(filename, options));
+  public static fromPath(path: string, options: BinaryDataOptions = {}): BinaryData {
+    return new BinaryData(new FileContainer(path), options);
   }
 
-  public static fromStream(stream: NodeJS.ReadableStream): BinaryData {
-    return new BinaryData(new StreamContainer(stream));
+  public static fromStream(stream: NodeJS.ReadableStream, options: BinaryDataOptions = {}): BinaryData {
+    return new BinaryData(new StreamContainer(stream), options);
   }
 
-  private constructor(private dataContainer: IDataContainer) {
+  private constructor(private dataContainer: IDataContainer, options: BinaryDataOptions) {
+    this._name = options.name;
+    this._mimetype = options.mimetype;
     this.buffer = Buffer.alloc(0);
   }
 
@@ -239,6 +256,10 @@ export class BinaryData
    * @returns filename for files or URL for sockets
    */
   public get name(): string | undefined {
+    if (this._name !== undefined) {
+      return this._name;
+    }
+
     if (isBinaryDataMeta(this.dataContainer)) {
       return this.dataContainer.name;
     }
@@ -247,14 +268,29 @@ export class BinaryData
   }
 
   /**
-   * 
+   * Set name for files or URL for sockets
+   */
+  public set name(value: string | undefined) {
+    this._name = value;
+  }
+
+  /**
+   * @returns MIME type
    */
   public get mimetype(): string | undefined {
+    if (this._mimetype !== undefined) {
+      return this._mimetype;
+    }
+
     if (isBinaryDataMeta(this.dataContainer)) {
       return this.dataContainer.mimetype;
     }
 
     return undefined;
+  }
+
+  public set mimetype(value: string | undefined) {
+    this._mimetype = value;
   }
 
   /**
