@@ -31,12 +31,11 @@ import {
 import type {
   ILogger,
   LogFunction,
-  ProfileParameterError,
 } from '../../interfaces';
 import type { Result } from '../../lib';
 import { err, isNone, isNonPrimitive, ok, UnexpectedError } from '../../lib';
 import type { ProfileVisitor } from './interfaces';
-import type { ValidationError } from './profile-parameter-validator.errors';
+import type { ProfileParameterError, ValidationError } from './profile-parameter-validator.errors';
 import {
   addFieldToErrors,
   formatErrors,

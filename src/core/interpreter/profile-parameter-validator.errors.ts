@@ -98,16 +98,18 @@ export function formatErrors(errors?: ValidationError[]): string {
     .join('\n');
 }
 
-export class InputValidationError extends ErrorBase {
+export class ProfileParameterError extends ErrorBase { }
+
+export class InputValidationError extends ProfileParameterError {
   constructor(public errors?: ValidationError[]) {
     super(
-      'InputValidationError',
+      InputValidationError.name,
       'Input validation failed:' + '\n' + formatErrors(errors)
     );
   }
 }
 
-export class ResultValidationError extends ErrorBase {
+export class ResultValidationError extends ProfileParameterError {
   constructor(public errors?: ValidationError[]) {
     super(
       ResultValidationError.name,

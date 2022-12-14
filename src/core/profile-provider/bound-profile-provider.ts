@@ -11,8 +11,6 @@ import type {
   ICrypto,
   ILogger,
   LogFunction,
-  MapInterpreterError,
-  ProfileParameterError,
 } from '../../interfaces';
 import type {
   NonPrimitive,
@@ -30,7 +28,7 @@ import {
 } from '../../lib';
 import type { Events, Interceptable } from '../events';
 import { MapInterpreterEventAdapter } from '../events';
-import type { AuthCache, IFetch, SecurityConfiguration } from '../interpreter';
+import type { AuthCache, IFetch, MapInterpreterError, ProfileParameterError, SecurityConfiguration } from '../interpreter';
 import { MapInterpreter, ProfileParameterValidator } from '../interpreter';
 import type { IServiceSelector } from '../services';
 import { resolveIntegrationParameters } from './parameters';
@@ -136,10 +134,10 @@ export class BoundProfileProvider implements IBoundProfileProvider {
 
     const security = securityValues
       ? resolveSecurityConfiguration(
-          this.provider.securitySchemes ?? [],
-          securityValues,
-          this.provider.name
-        )
+        this.provider.securitySchemes ?? [],
+        securityValues,
+        this.provider.name
+      )
       : this.configuration.security;
 
     // create and perform interpreter instance
