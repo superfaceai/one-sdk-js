@@ -2524,7 +2524,6 @@ describe('superjson mutate', () => {
         setPriority(superjson, mockProfileName, undefined, environment)
       ).toEqual({ value: true });
 
-      console.log(superjson.profiles);
       expect(superjson.profiles?.[mockProfileName]).toEqual({
         defaults: {},
         providers: {
