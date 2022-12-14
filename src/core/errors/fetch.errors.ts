@@ -12,13 +12,13 @@ interface RequestError {
 
 export type FetchErrorIssue = NetworkError['issue'] | RequestError['issue'];
 
-export class FetchError extends ErrorBase {
+export class FetchErrorBase extends ErrorBase {
   constructor(public override kind: string, public issue: FetchErrorIssue) {
     super(kind, `Fetch failed: ${issue} issue`);
   }
 }
 
-export class NetworkFetchError extends FetchError {
+export class NetworkFetchError extends FetchErrorBase {
   constructor(public override issue: NetworkError['issue']) {
     super('NetworkError', issue);
   }
@@ -28,7 +28,7 @@ export class NetworkFetchError extends FetchError {
   }
 }
 
-export class RequestFetchError extends FetchError {
+export class RequestFetchError extends FetchErrorBase {
   constructor(public override issue: RequestError['issue']) {
     super('RequestError', issue);
   }
@@ -38,9 +38,9 @@ export class RequestFetchError extends FetchError {
   }
 }
 
-export type CrossFetchError = NetworkFetchError | RequestFetchError;
+export type FetchError = NetworkFetchError | RequestFetchError;
 
-export function isCrossFetchError(input: unknown): input is CrossFetchError {
+export function isFetchError(input: unknown): input is FetchError {
   return (
     typeof input === 'object' &&
     (input instanceof NetworkFetchError || input instanceof RequestFetchError)

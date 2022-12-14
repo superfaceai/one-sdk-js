@@ -1,6 +1,12 @@
-import type { ILogger } from '../../../interfaces';
+import type { IBinaryData, ILogger} from '../../../interfaces';
+import { isBinaryData } from '../../../interfaces';
 import type { MaybePromise } from '../../../lib';
-import { pipe, UnexpectedError, variablesToStrings } from '../../../lib';
+import {
+  castToNonPrimitive,
+  pipe,
+  UnexpectedError,
+  variablesToStrings,
+} from '../../../lib';
 import { USER_AGENT } from '../../../user-agent';
 import { unsupportedContentType } from '../../errors';
 import type { FetchBody, IFetch } from './interfaces';
@@ -26,7 +32,7 @@ import type {
   RequestParameters,
 } from './security';
 import type { HttpResponse } from './types';
-import { createUrl, fetchRequest } from './utils';
+import { createUrl, fetchRequest, setHeader } from './utils';
 
 /**
  * Represents input of pipe filter which works with http response
@@ -178,19 +184,22 @@ export const bodyFilter: Filter = ({
     } else if (parameters.contentType === URLENCODED_CONTENT) {
       finalBody = urlSearchParamsBody(variablesToStrings(parameters.body));
     } else if (parameters.contentType === FORMDATA_CONTENT) {
-      finalBody = formDataBody(variablesToStrings(parameters.body));
+      const body = castToNonPrimitive(parameters.body);
+      if (body) {
+        finalBody = formDataBody(body);
+      }
     } else if (
       parameters.contentType !== undefined &&
       BINARY_CONTENT_REGEXP.test(parameters.contentType)
     ) {
-      let buffer: Buffer;
-      if (Buffer.isBuffer(parameters.body)) {
-        buffer = parameters.body;
+      let data: Buffer | IBinaryData;
+      if (Buffer.isBuffer(parameters.body) || isBinaryData(parameters.body)) {
+        data = parameters.body;
       } else {
         // convert to string then buffer
-        buffer = Buffer.from(String(parameters.body));
+        data = Buffer.from(String(parameters.body));
       }
-      finalBody = binaryBody(buffer);
+      finalBody = binaryBody(data);
     } else {
       const supportedTypes = [
         JSON_CONTENT,
@@ -258,20 +267,22 @@ export const headersFilter: Filter = ({
   request,
   response,
 }: FilterInputOutput) => {
-  const headers: Record<string, string> = parameters.headers || {};
-  headers['accept'] = parameters.accept ?? '*/*';
-  headers['user-agent'] ??= USER_AGENT;
+  const headers: Record<string, string> = parameters.headers ?? {};
+
+  setHeader(headers, 'user-agent', USER_AGENT);
+  setHeader(headers, 'accept', parameters.accept ?? '*/*');
+
   if (parameters.contentType === JSON_CONTENT) {
-    headers['content-type'] ??= JSON_CONTENT;
+    setHeader(headers, 'content-type', JSON_CONTENT);
   } else if (parameters.contentType === URLENCODED_CONTENT) {
-    headers['content-type'] ??= URLENCODED_CONTENT;
+    setHeader(headers, 'content-type', URLENCODED_CONTENT);
   } else if (parameters.contentType === FORMDATA_CONTENT) {
     // NOTE: Do not set content-type explicitly, it will be read from FormData along with boundary
   } else if (
     parameters.contentType !== undefined &&
     BINARY_CONTENT_REGEXP.test(parameters.contentType)
   ) {
-    headers['Content-Type'] ??= parameters.contentType;
+    setHeader(headers, 'content-type', parameters.contentType);
   } else {
     if (parameters.body !== undefined) {
       const supportedTypes = [

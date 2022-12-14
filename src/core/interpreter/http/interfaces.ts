@@ -1,6 +1,8 @@
+import type { IBinaryData } from '../../../interfaces';
+
 type StringBody = { _type: 'string'; data: string };
-type FormDataBody = { _type: 'formdata'; data: Record<string, string> };
-type BinaryBody = { _type: 'binary'; data: Buffer };
+type FormDataBody = { _type: 'formdata'; data: Record<string, unknown> };
+type BinaryBody = { _type: 'binary'; data: Buffer | IBinaryData };
 type URLSearchParamsBody = {
   _type: 'urlsearchparams';
   data: Record<string, string>;
@@ -9,14 +11,14 @@ export const stringBody = (data: string): StringBody => ({
   _type: 'string',
   data,
 });
-export const formDataBody = (data: Record<string, string>): FormDataBody => ({
+export const formDataBody = (data: Record<string, unknown>): FormDataBody => ({
   _type: 'formdata',
   data,
 });
 export const urlSearchParamsBody = (
   data: Record<string, string>
 ): URLSearchParamsBody => ({ _type: 'urlsearchparams', data });
-export const binaryBody = (data: Buffer): BinaryBody => ({
+export const binaryBody = (data: Buffer | IBinaryData): BinaryBody => ({
   _type: 'binary',
   data,
 });

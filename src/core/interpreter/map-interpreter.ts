@@ -32,12 +32,17 @@ import type {
   ICrypto,
   ILogger,
   LogFunction,
-  MapInterpreterError,
-} from '../../interfaces';
+  MapInterpreterError} from '../../interfaces';
+import {
+  isBinaryData,
+  isDestructible,
+  isInitializable} from '../../interfaces';
 import type { NonPrimitive, Primitive, Result, Variables } from '../../lib';
 import {
   castToVariables,
   err,
+  isNonPrimitive,
+  isPrimitive,
   mergeVariables,
   ok,
   UnexpectedError,
@@ -65,7 +70,7 @@ function assertUnreachable(node: MapASTNode): never {
 
 function isIterable(input: unknown): input is Iterable<Variables> {
   return (
-    typeof input === 'object' && input !== null && Symbol.iterator in input
+    typeof input === 'object' && input !== null && (Symbol.iterator in input || Symbol.asyncIterator in input)
   );
 }
 
@@ -173,6 +178,10 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
     ast: MapDocumentNode
   ): Promise<Result<Variables | undefined, MapInterpreterError>> {
     this.ast = ast;
+    if (this.parameters.input !== undefined) {
+      await this.initializeInput(this.parameters.input);
+    }
+
     try {
       const result = await this.visit(ast);
 
@@ -180,9 +189,14 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
         return err(result.error);
       }
 
+      if (this.parameters.input !== undefined) {
+        await this.destroyInput(this.parameters.input);
+      }
+
       return ok(result.result);
     } catch (e) {
-      return err(e);
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion, @typescript-eslint/no-explicit-any
+      return err(e as any); // TODO: this can be HTTPError, UnexpectedError, MappedError, JessieError, MappedHTTPError, SDKBindError
     }
   }
 
@@ -327,7 +341,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
       this.visit(responseHandler)
     );
 
-    let accept = '';
+    let accept: string;
     if (responseHandlers.some(([, accept]) => accept === undefined)) {
       accept = '*/*';
     } else {
@@ -505,6 +519,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
     node: IterationAtomNode
   ): Promise<IterationDefinition> {
     const iterable = await this.visit(node.iterable);
+
     if (isIterable(iterable)) {
       return {
         iterationVariable: node.iterationVariable,
@@ -531,7 +546,8 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
 
       return castToVariables(result);
     } catch (e) {
-      throw new JessieError('Error in Jessie script', e, {
+      // TODO: fix error types
+      throw new JessieError('Error in Jessie script', e as Error, {
         node,
         ast: this.ast,
       });
@@ -676,7 +692,10 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
     const result = await this.visit(node.value);
 
     return {
-      result,
+      result:
+        this.stackTop().type === 'map'
+          ? await this.resolveVariables(result)
+          : result,
       error: node.isError,
       terminateFlow: node.terminateFlow,
     };
@@ -832,7 +851,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
     ) => unknown | Promise<unknown>
   ): Promise<void> {
     const iterationParams = await this.visit(node.iteration);
-    for (const variable of iterationParams.iterable) {
+    for await (const variable of iterationParams.iterable) {
       // overwrite the iteration variable instead of merging
       this.stackTop().variables[iterationParams.iterationVariable] = variable;
 
@@ -850,5 +869,44 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
         break;
       }
     }
+  }
+
+  private async initializeInput(input: NonPrimitive): Promise<void> {
+    for (const value of Object.values(input)) {
+      if (isInitializable(value)) {
+        await value.initialize();
+      } else if (value !== undefined && isNonPrimitive(value)) {
+        await this.initializeInput(value);
+      }
+    }
+  }
+
+  private async destroyInput(input: NonPrimitive): Promise<void> {
+    for (const value of Object.values(input)) {
+      if (isDestructible(value)) {
+        await value.destroy();
+      } else if (value !== undefined && isNonPrimitive(value)) {
+        await this.destroyInput(value);
+      }
+    }
+  }
+
+  private async resolveVariables(
+    input: Variables | undefined
+  ): Promise<Variables | undefined> {
+    if (isBinaryData(input)) {      
+      throw new UnexpectedError('BinaryData cannot be used as outcome');
+    }
+
+    if (input === undefined || isPrimitive(input)) {
+      return input;
+    }
+
+    const result: Variables = {};
+    for (const [key, value] of Object.entries(input)) {
+      result[key] = await this.resolveVariables(value);
+    }
+
+    return result;
   }
 }

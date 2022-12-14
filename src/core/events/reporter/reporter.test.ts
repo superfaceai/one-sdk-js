@@ -277,7 +277,7 @@ describe('MetricReporter', () => {
             metricDebounceTimeMin: 200,
           },
         })
-    ).toThrowError(
+    ).toThrow(
       'Value of metricDebounceTimeMax (100) is lesser than value of metricDebounceTimeMin (200)'
     );
   });

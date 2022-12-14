@@ -1,12 +1,29 @@
+import type { IBinaryData} from '../../interfaces';
+import { isBinaryData } from '../../interfaces';
 import { UnexpectedError } from '../error';
 import { indexRecord } from '../object';
 
-// Arrays should be considered opaque value and therefore act as a primitive
-export type Primitive = string | boolean | number | unknown[];
+// Arrays should be considered opaque value and therefore act as a primitive, same with
+export type Primitive =
+  | string
+  | boolean
+  | number
+  | unknown[]
+  | IBinaryData
+  | Buffer;
 export type NonPrimitive = {
   [key: string]: Primitive | NonPrimitive | undefined;
 };
 export type Variables = Primitive | NonPrimitive;
+
+// FIXME: This is temporary solution; find a better way to handle this
+export function isClassInstance(input: unknown): boolean {
+  return (
+    typeof input === 'object' &&
+    input !== null &&
+    input.constructor.name !== 'Object'
+  );
+}
 
 export function assertIsVariables(
   input: unknown
@@ -42,7 +59,10 @@ export function castToNonPrimitive(input: unknown): NonPrimitive | undefined {
 export function isPrimitive(input: Variables): input is Primitive {
   return (
     ['string', 'number', 'boolean'].includes(typeof input) ||
-    Array.isArray(input)
+    Array.isArray(input) ||
+    isClassInstance(input) ||
+    Buffer.isBuffer(input) ||
+    isBinaryData(input)
   );
 }
 
@@ -50,7 +70,9 @@ export function isNonPrimitive(input: Variables): input is NonPrimitive {
   return (
     typeof input === 'object' &&
     !Array.isArray(input) &&
-    !Buffer.isBuffer(input)
+    !isClassInstance(input) &&
+    !Buffer.isBuffer(input) &&
+    !isBinaryData(input)
   );
 }
 

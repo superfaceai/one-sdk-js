@@ -5,7 +5,7 @@ import { SuperCache } from '../../../lib';
 import { MockTimers } from '../../../mock';
 import { NodeCrypto, NodeFetch } from '../../../node';
 import { HttpClient } from './http';
-import { createUrl } from './utils';
+import { createUrl, getHeader } from './utils';
 
 const mockServer = getLocal();
 const timers = new MockTimers();
@@ -140,7 +140,7 @@ describe('HttpClient', () => {
             method: 'post',
             accept: 'application/json',
             baseUrl: 'http://localhost',
-            contentType: contentType,
+            contentType,
             body: Buffer.from('data') as unknown as Primitive,
           });
         });
@@ -155,7 +155,7 @@ describe('HttpClient', () => {
         it('should fetch request with correct Content-Type header', async () => {
           const requestHeaders = fetchMock.mock.calls[0][1].headers;
           expect(requestHeaders).toBeDefined();
-          expect(requestHeaders['Content-Type']).toBe(contentType);
+          expect(getHeader(requestHeaders, 'Content-Type')).toBe(contentType);
         });
       });
     }
@@ -185,7 +185,7 @@ describe('HttpClient', () => {
       });
       expect(response.statusCode).toBe(200);
       const body = response.body as any;
-      expect(body.contentType).toMatch(/^multipart\/form-data;boundary=/);
+      expect(body.contentType).toMatch(/^multipart\/form-data;\s*boundary=/);
     });
   });
 });

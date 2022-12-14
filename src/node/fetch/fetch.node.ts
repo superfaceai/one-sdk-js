@@ -1,23 +1,24 @@
-import 'isomorphic-form-data';
-
 import { AbortController } from 'abort-controller';
-import fetch, { Headers } from 'cross-fetch';
+import FormData from 'form-data';
+import type { HeadersInit, RequestInit, Response } from 'node-fetch';
+import fetch, { Headers } from 'node-fetch';
 
 import type {
   AuthCache,
-  CrossFetchError,
   Events,
   FetchBody,
+  FetchError,
   FetchResponse,
   IFetch,
   Interceptable,
   InterceptableMetadata,
-  ITimers,
-} from '../../core';
+  ITimers} from '../../core';
 import {
   BINARY_CONTENT_REGEXP,
   FetchParameters,
   isBinaryBody,
+  isBinaryData,
+  isBinaryDataMeta,
   isFormDataBody,
   isStringBody,
   isUrlSearchParamsBody,
@@ -44,15 +45,13 @@ export class NodeFetch implements IFetch, Interceptable, AuthCache {
     url: string,
     parameters: FetchParameters
   ): Promise<FetchResponse> {
-    const headersInit = parameters.headers
-      ? Object.entries(parameters.headers).map(([key, value]) => [
-          key,
-          ...(Array.isArray(value) ? value : [value]),
-        ])
-      : undefined;
+    const headersInit = this.prepareHeadersInit(parameters.headers);
+
     const request: RequestInit = {
       headers: new Headers(headersInit),
       method: parameters.method,
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore https://github.com/form-data/form-data/issues/513
       body: this.body(parameters.body),
     };
 
@@ -78,7 +77,7 @@ export class NodeFetch implements IFetch, Interceptable, AuthCache {
     ) {
       body = await response.json();
     } else if (this.isBinaryContent(headers, parameters.headers)) {
-      body = await response.arrayBuffer();
+      body = await response.arrayBuffer(); // TODO: BinaryData.fromStream(response.body)
     } else {
       body = await response.text();
     }
@@ -115,7 +114,7 @@ export class NodeFetch implements IFetch, Interceptable, AuthCache {
     }
   }
 
-  private static normalizeError(err: unknown): CrossFetchError {
+  private static normalizeError(err: unknown): FetchError {
     if (typeof err !== 'object' || err === null) {
       throw err;
     }
@@ -171,9 +170,15 @@ export class NodeFetch implements IFetch, Interceptable, AuthCache {
     return '';
   }
 
-  private body(body?: FetchBody): string | FormData | Buffer | undefined {
+  private body(
+    body?: FetchBody
+  ): string | URLSearchParams | FormData | Buffer | NodeJS.ReadableStream | undefined {
     if (body) {
       if (isStringBody(body) || isBinaryBody(body)) {
+        if (isBinaryData(body.data)) {
+          return body.data.toStream();
+        }
+
         return body.data;
       }
 
@@ -189,13 +194,23 @@ export class NodeFetch implements IFetch, Interceptable, AuthCache {
     return undefined;
   }
 
-  private formData(data?: Record<string, string>): FormData {
+  private formData(data?: Record<string, unknown>): FormData {
     const formData = new FormData();
 
     if (data) {
-      Object.entries(data).forEach(([key, value]) =>
-        formData.append(key, value)
-      );
+      Object.entries(data).forEach(([key, value]) => {
+        if (Array.isArray(value)) {
+          value.forEach(item => formData.append(key, item));
+        } else if (isBinaryData(value)) {
+          if (isBinaryDataMeta(value)) {
+            formData.append(key, value.toStream(), { contentType: value.mimetype, filename: value.name });
+          } else {
+            formData.append(key, value.toStream());
+          }
+        } else {
+          formData.append(key, value);
+        }
+      });
     }
 
     return formData;
@@ -232,5 +247,23 @@ export class NodeFetch implements IFetch, Interceptable, AuthCache {
     }
 
     return false;
+  }
+
+  private prepareHeadersInit(data: FetchParameters['headers'] | undefined): HeadersInit {
+    if (data === undefined) {
+      return [];
+    }
+
+    const headers: [string, string][] = [];
+
+    Object.entries(data).forEach(([key, value]) => {
+      if (Array.isArray(value)) {
+        value.forEach((val) => headers.push([key, val]));
+      } else {
+        headers.push([key, value]);
+      }
+    });
+
+    return headers;
   }
 }

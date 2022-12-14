@@ -1,9 +1,18 @@
 import { ApiKeyPlacement, HttpScheme, SecurityType } from '@superfaceai/ast';
 import { parseMap, Source } from '@superfaceai/parser';
+import { readFile } from 'fs/promises';
 import { getLocal } from 'mockttp';
+import * as path from 'path';
 
+import { UnexpectedError } from '../../lib';
 import { MockTimers } from '../../mock';
-import { NodeCrypto, NodeFetch, NodeFileSystem } from '../../node';
+import {
+  BinaryData,
+  NodeCrypto,
+  NodeFetch,
+  NodeFileSystem,
+  NodeLogger,
+} from '../../node';
 import { Config } from '../config';
 import { ServiceSelector } from '../services';
 import { MapInterpreter } from './map-interpreter';
@@ -1241,7 +1250,7 @@ describe('MapInterpreter', () => {
     expect(result.isOk() && result.value).toEqual('Y');
   });
 
-  it('scope does not leak into callee', async () => {
+  it('should not leak scope into callee', async () => {
     const ast = parseMapFromSource(`
       map Test {
         notVisible = 15
@@ -1261,6 +1270,7 @@ describe('MapInterpreter', () => {
       },
       { fetchInstance, config, crypto }
     );
+
     const result = await interpreter.perform(ast);
     expect(result.isErr()).toEqual(true);
   });
@@ -1397,7 +1407,7 @@ describe('MapInterpreter', () => {
     }
     
     operation mapItem {
-        return args.item
+      return args.item
     }`);
 
     const interpreter = new MapInterpreter(
@@ -1418,4 +1428,477 @@ describe('MapInterpreter', () => {
 
     expect(items).toStrictEqual([{ a: 1, b: 2 }, { a: 3 }]);
   });
+
+  it('should peek first few bytes of a binary file', async () => {
+    const ast = parseMapFromSource(`
+    map Test {
+      map result {
+        firstBytes: input.items.peek(10)
+      }
+    }`);
+
+    const filePath = path.resolve(process.cwd(), 'fixtures', 'binary.txt');
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+        services: ServiceSelector.withDefaultUrl(''),
+        input: {
+          items: BinaryData.fromPath(filePath),
+        },
+      },
+      { fetchInstance, config, crypto }
+    );
+
+    const result = await interpreter.perform(ast);
+    expect(result.isOk()).toBe(true);
+    const firstBytes = (result.unwrap() as { firstBytes: Buffer }).firstBytes.toString('utf8');
+    const expected = (await readFile(filePath)).subarray(0, 10).toString('utf8');
+
+    expect(firstBytes).toStrictEqual(expected);
+  });
+
+  it('should peek first few bytes of a binary file and then return entire file', async () => {
+    const ast = parseMapFromSource(`
+    map Test {
+      map result {
+        firstBytes = input.items.peek(10)
+        items = input.items.getAllData()
+      }
+    }`);
+
+    const filePath = path.resolve(process.cwd(), 'fixtures', 'binary.txt');
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+        services: ServiceSelector.withDefaultUrl(''),
+        input: {
+          items: BinaryData.fromPath(filePath),
+        },
+      },
+      { fetchInstance, config, crypto }
+    );
+
+    const result = await interpreter.perform(ast);
+    if (result.isErr()) {
+      console.error(result.error);
+    }
+    expect(result.isOk()).toBe(true);
+    const firstBytes = (result.unwrap() as { firstBytes: Buffer }).firstBytes.toString('utf8');
+    const items = (result.unwrap() as { items: Buffer }).items;
+    const expected = await readFile(filePath);
+
+    expect(firstBytes).toStrictEqual(expected.subarray(0, 10).toString('utf8'));
+    expect(items).toStrictEqual(expected);
+  });
+
+  it('should return UnexpectedError if BinaryData as result', async () => {
+    const ast = parseMapFromSource(`
+    map Test {
+      map result {
+        items = input.items
+      }
+    }`);
+
+    const filePath = path.resolve(process.cwd(), 'fixtures', 'binary.txt');
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+        services: ServiceSelector.withDefaultUrl(''),
+        input: {
+          items: BinaryData.fromPath(filePath),
+        },
+      },
+      { fetchInstance, config, crypto }
+    );
+
+    const result = await interpreter.perform(ast);
+    expect(result.isErr()).toBe(true);
+    expect(result.isErr() && result.error).toBeInstanceOf(UnexpectedError);
+  });
+
+  it('should return the file in its entirety as base64', async () => {
+    const ast = parseMapFromSource(`
+    map Test {
+      data = input.items.getAllData() // getAllData is async needs to be set to variable
+
+      map result {
+        items: data.toString('base64')
+      }
+    }`);
+
+    /*
+    const ast = parseMapFromSource(`
+    map Test {
+      map result {
+        items: input.items.getAllData().then((data) => data.toString('base64'))
+      }
+    }`);
+    */
+
+    const filePath = path.resolve(process.cwd(), 'fixtures', 'binary.txt');
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+        services: ServiceSelector.withDefaultUrl(''),
+        input: {
+          items: BinaryData.fromPath(filePath),
+        },
+      },
+      { fetchInstance, config, crypto }
+    );
+
+    const result = await interpreter.perform(ast);
+    if (result.isErr()) {
+      console.error(result.error);
+    }
+    expect(result.isOk()).toBe(true);
+    const items = (result.unwrap() as any).items;
+    const expected = await readFile(filePath, 'base64');
+
+    expect(items).toStrictEqual(expected);
+  });
+
+  it('should chunk async binary data', async () => {
+    const logger = new NodeLogger();
+    const ast = parseMapFromSource(`
+    map Test {
+      mappedItems = call foreach(item of input.items.chunkBy(10)) DoSomething(item = item.toString('utf8'))
+
+      map result {
+        items: mappedItems
+      }
+    }
+
+    operation DoSomething {
+      return args.item.toUpperCase()
+    }`);
+    const filePath = path.resolve(process.cwd(), 'fixtures', 'binary.txt');
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+        services: ServiceSelector.withDefaultUrl(''),
+        input: {
+          items: BinaryData.fromPath(filePath),
+        },
+      },
+      { fetchInstance, config, crypto, logger }
+    );
+
+    const result = await interpreter.perform(ast);
+    if (result.isErr()) {
+      console.error(result.error);
+    }
+    expect(result.isOk()).toBe(true);
+    const items = (result.unwrap() as any).items;
+    const expected = (await readFile(filePath, 'utf8'))
+      .toUpperCase()
+      // Splits file into chunks of 10 characters, pretty neat huh?
+      .match(/(.|[\r\n]){1,10}/g);
+
+    expect(items).toStrictEqual(expected);
+  });
+
+  it('should peek first few bytes as base64 and then return entire file as binary', async () => {
+    const ast = parseMapFromSource(`
+    map Test {
+      firstBytes = input.items.peek(10) // peek is async needs to be set to variable
+      allData = input.items.getAllData() // getAllData is async needs to be set to variable
+      
+      map result {
+        firstBytes: firstBytes.toString('base64'),
+        items: allData.toString('binary')
+      }
+    }`);
+
+    const filePath = path.resolve(process.cwd(), 'fixtures', 'binary.txt');
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+        services: ServiceSelector.withDefaultUrl(''),
+        input: {
+          items: BinaryData.fromPath(filePath),
+        },
+      },
+      { fetchInstance, config, crypto }
+    );
+
+    const result = await interpreter.perform(ast);
+    if (result.isErr()) {
+      console.error(result.error);
+    }
+    expect(result.isOk()).toBe(true);
+    const firstBytes = (result.unwrap() as any).firstBytes;
+    const items = (result.unwrap() as any).items;
+    const expected = await readFile(filePath);
+
+    expect(firstBytes).toStrictEqual(expected.slice(0, 10).toString('base64'));
+    expect(items).toStrictEqual(expected.toString('binary'));
+  });
+
+  it('should send file in its entirety as body', async () => {
+    const filePath = path.resolve(process.cwd(), 'fixtures', 'binary.txt');
+    const file = BinaryData.fromPath(filePath);
+    const expected = await readFile(filePath, 'utf8');
+    await mockServer.forPost('/test').thenCallback(async req => {
+      expect(await req.body.getText()).toStrictEqual(expected);
+
+      return { status: 200, json: { ok: true } };
+    });
+
+    const ast = parseMapFromSource(`
+    map Test {
+      http POST "/test" {
+        request "video/notreallyvideo" {
+          body = input.items
+        }
+
+        response 200 {
+          map result body
+        }
+      }
+    }`);
+
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+        services: ServiceSelector.withDefaultUrl(mockServer.url),
+        input: {
+          items: file,
+        },
+      },
+      { fetchInstance, config, crypto }
+    );
+
+    const result = await interpreter.perform(ast);
+    if (result.isErr()) {
+      console.error(result.error);
+    }
+    expect(result.isOk()).toBe(true);
+
+    const response = result.unwrap();
+    expect(response).toStrictEqual({ ok: true });
+  });
+
+  it('should send file in its entirety as FormData', async () => {
+    const filePath = path.resolve(process.cwd(), 'fixtures', 'binary.txt');
+    const file = BinaryData.fromPath(filePath);
+    const expected = await readFile(filePath, 'utf8');
+    await mockServer.forPost('/test').thenCallback(async req => {
+      const data = await req.body.getText();
+      expect(data).toMatch(expected);
+
+      return { status: 200, json: { ok: true } };
+    });
+
+    const ast = parseMapFromSource(`
+    map Test {
+      http POST "/test" {
+        request "multipart/form-data" {
+          body = {
+            data: input.items
+          }
+        }
+
+        response 200 {
+          map result body
+        }
+      }
+    }`);
+
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+        services: ServiceSelector.withDefaultUrl(mockServer.url),
+        input: {
+          items: file,
+        },
+      },
+      { fetchInstance, config, crypto }
+    );
+
+    const result = await interpreter.perform(ast);
+    if (result.isErr()) {
+      console.error(result.error);
+    }
+    expect(result.isOk()).toBe(true);
+
+    const response = result.unwrap();
+    expect(response).toStrictEqual({ ok: true });
+  });
+
+  it('should send file in its entirety as FormData with passed mimetype and filename', async () => {
+    const filePath = path.resolve(process.cwd(), 'fixtures', 'binary.txt');
+    const file = BinaryData.fromPath(filePath, { name: 'test.txt', mimetype: 'text/plain' });
+
+    await mockServer.forPost('/test').thenCallback(async req => {
+      const data = await req.body.getText();
+      expect(data).toContain('Content-Disposition: form-data; name="file"; filename="test.txt"');
+      expect(data).toContain('Content-Type: text/plain');
+
+      return { status: 200, json: { ok: true } };
+    });
+
+    const ast = parseMapFromSource(`
+    map Test {
+      http POST "/test" {
+        request "multipart/form-data" {
+          body = {
+            file: input.file
+          }
+        }
+
+        response 200 {
+          map result body
+        }
+      }
+    }`);
+
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+        services: ServiceSelector.withDefaultUrl(mockServer.url),
+        input: {
+          file,
+        },
+      },
+      { fetchInstance, config, crypto }
+    );
+
+    const result = await interpreter.perform(ast);
+    if (result.isErr()) {
+      console.error(result.error);
+    }
+    expect(result.isOk()).toBe(true);
+
+    const response = result.unwrap();
+    expect(response).toStrictEqual({ ok: true });
+  });
+
+  it('should send file with set name and mimetype from map', async () => {
+    const filePath = path.resolve(process.cwd(), 'fixtures', 'binary.txt');
+    const file = BinaryData.fromPath(filePath);
+
+    await mockServer.forPost('/test').thenCallback(async req => {
+      const data = await req.body.getText();
+
+      expect(data).toContain('Content-Disposition: form-data; name="file"; filename="mapset.txt"');
+      expect(data).toContain('Content-Type: vnd.test/mapset');
+
+      return { status: 200, json: { ok: true } };
+    });
+
+    const ast = parseMapFromSource(`
+    map Test {
+      // need to do comlink variable assign to be able to use Script expression
+      tmp = (input.file.name = input.filename)
+      tmp = (input.file.mimetype = input.mimetype)
+
+      http POST "/test" {
+        request "multipart/form-data" {
+          body = {
+            file: input.file
+          }
+        }
+
+        response 200 {
+          map result body
+        }
+      }
+    }`);
+
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+        services: ServiceSelector.withDefaultUrl(mockServer.url),
+        input: {
+          file,
+          filename: 'mapset.txt',
+          mimetype: 'vnd.test/mapset'
+        },
+      },
+      { fetchInstance, config, crypto }
+    );
+
+    const result = await interpreter.perform(ast);
+    if (result.isErr()) {
+      console.error(result.error);
+    }
+    expect(result.isOk()).toBe(true);
+
+    const response = result.unwrap();
+    expect(response).toStrictEqual({ ok: true });
+  });
+
+  it('should correctly send request to / relative url', async () => {
+    const url = '/';
+    await mockServer.forGet(url).thenJson(200, { data: 12 });
+
+    const ast = parseMapFromSource(`    
+    map Test {
+      http GET "/" {
+        response 200 {
+          return map result body.data
+        }
+      }
+
+      map error "wrong"
+    }
+    `);
+
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+        services: ServiceSelector.withDefaultUrl(
+          mockServicesSelector.getUrl()!
+        ),
+        input: {},
+      },
+      { fetchInstance, config, crypto }
+    );
+
+    const result = await interpreter.perform(ast);
+    expect(result.isOk()).toBe(true);
+
+    expect(result.unwrap()).toStrictEqual(12);
+  });
+
+  it('should return ArrayBuffer when for binary response', async () => {
+    const url = '/twelve';
+    const filePath = path.resolve(process.cwd(), 'fixtures', 'binary.txt');
+    await mockServer.forGet(url).thenFromFile(200, filePath, { 'content-type': 'application/octet-stream' });
+
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+        services: mockServicesSelector,
+      },
+      { fetchInstance, config, crypto }
+    );
+    const ast = parseMapFromSource(`
+      map Test {
+        http GET "${url}" {
+          response 200 "application/octet-stream" {
+            map result body
+          }
+        }
+      }`);
+    const result = await interpreter.perform(ast);
+    const expected = (await readFile(filePath)).toString('utf8');
+
+    expect(result.unwrap() instanceof ArrayBuffer).toBe(true);
+    expect(Buffer.from(result.unwrap() as ArrayBuffer).toString('utf8')).toBe(expected);
+  });
 });
+  

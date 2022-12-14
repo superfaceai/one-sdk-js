@@ -2,7 +2,6 @@ import '../../schema-tools/superjson/utils';
 
 import type { ProviderJson } from '@superfaceai/ast';
 import { parseMap, parseProfile, Source } from '@superfaceai/parser';
-import { mocked } from 'ts-jest/utils';
 
 import { resolveMapAst, resolveProfileAst, resolveProviderJson } from '../../core';
 import { ok } from '../../lib';
@@ -95,9 +94,9 @@ describe('SuperfaceClient integration test', () => {
     const client = new SuperfaceClient();
 
     // Let .bind happen with mocked inputs
-    mocked(resolveProfileAst).mockResolvedValue(mockProfileDocument);
-    mocked(resolveMapAst).mockResolvedValue(mockMapDocumentSuccessWithParameters);
-    mocked(resolveProviderJson).mockResolvedValue(mockProviderJson);
+    jest.mocked(resolveProfileAst).mockResolvedValue(mockProfileDocument);
+    jest.mocked(resolveMapAst).mockResolvedValue(mockMapDocumentSuccessWithParameters);
+    jest.mocked(resolveProviderJson).mockResolvedValue(mockProviderJson);
 
     const profile = await client.getProfile('example');
 
@@ -110,9 +109,9 @@ describe('SuperfaceClient integration test', () => {
     const client = new SuperfaceClient();
 
     // Let .bind happen with mocked inputs
-    mocked(resolveProfileAst).mockResolvedValue(mockProfileDocument);
-    mocked(resolveMapAst).mockResolvedValue(mockMapDocumentSuccessWithParameters);
-    mocked(resolveProviderJson).mockResolvedValue(mockProviderJson);
+    jest.mocked(resolveProfileAst).mockResolvedValue(mockProfileDocument);
+    jest.mocked(resolveMapAst).mockResolvedValue(mockMapDocumentSuccessWithParameters);
+    jest.mocked(resolveProviderJson).mockResolvedValue(mockProviderJson);
 
 
     const profile = await client.getProfile('example');
@@ -126,9 +125,9 @@ describe('SuperfaceClient integration test', () => {
 
   describe('typed client', () => {
     it('should perform successfully', async () => {
-      mocked(resolveProfileAst).mockResolvedValue(mockProfileDocument);
-      mocked(resolveMapAst).mockResolvedValue(mockMapDocumentSuccess);
-      mocked(resolveProviderJson).mockResolvedValue(mockProviderJson);
+      jest.mocked(resolveProfileAst).mockResolvedValue(mockProfileDocument);
+      jest.mocked(resolveMapAst).mockResolvedValue(mockMapDocumentSuccess);
+      jest.mocked(resolveProviderJson).mockResolvedValue(mockProviderJson);
 
 
       const ClientClass = createTypedClient({
