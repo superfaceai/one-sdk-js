@@ -358,7 +358,7 @@ describe('resolve-map-ast', () => {
     ).rejects.toThrow(providersDoNotMatchError('provider', 'different', 'map'));
   });
 
-  it('return map ast when path to source is passed', async () => {
+  it('returns map ast when path to source is passed', async () => {
     await expect(
       resolveMapAst({
         profileId,
