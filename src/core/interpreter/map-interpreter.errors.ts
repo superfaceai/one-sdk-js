@@ -13,7 +13,6 @@ export class MapInterpreterError extends ErrorBase {
 
   constructor(kind: string, message: string, public metadata?: ErrorMetadata) {
     super(kind, message);
-    Object.setPrototypeOf(this, MapInterpreterError.prototype);
   }
 
   public get astPath(): string[] | undefined {
@@ -78,7 +77,6 @@ export class MapInterpreterError extends ErrorBase {
 export class MapASTError extends MapInterpreterError {
   constructor(message: string, public override metadata?: ErrorMetadata) {
     super(MapASTError.name, message, metadata);
-    Object.setPrototypeOf(this, MapASTError.prototype);
   }
 }
 
@@ -98,7 +96,6 @@ export class HTTPError extends MapInterpreterError {
     }
   ) {
     super(HTTPError.name, message, metadata);
-    Object.setPrototypeOf(this, HTTPError.prototype);
   }
 }
 
@@ -110,7 +107,6 @@ export class MappedHTTPError<T> extends MapInterpreterError {
     public properties?: T
   ) {
     super(MappedHTTPError.name, message, metadata);
-    Object.setPrototypeOf(this, MappedHTTPError.prototype);
   }
 
   public override toString(): string {
@@ -136,7 +132,6 @@ export class JessieError extends MapInterpreterError {
     public override metadata?: { node?: MapASTNode; ast?: MapDocumentNode }
   ) {
     super(JessieError.name, message);
-    Object.setPrototypeOf(this, JessieError.prototype);
   }
 
   public override toString(): string {
@@ -162,7 +157,6 @@ export class MappedError<T> extends MapInterpreterError {
     public properties?: T
   ) {
     super(MappedError.name, message, metadata);
-    Object.setPrototypeOf(this, MappedError.prototype);
   }
 
   public override toString(): string {

@@ -3,31 +3,31 @@ import { ErrorBase, UnexpectedError } from '../../lib';
 export type ErrorContext = { path?: string[] };
 export type ValidationError =
   | {
-      kind: 'wrongInput';
-      context?: ErrorContext;
-    }
+    kind: 'wrongInput';
+    context?: ErrorContext;
+  }
   | {
-      kind: 'enumValue';
-      context?: ErrorContext & { actual: string };
-    }
+    kind: 'enumValue';
+    context?: ErrorContext & { actual: string };
+  }
   | {
-      kind: 'wrongType';
-      context: ErrorContext & { expected: string; actual: string };
-    }
+    kind: 'wrongType';
+    context: ErrorContext & { expected: string; actual: string };
+  }
   | { kind: 'notArray'; context: ErrorContext & { input: unknown } }
   | { kind: 'wrongUnion'; context: ErrorContext & { expected: string[] } }
   | {
-      kind: 'elementsInArrayWrong';
-      context: ErrorContext & { suberrors: ValidationError[] };
-    }
+    kind: 'elementsInArrayWrong';
+    context: ErrorContext & { suberrors: ValidationError[] };
+  }
   | {
-      kind: 'missingRequired';
-      context?: ErrorContext & { field: string };
-    }
+    kind: 'missingRequired';
+    context?: ErrorContext & { field: string };
+  }
   | {
-      kind: 'nullInNonNullable';
-      context?: ErrorContext & { field: string };
-    };
+    kind: 'nullInNonNullable';
+    context?: ErrorContext & { field: string };
+  };
 
 export function isWrongTypeError(err: ValidationError): err is {
   kind: 'wrongType';
@@ -104,8 +104,6 @@ export class InputValidationError extends ErrorBase {
       'InputValidationError',
       'Input validation failed:' + '\n' + formatErrors(errors)
     );
-
-    Object.setPrototypeOf(this, InputValidationError.prototype);
   }
 }
 
@@ -115,8 +113,6 @@ export class ResultValidationError extends ErrorBase {
       ResultValidationError.name,
       'Result validation failed:' + '\n' + formatErrors(errors)
     );
-
-    Object.setPrototypeOf(this, ResultValidationError.prototype);
   }
 }
 

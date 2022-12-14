@@ -15,14 +15,12 @@ export type FetchErrorIssue = NetworkError['issue'] | RequestError['issue'];
 export class FetchErrorBase extends ErrorBase {
   constructor(kind: string, public issue: FetchErrorIssue) {
     super(kind, `Fetch failed: ${issue} issue`);
-    Object.setPrototypeOf(this, FetchErrorBase.prototype);
   }
 }
 
 export class NetworkFetchError extends FetchErrorBase {
   constructor(public override issue: NetworkError['issue']) {
     super('NetworkError', issue);
-    Object.setPrototypeOf(this, NetworkFetchError.prototype);
   }
 
   public get normalized(): NetworkError {
@@ -33,7 +31,6 @@ export class NetworkFetchError extends FetchErrorBase {
 export class RequestFetchError extends FetchErrorBase {
   constructor(public override issue: RequestError['issue']) {
     super('RequestError', issue);
-    Object.setPrototypeOf(this, RequestFetchError.prototype);
   }
 
   public get normalized(): RequestError {
