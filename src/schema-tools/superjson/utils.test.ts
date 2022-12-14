@@ -1,4 +1,5 @@
-import type { IFileSystem, IFileSystemError } from '../../interfaces';
+import type { FileSystemError } from '../../core';
+import type { IFileSystem } from '../../interfaces';
 import { err, ok } from '../../lib';
 import { MockFileSystem } from '../../mock';
 import { NodeFileSystem } from '../../node';
@@ -50,7 +51,7 @@ describe('SuperJson utils', () => {
     });
 
     it('returns err when unable to read super.json', () => {
-      fileSystem.sync.readFile = () => err(mockError as IFileSystemError);
+      fileSystem.sync.readFile = () => err(mockError as FileSystemError);
       const result = loadSuperJsonSync('test', fileSystem);
       expect(result.isErr()).toBe(true);
       expect(result.isErr() && result.error.message).toMatch(
@@ -149,7 +150,7 @@ describe('SuperJson utils', () => {
     });
 
     it('returns err when unable to read super.json', async () => {
-      fileSystem.readFile = async () => err(mockError as IFileSystemError);
+      fileSystem.readFile = async () => err(mockError as FileSystemError);
       const result = await loadSuperJson('test', fileSystem);
       expect(result.isErr()).toBe(true);
       expect(result.isErr() && result.error.message).toMatch(
