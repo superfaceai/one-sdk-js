@@ -8,13 +8,12 @@ export interface ErrorMetadata {
   ast?: MapDocumentNode;
 }
 
-// TODO rename to MapInterpreterError
-export class MapInterpreterErrorBase extends ErrorBase {
+export class MapInterpreterError extends ErrorBase {
   private path?: string[];
 
   constructor(kind: string, message: string, public metadata?: ErrorMetadata) {
     super(kind, message);
-    Object.setPrototypeOf(this, MapInterpreterErrorBase.prototype);
+    Object.setPrototypeOf(this, MapInterpreterError.prototype);
   }
 
   public get astPath(): string[] | undefined {
@@ -76,14 +75,14 @@ export class MapInterpreterErrorBase extends ErrorBase {
   }
 }
 
-export class MapASTError extends MapInterpreterErrorBase {
+export class MapASTError extends MapInterpreterError {
   constructor(message: string, public override metadata?: ErrorMetadata) {
     super(MapASTError.name, message, metadata);
     Object.setPrototypeOf(this, MapASTError.prototype);
   }
 }
 
-export class HTTPError extends MapInterpreterErrorBase {
+export class HTTPError extends MapInterpreterError {
   constructor(
     message: string,
     public override metadata?: ErrorMetadata,
@@ -103,7 +102,7 @@ export class HTTPError extends MapInterpreterErrorBase {
   }
 }
 
-export class MappedHTTPError<T> extends MapInterpreterErrorBase {
+export class MappedHTTPError<T> extends MapInterpreterError {
   constructor(
     message: string,
     public override metadata?: { node?: MapASTNode; ast?: MapDocumentNode },
@@ -130,7 +129,7 @@ export class MappedHTTPError<T> extends MapInterpreterErrorBase {
   }
 }
 
-export class JessieError extends MapInterpreterErrorBase {
+export class JessieError extends MapInterpreterError {
   constructor(
     message: string,
     public originalError: Error,
@@ -154,7 +153,7 @@ export class JessieError extends MapInterpreterErrorBase {
   }
 }
 
-export class MappedError<T> extends MapInterpreterErrorBase {
+export class MappedError<T> extends MapInterpreterError {
   public override name = 'MappedError' as const;
 
   constructor(

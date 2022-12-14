@@ -54,6 +54,9 @@ import type { MapInterpreterExternalHandler } from './external-handler';
 import type { AuthCache, SecurityConfiguration } from './http';
 import { HttpClient } from './http';
 import type { IFetch } from './http/interfaces';
+import type {
+  MapInterpreterError
+} from './map-interpreter.errors';
 import {
   HTTPError,
   JessieError,

@@ -1,6 +1,6 @@
 import type { SecurityValues } from '@superfaceai/ast';
 
-import type { MapInterpreterErrorBase } from '../core';
+import type { MapInterpreterError } from '../core';
 import type { NonPrimitive, Result, UnexpectedError, Variables } from '../lib';
 import type { IProvider } from './provider';
 
@@ -22,5 +22,5 @@ export interface IUseCase {
   >(
     input?: TInput,
     options?: PerformOptions
-  ): Promise<Result<TOutput, MapInterpreterErrorBase | UnexpectedError>>; // TODO: ProfileParameterError
+  ): Promise<Result<TOutput, MapInterpreterError | UnexpectedError>>; // TODO: ProfileParameterError
 }
