@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - `BinaryData` type, not surfaced in Comlink Profile - [#296](https://github.com/superfaceai/one-sdk-js/pull/296), [#304](https://github.com/superfaceai/one-sdk-js/pull/304)
 
+### Changed
+- `setPriority` super json helper can be used to remove priority
+
 ## [2.1.0] - 2022-11-16
 ### Added
 - `multipart/form-data` supports array values to define duplicate fields
