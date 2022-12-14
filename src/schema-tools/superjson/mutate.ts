@@ -828,7 +828,7 @@ export function mergeSecurity(
 export function setPriority(
   document: SuperJsonDocument,
   profileName: string,
-  providersSortedByPriority: string[],
+  providersSortedByPriority: string[] | undefined,
   environment: IEnvironment,
   logger?: ILogger
 ): Result<boolean, SDKExecutionError> {
@@ -856,6 +856,12 @@ export function setPriority(
 
   if (!profileProviders) {
     return err(providersNotSetError(profileName));
+  }
+
+  if (providersSortedByPriority === undefined) {
+    delete targetedProfile.priority;
+
+    return ok(true);
   }
 
   if (providersSortedByPriority.some(p => profileProviders[p] === undefined)) {

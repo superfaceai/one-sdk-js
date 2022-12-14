@@ -2498,6 +2498,43 @@ describe('superjson mutate', () => {
       ).toEqual({ value: false });
     });
 
+    it('deletes priority in super.json', () => {
+      const mockProfileName = 'profile';
+
+      superjson = {
+        profiles: {
+          [mockProfileName]: {
+            defaults: {},
+            priority: ['first', 'second', 'third'],
+            file: 'some/path',
+            providers: {
+              first: {},
+              second: {},
+              third: {},
+            },
+          },
+        },
+        providers: {
+          first: {},
+          second: {},
+          third: {},
+        },
+      };
+      expect(
+        setPriority(superjson, mockProfileName, undefined, environment)
+      ).toEqual({ value: true });
+
+      expect(superjson.profiles?.[mockProfileName]).toEqual({
+        defaults: {},
+        providers: {
+          first: {},
+          second: {},
+          third: {},
+        },
+        file: 'some/path',
+      });
+    });
+
     it('sets priority to super.json', () => {
       const mockProfileName = 'profile';
       const mockPriorityArray = ['first', 'second', 'third'];
