@@ -150,51 +150,6 @@ describe('profile provider', () => {
         const mockProviderJsonWithParameters = mockProviderJson({
           name: 'test',
         });
-        // jest.mocked(fetchBind).mockResolvedValue({
-        //   services: [{ id: 'test-service', baseUrl: 'service/base/url' }],
-        //   securitySchemes: [
-        //     {
-        //       type: SecurityType.HTTP,
-        //       id: 'basic',
-        //       scheme: HttpScheme.BASIC,
-        //     },
-        //     {
-        //       id: 'api',
-        //       type: SecurityType.APIKEY,
-        //       in: ApiKeyPlacement.HEADER,
-        //       name: 'Authorization',
-        //     },
-        //     {
-        //       id: 'bearer',
-        //       type: SecurityType.HTTP,
-        //       scheme: HttpScheme.BEARER,
-        //       bearerFormat: 'some',
-        //     },
-        //     {
-        //       id: 'digest',
-        //       type: SecurityType.HTTP,
-        //       scheme: HttpScheme.DIGEST,
-        //     },
-        //   ],
-        //   defaultService: 'test-service',
-        //   parameters: [
-        //     {
-        //       name: 'first',
-        //       description: 'first test value',
-        //     },
-        //     {
-        //       name: 'second',
-        //     },
-        //     {
-        //       name: 'third',
-        //       default: 'third-default',
-        //     },
-        //     {
-        //       name: 'fourth',
-        //       default: 'fourth-default',
-        //     },
-        //   ],
-        // });
         jest.mocked(fetchBind).mockResolvedValue({
           provider: mockProviderJsonWithParameters,
           mapAst: mockMapDocument,
@@ -796,8 +751,6 @@ describe('profile provider', () => {
         fileSystem.readFile = jest
           .fn()
           .mockResolvedValueOnce(ok(JSON.stringify(providerJson)));
-
-        // mocked(fetchProviderInfo).mockResolvedValue(providerJson);
 
         const mockProfileProvider = new ProfileProvider(
           superJson,

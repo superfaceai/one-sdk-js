@@ -389,7 +389,7 @@ describe('resolve-map-ast', () => {
     ).resolves.toEqual(ast);
   });
 
-  it('return map ast when path to compiled source is passed', async () => {
+  it('returns map ast when path to ast is passed', async () => {
     await expect(
       resolveMapAst({
         profileId,
