@@ -7,6 +7,7 @@ import { basename } from 'path';
 import type { Readable } from 'stream';
 import { PassThrough } from 'stream';
 
+import { UnexpectedError } from '../../core';
 import type {
   IBinaryData,
   IBinaryDataMeta,
@@ -19,7 +20,6 @@ import {
   isDestructible,
   isInitializable,
 } from '../../interfaces';
-import { UnexpectedError } from '../../lib';
 import { handleNodeError } from './filesystem.node';
 
 export class StreamReader {
@@ -140,13 +140,12 @@ export class StreamReader {
 }
 
 export class FileContainer
-  implements IDataContainer, IBinaryDataMeta, IInitializable, IDestructible
-{
+  implements IDataContainer, IBinaryDataMeta, IInitializable, IDestructible {
   private handle: FileHandle | undefined;
   private streamReader: StreamReader | undefined;
   private _size = Infinity;
 
-  constructor(public readonly path: string) {}
+  constructor(public readonly path: string) { }
 
   public get name(): string | undefined {
     return basename(this.path);
@@ -239,8 +238,7 @@ export type BinaryDataOptions = {
 };
 
 export class BinaryData
-  implements IBinaryData, IBinaryDataMeta, IDestructible, IInitializable
-{
+  implements IBinaryData, IBinaryDataMeta, IDestructible, IInitializable {
   private buffer: Buffer;
   private _name: string | undefined;
   private _mimetype: string | undefined;

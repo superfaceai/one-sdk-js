@@ -3,8 +3,7 @@ import { join as joinPath } from 'path';
 import type { ReadableOptions } from 'stream';
 import { Readable } from 'stream';
 
-import { NotFoundError } from '../../core';
-import { UnexpectedError } from '../../lib';
+import { NotFoundError, UnexpectedError } from '../../core';
 import {
   BinaryData,
   FileContainer,
@@ -344,7 +343,7 @@ describe('Node Binary', () => {
           expect(() => binaryData.chunkBy('a banana?!' as any)).toThrow();
           expect(() => binaryData.chunkBy({} as any)).toThrow();
           expect(() => binaryData.chunkBy([] as any)).toThrow();
-          expect(() => binaryData.chunkBy((() => {}) as any)).toThrow();
+          expect(() => binaryData.chunkBy((() => { }) as any)).toThrow();
           expect(() => binaryData.chunkBy(true as any)).toThrow();
           expect(() =>
             binaryData.chunkBy(Buffer.from('hello world!') as any)

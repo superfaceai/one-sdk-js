@@ -3,11 +3,11 @@ import { HttpScheme, SecurityType } from '@superfaceai/ast';
 
 import type { ICrypto, ILogger } from '../../../interfaces';
 import type { NonPrimitive, Variables } from '../../../lib';
-import { UnexpectedError } from '../../../lib';
 import { pipe } from '../../../lib/pipe/pipe';
 import {
   invalidHTTPMapValueType,
   missingSecurityValuesError,
+  UnexpectedError,
 } from '../../errors';
 import {
   authenticateFilter,

@@ -1,4 +1,4 @@
-import { UnexpectedError } from '../../../lib';
+import { UnexpectedError } from '../../errors';
 import type { Backoff } from './backoff';
 import type {
   ExecutionFailure,
@@ -221,7 +221,7 @@ export class AbortPolicy extends FailurePolicy {
     return { kind: 'continue' };
   }
 
-  public override reset(): void {}
+  public override reset(): void { }
 }
 
 /** Simple retry policy with exponential backoff */

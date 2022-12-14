@@ -1,7 +1,7 @@
 import type { SecurityValues } from '@superfaceai/ast';
 
-import type { MapInterpreterError, ProfileParameterError } from '../core';
-import type { NonPrimitive, Result, UnexpectedError, Variables } from '../lib';
+import type { MapInterpreterError, ProfileParameterError, UnexpectedError } from '../core';
+import type { NonPrimitive, Result, Variables } from '../lib';
 import type { IProvider } from './provider';
 
 export type PerformOptions = {

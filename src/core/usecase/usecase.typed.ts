@@ -1,5 +1,6 @@
 import type { PerformOptions } from '../../interfaces';
-import type { NonPrimitive, Result, UnexpectedError } from '../../lib';
+import type { NonPrimitive, Result } from '../../lib';
+import type { UnexpectedError } from '../errors';
 import type { MapInterpreterError, ProfileParameterError } from '../interpreter';
 import { UseCaseBase } from './usecase';
 

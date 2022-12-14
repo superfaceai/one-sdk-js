@@ -1,14 +1,7 @@
 import type { ILogger, LogFunction } from '../../../interfaces';
 import type { NonPrimitive, Result } from '../../../lib';
-import {
-  err,
-  indexRecord,
-  isNone,
-  ok,
-  recursiveKeyList,
-  UnexpectedError,
-} from '../../../lib';
-import { invalidPathReplacementError } from '../../errors';
+import { err, indexRecord, isNone, ok, recursiveKeyList } from '../../../lib';
+import { invalidPathReplacementError, UnexpectedError } from '../../errors';
 import type { FetchResponse, HttpMultiMap, IFetch } from './interfaces';
 import type { HttpRequest } from './security';
 import type { HttpResponse } from './types';

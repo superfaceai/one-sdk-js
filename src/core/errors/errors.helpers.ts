@@ -1,8 +1,8 @@
 import type { SecurityValues } from '@superfaceai/ast';
 import { AssertionError, BackoffKind } from '@superfaceai/ast';
 
-import { SDKBindError, SDKExecutionError } from '../../lib';
 import { isRegistryErrorBody } from '../registry';
+import { SDKBindError, SDKExecutionError } from './errors';
 
 export function superJsonNotDefinedError(
   callerName: string
@@ -300,9 +300,9 @@ export function securityNotFoundError(
     `Could not find security scheme for security value with id "${values.id}"`,
     [
       `The provider definition for "${providerName}" defines ` +
-        (definedSchemes.length > 0
-          ? `these security schemes: ${definedSchemes.join(', ')}`
-          : 'no security schemes'),
+      (definedSchemes.length > 0
+        ? `these security schemes: ${definedSchemes.join(', ')}`
+        : 'no security schemes'),
       `but a secret value was provided for security scheme: ${values.id}`,
     ],
     [
@@ -627,16 +627,14 @@ export function bindResponseError({
   }
 
   return new SDKBindError(
-    `Registry responded with status code ${statusCode}${
-      title !== undefined ? ` - ${title}.` : '.'
+    `Registry responded with status code ${statusCode}${title !== undefined ? ` - ${title}.` : '.'
     }`,
     longLines,
     [
       provider !== undefined
         ? `Check if profile "${profileId}" can be used with provider "${provider}"`
         : `Check if profile "${profileId}" can be used with selected provider.`,
-      `If you are using remote profile you can check informations about profile at "${
-        new URL(profileId, apiUrl).href
+      `If you are using remote profile you can check informations about profile at "${new URL(profileId, apiUrl).href
       }"`,
       `If you are trying to use remote profile check if profile "${profileId}" is published`,
       'If you are using local profile you can use local map and provider to bypass the binding',
@@ -684,8 +682,7 @@ export function unknownBindResponseError({
       provider !== undefined
         ? `Check if profile "${profileId}" can be used with provider "${provider}"`
         : `Check if profile "${profileId}" can be used with selected provider`,
-      `If you are using remote profile you can check informations about profile at "${
-        new URL(profileId, apiUrl).href
+      `If you are using remote profile you can check informations about profile at "${new URL(profileId, apiUrl).href
       }"`,
       `If you are trying to use remote profile check if profile "${profileId}" is published`,
       'If you are using local profile you can use local map and provider to bypass the binding',

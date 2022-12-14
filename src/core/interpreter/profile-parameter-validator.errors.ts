@@ -1,4 +1,4 @@
-import { ErrorBase, UnexpectedError } from '../../lib';
+import { ErrorBase, UnexpectedError } from '../errors';
 
 export type ErrorContext = { path?: string[] };
 export type ValidationError =

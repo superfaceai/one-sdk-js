@@ -1,6 +1,6 @@
 import type { MapASTNode, MapDocumentNode } from '@superfaceai/ast';
 
-import { ErrorBase } from '../../lib';
+import { ErrorBase } from '../errors';
 import type { HttpMultiMap } from './http';
 
 export interface ErrorMetadata {

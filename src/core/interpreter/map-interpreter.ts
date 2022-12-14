@@ -46,9 +46,8 @@ import {
   isPrimitive,
   mergeVariables,
   ok,
-  SDKExecutionError,
-  UnexpectedError,
 } from '../../lib';
+import { SDKExecutionError, UnexpectedError } from '../errors';
 import type { IServiceSelector } from '../services';
 import type { MapInterpreterExternalHandler } from './external-handler';
 import type { AuthCache, SecurityConfiguration } from './http';

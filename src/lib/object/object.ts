@@ -1,4 +1,4 @@
-import { UnexpectedError } from '../error';
+import { UnexpectedError } from '../../core';
 import type { None } from '../variables';
 import { isClassInstance, isNone } from '../variables';
 

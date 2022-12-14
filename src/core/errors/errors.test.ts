@@ -1,4 +1,4 @@
-import { ErrorBase, SDKExecutionError, UnexpectedError } from '../../lib';
+import { ErrorBase, SDKExecutionError, UnexpectedError } from './errors';
 
 describe('errors', () => {
   describe('ErrorBase', () => {

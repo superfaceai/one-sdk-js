@@ -24,13 +24,13 @@ import {
   OnFail,
 } from '@superfaceai/ast';
 
+import { UnexpectedError } from '../../core';
 import type { IEnvironment, ILogger } from '../../interfaces';
 import {
   castToNonPrimitive,
   clone,
   mergeVariables,
   resolveEnvRecord,
-  UnexpectedError,
 } from '../../lib';
 import { invalidProfileProviderError } from './errors.helpers';
 

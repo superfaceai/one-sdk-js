@@ -14,10 +14,11 @@ import {
   NotEmptyError,
   NotFoundError,
   PermissionDeniedError,
+  UnexpectedError,
   UnknownFileSystemError,
 } from '../../core';
 import type { Result } from '../../lib';
-import { err, ok, UnexpectedError } from '../../lib';
+import { err, ok } from '../../lib';
 
 export type SystemError = Error & { code: string };
 export function assertSystemError(

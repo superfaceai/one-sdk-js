@@ -1,6 +1,6 @@
 import type { ILogger, ITimers } from '../../../interfaces';
-import { clone, SDKBindError, UnexpectedError } from '../../../lib';
-import { isFetchError } from '../../errors';
+import { clone } from '../../../lib';
+import { isFetchError, SDKBindError, UnexpectedError } from '../../errors';
 import type { Events } from '../events';
 import type { FailurePolicyRouter } from './policies';
 import type { ExecutionFailure, FailurePolicyReason } from './policy';

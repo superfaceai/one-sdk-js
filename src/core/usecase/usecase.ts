@@ -22,7 +22,7 @@ import type {
 } from '../../interfaces';
 import { PerformOptions } from '../../interfaces';
 import type { NonPrimitive, Result, SuperCache, Variables } from '../../lib';
-import { UnexpectedError } from '../../lib';
+import { UnexpectedError } from '../errors';
 import type {
   Events,
   FailurePolicy,

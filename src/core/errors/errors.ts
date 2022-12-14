@@ -29,7 +29,7 @@ export class ErrorBase extends Error {
 
 export class UnexpectedError extends ErrorBase {
   constructor(message: string, public additionalContext?: unknown) {
-    super('UnexpectedError', message);
+    super(UnexpectedError.name, message);
   }
 }
 
@@ -46,7 +46,6 @@ export class SDKExecutionError extends ErrorBase {
   ) {
     super(SDKExecutionError.name, shortMessage);
     this.message = this.formatLong();
-    this.name = 'SDKExecutionError';
   }
 
   /**

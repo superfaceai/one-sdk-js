@@ -15,8 +15,6 @@ import type {
 import type {
   NonPrimitive,
   Result,
-  SDKExecutionError,
-  UnexpectedError,
 } from '../../lib';
 import {
   castToNonPrimitive,
@@ -26,6 +24,7 @@ import {
   ok,
   profileAstId,
 } from '../../lib';
+import type { SDKExecutionError, UnexpectedError } from '../errors';
 import type { Events, Interceptable } from '../events';
 import { MapInterpreterEventAdapter } from '../events';
 import type { AuthCache, IFetch, MapInterpreterError, ProfileParameterError, SecurityConfiguration } from '../interpreter';

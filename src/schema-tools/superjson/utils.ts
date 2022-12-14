@@ -6,9 +6,11 @@ import {
   isFileURIString,
 } from '@superfaceai/ast';
 
+import type { SDKExecutionError } from '../../core';
+import { ensureErrorSubclass } from '../../core';
 import type { IFileSystem, ILogger } from '../../interfaces';
-import type { Result, SDKExecutionError } from '../../lib';
-import { ensureErrorSubclass, err, ok } from '../../lib';
+import type { Result } from '../../lib';
+import { err, ok } from '../../lib';
 import {
   superJsonFormatError,
   superJsonNotAFileError,

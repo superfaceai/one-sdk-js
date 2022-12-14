@@ -1,7 +1,6 @@
 export * from './cache';
 export * from './config-hash';
 export * from './env';
-export * from './error';
 export * from './object';
 export * from './pipe';
 export * from './result/result';

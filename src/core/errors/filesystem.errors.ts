@@ -1,4 +1,4 @@
-import { ErrorBase } from '../../lib';
+import { ErrorBase } from './errors';
 
 export class FileExistsError extends ErrorBase {
   constructor(message: string) {

@@ -28,14 +28,15 @@ import {
   isNamedModelDefinitionNode,
 } from '@superfaceai/ast';
 
-import type {
-  ILogger,
-  LogFunction,
-} from '../../interfaces';
+import type { ILogger, LogFunction } from '../../interfaces';
 import type { Result } from '../../lib';
-import { err, isNone, isNonPrimitive, ok, UnexpectedError } from '../../lib';
+import { err, isNone, isNonPrimitive, ok } from '../../lib';
+import { UnexpectedError } from '../errors';
 import type { ProfileVisitor } from './interfaces';
-import type { ProfileParameterError, ValidationError } from './profile-parameter-validator.errors';
+import type {
+  ProfileParameterError,
+  ValidationError,
+} from './profile-parameter-validator.errors';
 import {
   addFieldToErrors,
   formatErrors,

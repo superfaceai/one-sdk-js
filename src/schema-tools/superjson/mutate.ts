@@ -12,15 +12,16 @@ import type {
 } from '@superfaceai/ast';
 import { isFileURIString, isVersionString } from '@superfaceai/ast';
 
+import type { SDKExecutionError } from '../../core';
+import { UnexpectedError } from '../../core';
 import type { IEnvironment, IFileSystem, ILogger } from '../../interfaces';
-import type { Result, SDKExecutionError } from '../../lib';
+import type { Result } from '../../lib';
 import {
   castToNonPrimitive,
   err,
   isEmptyRecord,
   mergeVariables,
   ok,
-  UnexpectedError,
 } from '../../lib';
 import { profileNotFoundError, providersNotSetError } from './errors.helpers';
 import { normalizeProfileSettings } from './normalize';
@@ -279,11 +280,11 @@ function ensureProfileWithProviders(
   environment?: IEnvironment,
   logger?: ILogger
 ): [
-  boolean,
-  Exclude<ProfileEntry, string> & {
-    providers: Record<string, ProfileProviderEntry>;
-  }
-] {
+    boolean,
+    Exclude<ProfileEntry, string> & {
+      providers: Record<string, ProfileProviderEntry>;
+    }
+  ] {
   let changed = false;
 
   if (document.profiles === undefined) {

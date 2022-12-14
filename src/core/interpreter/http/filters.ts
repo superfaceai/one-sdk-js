@@ -1,14 +1,10 @@
 import type { IBinaryData, ILogger } from '../../../interfaces';
 import { isBinaryData } from '../../../interfaces';
 import type { MaybePromise } from '../../../lib';
-import {
-  castToNonPrimitive,
-  pipe,
-  UnexpectedError,
-  variablesToStrings,
-} from '../../../lib';
+import { castToNonPrimitive, pipe, variablesToStrings } from '../../../lib';
 import { USER_AGENT } from '../../../user-agent';
 import { unsupportedContentType } from '../../errors';
+import { UnexpectedError } from '../../errors/errors';
 import type { FetchBody, HttpMultiMap, IFetch } from './interfaces';
 import {
   BINARY_CONTENT_REGEXP,

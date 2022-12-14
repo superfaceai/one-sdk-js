@@ -12,7 +12,7 @@ import type {
   ITimers,
   LogFunction,
 } from '../../interfaces';
-import { UnexpectedError } from '../../lib';
+import { UnexpectedError } from '../errors';
 import type { HttpResponse, IFetch, RequestParameters } from '../interpreter';
 import type { UseCase } from '../usecase';
 import type { HooksContext } from './failure/event-adapter';
@@ -47,16 +47,16 @@ type EventContextBase = {
 
 export type BeforeHookResult<Target extends AsyncFunction> = MaybePromise<
   | {
-      kind: 'continue';
-    }
+    kind: 'continue';
+  }
   | {
-      kind: 'modify';
-      newArgs: Parameters<Target>;
-    }
+    kind: 'modify';
+    newArgs: Parameters<Target>;
+  }
   | {
-      kind: 'abort';
-      newResult: ReturnType<Target>;
-    }
+    kind: 'abort';
+    newResult: ReturnType<Target>;
+  }
   | void
 >;
 
@@ -70,16 +70,16 @@ export type BeforeHook<
 
 export type AfterHookResult<Target extends AsyncFunction> = MaybePromise<
   | {
-      kind: 'continue';
-    }
+    kind: 'continue';
+  }
   | {
-      kind: 'modify';
-      newResult: ReturnType<Target>;
-    }
+    kind: 'modify';
+    newResult: ReturnType<Target>;
+  }
   | {
-      kind: 'retry';
-      newArgs?: Parameters<Target>;
-    }
+    kind: 'retry';
+    newArgs?: Parameters<Target>;
+  }
   | void
 >;
 
@@ -231,8 +231,7 @@ export class Events implements IEvents<EventParams> {
         }
         const hookResult = await callback(...params);
         this.log?.(
-          `Event "${event}" listener ${i} result: ${
-            (hookResult?.kind ?? 'continue') as string
+          `Event "${event}" listener ${i} result: ${(hookResult?.kind ?? 'continue') as string
           }`
         );
         if (hookResult === undefined || hookResult.kind === 'continue') {
@@ -271,11 +270,9 @@ function replacementFunction<E extends keyof EventTypes>(
     if (this.events?.log?.enabled === true) {
       let metadataString = 'undefined';
       if (this.metadata !== undefined) {
-        metadataString = `{ profile: ${
-          this.metadata.profile ?? 'undefined'
-        }, provider: ${this.metadata.provider ?? 'undefined'}, usecase: ${
-          this.metadata.usecase ?? 'undefined'
-        } }`;
+        metadataString = `{ profile: ${this.metadata.profile ?? 'undefined'
+          }, provider: ${this.metadata.provider ?? 'undefined'}, usecase: ${this.metadata.usecase ?? 'undefined'
+          } }`;
       }
 
       let eventsString = 'undefined';
@@ -284,8 +281,7 @@ function replacementFunction<E extends keyof EventTypes>(
       }
 
       this.events?.log?.(
-        `Intercepted function for "${metadata.eventName}" (placement: ${
-          metadata.placement ?? ''
+        `Intercepted function for "${metadata.eventName}" (placement: ${metadata.placement ?? ''
         }) with context: { metadata: ${metadataString}, events: ${eventsString} }`
       );
     }

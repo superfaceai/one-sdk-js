@@ -14,12 +14,13 @@ import type {
   ITimers,
   LogFunction,
 } from '../../interfaces';
-import { profileAstId, UnexpectedError } from '../../lib';
+import { profileAstId } from '../../lib';
 import { mergeSecurity } from '../../schema-tools';
 import {
   invalidMapASTResponseError,
   localProviderAndRemoteMapError,
   providersDoNotMatchError,
+  UnexpectedError,
 } from '../errors';
 import type { Events, Interceptable } from '../events';
 import type { AuthCache, IFetch } from '../interpreter';
@@ -210,7 +211,7 @@ export class ProfileProvider {
         parameters: resolveIntegrationParameters(
           providerInfo,
           this.providerConfig.parameters ??
-            this.superJson?.providers[providerInfo.name]?.parameters
+          this.superJson?.providers[providerInfo.name]?.parameters
         ),
       },
       this.crypto,
@@ -242,7 +243,6 @@ export class ProfileProvider {
           `Failed to fetch provider.json for ${providerName}: %O`,
           error
         );
-
         errors.push(error as Error);
       }
 

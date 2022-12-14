@@ -11,11 +11,11 @@ import {
 } from '@superfaceai/ast';
 
 import type { IConfig, ICrypto, ILogger } from '../../interfaces';
-import { UnexpectedError } from '../../lib';
 import {
   bindResponseError,
   invalidProviderResponseError,
   invalidResponseError,
+  UnexpectedError,
   unknownBindResponseError,
   unknownProviderInfoError,
 } from '../errors';

@@ -7,10 +7,10 @@ import type {
 import { parseMap, Source } from '@superfaceai/parser';
 import { getLocal } from 'mockttp';
 
-import { UnexpectedError } from '../../lib';
 import { MockTimers } from '../../mock';
 import { NodeCrypto, NodeFetch, NodeFileSystem, NodeLogger } from '../../node';
 import { Config } from '../config';
+import { UnexpectedError } from '../errors';
 import { ServiceSelector } from '../services';
 import { MapInterpreter } from './map-interpreter';
 import {
@@ -239,9 +239,7 @@ AST Path: definitions[0].statements[0].assignments[0].value`
       const result = await interpreter.perform({
         kind: 'Invalid',
       } as unknown as MapDocumentNode);
-      expect(result.isErr() && result.error instanceof UnexpectedError).toEqual(
-        true
-      );
+      expect(result.isErr() && result.error).toBeInstanceOf(UnexpectedError);
     });
 
     it('should fail on undefined usecase', async () => {
@@ -401,8 +399,8 @@ AST Path: definitions[0].statements[0].assignments[0].value`
 
       expect(
         result.isErr() &&
-          result.error instanceof MappedHTTPError &&
-          result.error.statusCode
+        result.error instanceof MappedHTTPError &&
+        result.error.statusCode
       ).toEqual(404);
     });
 
@@ -442,8 +440,8 @@ AST Path: definitions[0].statements[0].assignments[0].value`
 
       expect(
         result.isErr() &&
-          result.error instanceof MappedHTTPError &&
-          result.error.properties
+        result.error instanceof MappedHTTPError &&
+        result.error.properties
       ).toEqual({ message: 'Nothing was found' });
       expect(clean).toEqual(true);
     });
@@ -514,8 +512,8 @@ AST Path: definitions[0].statements[0].assignments[0].value`
 
       expect(
         result.isErr() &&
-          result.error instanceof HTTPError &&
-          result.error.statusCode
+        result.error instanceof HTTPError &&
+        result.error.statusCode
       ).toEqual(404);
     });
 

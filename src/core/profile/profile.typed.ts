@@ -11,8 +11,7 @@ import type {
   ITimers,
 } from '../../interfaces';
 import type { NonPrimitive, SuperCache } from '../../lib';
-import { UnexpectedError } from '../../lib';
-import { usecaseNotFoundError } from '../errors';
+import { UnexpectedError, usecaseNotFoundError } from '../errors';
 import type { Events, Interceptable } from '../events';
 import type { AuthCache, IFetch } from '../interpreter';
 import type { IBoundProfileProvider } from '../profile-provider';
