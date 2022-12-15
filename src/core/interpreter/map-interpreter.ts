@@ -898,7 +898,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
       throw new UnexpectedError('BinaryData cannot be used as outcome');
     }
 
-    if (input === undefined || isPrimitive(input)) {
+    if (input === undefined || input === null || isPrimitive(input)) {
       return input;
     }
 
