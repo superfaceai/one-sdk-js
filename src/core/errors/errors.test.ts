@@ -2,7 +2,12 @@ import { ErrorBase, SDKExecutionError, UnexpectedError } from './errors';
 
 describe('errors', () => {
   describe('ErrorBase', () => {
-    const error = new ErrorBase('MyKind', 'My message');
+    let error: ErrorBase;
+
+    beforeEach(() => {
+      error = new ErrorBase('MyKind', 'My message');
+      console.log(error);
+    });
 
     it('has kind', () => {
       expect(error.kind).toBe('MyKind');
@@ -22,7 +27,11 @@ describe('errors', () => {
   });
 
   describe('UnexpectedError', () => {
-    const error = new UnexpectedError('out of nowhere');
+    let error: UnexpectedError;
+
+    beforeEach(() => {
+      error = new UnexpectedError('out of nowhere');
+    });
 
     it('throws in correct format', () => {
       expect(() => {
@@ -36,11 +45,15 @@ describe('errors', () => {
   });
 
   describe('SDKExecutionError', () => {
-    const error = new SDKExecutionError(
-      'short',
-      ['long1', 'long2', 'long3'],
-      ['hint1', 'hint2', 'hint3']
-    );
+    let error: SDKExecutionError;
+
+    beforeEach(() => {
+      error = new SDKExecutionError(
+        'short',
+        ['long1', 'long2', 'long3'],
+        ['hint1', 'hint2', 'hint3']
+      );
+    })
 
     it('only returns the short message when short format is requested', () => {
       expect(error.formatShort()).toBe('short');

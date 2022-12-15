@@ -86,6 +86,6 @@ export class SDKExecutionError extends ErrorBase {
 export class SDKBindError extends SDKExecutionError {
   constructor(shortMessage: string, longLines: string[], hints: string[]) {
     super(shortMessage, longLines, hints);
-    this.name = 'SDKBindError';
+    this.name = SDKBindError.name;
   }
 }
