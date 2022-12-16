@@ -598,7 +598,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
               this.stackTop('operation').error = outcome.result;
             }
           } else {
-            this.stackTop().result = outcome?.result ?? this.stackTop().result;
+            this.stackTop().result = outcome?.result === undefined ? this.stackTop().result : outcome.result;
           }
           this.log?.('Setting result: %O', this.stackTop());
 
