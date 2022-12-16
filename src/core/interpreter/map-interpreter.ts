@@ -32,11 +32,13 @@ import type {
   ICrypto,
   ILogger,
   LogFunction,
-  MapInterpreterError} from '../../interfaces';
+  MapInterpreterError
+} from '../../interfaces';
 import {
   isBinaryData,
   isDestructible,
-  isInitializable} from '../../interfaces';
+  isInitializable
+} from '../../interfaces';
 import type { NonPrimitive, Primitive, Result, Variables } from '../../lib';
 import {
   castToVariables,
@@ -139,8 +141,7 @@ type IterationDefinition = {
 };
 
 export class MapInterpreter<TInput extends NonPrimitive | undefined>
-  implements MapAstVisitor
-{
+  implements MapAstVisitor {
   private operations: Record<string, OperationDefinitionNode | undefined> = {};
   private stack: Stack[] = [];
   private ast?: MapDocumentNode;
@@ -222,15 +223,15 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
     node: MapASTNode
   ):
     | Promise<
-        | undefined
-        | Variables
-        | Primitive
-        | void
-        | HttpRequest
-        | OutcomeDefinition
-        | { result?: Variables; error?: MapInterpreterError }
-        | IterationDefinition
-      >
+      | undefined
+      | Variables
+      | Primitive
+      | void
+      | HttpRequest
+      | OutcomeDefinition
+      | { result?: Variables; error?: MapInterpreterError }
+      | IterationDefinition
+    >
     | Primitive
     | Variables
     | HttpResponseHandlerDefinition
@@ -775,18 +776,18 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
     const stack =
       type === 'map'
         ? {
-            type,
-            variables: {},
-            result: undefined,
-            terminate: false,
-            context: [],
-          }
+          type,
+          variables: {},
+          result: undefined,
+          terminate: false,
+          context: [],
+        }
         : {
-            type,
-            variables: {},
-            result: undefined,
-            terminate: false,
-          };
+          type,
+          variables: {},
+          result: undefined,
+          terminate: false,
+        };
     this.stack.push(stack);
     this.log?.('New stack: %O', this.stackTop());
   }
@@ -875,7 +876,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
     for (const value of Object.values(input)) {
       if (isInitializable(value)) {
         await value.initialize();
-      } else if (value !== undefined && isNonPrimitive(value)) {
+      } else if (value !== undefined && value !== null && isNonPrimitive(value)) {
         await this.initializeInput(value);
       }
     }
@@ -885,7 +886,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
     for (const value of Object.values(input)) {
       if (isDestructible(value)) {
         await value.destroy();
-      } else if (value !== undefined && isNonPrimitive(value)) {
+      } else if (value !== undefined && value !== null && isNonPrimitive(value)) {
         await this.destroyInput(value);
       }
     }
@@ -894,11 +895,11 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
   private async resolveVariables(
     input: Variables | undefined
   ): Promise<Variables | undefined> {
-    if (isBinaryData(input)) {      
+    if (isBinaryData(input)) {
       throw new UnexpectedError('BinaryData cannot be used as outcome');
     }
 
-    if (input === undefined || isPrimitive(input)) {
+    if (input === undefined || input === null || isPrimitive(input)) {
       return input;
     }
 

@@ -1873,7 +1873,7 @@ describe('MapInterpreter', () => {
     expect(result.unwrap()).toStrictEqual(12);
   });
 
-  it('should return ArrayBuffer when for binary response', async () => {
+  it('should return ArrayBuffer for binary response', async () => {
     const url = '/twelve';
     const filePath = path.resolve(process.cwd(), 'fixtures', 'binary.txt');
     await mockServer.forGet(url).thenFromFile(200, filePath, { 'content-type': 'application/octet-stream' });
@@ -1900,5 +1900,48 @@ describe('MapInterpreter', () => {
     expect(result.unwrap() instanceof ArrayBuffer).toBe(true);
     expect(Buffer.from(result.unwrap() as ArrayBuffer).toString('utf8')).toBe(expected);
   });
+
+  it('should handle null when resolving variables', async () => {
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+        services: mockServicesSelector,
+        input: {}
+      },
+      { fetchInstance, config, crypto }
+    );
+    const ast = parseMapFromSource(`
+      map Test {
+        map result {
+          field = null
+        }
+      }`);
+    const result = await interpreter.perform(ast);
+
+    expect(result.unwrap()).toEqual({ field: null });
+  });
+
+  it('should handle null in input value', async () => {
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+        services: mockServicesSelector,
+        input: {
+          field: null
+        } as any
+      },
+      { fetchInstance, config, crypto }
+    );
+    const ast = parseMapFromSource(`
+      map Test {
+        map result {
+          field = input.field
+        }
+      }`);
+    const result = await interpreter.perform(ast);
+
+    expect(result.unwrap()).toEqual({ field: null });
+  });
 });
-  
