@@ -70,6 +70,9 @@ const mockProviderJson: ProviderJson = {
 
 const mockProfileDocument = parseProfileFromSource(`
   usecase Test safe {
+    input {
+      field
+    }
     result string
   }`);
 
@@ -81,6 +84,11 @@ const mockMapDocumentSuccessWithParameters = parseMapFromSource(`
 const mockMapDocumentSuccess = parseMapFromSource(`
       map Test {
         map result "It works!"
+      }`);
+
+const mockMapDocumentWithInput = parseMapFromSource(`
+      map Test {
+        map result input.field
       }`);
 
 process.env.SUPERFACE_DISABLE_METRIC_REPORTING = 'true';
@@ -123,12 +131,30 @@ describe('SuperfaceClient integration test', () => {
     expect(result.isOk() && result.value).toEqual('it also works!');
   });
 
+  it('should accept null in input and return as result', async () => {
+    const client = new SuperfaceClient();
+
+    jest.mocked(resolveProfileAst).mockResolvedValue(mockProfileDocument);
+    jest.mocked(resolveMapAst).mockResolvedValue(mockMapDocumentWithInput);
+    jest.mocked(resolveProviderJson).mockResolvedValue(mockProviderJson);
+
+    const profile = await client.getProfile('example');
+
+    const input: any = {};
+    input.field = null;
+
+    const result = await profile
+      .getUseCase('Test')
+      .perform(input);
+
+    expect(result.isOk() && result.value).toEqual(null);
+  });
+
   describe('typed client', () => {
     it('should perform successfully', async () => {
       jest.mocked(resolveProfileAst).mockResolvedValue(mockProfileDocument);
       jest.mocked(resolveMapAst).mockResolvedValue(mockMapDocumentSuccess);
       jest.mocked(resolveProviderJson).mockResolvedValue(mockProviderJson);
-
 
       const ClientClass = createTypedClient({
         example: { Test: typeHelper<Record<string, never>, string>() },
