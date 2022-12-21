@@ -1,42 +1,66 @@
 import type { NonPrimitive } from './variables';
 import {
-  assertIsVariables,
   getValue,
+  isEmptyRecord,
+  isNone,
   isNonPrimitive,
   isPrimitive,
   mergeVariables,
   variablesToStrings,
+  variableToString,
 } from './variables';
 
 describe('Variables', () => {
-  test('assertIsVariables works correctly', () => {
-    expect(() => assertIsVariables('string')).not.toThrow();
-    expect(() => assertIsVariables(123)).not.toThrow();
-    expect(() => assertIsVariables({ x: 1 })).not.toThrow();
-    expect(() => assertIsVariables(true)).not.toThrow();
-    expect(() => assertIsVariables(undefined)).not.toThrow();
-    expect(() => assertIsVariables(['heeelo'])).not.toThrow();
-    expect(() => assertIsVariables(() => 'boom!')).toThrow();
+  describe('isNone', () => {
+    it.each([undefined, null])('returns true for %p', (input) => {
+      expect(isNone(input)).toBe(true);
+    });
+
+    it.each([0, 1, '', Buffer.alloc(0)])('returns false for %p', (input) => {
+      expect(isNone(input)).toBe(false);
+    });
   });
 
-  test('isPrimitive works correctly', () => {
-    expect(isPrimitive('string')).toBe(true);
-    expect(isPrimitive(123)).toBe(true);
-    expect(isPrimitive(false)).toBe(true);
-    expect(isPrimitive(['heeeelo'])).toBe(true);
-    expect(isPrimitive({ x: 1 })).toBe(false);
+  describe('isPrimitive', () => {
+    it.each([
+      'string', 123, false, ['heeeelo'], null, undefined,
+    ])('returns true for %p', (input) => {
+      expect(isPrimitive(input)).toBe(true);
+    });
+
+    it.each([
+      { x: 1 }
+    ])('returns false for %p', (input) => {
+      expect(isPrimitive(input)).toBe(false);
+    });
   });
 
-  test('isNonPrimitive works correctly', () => {
-    expect(isNonPrimitive('string')).toBe(false);
-    expect(isNonPrimitive(123)).toBe(false);
-    expect(isNonPrimitive(false)).toBe(false);
-    expect(isNonPrimitive(['heeeelo'])).toBe(false);
-    expect(isNonPrimitive({ x: 1 })).toBe(true);
+  describe('isNonPrimitive', () => {
+    it.each([
+      'string', 123, false, ['heeeelo']
+    ])('returns false for %p', (input) => {
+      expect(isNonPrimitive(input)).toBe(false);
+    });
+
+    it.each([
+      { x: 1 }
+    ])('returns true for %p', (input) => {
+      expect(isNonPrimitive(input)).toBe(true);
+    });
   });
+
+  describe('isEmptyRecord', () => {
+    it('returns true for {}', () => {
+      expect(isEmptyRecord({})).toBe(true);
+    });
+
+    it('returns false fror { a: 1 }', () => {
+      expect(isEmptyRecord({ a: 1 })).toBe(false);
+    });
+  })
 
   describe('mergeVariables', () => {
-    it('should correctly merge two simple objects', () => {
+    it('merges two simple objects', () => {
       {
         const left = {};
         const right = { x: 1 };
@@ -60,7 +84,7 @@ describe('Variables', () => {
       }
     });
 
-    it('should correctly merge complex objects', () => {
+    it('merges complex objects', () => {
       {
         const left = {};
         const right = { ne: { st: 'ed' } };
@@ -84,7 +108,7 @@ describe('Variables', () => {
       }
     });
 
-    it('should overwrite from left to right', () => {
+    it('overwrites from left to right', () => {
       {
         const left = { overwritten: false };
         const right = { overwritten: true };
@@ -110,7 +134,7 @@ describe('Variables', () => {
   });
 
   describe('getValue', () => {
-    it('should get values correctly', () => {
+    it('gets values correctly', () => {
       const variables: NonPrimitive = {
         some: {
           deeply: {
@@ -147,18 +171,34 @@ describe('Variables', () => {
       expect(
         getValue(variables, ['some', 'nonexistant', 'stuff'])
       ).toBeUndefined();
-      expect(getValue(undefined, ['some', 'stuff'])).toBeUndefined();
     });
   });
 
-  describe('valuesToStrings', () => {
-    it('should correctly stringify values', () => {
+  describe('variableToString', () => {
+    it.each([
+      ['1', 1],
+      ['undefined', undefined],
+      ['null', null],
+      ['false', false,],
+    ])('returns %p for %p', (result, input) => {
+      expect(variableToString(input)).toBe(result);
+    });
+
+    it('returns stringified Buffer', () => {
+      expect(variableToString(Buffer.from('123'))).toBe('123');
+    })
+  });
+
+  describe('variablesToStrings', () => {
+    it('stringifies values', () => {
       const variables: NonPrimitive = {
         some: 'value',
         and: 17,
         not: undefined,
+        soNot: null,
         array: ['some', 'array'],
       };
+
       expect(variablesToStrings(variables)).toEqual({
         some: 'value',
         and: '17',
