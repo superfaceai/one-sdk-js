@@ -228,11 +228,7 @@ export class ProfileParameterValidator implements ProfileVisitor {
     usecase: string
   ): ValidationFunction {
     return (input: unknown): ValidationResult => {
-      if (input === undefined) {
-        return [true];
-      }
-
-      if (input === null) {
+      if (input === undefined || input === null) {
         return [true];
       }
 
