@@ -100,7 +100,7 @@ export function sourceFileExtensionFoundError(
   return new SDKExecutionError(
     `${extension} extension found.`,
     [],
-    [`${extension} files needs to be compiled with Superface CLI.`]
+    [`${extension} files need to be compiled with Superface CLI.`]
   );
 }
 

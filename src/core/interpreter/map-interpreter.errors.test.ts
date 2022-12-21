@@ -9,7 +9,7 @@ import { getLocal } from 'mockttp';
 
 import { UnexpectedError } from '../../lib';
 import { MockTimers } from '../../mock';
-import { NodeCrypto, NodeFetch, NodeFileSystem } from '../../node';
+import { NodeCrypto, NodeFetch, NodeFileSystem, NodeLogger } from '../../node';
 import { Config } from '../config';
 import { ServiceSelector } from '../services';
 import { MapInterpreter } from './map-interpreter';
@@ -21,11 +21,14 @@ import {
   MappedHTTPError,
 } from './map-interpreter.errors';
 
-const config = new Config(NodeFileSystem);
 const mockServer = getLocal();
 const timers = new MockTimers();
-const crypto = new NodeCrypto();
-const fetchInstance = new NodeFetch(timers);
+const interpreterDependencies = {
+  fetchInstance: new NodeFetch(timers),
+  config: new Config(NodeFileSystem),
+  crypto: new NodeCrypto(),
+  logger: new NodeLogger(),
+};
 const header: MapHeaderNode = {
   kind: 'MapHeader',
   profile: {
@@ -231,7 +234,7 @@ AST Path: definitions[0].statements[0].assignments[0].value`
           security: [],
           services: ServiceSelector.empty(),
         },
-        { fetchInstance, config, crypto }
+        interpreterDependencies
       );
       const result = await interpreter.perform({
         kind: 'Invalid',
@@ -248,7 +251,7 @@ AST Path: definitions[0].statements[0].assignments[0].value`
           security: [],
           services: ServiceSelector.empty(),
         },
-        { fetchInstance, config, crypto }
+        interpreterDependencies
       );
       const result = await interpreter.perform({
         astMetadata,
@@ -266,7 +269,7 @@ AST Path: definitions[0].statements[0].assignments[0].value`
           security: [],
           services: ServiceSelector.empty(),
         },
-        { fetchInstance, config, crypto }
+        interpreterDependencies
       );
       const result = await interpreter.perform(
         parseMapFromSource(`
@@ -289,7 +292,7 @@ AST Path: definitions[0].statements[0].assignments[0].value`
           security: [],
           services: ServiceSelector.empty(),
         },
-        { fetchInstance, config, crypto }
+        interpreterDependencies
       );
       const ast = parseMapFromSource(`
         map Test {
@@ -319,7 +322,7 @@ AST Path: definitions[0].statements[0].assignments[0].value`
           security: [],
           services: mockServicesSelector,
         },
-        { fetchInstance, config, crypto }
+        interpreterDependencies
       );
 
       const ast = parseMapFromSource(`
@@ -353,7 +356,7 @@ AST Path: definitions[0].statements[0].assignments[0].value`
           security: [],
           services: mockServicesSelector,
         },
-        { fetchInstance, config, crypto }
+        interpreterDependencies
       );
       const ast = parseMapFromSource(`
           map testCase {
@@ -383,7 +386,7 @@ AST Path: definitions[0].statements[0].assignments[0].value`
           security: [],
           services: mockServicesSelector,
         },
-        { fetchInstance, config, crypto }
+        interpreterDependencies
       );
       const ast = parseMapFromSource(`
         map Test {
@@ -422,7 +425,7 @@ AST Path: definitions[0].statements[0].assignments[0].value`
           security: [],
           services: mockServicesSelector,
         },
-        { fetchInstance, config, crypto }
+        interpreterDependencies
       );
       const ast = parseMapFromSource(`
         map Test {
@@ -453,7 +456,7 @@ AST Path: definitions[0].statements[0].assignments[0].value`
           security: [],
           services: ServiceSelector.empty(),
         },
-        { fetchInstance, config, crypto }
+        interpreterDependencies
       );
       const ast = parseMapFromSource(`
         map Test {
@@ -472,7 +475,7 @@ AST Path: definitions[0].statements[0].assignments[0].value`
           security: [],
           services: mockServicesSelector,
         },
-        { fetchInstance, config, crypto }
+        interpreterDependencies
       );
       const ast = parseMapFromSource(`
         map Test {
@@ -496,7 +499,7 @@ AST Path: definitions[0].statements[0].assignments[0].value`
           security: [],
           services: mockServicesSelector,
         },
-        { fetchInstance, config, crypto }
+        interpreterDependencies
       );
       const ast = parseMapFromSource(`
         map Test {
@@ -538,7 +541,7 @@ AST Path: definitions[0].statements[0].assignments[0].value`
             `${mockServicesSelector.getUrl()!}/{path}`
           ),
         },
-        { fetchInstance, config, crypto }
+        interpreterDependencies
       );
       const result = await interpreter.perform(ast);
       expect(result.isErr() && result.error.toString()).toMatch(
@@ -573,7 +576,7 @@ AST Path: definitions[0].statements[0].assignments[0].value`
         security: [],
         services: ServiceSelector.empty(),
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
 
     const result = await interpreter.perform(ast);
@@ -609,7 +612,7 @@ AST Path: definitions[0].statements[0].assignments[0].value`
         security: [],
         services: ServiceSelector.empty(),
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
 
     const result = await interpreter.perform(ast);
@@ -645,7 +648,7 @@ AST Path: definitions[0].statements[0].assignments[0].value`
         security: [],
         services: ServiceSelector.empty(),
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
 
     const result = await interpreter.perform(ast);

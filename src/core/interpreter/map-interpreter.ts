@@ -9,21 +9,18 @@ import type {
   InlineCallNode,
   IterationAtomNode,
   JessieExpressionNode,
-  LiteralNode,
   MapASTNode,
-  MapAstVisitor,
   MapDefinitionNode,
   MapDocumentNode,
-  MapHeaderNode,
   ObjectLiteralNode,
   OperationDefinitionNode,
   OutcomeStatementNode,
   PrimitiveLiteralNode,
   SetStatementNode,
-  Substatement,
 } from '@superfaceai/ast';
 import {
   isMapDefinitionNode,
+  isMapDocumentNode,
   isOperationDefinitionNode,
 } from '@superfaceai/ast';
 
@@ -32,26 +29,28 @@ import type {
   ICrypto,
   ILogger,
   LogFunction,
-  MapInterpreterError
+  MapInterpreterError,
 } from '../../interfaces';
 import {
   isBinaryData,
   isDestructible,
   isInitializable
 } from '../../interfaces';
-import type { NonPrimitive, Primitive, Result, Variables } from '../../lib';
+import type { NonPrimitive, Result, Variables } from '../../lib';
 import {
+  assertIsVariables,
   castToVariables,
   err,
   isNonPrimitive,
   isPrimitive,
   mergeVariables,
   ok,
+  SDKExecutionError,
   UnexpectedError,
 } from '../../lib';
 import type { IServiceSelector } from '../services';
 import type { MapInterpreterExternalHandler } from './external-handler';
-import type { AuthCache, HttpResponse, SecurityConfiguration } from './http';
+import type { AuthCache, SecurityConfiguration } from './http';
 import { HttpClient } from './http';
 import type { IFetch } from './http/interfaces';
 import {
@@ -63,24 +62,11 @@ import {
 } from './map-interpreter.errors';
 import { evalScript } from './sandbox';
 
+function assertUnreachable(_: never): never {
+  throw 'unreachable';
+}
+
 const DEBUG_NAMESPACE = 'map-interpreter';
-
-function assertUnreachable(node: never): never;
-function assertUnreachable(node: MapASTNode): never {
-  throw new UnexpectedError(`Invalid Node kind: ${node.kind}`);
-}
-
-function isIterable(input: unknown): input is Iterable<Variables> {
-  return (
-    typeof input === 'object' && input !== null && (Symbol.iterator in input || Symbol.asyncIterator in input)
-  );
-}
-
-function hasIteration<T extends CallStatementNode | InlineCallNode>(
-  node: T
-): node is T & { iteration: IterationAtomNode } {
-  return node.iteration !== undefined;
-}
 
 export interface MapParameters<
   TInput extends NonPrimitive | undefined = undefined
@@ -92,59 +78,1139 @@ export interface MapParameters<
   security: SecurityConfiguration[];
 }
 
-type HttpResponseHandler = (response: HttpResponse) => Promise<boolean>;
+type PerformResult = Result<
+  Variables | undefined,
+  MapInterpreterError | UnexpectedError | SDKExecutionError
+>;
 
-type HttpResponseHandlerDefinition = [
-  handler: HttpResponseHandler,
-  accept?: string
-];
+type VisitorOutcomeValueSuccess = { data: Variables | undefined };
+type VisitorOutcomeValueError = {
+  error: Variables;
+  /** Outcome node which produced this error outcome. */
+  sourceNode: OutcomeStatementNode;
+  /** Stack value at the moment when the node was invoked. */
+  stack: NonPrimitive;
+  /** Whether the outcome came from a node which is a descendant of an http call.
+   *
+   * This exists to support original behavior.
+   */
+  fromHttp: boolean;
+};
+type VisitorOutcomeValue =
+  | VisitorOutcomeValueSuccess
+  | VisitorOutcomeValueError;
 
-interface OutcomeDefinition {
-  result?: Variables;
-  error: boolean;
-  terminateFlow: boolean;
+/** Another node to explore in depth-first fashion. */
+type VisitorResultExplore = {
+  kind: 'explore';
+  /** What (node or operation name) to explore next (depth-first). */
+  what: { node: MapASTNode } | { operation: string };
+  /** Initial variable stack passed to the child. */
+  stack: NonPrimitive;
+  /** Identifier assigned to the child by the parent - TODO: for debugging for now. */
+  childIdentifier: string;
+};
+/** Final result of this visitor - this visitor is done. */
+type VisitorResultDone<V = unknown> = {
+  kind: 'done';
+  /** Updated variable stack value. */
+  stack: NonPrimitive;
+  /** Identifier assigned to the child by its parent. */
+  childIdentifier: string;
+  /** The return value to be given to the parent node. */
+  value?: V;
+  /** The outcome passed to nearest Map/Operation ancestor. */
+  outcome?: { terminate: boolean; value: VisitorOutcomeValue };
+};
+/** An unrecoverable error that should immediately terminate the exploration and return. */
+type VisitorResultError = {
+  kind: 'error';
+  error: MapInterpreterError | UnexpectedError | SDKExecutionError;
+};
+/** Yield result of this visitor - the current map/operation should yield a value but this visitor is not done. */
+type VisitorResultYield = {
+  kind: 'yield';
+  /** The value to yield up to the nearest Map/Operation. */
+  value: { kind: 'outcome' } & VisitorOutcomeValue;
+};
+
+type VisitorGenerator<V = undefined> = AsyncGenerator<
+  VisitorResultExplore | VisitorResultYield,
+  VisitorResultDone<V> | VisitorResultError,
+  VisitorResultDone
+>;
+type VisitorIteratorResult<V> = IteratorResult<
+  VisitorResultExplore | VisitorResultYield,
+  VisitorResultDone<V> | VisitorResultError
+>;
+abstract class NodeVisitor<N extends MapASTNode, V = undefined>
+  implements VisitorGenerator<V>
+{
+  protected static mergeOutcome(
+    current: VisitorOutcomeValue | undefined,
+    other: VisitorOutcomeValue
+  ): VisitorOutcomeValue {
+    if ('error' in other) {
+      return other;
+    } else if (current !== undefined && 'error' in current) {
+      return current;
+    } else {
+      return { data: other.data };
+    }
+  }
+
+  protected outcome: VisitorOutcomeValue | undefined = undefined;
+  constructor(
+    public readonly node: N,
+    protected stack: NonPrimitive,
+    protected readonly childIdentifier: string,
+    protected readonly log: LogFunction | undefined
+  ) {}
+
+  protected prepareResultDone(
+    value?: V,
+    terminate?: boolean
+  ): VisitorResultDone<V> | VisitorResultError {
+    let outcome = undefined;
+    if (this.outcome !== undefined) {
+      outcome = { terminate: terminate ?? false, value: this.outcome };
+    } else if (terminate !== undefined) {
+      return {
+        kind: 'error',
+        error: new UnexpectedError('Expected outcome to be set'),
+      };
+    }
+
+    return {
+      kind: 'done',
+      stack: this.stack,
+      childIdentifier: this.childIdentifier,
+      value,
+      outcome,
+    };
+  }
+
+  protected prepareResultErrorUnexpected(
+    message: string,
+    context: Record<string, unknown>
+  ): VisitorResultError {
+    return {
+      kind: 'error',
+      error: new UnexpectedError(message, {
+        ...context,
+        node: this.node,
+        ast: undefined,
+      }),
+    };
+  }
+
+  /**
+   * Processes VisitorResultDone from the child.
+   *
+   * This includes updating the stack and merging the outcome.
+   *
+   * Returns whether `outcome.terminate` was true.
+   */
+  protected processChildResult(result: VisitorResultDone<unknown>): {
+    terminate: boolean;
+  } {
+    this.stack = result.stack;
+
+    if (result.outcome !== undefined) {
+      this.log?.('Merging outcome:', this.outcome, 'with', result.outcome);
+      this.outcome = NodeVisitor.mergeOutcome(
+        this.outcome,
+        result.outcome.value
+      );
+
+      if (result.outcome.terminate) {
+        return { terminate: true };
+      }
+    }
+
+    return { terminate: false };
+  }
+
+  // Helps implementors use the generator syntax.
+  protected abstract visit(): VisitorGenerator<V>;
+
+  // TODO: signature unsure, resolve later
+  // abstract childYield(result: VisitorResultYield): undefined | VisitorResultYield
+
+  private visitGenerator?: VisitorGenerator<V> = undefined;
+  private expectedChildIdentifier?: string = undefined;
+  public async next(
+    ...args: [] | [VisitorResultDone]
+  ): Promise<VisitorIteratorResult<V>> {
+    if (this.visitGenerator === undefined) {
+      this.visitGenerator = this.visit();
+    }
+
+    // here we check child identifier as a sanity check
+    const actualChildIdentifier = args[0]?.childIdentifier;
+    if (this.expectedChildIdentifier !== actualChildIdentifier) {
+      const expected = this.expectedChildIdentifier?.toString() ?? 'undefined';
+      const actual = actualChildIdentifier?.toString() ?? 'undefined';
+
+      return {
+        done: true,
+        value: {
+          kind: 'error',
+          error: new UnexpectedError(
+            `Sanity check failed in ${this.toString()}: Expected child identifier ${expected} but found ${actual}`
+          ),
+        },
+      };
+    }
+
+    const result = await this.visitGenerator.next(...args);
+
+    // store last childIdentifier
+    if (result.value.kind === 'explore') {
+      this.expectedChildIdentifier = result.value.childIdentifier;
+    } else {
+      this.expectedChildIdentifier = undefined;
+    }
+
+    return result;
+  }
+
+  public return(
+    _value:
+      | VisitorResultDone
+      | VisitorResultError
+      | PromiseLike<VisitorResultDone | VisitorResultError>
+  ): Promise<VisitorIteratorResult<V>> {
+    throw new Error('Method not implemented.');
+  }
+
+  public throw(_e: unknown): Promise<VisitorIteratorResult<V>> {
+    throw new Error('Method not implemented.');
+  }
+
+  public [Symbol.asyncIterator](): VisitorGenerator<V> {
+    return this;
+  }
+
+  abstract [Symbol.toStringTag](): string;
+
+  public toString(): string {
+    return `${this[Symbol.toStringTag]()}(${this.childIdentifier})`;
+  }
 }
 
-interface HttpRequest {
+class MapDefinitionVisitor extends NodeVisitor<MapDefinitionNode> {
+  public override async *visit(): VisitorGenerator<undefined> {
+    for (let i = 0; i < this.node.statements.length; i += 1) {
+      const result = yield {
+        kind: 'explore',
+        what: { node: this.node.statements[i] },
+        stack: this.stack,
+        childIdentifier: `${this.childIdentifier}.statements[${i}]`,
+      };
+
+      if (this.processChildResult(result).terminate) {
+        return this.prepareResultDone(undefined, true);
+      }
+    }
+
+    return this.prepareResultDone(undefined);
+  }
+
+  public override [Symbol.toStringTag](): string {
+    return 'MapDefinitionVisitor';
+  }
+}
+
+class OperationDefinitionVisitor extends NodeVisitor<OperationDefinitionNode> {
+  public override async *visit(): VisitorGenerator {
+    for (let i = 0; i < this.node.statements.length; i += 1) {
+      const result = yield {
+        kind: 'explore',
+        what: { node: this.node.statements[i] },
+        stack: this.stack,
+        childIdentifier: `${this.childIdentifier}.statements[${i}]`,
+      };
+
+      if (this.processChildResult(result).terminate) {
+        return this.prepareResultDone(undefined, true);
+      }
+    }
+
+    return this.prepareResultDone(undefined);
+  }
+
+  public override [Symbol.toStringTag](): string {
+    return 'OperationDefinitionVisitor';
+  }
+}
+
+class SetStatementVisitor extends NodeVisitor<SetStatementNode> {
+  public override async *visit(): VisitorGenerator {
+    if (this.node.condition !== undefined) {
+      const result = yield {
+        kind: 'explore',
+        what: { node: this.node.condition },
+        stack: this.stack,
+        childIdentifier: `${this.childIdentifier}.condition`,
+      };
+
+      // TODO: assert is boolean?
+      if (result.value === false) {
+        return this.prepareResultDone(undefined);
+      }
+    }
+
+    for (let i = 0; i < this.node.assignments.length; i += 1) {
+      const result = yield {
+        kind: 'explore',
+        what: { node: this.node.assignments[i] },
+        stack: this.stack,
+        childIdentifier: `${this.childIdentifier}.assignments[${i}]`,
+      };
+
+      if (result.value === undefined) {
+        return {
+          kind: 'error',
+          error: new UnexpectedError(
+            'Assignment child returned invalid result',
+            { value: result.value, node: this.node }
+          ),
+        };
+      }
+      this.log?.('Updating stack with:', result.value);
+
+      // TODO: this is different from before - it allows consecutive assignments to see values from previous ones
+      // TODO: assert result.value is NonPrimitive
+      this.stack = mergeVariables(this.stack, result.value as NonPrimitive);
+    }
+
+    return this.prepareResultDone(undefined);
+  }
+
+  public override [Symbol.toStringTag](): string {
+    return 'SetStatementVisitor';
+  }
+}
+
+class ConditionAtomVisitor extends NodeVisitor<ConditionAtomNode, boolean> {
+  public override async *visit(): VisitorGenerator<boolean> {
+    const result = yield {
+      kind: 'explore',
+      what: { node: this.node.expression },
+      stack: this.stack,
+      childIdentifier: `${this.childIdentifier}.value`,
+    };
+
+    return this.prepareResultDone(Boolean(result.value));
+  }
+
+  public override [Symbol.toStringTag](): string {
+    return 'ConditionAtomVisitor';
+  }
+}
+
+class AssignmentVisitor extends NodeVisitor<AssignmentNode, NonPrimitive> {
+  private static constructObject(
+    keys: string[],
+    value: Variables
+  ): NonPrimitive {
+    const result: NonPrimitive = {};
+    let current = result;
+
+    for (const key of keys) {
+      if (key === keys[keys.length - 1]) {
+        current[key] = value;
+      } else {
+        current = current[key] = {};
+      }
+    }
+
+    return result;
+  }
+
+  public override async *visit(): VisitorGenerator<NonPrimitive> {
+    const result = yield {
+      kind: 'explore',
+      what: { node: this.node.value },
+      stack: this.stack,
+      childIdentifier: `${this.childIdentifier}.value`,
+    };
+
+    // TODO: assert result.value is Variables
+    const object = AssignmentVisitor.constructObject(
+      this.node.key,
+      result.value as Variables
+    );
+
+    return this.prepareResultDone(object);
+  }
+
+  public override [Symbol.toStringTag](): string {
+    return 'AssignmentVisitor';
+  }
+}
+
+class PrimitiveLiteralVisitor extends NodeVisitor<
+  PrimitiveLiteralNode,
+  string | number | boolean
+> {
+  // eslint-disable-next-line require-yield
+  public override async *visit(): VisitorGenerator<string | number | boolean> {
+    return this.prepareResultDone(this.node.value);
+  }
+
+  public override [Symbol.toStringTag](): string {
+    return 'PrimitiveLiteralVisitor';
+  }
+}
+
+class ObjectLiteralVisitor extends NodeVisitor<
+  ObjectLiteralNode,
+  NonPrimitive
+> {
+  public override async *visit(): VisitorGenerator<NonPrimitive> {
+    let object: NonPrimitive = {};
+
+    for (let i = 0; i < this.node.fields.length; i += 1) {
+      const result = yield {
+        kind: 'explore',
+        what: { node: this.node.fields[i] },
+        stack: this.stack,
+        childIdentifier: `${this.childIdentifier}.fields[${i}]`,
+      };
+
+      // TODO: typecheck
+      object = mergeVariables(object, result.value as NonPrimitive);
+    }
+
+    return this.prepareResultDone(object);
+  }
+
+  public override [Symbol.toStringTag](): string {
+    return 'ObjectLiteralVisitor';
+  }
+}
+
+class JessieExpressionVisitor extends NodeVisitor<
+  JessieExpressionNode,
+  Variables | undefined
+> {
+  constructor(
+    node: JessieExpressionNode,
+    stack: NonPrimitive,
+    childIdentifier: string,
+    log: LogFunction | undefined,
+    private readonly config: IConfig,
+    private readonly logger: ILogger | undefined,
+    private readonly inputParameters: NonPrimitive | undefined,
+    private readonly integrationParameters: Record<string, string> | undefined
+  ) {
+    super(node, stack, childIdentifier, log);
+  }
+
+  // eslint-disable-next-line require-yield
+  public override async *visit(): VisitorGenerator<Variables | undefined> {
+    try {
+      // this await resolves Promises coming out of jessie such as BinaryData.peek etc.
+      const result = await evalScript(
+        this.config,
+        this.node.expression,
+        this.logger,
+        {
+          ...this.stack,
+          input: {
+            ...(this.inputParameters ?? {}),
+          },
+          parameters: {
+            ...(this.integrationParameters ?? {}),
+          },
+        }
+      );
+
+      return this.prepareResultDone(castToVariables(result));
+    } catch (e) {
+      return {
+        kind: 'error',
+        error: new JessieError('Error in Jessie script', e, {
+          node: this.node,
+        }),
+      };
+    }
+  }
+
+  public override [Symbol.toStringTag](): string {
+    return 'JessieExpressionVisitor';
+  }
+}
+
+class IterationAtomVisitor extends NodeVisitor<
+  IterationAtomNode,
+  Iterable<Variables>
+> {
+  private static isIterable(input: unknown): input is Iterable<Variables> {
+    return (
+      typeof input === 'object' && input !== null && (Symbol.iterator in input || Symbol.asyncIterator in input)
+    );
+  }
+
+  public override async *visit(): VisitorGenerator<Iterable<Variables>> {
+    const result = yield {
+      kind: 'explore',
+      what: { node: this.node.iterable },
+      stack: this.stack,
+      childIdentifier: `${this.childIdentifier}.value`,
+    };
+
+    if (!IterationAtomVisitor.isIterable(result.value)) {
+      return {
+        kind: 'error',
+        error: new MapASTError(
+          `Result of expression: ${this.node.iterable.expression} is not iterable.`,
+          { node: this.node }
+        ),
+      };
+    }
+
+    return this.prepareResultDone(result.value);
+  }
+
+  public override [Symbol.toStringTag](): string {
+    return 'IterationAtomVisitor';
+  }
+}
+
+class CallVisitor extends NodeVisitor<
+  InlineCallNode | CallStatementNode,
+  Variables | undefined
+> {
+  public override async *visit(): VisitorGenerator<Variables | undefined> {
+    // generalized case for iterated and non-iterated call
+    let iterable: Iterable<Variables> = [0];
+    let iterationVariable: string | undefined = undefined;
+    if (this.node.iteration !== undefined) {
+      const result = yield {
+        kind: 'explore',
+        what: { node: this.node.iteration },
+        stack: this.stack,
+        childIdentifier: `${this.childIdentifier}.iteration`,
+      };
+
+      iterable = result.value as Iterable<Variables>;
+      iterationVariable = this.node.iteration.iterationVariable;
+    }
+
+    const inlineCallResults = [];
+
+    let iterationCounter = -1;
+    for await (const iterVariable of iterable) {
+      iterationCounter += 1;
+      const childIdentifier = `${this.childIdentifier}.*${iterationCounter}`; // TODO: how to correctly mark repetition?
+
+      if (iterationVariable !== undefined) {
+        this.stack[iterationVariable] = iterVariable;
+      }
+
+      if (this.node.condition !== undefined) {
+        const result = yield {
+          kind: 'explore',
+          what: { node: this.node.condition },
+          stack: this.stack,
+          childIdentifier: `${childIdentifier}.condition`,
+        };
+
+        // TODO: typecheck
+        if (result.value === false) {
+          continue;
+        }
+      }
+
+      this.log?.('Calling operation:', this.node.operationName);
+      let args: Variables = {};
+      for (let i = 0; i < this.node.arguments.length; i += 1) {
+        const result = yield {
+          kind: 'explore',
+          what: { node: this.node.arguments[i] },
+          stack: this.stack,
+          childIdentifier: `${childIdentifier}.arguments[${i}]`,
+        };
+
+        // TODO: typecheck
+        args = mergeVariables(args, result.value as NonPrimitive);
+      }
+
+      const result = yield {
+        kind: 'explore',
+        what: { operation: this.node.operationName },
+        stack: { args },
+        childIdentifier: `${childIdentifier}.operation`,
+      };
+
+      const outcome = result.outcome?.value ?? { data: undefined };
+      if (this.node.kind === 'InlineCall') {
+        if ('error' in outcome) {
+          return {
+            kind: 'error',
+            error: new MapASTError('Unexpected inline call failure.', {
+              node: this.node,
+            }),
+          };
+        }
+
+        inlineCallResults.push(outcome.data);
+      } else if (this.node.kind === 'CallStatement') {
+        const out = outcome as Record<'data' | 'error', Variables | undefined>;
+        this.stack['outcome'] = { data: out.data, error: out.error };
+
+        // process statements
+        for (let i = 0; i < this.node.statements.length; i += 1) {
+          const result = yield {
+            kind: 'explore',
+            what: { node: this.node.statements[i] },
+            stack: this.stack,
+            childIdentifier: `${childIdentifier}.statements[${i}]`,
+          };
+
+          if (this.processChildResult(result).terminate) {
+            return this.prepareResultDone(undefined, true);
+          }
+        }
+
+        // end early if last outcome was an error
+        if ('error' in outcome) {
+          break;
+        }
+      }
+    }
+
+    if (this.node.kind === 'InlineCall') {
+      if (this.node.iteration === undefined) {
+        return this.prepareResultDone(inlineCallResults[0]);
+      } else {
+        return this.prepareResultDone(inlineCallResults);
+      }
+    } else {
+      return this.prepareResultDone(undefined);
+    }
+  }
+
+  public override [Symbol.toStringTag](): string {
+    return 'CallVisitor';
+  }
+}
+
+type HttpRequest = {
   contentType?: string;
   contentLanguage?: string;
   headers?: Variables;
   queryParameters?: NonPrimitive;
   body?: Variables;
   security: HttpSecurityRequirement[];
+};
+
+class HttpCallStatementVisitor extends NodeVisitor<HttpCallStatementNode> {
+  constructor(
+    node: HttpCallStatementNode,
+    stack: NonPrimitive,
+    childIdentifier: string,
+    log: LogFunction | undefined,
+    private readonly http: HttpClient,
+    private readonly externalHandler: MapInterpreterExternalHandler,
+    private readonly services: IServiceSelector,
+    private readonly inputParameters: NonPrimitive | undefined,
+    private readonly integrationParameters: Record<string, string> | undefined,
+    private readonly securityConfiguration: SecurityConfiguration[]
+  ) {
+    super(node, stack, childIdentifier, log);
+  }
+
+  public override async *visit(): VisitorGenerator {
+    // if node.serviceId is undefined returns the default service, or undefined if no default service is defined
+    const serviceUrl = this.services.getUrl(this.node.serviceId);
+    if (serviceUrl === undefined) {
+      return {
+        kind: 'error',
+        error: new UnexpectedError(
+          'Base url for a service not provided for HTTP call.'
+        ),
+      };
+    }
+
+    let request: HttpRequest | undefined;
+    if (this.node.request) {
+      const result = yield {
+        kind: 'explore',
+        what: { node: this.node.request },
+        stack: this.stack,
+        childIdentifier: `${this.childIdentifier}.request`,
+      };
+
+      request = result.value as HttpRequest;
+    }
+
+    const accepts = this.node.responseHandlers.map(node => node.contentType);
+    let accept: string;
+    if (accepts.some(accept => accept === undefined)) {
+      accept = '*/*';
+    } else {
+      accept = accepts
+        // deduplicate the array
+        .filter((accept, index) => accepts.indexOf(accept) === index)
+        .join(', ');
+    }
+
+
+    retry: while (true) {
+      this.log?.('Performing http request:', this.node.url);
+      let response;
+      try {
+        response = await this.http.request(this.node.url, {
+          method: this.node.method,
+          headers: request?.headers,
+          contentType: request?.contentType ?? 'application/json',
+          accept,
+          baseUrl: serviceUrl,
+          queryParameters: request?.queryParameters,
+          pathParameters: { ...this.stack, input: this.inputParameters, parameters: this.integrationParameters },
+          body: request?.body,
+          securityRequirements: request?.security,
+          securityConfiguration: this.securityConfiguration,
+          integrationParameters: this.integrationParameters,
+        });
+      } catch (e) {
+        if (e instanceof UnexpectedError || e instanceof SDKExecutionError) {
+          return { kind: 'error', error: e };
+        } else {
+          this.log?.('Unhandled exception from http request:', e);
+          throw e;
+        }
+      }
+
+      for (let i = 0; i < this.node.responseHandlers.length; i += 1) {
+        this.stack = mergeVariables(this.stack, {
+          body: castToVariables(response.body),
+          headers: castToVariables(response.headers),
+          statusCode: response.statusCode,
+        });
+        const result = yield {
+          kind: 'explore',
+          what: { node: this.node.responseHandlers[i] },
+          stack: this.stack,
+          childIdentifier: `${this.childIdentifier}.response[${i}]`,
+        };
+
+        const terminate = this.processChildResult(result).terminate;
+        if (this.outcome !== undefined && 'error' in this.outcome) {
+          this.outcome.fromHttp = true;
+        }
+        if (terminate) {
+          return this.prepareResultDone(undefined, true);
+        }
+
+        // found handler
+        if (result.value === true) {
+          break retry;
+        }
+      }
+
+      if (this.externalHandler.unhandledHttp !== undefined) {
+        let action;
+        try {
+          action = await this.externalHandler.unhandledHttp?.(
+            undefined, // TODO: can we perform error handling some other way?
+            this.node,
+            response
+          );
+        } catch (e: unknown) {
+          // TODO: typecheck?
+          return { kind: 'error', error: e as UnexpectedError };
+        }
+        action = action ?? 'continue';
+        this.log?.(
+          `Processing unhandled response (${response.statusCode}) with external handler:`,
+          action
+        );
+
+        if (action !== 'retry') {
+          break retry;
+        }
+      } else {
+        this.log?.(
+          `Processing unhandled response (${response.statusCode}) with built-in handler`
+        );
+
+        if (response.statusCode >= 400) {
+          return {
+            kind: 'error',
+            error: new HTTPError(
+              'HTTP Error',
+              { node: this.node },
+              response.statusCode,
+              response.debug.request,
+              { body: response.body, headers: response.headers }
+            ),
+          };
+        } else {
+          break retry;
+        }
+      }
+    }
+
+    return this.prepareResultDone(undefined);
+  }
+
+  public override [Symbol.toStringTag](): string {
+    return 'HttpCallStatementVisitor';
+  }
 }
 
-type StackBase = {
-  type: 'operation' | 'map';
-  variables: NonPrimitive;
-  terminate: boolean;
-  result?: Variables;
-};
+class HttpRequestVisitor extends NodeVisitor<HttpRequestNode, HttpRequest> {
+  public override async *visit(): VisitorGenerator<HttpRequest> {
+    let headers: undefined | NonPrimitive;
+    if (this.node.headers !== undefined) {
+      const result = yield {
+        kind: 'explore',
+        what: { node: this.node.headers },
+        stack: this.stack,
+        childIdentifier: `${this.childIdentifier}.headers`,
+      };
 
-type OperationStack = StackBase & {
-  type: 'operation';
-  error?: Variables;
-};
+      // TODO: typecheck
+      headers = result.value as NonPrimitive;
+    }
 
-type MapContext = 'http' | 'none';
-type MapStack = StackBase & {
-  type: 'map';
-  error?: MapInterpreterError;
-  context: MapContext[];
-};
+    let queryParameters: undefined | NonPrimitive;
+    if (this.node.query !== undefined) {
+      const result = yield {
+        kind: 'explore',
+        what: { node: this.node.query },
+        stack: this.stack,
+        childIdentifier: `${this.childIdentifier}.query`,
+      };
 
-type Stack = OperationStack | MapStack;
+      // TODO: typecheck
+      queryParameters = result.value as NonPrimitive;
+    }
 
-type IterationDefinition = {
-  iterationVariable: string;
-  iterable: Iterable<Variables>;
-};
+    let body: undefined | Variables;
+    if (this.node.body !== undefined) {
+      const result = yield {
+        kind: 'explore',
+        what: { node: this.node.body },
+        stack: this.stack,
+        childIdentifier: `${this.childIdentifier}.body`,
+      };
 
-export class MapInterpreter<TInput extends NonPrimitive | undefined>
-  implements MapAstVisitor {
-  private operations: Record<string, OperationDefinitionNode | undefined> = {};
-  private stack: Stack[] = [];
-  private ast?: MapDocumentNode;
+      // TODO: typecheck
+      body = result.value as Variables;
+    }
+
+    return this.prepareResultDone({
+      contentType: this.node.contentType,
+      contentLanguage: this.node.contentLanguage,
+      headers,
+      queryParameters,
+      body,
+      security: this.node.security,
+    });
+  }
+
+  public override [Symbol.toStringTag](): string {
+    return 'HttpRequestVisitor';
+  }
+}
+
+class HttpResponseHandlerVisitor extends NodeVisitor<
+  HttpResponseHandlerNode,
+  boolean
+> {
+  private matchResponse(): Result<boolean, UnexpectedError> {
+    if (
+      this.node.statusCode !== undefined &&
+      this.node.statusCode !== this.stack.statusCode
+    ) {
+      return ok(false);
+    }
+
+    const headers = this.stack.headers;
+    if (headers === undefined || !isNonPrimitive(headers)) {
+      return err(
+        new UnexpectedError(
+          'Stack needs to contain "headers" when visiting HttpResponseHandler'
+        )
+      );
+    }
+
+    const contentType = headers['content-type'];
+    if (
+      this.node.contentType !== undefined &&
+      typeof contentType === 'string' &&
+      !contentType.includes(this.node.contentType)
+    ) {
+      return ok(false);
+    }
+
+    const contentLanguage = headers['content-language'];
+    if (
+      this.node.contentLanguage !== undefined &&
+      typeof contentLanguage === 'string' &&
+      !contentLanguage.includes(this.node.contentLanguage)
+    ) {
+      return ok(false);
+    }
+
+    return ok(true);
+  }
+
+  public override async *visit(): VisitorGenerator<boolean> {
+    const matched = this.matchResponse();
+    if (matched.isErr()) {
+      return { kind: 'error', error: matched.error };
+    }
+    if (!matched.value) {
+      return this.prepareResultDone(false);
+    }
+
+    if (this.log?.enabled === true) {
+      let debugString = 'Running http handler:';
+      if (this.node.contentType !== undefined) {
+        debugString += ` content-type: "${this.node.contentType}"`;
+      }
+      if (this.node.contentLanguage !== undefined) {
+        debugString += ` content-language: "${this.node.contentLanguage}"`;
+      }
+      if (this.node.statusCode !== undefined) {
+        debugString += ` code: "${this.node.statusCode}"`;
+      }
+      this.log(debugString);
+    }
+
+    for (let i = 0; i < this.node.statements.length; i += 1) {
+      const result = yield {
+        kind: 'explore',
+        what: { node: this.node.statements[i] },
+        stack: this.stack,
+        childIdentifier: `${this.childIdentifier}.statements[${i}]`,
+      };
+
+      if (this.processChildResult(result).terminate) {
+        return this.prepareResultDone(undefined, true);
+      }
+    }
+
+    return this.prepareResultDone(true);
+  }
+
+  public override [Symbol.toStringTag](): string {
+    return 'HttpResponseHandlerVisitor';
+  }
+}
+
+class OutcomeStatementVisitor extends NodeVisitor<OutcomeStatementNode> {
+  public override async *visit(): VisitorGenerator {
+    if (this.node.condition !== undefined) {
+      const result = yield {
+        kind: 'explore',
+        what: { node: this.node.condition },
+        stack: this.stack,
+        childIdentifier: `${this.childIdentifier}.condition`,
+      };
+
+      // TODO: assert is boolean?
+      if (result.value === false) {
+        return this.prepareResultDone(undefined);
+      }
+    }
+
+    const result = yield {
+      kind: 'explore',
+      what: { node: this.node.value },
+      stack: this.stack,
+      childIdentifier: `${this.childIdentifier}.value`,
+    };
+    try {
+      assertIsVariables(result.value);
+    } catch (e: unknown) {
+      return { kind: 'error', error: e as UnexpectedError };
+    }
+
+    if (this.node.isError) {
+      if (result.value === undefined) {
+        return {
+          kind: 'error',
+          error: new UnexpectedError('Outcome error value is undefined'),
+        };
+      }
+
+      // TODO: deepcopy stack?
+      this.outcome = {
+        error: result.value,
+        fromHttp: false,
+        sourceNode: this.node,
+        stack: this.stack,
+      };
+    } else {
+      this.outcome = { data: result.value };
+    }
+
+    return this.prepareResultDone(undefined, this.node.terminateFlow);
+  }
+
+  public override [Symbol.toStringTag](): string {
+    return 'OutcomeStatementVisitor';
+  }
+}
+
+export class MapInterpreter<TInput extends NonPrimitive | undefined> {
+  private static async handleFinalOutcome(outcome: VisitorOutcomeValue | undefined, ast: MapDocumentNode): Promise<PerformResult> {
+    outcome = outcome ?? { data: undefined };
+
+    try {
+      if ('error' in outcome) {
+        outcome.error = await MapInterpreter.resolveOutcomeVariables(outcome.error);
+
+        return err(
+          MapInterpreter.wrapOutcomeError(outcome, ast)
+        );
+      } else {
+        const data = await MapInterpreter.resolveOutcomeVariables(outcome.data);
+
+        return ok(data);
+      }
+    } catch (e) {
+      // catch promise throws, but this is very hard to work with
+      return err(e);
+    }
+  }
+
+  private static wrapOutcomeError(
+    outcome: VisitorOutcomeValueError,
+    ast: MapDocumentNode
+  ): MapInterpreterError {
+    let error: MapInterpreterError;
+    if (outcome.fromHttp) {
+      let statusCode = undefined;
+      if (
+        'statusCode' in outcome.stack &&
+        typeof outcome.stack.statusCode === 'number'
+      ) {
+        statusCode = outcome.stack.statusCode;
+      }
+
+      error = new MappedHTTPError(
+        'Expected HTTP error',
+        { node: outcome.sourceNode, ast },
+        statusCode,
+        outcome.error
+      );
+    } else {
+      error = new MappedError(
+        'Expected error',
+        { node: outcome.sourceNode, ast },
+        outcome.error
+      );
+    }
+
+    return error;
+  }
+
+  private static enrichError(
+    error: MapInterpreterError | UnexpectedError | SDKExecutionError,
+    ast: MapDocumentNode
+  ): MapInterpreterError | UnexpectedError | SDKExecutionError {
+    if (error instanceof UnexpectedError) {
+      if (
+        typeof error.additionalContext === 'object' &&
+        error.additionalContext !== null
+      ) {
+        (error.additionalContext as Record<string, unknown>)['ast'] = ast;
+      } else if (error.additionalContext === undefined) {
+        error.additionalContext = { ast };
+      } else {
+        // TODO: we could wrap the original additionalContext or bail?
+      }
+    } else if (error instanceof SDKExecutionError) {
+      // pass
+    } else {
+      if (error.metadata !== undefined) {
+        error.metadata.ast = ast;
+      } else {
+        error.metadata = { ast };
+      }
+    }
+
+    return error;
+  }
+
+  private static gatherOperations(
+    ast: MapDocumentNode
+  ): Record<string, OperationDefinitionNode | undefined> {
+    return Object.fromEntries(
+      ast.definitions.filter(isOperationDefinitionNode).map(op => [op.name, op])
+    );
+  }
+
+  private static findEntry(
+    ast: MapDocumentNode,
+    usecaseName: string | undefined
+  ): Result<MapDefinitionNode, MapASTError> {
+    const entry = ast.definitions
+      .filter(isMapDefinitionNode)
+      .find(definition => definition.usecaseName === usecaseName);
+    if (entry === undefined) {
+      return err(
+        new MapASTError(`Usecase not found: ${usecaseName ?? 'undefined'}!`, {
+          node: ast,
+          ast,
+        })
+      );
+    }
+
+    return ok(entry);
+  }
+
+  private static async initializeInput(input: NonPrimitive): Promise<void> {
+    for (const value of Object.values(input)) {
+      if (isInitializable(value)) {
+        await value.initialize();
+      } else if (value !== undefined && value !== null && isNonPrimitive(value)) {
+        await MapInterpreter.initializeInput(value);
+      }
+    }
+  }
+
+  private static async destroyInput(input: NonPrimitive): Promise<void> {
+    for (const value of Object.values(input)) {
+      if (isDestructible(value)) {
+        await value.destroy();
+      } else if (value !== undefined && value !== null && isNonPrimitive(value)) {
+        await MapInterpreter.destroyInput(value);
+      }
+    }
+  }
+
+  private static async resolveOutcomeVariables(input: undefined): Promise<undefined>;
+  private static async resolveOutcomeVariables(input: Variables): Promise<Variables>;
+  private static async resolveOutcomeVariables(input: Variables | undefined): Promise<Variables | undefined>;
+  private static async resolveOutcomeVariables(
+    input: Variables | undefined
+  ): Promise<Variables | undefined> {
+    if (isBinaryData(input)) {
+      throw new UnexpectedError('BinaryData cannot be used as outcome');
+    }
+
+    if (input === undefined || input === null || isPrimitive(input)) {
+      // beware: implicit promise flattening happens here
+      return input;
+    }
+
+    const result: Variables = {};
+    for (const [key, value] of Object.entries(input)) {
+      result[key] = await MapInterpreter.resolveOutcomeVariables(value);
+    }
+
+    return result;
+  }
 
   private readonly http: HttpClient;
   private readonly externalHandler: MapInterpreterExternalHandler;
@@ -177,737 +1243,235 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined>
 
   public async perform(
     ast: MapDocumentNode
-  ): Promise<Result<Variables | undefined, MapInterpreterError>> {
-    this.ast = ast;
-    if (this.parameters.input !== undefined) {
-      await this.initializeInput(this.parameters.input);
+  ): Promise<PerformResult> {
+    const iter = this.performStream(ast);
+
+    const result = await iter.next();
+    if (result.done !== true || result.value === undefined) {
+      return err(
+        new UnexpectedError(
+          'Map attempted to yield values but non-streaming perform was invoked'
+        )
+      );
     }
 
-    try {
-      const result = await this.visit(ast);
-
-      if (result.error) {
-        return err(result.error);
-      }
-
-      if (this.parameters.input !== undefined) {
-        await this.destroyInput(this.parameters.input);
-      }
-
-      return ok(result.result);
-    } catch (e) {
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion, @typescript-eslint/no-explicit-any
-      return err(e as any); // TODO: this can be HTTPError, UnexpectedError, MappedError, JessieError, MappedHTTPError, SDKBindError
-    }
+    return result.value;
   }
 
-  public visit(node: PrimitiveLiteralNode): Primitive;
-  public async visit(node: ObjectLiteralNode): Promise<NonPrimitive>;
-  public async visit(node: SetStatementNode): Promise<void>;
-  public async visit(
-    node: OutcomeStatementNode
-  ): Promise<OutcomeDefinition | undefined>;
-  public async visit(node: AssignmentNode): Promise<NonPrimitive>;
-  public async visit(node: LiteralNode): Promise<Variables>;
-  public async visit(node: ConditionAtomNode): Promise<boolean>;
-  public async visit(node: HttpRequestNode): Promise<HttpRequest>;
-  public async visit(node: InlineCallNode): Promise<Variables | undefined>;
-  public async visit(node: IterationAtomNode): Promise<IterationDefinition>;
-  public visit(node: HttpResponseHandlerNode): HttpResponseHandlerDefinition;
-  public visit(node: JessieExpressionNode): Variables | Primitive | undefined;
-  public async visit(
-    node: MapDocumentNode
-  ): Promise<{ result?: Variables; error?: MapInterpreterError }>;
-  public async visit(node: MapASTNode): Promise<Variables | undefined>;
-  public visit(
-    node: MapASTNode
-  ):
-    | Promise<
-      | undefined
-      | Variables
-      | Primitive
-      | void
-      | HttpRequest
-      | OutcomeDefinition
-      | { result?: Variables; error?: MapInterpreterError }
-      | IterationDefinition
-    >
-    | Primitive
-    | Variables
-    | HttpResponseHandlerDefinition
-    | undefined {
-    this.log?.(
-      'Visiting node:',
-      node.kind,
-      node.location
-        ? `Line: ${node.location.start.line}, Column: ${node.location.start.column}`
-        : ''
-    );
+  // eslint-disable-next-line require-yield
+  private async *performStream(
+    ast: MapDocumentNode
+  ): AsyncGenerator<unknown, PerformResult, undefined> {
+    if (!isMapDocumentNode(ast)) {
+      return err(new UnexpectedError('Invalid AST'));
+    }
+
+    // setup
+    const operations = MapInterpreter.gatherOperations(ast);
+    const entryResult = MapInterpreter.findEntry(ast, this.parameters.usecase);
+    if (entryResult.isErr()) {
+      // oof: it would be nice if Err didn't carry the value type parameter so we could do `return entryResult` here.
+      // where is muh Rust when I need it
+      return err(entryResult.error);
+    }
+    const entry = entryResult.value;
+
+    // initialize input
+    if (this.parameters.input !== undefined) {
+      await MapInterpreter.initializeInput(this.parameters.input);
+    }
+
+    // create a visitor of the root node and put it on the stack
+    const nodeStack: NodeVisitor<MapASTNode, unknown>[] = [
+      this.createVisitor(
+        entry,
+        {},
+        'root'
+      ),
+    ];
+
+    // drive nodes from the stack until empty
+    let lastResult: VisitorResultDone | undefined = undefined;
+    while (nodeStack.length > 0) {
+      const current = nodeStack[nodeStack.length - 1];
+
+      this.log?.('Stepping', current.toString(), '<<', lastResult);
+      let step: VisitorIteratorResult<unknown>;
+      if (lastResult !== undefined) {
+        step = await current.next(lastResult);
+      } else {
+        step = await current.next();
+      }
+      this.log?.(
+        step.done === true ? 'Returned' : 'Yielded',
+        current.toString(),
+        '>>',
+        step.value
+      );
+
+      lastResult = undefined;
+      switch (step.value.kind) {
+        case 'explore':
+          {
+            let node;
+            if ('node' in step.value.what) {
+              node = step.value.what.node;
+            } else {
+              node = operations[step.value.what.operation];
+              if (node === undefined) {
+                return err(
+                  new MapASTError(
+                    `Operation not found: ${step.value.what.operation}`,
+                    { node: current.node, ast }
+                  )
+                );
+              }
+            }
+
+            nodeStack.push(
+              this.createVisitor(
+                node,
+                step.value.stack,
+                step.value.childIdentifier
+              )
+            );
+          }
+          break;
+
+        case 'done':
+          nodeStack.pop();
+          lastResult = step.value;
+          break;
+
+        case 'error':
+          return err(MapInterpreter.enrichError(step.value.error, ast));
+
+        case 'yield':
+          throw new Error('TODO: not implemented yet');
+
+        default:
+          assertUnreachable(step.value);
+      }
+    }
+
+    const result = await MapInterpreter.handleFinalOutcome(lastResult?.outcome?.value, ast);
+    if (result.isOk() && this.parameters.input !== undefined) {
+      await MapInterpreter.destroyInput(this.parameters.input);
+    }
+
+    return result;
+  }
+
+  private createVisitor(
+    node: MapASTNode,
+    stack: NonPrimitive,
+    childIdentifier: string
+  ): NodeVisitor<MapASTNode, unknown> {
+    if (this.log?.enabled === true) {
+      let loc = '';
+      if (node.location !== undefined) {
+        loc = `@${node.location.start.line}:${node.location.start.column}`;
+      }
+      this.log?.(`Visiting ${node.kind}(${childIdentifier})${loc} <<`, {
+        stack,
+        childIdentifier,
+      });
+    }
+
     switch (node.kind) {
-      case 'Assignment':
-        return this.visitAssignmentNode(node);
-      case 'CallStatement':
-        return this.visitCallStatementNode(node);
-      case 'ConditionAtom':
-        return this.visitConditionAtomNode(node);
-      case 'HttpCallStatement':
-        return this.visitHttpCallStatementNode(node);
-      case 'HttpRequest':
-        return this.visitHttpRequestNode(node);
-      case 'HttpResponseHandler':
-        return this.visitHttpResponseHandlerNode(node);
-      case 'InlineCall':
-        return this.visitInlineCallNode(node);
-      case 'IterationAtom':
-        return this.visitIterationAtomNode(node);
-      case 'JessieExpression':
-        return this.visitJessieExpressionNode(node);
       case 'MapDefinition':
-        return this.visitMapDefinitionNode(node);
-      case 'MapHeader':
-        return this.visitMapHeaderNode(node);
-      case 'MapDocument':
-        return this.visitMapDocumentNode(node);
-      case 'ObjectLiteral':
-        return this.visitObjectLiteralNode(node);
+        return new MapDefinitionVisitor(node, stack, childIdentifier, this.log);
+
       case 'OperationDefinition':
-        return this.visitOperationDefinitionNode(node);
-      case 'OutcomeStatement':
-        return this.visitOutcomeStatementNode(node);
-      case 'PrimitiveLiteral':
-        return this.visitPrimitiveLiteralNode(node);
+        return new OperationDefinitionVisitor(
+          node,
+          stack,
+          childIdentifier,
+          this.log
+        );
+
       case 'SetStatement':
-        return this.visitSetStatementNode(node);
+        return new SetStatementVisitor(node, stack, childIdentifier, this.log);
+
+      case 'ConditionAtom':
+        return new ConditionAtomVisitor(node, stack, childIdentifier, this.log);
+
+      case 'IterationAtom':
+        return new IterationAtomVisitor(node, stack, childIdentifier, this.log);
+
+      case 'Assignment':
+        return new AssignmentVisitor(node, stack, childIdentifier, this.log);
+
+      case 'PrimitiveLiteral':
+        return new PrimitiveLiteralVisitor(
+          node,
+          stack,
+          childIdentifier,
+          this.log
+        );
+
+      case 'ObjectLiteral':
+        return new ObjectLiteralVisitor(node, stack, childIdentifier, this.log);
+
+      case 'JessieExpression':
+        return new JessieExpressionVisitor(
+          node,
+          stack,
+          childIdentifier,
+          this.log,
+          this.config,
+          this.logger,
+          this.parameters.input,
+          this.parameters.parameters
+        );
+
+      case 'InlineCall':
+        return new CallVisitor(node, stack, childIdentifier, this.log);
+
+      case 'CallStatement':
+        return new CallVisitor(node, stack, childIdentifier, this.log);
+
+      case 'HttpCallStatement':
+        return new HttpCallStatementVisitor(
+          node,
+          stack,
+          childIdentifier,
+          this.log,
+          this.http,
+          this.externalHandler,
+          this.parameters.services,
+          this.parameters.input,
+          this.parameters.parameters,
+          this.parameters.security
+        );
+
+      case 'HttpRequest':
+        return new HttpRequestVisitor(node, stack, childIdentifier, this.log);
+
+      case 'HttpResponseHandler':
+        return new HttpResponseHandlerVisitor(
+          node,
+          stack,
+          childIdentifier,
+          this.log
+        );
+
+      case 'OutcomeStatement':
+        return new OutcomeStatementVisitor(
+          node,
+          stack,
+          childIdentifier,
+          this.log
+        );
+
+      case 'MapHeader':
+        throw new Error('Method not implemented.');
+
+      case 'MapDocument':
+        throw new Error('Method not implemented.');
 
       default:
         assertUnreachable(node);
     }
-  }
-
-  public async visitAssignmentNode(
-    node: AssignmentNode
-  ): Promise<NonPrimitive> {
-    const result = await this.visit(node.value);
-
-    return this.constructObject(node.key, result);
-  }
-
-  public async visitConditionAtomNode(
-    node: ConditionAtomNode
-  ): Promise<boolean> {
-    const result = await this.visit(node.expression);
-
-    return Boolean(result);
-  }
-
-  public async visitCallStatementNode(node: CallStatementNode): Promise<void> {
-    if (hasIteration(node)) {
-      const processResults = async (result?: Variables, error?: Variables) => {
-        if (error !== undefined) {
-          this.addVariableToStack({ outcome: { error } });
-          this.stackTop().terminate = true;
-        } else {
-          this.addVariableToStack({ outcome: { data: result } });
-        }
-        await this.processStatements(node.statements);
-      };
-      await this.iterate(node, processResults);
-    } else {
-      if (node.condition) {
-        const condition = await this.visit(node.condition);
-        if (condition === false) {
-          return;
-        }
-      }
-      const outcome = await this.visitCallCommon(node);
-
-      this.addVariableToStack({ outcome });
-      await this.processStatements(node.statements);
-    }
-  }
-
-  public async visitHttpCallStatementNode(
-    node: HttpCallStatementNode
-  ): Promise<void> {
-    // if node.serviceId is undefined returns the default service, or undefined if no default service is defined
-    const serviceUrl = this.parameters.services.getUrl(node.serviceId);
-    if (serviceUrl === undefined) {
-      throw new UnexpectedError(
-        'Base url for a service not provided for HTTP call.'
-      );
-    }
-
-    const request = node.request && (await this.visit(node.request));
-    const responseHandlers = node.responseHandlers.map(responseHandler =>
-      this.visit(responseHandler)
-    );
-
-    let accept: string;
-    if (responseHandlers.some(([, accept]) => accept === undefined)) {
-      accept = '*/*';
-    } else {
-      const accepts = responseHandlers.map(([, accept]) => accept);
-      accept = accepts
-        // deduplicate the array
-        .filter((accept, index) => accepts.indexOf(accept) === index)
-        .join(', ');
-    }
-
-    let retry = true;
-    while (retry) {
-      this.log?.('Performing http request:', node.url);
-      const response = await this.http.request(node.url, {
-        method: node.method,
-        headers: request?.headers,
-        contentType: request?.contentType ?? 'application/json',
-        accept,
-        baseUrl: serviceUrl,
-        queryParameters: request?.queryParameters,
-        pathParameters: this.variables,
-        body: request?.body,
-        securityRequirements: request?.security,
-        securityConfiguration: this.parameters.security,
-        integrationParameters: this.parameters.parameters,
-      });
-
-      for (const [handler] of responseHandlers) {
-        const match = await handler(response);
-
-        if (match) {
-          return;
-        }
-      }
-
-      if (this.externalHandler.unhandledHttp !== undefined) {
-        const action =
-          (await this.externalHandler.unhandledHttp?.(
-            this.ast,
-            node,
-            response
-          )) ?? 'continue';
-        if (action !== 'retry') {
-          retry = false;
-        }
-      } else {
-        retry = false;
-        if (response.statusCode >= 400) {
-          throw new HTTPError(
-            'HTTP Error',
-            { node, ast: this.ast },
-            response.statusCode,
-            response.debug.request,
-            { body: response.body, headers: response.headers }
-          );
-        }
-      }
-    }
-  }
-
-  public async visitHttpRequestNode(
-    node: HttpRequestNode
-  ): Promise<HttpRequest> {
-    return {
-      contentType: node.contentType,
-      contentLanguage: node.contentLanguage,
-      headers: node.headers && (await this.visit(node.headers)),
-      queryParameters: node.query && (await this.visit(node.query)),
-      body: node.body && (await this.visit(node.body)),
-      security: node.security,
-    };
-  }
-
-  public visitHttpResponseHandlerNode(
-    node: HttpResponseHandlerNode
-  ): HttpResponseHandlerDefinition {
-    const handler: HttpResponseHandler = async (response: HttpResponse) => {
-      if (
-        node.statusCode !== undefined &&
-        node.statusCode !== response.statusCode
-      ) {
-        return false;
-      }
-
-      if (
-        node.contentType !== undefined &&
-        response.headers['content-type'] &&
-        !response.headers['content-type'].includes(node.contentType)
-      ) {
-        return false;
-      }
-
-      if (
-        node.contentLanguage !== undefined &&
-        response.headers['content-language'] &&
-        !response.headers['content-language'].includes(node.contentLanguage)
-      ) {
-        return false;
-      }
-
-      {
-        const stackTop = this.stackTop();
-        if (stackTop.type === 'map') {
-          stackTop.context.push('http');
-        }
-      }
-
-      this.addVariableToStack({
-        body: castToVariables(response.body),
-        headers: castToVariables(response.headers),
-        statusCode: response.statusCode,
-      });
-
-      if (this.log?.enabled === true) {
-        let debugString = 'Running http handler:';
-        if (node.contentType !== undefined) {
-          debugString += ` content-type: "${node.contentType}"`;
-        }
-        if (node.contentLanguage !== undefined) {
-          debugString += ` content-language: "${node.contentLanguage}"`;
-        }
-        if (node.statusCode !== undefined) {
-          debugString += ` code: "${node.statusCode}"`;
-        }
-        this.log(debugString);
-      }
-
-      await this.processStatements(node.statements);
-      {
-        const stackTop = this.stackTop();
-        if (stackTop.type === 'map') {
-          stackTop.context.pop();
-        }
-      }
-
-      return true;
-    };
-
-    return [handler, node.contentType];
-  }
-
-  public async visitInlineCallNode(
-    node: InlineCallNode
-  ): Promise<Variables | undefined> {
-    if (hasIteration(node)) {
-      const results: (Variables | undefined)[] = [];
-      const processResult = (result?: Variables, error?: Variables) => {
-        if (error !== undefined) {
-          throw new MapASTError('Unexpected inline call failure.', {
-            ast: this.ast,
-            node,
-          });
-        }
-
-        results.push(result);
-      };
-      await this.iterate(node, processResult);
-
-      return results;
-    }
-
-    if (node.condition) {
-      const condition = await this.visit(node.condition);
-      if (condition === false) {
-        return undefined;
-      }
-    }
-
-    const result = await this.visitCallCommon(node);
-
-    return result.data;
-  }
-
-  public async visitIterationAtomNode(
-    node: IterationAtomNode
-  ): Promise<IterationDefinition> {
-    const iterable = await this.visit(node.iterable);
-
-    if (isIterable(iterable)) {
-      return {
-        iterationVariable: node.iterationVariable,
-        iterable,
-      };
-    } else {
-      throw new MapASTError(
-        `Result of expression: ${node.iterable.expression} is not iterable.`,
-        { node, ast: this.ast }
-      );
-    }
-  }
-
-  public visitJessieExpressionNode(
-    node: JessieExpressionNode
-  ): Variables | undefined {
-    try {
-      const result = evalScript(
-        this.config,
-        node.expression,
-        this.logger,
-        this.variables
-      );
-
-      return castToVariables(result);
-    } catch (e) {
-      // TODO: fix error types
-      throw new JessieError('Error in Jessie script', e as Error, {
-        node,
-        ast: this.ast,
-      });
-    }
-  }
-
-  public visitPrimitiveLiteralNode(node: PrimitiveLiteralNode): Primitive {
-    return node.value;
-  }
-
-  private async processStatements(statements: Substatement[]): Promise<void> {
-    for (const statement of statements) {
-      switch (statement.kind) {
-        case 'SetStatement':
-        case 'HttpCallStatement':
-        case 'CallStatement':
-          await this.visit(statement);
-          if (this.stackTop().terminate) {
-            return;
-          }
-          break;
-
-        case 'OutcomeStatement': {
-          const outcome = await this.visit(statement);
-          if (outcome !== undefined && outcome.error) {
-            const stackTop = this.stackTop();
-            if (stackTop.type === 'map') {
-              let error: MapInterpreterError;
-              if (stackTop.context[stackTop.context.length - 1] === 'http') {
-                const statusCode = this.stackTop('map').variables.statusCode;
-                error = new MappedHTTPError(
-                  'Expected HTTP error',
-                  { node: statement, ast: this.ast },
-                  typeof statusCode === 'number' ? statusCode : undefined,
-                  outcome?.result
-                );
-              } else {
-                error = new MappedError(
-                  'Expected error',
-                  { node: statement, ast: this.ast },
-                  outcome?.result
-                );
-              }
-
-              this.stackTop('map').error = error;
-            } else {
-              this.stackTop('operation').error = outcome.result;
-            }
-          } else {
-            this.stackTop().result = outcome?.result === undefined ? this.stackTop().result : outcome.result;
-          }
-          this.log?.('Setting result: %O', this.stackTop());
-
-          if (outcome?.terminateFlow === true) {
-            this.stackTop().terminate = true;
-
-            return;
-          }
-
-          break;
-        }
-      }
-    }
-  }
-
-  public async visitMapDefinitionNode(
-    node: MapDefinitionNode
-  ): Promise<Variables | undefined> {
-    this.newStack('map');
-    await this.processStatements(node.statements);
-
-    if (this.stackTop().error !== undefined) {
-      throw this.stackTop().error;
-    }
-
-    return {
-      result: this.stackTop().result,
-    };
-  }
-
-  public async visitMapDocumentNode(
-    node: MapDocumentNode
-  ): Promise<Variables | undefined> {
-    for (const operation of node.definitions.filter(
-      isOperationDefinitionNode
-    )) {
-      this.operations[operation.name] = operation;
-    }
-    const operation = node.definitions
-      .filter(isMapDefinitionNode)
-      .find(definition => definition.usecaseName === this.parameters.usecase);
-
-    if (!operation) {
-      throw new MapASTError(
-        `Usecase not found: ${this.parameters.usecase ?? 'undefined'}!`,
-        {
-          node,
-          ast: this.ast,
-        }
-      );
-    }
-
-    return await this.visit(operation);
-  }
-
-  public visitMapHeaderNode(_node: MapHeaderNode): never {
-    throw new UnexpectedError('Method not implemented.');
-  }
-
-  public async visitObjectLiteralNode(
-    node: ObjectLiteralNode
-  ): Promise<NonPrimitive> {
-    let result: NonPrimitive = {};
-
-    for (const field of node.fields) {
-      result = mergeVariables(
-        result,
-        this.constructObject(field.key, await this.visit(field.value))
-      );
-    }
-
-    return result;
-  }
-
-  public async visitOperationDefinitionNode(
-    node: OperationDefinitionNode
-  ): Promise<void> {
-    await this.processStatements(node.statements);
-  }
-
-  public async visitOutcomeStatementNode(
-    node: OutcomeStatementNode
-  ): Promise<OutcomeDefinition | undefined> {
-    if (node.condition) {
-      const condition = await this.visit(node.condition);
-
-      if (condition === false) {
-        return undefined;
-      }
-    }
-
-    const result = await this.visit(node.value);
-
-    return {
-      result:
-        this.stackTop().type === 'map'
-          ? await this.resolveVariables(result)
-          : result,
-      error: node.isError,
-      terminateFlow: node.terminateFlow,
-    };
-  }
-
-  public async visitSetStatementNode(node: SetStatementNode): Promise<void> {
-    if (node.condition) {
-      const condition = await this.visit(node.condition);
-
-      if (condition === false) {
-        return;
-      }
-    }
-
-    let result: Variables = {};
-    for (const assignment of node.assignments) {
-      result = mergeVariables(result, await this.visit(assignment));
-    }
-    this.addVariableToStack(result);
-  }
-
-  private get variables(): NonPrimitive {
-    let variables: NonPrimitive = this.stackTop().variables;
-
-    // for (const stacktop of this.stack) {
-    //   variables = mergeVariables(variables, stacktop.variables);
-    // }
-
-    // if (this.stackTop.result) {
-    //   variables = {
-    //     ...variables,
-    //     outcome: {
-    //       data: this.stackTop.result,
-    //     },
-    //   };
-    // }
-
-    variables = {
-      ...variables,
-      input: {
-        ...(this.parameters.input ?? {}),
-      },
-      parameters: {
-        ...(this.parameters.parameters ?? {}),
-      },
-    };
-
-    return variables;
-  }
-
-  private addVariableToStack(variables: NonPrimitive): void {
-    this.stackTop().variables = mergeVariables(
-      this.stackTop().variables,
-      variables
-    );
-
-    this.log?.('Updated stack: %O', this.stackTop());
-  }
-
-  private constructObject(keys: string[], value: Variables): NonPrimitive {
-    const result: NonPrimitive = {};
-    let current = result;
-
-    for (const key of keys) {
-      if (key === keys[keys.length - 1]) {
-        current[key] = value;
-      } else {
-        current = current[key] = {};
-      }
-    }
-    this.log?.('Constructing object:', keys.join('.'), '=', value);
-
-    return result;
-  }
-
-  private newStack(type: Stack['type']): void {
-    const stack =
-      type === 'map'
-        ? {
-          type,
-          variables: {},
-          result: undefined,
-          terminate: false,
-          context: [],
-        }
-        : {
-          type,
-          variables: {},
-          result: undefined,
-          terminate: false,
-        };
-    this.stack.push(stack);
-    this.log?.('New stack: %O', this.stackTop());
-  }
-
-  private popStack(): void {
-    const last = this.stack.pop();
-
-    this.log?.('Popped stack: %O', last);
-  }
-
-  private stackTop(assertType: 'operation'): OperationStack;
-  private stackTop(assertType: 'map'): MapStack;
-  private stackTop(): Stack;
-  private stackTop(assertType?: 'map' | 'operation'): Stack {
-    if (this.stack.length === 0) {
-      throw new UnexpectedError('Trying to get variables out of scope!');
-    }
-    const stack = this.stack[this.stack.length - 1];
-
-    if (assertType !== undefined && stack.type !== assertType) {
-      throw new UnexpectedError(
-        `Trying to get '${assertType}', but got ${stack.type}!`
-      );
-    }
-
-    return stack;
-  }
-
-  private async visitCallCommon(
-    node: InlineCallNode | CallStatementNode
-  ): Promise<{ data: Variables | undefined; error?: Variables | undefined }> {
-    const operation = this.operations[node.operationName];
-    if (!operation) {
-      throw new MapASTError(`Operation not found: ${node.operationName}`, {
-        node,
-        ast: this.ast,
-      });
-    }
-
-    this.log?.('Calling operation:', operation.name);
-
-    let args: Variables = {};
-    for (const assignment of node.arguments) {
-      args = mergeVariables(args, await this.visit(assignment));
-    }
-    this.newStack('operation');
-    this.addVariableToStack({ args });
-
-    await this.visit(operation);
-    const { result: data, error } = this.stackTop('operation');
-
-    this.popStack();
-
-    return { data, error };
-  }
-
-  private async iterate<T extends CallStatementNode | InlineCallNode>(
-    node: T & { iteration: IterationAtomNode },
-    processResult: (
-      result?: Variables,
-      error?: Variables
-    ) => unknown | Promise<unknown>
-  ): Promise<void> {
-    const iterationParams = await this.visit(node.iteration);
-    for await (const variable of iterationParams.iterable) {
-      // overwrite the iteration variable instead of merging
-      this.stackTop().variables[iterationParams.iterationVariable] = variable;
-
-      if (node.condition) {
-        const condition = await this.visit(node.condition);
-        if (condition === false) {
-          continue;
-        }
-      }
-      const result = await this.visitCallCommon(node);
-
-      await processResult(result.data, result.error);
-      // return early check
-      if (this.stackTop().terminate) {
-        break;
-      }
-    }
-  }
-
-  private async initializeInput(input: NonPrimitive): Promise<void> {
-    for (const value of Object.values(input)) {
-      if (isInitializable(value)) {
-        await value.initialize();
-      } else if (value !== undefined && value !== null && isNonPrimitive(value)) {
-        await this.initializeInput(value);
-      }
-    }
-  }
-
-  private async destroyInput(input: NonPrimitive): Promise<void> {
-    for (const value of Object.values(input)) {
-      if (isDestructible(value)) {
-        await value.destroy();
-      } else if (value !== undefined && value !== null && isNonPrimitive(value)) {
-        await this.destroyInput(value);
-      }
-    }
-  }
-
-  private async resolveVariables(
-    input: Variables | undefined
-  ): Promise<Variables | undefined> {
-    if (isBinaryData(input)) {
-      throw new UnexpectedError('BinaryData cannot be used as outcome');
-    }
-
-    if (input === undefined || input === null || isPrimitive(input)) {
-      return input;
-    }
-
-    const result: Variables = {};
-    for (const [key, value] of Object.entries(input)) {
-      result[key] = await this.resolveVariables(value);
-    }
-
-    return result;
   }
 }

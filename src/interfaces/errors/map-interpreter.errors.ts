@@ -50,7 +50,6 @@ export type MapInterpreterError =
   | IHTTPError
   | IJessieError;
 
-
 export const isMapInterpreterError = (e: unknown): e is MapInterpreterError => {
   return typeof e === 'object'
     && e !== null

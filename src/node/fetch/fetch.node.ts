@@ -249,7 +249,9 @@ export class NodeFetch implements IFetch, Interceptable, AuthCache {
     return false;
   }
 
-  private prepareHeadersInit(data: FetchParameters['headers'] | undefined): HeadersInit {
+  private prepareHeadersInit(
+    data: FetchParameters['headers'] | undefined
+  ): HeadersInit {
     if (data === undefined) {
       return [];
     }
@@ -258,7 +260,7 @@ export class NodeFetch implements IFetch, Interceptable, AuthCache {
 
     Object.entries(data).forEach(([key, value]) => {
       if (Array.isArray(value)) {
-        value.forEach((val) => headers.push([key, val]));
+        value.forEach(val => headers.push([key, val]));
       } else {
         headers.push([key, value]);
       }

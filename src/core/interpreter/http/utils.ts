@@ -145,13 +145,15 @@ export async function fetchRequest(
  * Get header value. For duplicate headers all delimited by `,` are returned
  */
 export function getHeader(headers: NonPrimitive, headerName: string): string {
-  const values = Object.entries(headers).flatMap(([key, value]) => {
-    if (key.toLowerCase() === headerName.toLowerCase()) {
-      return value;
-    }
+  const values = Object.entries(headers)
+    .flatMap(([key, value]) => {
+      if (key.toLowerCase() === headerName.toLowerCase()) {
+        return value;
+      }
 
-    return undefined;
-  }).filter(value => value !== undefined);
+      return undefined;
+    })
+    .filter(value => value !== undefined);
 
   return values.join(', ');
 }

@@ -19,9 +19,12 @@ import { MapInterpreter } from './map-interpreter';
 
 const mockServer = getLocal();
 const timers = new MockTimers();
-const fetchInstance = new NodeFetch(timers);
-const config = new Config(NodeFileSystem);
-const crypto = new NodeCrypto();
+const interpreterDependencies = {
+  fetchInstance: new NodeFetch(timers),
+  config: new Config(NodeFileSystem),
+  crypto: new NodeCrypto(),
+  logger: new NodeLogger(),
+};
 
 const parseMapFromSource = (source: string) =>
   parseMap(
@@ -52,7 +55,7 @@ describe('MapInterpreter', () => {
         security: [],
         services: ServiceSelector.withDefaultUrl(''),
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
     const ast = parseMapFromSource(`
       map testCase {
@@ -71,7 +74,7 @@ describe('MapInterpreter', () => {
         security: [],
         services: ServiceSelector.withDefaultUrl(''),
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
     const ast = parseMapFromSource(`
       map Test {
@@ -91,7 +94,7 @@ describe('MapInterpreter', () => {
         security: [],
         services: ServiceSelector.withDefaultUrl(''),
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
     const ast = parseMapFromSource(`
       map Test {
@@ -109,7 +112,7 @@ describe('MapInterpreter', () => {
         security: [],
         services: ServiceSelector.withDefaultUrl(''),
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
     const ast = parseMapFromSource(`
       operation TestOp {
@@ -132,7 +135,7 @@ describe('MapInterpreter', () => {
         security: [],
         services: ServiceSelector.withDefaultUrl(''),
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
     const ast = parseMapFromSource(`
       operation TestOp {
@@ -156,7 +159,7 @@ describe('MapInterpreter', () => {
         security: [],
         services: ServiceSelector.withDefaultUrl(''),
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
     const ast = parseMapFromSource(`
       operation TestOp {
@@ -190,7 +193,7 @@ describe('MapInterpreter', () => {
         security: [],
         services: mockServicesSelector,
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
     const ast = parseMapFromSource(`
       map Test {
@@ -221,7 +224,7 @@ describe('MapInterpreter', () => {
         security: [],
         services: mockServicesSelector,
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
     const ast = parseMapFromSource(`
       map Test {
@@ -254,7 +257,7 @@ describe('MapInterpreter', () => {
         security: [],
         services: mockServicesSelector,
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
     const ast = parseMapFromSource(`
       map Test {
@@ -290,7 +293,7 @@ describe('MapInterpreter', () => {
         security: [],
         services: mockServicesSelector,
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
     const ast = parseMapFromSource(`
       map Test {
@@ -327,7 +330,7 @@ describe('MapInterpreter', () => {
         security: [],
         services: mockServicesSelector,
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
     const ast = parseMapFromSource(`
       map Test {
@@ -365,7 +368,7 @@ describe('MapInterpreter', () => {
         security: [],
         services: mockServicesSelector,
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
     const ast = parseMapFromSource(`
       map Test {
@@ -411,7 +414,7 @@ describe('MapInterpreter', () => {
         ],
         services: mockServicesSelector,
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
     const ast = parseMapFromSource(`
       map testCase {
@@ -447,7 +450,7 @@ describe('MapInterpreter', () => {
         ],
         services: mockServicesSelector,
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
     const ast = parseMapFromSource(`
       map testCase {
@@ -484,7 +487,7 @@ describe('MapInterpreter', () => {
         ],
         services: mockServicesSelector,
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
     const ast = parseMapFromSource(`
       map testCase {
@@ -522,7 +525,7 @@ describe('MapInterpreter', () => {
         ],
         services: mockServicesSelector,
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
     const ast = parseMapFromSource(`
       map testCase {
@@ -563,7 +566,7 @@ describe('MapInterpreter', () => {
         security: [],
         services: mockServicesSelector,
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
     const ast = parseMapFromSource(`
       map testCase {
@@ -597,7 +600,7 @@ describe('MapInterpreter', () => {
         security: [],
         services: mockServicesSelector,
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
     const ast = parseMapFromSource(`
       map testCase {
@@ -626,7 +629,7 @@ describe('MapInterpreter', () => {
         security: [],
         services: ServiceSelector.withDefaultUrl(''),
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
     const ast = parseMapFromSource(`
       map testCase {
@@ -657,7 +660,7 @@ describe('MapInterpreter', () => {
         security: [],
         services: ServiceSelector.withDefaultUrl(''),
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
     const interpreter2 = new MapInterpreter(
       {
@@ -666,7 +669,7 @@ describe('MapInterpreter', () => {
         security: [],
         services: ServiceSelector.withDefaultUrl(''),
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
     const result1 = await interpreter1.perform(ast);
     const result2 = await interpreter2.perform(ast);
@@ -681,7 +684,7 @@ describe('MapInterpreter', () => {
         security: [],
         services: ServiceSelector.withDefaultUrl(''),
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
     const result = await interpreter.perform(
       parseMapFromSource(`
@@ -704,7 +707,7 @@ describe('MapInterpreter', () => {
         security: [],
         services: mockServicesSelector,
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
     const ast = parseMapFromSource(`
       map Test {
@@ -751,7 +754,7 @@ describe('MapInterpreter', () => {
         security: [],
         services: ServiceSelector.withDefaultUrl(''),
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
     const result = await interpreter.perform(ast);
     expect(result.isOk() && result.value).toEqual({ answer: 42 });
@@ -795,7 +798,7 @@ describe('MapInterpreter', () => {
         security: [],
         services: mockServicesSelector,
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
     const result = await interpreter.perform(ast);
     expect(result.isOk() && result.value).toEqual({
@@ -826,7 +829,7 @@ describe('MapInterpreter', () => {
         security: [],
         services: ServiceSelector.withDefaultUrl(''),
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
     const result = await interpreter.perform(ast);
     expect(result.isOk() && result.value).toEqual({ answer: { a: 42 } });
@@ -854,7 +857,7 @@ describe('MapInterpreter', () => {
         security: [],
         services: ServiceSelector.withDefaultUrl(''),
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
     const result = await interpreter.perform(ast);
     expect(result.isOk() && result.value).toEqual({ x: 42 });
@@ -882,7 +885,7 @@ describe('MapInterpreter', () => {
         security: [],
         services: ServiceSelector.withDefaultUrl(''),
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
     const result = await interpreter.perform(ast);
 
@@ -909,7 +912,7 @@ describe('MapInterpreter', () => {
         security: [],
         services: ServiceSelector.withDefaultUrl(''),
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
     const result = await interpreter.perform(ast);
 
@@ -937,7 +940,7 @@ describe('MapInterpreter', () => {
         security: [],
         services: ServiceSelector.withDefaultUrl(''),
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
     const result = await interpreter.perform(ast);
 
@@ -966,7 +969,7 @@ describe('MapInterpreter', () => {
         security: [],
         services: ServiceSelector.withDefaultUrl(''),
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
     const result = await interpreter.perform(ast);
 
@@ -993,7 +996,7 @@ describe('MapInterpreter', () => {
         security: [],
         services: ServiceSelector.withDefaultUrl(''),
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
     const result = await interpreter.perform(ast);
 
@@ -1020,7 +1023,7 @@ describe('MapInterpreter', () => {
         security: [],
         services: mockServicesSelector,
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
     const result = await interpreter.perform(ast);
 
@@ -1048,7 +1051,7 @@ describe('MapInterpreter', () => {
         security: [],
         services: ServiceSelector.withDefaultUrl(baseUrl),
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
     const result = await interpreter.perform(ast);
 
@@ -1072,7 +1075,7 @@ describe('MapInterpreter', () => {
         security: [],
         services: mockServicesSelector,
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
     const ast = parseMapFromSource(`
       map Test {
@@ -1108,7 +1111,7 @@ describe('MapInterpreter', () => {
           message: 'nice!',
         },
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
 
     const result = await interpreter.perform(ast);
@@ -1136,7 +1139,7 @@ describe('MapInterpreter', () => {
         security: [],
         services: mockServicesSelector,
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
     const result = await interpreter.perform(ast);
     expect(result.isOk() && result.value).toEqual({ result: 12 });
@@ -1164,10 +1167,42 @@ describe('MapInterpreter', () => {
           `${mockServicesSelector.getUrl()!}/{path}`
         ),
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
     const result = await interpreter.perform(ast);
     expect(result.isOk() && result.value).toEqual({ result: 12 });
+  });
+
+  it('should pass integration parameters to operations', async () => {
+    await mockServer.forGet('/thirteen').thenJson(200, { data: 13 });
+    const ast = parseMapFromSource(`
+      map Test {
+        map result {
+          x = call Op()
+        }
+      }
+
+      operation Op {
+        http GET "/{parameters.path}" {
+          response 200 "application/json" {
+            return body.data
+          }
+        }
+      }
+    `);
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        parameters: { path: 'thirteen' },
+        security: [],
+        services: mockServicesSelector,
+      },
+      interpreterDependencies
+    );
+
+    const result = await interpreter.perform(ast);
+
+    expect(result.isOk() && result.value).toEqual({ x: 13 });
   });
 
   it('should correctly select service', async () => {
@@ -1220,7 +1255,7 @@ describe('MapInterpreter', () => {
           'one'
         ),
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
     const result = await interpreter.perform(ast);
     expect(result.isOk() && result.value).toEqual({ result: 6 });
@@ -1243,7 +1278,7 @@ describe('MapInterpreter', () => {
         security: [],
         services: ServiceSelector.withDefaultUrl(''),
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
     const result = await interpreter.perform(ast);
 
@@ -1268,7 +1303,7 @@ describe('MapInterpreter', () => {
         security: [],
         services: ServiceSelector.withDefaultUrl(''),
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
 
     const result = await interpreter.perform(ast);
@@ -1297,7 +1332,7 @@ describe('MapInterpreter', () => {
         security: [],
         services: ServiceSelector.withDefaultUrl(''),
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
     const result = await interpreter.perform(ast);
     expect(result.isOk() && result.value).toEqual(10);
@@ -1328,7 +1363,7 @@ describe('MapInterpreter', () => {
         security: [],
         services: ServiceSelector.withDefaultUrl(''),
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
     const result = await interpreter.perform(ast);
     expect(result.isOk() && result.value).toEqual(undefined);
@@ -1353,7 +1388,7 @@ describe('MapInterpreter', () => {
         security: [],
         services: ServiceSelector.withDefaultUrl(''),
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
     const result = await interpreter.perform(ast);
     expect(result.isOk() && result.value).toEqual(15);
@@ -1385,7 +1420,7 @@ describe('MapInterpreter', () => {
           items: [{ buffer }, { buffer }],
         },
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
 
     const result = await interpreter.perform(ast);
@@ -1419,7 +1454,7 @@ describe('MapInterpreter', () => {
           items: [{ a: 1, b: 2 }, { a: 3 }],
         },
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
 
     const result = await interpreter.perform(ast);
@@ -1447,7 +1482,7 @@ describe('MapInterpreter', () => {
           items: BinaryData.fromPath(filePath),
         },
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
 
     const result = await interpreter.perform(ast);
@@ -1477,7 +1512,7 @@ describe('MapInterpreter', () => {
           items: BinaryData.fromPath(filePath),
         },
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
 
     const result = await interpreter.perform(ast);
@@ -1511,7 +1546,7 @@ describe('MapInterpreter', () => {
           items: BinaryData.fromPath(filePath),
         },
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
 
     const result = await interpreter.perform(ast);
@@ -1548,7 +1583,7 @@ describe('MapInterpreter', () => {
           items: BinaryData.fromPath(filePath),
         },
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
 
     const result = await interpreter.perform(ast);
@@ -1563,7 +1598,6 @@ describe('MapInterpreter', () => {
   });
 
   it('should chunk async binary data', async () => {
-    const logger = new NodeLogger();
     const ast = parseMapFromSource(`
     map Test {
       mappedItems = call foreach(item of input.items.chunkBy(10)) DoSomething(item = item.toString('utf8'))
@@ -1586,7 +1620,7 @@ describe('MapInterpreter', () => {
           items: BinaryData.fromPath(filePath),
         },
       },
-      { fetchInstance, config, crypto, logger }
+      interpreterDependencies
     );
 
     const result = await interpreter.perform(ast);
@@ -1625,7 +1659,7 @@ describe('MapInterpreter', () => {
           items: BinaryData.fromPath(filePath),
         },
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
 
     const result = await interpreter.perform(ast);
@@ -1673,7 +1707,7 @@ describe('MapInterpreter', () => {
           items: file,
         },
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
 
     const result = await interpreter.perform(ast);
@@ -1721,7 +1755,7 @@ describe('MapInterpreter', () => {
           items: file,
         },
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
 
     const result = await interpreter.perform(ast);
@@ -1770,7 +1804,7 @@ describe('MapInterpreter', () => {
           file,
         },
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
 
     const result = await interpreter.perform(ast);
@@ -1826,7 +1860,7 @@ describe('MapInterpreter', () => {
           mimetype: 'vnd.test/mapset'
         },
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
 
     const result = await interpreter.perform(ast);
@@ -1864,7 +1898,7 @@ describe('MapInterpreter', () => {
         ),
         input: {},
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
 
     const result = await interpreter.perform(ast);
@@ -1884,7 +1918,7 @@ describe('MapInterpreter', () => {
         security: [],
         services: mockServicesSelector,
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
     const ast = parseMapFromSource(`
       map Test {
@@ -1909,7 +1943,7 @@ describe('MapInterpreter', () => {
         services: mockServicesSelector,
         input: {}
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
     const ast = parseMapFromSource(`
       map Test {
@@ -1932,7 +1966,7 @@ describe('MapInterpreter', () => {
           field: null
         } as any
       },
-      { fetchInstance, config, crypto }
+      interpreterDependencies
     );
     const ast = parseMapFromSource(`
       map Test {
@@ -1943,5 +1977,80 @@ describe('MapInterpreter', () => {
     const result = await interpreter.perform(ast);
 
     expect(result.unwrap()).toEqual({ field: null });
+  });
+
+
+  it('should allow success outcome to be undefined', async () => {
+    const ast = parseMapFromSource(`    
+    map Test {
+      map result undefined
+    
+      map result {
+        x = call Op()
+      }
+    }
+    
+    operation Op {
+      return undefined
+    }`);
+
+
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+        services: ServiceSelector.withDefaultUrl(''),
+        input: {},
+      },
+      interpreterDependencies
+    );
+
+    const result = await interpreter.perform(ast);
+    expect(result.isOk() && result.value).toStrictEqual({ x: undefined });
+  });
+
+  it('should not allow input to be mutated', async () => {
+    const ast = parseMapFromSource(`    
+    map Test {
+      input.a = input.a + 7
+
+      map result input.a
+    }`);
+
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+        services: ServiceSelector.withDefaultUrl(''),
+        input: { a: 1 },
+      },
+      interpreterDependencies
+    );
+
+    const result = await interpreter.perform(ast);
+    expect(result.isOk() && result.value).toStrictEqual(1);
+  });
+
+  it('should not allow integration parameters to be mutated', async () => {
+    const ast = parseMapFromSource(`    
+    map Test {
+      parameters.a = parameters.a + "7"
+
+      map result parameters.a
+    }`);
+
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+        services: ServiceSelector.withDefaultUrl(''),
+        input: {},
+        parameters: { a: '1' }
+      },
+      interpreterDependencies
+    );
+
+    const result = await interpreter.perform(ast);
+    expect(result.isOk() && result.value).toStrictEqual('1');
   });
 });
