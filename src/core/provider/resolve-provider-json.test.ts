@@ -1,9 +1,11 @@
-import type { IFileSystemError } from '../../interfaces';
 import type { Result } from '../../lib';
 import { err, ok } from '../../lib';
 import { MockFileSystem, mockProviderJson } from '../../mock';
 import { NodeFileSystem } from '../../node';
 import { Config } from '../config';
+import type {
+  FileSystemError
+} from '../errors';
 import {
   NotFoundError,
   providersDoNotMatchError,
@@ -13,7 +15,7 @@ import { resolveProviderJson } from './resolve-provider-json';
 
 const mockFileSystem = (
   expectedPath: string,
-  result: Result<string, IFileSystemError>
+  result: Result<string, FileSystemError>
 ) => {
   const realFileSystem = NodeFileSystem;
 
