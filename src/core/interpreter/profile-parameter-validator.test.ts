@@ -331,7 +331,7 @@ describe('ProfileParameterValidator', () => {
         ).toEqual(true);
       });
 
-      it('should pass with  null', () => {
+      it('should pass with null', () => {
         expect(
           parameterValidator.validate({ test: null }, 'input', 'Test').isOk()
         ).toEqual(true);
@@ -379,7 +379,7 @@ describe('ProfileParameterValidator', () => {
         ).toEqual(true);
       });
 
-      it('should fail with  null', () => {
+      it('should fail with null', () => {
         expect(
           parameterValidator.validate({ test: null }, 'input', 'Test').isOk()
         ).toEqual(false);
@@ -431,7 +431,7 @@ describe('ProfileParameterValidator', () => {
 
       it('should pass with null', () => {
         expect(
-          parameterValidator.validate({ test: 'hello' }, 'input', 'Test').isOk()
+          parameterValidator.validate({ test: null }, 'input', 'Test').isOk()
         ).toEqual(true);
       });
 
