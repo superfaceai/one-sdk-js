@@ -331,6 +331,60 @@ describe('ProfileParameterValidator', () => {
         ).toEqual(true);
       });
 
+      it('should pass with  null', () => {
+        expect(
+          parameterValidator.validate({ test: null }, 'input', 'Test').isOk()
+        ).toEqual(true);
+      });
+
+      it('should fail with invalid input', () => {
+        const result1 = parameterValidator.validate(
+          { test: 'none of your business' },
+          'input',
+          'Test'
+        );
+        expect(checkErrorKind(result1)).toEqual(['enumValue']);
+        expect(checkErrorPath(result1)).toEqual([['input', 'test']]);
+        expect(checkErrorContext(result1)).toMatchObject([
+          { actual: '"none of your business"' },
+        ]);
+        const result2 = parameterValidator.validate(
+          { test: 7 },
+          'input',
+          'Test'
+        );
+        expect(checkErrorKind(result2)).toEqual(['enumValue']);
+        expect(checkErrorPath(result2)).toEqual([['input', 'test']]);
+        expect(checkErrorContext(result2)).toMatchObject([{ actual: '7' }]);
+      });
+    });
+
+    describe('AST with non-nullable enum', () => {
+      const ast = parseProfileFromSource(`
+        usecase Test safe {
+          input {
+            test enum { hello, goodbye }!
+          }
+        }
+      `);
+      let parameterValidator: ProfileParameterValidator;
+
+      beforeEach(() => {
+        parameterValidator = new ProfileParameterValidator(ast);
+      });
+
+      it('should pass with valid input', () => {
+        expect(
+          parameterValidator.validate({ test: 'hello' }, 'input', 'Test').isOk()
+        ).toEqual(true);
+      });
+
+      it('should fail with  null', () => {
+        expect(
+          parameterValidator.validate({ test: null }, 'input', 'Test').isOk()
+        ).toEqual(false);
+      });
+
       it('should fail with invalid input', () => {
         const result1 = parameterValidator.validate(
           { test: 'none of your business' },
@@ -375,6 +429,12 @@ describe('ProfileParameterValidator', () => {
         ).toEqual(true);
       });
 
+      it('should pass with null', () => {
+        expect(
+          parameterValidator.validate({ test: 'hello' }, 'input', 'Test').isOk()
+        ).toEqual(true);
+      });
+
       it('should fail with invalid input', () => {
         const result1 = parameterValidator.validate(
           { test: 'none of your business' },
@@ -410,7 +470,7 @@ describe('ProfileParameterValidator', () => {
         parameterValidator = new ProfileParameterValidator(ast);
       });
 
-      it.each(['A', 'B', 'CC', 'D'])(
+      it.each(['A', 'B', 'CC', 'D', null])(
         'should pass with valid input: %s',
         value => {
           expect(
@@ -933,6 +993,9 @@ describe('ProfileParameterValidator', () => {
         ).toEqual(true);
         expect(
           parameterValidator.validate({ test: 'c' }, 'result', 'Test').isOk()
+        ).toEqual(true);
+        expect(
+          parameterValidator.validate({ test: null }, 'result', 'Test').isOk()
         ).toEqual(true);
       });
 

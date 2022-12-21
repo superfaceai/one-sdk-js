@@ -232,6 +232,10 @@ export class ProfileParameterValidator implements ProfileVisitor {
         return [true];
       }
 
+      if (input === null) {
+        return [true];
+      }
+
       for (const value of node.values) {
         if (this.visit(value, kind, usecase)(input)[0]) {
           return [true];
