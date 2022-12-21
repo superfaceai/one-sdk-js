@@ -1,18 +1,19 @@
-import type { IBinaryData} from '../../interfaces';
+import type { IBinaryData } from '../../interfaces';
 import { isBinaryData } from '../../interfaces';
 import { UnexpectedError } from '../error';
 import { indexRecord } from '../object';
 
-// Arrays should be considered opaque value and therefore act as a primitive, same with
+export type None = undefined | null;
 export type Primitive =
   | string
   | boolean
   | number
-  | unknown[]
+  | unknown[] // Arrays should be considered opaque value and therefore act as a primitive, same with
+  | None
   | IBinaryData
   | Buffer;
 export type NonPrimitive = {
-  [key: string]: Primitive | NonPrimitive | undefined;
+  [key: string]: Primitive | NonPrimitive;
 };
 export type Variables = Primitive | NonPrimitive;
 
@@ -25,72 +26,70 @@ export function isClassInstance(input: unknown): boolean {
   );
 }
 
-export function assertIsVariables(
-  input: unknown
-): asserts input is Variables | undefined {
-  if (
-    !['string', 'number', 'boolean', 'object', 'undefined'].includes(
-      typeof input
-    )
-  ) {
-    throw new UnexpectedError(`Invalid result type: ${typeof input}`);
-  }
+export function isNone(input: unknown): input is None {
+  return input === undefined || input === null;
 }
 
-export function castToVariables(input: unknown): Variables | undefined {
-  assertIsVariables(input);
-
-  return input;
-}
-
-export function castToNonPrimitive(input: unknown): NonPrimitive | undefined {
-  const variables = castToVariables(input);
-  if (variables === undefined) {
-    return undefined;
-  }
-
-  if (!isNonPrimitive(variables)) {
-    throw new UnexpectedError('Input is not NonPrimitive');
-  }
-
-  return variables;
-}
-
-export function isPrimitive(input: Variables): input is Primitive {
+export function isPrimitive(input: unknown): input is Primitive {
   return (
     ['string', 'number', 'boolean'].includes(typeof input) ||
     Array.isArray(input) ||
-    isClassInstance(input) ||
+    isNone(input) ||
+    isBinaryData(input) ||
     Buffer.isBuffer(input) ||
-    isBinaryData(input)
+    isClassInstance(input)
   );
 }
 
-export function isNonPrimitive(input: Variables): input is NonPrimitive {
+export function isNonPrimitive(input: unknown): input is NonPrimitive {
   return (
     typeof input === 'object' &&
     !Array.isArray(input) &&
-    !isClassInstance(input) &&
+    !isBinaryData(input) &&
     !Buffer.isBuffer(input) &&
-    !isBinaryData(input)
+    !isClassInstance(input)
   );
+}
+
+export function isVariables(input: unknown): input is Variables {
+  return isPrimitive(input) || isNonPrimitive(input);
 }
 
 export function isEmptyRecord(
   input: Record<string, unknown>
 ): input is Record<never, never> {
+  return isNonPrimitive(input) && Object.keys(input).length === 0;
+}
+
+export function assertIsVariables(
+  input: unknown
+): asserts input is Variables {
+  if (!isVariables(input)) {
+    throw new UnexpectedError(`Invalid result type: ${typeof input}`);
+  }
+}
+
+export function castToVariables(input: unknown): Variables {
   assertIsVariables(input);
 
-  return isNonPrimitive(input) && Object.keys(input).length === 0;
+  return input;
+}
+
+export function castToNonPrimitive(input: unknown): NonPrimitive {
+  if (!isNonPrimitive(input)) {
+    throw new UnexpectedError('Input is not NonPrimitive');
+  }
+
+  return input;
 }
 
 /**
  * Recursively merges variables from `left` and then from `right` into a new object.
  */
-export const mergeVariables = (
+export function mergeVariables(
   left: NonPrimitive,
   right: NonPrimitive
-): NonPrimitive => {
+): NonPrimitive {
   const result: NonPrimitive = {};
 
   for (const key of Object.keys(left)) {
@@ -112,12 +111,12 @@ export const mergeVariables = (
   }
 
   return result;
-};
+}
 
-export const getValue = (
-  variables: NonPrimitive | undefined,
+export function getValue(
+  variables: NonPrimitive,
   key: string[]
-): Variables | undefined => {
+): Variables | undefined {
   if (variables === undefined) {
     return undefined;
   }
@@ -134,34 +133,42 @@ export const getValue = (
   assertIsVariables(result);
 
   return result;
-};
+}
 
 /**
  * Turns a variable (both primitive and non-primitive) into a string.
  */
-export const variableToString = (variable: Variables): string => {
+export function variableToString(variable: Variables): string {
   if (typeof variable === 'string') {
     return variable;
   }
 
+  if (variable === undefined) {
+    return 'undefined'; // TODO: for both undefined and null, return 'None'?
+  }
+
+  if (Buffer.isBuffer(variable)) {
+    return variable.toString();
+  }
+
   return JSON.stringify(variable);
-};
+}
 
 /**
  * Stringifies a Record of variables. `undefined` values are removed.
  */
-export const variablesToStrings = (
-  variables?: Variables
-): Record<string, string> => {
+export function variablesToStrings(
+  variables: Variables
+): Record<string, string> {
   const result: Record<string, string> = {};
 
-  if (variables !== undefined) {
+  if (!isNone(variables)) {
     for (const [key, value] of Object.entries(variables)) {
-      if (value !== undefined) {
+      if (!isNone(value)) {
         result[key] = variableToString(value);
       }
     }
   }
 
   return result;
-};
+}
