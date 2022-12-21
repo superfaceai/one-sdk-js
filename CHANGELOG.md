@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - `setPriority` super json helper can be used to remove priority
 
+### Fixed
+- nullable enum input validation [311](https://github.com/superfaceai/one-sdk-js/issues/311)
+
 ## [2.1.0] - 2022-11-16
 ### Added
 - `multipart/form-data` supports array values to define duplicate fields
