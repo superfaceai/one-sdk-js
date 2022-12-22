@@ -33,7 +33,7 @@ export class HttpClient {
     private fetchInstance: IFetch & AuthCache,
     private readonly crypto: ICrypto,
     private readonly logger?: ILogger
-  ) {}
+  ) { }
 
   public async request(
     url: string,
@@ -54,7 +54,7 @@ export class HttpClient {
     const requestParameters: RequestParameters = {
       url,
       ...parameters,
-      headers: variablesToStrings(parameters?.headers),
+      headers: variablesToStrings(parameters.headers ?? {}),
     };
 
     const handler = createSecurityHandler(

@@ -144,7 +144,7 @@ describe('Variables', () => {
 
     it('returns stringified Buffer', () => {
       expect(variableToString(Buffer.from('123'))).toBe('123');
-    })
+    });
   });
 
   describe('variablesToStrings', () => {

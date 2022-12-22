@@ -68,8 +68,8 @@ export function mergeProfileDefaults(
     if (targetedProfile.defaults) {
       // Merge existing with new
       defaults = mergeVariables(
-        castToNonPrimitive(targetedProfile.defaults) || {},
-        castToNonPrimitive(payload) || {}
+        castToNonPrimitive(targetedProfile.defaults ?? {}),
+        castToNonPrimitive(payload ?? {})
       ) as UsecaseDefaults;
       document.profiles[profileName] = {
         ...targetedProfile,
@@ -181,8 +181,8 @@ export function mergeProfile(
       } else {
         // Merge existing with new
         defaults = mergeVariables(
-          castToNonPrimitive(targetedProfile.defaults) || {},
-          castToNonPrimitive(payload.defaults) || {}
+          castToNonPrimitive(targetedProfile.defaults ?? {}),
+          castToNonPrimitive(payload.defaults ?? {})
         ) as UsecaseDefaults;
       }
     }
@@ -279,11 +279,11 @@ function ensureProfileWithProviders(
   environment?: IEnvironment,
   logger?: ILogger
 ): [
-  boolean,
-  Exclude<ProfileEntry, string> & {
-    providers: Record<string, ProfileProviderEntry>;
-  }
-] {
+    boolean,
+    Exclude<ProfileEntry, string> & {
+      providers: Record<string, ProfileProviderEntry>;
+    }
+  ] {
   let changed = false;
 
   if (document.profiles === undefined) {
@@ -403,8 +403,8 @@ export function mergeProfileProvider(
       // Change
       // Merge existing with new
       defaults = mergeVariables(
-        castToNonPrimitive(profileProvider.defaults) || {},
-        castToNonPrimitive(payload.defaults) || {}
+        castToNonPrimitive(profileProvider.defaults ?? {}),
+        castToNonPrimitive(payload.defaults ?? {})
       ) as ProfileProviderDefaults;
     } else if (!profileProvider.defaults && payload.defaults) {
       defaults = payload.defaults;

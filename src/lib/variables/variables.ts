@@ -136,15 +136,13 @@ export function variableToString(variable: Variables): string {
  * Stringifies a Record of variables. `undefined` values are removed.
  */
 export function variablesToStrings(
-  variables: Variables
+  variables: NonPrimitive
 ): Record<string, string> {
   const result: Record<string, string> = {};
 
-  if (!isNone(variables)) {
-    for (const [key, value] of Object.entries(variables)) {
-      if (!isNone(value)) {
-        result[key] = variableToString(value);
-      }
+  for (const [key, value] of Object.entries(variables)) {
+    if (!isNone(value)) {
+      result[key] = variableToString(value);
     }
   }
 
