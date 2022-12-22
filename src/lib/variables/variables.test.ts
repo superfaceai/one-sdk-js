@@ -37,7 +37,7 @@ describe('Variables', () => {
 
   describe('isNonPrimitive', () => {
     it.each([
-      'string', 123, false, ['heeeelo']
+      'string', 123, false, ['heeeelo'], null
     ])('returns false for %p', (input) => {
       expect(isNonPrimitive(input)).toBe(false);
     });
