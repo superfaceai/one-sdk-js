@@ -117,7 +117,7 @@ export async function fetchProviderInfo(
       method: 'GET',
       headers:
         sdkToken !== undefined
-          ? [`Authorization: SUPERFACE-SDK-TOKEN ${sdkToken}`]
+          ? { Authorization: `SUPERFACE-SDK-TOKEN ${sdkToken}` }
           : undefined,
       baseUrl: config.superfaceApiUrl,
       accept: 'application/json',
@@ -248,7 +248,7 @@ export async function fetchBind(
     method: 'POST',
     headers:
       sdkToken !== undefined
-        ? [`Authorization: SUPERFACE-SDK-TOKEN ${sdkToken}`]
+        ? { 'Authorization': `SUPERFACE-SDK-TOKEN ${sdkToken}` }
         : undefined,
     baseUrl: config.superfaceApiUrl,
     accept: 'application/json',
@@ -282,7 +282,7 @@ export async function fetchProfileAst(
     method: 'GET',
     headers:
       sdkToken !== undefined
-        ? [`Authorization: SUPERFACE-SDK-TOKEN ${sdkToken}`]
+        ? { Authorization: `SUPERFACE-SDK-TOKEN ${sdkToken}` }
         : undefined,
     baseUrl: config.superfaceApiUrl,
     accept: 'application/vnd.superface.profile+json',
@@ -310,7 +310,7 @@ export async function fetchMapAST(
     method: 'GET',
     headers:
       sdkToken !== undefined
-        ? [`Authorization: SUPERFACE-SDK-TOKEN ${sdkToken}`]
+        ? { Authorization: `SUPERFACE-SDK-TOKEN ${sdkToken}` }
         : undefined,
     baseUrl: config.superfaceApiUrl,
     accept: 'application/vnd.superface.map+json',
