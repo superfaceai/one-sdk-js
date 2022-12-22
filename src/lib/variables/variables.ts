@@ -44,6 +44,7 @@ export function isPrimitive(input: unknown): input is Primitive {
 export function isNonPrimitive(input: unknown): input is NonPrimitive {
   return (
     typeof input === 'object' &&
+    input !== null &&
     !Array.isArray(input) &&
     !isBinaryData(input) &&
     !Buffer.isBuffer(input) &&
