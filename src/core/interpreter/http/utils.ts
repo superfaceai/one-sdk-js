@@ -1,7 +1,7 @@
 import type { ILogger } from '../../../interfaces';
 import type { NonPrimitive } from '../../../lib';
 import {
-  getValue,
+  indexRecord,
   recursiveKeyList,
   UnexpectedError,
   variableToString,
@@ -33,7 +33,13 @@ function replaceParameters(url: string, parameters: NonPrimitive) {
 
     const end = start + match[0].length;
     const key = match[1].trim();
-    const value = getValue(parameters, key.split('.'));
+
+    let value;
+    try {
+      value = indexRecord(parameters, key.split('.'));
+    } catch (_e) {
+      value = undefined;
+    }
 
     allKeys.push(key);
     if (value === undefined) {

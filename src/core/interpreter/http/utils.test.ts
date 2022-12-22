@@ -64,5 +64,37 @@ describe('interpreter · http · utils', () => {
         () => createUrl(mapUrl, { baseUrl: 'http://example.com' })
       ).toThrow('Expected relative url')
     });
+
+    it('replaces integration parameters in baseURL', () => {
+      expect(
+        createUrl('/baz', {
+          baseUrl: 'http://example.com/{FOO}/{BAR}',
+          integrationParameters: {
+            FOO: 'foo', BAR: 'bar'
+          }
+        })
+      ).toBe('http://example.com/foo/bar/baz');
+    });
+
+    it('replaces path parameters in inputUrl', () => {
+      expect(
+        createUrl('/{FOO}/{BAR.BAZ}', {
+          baseUrl: 'http://example.com',
+          pathParameters: {
+            FOO: 'foo', BAR: { BAZ: 'baz' }
+          }
+        })
+      ).toBe('http://example.com/foo/baz');
+    });
+
+    it('throws missing key error if path parameter for inputUrl is missing', () => {
+      expect(
+        () => createUrl(
+          '/{FOO}/{BAR}',
+          {
+            baseUrl: 'http://example.com',
+            pathParameters: { FOO: 'foo' }
+          })).toThrow('Missing values for URL path replacement: BAR')
+    });
   });
 });
