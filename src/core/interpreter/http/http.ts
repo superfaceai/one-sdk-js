@@ -39,7 +39,7 @@ export class HttpClient {
     url: string,
     parameters: {
       method: string;
-      headers?: Variables;
+      headers?: NonPrimitive;
       queryParameters?: NonPrimitive;
       body?: Variables;
       contentType?: string;
