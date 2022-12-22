@@ -1,6 +1,5 @@
 import type { NonPrimitive } from './variables';
 import {
-  getValue,
   isEmptyRecord,
   isNone,
   isNonPrimitive,
@@ -130,47 +129,6 @@ describe('Variables', () => {
 
         expect(result).toEqual({ overwritten: ['seven'] });
       }
-    });
-  });
-
-  describe('getValue', () => {
-    it('gets values correctly', () => {
-      const variables: NonPrimitive = {
-        some: {
-          deeply: {
-            nested: {
-              value: 42,
-            },
-          },
-          other: {
-            stuff: 666,
-          },
-        },
-      };
-      expect(
-        getValue(variables, ['some', 'deeply', 'nested', 'value'])
-      ).toEqual(42);
-      expect(getValue(variables, ['some', 'other', 'stuff'])).toEqual(666);
-      expect(getValue(variables, ['some', 'other'])).toEqual({ stuff: 666 });
-    });
-
-    it('should return undefined when the value is not present', () => {
-      const variables: NonPrimitive = {
-        some: {
-          deeply: {
-            nested: {
-              value: 42,
-            },
-          },
-          other: {
-            stuff: 666,
-          },
-        },
-      };
-      expect(getValue(variables, [])).toBeUndefined();
-      expect(
-        getValue(variables, ['some', 'nonexistant', 'stuff'])
-      ).toBeUndefined();
     });
   });
 

@@ -1,7 +1,6 @@
 import type { IBinaryData } from '../../interfaces';
 import { isBinaryData } from '../../interfaces';
 import { UnexpectedError } from '../error';
-import { indexRecord } from '../object';
 
 export type None = undefined | null;
 export type Primitive =
@@ -110,28 +109,6 @@ export function mergeVariables(
       result[key] = right[key];
     }
   }
-
-  return result;
-}
-
-export function getValue(
-  variables: NonPrimitive,
-  key: string[]
-): Variables | undefined {
-  if (variables === undefined) {
-    return undefined;
-  }
-
-  let result;
-  try {
-    result = indexRecord(variables, key);
-  } catch (_err) {
-    // return undefined on error to preserve the original behavior of this function
-    return undefined;
-  }
-
-  // sanity check, but if the input `variables` is correct then the result will be also
-  assertIsVariables(result);
 
   return result;
 }
