@@ -6,7 +6,7 @@
 
 **One SDK for all the APIs you want to integrate with.**
 
-[![GitHub Workflow Status](https://img.shields.io/github/workflow/status/superfaceai/one-sdk-js/CI)](https://github.com/superfaceai/one-sdk-js/actions/workflows/main.yml)
+[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/superfaceai/one-sdk-js/main.yml?branch=dev)](https://github.com/superfaceai/one-sdk-js/actions/workflows/main.yml)
 [![npm](https://img.shields.io/npm/v/@superfaceai/one-sdk)](https://www.npmjs.com/package/@superfaceai/one-sdk)
 [![license](https://img.shields.io/npm/l/@superfaceai/one-sdk)](LICENSE)
 ![TypeScript](https://img.shields.io/static/v1?message=TypeScript&&logoColor=ffffff&color=007acc&labelColor=5c5c5c&label=built%20with)
