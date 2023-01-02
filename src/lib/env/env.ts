@@ -1,4 +1,4 @@
-import type { IEnvironment, ILogger } from '../../core';
+import type { IEnvironment, ILogger } from '../../interfaces';
 import { clone } from '../object';
 
 const DEBUG_NAMESPACE = 'lib/env';

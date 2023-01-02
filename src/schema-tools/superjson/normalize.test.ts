@@ -49,7 +49,7 @@ describe('SuperJson normalization', () => {
 
       expect(() =>
         normalizeProfileProviderSettings(mockProfileProviderEntry, mockDefaults)
-      ).toThrowError(
+      ).toThrow(
         new RegExp(
           `Invalid profile provider entry format\n\nSettings: ${mockProfileProviderEntry}`
         )
@@ -114,7 +114,7 @@ describe('SuperJson normalization', () => {
 
     it('throws error when entry is unknown string', async () => {
       const mockProfileEntry = 'madeup';
-      expect(() => normalizeProfileSettings(mockProfileEntry, [])).toThrowError(
+      expect(() => normalizeProfileSettings(mockProfileEntry, [])).toThrow(
         new Error('Invalid profile entry format: ' + mockProfileEntry)
       );
     });
@@ -146,7 +146,7 @@ describe('SuperJson normalization', () => {
 
     it('throws error when entry is unknown string', async () => {
       const mockProviderEntry = 'madeup';
-      expect(() => normalizeProviderSettings(mockProviderEntry)).toThrowError(
+      expect(() => normalizeProviderSettings(mockProviderEntry)).toThrow(
         new RegExp('Invalid provider entry format: ' + mockProviderEntry)
       );
     });

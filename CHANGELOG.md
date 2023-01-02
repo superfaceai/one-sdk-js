@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- `BinaryData` type, not surfaced in Comlink Profile - [#296](https://github.com/superfaceai/one-sdk-js/pull/296), [#304](https://github.com/superfaceai/one-sdk-js/pull/304)
+- version validation during loading of map and provider
+
+### Changed
+- `setPriority` super json helper can be used to remove priority
+
+### Fixed
+- nullable enum input validation [311](https://github.com/superfaceai/one-sdk-js/issues/311)
 
 ## [2.1.0] - 2022-11-16
 ### Added

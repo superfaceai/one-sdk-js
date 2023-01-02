@@ -1,6 +1,5 @@
 import type { ProfileDocumentNode } from '@superfaceai/ast';
 import { EXTENSIONS } from '@superfaceai/ast';
-import { mocked } from 'ts-jest/utils';
 
 import type { IFileSystem } from '../../interfaces';
 import { err, ok } from '../../lib';
@@ -195,7 +194,7 @@ describe('resolveProfileAst', () => {
       });
 
       it('returns a valid profile when profile is found in registry', async () => {
-        mocked(fetchProfileAst).mockResolvedValue(
+        jest.mocked(fetchProfileAst).mockResolvedValue(
           mockProfileDocumentNode({
             name: 'mctestface',
             scope: 'testy',
@@ -267,7 +266,7 @@ describe('resolveProfileAst', () => {
 
     describe('when profile is not defined in super.json', () => {
       it('returns a valid profile when profile is found in registry', async () => {
-        mocked(fetchProfileAst).mockResolvedValue(
+        jest.mocked(fetchProfileAst).mockResolvedValue(
           mockProfileDocumentNode({
             name: 'mctestface',
             scope: 'testy',
@@ -311,7 +310,7 @@ describe('resolveProfileAst', () => {
 
   describe('when using entry with version only', () => {
     it('returns a valid profile when profile is found in registry', async () => {
-      mocked(fetchProfileAst).mockResolvedValue(
+      jest.mocked(fetchProfileAst).mockResolvedValue(
         mockProfileDocumentNode({
           name: 'mctestface',
           scope: 'testy',
@@ -527,7 +526,7 @@ describe('resolveProfileAst', () => {
 
   describe('when using version property', () => {
     it('returns a valid profile when profile is found in registry', async () => {
-      mocked(fetchProfileAst).mockResolvedValue(
+      jest.mocked(fetchProfileAst).mockResolvedValue(
         mockProfileDocumentNode({
           name: 'baz',
           version: {

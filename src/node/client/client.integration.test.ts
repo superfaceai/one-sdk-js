@@ -2,14 +2,15 @@ import '../../schema-tools/superjson/utils';
 
 import type { ProviderJson } from '@superfaceai/ast';
 import { parseMap, parseProfile, Source } from '@superfaceai/parser';
-import { mocked } from 'ts-jest/utils';
 
-import { ProfileProvider, resolveProfileAst } from '../../core';
+import { resolveMapAst, resolveProfileAst, resolveProviderJson } from '../../core';
 import { ok } from '../../lib';
 import { SuperfaceClient } from './client';
 import { createTypedClient, typeHelper } from './client.typed';
 
 jest.mock('../../core/profile/resolve-profile-ast');
+jest.mock('../../core/profile-provider/resolve-map-ast');
+jest.mock('../../core/provider/resolve-provider-json');
 
 const parseMapFromSource = (source: string) =>
   parseMap(
@@ -69,6 +70,9 @@ const mockProviderJson: ProviderJson = {
 
 const mockProfileDocument = parseProfileFromSource(`
   usecase Test safe {
+    input {
+      field
+    }
     result string
   }`);
 
@@ -82,6 +86,11 @@ const mockMapDocumentSuccess = parseMapFromSource(`
         map result "It works!"
       }`);
 
+const mockMapDocumentWithInput = parseMapFromSource(`
+      map Test {
+        map result input.field
+      }`);
+
 process.env.SUPERFACE_DISABLE_METRIC_REPORTING = 'true';
 
 jest.mock('../../schema-tools/superjson/utils', () => ({
@@ -93,17 +102,9 @@ describe('SuperfaceClient integration test', () => {
     const client = new SuperfaceClient();
 
     // Let .bind happen with mocked inputs
-    mocked(resolveProfileAst).mockResolvedValue(mockProfileDocument);
-    // Mocking private property of ProfileProvider
-    jest
-      .spyOn(ProfileProvider.prototype as any, 'resolveProviderInfo')
-      .mockResolvedValue({
-        providerName: 'example',
-        providerInfo: mockProviderJson,
-      });
-    jest
-      .spyOn(ProfileProvider.prototype as any, 'resolveMapAst')
-      .mockResolvedValue({ mapAst: mockMapDocumentSuccessWithParameters });
+    jest.mocked(resolveProfileAst).mockResolvedValue(mockProfileDocument);
+    jest.mocked(resolveMapAst).mockResolvedValue(mockMapDocumentSuccessWithParameters);
+    jest.mocked(resolveProviderJson).mockResolvedValue(mockProviderJson);
 
     const profile = await client.getProfile('example');
 
@@ -116,17 +117,10 @@ describe('SuperfaceClient integration test', () => {
     const client = new SuperfaceClient();
 
     // Let .bind happen with mocked inputs
-    mocked(resolveProfileAst).mockResolvedValue(mockProfileDocument);
-    // Mocking private property of ProfileProvider
-    jest
-      .spyOn(ProfileProvider.prototype as any, 'resolveProviderInfo')
-      .mockResolvedValue({
-        providerName: 'example',
-        providerInfo: mockProviderJson,
-      });
-    jest
-      .spyOn(ProfileProvider.prototype as any, 'resolveMapAst')
-      .mockResolvedValue({ mapAst: mockMapDocumentSuccessWithParameters });
+    jest.mocked(resolveProfileAst).mockResolvedValue(mockProfileDocument);
+    jest.mocked(resolveMapAst).mockResolvedValue(mockMapDocumentSuccessWithParameters);
+    jest.mocked(resolveProviderJson).mockResolvedValue(mockProviderJson);
+
 
     const profile = await client.getProfile('example');
 
@@ -137,19 +131,30 @@ describe('SuperfaceClient integration test', () => {
     expect(result.isOk() && result.value).toEqual('it also works!');
   });
 
+  it('should accept null in input and return as result', async () => {
+    const client = new SuperfaceClient();
+
+    jest.mocked(resolveProfileAst).mockResolvedValue(mockProfileDocument);
+    jest.mocked(resolveMapAst).mockResolvedValue(mockMapDocumentWithInput);
+    jest.mocked(resolveProviderJson).mockResolvedValue(mockProviderJson);
+
+    const profile = await client.getProfile('example');
+
+    const input: any = {};
+    input.field = null;
+
+    const result = await profile
+      .getUseCase('Test')
+      .perform(input);
+
+    expect(result.isOk() && result.value).toEqual(null);
+  });
+
   describe('typed client', () => {
     it('should perform successfully', async () => {
-      mocked(resolveProfileAst).mockResolvedValue(mockProfileDocument);
-      // Mocking private property of ProfileProvider
-      jest
-        .spyOn(ProfileProvider.prototype as any, 'resolveProviderInfo')
-        .mockResolvedValue({
-          providerName: 'example',
-          providerInfo: mockProviderJson,
-        });
-      jest
-        .spyOn(ProfileProvider.prototype as any, 'resolveMapAst')
-        .mockResolvedValue({ mapAst: mockMapDocumentSuccess });
+      jest.mocked(resolveProfileAst).mockResolvedValue(mockProfileDocument);
+      jest.mocked(resolveMapAst).mockResolvedValue(mockMapDocumentSuccess);
+      jest.mocked(resolveProviderJson).mockResolvedValue(mockProviderJson);
 
       const ClientClass = createTypedClient({
         example: { Test: typeHelper<Record<string, never>, string>() },

@@ -105,7 +105,7 @@ describe('Result wrappers', () => {
     });
 
     it('unwraps correctly', () => {
-      expect(() => mockErr.unwrap()).toThrowError(mockError);
+      expect(() => mockErr.unwrap()).toThrow(mockError);
     });
 
     it('maps async correctly', async () => {

@@ -882,7 +882,7 @@ describe('failure policies', () => {
         );
         expect(() =>
           router.beforeExecution({ time: 0, registryCacheAge: 0 })
-        ).toThrowError(
+        ).toThrow(
           new Error('Property currentProvider is not set in Router instance')
         );
       });
@@ -1109,7 +1109,7 @@ describe('failure policies', () => {
             time: 0,
             registryCacheAge: 0,
           })
-        ).toThrowError(
+        ).toThrow(
           new Error('Property currentProvider is not set in Router instance')
         );
       });
@@ -1245,7 +1245,7 @@ describe('failure policies', () => {
         );
         expect(() =>
           router.afterSuccess({ time: 0, registryCacheAge: 0 })
-        ).toThrowError(
+        ).toThrow(
           new Error('Property currentProvider is not set in Router instance')
         );
       });

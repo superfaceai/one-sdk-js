@@ -129,9 +129,9 @@ describe('profile AST caching', () => {
         })
       ).resolves.toBeUndefined();
 
-      expect(fileSystem.mkdir).not.toBeCalled();
+      expect(fileSystem.mkdir).not.toHaveBeenCalled();
 
-      expect(fileSystem.writeFile).not.toBeCalled();
+      expect(fileSystem.writeFile).not.toHaveBeenCalled();
     });
   });
 

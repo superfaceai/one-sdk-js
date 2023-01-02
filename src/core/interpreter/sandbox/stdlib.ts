@@ -16,7 +16,7 @@ const STDLIB_UNSTABLE = (debugLog?: LogFunction) => ({
     log(formatter: string, ...args: unknown[]): void {
       return debugLog?.(formatter, ...args);
     },
-  },
+  }
 });
 
 const STDLIB = (debugLog?: LogFunction) =>

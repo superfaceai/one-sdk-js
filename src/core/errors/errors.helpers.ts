@@ -179,8 +179,21 @@ export function versionMismatchError(
 ): SDKExecutionError {
   return new SDKExecutionError(
     `Version from super.json (${superJsonVersion}) and getProfile (${getProfileVersion}) does not match.`,
-    ['If version in super.json and in "getProfile" is used thy must match'],
+    ['If version in super.json and in "getProfile" is used they must match'],
     ['Use version either in super.json or in "getProfile"']
+  );
+}
+
+export function variantMismatchError(
+  astVariant: string | undefined,
+  passedVariant: string | undefined
+): SDKExecutionError {
+  return new SDKExecutionError(
+    `Variant from compiled map (${
+      astVariant ?? 'undefined'
+    }) and passed variant (${passedVariant ?? 'undefined'}) does not match.`,
+    ['If variant in map and passed variant is used, they must match'],
+    []
   );
 }
 
@@ -189,6 +202,20 @@ export function profileNotFoundError(profileName: string): SDKExecutionError {
     `Profile "${profileName}" not found in super.json`,
     [],
     []
+  );
+}
+
+export function profileProviderNotFoundError(
+  profileId: string,
+  providerName: string
+): SDKExecutionError {
+  return new SDKExecutionError(
+    `Provider "${providerName}" not found for profile "${profileId}" in super.json`,
+    [],
+    [
+      `Optionally, check that a provider is configured for a profile in super.json -> profiles["${profileId}"].providers`,
+      'Providers can be configured using the superface cli tool: `superface configure --help` for more info',
+    ]
   );
 }
 
@@ -445,18 +472,20 @@ export function providersDoNotMatchError(
     []
   );
 }
-// //Bind errors
-// export function bindResponseError(input: unknown): SDKExecutionError {
-//   return new SDKBindError(
-//     `Bind call responded with invalid body: ${JSON.stringify(input)}`,
-//     [
-//       'OneSdk expects response containing object',
-//       'Received object should contain property "provider" of type "ProviderJson"',
-//       'Received object should contain property "map_ast" of type "undefined" or "MapDocumentNode"',
-//     ],
-//     []
-//   );
-// }
+
+export function profileIdsDoNotMatchError(
+  mapProfileId: string,
+  configProfileId: string
+): SDKExecutionError {
+  return new SDKExecutionError(
+    `Profile id (${mapProfileId}) in map does not match profile id (${configProfileId}) in configuration`,
+    [
+      `Map file specifies profile id "${mapProfileId}".`,
+      `Configuration specifies profile id "${configProfileId}".`,
+    ],
+    ['Pass profile id that matches to profile id in map or provide correct map']
+  );
+}
 
 export function digestHeaderNotFound(
   headerName: string,
