@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [2.2.0] - 2023-01-02
 ### Added
 - `BinaryData` type, not surfaced in Comlink Profile - [#296](https://github.com/superfaceai/one-sdk-js/pull/296), [#304](https://github.com/superfaceai/one-sdk-js/pull/304)
 - version validation during loading of map and provider
@@ -364,7 +366,8 @@ This is a recovery release after introduction of compatibility-breaking changes 
 - Profile parameter validator
 - CI/CD workflows
 
-[Unreleased]: https://github.com/superfaceai/one-sdk-js/compare/v2.1.0...HEAD
+[Unreleased]: https://github.com/superfaceai/one-sdk-js/compare/v2.2.0...HEAD
+[2.2.0]: https://github.com/superfaceai/one-sdk-js/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/superfaceai/one-sdk-js/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/superfaceai/one-sdk-js/compare/v1.5.2...v2.0.0
 [1.5.2]: https://github.com/superfaceai/one-sdk-js/compare/v1.5.1...v1.5.2
