@@ -1,11 +1,9 @@
 import { parseProfile, Source } from '@superfaceai/parser';
 
-import type { Result } from '../../lib';
+import type { ProfileParameterError } from '../../interfaces';
+import type { Result, UnexpectedError } from '../../lib';
 import { ProfileParameterValidator } from './profile-parameter-validator';
-import {
-  isInputValidationError,
-  isResultValidationError,
-} from './profile-parameter-validator.errors';
+import { InputValidationError, isInputValidationError, isResultValidationError, ResultValidationError } from './profile-parameter-validator.errors';
 
 const parseProfileFromSource = (source: string) =>
   parseProfile(
@@ -22,1005 +20,768 @@ const checkErrorKind = (result: Result<unknown, unknown>) =>
   (isInputValidationError(result.error)
     ? result.error.errors?.map(error => error.kind)
     : isResultValidationError(result.error) &&
-      result.error.errors?.map(error => error.kind));
+    result.error.errors?.map(error => error.kind));
 
 const checkErrorPath = (result: Result<unknown, unknown>) =>
   result.isErr() &&
   (isInputValidationError(result.error)
     ? result.error.errors?.map(error => error.context?.path)
     : isResultValidationError(result.error) &&
-      result.error.errors?.map(error => error.context?.path));
+    result.error.errors?.map(error => error.context?.path));
 
 const checkErrorContext = (result: Result<unknown, unknown>) =>
   result.isErr() &&
   (isInputValidationError(result.error)
     ? result.error.errors?.map(error => error.context)
     : isResultValidationError(result.error) &&
-      result.error.errors?.map(error => error.context));
+    result.error.errors?.map(error => error.context));
 
 describe('ProfileParameterValidator', () => {
-  describe('Input', () => {
-    describe('AST with no input', () => {
+  let parameterValidator: ProfileParameterValidator;
+
+  describe('.validate()', () => {
+    /*
+    - primitives: boolean, number, string ✓
+    - enum ✓
+    - object ✓
+    - nested object ✓
+    - list ✓
+    - named fields ✓
+    - named models ✓
+    - named model with named fields ✓
+    - alias ✓
+    - union ✓
+    - untyped fields
+    - optional fields ✓
+    - required fields ✓
+    - nullable fields ✓
+    - non-nullable fields ✓
+    - extraneous fields ✓
+    - input validations ✓
+    - result validations ✓
+      - primitive results ✓
+      - nullable results ✓
+      - non-nullable results ✓
+    - input validation error ✓
+    - result validation error ✓
+    */
+
+    describe('primitives', () => {
       const ast = parseProfileFromSource(`
-        usecase Test safe {
-          input {}
-        }`);
-      let parameterValidator: ProfileParameterValidator;
-
-      beforeEach(() => {
-        parameterValidator = new ProfileParameterValidator(ast);
-      });
-
-      it('should pass with empty input', () => {
-        expect(parameterValidator.validate({}, 'input', 'Test').isOk()).toEqual(
-          true
-        );
-      });
-
-      it('should pass with unused input', () => {
-        expect(
-          parameterValidator
-            .validate({ extra: 'input' }, 'input', 'Test')
-            .isOk()
-        ).toEqual(true);
-      });
-    });
-
-    describe('AST with one optional input prop', () => {
-      const ast = parseProfileFromSource(`
-        usecase Test safe {
-          input {
-            test
+        usecase Test {
+          result {
+            foo boolean
+            bar number
+            baz string
           }
         }
       `);
-      let parameterValidator: ProfileParameterValidator;
 
       beforeEach(() => {
         parameterValidator = new ProfileParameterValidator(ast);
       });
 
-      it('should pass with or without optional prop', () => {
-        expect(
-          parameterValidator.validate({ test: 'hello' }, 'input', 'Test').isOk()
-        ).toEqual(true);
-        expect(parameterValidator.validate({}, 'input', 'Test').isOk()).toEqual(
-          true
-        );
+      it('returns ok for valid values', () => {
+        expect(parameterValidator.validate({ foo: true, }, 'result', 'Test').isOk()).toBeTruthy();
+        expect(parameterValidator.validate({ bar: 1 }, 'result', 'Test').isOk()).toBeTruthy();
+        expect(parameterValidator.validate({ baz: 'value' }, 'result', 'Test').isOk()).toBeTruthy();
       });
 
-      it('should pass with unused input', () => {
-        expect(
-          parameterValidator
-            .validate(
-              {
-                test: 'hello',
-                another: 'input',
-              },
-              'input',
-              'Test'
-            )
-            .isOk()
-        ).toEqual(true);
-        expect(
-          parameterValidator
-            .validate({ another: 'input' }, 'input', 'Test')
-            .isOk()
-        ).toEqual(true);
+      it('returns error for invalid values', () => {
+        expect(parameterValidator.validate({ foo: 1 }, 'result', 'Test').isErr()).toBeTruthy();
+        expect(parameterValidator.validate({ bar: 'value' }, 'result', 'Test').isErr()).toBeTruthy();
+        expect(parameterValidator.validate({ baz: true }, 'result', 'Test').isErr()).toBeTruthy();
       });
     });
 
-    describe('AST with one optional primitive typed input prop', () => {
+    describe('enum', () => {
       const ast = parseProfileFromSource(`
-        usecase Test safe {
-          input {
-            test string
-          }
+        usecase Test {
+          result enum { OK, WARN = 'WARNING', ERR }
         }
       `);
-      let parameterValidator: ProfileParameterValidator;
 
       beforeEach(() => {
         parameterValidator = new ProfileParameterValidator(ast);
       });
 
-      it('should pass with missing optional input', () => {
-        expect(parameterValidator.validate({}, 'input', 'Test').isOk()).toEqual(
-          true
-        );
+      it('returns ok for valid values', () => {
+        expect(parameterValidator.validate('OK', 'result', 'Test').isOk()).toBeTruthy();
+        expect(parameterValidator.validate('WARNING', 'result', 'Test').isOk()).toBeTruthy();
+        expect(parameterValidator.validate('ERR', 'result', 'Test').isOk()).toBeTruthy();
       });
 
-      it('should pass with correct input type', () => {
-        expect(
-          parameterValidator.validate({ test: 'hello' }, 'input', 'Test').isOk()
-        ).toEqual(true);
-      });
-
-      it('should fail with incorrect type', () => {
-        const result = parameterValidator.validate(
-          { test: 7 },
-          'input',
-          'Test'
-        );
-
-        expect(checkErrorKind(result)).toEqual(['wrongType']);
-        expect(checkErrorPath(result)).toEqual([['input', 'test']]);
+      it('returns error for invalid values', () => {
+        expect(parameterValidator.validate('INVALID', 'result', 'Test').isErr()).toBeTruthy();
       });
     });
 
-    describe('AST with one nonnullable primitive typed input prop', () => {
+    describe('object', () => {
       const ast = parseProfileFromSource(`
-        usecase Test safe {
-          input {
-            test! string!
-          }
-        }
-      `);
-      let parameterValidator: ProfileParameterValidator;
-
-      beforeEach(() => {
-        parameterValidator = new ProfileParameterValidator(ast);
-      });
-
-      it('should pass with correct type', () => {
-        expect(
-          parameterValidator.validate({ test: 'hello' }, 'input', 'Test').isOk()
-        ).toEqual(true);
-      });
-
-      it('should fail with incorrect type', () => {
-        const result = parameterValidator.validate(
-          { test: 7 },
-          'input',
-          'Test'
-        );
-
-        expect(checkErrorKind(result)).toEqual(['wrongType']);
-        expect(checkErrorPath(result)).toEqual([['input', 'test']]);
-      });
-
-      it('should fail with missing field', () => {
-        const result = parameterValidator.validate({}, 'input', 'Test');
-        expect(checkErrorKind(result)).toEqual(['missingRequired']);
-        expect(checkErrorPath(result)).toEqual([['input', 'test']]);
-      });
-
-      it('should fail on null', () => {
-        const result = parameterValidator.validate(
-          { test: null },
-          'input',
-          'Test'
-        );
-        expect(checkErrorKind(result)).toEqual(['nullInNonNullable']);
-        expect(checkErrorPath(result)).toEqual([['input', 'test']]);
-      });
-    });
-
-    describe('AST with multiple input props', () => {
-      const ast = parseProfileFromSource(`
-        usecase Test safe {
-          input {
-            test! string!
-            untyped
-            another number
-          }
-        }
-      `);
-      let parameterValidator: ProfileParameterValidator;
-
-      beforeEach(() => {
-        parameterValidator = new ProfileParameterValidator(ast);
-      });
-
-      it('should pass with valid input', () => {
-        expect(
-          parameterValidator.validate({ test: 'hello' }, 'input', 'Test').isOk()
-        ).toEqual(true);
-        expect(
-          parameterValidator
-            .validate({ test: 'hello', untyped: 'hello' }, 'input', 'Test')
-            .isOk()
-        ).toEqual(true);
-        expect(
-          parameterValidator
-            .validate({ test: 'hello', another: 7 }, 'input', 'Test')
-            .isOk()
-        ).toEqual(true);
-        expect(
-          parameterValidator
-            .validate(
-              {
-                test: 'hello',
-                untyped: false,
-                another: 7,
-              },
-              'input',
-              'Test'
-            )
-            .isOk()
-        ).toEqual(true);
-      });
-
-      it('should fail with invalid input', () => {
-        const result1 = parameterValidator.validate({}, 'input', 'Test');
-        expect(checkErrorKind(result1)).toEqual(['missingRequired']);
-        expect(checkErrorPath(result1)).toEqual([['input', 'test']]);
-        const result2 = parameterValidator.validate(
-          { test: 7 },
-          'input',
-          'Test'
-        );
-        expect(checkErrorPath(result2)).toEqual([['input', 'test']]);
-        expect(checkErrorKind(result2)).toEqual(['wrongType']);
-        const result3 = parameterValidator.validate(
-          { test: 7, another: 'hello' },
-          'input',
-          'Test'
-        );
-        expect(checkErrorPath(result3)).toEqual([
-          ['input', 'test'],
-          ['input', 'another'],
-        ]);
-        expect(checkErrorKind(result3)).toEqual(['wrongType', 'wrongType']);
-        const result4 = parameterValidator.validate(
-          {
-            test: 'hello',
-            another: 'hello',
-          },
-          'input',
-          'Test'
-        );
-        expect(checkErrorKind(result4)).toEqual(['wrongType']);
-        expect(checkErrorPath(result4)).toEqual([['input', 'another']]);
-      });
-    });
-
-    describe('AST with predefined field', () => {
-      const ast = parseProfileFromSource(`
-        usecase Test safe {
-          input {
-            test
-          }
-        }
-
-        field test string
-      `);
-      let parameterValidator: ProfileParameterValidator;
-
-      beforeEach(() => {
-        parameterValidator = new ProfileParameterValidator(ast);
-      });
-
-      it('should pass with valid input', () => {
-        expect(parameterValidator.validate({}, 'input', 'Test').isOk()).toEqual(
-          true
-        );
-        expect(
-          parameterValidator.validate({ test: 'hello' }, 'input', 'Test').isOk()
-        ).toEqual(true);
-      });
-
-      it('should fail with invalid input', () => {
-        const result = parameterValidator.validate(
-          { test: 7 },
-          'input',
-          'Test'
-        );
-        expect(checkErrorKind(result)).toEqual(['wrongType']);
-        expect(checkErrorPath(result)).toEqual([['input', 'test']]);
-      });
-    });
-
-    describe('AST with an enum', () => {
-      const ast = parseProfileFromSource(`
-        usecase Test safe {
-          input {
-            test enum { hello, goodbye }
-          }
-        }
-      `);
-      let parameterValidator: ProfileParameterValidator;
-
-      beforeEach(() => {
-        parameterValidator = new ProfileParameterValidator(ast);
-      });
-
-      it('should pass with valid input', () => {
-        expect(
-          parameterValidator.validate({ test: 'hello' }, 'input', 'Test').isOk()
-        ).toEqual(true);
-      });
-
-      it('should pass with null', () => {
-        expect(
-          parameterValidator.validate({ test: null }, 'input', 'Test').isOk()
-        ).toEqual(true);
-      });
-
-      it('should fail with invalid input', () => {
-        const result1 = parameterValidator.validate(
-          { test: 'none of your business' },
-          'input',
-          'Test'
-        );
-        expect(checkErrorKind(result1)).toEqual(['enumValue']);
-        expect(checkErrorPath(result1)).toEqual([['input', 'test']]);
-        expect(checkErrorContext(result1)).toMatchObject([
-          { actual: '"none of your business"' },
-        ]);
-        const result2 = parameterValidator.validate(
-          { test: 7 },
-          'input',
-          'Test'
-        );
-        expect(checkErrorKind(result2)).toEqual(['enumValue']);
-        expect(checkErrorPath(result2)).toEqual([['input', 'test']]);
-        expect(checkErrorContext(result2)).toMatchObject([{ actual: '7' }]);
-      });
-    });
-
-    describe('AST with non-nullable enum', () => {
-      const ast = parseProfileFromSource(`
-        usecase Test safe {
-          input {
-            test enum { hello, goodbye }!
-          }
-        }
-      `);
-      let parameterValidator: ProfileParameterValidator;
-
-      beforeEach(() => {
-        parameterValidator = new ProfileParameterValidator(ast);
-      });
-
-      it('should pass with valid input', () => {
-        expect(
-          parameterValidator.validate({ test: 'hello' }, 'input', 'Test').isOk()
-        ).toEqual(true);
-      });
-
-      it('should fail with null', () => {
-        expect(
-          parameterValidator.validate({ test: null }, 'input', 'Test').isOk()
-        ).toEqual(false);
-      });
-
-      it('should fail with invalid input', () => {
-        const result1 = parameterValidator.validate(
-          { test: 'none of your business' },
-          'input',
-          'Test'
-        );
-        expect(checkErrorKind(result1)).toEqual(['enumValue']);
-        expect(checkErrorPath(result1)).toEqual([['input', 'test']]);
-        expect(checkErrorContext(result1)).toMatchObject([
-          { actual: '"none of your business"' },
-        ]);
-        const result2 = parameterValidator.validate(
-          { test: 7 },
-          'input',
-          'Test'
-        );
-        expect(checkErrorKind(result2)).toEqual(['enumValue']);
-        expect(checkErrorPath(result2)).toEqual([['input', 'test']]);
-        expect(checkErrorContext(result2)).toMatchObject([{ actual: '7' }]);
-      });
-    });
-
-    describe('AST with predefined enum', () => {
-      const ast = parseProfileFromSource(`
-        usecase Test safe {
-          input {
-            test
-          }
-        }
-
-        field test enum { hello, goodbye }
-      `);
-      let parameterValidator: ProfileParameterValidator;
-
-      beforeEach(() => {
-        parameterValidator = new ProfileParameterValidator(ast);
-      });
-
-      it('should pass with valid input', () => {
-        expect(
-          parameterValidator.validate({ test: 'hello' }, 'input', 'Test').isOk()
-        ).toEqual(true);
-      });
-
-      it('should pass with null', () => {
-        expect(
-          parameterValidator.validate({ test: null }, 'input', 'Test').isOk()
-        ).toEqual(true);
-      });
-
-      it('should fail with invalid input', () => {
-        const result1 = parameterValidator.validate(
-          { test: 'none of your business' },
-          'input',
-          'Test'
-        );
-        expect(checkErrorKind(result1)).toEqual(['enumValue']);
-        expect(checkErrorPath(result1)).toEqual([['input', 'test']]);
-        const result2 = parameterValidator.validate(
-          { test: 7 },
-          'input',
-          'Test'
-        );
-        expect(checkErrorKind(result2)).toEqual(['enumValue']);
-        expect(checkErrorPath(result2)).toEqual([['input', 'test']]);
-      });
-    });
-
-    describe('AST with field-referenced named enum', () => {
-      const ast = parseProfileFromSource(`
-        usecase Test safe {
-          input {
-            test
-          }
-        }
-
-        model TestEnum enum { A, B, C = 'CC', D }
-        field test TestEnum
-      `);
-      let parameterValidator: ProfileParameterValidator;
-
-      beforeEach(() => {
-        parameterValidator = new ProfileParameterValidator(ast);
-      });
-
-      it.each(['A', 'B', 'CC', 'D', null])(
-        'should pass with valid input: %s',
-        value => {
-          expect(
-            parameterValidator.validate({ test: value }, 'input', 'Test').isOk()
-          ).toEqual(true);
-        }
-      );
-
-      it.each(['a', 7, true])('should fail with invalid value: %p', value => {
-        const result = parameterValidator.validate(
-          { test: value },
-          'input',
-          'Test'
-        );
-        expect(checkErrorKind(result)).toEqual(['enumValue']);
-        expect(checkErrorPath(result)).toEqual([['input', 'test']]);
-      });
-    });
-
-    describe('AST with object', () => {
-      const ast = parseProfileFromSource(`
-        usecase Test safe {
-          input {
-            test {
-              hello! string!
+        usecase Test {
+          result {
+            field {
+              foo boolean
+              bar number
+              baz string
+              waf enum { OK, ERR }
             }
           }
         }
       `);
-      let parameterValidator: ProfileParameterValidator;
 
       beforeEach(() => {
         parameterValidator = new ProfileParameterValidator(ast);
       });
 
-      it('should pass with valid input', () => {
-        expect(
-          parameterValidator
-            .validate({ test: { hello: 'world!' } }, 'input', 'Test')
-            .isOk()
-        ).toEqual(true);
+      it('returns ok for valid values', () => {
+        expect(parameterValidator.validate(
+          {
+            field: {
+              foo: true,
+              bar: 1,
+              baz: 'value',
+              waf: 'OK'
+            }
+          }, 'result', 'Test').isOk()).toBeTruthy();
       });
 
-      it('should fail with invalid input', () => {
-        const result1 = parameterValidator.validate(
-          { test: 'hello!' },
-          'input',
-          'Test'
-        );
-        expect(checkErrorKind(result1)).toEqual(['wrongType']);
-        expect(checkErrorPath(result1)).toEqual([['input', 'test']]);
-        const result2 = parameterValidator.validate(
-          { test: {} },
-          'input',
-          'Test'
-        );
-        expect(checkErrorKind(result2)).toEqual(['missingRequired']);
-        expect(checkErrorPath(result2)).toEqual([['input', 'test', 'hello']]);
-        const result3 = parameterValidator.validate(
-          { test: { hello: 7 } },
-          'input',
-          'Test'
-        );
-        expect(checkErrorKind(result3)).toEqual(['wrongType']);
-        expect(checkErrorPath(result3)).toEqual([['input', 'test', 'hello']]);
+      it('returns error for invalid values', () => {
+        expect(parameterValidator.validate({
+          field: {
+            foo: 1
+          }
+        }, 'result', 'Test').isErr()).toBeTruthy();
+        expect(parameterValidator.validate({
+          field: {
+            bar: 'value'
+          }
+        }, 'result', 'Test').isErr()).toBeTruthy();
+        expect(parameterValidator.validate({
+          field: {
+            baz: true
+          }
+        }, 'result', 'Test').isErr()).toBeTruthy();
+        expect(parameterValidator.validate({
+          field: {
+            waf: 'INVALID'
+          }
+        }, 'result', 'Test').isErr()).toBeTruthy();
       });
     });
 
-    describe('AST with nested object', () => {
+    describe('nested object', () => {
       const ast = parseProfileFromSource(`
-        usecase Test safe {
-          input {
-            test {
-              hello {
-                goodbye boolean
+        usecase Test {
+          result {
+            field {
+              nestedField {
+                foo boolean
+                bar number
+                baz string
+                waf enum { OK, ERR }
               }
             }
           }
         }
       `);
-      let parameterValidator: ProfileParameterValidator;
 
       beforeEach(() => {
         parameterValidator = new ProfileParameterValidator(ast);
       });
 
-      it('should pass with valid input', () => {
-        expect(parameterValidator.validate({}, 'input', 'Test').isOk()).toEqual(
-          true
-        );
-        expect(
-          parameterValidator.validate({ test: {} }, 'input', 'Test').isOk()
-        ).toEqual(true);
-        expect(
-          parameterValidator
-            .validate({ test: { hello: {} } }, 'input', 'Test')
-            .isOk()
-        ).toEqual(true);
-        expect(
-          parameterValidator
-            .validate({ test: { hello: { goodbye: false } } }, 'input', 'Test')
-            .isOk()
-        ).toEqual(true);
-        expect(
-          parameterValidator
-            .validate({ test: { hello: { goodbye: null } } }, 'input', 'Test')
-            .isOk()
-        ).toEqual(true);
-      });
-
-      it('should fail with invalid input', () => {
-        const result1 = parameterValidator.validate('hello!', 'input', 'Test');
-        expect(checkErrorKind(result1)).toEqual(['wrongType']);
-        expect(checkErrorPath(result1)).toEqual([['input']]);
-        const result2 = parameterValidator.validate(
-          { test: 'hello!' },
-          'input',
-          'Test'
-        );
-        expect(checkErrorKind(result2)).toEqual(['wrongType']);
-        expect(checkErrorPath(result2)).toEqual([['input', 'test']]);
-        const result3 = parameterValidator.validate(
-          { test: { hello: 'goodbye!' } },
-          'input',
-          'Test'
-        );
-        expect(checkErrorKind(result3)).toEqual(['wrongType']);
-        expect(checkErrorPath(result3)).toEqual([['input', 'test', 'hello']]);
-        const result4 = parameterValidator.validate(
+      it('returns ok for valid values', () => {
+        expect(parameterValidator.validate(
           {
-            test: { hello: { goodbye: 'true' } },
-          },
-          'input',
-          'Test'
-        );
-        expect(checkErrorKind(result4)).toEqual(['wrongType']);
-        expect(checkErrorPath(result4)).toEqual([
-          ['input', 'test', 'hello', 'goodbye'],
-        ]);
-      });
-    });
-
-    describe('AST with predefined object', () => {
-      const ast = parseProfileFromSource(`
-        usecase Test safe {
-          input {
-            test 
-          }
-        }
-
-        field test {
-          hello! string!
-        }
-      `);
-      let parameterValidator: ProfileParameterValidator;
-
-      beforeEach(() => {
-        parameterValidator = new ProfileParameterValidator(ast);
-      });
-
-      it('should pass with valid input', () => {
-        expect(
-          parameterValidator
-            .validate({ test: { hello: 'world!' } }, 'input', 'Test')
-            .isOk()
-        ).toEqual(true);
-      });
-
-      it('should fail with invalid input', () => {
-        const result1 = parameterValidator.validate(
-          { test: 'hello!' },
-          'input',
-          'Test'
-        );
-        expect(checkErrorKind(result1)).toEqual(['wrongType']);
-        expect(checkErrorPath(result1)).toEqual([['input', 'test']]);
-        const result2 = parameterValidator.validate(
-          { test: {} },
-          'input',
-          'Test'
-        );
-        expect(checkErrorKind(result2)).toEqual(['missingRequired']);
-        expect(checkErrorPath(result2)).toEqual([['input', 'test', 'hello']]);
-        const result3 = parameterValidator.validate(
-          { test: { hello: 7 } },
-          'input',
-          'Test'
-        );
-        expect(checkErrorKind(result3)).toEqual(['wrongType']);
-        expect(checkErrorPath(result3)).toEqual([['input', 'test', 'hello']]);
-      });
-    });
-
-    describe('AST with union', () => {
-      const ast = parseProfileFromSource(`
-        usecase Test safe {
-          input {
-            test string | number
-          }
-        }
-      `);
-      let parameterValidator: ProfileParameterValidator;
-
-      beforeEach(() => {
-        parameterValidator = new ProfileParameterValidator(ast);
-      });
-
-      it('should pass with valid input', () => {
-        expect(parameterValidator.validate({}, 'input', 'Test').isOk()).toEqual(
-          true
-        );
-        expect(
-          parameterValidator.validate({ test: 'hello' }, 'input', 'Test').isOk()
-        ).toEqual(true);
-        expect(
-          parameterValidator.validate({ test: 7 }, 'input', 'Test').isOk()
-        ).toEqual(true);
-      });
-
-      it('should fail with invalid input', () => {
-        const result = parameterValidator.validate(
-          { test: true },
-          'input',
-          'Test'
-        );
-        expect(checkErrorKind(result)).toEqual(['wrongUnion']);
-        expect(checkErrorPath(result)).toEqual([['input', 'test']]);
-      });
-    });
-
-    describe('AST with predefined non-nullable union', () => {
-      const ast = parseProfileFromSource(`
-        usecase Test safe {
-          input {
-            test! TestUnion!
-          }
-        }
-
-        model TestUnion string | number
-      `);
-      let parameterValidator: ProfileParameterValidator;
-
-      beforeEach(() => {
-        parameterValidator = new ProfileParameterValidator(ast);
-      });
-
-      it('should pass with valid input', () => {
-        expect(
-          parameterValidator.validate({ test: 'hello' }, 'input', 'Test').isOk()
-        ).toEqual(true);
-        expect(
-          parameterValidator.validate({ test: 7 }, 'input', 'Test').isOk()
-        ).toEqual(true);
-      });
-
-      it('should fail with invalid input', () => {
-        const result1 = parameterValidator.validate({}, 'input', 'Test');
-        expect(checkErrorKind(result1)).toEqual(['missingRequired']);
-        expect(checkErrorPath(result1)).toEqual([['input', 'test']]);
-        const result2 = parameterValidator.validate(
-          { test: true },
-          'input',
-          'Test'
-        );
-        expect(checkErrorKind(result2)).toEqual(['wrongUnion']);
-        expect(checkErrorPath(result2)).toEqual([['input', 'test']]);
-      });
-    });
-
-    describe('AST with string array', () => {
-      const ast = parseProfileFromSource(`
-        usecase Test safe {
-          input {
-            test [string]
-          }
-        }
-      `);
-      let parameterValidator: ProfileParameterValidator;
-
-      beforeEach(() => {
-        parameterValidator = new ProfileParameterValidator(ast);
-      });
-
-      it('should pass with valid input', () => {
-        expect(parameterValidator.validate({}, 'input', 'Test').isOk()).toEqual(
-          true
-        );
-        expect(
-          parameterValidator.validate({ test: [] }, 'input', 'Test').isOk()
-        ).toEqual(true);
-        expect(
-          parameterValidator
-            .validate({ test: ['hello'] }, 'input', 'Test')
-            .isOk()
-        ).toEqual(true);
-        expect(
-          parameterValidator
-            .validate({ test: ['hello', 'goodbye'] }, 'input', 'Test')
-            .isOk()
-        ).toEqual(true);
-      });
-
-      it('should fail with invalid input', () => {
-        const result1 = parameterValidator.validate(
-          { test: 7 },
-          'input',
-          'Test'
-        );
-        expect(checkErrorKind(result1)).toEqual(['notArray']);
-        expect(checkErrorPath(result1)).toEqual([['input', 'test']]);
-        const result2 = parameterValidator.validate(
-          { test: [7] },
-          'input',
-          'Test'
-        );
-        expect(checkErrorKind(result2)).toEqual(['elementsInArrayWrong']);
-        expect(checkErrorPath(result2)).toEqual([['input', 'test']]);
-      });
-    });
-
-    describe('AST with non-nullable array of nullable items', () => {
-      const ast = parseProfileFromSource(`
-        usecase Test safe {
-          input {
-            test! [string]!
-          }
-        }
-      `);
-      let parameterValidator: ProfileParameterValidator;
-
-      beforeEach(() => {
-        parameterValidator = new ProfileParameterValidator(ast);
-      });
-
-      it('should pass with valid input', () => {
-        expect(
-          parameterValidator.validate({ test: [] }, 'input', 'Test').isOk()
-        ).toEqual(true);
-        expect(
-          parameterValidator
-            .validate({ test: ['hello'] }, 'input', 'Test')
-            .isOk()
-        ).toEqual(true);
-        expect(
-          parameterValidator
-            .validate({ test: ['hello', 'goodbye'] }, 'input', 'Test')
-            .isOk()
-        ).toEqual(true);
-      });
-
-      it('should fail with invalid input', () => {
-        const result1 = parameterValidator.validate({}, 'input', 'Test');
-        expect(checkErrorKind(result1)).toEqual(['missingRequired']);
-        expect(checkErrorPath(result1)).toEqual([['input', 'test']]);
-        const result2 = parameterValidator.validate(
-          { test: 7 },
-          'input',
-          'Test'
-        );
-        expect(checkErrorKind(result2)).toEqual(['notArray']);
-        expect(checkErrorPath(result2)).toEqual([['input', 'test']]);
-        const result3 = parameterValidator.validate(
-          { test: [7] },
-          'input',
-          'Test'
-        );
-        expect(checkErrorKind(result3)).toEqual(['elementsInArrayWrong']);
-        expect(checkErrorPath(result3)).toEqual([['input', 'test']]);
-      });
-    });
-
-    describe('AST with multiple levels of field references', () => {
-      const ast = parseProfileFromSource(`
-        usecase Test safe {
-          input {
-            test
-          }
-        }
-
-        model TestModel {
-          another
-        }
-
-        model AnotherModel {
-          value
-        }
-
-        field test TestModel
-        field another AnotherModel
-        field value boolean
-      `);
-      let parameterValidator: ProfileParameterValidator;
-
-      beforeEach(() => {
-        parameterValidator = new ProfileParameterValidator(ast);
-      });
-
-      it.each([true, false])('should pass with valid input: %s', value => {
-        const result = parameterValidator.validate(
-          { test: { another: { value } } },
-          'input',
-          'Test'
-        );
-        expect(result.isOk()).toEqual(true);
-      });
-
-      it.each(['banana'])('should fail with invalid value: %p', value => {
-        const result = parameterValidator.validate(
-          { test: { another: { value } } },
-          'input',
-          'Test'
-        );
-        expect(checkErrorKind(result)).toEqual(['wrongType']);
-        expect(checkErrorPath(result)).toEqual([
-          ['input', 'test', 'another', 'value'],
-        ]);
-      });
-    });
-  });
-
-  describe('Result', () => {
-    describe('AST with nested object', () => {
-      const ast = parseProfileFromSource(`
-        usecase Test safe {
-          result {
-            test {
-              hello {
-                goodbye boolean
+            field: {
+              nestedField: {
+                foo: true,
+                bar: 1,
+                baz: 'value',
+                waf: 'OK'
               }
             }
+          }, 'result', 'Test').isOk()).toBeTruthy();
+      });
+
+      it('returns error for invalid values', () => {
+        expect(parameterValidator.validate({
+          field: {
+            nestedField: {
+              foo: 1
+            }
           }
-        }
-      `);
-      let parameterValidator: ProfileParameterValidator;
-
-      beforeEach(() => {
-        parameterValidator = new ProfileParameterValidator(ast);
-      });
-
-      it('should pass with valid input', () => {
-        expect(
-          parameterValidator.validate({}, 'result', 'Test').isOk()
-        ).toEqual(true);
-        expect(
-          parameterValidator.validate({ test: {} }, 'result', 'Test').isOk()
-        ).toEqual(true);
-        expect(
-          parameterValidator
-            .validate({ test: { hello: {} } }, 'result', 'Test')
-            .isOk()
-        ).toEqual(true);
-        expect(
-          parameterValidator
-            .validate({ test: { hello: { goodbye: false } } }, 'result', 'Test')
-            .isOk()
-        ).toEqual(true);
-      });
-
-      it('should fail with invalid input', () => {
-        const result1 = parameterValidator.validate('hello!', 'result', 'Test');
-        expect(checkErrorKind(result1)).toEqual(['wrongType']);
-        expect(checkErrorPath(result1)).toEqual([['result']]);
-        const result2 = parameterValidator.validate(
-          { test: 'hello!' },
-          'result',
-          'Test'
-        );
-        expect(checkErrorKind(result2)).toEqual(['wrongType']);
-        expect(checkErrorPath(result2)).toEqual([['result', 'test']]);
-        const result3 = parameterValidator.validate(
-          { test: { hello: 'goodbye!' } },
-          'result',
-          'Test'
-        );
-        expect(checkErrorKind(result3)).toEqual(['wrongType']);
-        expect(checkErrorPath(result3)).toEqual([['result', 'test', 'hello']]);
-        const result4 = parameterValidator.validate(
-          {
-            test: { hello: { goodbye: 'true' } },
-          },
-          'result',
-          'Test'
-        );
-        expect(checkErrorKind(result4)).toEqual(['wrongType']);
-        expect(checkErrorPath(result4)).toEqual([
-          ['result', 'test', 'hello', 'goodbye'],
-        ]);
+        }, 'result', 'Test').isErr()).toBeTruthy();
+        expect(parameterValidator.validate({
+          field: {
+            nestedField: {
+              bar: 'value'
+            }
+          }
+        }, 'result', 'Test').isErr()).toBeTruthy();
+        expect(parameterValidator.validate({
+          field: {
+            nestedField: {
+              baz: true
+            }
+          }
+        }, 'result', 'Test').isErr()).toBeTruthy();
+        expect(parameterValidator.validate({
+          field: {
+            nestedField: {
+              waf: 'INVALID'
+            }
+          }
+        }, 'result', 'Test').isErr()).toBeTruthy();
       });
     });
 
-    describe('AST with multi-typed Enum', () => {
+    describe('list', () => {
       const ast = parseProfileFromSource(`
-        usecase Test safe {
+        usecase Test {
           result {
-            test TestEnum
+            foo [string]
+            bar [{ field string }]
+            baz [Model]
           }
         }
 
-        model TestEnum enum {
-          a = 7
-          b = true
-          c
+        model Model {
+          field string
         }
       `);
-      let parameterValidator: ProfileParameterValidator;
 
       beforeEach(() => {
         parameterValidator = new ProfileParameterValidator(ast);
       });
 
-      it('should pass with valid input', () => {
-        expect(
-          parameterValidator.validate({}, 'result', 'Test').isOk()
-        ).toEqual(true);
-        expect(
-          parameterValidator.validate({ test: 7 }, 'result', 'Test').isOk()
-        ).toEqual(true);
-        expect(
-          parameterValidator.validate({ test: true }, 'result', 'Test').isOk()
-        ).toEqual(true);
-        expect(
-          parameterValidator.validate({ test: 'c' }, 'result', 'Test').isOk()
-        ).toEqual(true);
-        expect(
-          parameterValidator.validate({ test: null }, 'result', 'Test').isOk()
-        ).toEqual(true);
+      it('returns ok for valid values', () => {
+        expect(parameterValidator.validate({
+          foo: ['value'],
+          bar: [{ field: 'value' }],
+          baz: [{ field: 'value' }],
+        }, 'result', 'Test').isOk()).toBeTruthy();
       });
 
-      it('should fail with invalid input', () => {
-        const result1 = parameterValidator.validate(
-          { test: 8 },
+      it('returns error for invalid values', () => {
+        expect(parameterValidator.validate({
+          foo: [1, true, { field: 'value' }]
+        }, 'result', 'Test').isErr()).toBeTruthy();
+
+        expect(parameterValidator.validate({
+          bar: [1, true, 'value']
+        }, 'result', 'Test').isErr()).toBeTruthy();
+
+        expect(parameterValidator.validate({
+          baz: [1, true, 'value']
+        }, 'result', 'Test').isErr()).toBeTruthy();
+      });
+    });
+
+    describe('named model', () => {
+      const ast = parseProfileFromSource(`
+        usecase Test {
+          result Model
+        }
+
+        model Model {
+          foo string
+        }
+      `);
+
+      beforeEach(() => {
+        parameterValidator = new ProfileParameterValidator(ast);
+      });
+
+      it('returns ok for valid values', () => {
+        expect(parameterValidator.validate({ foo: 'value', }, 'result', 'Test').isOk()).toBeTruthy();
+      });
+
+      it('returns error for invalid values', () => {
+        expect(parameterValidator.validate({ foo: 1 }, 'result', 'Test').isErr()).toBeTruthy();
+      });
+    });
+
+    describe('named field', () => {
+      const ast = parseProfileFromSource(`
+        usecase Test {
+          result {
+            foo
+          }
+        }
+
+        field foo string
+      `);
+
+      beforeEach(() => {
+        parameterValidator = new ProfileParameterValidator(ast);
+      });
+
+      it('returns ok for valid values', () => {
+        expect(parameterValidator.validate({ foo: 'value', }, 'result', 'Test').isOk()).toBeTruthy();
+      });
+
+      it('returns error for invalid values', () => {
+        expect(parameterValidator.validate({ foo: 1 }, 'result', 'Test').isErr()).toBeTruthy();
+      });
+    });
+
+    describe('named model with named field', () => {
+      const ast = parseProfileFromSource(`
+        usecase Test {
+          result Model
+        }
+
+        model Model {
+          foo
+        }
+        field foo string
+      `);
+
+      beforeEach(() => {
+        parameterValidator = new ProfileParameterValidator(ast);
+      });
+
+      it('returns ok for valid values', () => {
+        expect(parameterValidator.validate({ foo: 'value', }, 'result', 'Test').isOk()).toBeTruthy();
+      });
+
+      it('returns error for invalid values', () => {
+        expect(parameterValidator.validate({ foo: 1 }, 'result', 'Test').isErr()).toBeTruthy();
+      });
+    });
+
+    describe('alias', () => {
+      const ast = parseProfileFromSource(`
+        usecase Test {
+          result AliasedModel
+        }
+
+        model Model {
+          foo string
+        }
+        model AliasedModel Model
+      `);
+
+      beforeEach(() => {
+        parameterValidator = new ProfileParameterValidator(ast);
+      });
+
+      it('returns ok for valid values', () => {
+        expect(parameterValidator.validate({ foo: 'value', }, 'result', 'Test').isOk()).toBeTruthy();
+      });
+
+      it('returns error for invalid values', () => {
+        expect(parameterValidator.validate({ foo: 1 }, 'result', 'Test').isErr()).toBeTruthy();
+      });
+    });
+
+    describe('union', () => {
+      const ast = parseProfileFromSource(`
+        usecase Test {
+          result {
+            foo boolean | number | string
+            bar Foo | Bar
+            baz boolean | Foo | Baz | [string]
+          }
+        }
+
+        model Foo {
+          foo string
+        }
+        model Bar {
+          foo number
+          bar string
+        }
+        model Baz enum { OK, ERR }
+      `);
+
+      beforeEach(() => {
+        parameterValidator = new ProfileParameterValidator(ast);
+      });
+
+      it('returns ok for valid primitives in foo', () => {
+        expect(parameterValidator.validate({ foo: true, }, 'result', 'Test').isOk()).toBeTruthy();
+        expect(parameterValidator.validate({ foo: 1, }, 'result', 'Test').isOk()).toBeTruthy();
+        expect(parameterValidator.validate({ foo: 'value', }, 'result', 'Test').isOk()).toBeTruthy();
+      });
+
+      it('returns ok for valid object in bar', () => {
+        expect(parameterValidator.validate({ bar: { foo: 'value' } }, 'result', 'Test').isOk()).toBeTruthy();
+        expect(parameterValidator.validate({ bar: { foo: 1, bar: 'value' } }, 'result', 'Test').isOk()).toBeTruthy();
+        expect(parameterValidator.validate({ bar: { foo: 'value', bar: 'value' } }, 'result', 'Test').isOk()).toBeTruthy();
+      });
+
+      it('returns ok for boolean in baz', () => {
+        expect(parameterValidator.validate({ baz: true }, 'result', 'Test').isOk()).toBeTruthy();
+      });
+
+      it('returns ok for valid list in baz', () => {
+        expect(parameterValidator.validate({ baz: ['value'] }, 'result', 'Test').isOk()).toBeTruthy();
+      });
+
+      it('returns ok for valid object in baz', () => {
+        expect(parameterValidator.validate({ baz: { foo: 'value' } }, 'result', 'Test').isOk()).toBeTruthy();
+      });
+
+      it('returns ok for valid enum value in baz', () => {
+        expect(parameterValidator.validate({ baz: 'OK' }, 'result', 'Test').isOk()).toBeTruthy();
+      });
+
+      it('returns error for invalid value in foo', () => {
+        expect(parameterValidator.validate({ foo: { foo: 'value' } }, 'result', 'Test').isErr()).toBeTruthy();
+      });
+
+      it('returns error for invalid value in bar', () => {
+        expect(parameterValidator.validate({ bar: { foo: true } }, 'result', 'Test').isErr()).toBeTruthy();
+      });
+
+      it('returns error for invalid value in baz', () => {
+        expect(parameterValidator.validate({ bar: 1 }, 'result', 'Test').isErr()).toBeTruthy();
+      });
+    });
+
+    describe('untyped fields', () => {
+      const ast = parseProfileFromSource(`
+        usecase Test {
+          result {
+            foo
+          }
+        }
+      `);
+
+      beforeEach(() => {
+        parameterValidator = new ProfileParameterValidator(ast);
+      });
+
+      it('returns ok for any value', () => {
+        expect(parameterValidator.validate({ foo: true, }, 'result', 'Test').isOk()).toBeTruthy();
+        expect(parameterValidator.validate({ foo: 1, }, 'result', 'Test').isOk()).toBeTruthy();
+        expect(parameterValidator.validate({ foo: 'value', }, 'result', 'Test').isOk()).toBeTruthy();
+        expect(parameterValidator.validate({ foo: Buffer.alloc(0), }, 'result', 'Test').isOk()).toBeTruthy();
+      });
+    });
+
+    describe('optional fields', () => {
+      const ast = parseProfileFromSource(`
+        usecase Test {
+          result {
+            foo string
+          }
+        }
+      `);
+
+      beforeEach(() => {
+        parameterValidator = new ProfileParameterValidator(ast);
+      });
+
+      it('returns ok for foo not being passed', () => {
+        expect(parameterValidator.validate({}, 'result', 'Test').isOk()).toBeTruthy();
+      });
+
+      it('returns ok for foo being undefined', () => {
+        expect(parameterValidator.validate({ foo: undefined }, 'result', 'Test').isOk()).toBeTruthy();
+      });
+    });
+
+    describe('required fields', () => {
+      const ast = parseProfileFromSource(`
+        usecase Test {
+          result {
+            foo! string
+          }
+        }
+      `);
+
+      beforeEach(() => {
+        parameterValidator = new ProfileParameterValidator(ast);
+      });
+
+      it('returns error for foo not being passed', () => {
+        expect(parameterValidator.validate({}, 'result', 'Test').isErr()).toBeTruthy();
+      });
+
+      it('returns error for foo being undefined', () => {
+        expect(parameterValidator.validate({ foo: undefined }, 'result', 'Test').isErr()).toBeTruthy();
+      });
+    });
+
+    describe('nullable fields', () => {
+      const ast = parseProfileFromSource(`
+        usecase Test {
+          result {
+            foo Foo
+            bar [string]
+            baz string | number
+            waf
+          }
+        }
+
+        model Foo enum { OK, ERR }
+        field waf string
+      `);
+
+      beforeEach(() => {
+        parameterValidator = new ProfileParameterValidator(ast);
+      });
+
+      it.each(['foo', 'bar', 'baz', 'waf'])('returns ok for %s being null', (fieldName) => {
+        expect(parameterValidator.validate({ [fieldName]: null }, 'result', 'Test').isOk()).toBeTruthy();
+      });
+    });
+
+    describe('non-nullable fields', () => {
+      const ast = parseProfileFromSource(`
+        usecase Test {
+          result {
+            foo Foo!
+            bar [string!]!
+            baz string! | number!
+            waf
+          }
+        }
+
+        model Foo enum { OK, ERR }
+        field waf string!
+      `);
+
+      beforeEach(() => {
+        parameterValidator = new ProfileParameterValidator(ast);
+      });
+
+      it.each(['foo', 'bar', 'baz', 'waf'])('returns error for %s being null', (fieldName) => {
+        expect(parameterValidator.validate({ [fieldName]: null }, 'result', 'Test').isErr()).toBeTruthy();
+      });
+
+      it('returns error for null in list', () => {
+        expect(parameterValidator.validate({ bar: [null] }, 'result', 'Test').isErr()).toBeTruthy();
+      })
+    });
+
+    describe('extraneous fields', () => {
+      const ast = parseProfileFromSource(`
+        usecase Test {
+          result {
+            foo! string!
+          }
+        }
+      `);
+
+      beforeEach(() => {
+        parameterValidator = new ProfileParameterValidator(ast);
+      });
+
+      it('returns ok for passed extra field', () => {
+        expect(parameterValidator.validate({ foo: 'value', bar: 1 }, 'result', 'Test').isOk()).toBeTruthy();
+      });
+
+      it('returns error for invalid foo type', () => {
+        expect(parameterValidator.validate({ foo: 1, bar: 1 }, 'result', 'Test').isErr()).toBeTruthy();
+      });
+
+      it('returns error for missing foo', () => {
+        expect(parameterValidator.validate({ bar: 1 }, 'result', 'Test').isErr()).toBeTruthy();
+      });
+    });
+
+    describe('input validation', () => {
+      const ast = parseProfileFromSource(`
+        usecase Test {
+          input {
+            foo Foo
+          }
+        }
+
+        model Foo {
+          foo
+          bar enum { OK, ERR }!
+          baz [string!]!
+          waf number
+        }
+        field Foo string!
+      `);
+
+      beforeEach(() => {
+        parameterValidator = new ProfileParameterValidator(ast);
+      });
+
+      it('returns ok for valid input data', () => {
+        expect(parameterValidator.validate({
+          foo: {
+            foo: 'value',
+            bar: 'OK',
+            baz: ['value'],
+            waf: null,
+          }
+        }, 'input', 'Test').isOk()).toBeTruthy();
+      });
+    });
+
+    describe('result validation', () => {
+      describe('primitive', () => {
+        const ast = parseProfileFromSource(`
+          usecase Test {
+            result string!
+          }
+        `);
+
+        beforeEach(() => {
+          parameterValidator = new ProfileParameterValidator(ast);
+        });
+
+        it("returns ok for `'value'` as result", () => {
+          expect(parameterValidator.validate('value', 'result', 'Test').isOk()).toBeTruthy();
+        });
+
+        it.each([null, undefined, 1, true, {}])('returns error for `%p` as result', (value) => {
+          expect(parameterValidator.validate(value, 'result', 'Test').isErr()).toBeTruthy();
+        });
+      });
+
+      describe('enum', () => {
+        const ast = parseProfileFromSource(`
+          usecase Test {
+            result enum { OK, ERR }
+          }
+        `);
+
+        beforeEach(() => {
+          parameterValidator = new ProfileParameterValidator(ast);
+        });
+
+        it('returns ok for `OK` as result', () => {
+          expect(parameterValidator.validate('OK', 'result', 'Test').isOk()).toBeTruthy();
+        });
+
+        it('returns ok for `null` as result', () => {
+          expect(parameterValidator.validate(null, 'result', 'Test').isOk()).toBeTruthy();
+        });
+
+        it('returns error for `undefined` as result', () => {
+          expect(parameterValidator.validate(undefined, 'result', 'Test').isErr()).toBeTruthy();
+        });
+      });
+
+      describe('list', () => {
+        const ast = parseProfileFromSource(`
+          usecase Test {
+            result [string!]
+          }
+        `);
+
+        beforeEach(() => {
+          parameterValidator = new ProfileParameterValidator(ast);
+        });
+
+        it.each([null, [], ['value']])('returns ok for `%p` as result', (value) => {
+          expect(parameterValidator.validate(value, 'result', 'Test').isOk()).toBeTruthy();
+        });
+
+        it('returns error for `undefined` as result', () => {
+          expect(parameterValidator.validate(undefined, 'result', 'Test').isErr()).toBeTruthy();
+        });
+      });
+
+      describe('object', () => {
+        const ast = parseProfileFromSource(`
+          usecase Test {
+            result {
+              foo string
+            }
+          }
+        `);
+
+        beforeEach(() => {
+          parameterValidator = new ProfileParameterValidator(ast);
+        });
+
+        it.each([null, {}, { foo: 'value' }])('returns ok for `%p` as result', (value) => {
+          expect(parameterValidator.validate(value, 'result', 'Test').isOk()).toBeTruthy();
+        });
+
+        it('returns error for `undefined` as result', () => {
+          expect(parameterValidator.validate(undefined, 'result', 'Test').isErr()).toBeTruthy();
+        });
+      });
+
+      describe('non-nullable', () => {
+        const ast = parseProfileFromSource(`
+          usecase Test {
+            result string!
+          }
+        `);
+
+        beforeEach(() => {
+          parameterValidator = new ProfileParameterValidator(ast);
+        });
+
+        it('returns error for `null` as result', () => {
+          expect(parameterValidator.validate(null, 'result', 'Test').isErr()).toBeTruthy();
+        });
+      });
+    });
+
+    describe('validation error', () => {
+      const ast = parseProfileFromSource(`
+        usecase Test safe {
+          input {
+            foo! string!
+          }
+
+          result {
+            bar! string!
+          }
+        }
+      `);
+
+      beforeEach(() => {
+        parameterValidator = new ProfileParameterValidator(ast);
+      });
+
+      it('returns InputValidationError instance', () => {
+        const result = parameterValidator.validate(
+          {},
+          'input',
+          'Test'
+        );
+
+        expect(result.isErr() && result.error).toBeInstanceOf(InputValidationError);
+      });
+
+      it('returns ResultValidationError instance', () => {
+        const result = parameterValidator.validate(
+          {},
           'result',
           'Test'
         );
-        expect(checkErrorKind(result1)).toEqual(['enumValue']);
-        expect(checkErrorPath(result1)).toEqual([['result', 'test']]);
-        const result2 = parameterValidator.validate(
-          { test: false },
-          'result',
-          'Test'
-        );
-        expect(checkErrorKind(result2)).toEqual(['enumValue']);
-        expect(checkErrorPath(result2)).toEqual([['result', 'test']]);
-        const result3 = parameterValidator.validate(
-          { test: 'd' },
-          'result',
-          'Test'
-        );
-        expect(checkErrorKind(result3)).toEqual(['enumValue']);
-        expect(checkErrorPath(result3)).toEqual([['result', 'test']]);
+
+        expect(result.isErr() && result.error).toBeInstanceOf(ResultValidationError);
+      });
+
+
+      describe('for wrong type', () => {
+        let result: Result<undefined, ProfileParameterError | UnexpectedError>;
+
+        beforeEach(() => {
+          result = parameterValidator.validate(
+            { foo: 1 },
+            'input',
+            'Test'
+          );
+        });
+
+        it("returns errorKind = 'wrongType'", () => {
+          expect(checkErrorKind(result)).toEqual(['wrongType']);
+        });
+
+        it('returns errorPath = [input, foo]', () => {
+          expect(checkErrorPath(result)).toEqual([['input', 'foo']]);
+        });
+
+        it('returns context', () => {
+          expect(checkErrorContext(result)).toMatchObject([{ expected: 'string' }]);
+          expect(checkErrorContext(result)).toMatchObject([{ actual: 'number' }]);
+        })
       });
     });
   });
