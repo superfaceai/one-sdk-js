@@ -40,32 +40,6 @@ describe('ProfileParameterValidator', () => {
   let parameterValidator: ProfileParameterValidator;
 
   describe('.validate()', () => {
-    /*
-    - primitives: boolean, number, string ✓
-    - enum ✓
-    - object ✓
-    - nested object ✓
-    - list ✓
-    - named fields ✓
-    - named models ✓
-    - named model with named fields ✓
-    - alias ✓
-    - union ✓
-    - untyped fields
-    - optional fields ✓
-    - required fields ✓
-    - nullable fields ✓
-    - non-nullable fields ✓
-    - extraneous fields ✓
-    - input validations ✓
-    - result validations ✓
-      - primitive results ✓
-      - nullable results ✓
-      - non-nullable results ✓
-    - input validation error ✓
-    - result validation error ✓
-    */
-
     describe('primitives', () => {
       const ast = parseProfileFromSource(`
         usecase Test {
@@ -467,6 +441,7 @@ describe('ProfileParameterValidator', () => {
         usecase Test {
           result {
             foo string
+            bar string!
           }
         }
       `);
@@ -757,7 +732,6 @@ describe('ProfileParameterValidator', () => {
 
         expect(result.isErr() && result.error).toBeInstanceOf(ResultValidationError);
       });
-
 
       describe('for wrong type', () => {
         let result: Result<undefined, ProfileParameterError | UnexpectedError>;
