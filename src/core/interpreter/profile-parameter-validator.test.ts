@@ -383,7 +383,6 @@ describe('ProfileParameterValidator', () => {
       it('returns ok for valid object in bar', () => {
         expect(parameterValidator.validate({ bar: { foo: 'value' } }, 'result', 'Test').isOk()).toBeTruthy();
         expect(parameterValidator.validate({ bar: { foo: 1, bar: 'value' } }, 'result', 'Test').isOk()).toBeTruthy();
-        expect(parameterValidator.validate({ bar: { foo: 'value', bar: 'value' } }, 'result', 'Test').isOk()).toBeTruthy();
       });
 
       it('returns ok for boolean in baz', () => {
@@ -408,6 +407,7 @@ describe('ProfileParameterValidator', () => {
 
       it('returns error for invalid value in bar', () => {
         expect(parameterValidator.validate({ bar: { foo: true } }, 'result', 'Test').isErr()).toBeTruthy();
+        expect(parameterValidator.validate({ bar: { foo: 'value', bar: 'value' } }, 'result', 'Test').isErr()).toBeTruthy();
       });
 
       it('returns error for invalid value in baz', () => {
