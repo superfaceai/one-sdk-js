@@ -436,7 +436,7 @@ describe('ProfileParameterValidator', () => {
       });
     });
 
-    describe('optional fields', () => {
+    describe('optional field', () => {
       const ast = parseProfileFromSource(`
         usecase Test {
           result {
@@ -450,16 +450,20 @@ describe('ProfileParameterValidator', () => {
         parameterValidator = new ProfileParameterValidator(ast);
       });
 
-      it('returns ok for foo not being passed', () => {
+      it('returns ok for foo and bar not being set', () => {
         expect(parameterValidator.validate({}, 'result', 'Test').isOk()).toBeTruthy();
       });
 
-      it('returns ok for foo being undefined', () => {
-        expect(parameterValidator.validate({ foo: undefined }, 'result', 'Test').isOk()).toBeTruthy();
+      it.each([undefined, null, 'value'])('returns ok for bar not set and foo = %p', (value) => {
+        expect(parameterValidator.validate({ foo: value }, 'result', 'Test').isOk()).toBeTruthy();
+      });
+
+      it('returns ok for foo not set and bar = value', () => {
+        expect(parameterValidator.validate({ foo: 'value' }, 'result', 'Test').isOk()).toBeTruthy();
       });
     });
 
-    describe('required fields', () => {
+    describe('required field', () => {
       const ast = parseProfileFromSource(`
         usecase Test {
           result {
@@ -472,16 +476,16 @@ describe('ProfileParameterValidator', () => {
         parameterValidator = new ProfileParameterValidator(ast);
       });
 
+      it.each([undefined, null, 'value'])('returns ok for foo being %p', (value) => {
+        expect(parameterValidator.validate({ foo: value }, 'result', 'Test').isErr()).toBeTruthy();
+      });
+
       it('returns error for foo not being passed', () => {
         expect(parameterValidator.validate({}, 'result', 'Test').isErr()).toBeTruthy();
       });
-
-      it('returns error for foo being undefined', () => {
-        expect(parameterValidator.validate({ foo: undefined }, 'result', 'Test').isErr()).toBeTruthy();
-      });
     });
 
-    describe('nullable fields', () => {
+    describe('optional value', () => {
       const ast = parseProfileFromSource(`
         usecase Test {
           result {
@@ -503,9 +507,13 @@ describe('ProfileParameterValidator', () => {
       it.each(['foo', 'bar', 'baz', 'waf'])('returns ok for %s being null', (fieldName) => {
         expect(parameterValidator.validate({ [fieldName]: null }, 'result', 'Test').isOk()).toBeTruthy();
       });
+
+      it.each(['foo', 'bar', 'baz', 'waf'])('returns ok for %s being undefined', (fieldName) => {
+        expect(parameterValidator.validate({ [fieldName]: undefined }, 'result', 'Test').isOk()).toBeTruthy();
+      });
     });
 
-    describe('non-nullable fields', () => {
+    describe('required value', () => {
       const ast = parseProfileFromSource(`
         usecase Test {
           result {
@@ -524,13 +532,17 @@ describe('ProfileParameterValidator', () => {
         parameterValidator = new ProfileParameterValidator(ast);
       });
 
-      it.each(['foo', 'bar', 'baz', 'waf'])('returns error for %s being null', (fieldName) => {
+      it.each(['foo', 'bar', 'baz', 'waf'])('returns error for %s = undefined', (fieldName) => {
+        expect(parameterValidator.validate({ [fieldName]: undefined }, 'result', 'Test').isErr()).toBeTruthy();
+      });
+
+      it.each(['foo', 'bar', 'baz', 'waf'])('returns error for %s = null', (fieldName) => {
         expect(parameterValidator.validate({ [fieldName]: null }, 'result', 'Test').isErr()).toBeTruthy();
       });
 
-      it('returns error for null in list', () => {
-        expect(parameterValidator.validate({ bar: [null] }, 'result', 'Test').isErr()).toBeTruthy();
-      })
+      it.each([undefined, null])('returns error for %p in bar\'s value', (value) => {
+        expect(parameterValidator.validate({ bar: [value] }, 'result', 'Test').isErr()).toBeTruthy();
+      });
     });
 
     describe('extraneous fields', () => {
