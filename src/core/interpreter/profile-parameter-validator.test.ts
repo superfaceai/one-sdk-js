@@ -480,7 +480,7 @@ describe('ProfileParameterValidator', () => {
         expect(parameterValidator.validate({ foo: value }, 'result', 'Test').isErr()).toBeTruthy();
       });
 
-      it('returns error for foo not being passed', () => {
+      it('returns error for foo not being set', () => {
         expect(parameterValidator.validate({}, 'result', 'Test').isErr()).toBeTruthy();
       });
     });
@@ -558,7 +558,7 @@ describe('ProfileParameterValidator', () => {
         parameterValidator = new ProfileParameterValidator(ast);
       });
 
-      it('returns ok for passed extra field', () => {
+      it('returns ok for set extra field', () => {
         expect(parameterValidator.validate({ foo: 'value', bar: 1 }, 'result', 'Test').isOk()).toBeTruthy();
       });
 
