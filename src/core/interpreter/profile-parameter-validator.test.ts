@@ -636,16 +636,8 @@ describe('ProfileParameterValidator', () => {
           parameterValidator = new ProfileParameterValidator(ast);
         });
 
-        it('returns ok for `OK` as result', () => {
-          expect(parameterValidator.validate('OK', 'result', 'Test').isOk()).toBeTruthy();
-        });
-
-        it('returns ok for `null` as result', () => {
-          expect(parameterValidator.validate(null, 'result', 'Test').isOk()).toBeTruthy();
-        });
-
-        it('returns error for `undefined` as result', () => {
-          expect(parameterValidator.validate(undefined, 'result', 'Test').isErr()).toBeTruthy();
+        it.each(['OK', undefined, null])('returns ok for %p as result', (value) => {
+          expect(parameterValidator.validate(value, 'result', 'Test').isOk()).toBeTruthy();
         });
       });
 
@@ -691,7 +683,7 @@ describe('ProfileParameterValidator', () => {
         });
       });
 
-      describe('non-nullable', () => {
+      describe('required value', () => {
         const ast = parseProfileFromSource(`
           usecase Test {
             result string!
@@ -702,8 +694,8 @@ describe('ProfileParameterValidator', () => {
           parameterValidator = new ProfileParameterValidator(ast);
         });
 
-        it('returns error for `null` as result', () => {
-          expect(parameterValidator.validate(null, 'result', 'Test').isErr()).toBeTruthy();
+        it.each([undefined, null])('returns error for %p as result', (value) => {
+          expect(parameterValidator.validate(value, 'result', 'Test').isErr()).toBeTruthy();
         });
       });
     });
