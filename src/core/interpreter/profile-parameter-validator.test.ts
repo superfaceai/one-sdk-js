@@ -608,7 +608,7 @@ describe('ProfileParameterValidator', () => {
       describe('primitive', () => {
         const ast = parseProfileFromSource(`
           usecase Test {
-            result string!
+            result string
           }
         `);
 
@@ -616,11 +616,11 @@ describe('ProfileParameterValidator', () => {
           parameterValidator = new ProfileParameterValidator(ast);
         });
 
-        it("returns ok for `'value'` as result", () => {
-          expect(parameterValidator.validate('value', 'result', 'Test').isOk()).toBeTruthy();
+        it.each([null, undefined, 'value'])('returns ok for %p as result', (value) => {
+          expect(parameterValidator.validate(value, 'result', 'Test').isOk()).toBeTruthy();
         });
 
-        it.each([null, undefined, 1, true, {}])('returns error for `%p` as result', (value) => {
+        it.each([1, true, {}])('returns error for `%p` as result', (value) => {
           expect(parameterValidator.validate(value, 'result', 'Test').isErr()).toBeTruthy();
         });
       });
