@@ -33,7 +33,7 @@ import type {
   ProfileParameterError,
 } from '../../interfaces';
 import type { Result } from '../../lib';
-import { err, ok, UnexpectedError } from '../../lib';
+import { err, isNone, ok, UnexpectedError } from '../../lib';
 import type { ProfileVisitor } from './interfaces';
 import type { ValidationError } from './profile-parameter-validator.errors';
 import {
@@ -228,7 +228,7 @@ export class ProfileParameterValidator implements ProfileVisitor {
     usecase: string
   ): ValidationFunction {
     return (input: unknown): ValidationResult => {
-      if (input === undefined || input === null) {
+      if (isNone(input)) {
         return [true];
       }
 
@@ -291,7 +291,7 @@ export class ProfileParameterValidator implements ProfileVisitor {
     usecase: string
   ): ValidationFunction {
     return (input: unknown): ValidationResult => {
-      if (input === undefined) {
+      if (isNone(input)) {
         return [true];
       }
 
@@ -369,7 +369,7 @@ export class ProfileParameterValidator implements ProfileVisitor {
     usecase: string
   ): ValidationFunction {
     return (input: unknown): ValidationResult => {
-      if (input === null) {
+      if (isNone(input)) {
         return [false, [{ kind: 'nullInNonNullable' }]];
       }
 
@@ -383,11 +383,11 @@ export class ProfileParameterValidator implements ProfileVisitor {
     usecase: string
   ): ValidationFunction {
     return (input: unknown): ValidationResult => {
-      if (input === undefined) {
+      if (isNone(input)) {
         return [true];
       }
 
-      if (typeof input !== 'object' || input === null) {
+      if (typeof input !== 'object') {
         return [
           false,
           [
@@ -433,7 +433,7 @@ export class ProfileParameterValidator implements ProfileVisitor {
     _usecase: string
   ): ValidationFunction {
     return (input: unknown): ValidationResult => {
-      if (input === undefined || input === null) {
+      if (isNone(input)) {
         return [true];
       }
 
