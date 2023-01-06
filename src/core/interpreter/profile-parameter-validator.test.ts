@@ -652,12 +652,8 @@ describe('ProfileParameterValidator', () => {
           parameterValidator = new ProfileParameterValidator(ast);
         });
 
-        it.each([null, [], ['value']])('returns ok for `%p` as result', (value) => {
+        it.each([undefined, null, [], ['value']])('returns ok for `%p` as result', (value) => {
           expect(parameterValidator.validate(value, 'result', 'Test').isOk()).toBeTruthy();
-        });
-
-        it('returns error for `undefined` as result', () => {
-          expect(parameterValidator.validate(undefined, 'result', 'Test').isErr()).toBeTruthy();
         });
       });
 
@@ -674,12 +670,8 @@ describe('ProfileParameterValidator', () => {
           parameterValidator = new ProfileParameterValidator(ast);
         });
 
-        it.each([null, {}, { foo: 'value' }])('returns ok for `%p` as result', (value) => {
+        it.each([undefined, null, {}, { foo: 'value' }])('returns ok for `%p` as result', (value) => {
           expect(parameterValidator.validate(value, 'result', 'Test').isOk()).toBeTruthy();
-        });
-
-        it('returns error for `undefined` as result', () => {
-          expect(parameterValidator.validate(undefined, 'result', 'Test').isErr()).toBeTruthy();
         });
       });
 
