@@ -570,7 +570,9 @@ export class ProfileParameterValidator implements ProfileVisitor {
   ): ValidationFunction {
     if (kind === 'input' && node.input) {
       return addPath(this.visit(node.input.value, kind, usecase), 'input');
-    } else if (kind === 'result' && node.result) {
+    }
+
+    if (kind === 'result' && node.result) {
       return addPath(this.visit(node.result.value, kind, usecase), 'result');
     }
 
