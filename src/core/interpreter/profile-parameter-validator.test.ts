@@ -477,7 +477,7 @@ describe('ProfileParameterValidator', () => {
       });
 
       it.each([undefined, null, 'value'])('returns ok for foo being %p', (value) => {
-        expect(parameterValidator.validate({ foo: value }, 'result', 'Test').isErr()).toBeTruthy();
+        expect(parameterValidator.validate({ foo: value }, 'result', 'Test').isOk()).toBeTruthy();
       });
 
       it('returns error for foo not being set', () => {
