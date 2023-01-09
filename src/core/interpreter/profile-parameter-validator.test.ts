@@ -407,7 +407,7 @@ describe('ProfileParameterValidator', () => {
 
       it('returns error for invalid value in bar', () => {
         expect(parameterValidator.validate({ bar: { foo: true } }, 'result', 'Test').isErr()).toBeTruthy();
-        expect(parameterValidator.validate({ bar: { foo: 'value', bar: 'value' } }, 'result', 'Test').isErr()).toBeTruthy();
+        expect(parameterValidator.validate({ bar: { foo: 1, bar: 1 } }, 'result', 'Test').isErr()).toBeTruthy();
       });
 
       it('returns error for invalid value in baz', () => {
