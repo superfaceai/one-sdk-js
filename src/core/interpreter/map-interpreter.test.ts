@@ -26,6 +26,8 @@ const interpreterDependencies = {
   logger: new NodeLogger(),
 };
 
+const Connection = 'close';
+
 const parseMapFromSource = (source: string) =>
   parseMap(
     new Source(
@@ -185,6 +187,7 @@ describe('MapInterpreter', () => {
       {
         'Content-Type': 'application/json; charset=utf-8',
         'Content-Language': 'en-US, en-CA',
+        Connection
       }
     );
     const interpreter = new MapInterpreter(
@@ -216,7 +219,7 @@ describe('MapInterpreter', () => {
 
   it('should call an API with path parameters', async () => {
     const url = '/twelve';
-    await mockServer.forGet(url + '/2').thenJson(200, { data: 144 });
+    await mockServer.forGet(url + '/2').thenJson(200, { data: 144 }, { Connection });
     const interpreter = new MapInterpreter(
       {
         usecase: 'Test',
@@ -248,7 +251,7 @@ describe('MapInterpreter', () => {
 
   it('should correctly trim and parse path parameters in http call', async () => {
     const url = '/thirteen';
-    await mockServer.forGet(url + '/2/get/now').thenJson(200, { data: 169 });
+    await mockServer.forGet(url + '/2/get/now').thenJson(200, { data: 169 }, { Connection });
 
     const interpreter = new MapInterpreter(
       {
@@ -285,7 +288,7 @@ describe('MapInterpreter', () => {
     await mockServer
       .forGet(url)
       .withQuery({ page: 2 })
-      .thenJson(200, { data: 144 });
+      .thenJson(200, { data: 144 }, { Connection });
     const interpreter = new MapInterpreter(
       {
         usecase: 'Test',
@@ -323,7 +326,7 @@ describe('MapInterpreter', () => {
       .forPost(url)
       .withJsonBody({ anArray: [1, 2, 3] })
       .withHeaders({ someheader: 'hello' })
-      .thenJson(201, { bodyOk: true, headerOk: true });
+      .thenJson(201, { bodyOk: true, headerOk: true }, { Connection });
     const interpreter = new MapInterpreter(
       {
         usecase: 'Test',
@@ -360,8 +363,10 @@ describe('MapInterpreter', () => {
   it('should run multi step operation', async () => {
     const url1 = '/first';
     const url2 = '/second';
-    await mockServer.forGet(url1).thenJson(200, { firstStep: { someVar: 12 } });
-    await mockServer.forGet(url2).thenJson(200, { secondStep: 5 });
+
+    await mockServer.forGet(url1).thenJson(200, { firstStep: { someVar: 12 } }, { Connection });
+    await mockServer.forGet(url2).thenJson(200, { secondStep: 5 }, { Connection });
+
     const interpreter = new MapInterpreter(
       {
         usecase: 'Test',
@@ -399,7 +404,7 @@ describe('MapInterpreter', () => {
     await mockServer
       .forGet(url)
       .withHeaders({ Authorization: 'Basic bmFtZTpwYXNzd29yZA==' })
-      .thenJson(200, { data: 12 });
+      .thenJson(200, { data: 12 }, { Connection });
     const interpreter = new MapInterpreter(
       {
         usecase: 'testCase',
@@ -436,7 +441,7 @@ describe('MapInterpreter', () => {
     await mockServer
       .forGet(url)
       .withHeaders({ Authorization: 'Bearer SuperSecret' })
-      .thenJson(200, { data: 12 });
+      .thenJson(200, { data: 12 }, { Connection });
     const interpreter = new MapInterpreter(
       {
         usecase: 'testCase',
@@ -472,7 +477,7 @@ describe('MapInterpreter', () => {
     await mockServer
       .forGet(url)
       .withHeaders({ Key: 'SuperSecret' })
-      .thenJson(200, { data: 12 });
+      .thenJson(200, { data: 12 }, { Connection });
     const interpreter = new MapInterpreter(
       {
         usecase: 'testCase',
@@ -510,7 +515,7 @@ describe('MapInterpreter', () => {
     await mockServer
       .forGet(url)
       .withQuery({ key: 'SuperSecret' })
-      .thenJson(200, { data: 12 });
+      .thenJson(200, { data: 12 }, { Connection });
     const interpreter = new MapInterpreter(
       {
         usecase: 'testCase',
@@ -555,6 +560,7 @@ describe('MapInterpreter', () => {
         return {
           json: { data: 12 },
           status: 201,
+          headers: { Connection },
         };
       }
 
@@ -593,7 +599,7 @@ describe('MapInterpreter', () => {
     await mockServer
       .forPost(url)
       .withForm({ form: 'is', o: 'k' })
-      .thenJson(201, { data: 12 });
+      .thenJson(201, { data: 12 }, { Connection });
     const interpreter = new MapInterpreter(
       {
         usecase: 'testCase',
@@ -700,7 +706,7 @@ describe('MapInterpreter', () => {
 
   it('should correctly return from operation', async () => {
     const url = '/test';
-    await mockServer.forGet(url).thenJson(200, {});
+    await mockServer.forGet(url).thenJson(200, {}, { Connection });
     const interpreter = new MapInterpreter(
       {
         usecase: 'Test',
@@ -762,7 +768,7 @@ describe('MapInterpreter', () => {
 
   it('should perform operations with correct scoping', async () => {
     const url = '/test';
-    await mockServer.forGet(url).thenJson(200, {});
+    await mockServer.forGet(url).thenJson(200, {}, { Connection });
     const ast = parseMapFromSource(`
       map Test {
         fooResult = call foo()
@@ -1005,7 +1011,7 @@ describe('MapInterpreter', () => {
 
   it('should be able to use input in path parameters', async () => {
     const url = '/twelve';
-    await mockServer.forGet(url).thenJson(200, { data: 12 });
+    await mockServer.forGet(url).thenJson(200, { data: 12 }, { Connection });
     const ast = parseMapFromSource(`
       map Test {
         http GET "/{input.test}" {
@@ -1031,7 +1037,7 @@ describe('MapInterpreter', () => {
   });
 
   it('should strip trailing slash from baseUrl', async () => {
-    await mockServer.forGet('/thirteen').thenJson(200, { data: 12 });
+    await mockServer.forGet('/thirteen').thenJson(200, { data: 12 }, { Connection });
     const baseUrl = mockServer.urlFor('/thirteen').replace('thirteen', '');
     expect(baseUrl.split('')[baseUrl.length - 1]).toEqual('/');
     const ast = parseMapFromSource(`
@@ -1067,6 +1073,7 @@ describe('MapInterpreter', () => {
         'Content-Type': 'application/json; charset=utf-8',
         'Content-Language': 'en-US, en-CA',
         Data: '12',
+        Connection,
       }
     );
     const interpreter = new MapInterpreter(
@@ -1121,7 +1128,7 @@ describe('MapInterpreter', () => {
 
   it('should use integration parameters in URL', async () => {
     const url = '/twelve';
-    await mockServer.forGet(url).thenJson(200, { data: 12 });
+    await mockServer.forGet(url).thenJson(200, { data: 12 }, { Connection });
     const ast = parseMapFromSource(`
       map Test {
         http GET "/{parameters.path}" {
@@ -1147,7 +1154,7 @@ describe('MapInterpreter', () => {
 
   it('should use integration parameters in baseUrl', async () => {
     const url = '/twelve/something';
-    await mockServer.forGet(url).thenJson(200, { data: 12 });
+    await mockServer.forGet(url).thenJson(200, { data: 12 }, { Connection });
     const ast = parseMapFromSource(`
       map Test {
         http GET "/something" {
@@ -1174,7 +1181,7 @@ describe('MapInterpreter', () => {
   });
 
   it('should pass integration parameters to operations', async () => {
-    await mockServer.forGet('/thirteen').thenJson(200, { data: 13 });
+    await mockServer.forGet('/thirteen').thenJson(200, { data: 13 }, { Connection });
     const ast = parseMapFromSource(`
       map Test {
         map result {
@@ -1207,13 +1214,13 @@ describe('MapInterpreter', () => {
 
   it('should correctly select service', async () => {
     const urlOne = '/one/something';
-    await mockServer.forGet(urlOne).thenJson(200, { data: 1 });
+    await mockServer.forGet(urlOne).thenJson(200, { data: 1 }, { Connection });
 
     const urlTwo = '/two/something';
-    await mockServer.forGet(urlTwo).thenJson(200, { data: 2 });
+    await mockServer.forGet(urlTwo).thenJson(200, { data: 2 }, { Connection });
 
     const urlThree = '/three/something';
-    await mockServer.forGet(urlThree).thenJson(200, { data: 3 });
+    await mockServer.forGet(urlThree).thenJson(200, { data: 3 }, { Connection });
 
     const ast = parseMapFromSource(`
       map Test {
@@ -1682,7 +1689,7 @@ describe('MapInterpreter', () => {
     await mockServer.forPost('/test').thenCallback(async req => {
       expect(await req.body.getText()).toStrictEqual(expected);
 
-      return { status: 200, json: { ok: true } };
+      return { status: 200, json: { ok: true }, headers: { Connection } };
     });
 
     const ast = parseMapFromSource(`
@@ -1728,7 +1735,7 @@ describe('MapInterpreter', () => {
       const data = await req.body.getText();
       expect(data).toMatch(expected);
 
-      return { status: 200, json: { ok: true } };
+      return { status: 200, json: { ok: true }, headers: { Connection } };
     });
 
     const ast = parseMapFromSource(`
@@ -1777,7 +1784,7 @@ describe('MapInterpreter', () => {
       expect(data).toContain('Content-Disposition: form-data; name="file"; filename="test.txt"');
       expect(data).toContain('Content-Type: text/plain');
 
-      return { status: 200, json: { ok: true } };
+      return { status: 200, json: { ok: true }, headers: { Connection } };
     });
 
     const ast = parseMapFromSource(`
@@ -1827,7 +1834,7 @@ describe('MapInterpreter', () => {
       expect(data).toContain('Content-Disposition: form-data; name="file"; filename="mapset.txt"');
       expect(data).toContain('Content-Type: vnd.test/mapset');
 
-      return { status: 200, json: { ok: true } };
+      return { status: 200, json: { ok: true }, headers: { Connection } };
     });
 
     const ast = parseMapFromSource(`
@@ -1875,7 +1882,7 @@ describe('MapInterpreter', () => {
 
   it('should correctly send request to / relative url', async () => {
     const url = '/';
-    await mockServer.forGet(url).thenJson(200, { data: 12 });
+    await mockServer.forGet(url).thenJson(200, { data: 12 }, { Connection });
 
     const ast = parseMapFromSource(`    
     map Test {
@@ -1910,7 +1917,7 @@ describe('MapInterpreter', () => {
   it('should return ArrayBuffer for binary response', async () => {
     const url = '/twelve';
     const filePath = path.resolve(process.cwd(), 'fixtures', 'binary.txt');
-    await mockServer.forGet(url).thenFromFile(200, filePath, { 'content-type': 'application/octet-stream' });
+    await mockServer.forGet(url).thenFromFile(200, filePath, { 'content-type': 'application/octet-stream', Connection });
 
     const interpreter = new MapInterpreter(
       {
