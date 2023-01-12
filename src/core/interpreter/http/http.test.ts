@@ -13,6 +13,8 @@ const fetchInstance = new NodeFetch(timers);
 const crypto = new NodeCrypto();
 const http = new HttpClient(fetchInstance, crypto);
 
+const Connection = 'close';
+
 describe('HttpClient', () => {
   let baseUrl: string;
 
@@ -26,7 +28,7 @@ describe('HttpClient', () => {
   });
 
   it('gets basic response', async () => {
-    await mockServer.forGet('/valid').thenJson(200, { response: 'valid' });
+    await mockServer.forGet('/valid').thenJson(200, { response: 'valid' }, { Connection });
     const response = await http.request('/valid', {
       method: 'get',
       accept: 'application/json',
@@ -39,7 +41,7 @@ describe('HttpClient', () => {
   it('gets error response', async () => {
     await mockServer
       .forGet('/invalid')
-      .thenJson(404, { error: { message: 'Not found' } });
+      .thenJson(404, { error: { message: 'Not found' } }, { Connection });
     const response = await http.request('/invalid', {
       method: 'get',
       accept: 'application/json',
@@ -166,7 +168,7 @@ describe('HttpClient', () => {
       await mockServer.forPost('/data').thenCallback(async req => {
         return {
           status: 200,
-          headers: { 'content-type': 'application/json' },
+          headers: { 'content-type': 'application/json', Connection },
           body: JSON.stringify({
             contentType: req.headers['content-type'],
             body: await req.body.getText(),

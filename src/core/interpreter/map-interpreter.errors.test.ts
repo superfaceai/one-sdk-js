@@ -21,6 +21,8 @@ import {
   MappedHTTPError,
 } from './map-interpreter.errors';
 
+const Connection = 'close';
+
 const mockServer = getLocal();
 const timers = new MockTimers();
 const interpreterDependencies = {
@@ -285,7 +287,7 @@ AST Path: definitions[0].statements[0].assignments[0].value`
 
     it('should fail when calling an API with relative URL but not providing baseUrl', async () => {
       const url = '/twelve';
-      await mockServer.forGet(url).thenJson(200, { data: 12 });
+      await mockServer.forGet(url).thenJson(200, { data: 12 }, { Connection });
       const interpreter = new MapInterpreter(
         {
           usecase: 'Test',
@@ -379,7 +381,7 @@ AST Path: definitions[0].statements[0].assignments[0].value`
       const url = '/error';
       await mockServer
         .forGet(url)
-        .thenJson(404, { 'Content-Type': 'application/json; charset=utf-8' });
+        .thenJson(404, { 'Content-Type': 'application/json; charset=utf-8' }, { Connection });
       const interpreter = new MapInterpreter(
         {
           usecase: 'Test',
@@ -402,8 +404,8 @@ AST Path: definitions[0].statements[0].assignments[0].value`
 
       expect(
         result.isErr() &&
-          result.error instanceof MappedHTTPError &&
-          result.error.statusCode
+        result.error instanceof MappedHTTPError &&
+        result.error.statusCode
       ).toEqual(404);
     });
 
@@ -413,11 +415,11 @@ AST Path: definitions[0].statements[0].assignments[0].value`
       const url2 = '/cleanup';
       await mockServer
         .forGet(url)
-        .thenJson(404, { 'Content-Type': 'application/json; charset=utf-8' });
+        .thenJson(404, { 'Content-Type': 'application/json; charset=utf-8' }, { Connection });
       await mockServer.forPost(url2).thenCallback(() => {
         clean = true;
 
-        return { status: 204 };
+        return { status: 204, headers: { Connection } };
       });
       const interpreter = new MapInterpreter(
         {
@@ -443,8 +445,8 @@ AST Path: definitions[0].statements[0].assignments[0].value`
 
       expect(
         result.isErr() &&
-          result.error instanceof MappedHTTPError &&
-          result.error.properties
+        result.error instanceof MappedHTTPError &&
+        result.error.properties
       ).toEqual({ message: 'Nothing was found' });
       expect(clean).toEqual(true);
     });
@@ -492,7 +494,7 @@ AST Path: definitions[0].statements[0].assignments[0].value`
       const url = '/error';
       await mockServer
         .forGet(url)
-        .thenJson(404, { 'Content-Type': 'application/json; charset=utf-8' });
+        .thenJson(404, { 'Content-Type': 'application/json; charset=utf-8' }, { Connection });
       const interpreter = new MapInterpreter(
         {
           usecase: 'Test',
@@ -515,14 +517,14 @@ AST Path: definitions[0].statements[0].assignments[0].value`
 
       expect(
         result.isErr() &&
-          result.error instanceof HTTPError &&
-          result.error.statusCode
+        result.error instanceof HTTPError &&
+        result.error.statusCode
       ).toEqual(404);
     });
 
     it('should return error when using parameters in baseUrl, but they are not supplied', async () => {
       const url = '/twelve/something';
-      await mockServer.forGet(url).thenJson(200, { data: 12 });
+      await mockServer.forGet(url).thenJson(200, { data: 12 }, { Connection });
       const ast = parseMapFromSource(`
         map Test {
           http GET "/something" {

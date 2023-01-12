@@ -251,6 +251,7 @@ const mockMapDocumentFailure: MapDocumentNode = {
 };
 
 const mockServer = getLocal();
+const Connection = 'close';
 
 describe('MetricReporter', () => {
   let eventEndpoint: MockedEndpoint;
@@ -259,7 +260,7 @@ describe('MetricReporter', () => {
     await mockServer.start();
     eventEndpoint = await mockServer
       .forPost('/insights/sdk_event')
-      .thenJson(202, {});
+      .thenJson(202, {}, { Connection });
   });
 
   afterEach(async () => {
