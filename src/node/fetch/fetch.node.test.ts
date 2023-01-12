@@ -1,5 +1,6 @@
 import FormData from 'form-data';
 import { getLocal } from 'mockttp';
+import type { Headers } from 'node-fetch';
 import fetch from 'node-fetch';
 
 import { NetworkFetchError, RequestFetchError } from '../../core';
@@ -154,7 +155,7 @@ describe('NodeFetch', () => {
             }),
           },
           json: responseJsonMock,
-        });
+        } as any);
 
         const fetchInstance = new NodeFetch(timers);
 
@@ -185,13 +186,11 @@ describe('NodeFetch', () => {
         jest.mocked(fetch).mockResolvedValue({
           headers: {
             forEach: jest.fn((callbackfn: ForEachCallbackFunction) => {
-              callbackfn('text/plain', 'content-type', headers);
+              callbackfn('text/plain', 'content-type');
             }),
           },
           text: responseTextMock,
-        } as unknown as Headers;
-
-        jest.mocked(fetch).mockResolvedValue({ headers } as unknown as Response);
+        } as any);
 
         const fetchInstance = new NodeFetch(timers);
 
@@ -266,9 +265,7 @@ describe('NodeFetch', () => {
 
         jest.mocked(fetch).mockResolvedValue({
           headers: {
-            forEach: jest.fn((callbackfn: ForEachCallbackFunction) => {
-              callbackfn(undefined, undefined);
-            }),
+            forEach: jest.fn((_callbackfn: ForEachCallbackFunction) => {}),
           },
           arrayBuffer: responseArrayBufferMock,
         } as any);
@@ -325,9 +322,7 @@ describe('NodeFetch', () => {
       it('should call fetch with Buffer in body', async () => {
         jest.mocked(fetch).mockResolvedValue({
           headers: {
-            forEach: jest.fn((callbackfn: ForEachCallbackFunction) => {
-              callbackfn(undefined, undefined);
-            }),
+            forEach: jest.fn((_callbackfn: ForEachCallbackFunction) => {}),
           },
           text: jest.fn(),
         } as any);
@@ -339,7 +334,9 @@ describe('NodeFetch', () => {
           body: { _type: 'binary', data: Buffer.from('data') },
         });
 
-        expect(jest.mocked(fetch).mock.calls[0][1]!.body).toBeInstanceOf(Buffer);
+        expect(jest.mocked(fetch).mock.calls[0][1]!.body).toBeInstanceOf(
+          Buffer
+        );
       });
     });
 
@@ -351,9 +348,7 @@ describe('NodeFetch', () => {
 
         jest.mocked(fetch).mockResolvedValue({
           headers: {
-            forEach: jest.fn((callbackfn: ForEachCallbackFunction) => {
-              callbackfn(undefined, undefined);
-            }),
+            forEach: jest.fn((_callbackfn: ForEachCallbackFunction) => {}),
           },
           text: jest.fn(),
         } as any);

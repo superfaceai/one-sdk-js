@@ -292,7 +292,7 @@ abstract class NodeVisitor<N extends MapASTNode, V = undefined>
     return this;
   }
 
-  abstract [Symbol.toStringTag](): string;
+  public abstract [Symbol.toStringTag](): string;
 
   public toString(): string {
     return `${this[Symbol.toStringTag]()}(${this.childIdentifier})`;
@@ -532,7 +532,7 @@ class JessieExpressionVisitor extends NodeVisitor<
     } catch (e) {
       return {
         kind: 'error',
-        error: new JessieError('Error in Jessie script', e, {
+        error: new JessieError('Error in Jessie script', e as Error, {
           node: this.node,
         }),
       };
