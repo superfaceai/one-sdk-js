@@ -1,8 +1,9 @@
 import { parseProfile, Source } from '@superfaceai/parser';
 
-import type { ProfileParameterError } from '../../interfaces';
-import type { Result, UnexpectedError } from '../../lib';
+import type { Result } from '../../lib';
+import type { UnexpectedError } from '../errors';
 import { ProfileParameterValidator } from './profile-parameter-validator';
+import type { ProfileParameterError } from './profile-parameter-validator.errors';
 import {
   InputValidationError,
   isInputValidationError,

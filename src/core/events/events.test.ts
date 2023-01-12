@@ -7,10 +7,11 @@ import type {
 import { ApiKeyPlacement, HttpScheme, SecurityType } from '@superfaceai/ast';
 import { getLocal } from 'mockttp';
 
-import { err, UnexpectedError } from '../../lib';
+import { err } from '../../lib';
 import { MockTimers } from '../../mock';
 import { NodeCrypto, NodeFetch, NodeFileSystem } from '../../node';
 import { Config } from '../config';
+import { UnexpectedError } from '../errors';
 import { BoundProfileProvider } from '../profile-provider';
 import { ServiceSelector } from '../services';
 import { Events } from './events';
