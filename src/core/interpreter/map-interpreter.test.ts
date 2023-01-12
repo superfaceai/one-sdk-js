@@ -1487,8 +1487,12 @@ describe('MapInterpreter', () => {
 
     const result = await interpreter.perform(ast);
     expect(result.isOk()).toBe(true);
-    const firstBytes = (result.unwrap() as { firstBytes: Buffer }).firstBytes.toString('utf8');
-    const expected = (await readFile(filePath)).subarray(0, 10).toString('utf8');
+    const firstBytes = (
+      result.unwrap() as { firstBytes: Buffer }
+    ).firstBytes.toString('utf8');
+    const expected = (await readFile(filePath))
+      .subarray(0, 10)
+      .toString('utf8');
 
     expect(firstBytes).toStrictEqual(expected);
   });
@@ -1520,7 +1524,9 @@ describe('MapInterpreter', () => {
       console.error(result.error);
     }
     expect(result.isOk()).toBe(true);
-    const firstBytes = (result.unwrap() as { firstBytes: Buffer }).firstBytes.toString('utf8');
+    const firstBytes = (
+      result.unwrap() as { firstBytes: Buffer }
+    ).firstBytes.toString('utf8');
     const items = (result.unwrap() as { items: Buffer }).items;
     const expected = await readFile(filePath);
 
@@ -1770,11 +1776,16 @@ describe('MapInterpreter', () => {
 
   it('should send file in its entirety as FormData with passed mimetype and filename', async () => {
     const filePath = path.resolve(process.cwd(), 'fixtures', 'binary.txt');
-    const file = BinaryData.fromPath(filePath, { name: 'test.txt', mimetype: 'text/plain' });
+    const file = BinaryData.fromPath(filePath, {
+      name: 'test.txt',
+      mimetype: 'text/plain',
+    });
 
     await mockServer.forPost('/test').thenCallback(async req => {
       const data = await req.body.getText();
-      expect(data).toContain('Content-Disposition: form-data; name="file"; filename="test.txt"');
+      expect(data).toContain(
+        'Content-Disposition: form-data; name="file"; filename="test.txt"'
+      );
       expect(data).toContain('Content-Type: text/plain');
 
       return { status: 200, json: { ok: true } };
@@ -1824,7 +1835,9 @@ describe('MapInterpreter', () => {
     await mockServer.forPost('/test').thenCallback(async req => {
       const data = await req.body.getText();
 
-      expect(data).toContain('Content-Disposition: form-data; name="file"; filename="mapset.txt"');
+      expect(data).toContain(
+        'Content-Disposition: form-data; name="file"; filename="mapset.txt"'
+      );
       expect(data).toContain('Content-Type: vnd.test/mapset');
 
       return { status: 200, json: { ok: true } };
@@ -1857,7 +1870,7 @@ describe('MapInterpreter', () => {
         input: {
           file,
           filename: 'mapset.txt',
-          mimetype: 'vnd.test/mapset'
+          mimetype: 'vnd.test/mapset',
         },
       },
       interpreterDependencies
@@ -1910,7 +1923,9 @@ describe('MapInterpreter', () => {
   it('should return ArrayBuffer for binary response', async () => {
     const url = '/twelve';
     const filePath = path.resolve(process.cwd(), 'fixtures', 'binary.txt');
-    await mockServer.forGet(url).thenFromFile(200, filePath, { 'content-type': 'application/octet-stream' });
+    await mockServer.forGet(url).thenFromFile(200, filePath, {
+      'content-type': 'application/octet-stream',
+    });
 
     const interpreter = new MapInterpreter(
       {
@@ -1932,7 +1947,9 @@ describe('MapInterpreter', () => {
     const expected = (await readFile(filePath)).toString('utf8');
 
     expect(result.unwrap() instanceof ArrayBuffer).toBe(true);
-    expect(Buffer.from(result.unwrap() as ArrayBuffer).toString('utf8')).toBe(expected);
+    expect(Buffer.from(result.unwrap() as ArrayBuffer).toString('utf8')).toBe(
+      expected
+    );
   });
 
   it('should handle null when resolving variables', async () => {
@@ -1941,7 +1958,7 @@ describe('MapInterpreter', () => {
         usecase: 'Test',
         security: [],
         services: mockServicesSelector,
-        input: {}
+        input: {},
       },
       interpreterDependencies
     );
@@ -1963,8 +1980,8 @@ describe('MapInterpreter', () => {
         security: [],
         services: mockServicesSelector,
         input: {
-          field: null
-        } as any
+          field: null,
+        } as any,
       },
       interpreterDependencies
     );
@@ -1979,7 +1996,6 @@ describe('MapInterpreter', () => {
     expect(result.unwrap()).toEqual({ field: null });
   });
 
-
   it('should allow success outcome to be undefined', async () => {
     const ast = parseMapFromSource(`    
     map Test {
@@ -1993,7 +2009,6 @@ describe('MapInterpreter', () => {
     operation Op {
       return undefined
     }`);
-
 
     const interpreter = new MapInterpreter(
       {
@@ -2045,7 +2060,7 @@ describe('MapInterpreter', () => {
         security: [],
         services: ServiceSelector.withDefaultUrl(''),
         input: {},
-        parameters: { a: '1' }
+        parameters: { a: '1' },
       },
       interpreterDependencies
     );

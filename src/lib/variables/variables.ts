@@ -1,4 +1,4 @@
-import type { IBinaryData} from '../../interfaces';
+import type { IBinaryData } from '../../interfaces';
 import { isBinaryData } from '../../interfaces';
 import { UnexpectedError } from '../error';
 import { indexRecord } from '../object';

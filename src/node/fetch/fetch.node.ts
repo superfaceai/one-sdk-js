@@ -13,7 +13,7 @@ import type {
   IFetch,
   Interceptable,
   InterceptableMetadata,
-  ITimers
+  ITimers,
 } from '../../core';
 import {
   BINARY_CONTENT_REGEXP,
@@ -37,7 +37,7 @@ export class NodeFetch implements IFetch, Interceptable, AuthCache {
   public events: Events | undefined;
   public digest: SuperCache<string> = new SuperCache();
 
-  constructor(private readonly timers: ITimers) { }
+  constructor(private readonly timers: ITimers) {}
 
   @eventInterceptor({
     eventName: 'fetch',
@@ -174,7 +174,13 @@ export class NodeFetch implements IFetch, Interceptable, AuthCache {
 
   private body(
     body?: FetchBody
-  ): string | URLSearchParams | FormData | Buffer | NodeJS.ReadableStream | undefined {
+  ):
+    | string
+    | URLSearchParams
+    | FormData
+    | Buffer
+    | NodeJS.ReadableStream
+    | undefined {
     if (body) {
       if (isStringBody(body) || isBinaryBody(body)) {
         if (isBinaryData(body.data)) {
@@ -205,7 +211,10 @@ export class NodeFetch implements IFetch, Interceptable, AuthCache {
           value.forEach(item => formData.append(key, item));
         } else if (isBinaryData(value)) {
           if (isBinaryDataMeta(value)) {
-            formData.append(key, value.toStream(), { contentType: value.mimetype, filename: value.name });
+            formData.append(key, value.toStream(), {
+              contentType: value.mimetype,
+              filename: value.name,
+            });
           } else {
             formData.append(key, value.toStream());
           }

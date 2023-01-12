@@ -1,6 +1,6 @@
 import { VM } from 'vm2';
 
-import type { IConfig, ILogger} from '../../../interfaces';
+import type { IConfig, ILogger } from '../../../interfaces';
 import type { NonPrimitive } from '../../../lib';
 import { isClassInstance } from '../../../lib';
 import { getStdlib } from './stdlib';
