@@ -303,7 +303,7 @@ export function loadConfigFromEnv(
     ),
     disableReporting:
       environment.getString('NODE_ENV') === 'test' ||
-        environment.getBoolean(DISABLE_REPORTING) === true
+      environment.getBoolean(DISABLE_REPORTING) === true
         ? true
         : undefined,
     // TODO: add env variable and resolve it?
