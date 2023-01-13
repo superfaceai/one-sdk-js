@@ -59,8 +59,8 @@ export type SecurityConfiguration =
 export type RequestParameters = {
   url: string;
   method: string;
-  headers?: Record<string, string>;
-  queryParameters?: NonPrimitive;
+  headers?: Record<string, string | string[]>;
+  queryParameters?: Record<string, string | string[]>;
   body?: Variables;
   contentType?: string;
   accept?: string;

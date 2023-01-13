@@ -8,7 +8,7 @@ describe('recursiveKeyList', () => {
       nope: undefined,
     };
 
-    expect(recursiveKeyList(object).sort()).toMatchObject(['2', 'a']);
+    expect(recursiveKeyList(object).sort()).toMatchObject(['2', 'a', 'nope']);
   });
 
   it('should return all objects keys from a nested object', () => {
@@ -25,7 +25,7 @@ describe('recursiveKeyList', () => {
       },
     };
 
-    expect(recursiveKeyList(object).sort()).toMatchObject([
+    expect(recursiveKeyList(object, v => v !== undefined).sort()).toMatchObject([
       'a',
       'b',
       'b.c',

@@ -229,7 +229,7 @@ export const queryParametersFilter: Filter = ({
 }: FilterInputOutput) => {
   const queryParameters = {
     ...request?.queryParameters,
-    ...variablesToStrings(parameters.queryParameters ?? {}),
+    ...(parameters.queryParameters ?? {})
   };
 
   return {
@@ -264,7 +264,7 @@ export const headersFilter: Filter = ({
   request,
   response,
 }: FilterInputOutput) => {
-  const headers: Record<string, string> = parameters.headers ?? {};
+  const headers: Record<string, string | string[]> = parameters.headers ?? {};
 
   setHeader(headers, 'user-agent', USER_AGENT);
   setHeader(headers, 'accept', parameters.accept ?? '*/*');
@@ -360,7 +360,7 @@ export function isCompleteHttpRequest(
 
     if (
       !Object.values(input.queryParameters).every(
-        value => typeof value === 'string'
+        value => typeof value === 'string' || Array.isArray(value)
       )
     ) {
       return false;

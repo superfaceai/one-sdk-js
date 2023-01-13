@@ -27,7 +27,7 @@ export class HttpHandler implements ISecurityHandler {
   public authenticate: AuthenticateRequestAsync = async (
     parameters: RequestParameters
   ) => {
-    const headers: Record<string, string> = parameters.headers || {};
+    const headers: Record<string, string | string[]> = parameters.headers ?? {};
 
     switch (this.configuration.scheme) {
       case HttpScheme.BASIC:

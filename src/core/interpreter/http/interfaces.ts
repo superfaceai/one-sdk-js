@@ -46,7 +46,7 @@ export type FetchParameters = {
   headers?: Record<string, string | string[]>;
   method: string;
   body?: FetchBody;
-  queryParameters?: Record<string, string>;
+  queryParameters?: Record<string, string | string[]>;
   timeout?: number;
 };
 
