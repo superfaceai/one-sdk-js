@@ -351,26 +351,26 @@ export function invalidBackoffEntryError(kind: string): SDKExecutionError {
   );
 }
 
-export function missingPathReplacementError(
-  missing: string[],
+export function invalidPathReplacementError(
+  invalid: string[],
   url: string,
   all: string[],
   available: string[]
 ): SDKExecutionError {
   return new SDKExecutionError(
-    `Missing values for URL path replacement: ${missing.join(', ')}`,
+    `Missing or mistyped values for URL path replacement: ${invalid.join(', ')}`,
     [
       `Trying to replace path keys for url: ${url}`,
       all.length > 0
         ? `Found these path keys: ${all.join(', ')}`
         : 'Found no path keys',
       available.length > 0
-        ? `But only found these potential variables: ${available.join(', ')}`
-        : 'But found no potential variables',
+        ? `But only found these string variables: ${available.join(', ')}`
+        : 'But found no string variables',
     ],
     [
-      'Make sure the url path variable refers to an available variable',
-      'Consider introducing a new variable with the correct name and desired value',
+      'Make sure the url path variable refers to an available string variable',
+      'Consider introducing a new variable with the correct name and desired string value',
     ]
   );
 }
@@ -485,6 +485,22 @@ export function profileIdsDoNotMatchError(
     ],
     ['Pass profile id that matches to profile id in map or provide correct map']
   );
+}
+
+export function invalidHTTPMapValueType(
+  kind: 'header' | 'query parameter',
+  key: string,
+  type: string
+): SDKExecutionError {
+  return new SDKExecutionError(
+    `Invalid HTTP ${kind} value type: ${key}`,
+    [
+      `Value is of type ${type} but string was expected`
+    ],
+    [
+      'Stringify value before passing it to the HTTP request'
+    ]
+  )
 }
 
 export function digestHeaderNotFound(

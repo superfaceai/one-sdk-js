@@ -4,7 +4,7 @@ import { readFile } from 'fs/promises';
 import { getLocal } from 'mockttp';
 import * as path from 'path';
 
-import { UnexpectedError } from '../../lib';
+import { err, ok, SDKExecutionError, UnexpectedError } from '../../lib';
 import { MockTimers } from '../../mock';
 import {
   BinaryData,
@@ -16,6 +16,7 @@ import {
 import { Config } from '../config';
 import { ServiceSelector } from '../services';
 import { MapInterpreter } from './map-interpreter';
+import { JessieError } from './map-interpreter.errors';
 
 const mockServer = getLocal();
 const timers = new MockTimers();
@@ -300,7 +301,7 @@ describe('MapInterpreter', () => {
         http GET "${url}" {
           request {
             query {
-              page = input.page
+              page = input.page.toString()
             }
             headers {
               "content-type" = "application/json"
@@ -314,7 +315,7 @@ describe('MapInterpreter', () => {
       }`);
     const result = await interpreter.perform(ast);
 
-    expect(result.isOk() && result.value).toEqual(144);
+    expect(result.unwrap()).toEqual(144);
   });
 
   it('should call an API with parameters and POST request', async () => {
@@ -1036,7 +1037,6 @@ describe('MapInterpreter', () => {
     expect(baseUrl.split('')[baseUrl.length - 1]).toEqual('/');
     const ast = parseMapFromSource(`
       map Test {
-        username = input.user
         http GET "/thirteen" {
           response 200 "application/json" {
             map result {
@@ -1055,7 +1055,7 @@ describe('MapInterpreter', () => {
     );
     const result = await interpreter.perform(ast);
 
-    expect(result.isOk() && result.value).toEqual({ result: 13 });
+    expect(result.unwrap()).toEqual({ result: 13 });
   });
 
   it('should make response headers accessible', async () => {
@@ -1395,15 +1395,15 @@ describe('MapInterpreter', () => {
   });
 
   it('should preserve buffer types with foreach', async () => {
-    const ast = parseMapFromSource(`    
+    const ast = parseMapFromSource(`
     map Test {
       mappedItems = call foreach(item of input.items) mapItem(item = item)
-    
+
       map result {
         items: mappedItems
       }
     }
-    
+
     operation mapItem {
         return args.item
     }`);
@@ -1432,15 +1432,15 @@ describe('MapInterpreter', () => {
   });
 
   it('should not leak optional properties in foreach', async () => {
-    const ast = parseMapFromSource(`    
+    const ast = parseMapFromSource(`
     map Test {
       mappedItems = call foreach(item of input.items) mapItem(item = item)
-    
+
       map result {
         items: mappedItems
       }
     }
-    
+
     operation mapItem {
       return args.item
     }`);
@@ -1648,7 +1648,7 @@ describe('MapInterpreter', () => {
     map Test {
       firstBytes = input.items.peek(10) // peek is async needs to be set to variable
       allData = input.items.getAllData() // getAllData is async needs to be set to variable
-      
+
       map result {
         firstBytes: firstBytes.toString('base64'),
         items: allData.toString('binary')
@@ -1890,7 +1890,7 @@ describe('MapInterpreter', () => {
     const url = '/';
     await mockServer.forGet(url).thenJson(200, { data: 12 });
 
-    const ast = parseMapFromSource(`    
+    const ast = parseMapFromSource(`
     map Test {
       http GET "/" {
         response 200 {
@@ -1997,15 +1997,15 @@ describe('MapInterpreter', () => {
   });
 
   it('should allow success outcome to be undefined', async () => {
-    const ast = parseMapFromSource(`    
+    const ast = parseMapFromSource(`
     map Test {
       map result undefined
-    
+
       map result {
         x = call Op()
       }
     }
-    
+
     operation Op {
       return undefined
     }`);
@@ -2025,7 +2025,7 @@ describe('MapInterpreter', () => {
   });
 
   it('should not allow input to be mutated', async () => {
-    const ast = parseMapFromSource(`    
+    const ast = parseMapFromSource(`
     map Test {
       input.a = input.a + 7
 
@@ -2047,7 +2047,7 @@ describe('MapInterpreter', () => {
   });
 
   it('should not allow integration parameters to be mutated', async () => {
-    const ast = parseMapFromSource(`    
+    const ast = parseMapFromSource(`
     map Test {
       parameters.a = parameters.a + "7"
 
@@ -2067,5 +2067,261 @@ describe('MapInterpreter', () => {
 
     const result = await interpreter.perform(ast);
     expect(result.isOk() && result.value).toStrictEqual('1');
+  });
+
+  describe('None type', () => {
+    it.each([
+      // this is an invalid use of the perform API, so we are just looking for sane behavior - it fails because input is not defined
+      [null, err(expect.any(JessieError))],
+      [undefined, err(expect.any(JessieError))],
+      // no special handling of nested None
+      [{ foo: null }, ok({ foo: null })],
+      [{ foo: undefined }, ok({ foo: undefined })]
+    ])('should handle input "%s"', async (value, expected) => {
+      const ast = parseMapFromSource(`
+        map Test {
+          map result input
+        }`);
+
+      const interpreter = new MapInterpreter(
+        {
+          usecase: 'Test',
+          security: [],
+          services: ServiceSelector.withDefaultUrl(''),
+          input: value as any,
+          parameters: {}
+        },
+        interpreterDependencies
+      );
+
+      const result = await interpreter.perform(ast);
+      expect(result).toStrictEqual(expected);
+    });
+
+    it.each([
+      // invalid use of API
+      [null, err(expect.any(JessieError))],
+      [undefined, err(expect.any(JessieError))], 
+      // not touched
+      [{ foo: null }, ok({ foo: null })],
+      [{ foo: undefined }, ok({ foo: undefined })]
+    ])('should handle parameters "%s"', async (value, expected) => {
+      const ast = parseMapFromSource(`
+        map Test {
+          map result parameters
+        }`);
+
+      const interpreter = new MapInterpreter(
+        {
+          usecase: 'Test',
+          security: [],
+          services: ServiceSelector.withDefaultUrl(''),
+          input: undefined,
+          parameters: value as any
+        },
+        interpreterDependencies
+      );
+
+      const result = await interpreter.perform(ast);
+      expect(result).toStrictEqual(expected);
+    });
+
+    it.each([
+      ['null', null],
+      ['undefined', undefined],
+      ['{ foo: null }', { foo: null }],
+      ['{ foo: undefined }', { foo: undefined }],
+      ['{ foo = null }', { foo: null }],
+      ['{ foo = undefined }', { foo: undefined }],
+    ])('should return literal "%s"', async (value, expected) => {
+      const ast = parseMapFromSource(`
+        map Test {
+          map result ${value}
+        }`);
+
+      const interpreter = new MapInterpreter(
+        {
+          usecase: 'Test',
+          security: [],
+          services: ServiceSelector.withDefaultUrl(''),
+          input: undefined,
+          parameters: {}
+        },
+        interpreterDependencies
+      );
+
+      const result = await interpreter.perform(ast);
+      expect(result.unwrap()).toStrictEqual(expected);
+    });
+
+    it.each([
+      ['null', err(expect.any(SDKExecutionError))],
+      ['undefined', err(expect.any(SDKExecutionError))],
+      ['{ foo: null }', err(expect.any(SDKExecutionError))],
+      ['{ foo: undefined }', err(expect.any(SDKExecutionError))],
+    ])('should handle stringifying HTTP url with "%s"', async (value, expected) => {
+      await mockServer.forAnyRequest().thenCallback(async req => {
+        return { status: 200, json: { data: req.path } };
+      });
+
+      const ast = parseMapFromSource(`
+        map Test {
+          val = ${value}
+          http GET "/test/{val}" {
+            response 200 {
+              map result body.data
+            }
+          }
+        }`);
+
+      const interpreter = new MapInterpreter(
+        {
+          usecase: 'Test',
+          security: [],
+          services: ServiceSelector.withDefaultUrl(mockServer.url),
+          input: undefined,
+          parameters: {}
+        },
+        interpreterDependencies
+      );
+
+      const result = await interpreter.perform(ast);
+      expect(result).toStrictEqual(expected);
+    });
+
+    it.each([
+      // content-type is JSON by default
+      [null, null],
+      [undefined, undefined],
+      [{ foo: null }, { foo: null }],
+      [{ foo: undefined }, {}]
+    ])('should handle HTTP body "%s"', async (value, expected) => {
+      await mockServer.forPost('/test').thenCallback(async req => {
+        return { status: 200, json: { data: await req.body.getJson() } };
+      });
+
+      const ast = parseMapFromSource(`
+        map Test {
+          http POST "/test" {
+            request {
+              body = input.foo
+            }
+
+            response 200 {
+              map result body.data
+            }
+          }
+        }`);
+
+      const interpreter = new MapInterpreter(
+        {
+          usecase: 'Test',
+          security: [],
+          services: ServiceSelector.withDefaultUrl(mockServer.url),
+          input: { foo: value as any },
+          parameters: {}
+        },
+        interpreterDependencies
+      );
+
+      const result = await interpreter.perform(ast);
+      expect(result.unwrap()).toStrictEqual(expected);
+    });
+
+    it.each([
+      // header not passed
+      [null, ok([false, expect.any(Object)])],
+      [undefined, ok([false, expect.any(Object)])],
+      // not string
+      [{ foo: null }, err(expect.any(SDKExecutionError))],
+      [{ foo: undefined }, err(expect.any(SDKExecutionError))],
+      // array filtered
+      [[null, 'value', undefined], ok([true, 'value'])],
+      [[null, 'value', undefined, 'value2'], ok([true, ['value', 'value2']])]
+    ])('should handle HTTP header "%s"', async (value, expected) => {
+      await mockServer.forGet('/test').thenCallback(async req => {
+        return { status: 200, json: { data: ['test-header' in req.headers, req.headers['test-header']] } };
+      });
+
+      const ast = parseMapFromSource(`
+        map Test {
+          http GET "/test" {
+            request {
+              headers {
+                "test-header" = input.foo
+              }
+            }
+
+            response 200 {
+              map result body.data
+            }
+          }
+        }`);
+
+      const interpreter = new MapInterpreter(
+        {
+          usecase: 'Test',
+          security: [],
+          services: ServiceSelector.withDefaultUrl(mockServer.url),
+          input: { foo: value as any },
+          parameters: {}
+        },
+        interpreterDependencies
+      );
+
+      const result = await interpreter.perform(ast);
+      expect(result).toStrictEqual(expected);
+    });
+
+    it.each([
+      // param not passed
+      [null, ok([false, expect.any(Object)])],
+      [undefined, ok([false, expect.any(Object)])],
+      // not string
+      [{ foo: null }, err(expect.any(SDKExecutionError))],
+      [{ foo: undefined }, err(expect.any(SDKExecutionError))],
+      // array filtered
+      [[null, 'value', undefined], ok([true, 'value'])],
+      [[null, 'value', undefined, 'value2'], ok([true, ['value', 'value2']])]
+    ])('should handle HTTP query parameter "%s"', async (value, expected) => {
+      await mockServer.forGet('/test').thenCallback(async req => {
+        let query: string | string[] = new URL(req.url).searchParams.getAll('test-query');
+        const present = query.length !== 0;
+        if (query.length === 1) {
+          query = query[0];
+        }
+
+        return { status: 200, json: { data: [present, query] } };
+      });
+
+      const ast = parseMapFromSource(`
+        map Test {
+          http GET "/test" {
+            request {
+              query {
+                "test-query" = input.foo
+              }
+            }
+
+            response 200 {
+              map result body.data
+            }
+          }
+        }`);
+
+      const interpreter = new MapInterpreter(
+        {
+          usecase: 'Test',
+          security: [],
+          services: ServiceSelector.withDefaultUrl(mockServer.url),
+          input: { foo: value as any },
+          parameters: {}
+        },
+        interpreterDependencies
+      );
+
+      const result = await interpreter.perform(ast);
+      expect(result).toStrictEqual(expected);
+    });
   });
 });

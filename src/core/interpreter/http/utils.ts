@@ -1,12 +1,13 @@
 import type { ILogger } from '../../../interfaces';
-import type { NonPrimitive } from '../../../lib';
-import {
-  indexRecord,
-  recursiveKeyList,
-  UnexpectedError,
-  variableToString,
+import type {
+  NonPrimitive,
+  Result
 } from '../../../lib';
-import { missingPathReplacementError } from '../../errors';
+import { err,
+  indexRecord,
+  isNone,   ok,   recursiveKeyList,   UnexpectedError,
+  variableToString} from '../../../lib';
+import { invalidPathReplacementError } from '../../errors';
 import type { IFetch } from './interfaces';
 import type { HttpRequest } from './security';
 import type { HttpResponse } from './types';
@@ -14,12 +15,39 @@ import type { HttpResponse } from './types';
 const DEBUG_NAMESPACE = 'http';
 const DEBUG_NAMESPACE_SENSITIVE = 'http:sensitive';
 
+export function variablesToHttpMap(variables: NonPrimitive): Result<Record<string, string | string[]>, [key: string, value: unknown]> {
+  const result: Record<string, string | string[]> = {};
+
+  for (const [key, value] of Object.entries(variables)) {
+    if (typeof value === 'string') {
+      result[key] = value;
+    } else if (Array.isArray(value)) {
+      const filtered: string[] = [];
+      for (const val of value) {
+        if (typeof val === 'string') {
+          filtered.push(val);
+        } else if (!isNone(val)) {
+          return err([key, val]);
+        }
+      }
+
+      if (filtered.length > 0) {
+        result[key] = filtered;
+      }
+    } else if (!isNone(value)) {
+      return err([key, value]);
+    }
+  }
+
+  return ok(result);
+}
+
 function replaceParameters(url: string, parameters: NonPrimitive) {
   let result = '';
 
   let lastIndex = 0;
   const allKeys: string[] = [];
-  const missingKeys: string[] = [];
+  const invalidKeys: string[] = [];
 
   const regex = RegExp('{([^}]*)}', 'g');
   for (const match of url.matchAll(regex)) {
@@ -42,8 +70,8 @@ function replaceParameters(url: string, parameters: NonPrimitive) {
     }
 
     allKeys.push(key);
-    if (value === undefined) {
-      missingKeys.push(key);
+    if (typeof value !== 'string') {
+      invalidKeys.push(key);
       continue;
     }
 
@@ -53,10 +81,10 @@ function replaceParameters(url: string, parameters: NonPrimitive) {
   }
   result += url.slice(lastIndex);
 
-  if (missingKeys.length > 0) {
-    const available = recursiveKeyList(parameters ?? {});
+  if (invalidKeys.length > 0) {
+    const available = recursiveKeyList(parameters ?? {}, value => typeof value === 'string');
 
-    throw missingPathReplacementError(missingKeys, url, allKeys, available);
+    throw invalidPathReplacementError(invalidKeys, url, allKeys, available);
   }
 
   return result;
@@ -98,8 +126,9 @@ export async function fetchRequest(
   log?.('Executing HTTP Call');
   // secrets might appear in headers, url path, query parameters or body
   if (logSensitive?.enabled === true) {
-    const hasSearchParams =
-      Object.keys(request.queryParameters || {}).length > 0;
+    const hasSearchParams = Object.keys(
+      request.queryParameters ?? {}
+    ).length > 0;
     const searchParams = new URLSearchParams(request.queryParameters);
     logSensitive(
       '\t%s %s%s HTTP/1.1',

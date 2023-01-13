@@ -96,7 +96,7 @@ export class DigestHandler implements ISecurityHandler {
   public authenticate: AuthenticateRequestAsync = async (
     parameters: RequestParameters
   ) => {
-    const headers: Record<string, string> = parameters.headers || {};
+    const headers: Record<string, string | string[]> = parameters.headers ?? {};
 
     const credentials = await this.fetchInstance.digest.getCached(
       hashDigestConfiguration(this.configuration, this.crypto),
