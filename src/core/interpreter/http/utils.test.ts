@@ -104,7 +104,19 @@ describe('interpreter · http · utils', () => {
           {
             baseUrl: 'http://example.com',
             pathParameters: { FOO: 'foo' }
-          })).toThrow('Missing values for URL path replacement: BAR')
+          })
+      ).toThrow('Missing or mistyped values for URL path replacement: BAR')
+    });
+
+    it('throws mistyped key error if path parameter for inputUrl is not string', () => {
+      expect(
+        () => createUrl(
+          '/{FOO}/{BAR}',
+          {
+            baseUrl: 'http://example.com',
+            pathParameters: { FOO: 'foo', BAR: [1, 2, 3] }
+          })
+      ).toThrow('Missing or mistyped values for URL path replacement: BAR')
     });
   });
 });

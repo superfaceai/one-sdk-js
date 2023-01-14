@@ -327,7 +327,6 @@ AST Path: definitions[0].statements[0].assignments[0].value`
 
       const ast = parseMapFromSource(`
         map Test {
-          page = input.page
           http GET "/{missing}/{alsoMissing}" {
             request {
               headers {
@@ -345,7 +344,7 @@ AST Path: definitions[0].statements[0].assignments[0].value`
       expect(() => {
         result.unwrap();
       }).toThrow(
-        'Missing values for URL path replacement: missing, alsoMissing'
+        'Missing or mistyped values for URL path replacement: missing, alsoMissing'
       );
     });
 
@@ -545,7 +544,7 @@ AST Path: definitions[0].statements[0].assignments[0].value`
       );
       const result = await interpreter.perform(ast);
       expect(result.isErr() && result.error.toString()).toMatch(
-        'Missing values for URL path replacement: path'
+        'Missing or mistyped values for URL path replacement: path'
       );
     });
   });
