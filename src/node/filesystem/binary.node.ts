@@ -140,12 +140,13 @@ export class StreamReader {
 }
 
 export class FileContainer
-  implements IDataContainer, IBinaryDataMeta, IInitializable, IDestructible {
+  implements IDataContainer, IBinaryDataMeta, IInitializable, IDestructible
+{
   private handle: FileHandle | undefined;
   private streamReader: StreamReader | undefined;
   private _size = Infinity;
 
-  constructor(public readonly path: string) { }
+  constructor(public readonly path: string) {}
 
   public get name(): string | undefined {
     return basename(this.path);
@@ -238,7 +239,8 @@ export type BinaryDataOptions = {
 };
 
 export class BinaryData
-  implements IBinaryData, IBinaryDataMeta, IDestructible, IInitializable {
+  implements IBinaryData, IBinaryDataMeta, IDestructible, IInitializable
+{
   private buffer: Buffer;
   private _name: string | undefined;
   private _mimetype: string | undefined;

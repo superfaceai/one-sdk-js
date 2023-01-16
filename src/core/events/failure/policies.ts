@@ -221,7 +221,7 @@ export class AbortPolicy extends FailurePolicy {
     return { kind: 'continue' };
   }
 
-  public override reset(): void { }
+  public override reset(): void {}
 }
 
 /** Simple retry policy with exponential backoff */

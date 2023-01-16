@@ -1,7 +1,10 @@
 import type { PerformOptions } from '../../interfaces';
 import type { NonPrimitive, Result } from '../../lib';
 import type { UnexpectedError } from '../errors';
-import type { MapInterpreterError, ProfileParameterError } from '../interpreter';
+import type {
+  MapInterpreterError,
+  ProfileParameterError,
+} from '../interpreter';
 import { UseCaseBase } from './usecase';
 
 export class TypedUseCase<
@@ -11,7 +14,12 @@ export class TypedUseCase<
   public async perform(
     input: TInput,
     options?: PerformOptions
-  ): Promise<Result<TOutput, ProfileParameterError | MapInterpreterError | UnexpectedError>> {
+  ): Promise<
+    Result<
+      TOutput,
+      ProfileParameterError | MapInterpreterError | UnexpectedError
+    >
+  > {
     // Disable failover when user specified provider
     // needs to happen here because bindAndPerform is subject to retry from event hooks
     // including provider failover

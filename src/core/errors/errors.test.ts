@@ -53,7 +53,7 @@ describe('errors', () => {
         ['long1', 'long2', 'long3'],
         ['hint1', 'hint2', 'hint3']
       );
-    })
+    });
 
     it('only returns the short message when short format is requested', () => {
       expect(error.formatShort()).toBe('short');

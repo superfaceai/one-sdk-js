@@ -3,31 +3,31 @@ import { ErrorBase, UnexpectedError } from '../errors';
 export type ErrorContext = { path?: string[] };
 export type ValidationError =
   | {
-    kind: 'wrongInput';
-    context?: ErrorContext;
-  }
+      kind: 'wrongInput';
+      context?: ErrorContext;
+    }
   | {
-    kind: 'enumValue';
-    context?: ErrorContext & { actual: string };
-  }
+      kind: 'enumValue';
+      context?: ErrorContext & { actual: string };
+    }
   | {
-    kind: 'wrongType';
-    context: ErrorContext & { expected: string; actual: string };
-  }
+      kind: 'wrongType';
+      context: ErrorContext & { expected: string; actual: string };
+    }
   | { kind: 'notArray'; context: ErrorContext & { input: unknown } }
   | { kind: 'wrongUnion'; context: ErrorContext & { expected: string[] } }
   | {
-    kind: 'elementsInArrayWrong';
-    context: ErrorContext & { suberrors: ValidationError[] };
-  }
+      kind: 'elementsInArrayWrong';
+      context: ErrorContext & { suberrors: ValidationError[] };
+    }
   | {
-    kind: 'missingRequired';
-    context?: ErrorContext & { field: string };
-  }
+      kind: 'missingRequired';
+      context?: ErrorContext & { field: string };
+    }
   | {
-    kind: 'nullInNonNullable';
-    context?: ErrorContext & { field: string };
-  };
+      kind: 'nullInNonNullable';
+      context?: ErrorContext & { field: string };
+    };
 
 export function isWrongTypeError(err: ValidationError): err is {
   kind: 'wrongType';
@@ -98,7 +98,7 @@ export function formatErrors(errors?: ValidationError[]): string {
     .join('\n');
 }
 
-export class ProfileParameterError extends ErrorBase { }
+export class ProfileParameterError extends ErrorBase {}
 
 export class InputValidationError extends ProfileParameterError {
   constructor(public errors?: ValidationError[]) {

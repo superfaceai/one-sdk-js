@@ -399,8 +399,8 @@ AST Path: definitions[0].statements[0].assignments[0].value`
 
       expect(
         result.isErr() &&
-        result.error instanceof MappedHTTPError &&
-        result.error.statusCode
+          result.error instanceof MappedHTTPError &&
+          result.error.statusCode
       ).toEqual(404);
     });
 
@@ -440,8 +440,8 @@ AST Path: definitions[0].statements[0].assignments[0].value`
 
       expect(
         result.isErr() &&
-        result.error instanceof MappedHTTPError &&
-        result.error.properties
+          result.error instanceof MappedHTTPError &&
+          result.error.properties
       ).toEqual({ message: 'Nothing was found' });
       expect(clean).toEqual(true);
     });
@@ -512,8 +512,8 @@ AST Path: definitions[0].statements[0].assignments[0].value`
 
       expect(
         result.isErr() &&
-        result.error instanceof HTTPError &&
-        result.error.statusCode
+          result.error instanceof HTTPError &&
+          result.error.statusCode
       ).toEqual(404);
     });
 

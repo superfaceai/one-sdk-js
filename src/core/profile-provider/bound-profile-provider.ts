@@ -6,16 +6,8 @@ import type {
   SecurityValues,
 } from '@superfaceai/ast';
 
-import type {
-  IConfig,
-  ICrypto,
-  ILogger,
-  LogFunction,
-} from '../../interfaces';
-import type {
-  NonPrimitive,
-  Result,
-} from '../../lib';
+import type { IConfig, ICrypto, ILogger, LogFunction } from '../../interfaces';
+import type { NonPrimitive, Result } from '../../lib';
 import {
   castToNonPrimitive,
   err,
@@ -27,7 +19,13 @@ import {
 import type { SDKExecutionError, UnexpectedError } from '../errors';
 import type { Events, Interceptable } from '../events';
 import { MapInterpreterEventAdapter } from '../events';
-import type { AuthCache, IFetch, MapInterpreterError, ProfileParameterError, SecurityConfiguration } from '../interpreter';
+import type {
+  AuthCache,
+  IFetch,
+  MapInterpreterError,
+  ProfileParameterError,
+  SecurityConfiguration,
+} from '../interpreter';
 import { MapInterpreter, ProfileParameterValidator } from '../interpreter';
 import type { IServiceSelector } from '../services';
 import { resolveIntegrationParameters } from './parameters';
@@ -133,10 +131,10 @@ export class BoundProfileProvider implements IBoundProfileProvider {
 
     const security = securityValues
       ? resolveSecurityConfiguration(
-        this.provider.securitySchemes ?? [],
-        securityValues,
-        this.provider.name
-      )
+          this.provider.securitySchemes ?? [],
+          securityValues,
+          this.provider.name
+        )
       : this.configuration.security;
 
     // create and perform interpreter instance

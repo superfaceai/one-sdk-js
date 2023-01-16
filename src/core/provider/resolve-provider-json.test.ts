@@ -3,9 +3,7 @@ import { err, ok } from '../../lib';
 import { MockFileSystem, mockProviderJson } from '../../mock';
 import { NodeFileSystem } from '../../node';
 import { Config } from '../config';
-import type {
-  FileSystemError
-} from '../errors';
+import type { FileSystemError } from '../errors';
 import {
   NotFoundError,
   providersDoNotMatchError,

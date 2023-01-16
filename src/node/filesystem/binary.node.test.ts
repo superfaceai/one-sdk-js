@@ -343,7 +343,7 @@ describe('Node Binary', () => {
           expect(() => binaryData.chunkBy('a banana?!' as any)).toThrow();
           expect(() => binaryData.chunkBy({} as any)).toThrow();
           expect(() => binaryData.chunkBy([] as any)).toThrow();
-          expect(() => binaryData.chunkBy((() => { }) as any)).toThrow();
+          expect(() => binaryData.chunkBy((() => {}) as any)).toThrow();
           expect(() => binaryData.chunkBy(true as any)).toThrow();
           expect(() =>
             binaryData.chunkBy(Buffer.from('hello world!') as any)

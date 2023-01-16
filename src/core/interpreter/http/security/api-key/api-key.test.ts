@@ -39,7 +39,7 @@ describe('ApiKeyHandler', () => {
     it('sets header to correct value', async () => {
       expect(
         (await apiKeyHandler.authenticate(parameters)).headers?.[
-        'Authorization'
+          'Authorization'
         ]
       ).toEqual('secret');
     });

@@ -211,7 +211,7 @@ export class ProfileProvider {
         parameters: resolveIntegrationParameters(
           providerInfo,
           this.providerConfig.parameters ??
-          this.superJson?.providers[providerInfo.name]?.parameters
+            this.superJson?.providers[providerInfo.name]?.parameters
         ),
       },
       this.crypto,

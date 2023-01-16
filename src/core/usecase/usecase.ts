@@ -40,7 +40,12 @@ import {
   FailurePolicyRouter,
   RetryPolicy,
 } from '../events';
-import type { AuthCache, IFetch, MapInterpreterError, ProfileParameterError } from '../interpreter';
+import type {
+  AuthCache,
+  IFetch,
+  MapInterpreterError,
+  ProfileParameterError,
+} from '../interpreter';
 import type { ProfileBase } from '../profile';
 import type { IBoundProfileProvider } from '../profile-provider';
 import {
@@ -188,7 +193,12 @@ export abstract class UseCaseBase implements Interceptable {
     input?: TInput,
     parameters?: Record<string, string>,
     security?: SecurityValues[]
-  ): Promise<Result<TOutput, ProfileParameterError | MapInterpreterError | UnexpectedError>> {
+  ): Promise<
+    Result<
+      TOutput,
+      ProfileParameterError | MapInterpreterError | UnexpectedError
+    >
+  > {
     if (this.boundProfileProvider === undefined) {
       throw new UnexpectedError(
         'Unreachable code reached: BoundProfileProvider is undefined.'
@@ -214,7 +224,12 @@ export abstract class UseCaseBase implements Interceptable {
   >(
     input?: TInput,
     options?: PerformOptions
-  ): Promise<Result<TOutput, ProfileParameterError | MapInterpreterError | UnexpectedError>> {
+  ): Promise<
+    Result<
+      TOutput,
+      ProfileParameterError | MapInterpreterError | UnexpectedError
+    >
+  > {
     await this.bind(options);
 
     this.log?.('Bound provider: %O', this.boundProfileProvider);
@@ -245,8 +260,10 @@ export abstract class UseCaseBase implements Interceptable {
       console.warn(
         `Super.json sets provider failover priority to: "${profileEntry.priority.join(
           ', '
-        )}" but provider failover is not allowed for usecase "${this.name
-        }".\nTo allow provider failover please set property "providerFailover" in "${profileId}.defaults[${this.name
+        )}" but provider failover is not allowed for usecase "${
+          this.name
+        }".\nTo allow provider failover please set property "providerFailover" in "${profileId}.defaults[${
+          this.name
         }]" to true`
       );
     }
@@ -320,7 +337,7 @@ export abstract class UseCaseBase implements Interceptable {
       policy = new CircuitBreakerPolicy(
         usecaseInfo,
         retryPolicyConfig.maxContiguousRetries ??
-        RetryPolicy.DEFAULT_MAX_CONTIGUOUS_RETRIES,
+          RetryPolicy.DEFAULT_MAX_CONTIGUOUS_RETRIES,
         retryPolicyConfig.openTime ?? CircuitBreakerPolicy.DEFAULT_OPEN_TIME,
         retryPolicyConfig.requestTimeout ?? RetryPolicy.DEFAULT_REQUEST_TIMEOUT,
         backoff
@@ -329,7 +346,7 @@ export abstract class UseCaseBase implements Interceptable {
       policy = new RetryPolicy(
         usecaseInfo,
         retryPolicyConfig.maxContiguousRetries ??
-        RetryPolicy.DEFAULT_MAX_CONTIGUOUS_RETRIES,
+          RetryPolicy.DEFAULT_MAX_CONTIGUOUS_RETRIES,
         retryPolicyConfig.requestTimeout ?? RetryPolicy.DEFAULT_REQUEST_TIMEOUT,
         new ConstantBackoff(0)
       );
@@ -353,7 +370,12 @@ export class UseCase extends UseCaseBase implements IUseCase {
   >(
     input?: TInput,
     options?: PerformOptions
-  ): Promise<Result<TOutput, ProfileParameterError | MapInterpreterError | UnexpectedError>> {
+  ): Promise<
+    Result<
+      TOutput,
+      ProfileParameterError | MapInterpreterError | UnexpectedError
+    >
+  > {
     // Disable failover when user specified provider
     // needs to happen here because bindAndPerform is subject to retry from event hooks
     // including provider failover

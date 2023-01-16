@@ -5,9 +5,7 @@ import { err, ok } from '../../lib';
 import { MockFileSystem, mockMapDocumentNode } from '../../mock';
 import { NodeFileSystem } from '../../node';
 import { Config } from '../config';
-import type {
-  FileSystemError
-} from '../errors';
+import type { FileSystemError } from '../errors';
 import {
   NotFoundError,
   profileIdsDoNotMatchError,

@@ -70,18 +70,18 @@ export type ExecutionSuccess = BaseEvent;
 
 type FailurePolicyReasonData =
   | {
-    kind: 'failure';
-    failure: ExecutionFailure;
-  }
+      kind: 'failure';
+      failure: ExecutionFailure;
+    }
   | {
-    kind: 'policy';
-    reason: string;
-  };
+      kind: 'policy';
+      reason: string;
+    };
 
 export class FailurePolicyReason {
   private prefixMessages: string[] = [];
 
-  private constructor(public readonly data: FailurePolicyReasonData) { }
+  private constructor(public readonly data: FailurePolicyReasonData) {}
 
   public static fromExecutionFailure(
     failure: ExecutionFailure
@@ -172,7 +172,7 @@ export class FailurePolicyReason {
  * 6. If succeeded  - `afterSuccess` is called, cycle ends
  */
 export abstract class FailurePolicy {
-  constructor(public readonly usecaseInfo: UsecaseInfo) { }
+  constructor(public readonly usecaseInfo: UsecaseInfo) {}
 
   /**
    * Notifies a policy that an execution is about to happen.
