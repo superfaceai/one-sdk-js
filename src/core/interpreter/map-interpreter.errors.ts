@@ -31,9 +31,13 @@ export class MapInterpreterErrorBase extends ErrorBase {
     }
 
     const dfs = (
-      current: MapASTNode,
+      current: unknown,
       path: string[] = []
     ): string[] | undefined => {
+      if (typeof current !== 'object' || current === null) {
+        return undefined;
+      }
+
       const newPath = (key: string) =>
         Array.isArray(current)
           ? [
@@ -80,7 +84,7 @@ export class MapASTError
   extends MapInterpreterErrorBase
   implements IMapASTError
 {
-  public name: 'MapASTError' = 'MapASTError';
+  public name = 'MapASTError' as const;
 
   constructor(
     public override message: string,
@@ -91,7 +95,7 @@ export class MapASTError
 }
 
 export class HTTPError extends MapInterpreterErrorBase implements IHTTPError {
-  public name: 'HTTPError' = 'HTTPError';
+  public name = 'HTTPError' as const;
 
   constructor(
     public override message: string,
@@ -115,7 +119,7 @@ export class MappedHTTPError<T>
   extends MapInterpreterErrorBase
   implements IMappedHTTPError<T>
 {
-  public name: 'MappedHTTPError' = 'MappedHTTPError';
+  public name = 'MappedHTTPError' as const;
 
   constructor(
     public override message: string,
@@ -129,7 +133,7 @@ export class MappedHTTPError<T>
   public override toString(): string {
     return [
       `${this.kind}: ${this.message}`,
-      this.properties
+      this.properties !== undefined
         ? 'Properties: ' + JSON.stringify(this.properties, undefined, 2)
         : undefined,
       this.astPath ? `AST Path: ${this.astPath.join('.')}` : undefined,
@@ -146,7 +150,7 @@ export class JessieError
   extends MapInterpreterErrorBase
   implements IJessieError
 {
-  public name: 'JessieError' = 'JessieError';
+  public name = 'JessieError' as const;
 
   constructor(
     public override message: string,
@@ -174,7 +178,7 @@ export class MappedError<T>
   extends MapInterpreterErrorBase
   implements IMappedError<T>
 {
-  public name: 'MappedError' = 'MappedError';
+  public name = 'MappedError' as const;
 
   constructor(
     public override message: string,

@@ -34,7 +34,7 @@ import type {
 import {
   isBinaryData,
   isDestructible,
-  isInitializable
+  isInitializable,
 } from '../../interfaces';
 import type { NonPrimitive, Result, Variables } from '../../lib';
 import {
@@ -292,7 +292,7 @@ abstract class NodeVisitor<N extends MapASTNode, V = undefined>
     return this;
   }
 
-  abstract [Symbol.toStringTag](): string;
+  public abstract [Symbol.toStringTag](): string;
 
   public toString(): string {
     return `${this[Symbol.toStringTag]()}(${this.childIdentifier})`;
@@ -532,7 +532,7 @@ class JessieExpressionVisitor extends NodeVisitor<
     } catch (e) {
       return {
         kind: 'error',
-        error: new JessieError('Error in Jessie script', e, {
+        error: new JessieError('Error in Jessie script', e as Error, {
           node: this.node,
         }),
       };
@@ -550,7 +550,9 @@ class IterationAtomVisitor extends NodeVisitor<
 > {
   private static isIterable(input: unknown): input is Iterable<Variables> {
     return (
-      typeof input === 'object' && input !== null && (Symbol.iterator in input || Symbol.asyncIterator in input)
+      typeof input === 'object' &&
+      input !== null &&
+      (Symbol.iterator in input || Symbol.asyncIterator in input)
     );
   }
 
@@ -759,7 +761,6 @@ class HttpCallStatementVisitor extends NodeVisitor<HttpCallStatementNode> {
         .join(', ');
     }
 
-
     retry: while (true) {
       this.log?.('Performing http request:', this.node.url);
       let response;
@@ -771,7 +772,11 @@ class HttpCallStatementVisitor extends NodeVisitor<HttpCallStatementNode> {
           accept,
           baseUrl: serviceUrl,
           queryParameters: request?.queryParameters,
-          pathParameters: { ...this.stack, input: this.inputParameters, parameters: this.integrationParameters },
+          pathParameters: {
+            ...this.stack,
+            input: this.inputParameters,
+            parameters: this.integrationParameters,
+          },
           body: request?.body,
           securityRequirements: request?.security,
           securityConfiguration: this.securityConfiguration,
@@ -1062,16 +1067,19 @@ class OutcomeStatementVisitor extends NodeVisitor<OutcomeStatementNode> {
 }
 
 export class MapInterpreter<TInput extends NonPrimitive | undefined> {
-  private static async handleFinalOutcome(outcome: VisitorOutcomeValue | undefined, ast: MapDocumentNode): Promise<PerformResult> {
+  private static async handleFinalOutcome(
+    outcome: VisitorOutcomeValue | undefined,
+    ast: MapDocumentNode
+  ): Promise<PerformResult> {
     outcome = outcome ?? { data: undefined };
 
     try {
       if ('error' in outcome) {
-        outcome.error = await MapInterpreter.resolveOutcomeVariables(outcome.error);
-
-        return err(
-          MapInterpreter.wrapOutcomeError(outcome, ast)
+        outcome.error = await MapInterpreter.resolveOutcomeVariables(
+          outcome.error
         );
+
+        return err(MapInterpreter.wrapOutcomeError(outcome, ast));
       } else {
         const data = await MapInterpreter.resolveOutcomeVariables(outcome.data);
 
@@ -1173,7 +1181,11 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined> {
     for (const value of Object.values(input)) {
       if (isInitializable(value)) {
         await value.initialize();
-      } else if (value !== undefined && value !== null && isNonPrimitive(value)) {
+      } else if (
+        value !== undefined &&
+        value !== null &&
+        isNonPrimitive(value)
+      ) {
         await MapInterpreter.initializeInput(value);
       }
     }
@@ -1183,15 +1195,25 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined> {
     for (const value of Object.values(input)) {
       if (isDestructible(value)) {
         await value.destroy();
-      } else if (value !== undefined && value !== null && isNonPrimitive(value)) {
+      } else if (
+        value !== undefined &&
+        value !== null &&
+        isNonPrimitive(value)
+      ) {
         await MapInterpreter.destroyInput(value);
       }
     }
   }
 
-  private static async resolveOutcomeVariables(input: undefined): Promise<undefined>;
-  private static async resolveOutcomeVariables(input: Variables): Promise<Variables>;
-  private static async resolveOutcomeVariables(input: Variables | undefined): Promise<Variables | undefined>;
+  private static async resolveOutcomeVariables(
+    input: undefined
+  ): Promise<undefined>;
+  private static async resolveOutcomeVariables(
+    input: Variables
+  ): Promise<Variables>;
+  private static async resolveOutcomeVariables(
+    input: Variables | undefined
+  ): Promise<Variables | undefined>;
   private static async resolveOutcomeVariables(
     input: Variables | undefined
   ): Promise<Variables | undefined> {
@@ -1241,9 +1263,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined> {
     this.log = logger?.log(DEBUG_NAMESPACE);
   }
 
-  public async perform(
-    ast: MapDocumentNode
-  ): Promise<PerformResult> {
+  public async perform(ast: MapDocumentNode): Promise<PerformResult> {
     const iter = this.performStream(ast);
 
     const result = await iter.next();
@@ -1283,11 +1303,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined> {
 
     // create a visitor of the root node and put it on the stack
     const nodeStack: NodeVisitor<MapASTNode, unknown>[] = [
-      this.createVisitor(
-        entry,
-        {},
-        'root'
-      ),
+      this.createVisitor(entry, {}, 'root'),
     ];
 
     // drive nodes from the stack until empty
@@ -1354,7 +1370,10 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined> {
       }
     }
 
-    const result = await MapInterpreter.handleFinalOutcome(lastResult?.outcome?.value, ast);
+    const result = await MapInterpreter.handleFinalOutcome(
+      lastResult?.outcome?.value,
+      ast
+    );
     if (result.isOk() && this.parameters.input !== undefined) {
       await MapInterpreter.destroyInput(this.parameters.input);
     }

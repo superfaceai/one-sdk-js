@@ -26,11 +26,14 @@ export interface IBinaryDataMeta {
 }
 
 export function isBinaryData(input: unknown): input is IBinaryData {
-  return typeof input === 'object' && input !== null
-    && 'peek' in input
-    && 'getAllData' in input
-    && 'chunkBy' in input
-    && 'toStream' in input;
+  return (
+    typeof input === 'object' &&
+    input !== null &&
+    'peek' in input &&
+    'getAllData' in input &&
+    'chunkBy' in input &&
+    'toStream' in input
+  );
 }
 
 export function isInitializable(input: unknown): input is IInitializable {
@@ -42,5 +45,10 @@ export function isDestructible(input: unknown): input is IDestructible {
 }
 
 export function isBinaryDataMeta(input: unknown): input is IBinaryDataMeta {
-  return typeof input === 'object' && input !== null && 'name' in input && 'mimetype' in input;
+  return (
+    typeof input === 'object' &&
+    input !== null &&
+    'name' in input &&
+    'mimetype' in input
+  );
 }

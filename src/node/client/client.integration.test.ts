@@ -3,7 +3,11 @@ import '../../schema-tools/superjson/utils';
 import type { ProviderJson } from '@superfaceai/ast';
 import { parseMap, parseProfile, Source } from '@superfaceai/parser';
 
-import { resolveMapAst, resolveProfileAst, resolveProviderJson } from '../../core';
+import {
+  resolveMapAst,
+  resolveProfileAst,
+  resolveProviderJson,
+} from '../../core';
 import { ok } from '../../lib';
 import { SuperfaceClient } from './client';
 import { createTypedClient, typeHelper } from './client.typed';
@@ -103,7 +107,9 @@ describe('SuperfaceClient integration test', () => {
 
     // Let .bind happen with mocked inputs
     jest.mocked(resolveProfileAst).mockResolvedValue(mockProfileDocument);
-    jest.mocked(resolveMapAst).mockResolvedValue(mockMapDocumentSuccessWithParameters);
+    jest
+      .mocked(resolveMapAst)
+      .mockResolvedValue(mockMapDocumentSuccessWithParameters);
     jest.mocked(resolveProviderJson).mockResolvedValue(mockProviderJson);
 
     const profile = await client.getProfile('example');
@@ -118,9 +124,10 @@ describe('SuperfaceClient integration test', () => {
 
     // Let .bind happen with mocked inputs
     jest.mocked(resolveProfileAst).mockResolvedValue(mockProfileDocument);
-    jest.mocked(resolveMapAst).mockResolvedValue(mockMapDocumentSuccessWithParameters);
+    jest
+      .mocked(resolveMapAst)
+      .mockResolvedValue(mockMapDocumentSuccessWithParameters);
     jest.mocked(resolveProviderJson).mockResolvedValue(mockProviderJson);
-
 
     const profile = await client.getProfile('example');
 
@@ -143,9 +150,7 @@ describe('SuperfaceClient integration test', () => {
     const input: any = {};
     input.field = null;
 
-    const result = await profile
-      .getUseCase('Test')
-      .perform(input);
+    const result = await profile.getUseCase('Test').perform(input);
 
     expect(result.isOk() && result.value).toEqual(null);
   });

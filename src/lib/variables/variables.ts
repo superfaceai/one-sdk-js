@@ -1,4 +1,4 @@
-import type { IBinaryData} from '../../interfaces';
+import type { IBinaryData } from '../../interfaces';
 import { isBinaryData } from '../../interfaces';
 import { UnexpectedError } from '../error';
 import { indexRecord } from '../object';
@@ -157,8 +157,9 @@ export const variablesToStrings = (
 
   if (variables !== undefined) {
     for (const [key, value] of Object.entries(variables)) {
-      if (value !== undefined) {
-        result[key] = variableToString(value);
+      const variableValue = castToVariables(value);
+      if (variableValue !== undefined) {
+        result[key] = variableToString(variableValue);
       }
     }
   }

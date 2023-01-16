@@ -1,4 +1,4 @@
-import type { IBinaryData, ILogger} from '../../../interfaces';
+import type { IBinaryData, ILogger } from '../../../interfaces';
 import { isBinaryData } from '../../../interfaces';
 import type { MaybePromise } from '../../../lib';
 import {

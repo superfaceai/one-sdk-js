@@ -2,6 +2,7 @@ import { AbortController } from 'abort-controller';
 import FormData from 'form-data';
 import type { HeadersInit, RequestInit, Response } from 'node-fetch';
 import fetch, { Headers } from 'node-fetch';
+import { URLSearchParams } from 'url';
 
 import type {
   AuthCache,
@@ -12,7 +13,8 @@ import type {
   IFetch,
   Interceptable,
   InterceptableMetadata,
-  ITimers} from '../../core';
+  ITimers,
+} from '../../core';
 import {
   BINARY_CONTENT_REGEXP,
   FetchParameters,
@@ -172,7 +174,13 @@ export class NodeFetch implements IFetch, Interceptable, AuthCache {
 
   private body(
     body?: FetchBody
-  ): string | URLSearchParams | FormData | Buffer | NodeJS.ReadableStream | undefined {
+  ):
+    | string
+    | URLSearchParams
+    | FormData
+    | Buffer
+    | NodeJS.ReadableStream
+    | undefined {
     if (body) {
       if (isStringBody(body) || isBinaryBody(body)) {
         if (isBinaryData(body.data)) {
@@ -203,7 +211,10 @@ export class NodeFetch implements IFetch, Interceptable, AuthCache {
           value.forEach(item => formData.append(key, item));
         } else if (isBinaryData(value)) {
           if (isBinaryDataMeta(value)) {
-            formData.append(key, value.toStream(), { contentType: value.mimetype, filename: value.name });
+            formData.append(key, value.toStream(), {
+              contentType: value.mimetype,
+              filename: value.name,
+            });
           } else {
             formData.append(key, value.toStream());
           }

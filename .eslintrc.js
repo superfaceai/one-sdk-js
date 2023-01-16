@@ -7,6 +7,7 @@ module.exports = {
   },
   plugins: [
     '@typescript-eslint',
+    'prettier',
     'jest',
     'simple-import-sort',
     'jest-formatting',
@@ -20,6 +21,7 @@ module.exports = {
     'plugin:import/warnings',
     'plugin:jest/recommended',
     'plugin:jest-formatting/recommended',
+    'plugin:prettier/recommended'
   ],
   rules: {
     'newline-before-return': 'error',
@@ -71,6 +73,7 @@ module.exports = {
         '@typescript-eslint/no-unsafe-assignment': 'off',
         '@typescript-eslint/no-unsafe-member-access': 'off',
         '@typescript-eslint/no-non-null-assertion': 'off',
+        '@typescript-eslint/no-unsafe-argument': 'off'
       },
     },
   ],

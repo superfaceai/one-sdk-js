@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
@@ -156,14 +157,12 @@ export type EventParams = {
     EventTypes[K][1],
     EventTypes[K][0]
   >;
-} &
-  {
-    [K in keyof EventTypes as `post-${K}`]: AfterHook<
-      EventTypes[K][1],
-      EventTypes[K][0]
-    >;
-  } &
-  { [K in keyof VoidEventTypes]: VoidEventHook<VoidEventTypes[K]> };
+} & {
+  [K in keyof EventTypes as `post-${K}`]: AfterHook<
+    EventTypes[K][1],
+    EventTypes[K][0]
+  >;
+} & { [K in keyof VoidEventTypes]: VoidEventHook<VoidEventTypes[K]> };
 
 type EventListeners = {
   [E in keyof EventParams]?: PriorityCallbackTuple[];

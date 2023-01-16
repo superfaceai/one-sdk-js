@@ -1179,7 +1179,8 @@ but http scheme requires: digest`
           new MockEnvironment()
         );
 
-        jest.mocked(fileSystem.readFile)
+        jest
+          .mocked(fileSystem.readFile)
           .mockResolvedValueOnce(ok(JSON.stringify(providerJson)))
           .mockResolvedValueOnce(ok(JSON.stringify(mockMapDocument)));
 
