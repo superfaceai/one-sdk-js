@@ -10,6 +10,7 @@ import type {
   FetchBody,
   FetchError,
   FetchResponse,
+  HttpMultiMap,
   IFetch,
   Interceptable,
   InterceptableMetadata,
@@ -150,7 +151,7 @@ export class NodeFetch implements IFetch, Interceptable, AuthCache {
     return new RequestFetchError('abort');
   }
 
-  private queryParameters(parameters?: Record<string, string | string[]>): string {
+  private queryParameters(parameters?: HttpMultiMap): string {
     if (parameters === undefined || Object.keys(parameters).length === 0) {
       return '';
     }
@@ -228,7 +229,7 @@ export class NodeFetch implements IFetch, Interceptable, AuthCache {
 
   private isBinaryContent(
     responseHeaders: Record<string, string>,
-    requestHeaders?: Record<string, string | string[]>
+    requestHeaders?: HttpMultiMap
   ): boolean {
     if (
       responseHeaders['content-type'] &&

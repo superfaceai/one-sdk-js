@@ -8,6 +8,7 @@ import type { ILogger, LogFunction } from '../../../../../interfaces';
 import type { Variables } from '../../../../../lib';
 import { isPrimitive } from '../../../../../lib';
 import { apiKeyInBodyError } from '../../../../errors';
+import type { HttpMultiMap } from '../../interfaces';
 import type {
   AuthenticateRequestAsync,
   ISecurityHandler,
@@ -32,7 +33,7 @@ export class ApiKeyHandler implements ISecurityHandler {
     parameters: RequestParameters
   ) => {
     let body: Variables | undefined = parameters.body;
-    const headers: Record<string, string | string[]> = parameters.headers ?? {};
+    const headers: HttpMultiMap = parameters.headers ?? {};
     const pathParameters = parameters.pathParameters ?? {};
     const queryParameters = parameters.queryParameters ?? {};
 

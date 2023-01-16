@@ -178,186 +178,6 @@ describe('MapInterpreter', () => {
     expect(result.isOk() && result.value).toEqual(12);
   });
 
-  it('should call an API', async () => {
-    const url = '/twelve';
-    await mockServer.forGet(url).thenJson(
-      200,
-      { data: 12 },
-      {
-        'Content-Type': 'application/json; charset=utf-8',
-        'Content-Language': 'en-US, en-CA',
-      }
-    );
-    const interpreter = new MapInterpreter(
-      {
-        usecase: 'Test',
-        security: [],
-        services: mockServicesSelector,
-      },
-      interpreterDependencies
-    );
-    const ast = parseMapFromSource(`
-      map Test {
-        http GET "${url}" {
-          request {
-            headers {
-              "content-type" = "application/json"
-            }
-          }
-
-          response 200 "application/json" "en-US" {
-            map result body.data
-          }
-        }
-      }`);
-    const result = await interpreter.perform(ast);
-
-    expect(result.isOk() && result.value).toEqual(12);
-  });
-
-  it('should call an API with path parameters', async () => {
-    const url = '/twelve';
-    await mockServer.forGet(url + '/2').thenJson(200, { data: 144 });
-    const interpreter = new MapInterpreter(
-      {
-        usecase: 'Test',
-        input: { page: '2' },
-        security: [],
-        services: mockServicesSelector,
-      },
-      interpreterDependencies
-    );
-    const ast = parseMapFromSource(`
-      map Test {
-        page = input.page
-        http GET "${url}/{page}" {
-          request {
-            headers {
-              "content-type" = "application/json"
-            }
-          }
-
-          response 200 "application/json" "en-US" {
-            map result body.data
-          }
-        }
-      }`);
-    const result = await interpreter.perform(ast);
-
-    expect(result.isOk() && result.value).toEqual(144);
-  });
-
-  it('should correctly trim and parse path parameters in http call', async () => {
-    const url = '/thirteen';
-    await mockServer.forGet(url + '/2/get/now').thenJson(200, { data: 169 });
-
-    const interpreter = new MapInterpreter(
-      {
-        usecase: 'Test',
-        input: { page: '2', cmd: 'get', when: 'now' },
-        security: [],
-        services: mockServicesSelector,
-      },
-      interpreterDependencies
-    );
-    const ast = parseMapFromSource(`
-      map Test {
-        page = input.page
-        http GET "${url}/{ page     	  }/{input.cmd }/{ input.when}" {
-          request {
-            headers {
-              "content-type" = "application/json"
-            }
-          }
-
-          response 200 "application/json" "en-US" {
-            map result body.data
-          }
-        }
-      }`);
-    const result = await interpreter.perform(ast);
-
-    result.unwrap();
-    expect(result.isOk() && result.value).toEqual(169);
-  });
-
-  it('should call an API with parameters', async () => {
-    const url = '/twelve';
-    await mockServer
-      .forGet(url)
-      .withQuery({ page: 2 })
-      .thenJson(200, { data: 144 });
-    const interpreter = new MapInterpreter(
-      {
-        usecase: 'Test',
-        input: { page: 2 },
-        security: [],
-        services: mockServicesSelector,
-      },
-      interpreterDependencies
-    );
-    const ast = parseMapFromSource(`
-      map Test {
-        http GET "${url}" {
-          request {
-            query {
-              page = input.page.toString()
-            }
-            headers {
-              "content-type" = "application/json"
-            }
-          }
-
-          response 200 "application/json" "en-US" {
-            map result body.data
-          }
-        }
-      }`);
-    const result = await interpreter.perform(ast);
-
-    expect(result.unwrap()).toEqual(144);
-  });
-
-  it('should call an API with parameters and POST request', async () => {
-    const url = '/checkBody';
-    await mockServer
-      .forPost(url)
-      .withJsonBody({ anArray: [1, 2, 3] })
-      .withHeaders({ someheader: 'hello' })
-      .thenJson(201, { bodyOk: true, headerOk: true });
-    const interpreter = new MapInterpreter(
-      {
-        usecase: 'Test',
-        security: [],
-        services: mockServicesSelector,
-      },
-      interpreterDependencies
-    );
-    const ast = parseMapFromSource(`
-      map Test {
-        http POST "${url}" {
-          request {
-            headers {
-              someheader = "hello"
-            }
-            body {
-              anArray = [1, 2, 3]
-            }
-          }
-
-          response 201 {
-            map result body
-          }
-        }
-      }`);
-    const result = await interpreter.perform(ast);
-
-    expect(result.isOk() && result.value).toEqual({
-      headerOk: true,
-      bodyOk: true,
-    });
-  });
-
   it('should run multi step operation', async () => {
     const url1 = '/first';
     const url2 = '/second';
@@ -393,234 +213,6 @@ describe('MapInterpreter', () => {
     const result = await interpreter.perform(ast);
 
     expect(result.isOk() && result.value).toEqual(12 * 5);
-  });
-
-  it('should call an API with Basic auth', async () => {
-    const url = '/basic';
-    await mockServer
-      .forGet(url)
-      .withHeaders({ Authorization: 'Basic bmFtZTpwYXNzd29yZA==' })
-      .thenJson(200, { data: 12 });
-    const interpreter = new MapInterpreter(
-      {
-        usecase: 'testCase',
-        security: [
-          {
-            id: 'my_basic',
-            type: SecurityType.HTTP,
-            scheme: HttpScheme.BASIC,
-            username: 'name',
-            password: 'password',
-          },
-        ],
-        services: mockServicesSelector,
-      },
-      interpreterDependencies
-    );
-    const ast = parseMapFromSource(`
-      map testCase {
-        http GET "${url}" {
-          security "my_basic"
-
-          response 200 {
-            return map result body.data
-          }
-        }
-      }`);
-    const result = await interpreter.perform(ast);
-
-    expect(result.isOk() && result.value).toEqual(12);
-  });
-
-  it('should call an API with Bearer auth', async () => {
-    const url = '/bearer';
-    await mockServer
-      .forGet(url)
-      .withHeaders({ Authorization: 'Bearer SuperSecret' })
-      .thenJson(200, { data: 12 });
-    const interpreter = new MapInterpreter(
-      {
-        usecase: 'testCase',
-        security: [
-          {
-            id: 'my_bearer',
-            type: SecurityType.HTTP,
-            scheme: HttpScheme.BEARER,
-            token: 'SuperSecret',
-          },
-        ],
-        services: mockServicesSelector,
-      },
-      interpreterDependencies
-    );
-    const ast = parseMapFromSource(`
-      map testCase {
-        http GET "${url}" {
-          security "my_bearer"
-
-          response 200 {
-            return map result body.data
-          }
-        }
-      }`);
-    const result = await interpreter.perform(ast);
-
-    expect(result.isOk() && result.value).toEqual(12);
-  });
-
-  it('should call an API with Apikey auth in header', async () => {
-    const url = '/apikey';
-    await mockServer
-      .forGet(url)
-      .withHeaders({ Key: 'SuperSecret' })
-      .thenJson(200, { data: 12 });
-    const interpreter = new MapInterpreter(
-      {
-        usecase: 'testCase',
-        security: [
-          {
-            id: 'my_apikey',
-            type: SecurityType.APIKEY,
-            in: ApiKeyPlacement.HEADER,
-            name: 'Key',
-            apikey: 'SuperSecret',
-          },
-        ],
-        services: mockServicesSelector,
-      },
-      interpreterDependencies
-    );
-    const ast = parseMapFromSource(`
-      map testCase {
-        http GET "${url}" {
-          security "my_apikey"
-
-          response 200 {
-            return map result body.data
-          }
-        }
-      }`);
-    const result = await interpreter.perform(ast);
-
-    result.unwrap();
-    expect(result.isOk() && result.value).toEqual(12);
-  });
-
-  it('should call an API with Apikey auth in query', async () => {
-    const url = '/apikey';
-    await mockServer
-      .forGet(url)
-      .withQuery({ key: 'SuperSecret' })
-      .thenJson(200, { data: 12 });
-    const interpreter = new MapInterpreter(
-      {
-        usecase: 'testCase',
-        security: [
-          {
-            id: 'my_apikey',
-            type: SecurityType.APIKEY,
-            in: ApiKeyPlacement.QUERY,
-            name: 'key',
-            apikey: 'SuperSecret',
-          },
-        ],
-        services: mockServicesSelector,
-      },
-      interpreterDependencies
-    );
-    const ast = parseMapFromSource(`
-      map testCase {
-        http GET "${url}" {
-          security "my_apikey"
-
-          response 200 {
-            return map result body.data
-          }
-        }
-      }`);
-    const result = await interpreter.perform(ast);
-    expect(result.isOk() && result.value).toEqual(12);
-  });
-
-  it('should call an API with multipart/form-data body', async () => {
-    const url = '/formdata';
-    await mockServer.forPost(url).thenCallback(async request => {
-      const text = await request.body.getText();
-      if (
-        text !== undefined &&
-        text.includes('formData') &&
-        text.includes('myFormData') &&
-        text.includes('is') &&
-        text.includes('present')
-      ) {
-        return {
-          json: { data: 12 },
-          status: 201,
-        };
-      }
-
-      return { json: { failed: true }, statusCode: 400 };
-    });
-    const interpreter = new MapInterpreter(
-      {
-        usecase: 'testCase',
-        security: [],
-        services: mockServicesSelector,
-      },
-      interpreterDependencies
-    );
-    const ast = parseMapFromSource(`
-      map testCase {
-        http POST "${url}" {
-          request "multipart/form-data" {
-            body {
-              formData = "myFormData"
-              is = "present"
-            }
-          }
-
-          response 201 "application/json" {
-            return map result body.data
-          }
-        }
-      }`);
-    const result = await interpreter.perform(ast);
-
-    expect(result.isOk() && result.value).toEqual(12);
-  });
-
-  it('should call an API with application/x-www-form-urlencoded', async () => {
-    const url = '/urlencoded';
-    await mockServer
-      .forPost(url)
-      .withForm({ form: 'is', o: 'k' })
-      .thenJson(201, { data: 12 });
-    const interpreter = new MapInterpreter(
-      {
-        usecase: 'testCase',
-        security: [],
-        services: mockServicesSelector,
-      },
-      interpreterDependencies
-    );
-    const ast = parseMapFromSource(`
-      map testCase {
-        http POST "${url}" {
-          request "application/x-www-form-urlencoded" {
-            body {
-              form = "is"
-              o = "k"
-            }
-          }
-
-          response 201 "application/json" "en-US" {
-            return map result body.data
-          }
-        }
-      }`);
-    const result = await interpreter.perform(ast);
-
-    expect(result.isOk() && result.value).toEqual(12);
   });
 
   it('should execute Eval definition with nested result', async () => {
@@ -1004,98 +596,6 @@ describe('MapInterpreter', () => {
     expect(result.isOk() && result.value).toEqual({ results: [2, 6] });
   });
 
-  it('should be able to use input in path parameters', async () => {
-    const url = '/twelve';
-    await mockServer.forGet(url).thenJson(200, { data: 12 });
-    const ast = parseMapFromSource(`
-      map Test {
-        http GET "/{input.test}" {
-          response 200 "application/json" {
-            map result {
-              result = body.data
-            }
-          }
-        }
-      }`);
-    const interpreter = new MapInterpreter(
-      {
-        usecase: 'Test',
-        input: { test: 'twelve' },
-        security: [],
-        services: mockServicesSelector,
-      },
-      interpreterDependencies
-    );
-    const result = await interpreter.perform(ast);
-
-    expect(result.isOk() && result.value).toEqual({ result: 12 });
-  });
-
-  it('should strip trailing slash from baseUrl', async () => {
-    await mockServer.forGet('/thirteen').thenJson(200, { data: 12 });
-    const baseUrl = mockServer.urlFor('/thirteen').replace('thirteen', '');
-    expect(baseUrl.split('')[baseUrl.length - 1]).toEqual('/');
-    const ast = parseMapFromSource(`
-      map Test {
-        http GET "/thirteen" {
-          response 200 "application/json" {
-            map result {
-              result = 13
-            }
-          }
-        }
-      }`);
-    const interpreter = new MapInterpreter(
-      {
-        usecase: 'Test',
-        security: [],
-        services: ServiceSelector.withDefaultUrl(baseUrl),
-      },
-      interpreterDependencies
-    );
-    const result = await interpreter.perform(ast);
-
-    expect(result.unwrap()).toEqual({ result: 13 });
-  });
-
-  it('should make response headers accessible', async () => {
-    const url = '/twelve';
-    await mockServer.forGet(url).thenJson(
-      200,
-      {},
-      {
-        'Content-Type': 'application/json; charset=utf-8',
-        'Content-Language': 'en-US, en-CA',
-        Data: '12',
-      }
-    );
-    const interpreter = new MapInterpreter(
-      {
-        usecase: 'Test',
-        security: [],
-        services: mockServicesSelector,
-      },
-      interpreterDependencies
-    );
-    const ast = parseMapFromSource(`
-      map Test {
-        http GET "${url}" {
-          request {
-            headers {
-              "content-type" = "application/json"
-            }
-          }
-
-          response 200 "application/json" "en-US" {
-            map result headers.data
-          }
-        }
-      }`);
-    const result = await interpreter.perform(ast);
-
-    expect(result.isOk() && result.value).toEqual('12');
-  });
-
   it('should use integration parameters in jessie', async () => {
     const ast = parseMapFromSource(`
       map Test {
@@ -1117,60 +617,6 @@ describe('MapInterpreter', () => {
     const result = await interpreter.perform(ast);
 
     expect(result.isOk() && result.value).toEqual('nice!');
-  });
-
-  it('should use integration parameters in URL', async () => {
-    const url = '/twelve';
-    await mockServer.forGet(url).thenJson(200, { data: 12 });
-    const ast = parseMapFromSource(`
-      map Test {
-        http GET "/{parameters.path}" {
-          response 200 "application/json" {
-            map result {
-              result = body.data
-            }
-          }
-        }
-      }`);
-    const interpreter = new MapInterpreter(
-      {
-        usecase: 'Test',
-        parameters: { path: 'twelve' },
-        security: [],
-        services: mockServicesSelector,
-      },
-      interpreterDependencies
-    );
-    const result = await interpreter.perform(ast);
-    expect(result.isOk() && result.value).toEqual({ result: 12 });
-  });
-
-  it('should use integration parameters in baseUrl', async () => {
-    const url = '/twelve/something';
-    await mockServer.forGet(url).thenJson(200, { data: 12 });
-    const ast = parseMapFromSource(`
-      map Test {
-        http GET "/something" {
-          response 200 "application/json" {
-            map result {
-              result = body.data
-            }
-          }
-        }
-      }`);
-    const interpreter = new MapInterpreter(
-      {
-        usecase: 'Test',
-        parameters: { path: 'twelve' },
-        security: [],
-        services: ServiceSelector.withDefaultUrl(
-          `${mockServicesSelector.getUrl()!}/{path}`
-        ),
-      },
-      interpreterDependencies
-    );
-    const result = await interpreter.perform(ast);
-    expect(result.isOk() && result.value).toEqual({ result: 12 });
   });
 
   it('should pass integration parameters to operations', async () => {
@@ -1203,62 +649,6 @@ describe('MapInterpreter', () => {
     const result = await interpreter.perform(ast);
 
     expect(result.isOk() && result.value).toEqual({ x: 13 });
-  });
-
-  it('should correctly select service', async () => {
-    const urlOne = '/one/something';
-    await mockServer.forGet(urlOne).thenJson(200, { data: 1 });
-
-    const urlTwo = '/two/something';
-    await mockServer.forGet(urlTwo).thenJson(200, { data: 2 });
-
-    const urlThree = '/three/something';
-    await mockServer.forGet(urlThree).thenJson(200, { data: 3 });
-
-    const ast = parseMapFromSource(`
-      map Test {
-        value = 0
-
-        http GET default "/something" {
-          response 200 "application/json" {
-            value = value + body.data
-          }
-        }
-
-        http GET "two" "/something" {
-          response 200 "application/json" {
-            value = value + body.data
-          }
-        }
-
-        http GET "three" "/something" {
-          response 200 "application/json" {
-            value = value + body.data
-          }
-        }
-
-        map result {
-          result = value
-        }
-      }`);
-
-    const interpreter = new MapInterpreter(
-      {
-        usecase: 'Test',
-        security: [],
-        services: new ServiceSelector(
-          [
-            { id: 'one', baseUrl: `${mockServicesSelector.getUrl()!}/one` },
-            { id: 'two', baseUrl: `${mockServicesSelector.getUrl()!}/two` },
-            { id: 'three', baseUrl: `${mockServicesSelector.getUrl()!}/three` },
-          ],
-          'one'
-        ),
-      },
-      interpreterDependencies
-    );
-    const result = await interpreter.perform(ast);
-    expect(result.isOk() && result.value).toEqual({ result: 6 });
   });
 
   it('should correctly return error from operation', async () => {
@@ -1681,321 +1071,6 @@ describe('MapInterpreter', () => {
     expect(items).toStrictEqual(expected.toString('binary'));
   });
 
-  it('should send file in its entirety as body', async () => {
-    const filePath = path.resolve(process.cwd(), 'fixtures', 'binary.txt');
-    const file = BinaryData.fromPath(filePath);
-    const expected = await readFile(filePath, 'utf8');
-    await mockServer.forPost('/test').thenCallback(async req => {
-      expect(await req.body.getText()).toStrictEqual(expected);
-
-      return { status: 200, json: { ok: true } };
-    });
-
-    const ast = parseMapFromSource(`
-    map Test {
-      http POST "/test" {
-        request "video/notreallyvideo" {
-          body = input.items
-        }
-
-        response 200 {
-          map result body
-        }
-      }
-    }`);
-
-    const interpreter = new MapInterpreter(
-      {
-        usecase: 'Test',
-        security: [],
-        services: ServiceSelector.withDefaultUrl(mockServer.url),
-        input: {
-          items: file,
-        },
-      },
-      interpreterDependencies
-    );
-
-    const result = await interpreter.perform(ast);
-    if (result.isErr()) {
-      console.error(result.error);
-    }
-    expect(result.isOk()).toBe(true);
-
-    const response = result.unwrap();
-    expect(response).toStrictEqual({ ok: true });
-  });
-
-  it('should send file in its entirety as FormData', async () => {
-    const filePath = path.resolve(process.cwd(), 'fixtures', 'binary.txt');
-    const file = BinaryData.fromPath(filePath);
-    const expected = await readFile(filePath, 'utf8');
-    await mockServer.forPost('/test').thenCallback(async req => {
-      const data = await req.body.getText();
-      expect(data).toMatch(expected);
-
-      return { status: 200, json: { ok: true } };
-    });
-
-    const ast = parseMapFromSource(`
-    map Test {
-      http POST "/test" {
-        request "multipart/form-data" {
-          body = {
-            data: input.items
-          }
-        }
-
-        response 200 {
-          map result body
-        }
-      }
-    }`);
-
-    const interpreter = new MapInterpreter(
-      {
-        usecase: 'Test',
-        security: [],
-        services: ServiceSelector.withDefaultUrl(mockServer.url),
-        input: {
-          items: file,
-        },
-      },
-      interpreterDependencies
-    );
-
-    const result = await interpreter.perform(ast);
-    if (result.isErr()) {
-      console.error(result.error);
-    }
-    expect(result.isOk()).toBe(true);
-
-    const response = result.unwrap();
-    expect(response).toStrictEqual({ ok: true });
-  });
-
-  it('should send file in its entirety as FormData with passed mimetype and filename', async () => {
-    const filePath = path.resolve(process.cwd(), 'fixtures', 'binary.txt');
-    const file = BinaryData.fromPath(filePath, {
-      name: 'test.txt',
-      mimetype: 'text/plain',
-    });
-
-    await mockServer.forPost('/test').thenCallback(async req => {
-      const data = await req.body.getText();
-      expect(data).toContain(
-        'Content-Disposition: form-data; name="file"; filename="test.txt"'
-      );
-      expect(data).toContain('Content-Type: text/plain');
-
-      return { status: 200, json: { ok: true } };
-    });
-
-    const ast = parseMapFromSource(`
-    map Test {
-      http POST "/test" {
-        request "multipart/form-data" {
-          body = {
-            file: input.file
-          }
-        }
-
-        response 200 {
-          map result body
-        }
-      }
-    }`);
-
-    const interpreter = new MapInterpreter(
-      {
-        usecase: 'Test',
-        security: [],
-        services: ServiceSelector.withDefaultUrl(mockServer.url),
-        input: {
-          file,
-        },
-      },
-      interpreterDependencies
-    );
-
-    const result = await interpreter.perform(ast);
-    if (result.isErr()) {
-      console.error(result.error);
-    }
-    expect(result.isOk()).toBe(true);
-
-    const response = result.unwrap();
-    expect(response).toStrictEqual({ ok: true });
-  });
-
-  it('should send file with set name and mimetype from map', async () => {
-    const filePath = path.resolve(process.cwd(), 'fixtures', 'binary.txt');
-    const file = BinaryData.fromPath(filePath);
-
-    await mockServer.forPost('/test').thenCallback(async req => {
-      const data = await req.body.getText();
-
-      expect(data).toContain(
-        'Content-Disposition: form-data; name="file"; filename="mapset.txt"'
-      );
-      expect(data).toContain('Content-Type: vnd.test/mapset');
-
-      return { status: 200, json: { ok: true } };
-    });
-
-    const ast = parseMapFromSource(`
-    map Test {
-      // need to do comlink variable assign to be able to use Script expression
-      tmp = (input.file.name = input.filename)
-      tmp = (input.file.mimetype = input.mimetype)
-
-      http POST "/test" {
-        request "multipart/form-data" {
-          body = {
-            file: input.file
-          }
-        }
-
-        response 200 {
-          map result body
-        }
-      }
-    }`);
-
-    const interpreter = new MapInterpreter(
-      {
-        usecase: 'Test',
-        security: [],
-        services: ServiceSelector.withDefaultUrl(mockServer.url),
-        input: {
-          file,
-          filename: 'mapset.txt',
-          mimetype: 'vnd.test/mapset',
-        },
-      },
-      interpreterDependencies
-    );
-
-    const result = await interpreter.perform(ast);
-    if (result.isErr()) {
-      console.error(result.error);
-    }
-    expect(result.isOk()).toBe(true);
-
-    const response = result.unwrap();
-    expect(response).toStrictEqual({ ok: true });
-  });
-
-  it('should correctly send request to / relative url', async () => {
-    const url = '/';
-    await mockServer.forGet(url).thenJson(200, { data: 12 });
-
-    const ast = parseMapFromSource(`
-    map Test {
-      http GET "/" {
-        response 200 {
-          return map result body.data
-        }
-      }
-
-      map error "wrong"
-    }
-    `);
-
-    const interpreter = new MapInterpreter(
-      {
-        usecase: 'Test',
-        security: [],
-        services: ServiceSelector.withDefaultUrl(
-          mockServicesSelector.getUrl()!
-        ),
-        input: {},
-      },
-      interpreterDependencies
-    );
-
-    const result = await interpreter.perform(ast);
-    expect(result.isOk()).toBe(true);
-
-    expect(result.unwrap()).toStrictEqual(12);
-  });
-
-  it('should return ArrayBuffer for binary response', async () => {
-    const url = '/twelve';
-    const filePath = path.resolve(process.cwd(), 'fixtures', 'binary.txt');
-    await mockServer.forGet(url).thenFromFile(200, filePath, {
-      'content-type': 'application/octet-stream',
-    });
-
-    const interpreter = new MapInterpreter(
-      {
-        usecase: 'Test',
-        security: [],
-        services: mockServicesSelector,
-      },
-      interpreterDependencies
-    );
-    const ast = parseMapFromSource(`
-      map Test {
-        http GET "${url}" {
-          response 200 "application/octet-stream" {
-            map result body
-          }
-        }
-      }`);
-    const result = await interpreter.perform(ast);
-    const expected = (await readFile(filePath)).toString('utf8');
-
-    expect(result.unwrap() instanceof ArrayBuffer).toBe(true);
-    expect(Buffer.from(result.unwrap() as ArrayBuffer).toString('utf8')).toBe(
-      expected
-    );
-  });
-
-  it('should handle null when resolving variables', async () => {
-    const interpreter = new MapInterpreter(
-      {
-        usecase: 'Test',
-        security: [],
-        services: mockServicesSelector,
-        input: {},
-      },
-      interpreterDependencies
-    );
-    const ast = parseMapFromSource(`
-      map Test {
-        map result {
-          field = null
-        }
-      }`);
-    const result = await interpreter.perform(ast);
-
-    expect(result.unwrap()).toEqual({ field: null });
-  });
-
-  it('should handle null in input value', async () => {
-    const interpreter = new MapInterpreter(
-      {
-        usecase: 'Test',
-        security: [],
-        services: mockServicesSelector,
-        input: {
-          field: null,
-        } as any,
-      },
-      interpreterDependencies
-    );
-    const ast = parseMapFromSource(`
-      map Test {
-        map result {
-          field = input.field
-        }
-      }`);
-    const result = await interpreter.perform(ast);
-
-    expect(result.unwrap()).toEqual({ field: null });
-  });
-
   it('should allow success outcome to be undefined', async () => {
     const ast = parseMapFromSource(`
     map Test {
@@ -2069,6 +1144,907 @@ describe('MapInterpreter', () => {
     expect(result.isOk() && result.value).toStrictEqual('1');
   });
 
+  describe('http call', () => {
+    it('should call an API', async () => {
+      const url = '/twelve';
+      await mockServer.forGet(url).thenJson(
+        200,
+        { data: 12 },
+        {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Content-Language': 'en-US, en-CA',
+        }
+      );
+      const interpreter = new MapInterpreter(
+        {
+          usecase: 'Test',
+          security: [],
+          services: mockServicesSelector,
+        },
+        interpreterDependencies
+      );
+      const ast = parseMapFromSource(`
+      map Test {
+        http GET "${url}" {
+          request {
+            headers {
+              "content-type" = "application/json"
+            }
+          }
+
+          response 200 "application/json" "en-US" {
+            map result body.data
+          }
+        }
+      }`);
+      const result = await interpreter.perform(ast);
+
+      expect(result.isOk() && result.value).toEqual(12);
+    });
+
+    it('should correctly send request to / relative url', async () => {
+      const url = '/';
+      await mockServer.forGet(url).thenJson(200, { data: 12 });
+
+      const ast = parseMapFromSource(`
+    map Test {
+      http GET "/" {
+        response 200 {
+          return map result body.data
+        }
+      }
+
+      map error "wrong"
+    }
+    `);
+
+      const interpreter = new MapInterpreter(
+        {
+          usecase: 'Test',
+          security: [],
+          services: ServiceSelector.withDefaultUrl(
+            mockServicesSelector.getUrl()!
+          ),
+          input: {},
+        },
+        interpreterDependencies
+      );
+
+      const result = await interpreter.perform(ast);
+      expect(result.isOk()).toBe(true);
+
+      expect(result.unwrap()).toStrictEqual(12);
+    });
+
+    it('should call an API with Basic auth', async () => {
+      const url = '/basic';
+      await mockServer
+        .forGet(url)
+        .withHeaders({ Authorization: 'Basic bmFtZTpwYXNzd29yZA==' })
+        .thenJson(200, { data: 12 });
+      const interpreter = new MapInterpreter(
+        {
+          usecase: 'testCase',
+          security: [
+            {
+              id: 'my_basic',
+              type: SecurityType.HTTP,
+              scheme: HttpScheme.BASIC,
+              username: 'name',
+              password: 'password',
+            },
+          ],
+          services: mockServicesSelector,
+        },
+        interpreterDependencies
+      );
+      const ast = parseMapFromSource(`
+      map testCase {
+        http GET "${url}" {
+          security "my_basic"
+
+          response 200 {
+            return map result body.data
+          }
+        }
+      }`);
+      const result = await interpreter.perform(ast);
+
+      expect(result.isOk() && result.value).toEqual(12);
+    });
+
+    it('should call an API with Bearer auth', async () => {
+      const url = '/bearer';
+      await mockServer
+        .forGet(url)
+        .withHeaders({ Authorization: 'Bearer SuperSecret' })
+        .thenJson(200, { data: 12 });
+      const interpreter = new MapInterpreter(
+        {
+          usecase: 'testCase',
+          security: [
+            {
+              id: 'my_bearer',
+              type: SecurityType.HTTP,
+              scheme: HttpScheme.BEARER,
+              token: 'SuperSecret',
+            },
+          ],
+          services: mockServicesSelector,
+        },
+        interpreterDependencies
+      );
+      const ast = parseMapFromSource(`
+      map testCase {
+        http GET "${url}" {
+          security "my_bearer"
+
+          response 200 {
+            return map result body.data
+          }
+        }
+      }`);
+      const result = await interpreter.perform(ast);
+
+      expect(result.isOk() && result.value).toEqual(12);
+    });
+
+    it('should call an API with Apikey auth in header', async () => {
+      const url = '/apikey';
+      await mockServer
+        .forGet(url)
+        .withHeaders({ Key: 'SuperSecret' })
+        .thenJson(200, { data: 12 });
+      const interpreter = new MapInterpreter(
+        {
+          usecase: 'testCase',
+          security: [
+            {
+              id: 'my_apikey',
+              type: SecurityType.APIKEY,
+              in: ApiKeyPlacement.HEADER,
+              name: 'Key',
+              apikey: 'SuperSecret',
+            },
+          ],
+          services: mockServicesSelector,
+        },
+        interpreterDependencies
+      );
+      const ast = parseMapFromSource(`
+      map testCase {
+        http GET "${url}" {
+          security "my_apikey"
+
+          response 200 {
+            return map result body.data
+          }
+        }
+      }`);
+      const result = await interpreter.perform(ast);
+
+      result.unwrap();
+      expect(result.isOk() && result.value).toEqual(12);
+    });
+
+    it('should call an API with Apikey auth in query', async () => {
+      const url = '/apikey';
+      await mockServer
+        .forGet(url)
+        .withQuery({ key: 'SuperSecret' })
+        .thenJson(200, { data: 12 });
+      const interpreter = new MapInterpreter(
+        {
+          usecase: 'testCase',
+          security: [
+            {
+              id: 'my_apikey',
+              type: SecurityType.APIKEY,
+              in: ApiKeyPlacement.QUERY,
+              name: 'key',
+              apikey: 'SuperSecret',
+            },
+          ],
+          services: mockServicesSelector,
+        },
+        interpreterDependencies
+      );
+      const ast = parseMapFromSource(`
+      map testCase {
+        http GET "${url}" {
+          security "my_apikey"
+
+          response 200 {
+            return map result body.data
+          }
+        }
+      }`);
+      const result = await interpreter.perform(ast);
+      expect(result.isOk() && result.value).toEqual(12);
+    });
+
+    it('should call an API with multipart/form-data body', async () => {
+      const url = '/formdata';
+      await mockServer.forPost(url).thenCallback(async request => {
+        const text = await request.body.getText();
+        if (
+          text !== undefined &&
+          text.includes('formData') &&
+          text.includes('myFormData') &&
+          text.includes('is') &&
+          text.includes('present')
+        ) {
+          return {
+            json: { data: 12 },
+            status: 201,
+          };
+        }
+
+        return { json: { failed: true }, statusCode: 400 };
+      });
+      const interpreter = new MapInterpreter(
+        {
+          usecase: 'testCase',
+          security: [],
+          services: mockServicesSelector,
+        },
+        interpreterDependencies
+      );
+      const ast = parseMapFromSource(`
+      map testCase {
+        http POST "${url}" {
+          request "multipart/form-data" {
+            body {
+              formData = "myFormData"
+              is = "present"
+            }
+          }
+
+          response 201 "application/json" {
+            return map result body.data
+          }
+        }
+      }`);
+      const result = await interpreter.perform(ast);
+
+      expect(result.isOk() && result.value).toEqual(12);
+    });
+
+    it('should call an API with application/x-www-form-urlencoded', async () => {
+      const url = '/urlencoded';
+      await mockServer
+        .forPost(url)
+        .withForm({ form: 'is', o: 'k' })
+        .thenJson(201, { data: 12 });
+      const interpreter = new MapInterpreter(
+        {
+          usecase: 'testCase',
+          security: [],
+          services: mockServicesSelector,
+        },
+        interpreterDependencies
+      );
+      const ast = parseMapFromSource(`
+      map testCase {
+        http POST "${url}" {
+          request "application/x-www-form-urlencoded" {
+            body {
+              form = "is"
+              o = "k"
+            }
+          }
+
+          response 201 "application/json" "en-US" {
+            return map result body.data
+          }
+        }
+      }`);
+      const result = await interpreter.perform(ast);
+
+      expect(result.isOk() && result.value).toEqual(12);
+    });
+
+    it.each([
+      ['param', 'param'],
+      [2, '2'],
+      [true, 'true']
+    ])('should call an API with path parameter "%s"', async (value, expected) => {
+      const url = '/twelve';
+      await mockServer.forGet(`${url}/${expected}`).thenJson(200, { data: 144 });
+      const interpreter = new MapInterpreter(
+        {
+          usecase: 'Test',
+          input: { page: value },
+          security: [],
+          services: mockServicesSelector,
+        },
+        interpreterDependencies
+      );
+      const ast = parseMapFromSource(`
+      map Test {
+        page = input.page
+        http GET "${url}/{page}" {
+          request {
+            headers {
+              "content-type" = "application/json"
+            }
+          }
+
+          response 200 "application/json" "en-US" {
+            map result body.data
+          }
+        }
+      }`);
+      const result = await interpreter.perform(ast);
+
+      expect(result.unwrap()).toEqual(144);
+    });
+
+    it('should be able to use input in path parameters', async () => {
+      const url = '/twelve';
+      await mockServer.forGet(url).thenJson(200, { data: 12 });
+      const ast = parseMapFromSource(`
+      map Test {
+        http GET "/{input.test}" {
+          response 200 "application/json" {
+            map result {
+              result = body.data
+            }
+          }
+        }
+      }`);
+      const interpreter = new MapInterpreter(
+        {
+          usecase: 'Test',
+          input: { test: 'twelve' },
+          security: [],
+          services: mockServicesSelector,
+        },
+        interpreterDependencies
+      );
+      const result = await interpreter.perform(ast);
+
+      expect(result.isOk() && result.value).toEqual({ result: 12 });
+    });
+
+    it('should correctly trim and parse path parameters in http call', async () => {
+      const url = '/thirteen';
+      await mockServer.forGet(url + '/2/get/now').thenJson(200, { data: 169 });
+
+      const interpreter = new MapInterpreter(
+        {
+          usecase: 'Test',
+          input: { page: '2', cmd: 'get', when: 'now' },
+          security: [],
+          services: mockServicesSelector,
+        },
+        interpreterDependencies
+      );
+      const ast = parseMapFromSource(`
+      map Test {
+        page = input.page
+        http GET "${url}/{ page     	  }/{input.cmd }/{ input.when}" {
+          request {
+            headers {
+              "content-type" = "application/json"
+            }
+          }
+
+          response 200 "application/json" "en-US" {
+            map result body.data
+          }
+        }
+      }`);
+      const result = await interpreter.perform(ast);
+
+      result.unwrap();
+      expect(result.isOk() && result.value).toEqual(169);
+    });
+
+    it.each([
+      ['"hello"', 'hello'],
+      ['2', '2'],
+      ['false', 'false'],
+      ['[1, true, "hi"]', ['1', 'true', 'hi']]
+    ])('should send a POST request with header "%s" and receive it back', async (value, expected) => {
+      const url = '/checkBody';
+      await mockServer
+        .forPost(url)
+        .withJsonBody({ anArray: [1, 2, 3] })
+        .thenCallback(req => {
+          expect(req.headers['someheader']).toStrictEqual(expected);
+
+          return {
+            statusCode: 201,
+            headers: {
+              // TODO: an array here gets joined by `, ` instead of sent as multiple header lines
+              // not sure if we can force mockttp to not join it
+              test: req.headers['someheader']
+            },
+            json: { bodyOk: true, headerOk: true },
+          };
+        });
+      const interpreter = new MapInterpreter(
+        {
+          usecase: 'Test',
+          security: [],
+          services: mockServicesSelector,
+        },
+        interpreterDependencies
+      );
+      const ast = parseMapFromSource(`
+      map Test {
+        http POST "${url}" {
+          request {
+            headers {
+              someheader = ${value}
+            }
+            body {
+              anArray = [1, 2, 3]
+            }
+          }
+
+          response 201 {
+            map result {
+              bodyOk: body.bodyOk,
+              headerOk: body.headerOk,
+              headerTest: headers["test"]
+            }
+          }
+        }
+      }`);
+      const result = await interpreter.perform(ast);
+
+      expect(result.unwrap()).toEqual({
+        headerOk: true,
+        bodyOk: true,
+        headerTest: expected
+      });
+    });
+
+    it.each([
+      ['2', '2'],
+      [2, '2'],
+      [true, 'true']
+    ])('should call an API with query parameter "%s"', async (value, expected) => {
+      const url = '/twelve';
+      await mockServer
+        .forGet(url)
+        .withQuery({ page: expected })
+        .thenJson(200, { data: 144 });
+      const interpreter = new MapInterpreter(
+        {
+          usecase: 'Test',
+          input: { page: value },
+          security: [],
+          services: mockServicesSelector,
+        },
+        interpreterDependencies
+      );
+      const ast = parseMapFromSource(`
+      map Test {
+        http GET "${url}" {
+          request {
+            query {
+              page = input.page.toString()
+            }
+            headers {
+              "content-type" = "application/json"
+            }
+          }
+
+          response 200 "application/json" "en-US" {
+            map result body.data
+          }
+        }
+      }`);
+      const result = await interpreter.perform(ast);
+
+      expect(result.unwrap()).toEqual(144);
+    });
+
+    it('should strip trailing slash from baseUrl', async () => {
+      await mockServer.forGet('/thirteen').thenJson(200, { data: 12 });
+      const baseUrl = mockServer.urlFor('/thirteen').replace('thirteen', '');
+      expect(baseUrl.split('')[baseUrl.length - 1]).toEqual('/');
+      const ast = parseMapFromSource(`
+      map Test {
+        http GET "/thirteen" {
+          response 200 "application/json" {
+            map result {
+              result = 13
+            }
+          }
+        }
+      }`);
+      const interpreter = new MapInterpreter(
+        {
+          usecase: 'Test',
+          security: [],
+          services: ServiceSelector.withDefaultUrl(baseUrl),
+        },
+        interpreterDependencies
+      );
+      const result = await interpreter.perform(ast);
+
+      expect(result.unwrap()).toEqual({ result: 13 });
+    });
+
+    it('should make response headers accessible', async () => {
+      const url = '/twelve';
+      await mockServer.forGet(url).thenJson(
+        200,
+        {},
+        {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Content-Language': 'en-US, en-CA',
+          Data: '12',
+        }
+      );
+      const interpreter = new MapInterpreter(
+        {
+          usecase: 'Test',
+          security: [],
+          services: mockServicesSelector,
+        },
+        interpreterDependencies
+      );
+      const ast = parseMapFromSource(`
+      map Test {
+        http GET "${url}" {
+          request {
+            headers {
+              "content-type" = "application/json"
+            }
+          }
+
+          response 200 "application/json" "en-US" {
+            map result headers.data
+          }
+        }
+      }`);
+      const result = await interpreter.perform(ast);
+
+      expect(result.isOk() && result.value).toEqual('12');
+    });
+
+    it('should use integration parameters in URL', async () => {
+      const url = '/twelve';
+      await mockServer.forGet(url).thenJson(200, { data: 12 });
+      const ast = parseMapFromSource(`
+      map Test {
+        http GET "/{parameters.path}" {
+          response 200 "application/json" {
+            map result {
+              result = body.data
+            }
+          }
+        }
+      }`);
+      const interpreter = new MapInterpreter(
+        {
+          usecase: 'Test',
+          parameters: { path: 'twelve' },
+          security: [],
+          services: mockServicesSelector,
+        },
+        interpreterDependencies
+      );
+      const result = await interpreter.perform(ast);
+      expect(result.isOk() && result.value).toEqual({ result: 12 });
+    });
+
+    it('should use integration parameters in baseUrl', async () => {
+      const url = '/twelve/something';
+      await mockServer.forGet(url).thenJson(200, { data: 12 });
+      const ast = parseMapFromSource(`
+      map Test {
+        http GET "/something" {
+          response 200 "application/json" {
+            map result {
+              result = body.data
+            }
+          }
+        }
+      }`);
+      const interpreter = new MapInterpreter(
+        {
+          usecase: 'Test',
+          parameters: { path: 'twelve' },
+          security: [],
+          services: ServiceSelector.withDefaultUrl(
+            `${mockServicesSelector.getUrl()!}/{path}`
+          ),
+        },
+        interpreterDependencies
+      );
+      const result = await interpreter.perform(ast);
+      expect(result.isOk() && result.value).toEqual({ result: 12 });
+    });
+
+    it('should correctly select service', async () => {
+      const urlOne = '/one/something';
+      await mockServer.forGet(urlOne).thenJson(200, { data: 1 });
+
+      const urlTwo = '/two/something';
+      await mockServer.forGet(urlTwo).thenJson(200, { data: 2 });
+
+      const urlThree = '/three/something';
+      await mockServer.forGet(urlThree).thenJson(200, { data: 3 });
+
+      const ast = parseMapFromSource(`
+      map Test {
+        value = 0
+
+        http GET default "/something" {
+          response 200 "application/json" {
+            value = value + body.data
+          }
+        }
+
+        http GET "two" "/something" {
+          response 200 "application/json" {
+            value = value + body.data
+          }
+        }
+
+        http GET "three" "/something" {
+          response 200 "application/json" {
+            value = value + body.data
+          }
+        }
+
+        map result {
+          result = value
+        }
+      }`);
+
+      const interpreter = new MapInterpreter(
+        {
+          usecase: 'Test',
+          security: [],
+          services: new ServiceSelector(
+            [
+              { id: 'one', baseUrl: `${mockServicesSelector.getUrl()!}/one` },
+              { id: 'two', baseUrl: `${mockServicesSelector.getUrl()!}/two` },
+              { id: 'three', baseUrl: `${mockServicesSelector.getUrl()!}/three` },
+            ],
+            'one'
+          ),
+        },
+        interpreterDependencies
+      );
+      const result = await interpreter.perform(ast);
+      expect(result.isOk() && result.value).toEqual({ result: 6 });
+    });
+
+    it('should send file in its entirety as body', async () => {
+      const filePath = path.resolve(process.cwd(), 'fixtures', 'binary.txt');
+      const file = BinaryData.fromPath(filePath);
+      const expected = await readFile(filePath, 'utf8');
+      await mockServer.forPost('/test').thenCallback(async req => {
+        expect(await req.body.getText()).toStrictEqual(expected);
+
+        return { status: 200, json: { ok: true } };
+      });
+
+      const ast = parseMapFromSource(`
+    map Test {
+      http POST "/test" {
+        request "video/notreallyvideo" {
+          body = input.items
+        }
+
+        response 200 {
+          map result body
+        }
+      }
+    }`);
+
+      const interpreter = new MapInterpreter(
+        {
+          usecase: 'Test',
+          security: [],
+          services: ServiceSelector.withDefaultUrl(mockServer.url),
+          input: {
+            items: file,
+          },
+        },
+        interpreterDependencies
+      );
+
+      const result = await interpreter.perform(ast);
+      if (result.isErr()) {
+        console.error(result.error);
+      }
+      expect(result.isOk()).toBe(true);
+
+      const response = result.unwrap();
+      expect(response).toStrictEqual({ ok: true });
+    });
+
+    it('should send file in its entirety as FormData', async () => {
+      const filePath = path.resolve(process.cwd(), 'fixtures', 'binary.txt');
+      const file = BinaryData.fromPath(filePath);
+      const expected = await readFile(filePath, 'utf8');
+      await mockServer.forPost('/test').thenCallback(async req => {
+        const data = await req.body.getText();
+        expect(data).toMatch(expected);
+
+        return { status: 200, json: { ok: true } };
+      });
+
+      const ast = parseMapFromSource(`
+    map Test {
+      http POST "/test" {
+        request "multipart/form-data" {
+          body = {
+            data: input.items
+          }
+        }
+
+        response 200 {
+          map result body
+        }
+      }
+    }`);
+
+      const interpreter = new MapInterpreter(
+        {
+          usecase: 'Test',
+          security: [],
+          services: ServiceSelector.withDefaultUrl(mockServer.url),
+          input: {
+            items: file,
+          },
+        },
+        interpreterDependencies
+      );
+
+      const result = await interpreter.perform(ast);
+      if (result.isErr()) {
+        console.error(result.error);
+      }
+      expect(result.isOk()).toBe(true);
+
+      const response = result.unwrap();
+      expect(response).toStrictEqual({ ok: true });
+    });
+
+    it('should send file in its entirety as FormData with passed mimetype and filename', async () => {
+      const filePath = path.resolve(process.cwd(), 'fixtures', 'binary.txt');
+      const file = BinaryData.fromPath(filePath, { name: 'test.txt', mimetype: 'text/plain' });
+
+      await mockServer.forPost('/test').thenCallback(async req => {
+        const data = await req.body.getText();
+        expect(data).toContain('Content-Disposition: form-data; name="file"; filename="test.txt"');
+        expect(data).toContain('Content-Type: text/plain');
+
+        return { status: 200, json: { ok: true } };
+      });
+
+      const ast = parseMapFromSource(`
+    map Test {
+      http POST "/test" {
+        request "multipart/form-data" {
+          body = {
+            file: input.file
+          }
+        }
+
+        response 200 {
+          map result body
+        }
+      }
+    }`);
+
+      const interpreter = new MapInterpreter(
+        {
+          usecase: 'Test',
+          security: [],
+          services: ServiceSelector.withDefaultUrl(mockServer.url),
+          input: {
+            file,
+          },
+        },
+        interpreterDependencies
+      );
+
+      const result = await interpreter.perform(ast);
+      if (result.isErr()) {
+        console.error(result.error);
+      }
+      expect(result.isOk()).toBe(true);
+
+      const response = result.unwrap();
+      expect(response).toStrictEqual({ ok: true });
+    });
+
+    it('should send file with set name and mimetype from map', async () => {
+      const filePath = path.resolve(process.cwd(), 'fixtures', 'binary.txt');
+      const file = BinaryData.fromPath(filePath);
+
+      await mockServer.forPost('/test').thenCallback(async req => {
+        const data = await req.body.getText();
+
+        expect(data).toContain('Content-Disposition: form-data; name="file"; filename="mapset.txt"');
+        expect(data).toContain('Content-Type: vnd.test/mapset');
+
+        return { status: 200, json: { ok: true } };
+      });
+
+      const ast = parseMapFromSource(`
+    map Test {
+      // need to do comlink variable assign to be able to use Script expression
+      tmp = (input.file.name = input.filename)
+      tmp = (input.file.mimetype = input.mimetype)
+
+      http POST "/test" {
+        request "multipart/form-data" {
+          body = {
+            file: input.file
+          }
+        }
+
+        response 200 {
+          map result body
+        }
+      }
+    }`);
+
+      const interpreter = new MapInterpreter(
+        {
+          usecase: 'Test',
+          security: [],
+          services: ServiceSelector.withDefaultUrl(mockServer.url),
+          input: {
+            file,
+            filename: 'mapset.txt',
+            mimetype: 'vnd.test/mapset'
+          },
+        },
+        interpreterDependencies
+      );
+
+      const result = await interpreter.perform(ast);
+      if (result.isErr()) {
+        console.error(result.error);
+      }
+      expect(result.isOk()).toBe(true);
+
+      const response = result.unwrap();
+      expect(response).toStrictEqual({ ok: true });
+    });
+
+    it('should return ArrayBuffer for binary response', async () => {
+      const url = '/twelve';
+      const filePath = path.resolve(process.cwd(), 'fixtures', 'binary.txt');
+      await mockServer.forGet(url).thenFromFile(200, filePath, { 'content-type': 'application/octet-stream' });
+
+      const interpreter = new MapInterpreter(
+        {
+          usecase: 'Test',
+          security: [],
+          services: mockServicesSelector,
+        },
+        interpreterDependencies
+      );
+      const ast = parseMapFromSource(`
+      map Test {
+        http GET "${url}" {
+          response 200 "application/octet-stream" {
+            map result body
+          }
+        }
+      }`);
+      const result = await interpreter.perform(ast);
+      const expected = (await readFile(filePath)).toString('utf8');
+
+      expect(result.unwrap() instanceof ArrayBuffer).toBe(true);
+      expect(Buffer.from(result.unwrap() as ArrayBuffer).toString('utf8')).toBe(expected);
+    });
+  });
+
   describe('None type', () => {
     it.each([
       // this is an invalid use of the perform API, so we are just looking for sane behavior - it fails because input is not defined
@@ -2101,7 +2077,7 @@ describe('MapInterpreter', () => {
     it.each([
       // invalid use of API
       [null, err(expect.any(JessieError))],
-      [undefined, err(expect.any(JessieError))], 
+      [undefined, err(expect.any(JessieError))],
       // not touched
       [{ foo: null }, ok({ foo: null })],
       [{ foo: undefined }, ok({ foo: undefined })]

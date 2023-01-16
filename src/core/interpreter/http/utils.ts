@@ -1,41 +1,72 @@
-import type { ILogger } from '../../../interfaces';
+import type { ILogger, LogFunction } from '../../../interfaces';
 import type {
   NonPrimitive,
   Result
 } from '../../../lib';
-import { err,
+import {
+  err,
   indexRecord,
-  isNone,   ok,   recursiveKeyList,   UnexpectedError,
-  variableToString} from '../../../lib';
+  isNone,
+  ok,
+  recursiveKeyList,
+  UnexpectedError,
+} from '../../../lib';
 import { invalidPathReplacementError } from '../../errors';
-import type { IFetch } from './interfaces';
+import type { FetchResponse, HttpMultiMap, IFetch } from './interfaces';
 import type { HttpRequest } from './security';
 import type { HttpResponse } from './types';
 
 const DEBUG_NAMESPACE = 'http';
 const DEBUG_NAMESPACE_SENSITIVE = 'http:sensitive';
 
-export function variablesToHttpMap(variables: NonPrimitive): Result<Record<string, string | string[]>, [key: string, value: unknown]> {
-  const result: Record<string, string | string[]> = {};
+function tryToHttpString(variable: unknown): string | undefined {
+  if (typeof variable === 'string') {
+    return variable;
+  }
+
+  if (typeof variable === 'number' || typeof variable === 'boolean') {
+    return variable.toString();
+  }
+
+  return undefined;
+}
+
+export function variablesToHttpMap(variables: NonPrimitive): Result<HttpMultiMap, [key: string, value: unknown]> {
+  const result: HttpMultiMap = {};
 
   for (const [key, value] of Object.entries(variables)) {
-    if (typeof value === 'string') {
-      result[key] = value;
-    } else if (Array.isArray(value)) {
+    if (isNone(value)) {
+      continue;
+    }
+
+    if (Array.isArray(value)) {
+      // arrays are filtered, only allowing values convertible to http string
       const filtered: string[] = [];
-      for (const val of value) {
-        if (typeof val === 'string') {
-          filtered.push(val);
-        } else if (!isNone(val)) {
-          return err([key, val]);
+      for (const element of value) {
+        if (isNone(element)) {
+          continue;
+        }
+
+        const httpVal = tryToHttpString(element);
+        if (typeof httpVal === 'string') {
+          filtered.push(httpVal);
+        } else {
+          return err([key, element]);
         }
       }
 
+      // and only actually set the key if there is anything in the array
       if (filtered.length > 0) {
         result[key] = filtered;
       }
-    } else if (!isNone(value)) {
-      return err([key, value]);
+    } else {
+      const httpValue = tryToHttpString(value);
+      if (httpValue === undefined) {
+        return err([key, value]);
+      }
+
+      // values convertible to http string go in
+      result[key] = httpValue;
     }
   }
 
@@ -62,27 +93,29 @@ function replaceParameters(url: string, parameters: NonPrimitive) {
     const end = start + match[0].length;
     const key = match[1].trim();
 
-    let value;
+    let value: string | undefined;
     try {
-      value = indexRecord(parameters, key.split('.'));
+      value = tryToHttpString(
+        indexRecord(parameters, key.split('.'))
+      );
     } catch (_e) {
       value = undefined;
     }
 
     allKeys.push(key);
-    if (typeof value !== 'string') {
+    if (value === undefined) {
       invalidKeys.push(key);
       continue;
     }
 
     result += url.slice(lastIndex, start);
-    result += variableToString(value);
+    result += value;
     lastIndex = end;
   }
   result += url.slice(lastIndex);
 
   if (invalidKeys.length > 0) {
-    const available = recursiveKeyList(parameters ?? {}, value => typeof value === 'string');
+    const available = recursiveKeyList(parameters ?? {}, value => tryToHttpString(value) !== undefined);
 
     throw invalidPathReplacementError(invalidKeys, url, allKeys, available);
   }
@@ -116,6 +149,47 @@ export const createUrl = (
   return baseUrl.replace(/\/+$/, '') + url;
 };
 
+function logHeaders(
+  log: LogFunction,
+  headers: HttpMultiMap
+) {
+  Object.entries(headers).forEach(([headerName, value]) => {
+    let valueArray = value;
+    if (!Array.isArray(value)) {
+      valueArray = [value];
+    }
+
+    for (const val of valueArray) {
+      log(`\t${headerName}: ${val}`);
+    }
+  });
+}
+function logRequest(
+  log: LogFunction,
+  request: HttpRequest
+) {
+  let url = request.url;
+  if (request.queryParameters !== undefined && Object.keys(request.queryParameters).length > 0) {
+    const searchParams = new URLSearchParams(request.queryParameters);
+    url = `${url}?${searchParams.toString()}`;
+  }
+
+  log(`\t${request.method} ${url} HTTP/1.1`);
+  logHeaders(log, request.headers ?? {});
+
+  if (request.body !== undefined) {
+    log('\n\t%O', request.body);
+  }
+}
+function logResponse(
+  log: LogFunction,
+  response: FetchResponse
+) {
+  log(`\tHTTP/1.1 ${response.status} ${response.statusText}`);
+  logHeaders(log, response.headers);
+  log('\n\t%j\n', response.body);
+}
+
 export async function fetchRequest(
   fetchInstance: IFetch,
   request: HttpRequest,
@@ -124,43 +198,17 @@ export async function fetchRequest(
   const log = logger?.log(DEBUG_NAMESPACE);
   const logSensitive = logger?.log(DEBUG_NAMESPACE_SENSITIVE);
   log?.('Executing HTTP Call');
-  // secrets might appear in headers, url path, query parameters or body
   if (logSensitive?.enabled === true) {
-    const hasSearchParams = Object.keys(
-      request.queryParameters ?? {}
-    ).length > 0;
-    const searchParams = new URLSearchParams(request.queryParameters);
-    logSensitive(
-      '\t%s %s%s HTTP/1.1',
-      request.method || 'UNKNOWN METHOD',
-      request.url,
-      hasSearchParams ? '?' + searchParams.toString() : ''
-    );
-    Object.entries(request.headers || {}).forEach(([headerName, value]) =>
-      logSensitive(
-        `\t${headerName}: ${Array.isArray(value) ? value.join(', ') : value}`
-      )
-    );
-    if (request.body !== undefined) {
-      logSensitive('\n%O', request.body);
-    }
+    // secrets might appear in headers, url path, query parameters or body
+    logRequest(logSensitive, request);
   }
 
   const response = await fetchInstance.fetch(request.url, request);
 
   log?.('Received response');
   if (logSensitive?.enabled === true) {
-    logSensitive(`\tHTTP/1.1 ${response.status} ${response.statusText}`);
-    Object.entries(response.headers).forEach(([headerName, value]) =>
-      logSensitive(`\t${headerName}: ${value}`)
-    );
-    logSensitive('\n\t%j', response.body);
+    logResponse(logSensitive, response);
   }
-
-  const headers: Record<string, string> = {};
-  Object.entries(request.headers ?? {}).forEach(([key, value]) => {
-    headers[key] = Array.isArray(value) ? value.join(' ') : value;
-  });
 
   return {
     statusCode: response.status,
@@ -169,13 +217,14 @@ export async function fetchRequest(
     debug: {
       request: {
         url: request.url,
-        headers,
+        headers: response.headers,
         body: request.body,
       },
     },
   };
 }
 
+// TODO: where is this actually used?
 /**
  * Get header value. For duplicate headers all delimited by `,` are returned
  */
@@ -221,4 +270,19 @@ export function deleteHeader(headers: NonPrimitive, headerName: string): void {
       delete headers[header];
     }
   });
+}
+
+/** Returns case-insensitive header value(s) from multimap. */
+export function getHeaderMulti(map: HttpMultiMap, headerKey: string): string[] | undefined {
+  for (const [key, value] of Object.entries(map)) {
+    if (key.toLowerCase() === headerKey.toLowerCase()) {
+      if (!Array.isArray(value)) {
+        return [value];
+      } else {
+        return value;
+      }
+    }
+  }
+
+  return undefined;
 }

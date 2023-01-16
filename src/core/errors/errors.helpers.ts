@@ -365,12 +365,12 @@ export function invalidPathReplacementError(
         ? `Found these path keys: ${all.join(', ')}`
         : 'Found no path keys',
       available.length > 0
-        ? `But only found these string variables: ${available.join(', ')}`
-        : 'But found no string variables',
+        ? `But only found these variables with supported types: ${available.join(', ')}`
+        : 'But found no variables with supported types',
     ],
     [
-      'Make sure the url path variable refers to an available string variable',
-      'Consider introducing a new variable with the correct name and desired string value',
+      'Make sure the url path variable refers to an available string, number or boolean variable',
+      'Consider introducing a new variable with the correct name and desired value',
     ]
   );
 }
