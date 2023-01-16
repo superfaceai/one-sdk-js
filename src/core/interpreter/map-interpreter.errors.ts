@@ -9,6 +9,7 @@ import type {
   IMappedHTTPError,
 } from '../../interfaces';
 import { ErrorBase } from '../../lib';
+import type { HttpMultiMap } from './http';
 
 export class MapInterpreterErrorBase extends ErrorBase {
   private path?: string[];
@@ -99,7 +100,7 @@ export class HTTPError extends MapInterpreterErrorBase implements IHTTPError {
     public statusCode?: number,
     public request?: {
       body?: unknown;
-      headers?: Record<string, string>;
+      headers?: HttpMultiMap;
       url?: string;
     },
     public response?: {

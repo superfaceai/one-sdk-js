@@ -9,7 +9,7 @@ import {
 } from '../../../lib';
 import { USER_AGENT } from '../../../user-agent';
 import { unsupportedContentType } from '../../errors';
-import type { FetchBody, IFetch } from './interfaces';
+import type { FetchBody, HttpMultiMap, IFetch } from './interfaces';
 import {
   BINARY_CONTENT_REGEXP,
   BINARY_CONTENT_TYPES,
@@ -264,7 +264,7 @@ export const headersFilter: Filter = ({
   request,
   response,
 }: FilterInputOutput) => {
-  const headers: Record<string, string | string[]> = parameters.headers ?? {};
+  const headers: HttpMultiMap = parameters.headers ?? {};
 
   setHeader(headers, 'user-agent', USER_AGENT);
   setHeader(headers, 'accept', parameters.accept ?? '*/*');
