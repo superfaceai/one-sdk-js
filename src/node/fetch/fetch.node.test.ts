@@ -1,20 +1,30 @@
 import FormData from 'form-data';
 import { getLocal } from 'mockttp';
-import type { Headers } from 'node-fetch';
-import fetch from 'node-fetch';
+import type { Response } from 'node-fetch';
+import fetch, { Headers } from 'node-fetch';
 
 import { NetworkFetchError, RequestFetchError } from '../../core';
 import { MockTimers } from '../../mock';
 import { NodeTimers } from '../timers';
 import { NodeFetch } from './fetch.node';
 
-jest.mock('node-fetch');
+// Maybe this can be done better?
+// The issue here is that we need to mock the default export (fetch) while
+// preserving everything as as actual implementation.
+jest.mock('node-fetch', () => {
+  const actual = jest.requireActual('node-fetch');
+
+  const base: any = jest.fn();
+  for (const [key, value] of Object.entries(actual)) {
+    base[key] = value;
+  }
+  base['default'] = base;
+
+  return base as unknown;
+});
 
 const mockServer = getLocal();
 const timers = new MockTimers();
-
-type HeadersForEachParameters = Parameters<Headers['forEach']>;
-type ForEachCallbackFunction = HeadersForEachParameters[0];
 
 describe('NodeFetch', () => {
   describe('fetch', () => {
@@ -149,11 +159,7 @@ describe('NodeFetch', () => {
         });
 
         jest.mocked(fetch).mockResolvedValue({
-          headers: {
-            forEach: jest.fn((callbackfn: ForEachCallbackFunction) => {
-              callbackfn('application/json', 'content-type');
-            }),
-          },
+          headers: new Headers([['content-type', 'application/json']]),
           json: responseJsonMock,
         } as any);
 
@@ -184,11 +190,7 @@ describe('NodeFetch', () => {
         responseTextMock = jest.fn().mockResolvedValue('foobar');
 
         jest.mocked(fetch).mockResolvedValue({
-          headers: {
-            forEach: jest.fn((callbackfn: ForEachCallbackFunction) => {
-              callbackfn('text/plain', 'content-type');
-            }),
-          },
+          headers: new Headers([['content-type', 'text/plain']]),
           text: responseTextMock,
         } as any);
 
@@ -229,11 +231,7 @@ describe('NodeFetch', () => {
               .mockResolvedValue(Buffer.from('foobar'));
 
             jest.mocked(fetch).mockResolvedValue({
-              headers: {
-                forEach: jest.fn((callbackfn: ForEachCallbackFunction) => {
-                  callbackfn(contentType, 'content-type');
-                }),
-              },
+              headers: new Headers([['content-type', contentType]]),
               arrayBuffer: responseArrayBufferMock,
             } as any);
 
@@ -264,9 +262,7 @@ describe('NodeFetch', () => {
           .mockResolvedValue(Buffer.from('foobar'));
 
         jest.mocked(fetch).mockResolvedValue({
-          headers: {
-            forEach: jest.fn((_callbackfn: ForEachCallbackFunction) => {}),
-          },
+          headers: new Headers(),
           arrayBuffer: responseArrayBufferMock,
         } as any);
       });
@@ -321,9 +317,7 @@ describe('NodeFetch', () => {
     describe('when request body contains binary data', () => {
       it('should call fetch with Buffer in body', async () => {
         jest.mocked(fetch).mockResolvedValue({
-          headers: {
-            forEach: jest.fn((_callbackfn: ForEachCallbackFunction) => {}),
-          },
+          headers: new Headers(),
           text: jest.fn(),
         } as any);
 
@@ -347,9 +341,7 @@ describe('NodeFetch', () => {
         fetchInstance = new NodeFetch(timers);
 
         jest.mocked(fetch).mockResolvedValue({
-          headers: {
-            forEach: jest.fn((_callbackfn: ForEachCallbackFunction) => {}),
-          },
+          headers: new Headers(),
           text: jest.fn(),
         } as any);
       });
@@ -388,34 +380,43 @@ describe('NodeFetch', () => {
         });
       });
     });
-  });
 
-  describe('prepareHeadersInit', () => {
-    let nodeFetch: NodeFetch;
+    // this test works under the assumption that node-fetch returns multi-valued headers as arrays
+    // this is not true for node-fetch 2.x
+    it('should correctly send and receive multi-valued headers', async () => {
+      jest.mocked(fetch).mockImplementation(
+        async (url, options) => {
+          expect(url).toStrictEqual('http://test.local');
 
-    type OverrideNodeFetch = {
-      prepareHeadersInit: (data: any) => any | undefined;
-    };
+          const requestHeaders = options?.headers as Headers;
+          expect(requestHeaders.raw()).toMatchObject({ first: ['abc'], second: ['ab', 'bc'] });
 
-    beforeEach(() => {
-      nodeFetch = new NodeFetch(timers);
-    });
+          const headers = new Headers();
+          headers.append('foo', 'string');
+          headers.append('bar', 'a');
+          headers.append('bar', 'b');
+          headers.append('bar', 'c');
 
-    it('returns empty array if data are undefined', () => {
-      expect(
-        (nodeFetch as any as OverrideNodeFetch).prepareHeadersInit(undefined)
-      ).toEqual([]);
-    });
+          return {
+            headers: headers,
+            text: jest.fn()
+          } as unknown as Response;
+        }
+      );
 
-    it('returns array of tuples if header value is array', () => {
-      expect(
-        (nodeFetch as any as OverrideNodeFetch).prepareHeadersInit({
-          header: ['val1', 'val2'],
-        })
-      ).toEqual([
-        ['header', 'val1'],
-        ['header', 'val2'],
-      ]);
+      const fetchInstance = new NodeFetch(timers);
+      const result = await fetchInstance.fetch('http://test.local', {
+        method: 'GET',
+        headers: {
+          first: 'abc',
+          second: ['ab', 'bc']
+        }
+      });
+
+      expect(result.headers).toStrictEqual({
+        foo: 'string',
+        bar: ['a', 'b', 'c']
+      });
     });
   });
 });

@@ -1,6 +1,6 @@
 import { AbortController } from 'abort-controller';
 import FormData from 'form-data';
-import type { HeadersInit, RequestInit, Response } from 'node-fetch';
+import type { RequestInit, Response } from 'node-fetch';
 import fetch, { Headers } from 'node-fetch';
 import { URLSearchParams } from 'url';
 
@@ -19,6 +19,7 @@ import type {
 import {
   BINARY_CONTENT_REGEXP,
   FetchParameters,
+  getHeaderMulti,
   isBinaryBody,
   isBinaryData,
   isBinaryDataMeta,
@@ -34,11 +35,67 @@ import { eventInterceptor } from '../../core/events/events';
 import { SuperCache } from '../../lib';
 
 export class NodeFetch implements IFetch, Interceptable, AuthCache {
+  private static multimapToHeaders(map: HttpMultiMap | undefined): Headers {
+    const headers = new Headers();
+
+    if (map === undefined) {
+      return headers;
+    }
+
+    for (const [key, value] of Object.entries(map)) {
+      let valueArray = value;
+      if (!Array.isArray(value)) {
+        valueArray = [value];
+      }
+
+      for (const element of valueArray) {
+        headers.append(key, element);
+      }
+    }
+
+    return headers;
+  }
+
+  private static isJsonContentType(
+    contentType: string[] | undefined,
+    _accept: string[] | undefined
+  ): boolean {
+    if (
+      contentType !== undefined
+      && contentType.some(v => v.includes(JSON_CONTENT) || v.includes(JSON_PROBLEM_CONTENT))
+    ) {
+      return true;
+    }
+
+    return false;
+  }
+
+  private static isBinaryContentType(
+    contentType: string[] | undefined,
+    accept: string[] | undefined
+  ): boolean {
+    if (
+      contentType !== undefined
+      && contentType.some(v => BINARY_CONTENT_REGEXP.test(v))
+    ) {
+      return true;
+    }
+
+    if (
+      accept !== undefined
+      && accept.some(v => BINARY_CONTENT_REGEXP.test(v))
+    ) {
+      return true;
+    }
+
+    return false;
+  }
+
   public metadata: InterceptableMetadata | undefined;
   public events: Events | undefined;
   public digest: SuperCache<string> = new SuperCache();
 
-  constructor(private readonly timers: ITimers) {}
+  constructor(private readonly timers: ITimers) { }
 
   @eventInterceptor({
     eventName: 'fetch',
@@ -48,10 +105,9 @@ export class NodeFetch implements IFetch, Interceptable, AuthCache {
     url: string,
     parameters: FetchParameters
   ): Promise<FetchResponse> {
-    const headersInit = this.prepareHeadersInit(parameters.headers);
-
+    const requestHeaders = NodeFetch.multimapToHeaders(parameters.headers);
     const request: RequestInit = {
-      headers: new Headers(headersInit),
+      headers: requestHeaders,
       method: parameters.method,
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore https://github.com/form-data/form-data/issues/513
@@ -64,22 +120,23 @@ export class NodeFetch implements IFetch, Interceptable, AuthCache {
       parameters.timeout
     );
 
-    const headers: Record<string, string> = {};
-    response.headers.forEach((value, key) => {
-      headers[key] = value;
-    });
+    const headers: HttpMultiMap = {};
+    // headers.raw() returns an object with prototype set to null for some reason, so we need to rewrap the values
+    for (const [key, value] of Object.entries(response.headers.raw())) {
+      if (value.length > 1) {
+        headers[key] = value;
+      } else if (value.length === 1) {
+        headers[key] = value[0];
+      }
+    }
 
     let body: unknown;
 
-    if (
-      headers['content-type'] &&
-      (headers['content-type'].includes(JSON_CONTENT) ||
-        headers['content-type'].includes(JSON_PROBLEM_CONTENT)) // ||
-      // TODO: update this when we have security handlers preparing whole requests
-      // parameters.headers?.['accept']?.includes(JSON_CONTENT)
-    ) {
+    const contentType = getHeaderMulti(headers, 'content-type');
+    const accept = getHeaderMulti(requestHeaders.raw(), 'accept');
+    if (NodeFetch.isJsonContentType(contentType, accept)) {
       body = await response.json();
-    } else if (this.isBinaryContent(headers, parameters.headers)) {
+    } else if (NodeFetch.isBinaryContentType(contentType, accept)) {
       body = await response.arrayBuffer(); // TODO: BinaryData.fromStream(response.body)
     } else {
       body = await response.text();
@@ -225,54 +282,5 @@ export class NodeFetch implements IFetch, Interceptable, AuthCache {
 
   private urlSearchParams(data?: Record<string, string>): URLSearchParams {
     return new URLSearchParams(data);
-  }
-
-  private isBinaryContent(
-    responseHeaders: Record<string, string>,
-    requestHeaders?: HttpMultiMap
-  ): boolean {
-    if (
-      responseHeaders['content-type'] &&
-      BINARY_CONTENT_REGEXP.test(responseHeaders['content-type'])
-    ) {
-      return true;
-    }
-
-    if (
-      requestHeaders !== undefined &&
-      requestHeaders['accept'] !== undefined
-    ) {
-      if (typeof requestHeaders['accept'] === 'string') {
-        return BINARY_CONTENT_REGEXP.test(requestHeaders['accept']);
-      } else {
-        for (const value of requestHeaders['accept']) {
-          if (BINARY_CONTENT_REGEXP.test(value)) {
-            return true;
-          }
-        }
-      }
-    }
-
-    return false;
-  }
-
-  private prepareHeadersInit(
-    data: FetchParameters['headers'] | undefined
-  ): HeadersInit {
-    if (data === undefined) {
-      return [];
-    }
-
-    const headers: [string, string][] = [];
-
-    Object.entries(data).forEach(([key, value]) => {
-      if (Array.isArray(value)) {
-        value.forEach(val => headers.push([key, val]));
-      } else {
-        headers.push([key, value]);
-      }
-    });
-
-    return headers;
   }
 }

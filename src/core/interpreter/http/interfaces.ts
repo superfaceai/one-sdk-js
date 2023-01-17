@@ -55,7 +55,7 @@ export type FetchParameters = {
 export type FetchResponse = {
   status: number;
   statusText: string;
-  headers: Record<string, string>;
+  headers: HttpMultiMap;
   body?: unknown;
 };
 

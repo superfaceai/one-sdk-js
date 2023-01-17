@@ -109,7 +109,7 @@ export class HTTPError extends MapInterpreterErrorBase implements IHTTPError {
     },
     public response?: {
       body?: unknown;
-      headers?: Record<string, string>;
+      headers?: HttpMultiMap;
     }
   ) {
     super('HTTPError', message, metadata);
