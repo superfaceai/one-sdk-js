@@ -133,7 +133,7 @@ export function variableToString(variable: Variables): string {
 }
 
 /**
- * Stringifies a Record of variables. `undefined` values are removed.
+ * Stringifies a Record of variables. `None` values are removed.
  */
 export function variablesToStrings(
   variables: NonPrimitive

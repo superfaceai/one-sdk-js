@@ -9,6 +9,7 @@ import type {
   FetchBody,
   FetchError,
   FetchResponse,
+  HttpMultiMap,
   IFetch,
   Interceptable,
   InterceptableMetadata,
@@ -148,26 +149,21 @@ export class NodeFetch implements IFetch, Interceptable, AuthCache {
     return new RequestFetchError('abort');
   }
 
-  private queryParameters(parameters?: Record<string, string>): string {
-    if (parameters && Object.keys(parameters).length) {
-      const definedParameters = Object.entries(parameters).reduce(
-        (result, [key, value]) => {
-          if (value === undefined) {
-            return result;
-          }
-
-          return {
-            ...result,
-            [key]: value,
-          };
-        },
-        {}
-      );
-
-      return '?' + new URLSearchParams(definedParameters).toString();
+  private queryParameters(parameters?: HttpMultiMap): string {
+    if (parameters === undefined || Object.keys(parameters).length === 0) {
+      return '';
     }
 
-    return '';
+    const params = new URLSearchParams();
+    for (const [key, param] of Object.entries(parameters)) {
+      if (typeof param === 'string') {
+        params.append(key, param);
+      } else {
+        param.forEach(v => params.append(key, v));
+      }
+    }
+
+    return '?' + params.toString();
   }
 
   private body(
@@ -222,7 +218,7 @@ export class NodeFetch implements IFetch, Interceptable, AuthCache {
 
   private isBinaryContent(
     responseHeaders: Record<string, string>,
-    requestHeaders?: Record<string, string | string[]>
+    requestHeaders?: HttpMultiMap
   ): boolean {
     if (
       responseHeaders['content-type'] &&

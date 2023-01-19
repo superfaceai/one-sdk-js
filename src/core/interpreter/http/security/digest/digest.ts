@@ -16,7 +16,7 @@ import {
   prepareRequestFilter,
   withRequest,
 } from '../../filters';
-import type { IFetch } from '../../interfaces';
+import type { HttpMultiMap, IFetch } from '../../interfaces';
 import type { HttpResponse } from '../../types';
 import type {
   AuthCache,
@@ -96,7 +96,7 @@ export class DigestHandler implements ISecurityHandler {
   public authenticate: AuthenticateRequestAsync = async (
     parameters: RequestParameters
   ) => {
-    const headers: Record<string, string> = parameters.headers || {};
+    const headers: HttpMultiMap = parameters.headers ?? {};
 
     const credentials = await this.fetchInstance.digest.getCached(
       hashDigestConfiguration(this.configuration, this.crypto),
