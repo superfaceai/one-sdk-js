@@ -65,22 +65,22 @@ export function mergeProfileDefaults(
       return true;
     }
   } else {
-    if (targetedProfile.defaults) {
-      // Merge existing with new
-      defaults = mergeVariables(
-        castToNonPrimitive(targetedProfile.defaults ?? {}),
-        castToNonPrimitive(payload ?? {})
-      ) as UsecaseDefaults;
+    if (targetedProfile.defaults === undefined) {
       document.profiles[profileName] = {
         ...targetedProfile,
-        defaults,
+        defaults: payload,
       };
 
       return true;
     } else {
+      // Merge existing with new
+      defaults = mergeVariables(
+        castToNonPrimitive(targetedProfile.defaults),
+        castToNonPrimitive(payload)
+      ) as UsecaseDefaults;
       document.profiles[profileName] = {
         ...targetedProfile,
-        defaults: payload,
+        defaults,
       };
 
       return true;
