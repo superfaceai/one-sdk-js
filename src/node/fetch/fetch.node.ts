@@ -41,6 +41,9 @@ export class NodeFetch implements IFetch, Interceptable, AuthCache {
       return headers;
     }
 
+    // Header values are folded as fetch uses message.headers
+    //   https://github.com/node-fetch/node-fetch/blob/2.x/src/index.js#L163
+    //   https://nodejs.org/dist/latest-v19.x/docs/api/http.html#messageheaders
     for (const [key, value] of Object.entries(map)) {
       let valueArray = value;
       if (!Array.isArray(value)) {
@@ -89,12 +92,12 @@ export class NodeFetch implements IFetch, Interceptable, AuthCache {
 
     return false;
   }
-  
+
   public metadata: InterceptableMetadata | undefined;
   public events: Events | undefined;
   public digest: SuperCache<string> = new SuperCache();
 
-  constructor(private readonly timers: ITimers) {}
+  constructor(private readonly timers: ITimers) { }
 
   @eventInterceptor({
     eventName: 'fetch',
