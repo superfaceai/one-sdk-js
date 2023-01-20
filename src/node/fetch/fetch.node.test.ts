@@ -383,7 +383,8 @@ describe('NodeFetch', () => {
 
     // this test works under the assumption that node-fetch returns multi-valued headers as arrays
     // this is not true for node-fetch 2.x
-    it('should correctly send and receive multi-valued headers', async () => {
+    // eslint-disable-next-line jest/no-disabled-tests
+    it.skip('should correctly send and receive multi-valued headers', async () => {
       jest.mocked(fetch).mockImplementation(
         async (url, options) => {
           expect(url).toStrictEqual('http://test.local');

@@ -1557,8 +1557,6 @@ describe('MapInterpreter', () => {
           return {
             statusCode: 201,
             headers: {
-              // TODO: an array here gets joined by `, ` instead of sent as multiple header lines
-              // not sure if we can force mockttp to not join it
               test: req.headers['someheader']
             },
             json: { bodyOk: true, headerOk: true },
@@ -1598,7 +1596,7 @@ describe('MapInterpreter', () => {
       expect(result.unwrap()).toEqual({
         headerOk: true,
         bodyOk: true,
-        headerTest: expected
+        headerTest: expected,
       });
     });
 
