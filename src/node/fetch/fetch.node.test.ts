@@ -8,19 +8,15 @@ import { MockTimers } from '../../mock';
 import { NodeTimers } from '../timers';
 import { NodeFetch } from './fetch.node';
 
-// Maybe this can be done better?
-// The issue here is that we need to mock the default export (fetch) while
-// preserving everything as as actual implementation.
 jest.mock('node-fetch', () => {
-  const actual = jest.requireActual('node-fetch');
+  // eslint-disable-next-line @typescript-eslint/consistent-type-imports
+  const actual = jest.requireActual<typeof import('node-fetch')>('node-fetch');
 
-  const base: any = jest.fn();
-  for (const [key, value] of Object.entries(actual)) {
-    base[key] = value;
-  }
-  base['default'] = base;
-
-  return base as unknown;
+  return {
+    __esModule: true,
+    ...actual,
+    default: jest.fn(),
+  };
 });
 
 const mockServer = getLocal();
