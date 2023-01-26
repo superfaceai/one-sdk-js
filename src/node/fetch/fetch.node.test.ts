@@ -1,6 +1,5 @@
 import FormData from 'form-data';
 import { getLocal } from 'mockttp';
-import type { Response } from 'node-fetch';
 import fetch, { Headers } from 'node-fetch';
 
 import { NetworkFetchError, RequestFetchError } from '../../core';
@@ -381,38 +380,43 @@ describe('NodeFetch', () => {
     // this is not true for node-fetch 2.x
     // eslint-disable-next-line jest/no-disabled-tests
     it.skip('should correctly send and receive multi-valued headers', async () => {
-      jest.mocked(fetch).mockImplementation(
-        async (url, options) => {
-          expect(url).toStrictEqual('http://test.local');
+      // we want to use actual fetch implementation
+      jest
+        .mocked(fetch)
+        .mockImplementation(jest.requireActual('node-fetch').default);
 
-          const requestHeaders = options?.headers as Headers;
-          expect(requestHeaders.raw()).toMatchObject({ first: ['abc'], second: ['ab', 'bc'] });
+      await mockServer.forGet('/test').thenCallback((req) => {
+        expect(req.rawHeaders).toEqual(
+          expect.arrayContaining([['first', 'abc'], ['second', 'ab'], ['second', 'bc']])
+        );
 
-          const headers = new Headers();
-          headers.append('foo', 'string');
-          headers.append('bar', 'a');
-          headers.append('bar', 'b');
-          headers.append('bar', 'c');
-
-          return {
-            headers: headers,
-            text: jest.fn()
-          } as unknown as Response;
-        }
-      );
+        return {
+          statusCode: 200,
+          headers: {
+            foo: 'string',
+            bar: ['a', 'b', 'c']
+          },
+          body: 'Ok',
+        };
+      });
 
       const fetchInstance = new NodeFetch(timers);
-      const result = await fetchInstance.fetch('http://test.local', {
+      const result = await fetchInstance.fetch(mockServer.urlFor('/test'), {
         method: 'GET',
         headers: {
           first: 'abc',
-          second: ['ab', 'bc']
+          second: ['ab', 'bc'],
+          connection: 'close'
         }
       });
 
-      expect(result.headers).toStrictEqual({
+      if (result.status !== 200) {
+        console.error(result.body);
+      }
+
+      expect(result.headers).toEqual({
         foo: 'string',
-        bar: ['a', 'b', 'c']
+        bar: ['a', 'b', 'c'],
       });
     });
   });
