@@ -104,7 +104,10 @@ export function evalScript(
 
   log?.('Evaluating:', js);
   const result = vm.run(
-    `'use strict';const vmResult = ${js};vmResult`
+    `
+      'use strict';
+      const vmResult = ${js}
+      ;vmResult`
   ) as unknown;
   const resultVm2Fixed = vm2ExtraArrayKeysFixup(result);
 

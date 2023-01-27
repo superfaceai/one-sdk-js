@@ -139,6 +139,20 @@ describe('sandbox', () => {
     expect(Array.isArray((v as { b: unknown }).b)).toBe(true);
   });
 
+  it('correctly works with line comment', () => {
+    expect(evalScript(config, '34; // this is number 34')).toStrictEqual(34);
+  });
+
+  it('errors with unclosed block comment', () => {
+    expect(() => evalScript(config, '34; /* this is number 34')).toThrow(
+      'Invalid or unexpected token'
+    );
+  });
+
+  it('correctly works without semicolon', () => {
+    expect(evalScript(config, '34')).toStrictEqual(34);
+  });
+
   describe('stdlib', () => {
     it('provides unstable stdlib', () => {
       expect(
