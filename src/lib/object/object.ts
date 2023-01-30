@@ -51,7 +51,9 @@ export function isRecord(input: unknown): input is Record<string, unknown> {
   return true;
 }
 
-export function fromEntriesOptional<T extends Exclude<unknown, None>>(...entries: [key: string, value: T | None][]): Record<string, T> {
+export function fromEntriesOptional<T extends Exclude<unknown, None>>(
+  ...entries: [key: string, value: T | None][]
+): Record<string, T> {
   const base: Record<string, T> = {};
 
   for (const [key, value] of entries) {

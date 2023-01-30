@@ -1,8 +1,5 @@
 import type { ILogger, LogFunction } from '../../../interfaces';
-import type {
-  NonPrimitive,
-  Result
-} from '../../../lib';
+import type { NonPrimitive, Result } from '../../../lib';
 import {
   err,
   indexRecord,
@@ -31,7 +28,9 @@ function tryToHttpString(variable: unknown): string | undefined {
   return undefined;
 }
 
-export function variablesToHttpMap(variables: NonPrimitive): Result<HttpMultiMap, [key: string, value: unknown]> {
+export function variablesToHttpMap(
+  variables: NonPrimitive
+): Result<HttpMultiMap, [key: string, value: unknown]> {
   const result: HttpMultiMap = {};
 
   for (const [key, value] of Object.entries(variables)) {
@@ -95,9 +94,7 @@ function replaceParameters(url: string, parameters: NonPrimitive) {
 
     let value: string | undefined;
     try {
-      value = tryToHttpString(
-        indexRecord(parameters, key.split('.'))
-      );
+      value = tryToHttpString(indexRecord(parameters, key.split('.')));
     } catch (_e) {
       value = undefined;
     }
@@ -115,7 +112,10 @@ function replaceParameters(url: string, parameters: NonPrimitive) {
   result += url.slice(lastIndex);
 
   if (invalidKeys.length > 0) {
-    const available = recursiveKeyList(parameters ?? {}, value => tryToHttpString(value) !== undefined);
+    const available = recursiveKeyList(
+      parameters ?? {},
+      value => tryToHttpString(value) !== undefined
+    );
 
     throw invalidPathReplacementError(invalidKeys, url, allKeys, available);
   }
@@ -149,10 +149,7 @@ export const createUrl = (
   return baseUrl.replace(/\/+$/, '') + url;
 };
 
-function logHeaders(
-  log: LogFunction,
-  headers: HttpMultiMap
-) {
+function logHeaders(log: LogFunction, headers: HttpMultiMap) {
   Object.entries(headers).forEach(([headerName, value]) => {
     let valueArray = value;
     if (!Array.isArray(value)) {
@@ -164,12 +161,12 @@ function logHeaders(
     }
   });
 }
-function logRequest(
-  log: LogFunction,
-  request: HttpRequest
-) {
+function logRequest(log: LogFunction, request: HttpRequest) {
   let url = request.url;
-  if (request.queryParameters !== undefined && Object.keys(request.queryParameters).length > 0) {
+  if (
+    request.queryParameters !== undefined &&
+    Object.keys(request.queryParameters).length > 0
+  ) {
     const searchParams = new URLSearchParams(request.queryParameters);
     url = `${url}?${searchParams.toString()}`;
   }
@@ -181,10 +178,7 @@ function logRequest(
     log('\n\t%O', request.body);
   }
 }
-function logResponse(
-  log: LogFunction,
-  response: FetchResponse
-) {
+function logResponse(log: LogFunction, response: FetchResponse) {
   log(`\tHTTP/1.1 ${response.status} ${response.statusText}`);
   logHeaders(log, response.headers);
   log('\n\t%j\n', response.body);
@@ -273,7 +267,10 @@ export function deleteHeader(headers: NonPrimitive, headerName: string): void {
 }
 
 /** Returns case-insensitive header value(s) from multimap. */
-export function getHeaderMulti(map: HttpMultiMap, headerKey: string): string[] | undefined {
+export function getHeaderMulti(
+  map: HttpMultiMap,
+  headerKey: string
+): string[] | undefined {
   for (const [key, value] of Object.entries(map)) {
     if (key.toLowerCase() === headerKey.toLowerCase()) {
       if (!Array.isArray(value)) {

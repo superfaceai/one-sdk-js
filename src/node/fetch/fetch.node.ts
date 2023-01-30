@@ -64,8 +64,10 @@ export class NodeFetch implements IFetch, Interceptable, AuthCache {
     _accept: string[] | undefined
   ): boolean {
     if (
-      contentType !== undefined
-      && contentType.some(v => v.includes(JSON_CONTENT) || v.includes(JSON_PROBLEM_CONTENT))
+      contentType !== undefined &&
+      contentType.some(
+        v => v.includes(JSON_CONTENT) || v.includes(JSON_PROBLEM_CONTENT)
+      )
     ) {
       return true;
     }
@@ -78,15 +80,15 @@ export class NodeFetch implements IFetch, Interceptable, AuthCache {
     accept: string[] | undefined
   ): boolean {
     if (
-      contentType !== undefined
-      && contentType.some(v => BINARY_CONTENT_REGEXP.test(v))
+      contentType !== undefined &&
+      contentType.some(v => BINARY_CONTENT_REGEXP.test(v))
     ) {
       return true;
     }
 
     if (
-      accept !== undefined
-      && accept.some(v => BINARY_CONTENT_REGEXP.test(v))
+      accept !== undefined &&
+      accept.some(v => BINARY_CONTENT_REGEXP.test(v))
     ) {
       return true;
     }
@@ -98,7 +100,7 @@ export class NodeFetch implements IFetch, Interceptable, AuthCache {
   public events: Events | undefined;
   public digest: SuperCache<string> = new SuperCache();
 
-  constructor(private readonly timers: ITimers) { }
+  constructor(private readonly timers: ITimers) {}
 
   @eventInterceptor({
     eventName: 'fetch',

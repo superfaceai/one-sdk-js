@@ -25,14 +25,9 @@ describe('recursiveKeyList', () => {
       },
     };
 
-    expect(recursiveKeyList(object, v => v !== undefined).sort()).toMatchObject([
-      'a',
-      'b',
-      'b.c',
-      'b.c.d',
-      'b.c.d.e',
-      'b.c.f',
-    ]);
+    expect(recursiveKeyList(object, v => v !== undefined).sort()).toMatchObject(
+      ['a', 'b', 'b.c', 'b.c.d', 'b.c.d.e', 'b.c.f']
+    );
   });
 });
 

@@ -5,7 +5,10 @@ import type { ICrypto, ILogger } from '../../../interfaces';
 import type { NonPrimitive, Variables } from '../../../lib';
 import { UnexpectedError } from '../../../lib';
 import { pipe } from '../../../lib/pipe/pipe';
-import { invalidHTTPMapValueType, missingSecurityValuesError } from '../../errors';
+import {
+  invalidHTTPMapValueType,
+  missingSecurityValuesError,
+} from '../../errors';
 import {
   authenticateFilter,
   fetchFilter,
@@ -34,7 +37,7 @@ export class HttpClient {
     private fetchInstance: IFetch & AuthCache,
     private readonly crypto: ICrypto,
     private readonly logger?: ILogger
-  ) { }
+  ) {}
 
   public async request(
     url: string,
@@ -55,13 +58,19 @@ export class HttpClient {
     const requestParameters: RequestParameters = {
       url,
       ...parameters,
-      queryParameters: variablesToHttpMap(parameters.queryParameters ?? {}).match(
+      queryParameters: variablesToHttpMap(
+        parameters.queryParameters ?? {}
+      ).match(
         v => v,
-        ([key, value]) => { throw invalidHTTPMapValueType('header', key, typeof value); }
+        ([key, value]) => {
+          throw invalidHTTPMapValueType('header', key, typeof value);
+        }
       ),
       headers: variablesToHttpMap(parameters.headers ?? {}).match(
         v => v,
-        ([key, value]) => { throw invalidHTTPMapValueType('query parameter', key, typeof value); }
+        ([key, value]) => {
+          throw invalidHTTPMapValueType('query parameter', key, typeof value);
+        }
       ),
     };
 

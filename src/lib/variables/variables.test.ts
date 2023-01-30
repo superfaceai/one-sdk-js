@@ -11,39 +11,37 @@ import {
 
 describe('Variables', () => {
   describe('isNone', () => {
-    it.each([undefined, null])('returns true for %p', (input) => {
+    it.each([undefined, null])('returns true for %p', input => {
       expect(isNone(input)).toBe(true);
     });
 
-    it.each([0, 1, '', Buffer.alloc(0)])('returns false for %p', (input) => {
+    it.each([0, 1, '', Buffer.alloc(0)])('returns false for %p', input => {
       expect(isNone(input)).toBe(false);
     });
   });
 
   describe('isPrimitive', () => {
-    it.each([
-      'string', 123, false, ['heeeelo'], null, undefined,
-    ])('returns true for %p', (input) => {
-      expect(isPrimitive(input)).toBe(true);
-    });
+    it.each(['string', 123, false, ['heeeelo'], null, undefined])(
+      'returns true for %p',
+      input => {
+        expect(isPrimitive(input)).toBe(true);
+      }
+    );
 
-    it.each([
-      { x: 1 }
-    ])('returns false for %p', (input) => {
+    it.each([{ x: 1 }])('returns false for %p', input => {
       expect(isPrimitive(input)).toBe(false);
     });
   });
 
   describe('isNonPrimitive', () => {
-    it.each([
-      'string', 123, false, ['heeeelo'], null
-    ])('returns false for %p', (input) => {
-      expect(isNonPrimitive(input)).toBe(false);
-    });
+    it.each(['string', 123, false, ['heeeelo'], null])(
+      'returns false for %p',
+      input => {
+        expect(isNonPrimitive(input)).toBe(false);
+      }
+    );
 
-    it.each([
-      { x: 1 }
-    ])('returns true for %p', (input) => {
+    it.each([{ x: 1 }])('returns true for %p', input => {
       expect(isNonPrimitive(input)).toBe(true);
     });
   });
@@ -56,7 +54,7 @@ describe('Variables', () => {
     it('returns false fror { a: 1 }', () => {
       expect(isEmptyRecord({ a: 1 })).toBe(false);
     });
-  })
+  });
 
   describe('mergeVariables', () => {
     it('merges two simple objects', () => {
@@ -137,7 +135,7 @@ describe('Variables', () => {
       ['1', 1],
       ['undefined', undefined],
       ['null', null],
-      ['false', false,],
+      ['false', false],
     ])('returns %p for %p', (result, input) => {
       expect(variableToString(input)).toBe(result);
     });

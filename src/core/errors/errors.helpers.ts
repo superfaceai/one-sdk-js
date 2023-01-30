@@ -358,14 +358,18 @@ export function invalidPathReplacementError(
   available: string[]
 ): SDKExecutionError {
   return new SDKExecutionError(
-    `Missing or mistyped values for URL path replacement: ${invalid.join(', ')}`,
+    `Missing or mistyped values for URL path replacement: ${invalid.join(
+      ', '
+    )}`,
     [
       `Trying to replace path keys for url: ${url}`,
       all.length > 0
         ? `Found these path keys: ${all.join(', ')}`
         : 'Found no path keys',
       available.length > 0
-        ? `But only found these variables with supported types: ${available.join(', ')}`
+        ? `But only found these variables with supported types: ${available.join(
+            ', '
+          )}`
         : 'But found no variables with supported types',
     ],
     [
@@ -494,13 +498,9 @@ export function invalidHTTPMapValueType(
 ): SDKExecutionError {
   return new SDKExecutionError(
     `Invalid HTTP ${kind} value type: ${key}`,
-    [
-      `Value is of type ${type} but string was expected`
-    ],
-    [
-      'Stringify value before passing it to the HTTP request'
-    ]
-  )
+    [`Value is of type ${type} but string was expected`],
+    ['Stringify value before passing it to the HTTP request']
+  );
 }
 
 export function digestHeaderNotFound(

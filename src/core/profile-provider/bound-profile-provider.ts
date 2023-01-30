@@ -18,7 +18,7 @@ import type {
   NonPrimitive,
   Result,
   SDKExecutionError,
-  UnexpectedError
+  UnexpectedError,
 } from '../../lib';
 import {
   castToNonPrimitive,
@@ -136,10 +136,10 @@ export class BoundProfileProvider implements IBoundProfileProvider {
 
     const security = securityValues
       ? resolveSecurityConfiguration(
-        this.provider.securitySchemes ?? [],
-        securityValues,
-        this.provider.name
-      )
+          this.provider.securitySchemes ?? [],
+          securityValues,
+          this.provider.name
+        )
       : this.configuration.security;
 
     // create and perform interpreter instance
@@ -192,7 +192,8 @@ export class BoundProfileProvider implements IBoundProfileProvider {
   ): NonPrimitive | undefined {
     let composed = input;
 
-    const defaultInput = this.configuration.profileProviderSettings?.defaults[usecase]?.input;
+    const defaultInput =
+      this.configuration.profileProviderSettings?.defaults[usecase]?.input;
     if (defaultInput !== undefined) {
       composed = mergeVariables(castToNonPrimitive(defaultInput), input ?? {});
       this.logSensitive?.('Composed input with defaults: %O', composed);

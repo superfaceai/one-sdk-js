@@ -61,9 +61,7 @@ export function isEmptyRecord(
   return isNonPrimitive(input) && Object.keys(input).length === 0;
 }
 
-export function assertIsVariables(
-  input: unknown
-): asserts input is Variables {
+export function assertIsVariables(input: unknown): asserts input is Variables {
   if (!isVariables(input)) {
     throw new UnexpectedError(`Invalid result type: ${typeof input}`);
   }

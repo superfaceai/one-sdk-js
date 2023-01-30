@@ -266,7 +266,9 @@ export class ProfileParameterValidator implements ProfileVisitor {
   ): ValidationFunction {
     return (input: unknown): ValidationResult => {
       if (objectHasKey(input, node.fieldName)) {
-        const fieldValue = objectHasKey(input, node.fieldName) ? input[node.fieldName] : undefined;
+        const fieldValue = objectHasKey(input, node.fieldName)
+          ? input[node.fieldName]
+          : undefined;
 
         if (node.type) {
           return this.visit(node.type, kind, usecase)(fieldValue);

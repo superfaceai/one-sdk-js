@@ -248,7 +248,7 @@ export async function fetchBind(
     method: 'POST',
     headers:
       sdkToken !== undefined
-        ? { 'Authorization': `SUPERFACE-SDK-TOKEN ${sdkToken}` }
+        ? { Authorization: `SUPERFACE-SDK-TOKEN ${sdkToken}` }
         : undefined,
     baseUrl: config.superfaceApiUrl,
     accept: 'application/json',

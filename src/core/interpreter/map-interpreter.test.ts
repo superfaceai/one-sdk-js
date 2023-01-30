@@ -1447,20 +1447,24 @@ describe('MapInterpreter', () => {
     it.each([
       ['param', 'param'],
       [2, '2'],
-      [true, 'true']
-    ])('should call an API with path parameter "%s"', async (value, expected) => {
-      const url = '/twelve';
-      await mockServer.forGet(`${url}/${expected}`).thenJson(200, { data: 144 });
-      const interpreter = new MapInterpreter(
-        {
-          usecase: 'Test',
-          input: { page: value },
-          security: [],
-          services: mockServicesSelector,
-        },
-        interpreterDependencies
-      );
-      const ast = parseMapFromSource(`
+      [true, 'true'],
+    ])(
+      'should call an API with path parameter "%s"',
+      async (value, expected) => {
+        const url = '/twelve';
+        await mockServer
+          .forGet(`${url}/${expected}`)
+          .thenJson(200, { data: 144 });
+        const interpreter = new MapInterpreter(
+          {
+            usecase: 'Test',
+            input: { page: value },
+            security: [],
+            services: mockServicesSelector,
+          },
+          interpreterDependencies
+        );
+        const ast = parseMapFromSource(`
       map Test {
         page = input.page
         http GET "${url}/{page}" {
@@ -1475,10 +1479,11 @@ describe('MapInterpreter', () => {
           }
         }
       }`);
-      const result = await interpreter.perform(ast);
+        const result = await interpreter.perform(ast);
 
-      expect(result.unwrap()).toEqual(144);
-    });
+        expect(result.unwrap()).toEqual(144);
+      }
+    );
 
     it('should be able to use input in path parameters', async () => {
       const url = '/twelve';
@@ -1546,31 +1551,33 @@ describe('MapInterpreter', () => {
       ['2', '2'],
       ['false', 'false'],
       // ['[1, true, "hi"]', ['1', 'true', 'hi']], // FIXME: blocked by node-fetch update to 3 and node.js implicit header joining https://nodejs.org/api/http.html#messageheaders
-    ])('should send a POST request with header "%s" and receive it back', async (value, expected) => {
-      const url = '/checkBody';
-      await mockServer
-        .forPost(url)
-        .withJsonBody({ anArray: [1, 2, 3] })
-        .thenCallback(req => {
-          expect(req.headers['someheader']).toStrictEqual(expected);
+    ])(
+      'should send a POST request with header "%s" and receive it back',
+      async (value, expected) => {
+        const url = '/checkBody';
+        await mockServer
+          .forPost(url)
+          .withJsonBody({ anArray: [1, 2, 3] })
+          .thenCallback(req => {
+            expect(req.headers['someheader']).toStrictEqual(expected);
 
-          return {
-            statusCode: 201,
-            headers: {
-              test: req.headers['someheader']
-            },
-            json: { bodyOk: true, headerOk: true },
-          };
-        });
-      const interpreter = new MapInterpreter(
-        {
-          usecase: 'Test',
-          security: [],
-          services: mockServicesSelector,
-        },
-        interpreterDependencies
-      );
-      const ast = parseMapFromSource(`
+            return {
+              statusCode: 201,
+              headers: {
+                test: req.headers['someheader'],
+              },
+              json: { bodyOk: true, headerOk: true },
+            };
+          });
+        const interpreter = new MapInterpreter(
+          {
+            usecase: 'Test',
+            security: [],
+            services: mockServicesSelector,
+          },
+          interpreterDependencies
+        );
+        const ast = parseMapFromSource(`
       map Test {
         http POST "${url}" {
           request {
@@ -1591,35 +1598,38 @@ describe('MapInterpreter', () => {
           }
         }
       }`);
-      const result = await interpreter.perform(ast);
+        const result = await interpreter.perform(ast);
 
-      expect(result.unwrap()).toEqual({
-        headerOk: true,
-        bodyOk: true,
-        headerTest: expected,
-      });
-    });
+        expect(result.unwrap()).toEqual({
+          headerOk: true,
+          bodyOk: true,
+          headerTest: expected,
+        });
+      }
+    );
 
     it.each([
       ['2', '2'],
       [2, '2'],
-      [true, 'true']
-    ])('should call an API with query parameter "%s"', async (value, expected) => {
-      const url = '/twelve';
-      await mockServer
-        .forGet(url)
-        .withQuery({ page: expected })
-        .thenJson(200, { data: 144 });
-      const interpreter = new MapInterpreter(
-        {
-          usecase: 'Test',
-          input: { page: value },
-          security: [],
-          services: mockServicesSelector,
-        },
-        interpreterDependencies
-      );
-      const ast = parseMapFromSource(`
+      [true, 'true'],
+    ])(
+      'should call an API with query parameter "%s"',
+      async (value, expected) => {
+        const url = '/twelve';
+        await mockServer
+          .forGet(url)
+          .withQuery({ page: expected })
+          .thenJson(200, { data: 144 });
+        const interpreter = new MapInterpreter(
+          {
+            usecase: 'Test',
+            input: { page: value },
+            security: [],
+            services: mockServicesSelector,
+          },
+          interpreterDependencies
+        );
+        const ast = parseMapFromSource(`
       map Test {
         http GET "${url}" {
           request {
@@ -1636,10 +1646,11 @@ describe('MapInterpreter', () => {
           }
         }
       }`);
-      const result = await interpreter.perform(ast);
+        const result = await interpreter.perform(ast);
 
-      expect(result.unwrap()).toEqual(144);
-    });
+        expect(result.unwrap()).toEqual(144);
+      }
+    );
 
     it('should strip trailing slash from baseUrl', async () => {
       await mockServer.forGet('/thirteen').thenJson(200, { data: 12 });
@@ -1805,7 +1816,10 @@ describe('MapInterpreter', () => {
             [
               { id: 'one', baseUrl: `${mockServicesSelector.getUrl()!}/one` },
               { id: 'two', baseUrl: `${mockServicesSelector.getUrl()!}/two` },
-              { id: 'three', baseUrl: `${mockServicesSelector.getUrl()!}/three` },
+              {
+                id: 'three',
+                baseUrl: `${mockServicesSelector.getUrl()!}/three`,
+              },
             ],
             'one'
           ),
@@ -1911,11 +1925,16 @@ describe('MapInterpreter', () => {
 
     it('should send file in its entirety as FormData with passed mimetype and filename', async () => {
       const filePath = path.resolve(process.cwd(), 'fixtures', 'binary.txt');
-      const file = BinaryData.fromPath(filePath, { name: 'test.txt', mimetype: 'text/plain' });
+      const file = BinaryData.fromPath(filePath, {
+        name: 'test.txt',
+        mimetype: 'text/plain',
+      });
 
       await mockServer.forPost('/test').thenCallback(async req => {
         const data = await req.body.getText();
-        expect(data).toContain('Content-Disposition: form-data; name="file"; filename="test.txt"');
+        expect(data).toContain(
+          'Content-Disposition: form-data; name="file"; filename="test.txt"'
+        );
         expect(data).toContain('Content-Type: text/plain');
 
         return { status: 200, json: { ok: true } };
@@ -1965,7 +1984,9 @@ describe('MapInterpreter', () => {
       await mockServer.forPost('/test').thenCallback(async req => {
         const data = await req.body.getText();
 
-        expect(data).toContain('Content-Disposition: form-data; name="file"; filename="mapset.txt"');
+        expect(data).toContain(
+          'Content-Disposition: form-data; name="file"; filename="mapset.txt"'
+        );
         expect(data).toContain('Content-Type: vnd.test/mapset');
 
         return { status: 200, json: { ok: true } };
@@ -1998,7 +2019,7 @@ describe('MapInterpreter', () => {
           input: {
             file,
             filename: 'mapset.txt',
-            mimetype: 'vnd.test/mapset'
+            mimetype: 'vnd.test/mapset',
           },
         },
         interpreterDependencies
@@ -2017,7 +2038,9 @@ describe('MapInterpreter', () => {
     it('should return ArrayBuffer for binary response', async () => {
       const url = '/twelve';
       const filePath = path.resolve(process.cwd(), 'fixtures', 'binary.txt');
-      await mockServer.forGet(url).thenFromFile(200, filePath, { 'content-type': 'application/octet-stream' });
+      await mockServer.forGet(url).thenFromFile(200, filePath, {
+        'content-type': 'application/octet-stream',
+      });
 
       const interpreter = new MapInterpreter(
         {
@@ -2039,7 +2062,9 @@ describe('MapInterpreter', () => {
       const expected = (await readFile(filePath)).toString('utf8');
 
       expect(result.unwrap() instanceof ArrayBuffer).toBe(true);
-      expect(Buffer.from(result.unwrap() as ArrayBuffer).toString('utf8')).toBe(expected);
+      expect(Buffer.from(result.unwrap() as ArrayBuffer).toString('utf8')).toBe(
+        expected
+      );
     });
   });
 
@@ -2050,7 +2075,7 @@ describe('MapInterpreter', () => {
       [undefined, err(expect.any(JessieError))],
       // no special handling of nested None
       [{ foo: null }, ok({ foo: null })],
-      [{ foo: undefined }, ok({ foo: undefined })]
+      [{ foo: undefined }, ok({ foo: undefined })],
     ])('should handle input "%s"', async (value, expected) => {
       const ast = parseMapFromSource(`
         map Test {
@@ -2063,7 +2088,7 @@ describe('MapInterpreter', () => {
           security: [],
           services: ServiceSelector.withDefaultUrl(''),
           input: value as any,
-          parameters: {}
+          parameters: {},
         },
         interpreterDependencies
       );
@@ -2078,7 +2103,7 @@ describe('MapInterpreter', () => {
       [undefined, err(expect.any(JessieError))],
       // not touched
       [{ foo: null }, ok({ foo: null })],
-      [{ foo: undefined }, ok({ foo: undefined })]
+      [{ foo: undefined }, ok({ foo: undefined })],
     ])('should handle parameters "%s"', async (value, expected) => {
       const ast = parseMapFromSource(`
         map Test {
@@ -2091,7 +2116,7 @@ describe('MapInterpreter', () => {
           security: [],
           services: ServiceSelector.withDefaultUrl(''),
           input: undefined,
-          parameters: value as any
+          parameters: value as any,
         },
         interpreterDependencies
       );
@@ -2119,7 +2144,7 @@ describe('MapInterpreter', () => {
           security: [],
           services: ServiceSelector.withDefaultUrl(''),
           input: undefined,
-          parameters: {}
+          parameters: {},
         },
         interpreterDependencies
       );
@@ -2133,12 +2158,14 @@ describe('MapInterpreter', () => {
       ['undefined', err(expect.any(SDKExecutionError))],
       ['{ foo: null }', err(expect.any(SDKExecutionError))],
       ['{ foo: undefined }', err(expect.any(SDKExecutionError))],
-    ])('should handle stringifying HTTP url with "%s"', async (value, expected) => {
-      await mockServer.forAnyRequest().thenCallback(async req => {
-        return { status: 200, json: { data: req.path } };
-      });
+    ])(
+      'should handle stringifying HTTP url with "%s"',
+      async (value, expected) => {
+        await mockServer.forAnyRequest().thenCallback(async req => {
+          return { status: 200, json: { data: req.path } };
+        });
 
-      const ast = parseMapFromSource(`
+        const ast = parseMapFromSource(`
         map Test {
           val = ${value}
           http GET "/test/{val}" {
@@ -2148,27 +2175,28 @@ describe('MapInterpreter', () => {
           }
         }`);
 
-      const interpreter = new MapInterpreter(
-        {
-          usecase: 'Test',
-          security: [],
-          services: ServiceSelector.withDefaultUrl(mockServer.url),
-          input: undefined,
-          parameters: {}
-        },
-        interpreterDependencies
-      );
+        const interpreter = new MapInterpreter(
+          {
+            usecase: 'Test',
+            security: [],
+            services: ServiceSelector.withDefaultUrl(mockServer.url),
+            input: undefined,
+            parameters: {},
+          },
+          interpreterDependencies
+        );
 
-      const result = await interpreter.perform(ast);
-      expect(result).toStrictEqual(expected);
-    });
+        const result = await interpreter.perform(ast);
+        expect(result).toStrictEqual(expected);
+      }
+    );
 
     it.each([
       // content-type is JSON by default
       [null, null],
       [undefined, undefined],
       [{ foo: null }, { foo: null }],
-      [{ foo: undefined }, {}]
+      [{ foo: undefined }, {}],
     ])('should handle HTTP body "%s"', async (value, expected) => {
       await mockServer.forPost('/test').thenCallback(async req => {
         return { status: 200, json: { data: await req.body.getJson() } };
@@ -2193,7 +2221,7 @@ describe('MapInterpreter', () => {
           security: [],
           services: ServiceSelector.withDefaultUrl(mockServer.url),
           input: { foo: value as any },
-          parameters: {}
+          parameters: {},
         },
         interpreterDependencies
       );
@@ -2211,10 +2239,15 @@ describe('MapInterpreter', () => {
       [{ foo: undefined }, err(expect.any(SDKExecutionError))],
       // array filtered
       [[null, 'value', undefined], ok([true, 'value'])],
-      [[null, 'value', undefined, 'value2'], ok([true, ['value', 'value2']])]
+      [[null, 'value', undefined, 'value2'], ok([true, ['value', 'value2']])],
     ])('should handle HTTP header "%s"', async (value, expected) => {
       await mockServer.forGet('/test').thenCallback(async req => {
-        return { status: 200, json: { data: ['test-header' in req.headers, req.headers['test-header']] } };
+        return {
+          status: 200,
+          json: {
+            data: ['test-header' in req.headers, req.headers['test-header']],
+          },
+        };
       });
 
       const ast = parseMapFromSource(`
@@ -2238,7 +2271,7 @@ describe('MapInterpreter', () => {
           security: [],
           services: ServiceSelector.withDefaultUrl(mockServer.url),
           input: { foo: value as any },
-          parameters: {}
+          parameters: {},
         },
         interpreterDependencies
       );
@@ -2256,10 +2289,12 @@ describe('MapInterpreter', () => {
       [{ foo: undefined }, err(expect.any(SDKExecutionError))],
       // array filtered
       [[null, 'value', undefined], ok([true, 'value'])],
-      [[null, 'value', undefined, 'value2'], ok([true, ['value', 'value2']])]
+      [[null, 'value', undefined, 'value2'], ok([true, ['value', 'value2']])],
     ])('should handle HTTP query parameter "%s"', async (value, expected) => {
       await mockServer.forGet('/test').thenCallback(async req => {
-        let query: string | string[] = new URL(req.url).searchParams.getAll('test-query');
+        let query: string | string[] = new URL(req.url).searchParams.getAll(
+          'test-query'
+        );
         const present = query.length !== 0;
         if (query.length === 1) {
           query = query[0];
@@ -2289,7 +2324,7 @@ describe('MapInterpreter', () => {
           security: [],
           services: ServiceSelector.withDefaultUrl(mockServer.url),
           input: { foo: value as any },
-          parameters: {}
+          parameters: {},
         },
         interpreterDependencies
       );

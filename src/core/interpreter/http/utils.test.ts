@@ -83,8 +83,9 @@ describe('interpreter · http · utils', () => {
         createUrl('/baz', {
           baseUrl: 'http://example.com/{FOO}/{BAR}',
           integrationParameters: {
-            FOO: 'foo', BAR: 'bar'
-          }
+            FOO: 'foo',
+            BAR: 'bar',
+          },
         })
       ).toBe('http://example.com/foo/bar/baz');
     });
@@ -94,41 +95,47 @@ describe('interpreter · http · utils', () => {
         createUrl('/{FOO}/{BAR.BAZ}', {
           baseUrl: 'http://example.com',
           pathParameters: {
-            FOO: 'foo', BAR: { BAZ: 'baz' }
-          }
+            FOO: 'foo',
+            BAR: { BAZ: 'baz' },
+          },
         })
       ).toBe('http://example.com/foo/baz');
     });
 
     it('throws missing key error if path parameter for inputUrl is missing', () => {
-      expect(
-        () => createUrl(
-          '/{FOO}/{BAR}',
-          {
-            baseUrl: 'http://example.com',
-            pathParameters: { FOO: 'foo' }
-          })
-      ).toThrow('Missing or mistyped values for URL path replacement: BAR')
+      expect(() =>
+        createUrl('/{FOO}/{BAR}', {
+          baseUrl: 'http://example.com',
+          pathParameters: { FOO: 'foo' },
+        })
+      ).toThrow('Missing or mistyped values for URL path replacement: BAR');
     });
 
     it('throws mistyped key error if path parameter for inputUrl is not string', () => {
-      expect(
-        () => createUrl(
-          '/{FOO}/{BAR}',
-          {
-            baseUrl: 'http://example.com',
-            pathParameters: { FOO: 'foo', BAR: [1, 2, 3] }
-          })
-      ).toThrow('Missing or mistyped values for URL path replacement: BAR')
+      expect(() =>
+        createUrl('/{FOO}/{BAR}', {
+          baseUrl: 'http://example.com',
+          pathParameters: { FOO: 'foo', BAR: [1, 2, 3] },
+        })
+      ).toThrow('Missing or mistyped values for URL path replacement: BAR');
     });
   });
 
   describe('variablesToHttpMap', () => {
     it.each([
       [{}, ok({})],
-      [{ foo: 'string', bar: ['s1', 's2'] }, ok({ foo: 'string', bar: ['s1', 's2'] })],
-      [{ foo: undefined, bar: ['s1', null, undefined, 's2'], baz: null }, ok({ bar: ['s1', 's2'] })],
-      [{ foo: 1, bar: [true, false] }, ok({ foo: '1', bar: ['true', 'false'] })],
+      [
+        { foo: 'string', bar: ['s1', 's2'] },
+        ok({ foo: 'string', bar: ['s1', 's2'] }),
+      ],
+      [
+        { foo: undefined, bar: ['s1', null, undefined, 's2'], baz: null },
+        ok({ bar: ['s1', 's2'] }),
+      ],
+      [
+        { foo: 1, bar: [true, false] },
+        ok({ foo: '1', bar: ['true', 'false'] }),
+      ],
       [{ foo: Buffer.from([]) }, err(['foo', Buffer.from([])])],
       [{ foo: ['s1', {}] }, err(['foo', {}])],
       [{ foo: ['s1', []] }, err(['foo', []])],
@@ -141,13 +148,13 @@ describe('interpreter · http · utils', () => {
   describe('getHeaderMulti', () => {
     const map: HttpMultiMap = {
       foo: 'string',
-      bar: ['a', 'b']
+      bar: ['a', 'b'],
     };
-    
+
     it.each([
       ['none', undefined],
       ['foo', ['string']],
-      ['bar', ['a', 'b']]
+      ['bar', ['a', 'b']],
     ])('correctly handles "%s"', (key, expected) => {
       expect(getHeaderMulti(map, key)).toStrictEqual(expected);
     });

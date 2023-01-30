@@ -279,11 +279,11 @@ function ensureProfileWithProviders(
   environment?: IEnvironment,
   logger?: ILogger
 ): [
-    boolean,
-    Exclude<ProfileEntry, string> & {
-      providers: Record<string, ProfileProviderEntry>;
-    }
-  ] {
+  boolean,
+  Exclude<ProfileEntry, string> & {
+    providers: Record<string, ProfileProviderEntry>;
+  }
+] {
   let changed = false;
 
   if (document.profiles === undefined) {

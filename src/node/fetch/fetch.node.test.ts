@@ -385,16 +385,20 @@ describe('NodeFetch', () => {
         .mocked(fetch)
         .mockImplementation(jest.requireActual('node-fetch').default);
 
-      await mockServer.forGet('/test').thenCallback((req) => {
+      await mockServer.forGet('/test').thenCallback(req => {
         expect(req.rawHeaders).toEqual(
-          expect.arrayContaining([['first', 'abc'], ['second', 'ab'], ['second', 'bc']])
+          expect.arrayContaining([
+            ['first', 'abc'],
+            ['second', 'ab'],
+            ['second', 'bc'],
+          ])
         );
 
         return {
           statusCode: 200,
           headers: {
             foo: 'string',
-            bar: ['a', 'b', 'c']
+            bar: ['a', 'b', 'c'],
           },
           body: 'Ok',
         };
@@ -406,8 +410,8 @@ describe('NodeFetch', () => {
         headers: {
           first: 'abc',
           second: ['ab', 'bc'],
-          connection: 'close'
-        }
+          connection: 'close',
+        },
       });
 
       if (result.status !== 200) {

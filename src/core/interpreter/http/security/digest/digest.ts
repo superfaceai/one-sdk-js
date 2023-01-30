@@ -117,8 +117,14 @@ export class DigestHandler implements ISecurityHandler {
           throw new Error('Response is undefined');
         }
 
-        const challengeHeader = getHeaderMulti(response.headers, this.challengeHeader);
-        if (response.statusCode !== this.statusCode || challengeHeader === undefined) {
+        const challengeHeader = getHeaderMulti(
+          response.headers,
+          this.challengeHeader
+        );
+        if (
+          response.statusCode !== this.statusCode ||
+          challengeHeader === undefined
+        ) {
           throw digestHeaderNotFound(
             this.challengeHeader,
             Object.keys(response.headers)
@@ -152,7 +158,10 @@ export class DigestHandler implements ISecurityHandler {
     resourceRequestParameters: RequestParameters
   ) => {
     if (response.statusCode === this.statusCode) {
-      const challengeHeader = getHeaderMulti(response.headers, this.challengeHeader);
+      const challengeHeader = getHeaderMulti(
+        response.headers,
+        this.challengeHeader
+      );
 
       if (challengeHeader === undefined) {
         throw digestHeaderNotFound(
