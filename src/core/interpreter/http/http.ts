@@ -63,13 +63,13 @@ export class HttpClient {
       ).match(
         v => v,
         ([key, value]) => {
-          throw invalidHTTPMapValueType('header', key, typeof value);
+          throw invalidHTTPMapValueType('query parameter', key, typeof value);
         }
       ),
       headers: variablesToHttpMap(parameters.headers ?? {}).match(
         v => v,
         ([key, value]) => {
-          throw invalidHTTPMapValueType('query parameter', key, typeof value);
+          throw invalidHTTPMapValueType('header', key, typeof value);
         }
       ),
     };
