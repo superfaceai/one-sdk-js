@@ -120,7 +120,7 @@ export function variableToString(variable: Variables): string {
   }
 
   if (variable === undefined) {
-    return 'undefined'; // TODO: for both undefined and null, return 'None'?
+    return 'undefined';
   }
 
   if (Buffer.isBuffer(variable)) {
