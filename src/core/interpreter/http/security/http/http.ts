@@ -2,6 +2,7 @@ import type { SecurityType } from '@superfaceai/ast';
 import { HttpScheme } from '@superfaceai/ast';
 
 import type { ILogger, LogFunction } from '../../../../../interfaces';
+import type { HttpMultiMap } from '../../interfaces';
 import type {
   AuthenticateRequestAsync,
   ISecurityHandler,
@@ -27,7 +28,7 @@ export class HttpHandler implements ISecurityHandler {
   public authenticate: AuthenticateRequestAsync = async (
     parameters: RequestParameters
   ) => {
-    const headers: Record<string, string> = parameters.headers || {};
+    const headers: HttpMultiMap = parameters.headers ?? {};
 
     switch (this.configuration.scheme) {
       case HttpScheme.BASIC:

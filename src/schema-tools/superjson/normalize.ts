@@ -180,7 +180,7 @@ export function normalizeUsecaseDefaults(
   const normalized: NormalizedUsecaseDefaults =
     base !== undefined ? clone(base) : {};
   for (const [usecase, defs] of Object.entries(defaults)) {
-    const previousInput = castToNonPrimitive(normalized[usecase]?.input) ?? {};
+    const previousInput = castToNonPrimitive(normalized[usecase]?.input ?? {});
 
     let providerFailover = defs.providerFailover;
     if (providerFailover === undefined) {
@@ -190,7 +190,7 @@ export function normalizeUsecaseDefaults(
     normalized[usecase] = {
       input: mergeVariables(
         previousInput,
-        castToNonPrimitive(defs.input) ?? {}
+        castToNonPrimitive(defs.input ?? {})
       ),
       providerFailover: providerFailover ?? false,
     };
@@ -219,12 +219,12 @@ export function normalizeProfileProviderDefaults(
 
   const normalized: NormalizedProfileProviderDefaults = {};
   for (const [usecase, defs] of Object.entries(defaults)) {
-    const previousInput = castToNonPrimitive(base?.[usecase]?.input) ?? {};
+    const previousInput = castToNonPrimitive(base?.[usecase]?.input ?? {});
 
     normalized[usecase] = {
       input: mergeVariables(
         previousInput,
-        castToNonPrimitive(defs.input) ?? {}
+        castToNonPrimitive(defs.input ?? {})
       ),
       retryPolicy: normalizeRetryPolicy(defs.retryPolicy),
     };

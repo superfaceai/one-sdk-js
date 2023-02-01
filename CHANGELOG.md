@@ -6,8 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## Changed
+- Handle `None` (js `null` and `undefined`) - [#314](https://github.com/superfaceai/one-sdk-js/pull/314)
+- [Required field](https://superface.ai/docs/comlink/profile#sec-Required-field) validation uses `Object.hasOwn` to check field presence - [#318](https://github.com/superfaceai/one-sdk-js/pull/318)
+- Header and query parameters must be `string` or `string[]` - [#324](https://github.com/superfaceai/one-sdk-js/pull/324)
+- If profile doesn't have input defined, input isn't added to interpreter stack (input can't be access from Comlink Map) - [#323](https://github.com/superfaceai/one-sdk-js/pull/323)
+
 ### Fixed
-- Trailing comments in comlink script expressions broke sandbox evaluation
+- Trailing comments in comlink script expressions broke sandbox evaluation - [#327](https://github.com/superfaceai/one-sdk-js/pull/327)
 
 ## [2.2.0] - 2023-01-02
 ### Added

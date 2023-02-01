@@ -3,9 +3,12 @@ import { HttpScheme, SecurityType } from '@superfaceai/ast';
 
 import type { ICrypto, ILogger } from '../../../interfaces';
 import type { NonPrimitive, Variables } from '../../../lib';
-import { UnexpectedError, variablesToStrings } from '../../../lib';
+import { UnexpectedError } from '../../../lib';
 import { pipe } from '../../../lib/pipe/pipe';
-import { missingSecurityValuesError } from '../../errors';
+import {
+  invalidHTTPMapValueType,
+  missingSecurityValuesError,
+} from '../../errors';
 import {
   authenticateFilter,
   fetchFilter,
@@ -23,6 +26,7 @@ import type {
 } from './security';
 import { ApiKeyHandler, DigestHandler, HttpHandler } from './security';
 import type { HttpResponse } from './types';
+import { variablesToHttpMap } from './utils';
 
 export enum NetworkErrors {
   TIMEOUT_ERROR = 'TIMEOUT_ERROR',
@@ -39,7 +43,7 @@ export class HttpClient {
     url: string,
     parameters: {
       method: string;
-      headers?: Variables;
+      headers?: NonPrimitive;
       queryParameters?: NonPrimitive;
       body?: Variables;
       contentType?: string;
@@ -54,7 +58,20 @@ export class HttpClient {
     const requestParameters: RequestParameters = {
       url,
       ...parameters,
-      headers: variablesToStrings(parameters?.headers),
+      queryParameters: variablesToHttpMap(
+        parameters.queryParameters ?? {}
+      ).match(
+        v => v,
+        ([key, value]) => {
+          throw invalidHTTPMapValueType('query parameter', key, typeof value);
+        }
+      ),
+      headers: variablesToHttpMap(parameters.headers ?? {}).match(
+        v => v,
+        ([key, value]) => {
+          throw invalidHTTPMapValueType('header', key, typeof value);
+        }
+      ),
     };
 
     const handler = createSecurityHandler(

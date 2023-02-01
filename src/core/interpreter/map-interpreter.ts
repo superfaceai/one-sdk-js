@@ -41,6 +41,8 @@ import {
   assertIsVariables,
   castToVariables,
   err,
+  fromEntriesOptional,
+  isNone,
   isNonPrimitive,
   isPrimitive,
   mergeVariables,
@@ -246,7 +248,8 @@ abstract class NodeVisitor<N extends MapASTNode, V = undefined>
       this.visitGenerator = this.visit();
     }
 
-    // here we check child identifier as a sanity check
+    // here we check child identifier as a sanity check - this helps to ensure that we don't receive a child result
+    // that we didn't previously request using `explore` result
     const actualChildIdentifier = args[0]?.childIdentifier;
     if (this.expectedChildIdentifier !== actualChildIdentifier) {
       const expected = this.expectedChildIdentifier?.toString() ?? 'undefined';
@@ -519,12 +522,10 @@ class JessieExpressionVisitor extends NodeVisitor<
         this.logger,
         {
           ...this.stack,
-          input: {
-            ...(this.inputParameters ?? {}),
-          },
-          parameters: {
-            ...(this.integrationParameters ?? {}),
-          },
+          ...fromEntriesOptional(
+            ['input', this.inputParameters],
+            ['parameters', this.integrationParameters]
+          ),
         }
       );
 
@@ -704,7 +705,7 @@ class CallVisitor extends NodeVisitor<
 type HttpRequest = {
   contentType?: string;
   contentLanguage?: string;
-  headers?: Variables;
+  headers?: NonPrimitive;
   queryParameters?: NonPrimitive;
   body?: Variables;
   security: HttpSecurityRequirement[];
@@ -774,8 +775,10 @@ class HttpCallStatementVisitor extends NodeVisitor<HttpCallStatementNode> {
           queryParameters: request?.queryParameters,
           pathParameters: {
             ...this.stack,
-            input: this.inputParameters,
-            parameters: this.integrationParameters,
+            ...fromEntriesOptional(
+              ['input', this.inputParameters],
+              ['parameters', this.integrationParameters]
+            ),
           },
           body: request?.body,
           securityRequirements: request?.security,
@@ -1181,11 +1184,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined> {
     for (const value of Object.values(input)) {
       if (isInitializable(value)) {
         await value.initialize();
-      } else if (
-        value !== undefined &&
-        value !== null &&
-        isNonPrimitive(value)
-      ) {
+      } else if (isNonPrimitive(value)) {
         await MapInterpreter.initializeInput(value);
       }
     }
@@ -1195,11 +1194,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined> {
     for (const value of Object.values(input)) {
       if (isDestructible(value)) {
         await value.destroy();
-      } else if (
-        value !== undefined &&
-        value !== null &&
-        isNonPrimitive(value)
-      ) {
+      } else if (isNonPrimitive(value)) {
         await MapInterpreter.destroyInput(value);
       }
     }
@@ -1221,7 +1216,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined> {
       throw new UnexpectedError('BinaryData cannot be used as outcome');
     }
 
-    if (input === undefined || input === null || isPrimitive(input)) {
+    if (isPrimitive(input)) {
       // beware: implicit promise flattening happens here
       return input;
     }
@@ -1297,7 +1292,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined> {
     const entry = entryResult.value;
 
     // initialize input
-    if (this.parameters.input !== undefined) {
+    if (!isNone(this.parameters.input)) {
       await MapInterpreter.initializeInput(this.parameters.input);
     }
 
@@ -1374,7 +1369,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined> {
       lastResult?.outcome?.value,
       ast
     );
-    if (result.isOk() && this.parameters.input !== undefined) {
+    if (result.isOk() && !isNone(this.parameters.input)) {
       await MapInterpreter.destroyInput(this.parameters.input);
     }
 

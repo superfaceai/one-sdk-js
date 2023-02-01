@@ -65,22 +65,22 @@ export function mergeProfileDefaults(
       return true;
     }
   } else {
-    if (targetedProfile.defaults) {
-      // Merge existing with new
-      defaults = mergeVariables(
-        castToNonPrimitive(targetedProfile.defaults) || {},
-        castToNonPrimitive(payload) || {}
-      ) as UsecaseDefaults;
+    if (targetedProfile.defaults === undefined) {
       document.profiles[profileName] = {
         ...targetedProfile,
-        defaults,
+        defaults: payload,
       };
 
       return true;
     } else {
+      // Merge existing with new
+      defaults = mergeVariables(
+        castToNonPrimitive(targetedProfile.defaults),
+        castToNonPrimitive(payload)
+      ) as UsecaseDefaults;
       document.profiles[profileName] = {
         ...targetedProfile,
-        defaults: payload,
+        defaults,
       };
 
       return true;
@@ -181,8 +181,8 @@ export function mergeProfile(
       } else {
         // Merge existing with new
         defaults = mergeVariables(
-          castToNonPrimitive(targetedProfile.defaults) || {},
-          castToNonPrimitive(payload.defaults) || {}
+          castToNonPrimitive(targetedProfile.defaults ?? {}),
+          castToNonPrimitive(payload.defaults ?? {})
         ) as UsecaseDefaults;
       }
     }
@@ -403,8 +403,8 @@ export function mergeProfileProvider(
       // Change
       // Merge existing with new
       defaults = mergeVariables(
-        castToNonPrimitive(profileProvider.defaults) || {},
-        castToNonPrimitive(payload.defaults) || {}
+        castToNonPrimitive(profileProvider.defaults ?? {}),
+        castToNonPrimitive(payload.defaults ?? {})
       ) as ProfileProviderDefaults;
     } else if (!profileProvider.defaults && payload.defaults) {
       defaults = payload.defaults;

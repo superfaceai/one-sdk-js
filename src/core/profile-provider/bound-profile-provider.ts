@@ -192,11 +192,10 @@ export class BoundProfileProvider implements IBoundProfileProvider {
   ): NonPrimitive | undefined {
     let composed = input;
 
-    const defaultInput = castToNonPrimitive(
-      this.configuration.profileProviderSettings?.defaults[usecase]?.input
-    );
+    const defaultInput =
+      this.configuration.profileProviderSettings?.defaults[usecase]?.input;
     if (defaultInput !== undefined) {
-      composed = mergeVariables(defaultInput, input ?? {});
+      composed = mergeVariables(castToNonPrimitive(defaultInput), input ?? {});
       this.logSensitive?.('Composed input with defaults: %O', composed);
     }
 

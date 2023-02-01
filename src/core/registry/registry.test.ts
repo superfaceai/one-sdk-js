@@ -179,7 +179,7 @@ describe('registry', () => {
       expect(request).toHaveBeenCalledTimes(1);
       expect(request).toHaveBeenCalledWith('/providers/test', {
         method: 'GET',
-        headers: [`Authorization: SUPERFACE-SDK-TOKEN ${TEST_SDK_TOKEN}`],
+        headers: { Authorization: `SUPERFACE-SDK-TOKEN ${TEST_SDK_TOKEN}` },
         baseUrl: TEST_REGISTRY_URL,
         accept: 'application/json',
         contentType: 'application/json',
@@ -297,7 +297,7 @@ describe('registry', () => {
       expect(request).toHaveBeenCalledTimes(1);
       expect(request).toHaveBeenCalledWith('/registry/bind', {
         method: 'POST',
-        headers: [`Authorization: SUPERFACE-SDK-TOKEN ${TEST_SDK_TOKEN}`],
+        headers: { Authorization: `SUPERFACE-SDK-TOKEN ${TEST_SDK_TOKEN}` },
         baseUrl: TEST_REGISTRY_URL,
         accept: 'application/json',
         contentType: 'application/json',
@@ -353,7 +353,7 @@ describe('registry', () => {
         baseUrl: TEST_REGISTRY_URL,
         accept: 'application/json',
         contentType: 'application/json',
-        headers: [`Authorization: SUPERFACE-SDK-TOKEN ${MOCK_TOKEN}`],
+        headers: { Authorization: `SUPERFACE-SDK-TOKEN ${MOCK_TOKEN}` },
         body: {
           profile_id: 'test-profile-id',
           provider: 'test-provider',
@@ -618,7 +618,7 @@ describe('registry', () => {
         method: 'GET',
         baseUrl: TEST_REGISTRY_URL,
         accept: 'application/vnd.superface.profile+json',
-        headers: [`Authorization: SUPERFACE-SDK-TOKEN ${TEST_SDK_TOKEN}`],
+        headers: { Authorization: `SUPERFACE-SDK-TOKEN ${TEST_SDK_TOKEN}` },
       });
     });
 
@@ -647,7 +647,7 @@ describe('registry', () => {
         method: 'GET',
         baseUrl: TEST_REGISTRY_URL,
         accept: 'application/vnd.superface.profile+json',
-        headers: [`Authorization: SUPERFACE-SDK-TOKEN ${TEST_SDK_TOKEN}`],
+        headers: { Authorization: `SUPERFACE-SDK-TOKEN ${TEST_SDK_TOKEN}` },
       });
     });
 
@@ -681,7 +681,7 @@ describe('registry', () => {
         method: 'GET',
         baseUrl: TEST_REGISTRY_URL,
         accept: 'application/vnd.superface.profile+json',
-        headers: [`Authorization: SUPERFACE-SDK-TOKEN ${TEST_SDK_TOKEN}`],
+        headers: { Authorization: `SUPERFACE-SDK-TOKEN ${TEST_SDK_TOKEN}` },
       });
     });
   });
@@ -722,7 +722,7 @@ describe('registry', () => {
         method: 'GET',
         baseUrl: TEST_REGISTRY_URL,
         accept: 'application/vnd.superface.map+json',
-        headers: [`Authorization: SUPERFACE-SDK-TOKEN ${TEST_SDK_TOKEN}`],
+        headers: { Authorization: `SUPERFACE-SDK-TOKEN ${TEST_SDK_TOKEN}` },
       });
     });
 
@@ -753,7 +753,7 @@ describe('registry', () => {
         method: 'GET',
         baseUrl: TEST_REGISTRY_URL,
         accept: 'application/vnd.superface.map+json',
-        headers: [`Authorization: SUPERFACE-SDK-TOKEN ${TEST_SDK_TOKEN}`],
+        headers: { Authorization: `SUPERFACE-SDK-TOKEN ${TEST_SDK_TOKEN}` },
       });
     });
   });

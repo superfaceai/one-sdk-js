@@ -1,5 +1,7 @@
 import type { MapASTNode, MapDocumentNode } from '@superfaceai/ast';
 
+import type { HttpMultiMap } from '../../core/interpreter/http';
+
 export interface ErrorMetadata {
   node?: MapASTNode;
   ast?: MapDocumentNode;
@@ -27,12 +29,12 @@ export interface IHTTPError extends Error {
   statusCode?: number;
   request?: {
     body?: unknown;
-    headers?: Record<string, string>;
+    headers?: HttpMultiMap;
     url?: string;
   };
   response?: {
     body?: unknown;
-    headers?: Record<string, string>;
+    headers?: HttpMultiMap;
   };
 }
 
