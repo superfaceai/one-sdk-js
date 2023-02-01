@@ -953,20 +953,20 @@
   dependencies:
     "@sinonjs/commons" "^1.7.0"
 
-"@superfaceai/ast@1.2.0", "@superfaceai/ast@^1.2.0":
-  version "1.2.0"
-  resolved "https://registry.yarnpkg.com/@superfaceai/ast/-/ast-1.2.0.tgz#f41823d550e0b0a05a8398be22a68b7b3912dde3"
-  integrity sha512-HMmdSUNzKuVgQ9g9YS/eiv3/CitSZks8eury8sAi2QbwT+n5f9SsVcmHxL2/QbkRCmlPpRqHJ6YSCqvBZ2fu1g==
+"@superfaceai/ast@1.3.0", "@superfaceai/ast@^1.3.0":
+  version "1.3.0"
+  resolved "https://registry.yarnpkg.com/@superfaceai/ast/-/ast-1.3.0.tgz#15b8ef512616652478592b2469ba06303b713622"
+  integrity sha512-6zTaJKaZkR5kqk3axiE05FheRWYb0ykRSMy6quwrVn4fJmP/Z6KQ14KifqMtZTmWak+GsFPfun1n1reyGyHbJg==
   dependencies:
     ajv "^8.8.2"
     ajv-formats "^2.1.1"
 
-"@superfaceai/parser@^1.2.0":
-  version "1.2.0"
-  resolved "https://registry.yarnpkg.com/@superfaceai/parser/-/parser-1.2.0.tgz#e89e64c9ec98ff2d1e4760c1441d88d945978a1d"
-  integrity sha512-8nQ4x15F8mygKg4BcWwzqgDVTaY5BXanvCcxirL/jKLgpGUxH+808t0KmVc2Ke9o2MdiYt/2UD2hyfpwwqN9DA==
+"@superfaceai/parser@^2.1.0":
+  version "2.1.0"
+  resolved "https://registry.yarnpkg.com/@superfaceai/parser/-/parser-2.1.0.tgz#0ddaeac6c6f7caa18a1590f27c39736a8262dcb2"
+  integrity sha512-/sbjFcs4qUo5bJx+pX/N8XClnfkQjz68XGZ+w9gzPOObMNyg1pImAf+/bE9no4bkiGfFtph0VwYjmhAY33/yXQ==
   dependencies:
-    "@superfaceai/ast" "^1.2.0"
+    "@superfaceai/ast" "^1.3.0"
     "@types/debug" "^4.1.5"
     debug "^4.3.3"
     typescript "^4"
