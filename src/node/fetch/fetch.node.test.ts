@@ -144,6 +144,31 @@ describe('NodeFetch', () => {
       });
     });
 
+    describe('when status 204 received', () => {
+      let responseJsonMock: jest.Mock;
+      let result: any;
+
+      beforeEach(async () => {
+        responseJsonMock = jest.fn().mockResolvedValue(undefined);
+
+        jest.mocked(fetch).mockResolvedValue({
+          status: 204,
+          headers: new Headers([['content-type', 'application/json']]),
+          json: responseJsonMock,
+        } as any);
+
+        const fetchInstance = new NodeFetch(timers);
+
+        result = await fetchInstance.fetch(`${mockServer.url}/test`, {
+          method: 'GET',
+        });
+      });
+
+      it('should ignore content-type in header and return undefined in result body', async () => {
+        expect(result.body).toBeUndefined();
+      });
+    });
+
     describe('when application/json content type received', () => {
       let responseJsonMock: jest.Mock;
       let result: any;

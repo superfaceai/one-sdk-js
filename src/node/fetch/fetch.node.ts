@@ -139,7 +139,10 @@ export class NodeFetch implements IFetch, Interceptable, AuthCache {
 
     const contentType = getHeaderMulti(headers, 'content-type');
     const accept = getHeaderMulti(requestHeaders.raw(), 'accept');
-    if (NodeFetch.isJsonContentType(contentType, accept)) {
+
+    if (response.status === 204) {
+      body = undefined;
+    } else if (NodeFetch.isJsonContentType(contentType, accept)) {
       body = await response.json();
     } else if (NodeFetch.isBinaryContentType(contentType, accept)) {
       body = await response.arrayBuffer(); // TODO: BinaryData.fromStream(response.body)
