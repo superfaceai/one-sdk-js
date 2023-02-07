@@ -1,13 +1,11 @@
 # Changelog
-
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-
-## Changed
+### Changed
 - Handle `None` (js `null` and `undefined`) - [#314](https://github.com/superfaceai/one-sdk-js/pull/314)
 - [Required field](https://superface.ai/docs/comlink/profile#sec-Required-field) validation uses `Object.hasOwn` to check field presence - [#318](https://github.com/superfaceai/one-sdk-js/pull/318)
 - Header and query parameters must be `string` or `string[]` - [#324](https://github.com/superfaceai/one-sdk-js/pull/324)
@@ -369,7 +367,7 @@ This is a recovery release after introduction of compatibility-breaking changes 
 ### Fixed
 - Github workflow actions failing due to github security update
 
-## 0.0.1 - 2020-08-31
+## [0.0.1] - 2020-08-31
 ### Added
 - Map interpreter
 - `vm2` based js sandbox
@@ -424,3 +422,4 @@ This is a recovery release after introduction of compatibility-breaking changes 
 [0.0.5]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.4...v0.0.5
 [0.0.4]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.3...v0.0.4
 [0.0.3]: https://github.com/superfaceai/one-sdk-js/compare/v0.0.1...v0.0.3
+[0.0.1]: https://github.com/superfaceai/one-sdk-js/releases/tag/v0.0.1
