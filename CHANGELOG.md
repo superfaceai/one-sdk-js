@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Trailing comments in comlink script expressions broke sandbox evaluation - [#327](https://github.com/superfaceai/one-sdk-js/pull/327)
+- Ignore response body if status 204 received - [#332](https://github.com/superfaceai/one-sdk-js/pull/332)
 
 ## [2.2.0] - 2023-01-02
 ### Added
