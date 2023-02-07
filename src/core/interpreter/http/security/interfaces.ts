@@ -11,7 +11,7 @@ import type {
 } from '@superfaceai/ast';
 
 import type { NonPrimitive, SuperCache, Variables } from '../../../../lib';
-import type { FetchParameters } from '../interfaces';
+import type { FetchParameters, HttpMultiMap } from '../interfaces';
 import type { HttpResponse } from '../types';
 
 export const DEFAULT_AUTHORIZATION_HEADER_NAME = 'Authorization';
@@ -59,8 +59,8 @@ export type SecurityConfiguration =
 export type RequestParameters = {
   url: string;
   method: string;
-  headers?: Record<string, string>;
-  queryParameters?: NonPrimitive;
+  headers?: HttpMultiMap;
+  queryParameters?: HttpMultiMap;
   body?: Variables;
   contentType?: string;
   accept?: string;

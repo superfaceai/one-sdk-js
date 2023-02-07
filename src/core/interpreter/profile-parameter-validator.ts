@@ -1,6 +1,7 @@
 import type {
   ComlinkAssignmentNode,
   ComlinkListLiteralNode,
+  ComlinkNoneLiteralNode,
   ComlinkObjectLiteralNode,
   ComlinkPrimitiveLiteralNode,
   EnumDefinitionNode,
@@ -33,7 +34,7 @@ import type {
   ProfileParameterError,
 } from '../../interfaces';
 import type { Result } from '../../lib';
-import { err, ok, UnexpectedError } from '../../lib';
+import { err, isNone, ok, UnexpectedError } from '../../lib';
 import type { ProfileVisitor } from './interfaces';
 import type { ValidationError } from './profile-parameter-validator.errors';
 import {
@@ -150,6 +151,8 @@ export class ProfileParameterValidator implements ProfileVisitor {
         return this.visitComlinkObjectLiteralNode(node, kind, usecase);
       case 'ComlinkPrimitiveLiteral':
         return this.visitComlinkPrimitiveLiteralNode(node, kind, usecase);
+      case 'ComlinkNoneLiteral':
+        return this.visitComlinkNoneLiteralNode(node, kind, usecase);
       case 'ComlinkAssignment':
         return this.visitComlinkAssignmentNode(node, kind, usecase);
       case 'EnumDefinition':
@@ -214,6 +217,14 @@ export class ProfileParameterValidator implements ProfileVisitor {
     throw new UnexpectedError('Method not implemented.');
   }
 
+  public visitComlinkNoneLiteralNode(
+    _node: ComlinkNoneLiteralNode,
+    _kind: ProfileParameterKind,
+    _usecase: string
+  ): never {
+    throw new UnexpectedError('Method not implemented.');
+  }
+
   public visitComlinkAssignmentNode(
     _node: ComlinkAssignmentNode,
     _kind: ProfileParameterKind,
@@ -228,7 +239,7 @@ export class ProfileParameterValidator implements ProfileVisitor {
     usecase: string
   ): ValidationFunction {
     return (input: unknown): ValidationResult => {
-      if (input === undefined || input === null) {
+      if (isNone(input)) {
         return [true];
       }
 
@@ -265,23 +276,27 @@ export class ProfileParameterValidator implements ProfileVisitor {
     usecase: string
   ): ValidationFunction {
     return (input: unknown): ValidationResult => {
-      const field = objectHasKey(input, node.fieldName)
-        ? input[node.fieldName]
-        : undefined;
+      if (objectHasKey(input, node.fieldName)) {
+        const fieldValue = objectHasKey(input, node.fieldName)
+          ? input[node.fieldName]
+          : undefined;
 
-      if (!node.type) {
+        if (node.type) {
+          return this.visit(node.type, kind, usecase)(fieldValue);
+        }
+
         if (this.namedFieldDefinitions[node.fieldName] !== undefined) {
-          return this.namedFieldDefinitions[node.fieldName](field);
+          return this.namedFieldDefinitions[node.fieldName](fieldValue);
         }
 
         return [true];
       }
 
-      if (node.required && field === undefined) {
+      if (node.required) {
         return [false, [{ kind: 'missingRequired' }]];
+      } else {
+        return [true];
       }
-
-      return this.visit(node.type, kind, usecase)(field);
     };
   }
 
@@ -291,7 +306,7 @@ export class ProfileParameterValidator implements ProfileVisitor {
     usecase: string
   ): ValidationFunction {
     return (input: unknown): ValidationResult => {
-      if (input === undefined) {
+      if (isNone(input)) {
         return [true];
       }
 
@@ -369,7 +384,7 @@ export class ProfileParameterValidator implements ProfileVisitor {
     usecase: string
   ): ValidationFunction {
     return (input: unknown): ValidationResult => {
-      if (input === null) {
+      if (isNone(input)) {
         return [false, [{ kind: 'nullInNonNullable' }]];
       }
 
@@ -383,11 +398,11 @@ export class ProfileParameterValidator implements ProfileVisitor {
     usecase: string
   ): ValidationFunction {
     return (input: unknown): ValidationResult => {
-      if (input === undefined) {
+      if (isNone(input)) {
         return [true];
       }
 
-      if (typeof input !== 'object' || input === null) {
+      if (typeof input !== 'object') {
         return [
           false,
           [
@@ -433,7 +448,7 @@ export class ProfileParameterValidator implements ProfileVisitor {
     _usecase: string
   ): ValidationFunction {
     return (input: unknown): ValidationResult => {
-      if (input === undefined || input === null) {
+      if (isNone(input)) {
         return [true];
       }
 
@@ -568,7 +583,9 @@ export class ProfileParameterValidator implements ProfileVisitor {
   ): ValidationFunction {
     if (kind === 'input' && node.input) {
       return addPath(this.visit(node.input.value, kind, usecase), 'input');
-    } else if (kind === 'result' && node.result) {
+    }
+
+    if (kind === 'result' && node.result) {
       return addPath(this.visit(node.result.value, kind, usecase), 'result');
     }
 

@@ -7,7 +7,7 @@ import type {
 import { ApiKeyPlacement, HttpScheme, SecurityType } from '@superfaceai/ast';
 import { getLocal } from 'mockttp';
 
-import { err } from '../../lib';
+import { err, UnexpectedError } from '../../lib';
 import { MockTimers } from '../../mock';
 import { NodeCrypto, NodeFetch, NodeFileSystem } from '../../node';
 import { Config } from '../config';
@@ -243,6 +243,7 @@ describe('events', () => {
       events
     );
 
+    const error = new UnexpectedError('modified rejection');
     events.on(
       'post-fetch',
       { priority: 1 },
@@ -254,14 +255,14 @@ describe('events', () => {
         } catch (e) {
           return {
             kind: 'modify',
-            newResult: Promise.reject('modified rejection'),
+            newResult: Promise.reject(error),
           };
         }
       }
     );
 
     const result = await profile.perform('Test');
-    expect(result).toStrictEqual(err('modified rejection'));
+    expect(result).toStrictEqual(err(error));
   });
 
   it('passes unhandled http responses to unhandled-http (201)', async () => {

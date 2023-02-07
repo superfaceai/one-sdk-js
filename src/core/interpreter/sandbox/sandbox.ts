@@ -1,6 +1,6 @@
 import { VM } from 'vm2';
 
-import type { IConfig, ILogger} from '../../../interfaces';
+import type { IConfig, ILogger } from '../../../interfaces';
 import type { NonPrimitive } from '../../../lib';
 import { isClassInstance } from '../../../lib';
 import { getStdlib } from './stdlib';
@@ -104,7 +104,10 @@ export function evalScript(
 
   log?.('Evaluating:', js);
   const result = vm.run(
-    `'use strict';const vmResult = ${js};vmResult`
+    `
+      'use strict';
+      const vmResult = ${js}
+      ;vmResult`
   ) as unknown;
   const resultVm2Fixed = vm2ExtraArrayKeysFixup(result);
 

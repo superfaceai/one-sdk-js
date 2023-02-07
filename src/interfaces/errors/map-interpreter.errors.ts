@@ -1,5 +1,7 @@
 import type { MapASTNode, MapDocumentNode } from '@superfaceai/ast';
 
+import type { HttpMultiMap } from '../../core/interpreter/http';
+
 export interface ErrorMetadata {
   node?: MapASTNode;
   ast?: MapDocumentNode;
@@ -27,12 +29,12 @@ export interface IHTTPError extends Error {
   statusCode?: number;
   request?: {
     body?: unknown;
-    headers?: Record<string, string>;
+    headers?: HttpMultiMap;
     url?: string;
   };
   response?: {
     body?: unknown;
-    headers?: Record<string, string>;
+    headers?: HttpMultiMap;
   };
 }
 
@@ -50,16 +52,17 @@ export type MapInterpreterError =
   | IHTTPError
   | IJessieError;
 
-
 export const isMapInterpreterError = (e: unknown): e is MapInterpreterError => {
-  return typeof e === 'object'
-    && e !== null
-    && 'name' in e
-    && [
+  return (
+    typeof e === 'object' &&
+    e !== null &&
+    'name' in e &&
+    [
       'MapASTError',
       'MappedHTTPError',
       'MappedError',
       'HTTPError',
-      'JessieError'
-    ].includes((e as { name: string }).name);
-}
+      'JessieError',
+    ].includes((e as { name: string }).name)
+  );
+};

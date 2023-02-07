@@ -1,18 +1,25 @@
 import FormData from 'form-data';
 import { getLocal } from 'mockttp';
-import fetch from 'node-fetch';
+import fetch, { Headers } from 'node-fetch';
 
 import { NetworkFetchError, RequestFetchError } from '../../core';
 import { MockTimers } from '../../mock';
 import { NodeTimers } from '../timers';
 import { NodeFetch } from './fetch.node';
 
-jest.mock('node-fetch');
+jest.mock('node-fetch', () => {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-imports
+  const actual = jest.requireActual<typeof import('node-fetch')>('node-fetch');
+
+  return {
+    __esModule: true,
+    ...actual,
+    default: jest.fn(),
+  };
+});
 
 const mockServer = getLocal();
 const timers = new MockTimers();
-
-type ForEachCallbackFunction = (value?: string, type?: string) => void;
 
 describe('NodeFetch', () => {
   describe('fetch', () => {
@@ -33,9 +40,9 @@ describe('NodeFetch', () => {
           .mocked(fetch)
           .mockImplementation(jest.requireActual('node-fetch').default);
 
-          await mockServer.forGet('/test').thenTimeout();
-          const realTimers = new NodeTimers();
-          const nodeFetch = new NodeFetch(realTimers);
+        await mockServer.forGet('/test').thenTimeout();
+        const realTimers = new NodeTimers();
+        const nodeFetch = new NodeFetch(realTimers);
 
         await expect(
           nodeFetch.fetch(`${mockServer.url}/test`, {
@@ -51,8 +58,8 @@ describe('NodeFetch', () => {
           .mocked(fetch)
           .mockImplementation(jest.requireActual('node-fetch').default);
 
-          await mockServer.forGet('/test').thenCloseConnection();
-          const nodeFetch = new NodeFetch(timers);
+        await mockServer.forGet('/test').thenCloseConnection();
+        const nodeFetch = new NodeFetch(timers);
 
         await expect(
           nodeFetch.fetch(`${mockServer.url}/test`, {
@@ -137,6 +144,31 @@ describe('NodeFetch', () => {
       });
     });
 
+    describe('when status 204 received', () => {
+      let responseJsonMock: jest.Mock;
+      let result: any;
+
+      beforeEach(async () => {
+        responseJsonMock = jest.fn().mockResolvedValue(undefined);
+
+        jest.mocked(fetch).mockResolvedValue({
+          status: 204,
+          headers: new Headers([['content-type', 'application/json']]),
+          json: responseJsonMock,
+        } as any);
+
+        const fetchInstance = new NodeFetch(timers);
+
+        result = await fetchInstance.fetch(`${mockServer.url}/test`, {
+          method: 'GET',
+        });
+      });
+
+      it('should ignore content-type in header and return undefined in result body', async () => {
+        expect(result.body).toBeUndefined();
+      });
+    });
+
     describe('when application/json content type received', () => {
       let responseJsonMock: jest.Mock;
       let result: any;
@@ -147,11 +179,7 @@ describe('NodeFetch', () => {
         });
 
         jest.mocked(fetch).mockResolvedValue({
-          headers: {
-            forEach: jest.fn((callbackfn: ForEachCallbackFunction) => {
-              callbackfn('application/json', 'content-type');
-            }),
-          },
+          headers: new Headers([['content-type', 'application/json']]),
           json: responseJsonMock,
         } as any);
 
@@ -181,16 +209,12 @@ describe('NodeFetch', () => {
       beforeEach(async () => {
         responseTextMock = jest.fn().mockResolvedValue('foobar');
 
-      jest.mocked(fetch).mockResolvedValue({
-        headers: {
-          forEach: jest.fn((callbackfn: ForEachCallbackFunction) => {
-            callbackfn('text/plain', 'content-type');
-          }),
-        },
-        text: responseTextMock,
-      } as any);
+        jest.mocked(fetch).mockResolvedValue({
+          headers: new Headers([['content-type', 'text/plain']]),
+          text: responseTextMock,
+        } as any);
 
-      const fetchInstance = new NodeFetch(timers);
+        const fetchInstance = new NodeFetch(timers);
 
         result = await fetchInstance.fetch(`${mockServer.url}/test`, {
           method: 'GET',
@@ -226,14 +250,10 @@ describe('NodeFetch', () => {
               .fn()
               .mockResolvedValue(Buffer.from('foobar'));
 
-          jest.mocked(fetch).mockResolvedValue({
-            headers: {
-              forEach: jest.fn((callbackfn: ForEachCallbackFunction) => {
-                callbackfn(contentType, 'content-type');
-              }),
-            },
-            arrayBuffer: responseArrayBufferMock,
-          } as any);
+            jest.mocked(fetch).mockResolvedValue({
+              headers: new Headers([['content-type', contentType]]),
+              arrayBuffer: responseArrayBufferMock,
+            } as any);
 
             const fetchInstance = new NodeFetch(timers);
 
@@ -242,9 +262,9 @@ describe('NodeFetch', () => {
             });
           });
 
-        it('should call arrayBuffer', async () => {
-          expect(responseArrayBufferMock).toHaveBeenCalled();
-        });
+          it('should call arrayBuffer', async () => {
+            expect(responseArrayBufferMock).toHaveBeenCalled();
+          });
 
           it('should return instance of Buffer in body', async () => {
             expect(result.body).toBeInstanceOf(Buffer);
@@ -261,15 +281,11 @@ describe('NodeFetch', () => {
           .fn()
           .mockResolvedValue(Buffer.from('foobar'));
 
-      jest.mocked(fetch).mockResolvedValue({
-        headers: {
-          forEach: jest.fn((callbackfn: ForEachCallbackFunction) => {
-            callbackfn(undefined, undefined);
-          }),
-        },
-        arrayBuffer: responseArrayBufferMock,
-      } as any);
-    });
+        jest.mocked(fetch).mockResolvedValue({
+          headers: new Headers(),
+          arrayBuffer: responseArrayBufferMock,
+        } as any);
+      });
 
       describe('when accept header contains string value', () => {
         let result: any;
@@ -285,9 +301,9 @@ describe('NodeFetch', () => {
           });
         });
 
-      it('should call arrayBuffer', async () => {
-        expect(responseArrayBufferMock).toHaveBeenCalled();
-      });
+        it('should call arrayBuffer', async () => {
+          expect(responseArrayBufferMock).toHaveBeenCalled();
+        });
 
         it('should return instance of Buffer in body', async () => {
           expect(result.body).toBeInstanceOf(Buffer);
@@ -308,9 +324,9 @@ describe('NodeFetch', () => {
           });
         });
 
-      it('should call arrayBuffer', async () => {
-        expect(responseArrayBufferMock).toHaveBeenCalled();
-      });
+        it('should call arrayBuffer', async () => {
+          expect(responseArrayBufferMock).toHaveBeenCalled();
+        });
 
         it('should return instance of Buffer in body', async () => {
           expect(result.body).toBeInstanceOf(Buffer);
@@ -321,11 +337,7 @@ describe('NodeFetch', () => {
     describe('when request body contains binary data', () => {
       it('should call fetch with Buffer in body', async () => {
         jest.mocked(fetch).mockResolvedValue({
-          headers: {
-            forEach: jest.fn((callbackfn: ForEachCallbackFunction) => {
-              callbackfn(undefined, undefined);
-            }),
-          },
+          headers: new Headers(),
           text: jest.fn(),
         } as any);
 
@@ -336,7 +348,9 @@ describe('NodeFetch', () => {
           body: { _type: 'binary', data: Buffer.from('data') },
         });
 
-        expect(jest.mocked(fetch).mock.calls[0][1]!.body).toBeInstanceOf(Buffer);
+        expect(jest.mocked(fetch).mock.calls[0][1]!.body).toBeInstanceOf(
+          Buffer
+        );
       });
     });
 
@@ -347,11 +361,7 @@ describe('NodeFetch', () => {
         fetchInstance = new NodeFetch(timers);
 
         jest.mocked(fetch).mockResolvedValue({
-          headers: {
-            forEach: jest.fn((callbackfn: ForEachCallbackFunction) => {
-              callbackfn(undefined, undefined);
-            }),
-          },
+          headers: new Headers(),
           text: jest.fn(),
         } as any);
       });
@@ -390,28 +400,53 @@ describe('NodeFetch', () => {
         });
       });
     });
-  });
 
-  describe('prepareHeadersInit', () => {
-    let nodeFetch: NodeFetch;
+    // this test works under the assumption that node-fetch returns multi-valued headers as arrays
+    // this is not true for node-fetch 2.x
+    // eslint-disable-next-line jest/no-disabled-tests
+    it.skip('should correctly send and receive multi-valued headers', async () => {
+      // we want to use actual fetch implementation
+      jest
+        .mocked(fetch)
+        .mockImplementation(jest.requireActual('node-fetch').default);
 
-    type OverrideNodeFetch = {
-      prepareHeadersInit: (data: any) => any | undefined
-    }
+      await mockServer.forGet('/test').thenCallback(req => {
+        expect(req.rawHeaders).toEqual(
+          expect.arrayContaining([
+            ['first', 'abc'],
+            ['second', 'ab'],
+            ['second', 'bc'],
+          ])
+        );
 
-    beforeEach(() => {
-      nodeFetch = new NodeFetch(timers);
-    });
+        return {
+          statusCode: 200,
+          headers: {
+            foo: 'string',
+            bar: ['a', 'b', 'c'],
+          },
+          body: 'Ok',
+        };
+      });
 
-    it('returns empty array if data are undefined', () => {
-      expect((nodeFetch as any as OverrideNodeFetch).prepareHeadersInit(undefined)).toEqual([]);
-    });
+      const fetchInstance = new NodeFetch(timers);
+      const result = await fetchInstance.fetch(mockServer.urlFor('/test'), {
+        method: 'GET',
+        headers: {
+          first: 'abc',
+          second: ['ab', 'bc'],
+          connection: 'close',
+        },
+      });
 
-    it('returns array of tuples if header value is array', () => {
-      expect(
-        (nodeFetch as any as OverrideNodeFetch)
-          .prepareHeadersInit({ header: ['val1', 'val2'] })
-      ).toEqual([['header', 'val1'], ['header', 'val2']]);
+      if (result.status !== 200) {
+        console.error(result.body);
+      }
+
+      expect(result.headers).toEqual({
+        foo: 'string',
+        bar: ['a', 'b', 'c'],
+      });
     });
   });
 });

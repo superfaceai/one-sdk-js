@@ -14,7 +14,12 @@ import type {
   MapInterpreterError,
   ProfileParameterError,
 } from '../../interfaces';
-import type { NonPrimitive, Result, UnexpectedError } from '../../lib';
+import type {
+  NonPrimitive,
+  Result,
+  SDKExecutionError,
+  UnexpectedError,
+} from '../../lib';
 import {
   castToNonPrimitive,
   err,
@@ -46,7 +51,10 @@ export interface IBoundProfileProvider {
   ): Promise<
     Result<
       TResult,
-      ProfileParameterError | MapInterpreterError | UnexpectedError
+      | ProfileParameterError
+      | MapInterpreterError
+      | UnexpectedError
+      | SDKExecutionError
     >
   >;
 }
@@ -102,7 +110,10 @@ export class BoundProfileProvider implements IBoundProfileProvider {
   ): Promise<
     Result<
       TResult,
-      ProfileParameterError | MapInterpreterError | UnexpectedError
+      | ProfileParameterError
+      | MapInterpreterError
+      | UnexpectedError
+      | SDKExecutionError
     >
   > {
     this.fetchInstance.metadata = {
@@ -181,11 +192,10 @@ export class BoundProfileProvider implements IBoundProfileProvider {
   ): NonPrimitive | undefined {
     let composed = input;
 
-    const defaultInput = castToNonPrimitive(
-      this.configuration.profileProviderSettings?.defaults[usecase]?.input
-    );
+    const defaultInput =
+      this.configuration.profileProviderSettings?.defaults[usecase]?.input;
     if (defaultInput !== undefined) {
-      composed = mergeVariables(defaultInput, input ?? {});
+      composed = mergeVariables(castToNonPrimitive(defaultInput), input ?? {});
       this.logSensitive?.('Composed input with defaults: %O', composed);
     }
 

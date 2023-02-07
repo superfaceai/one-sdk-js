@@ -16,8 +16,9 @@ import {
   prepareRequestFilter,
   withRequest,
 } from '../../filters';
-import type { IFetch } from '../../interfaces';
+import type { HttpMultiMap, IFetch } from '../../interfaces';
 import type { HttpResponse } from '../../types';
+import { getHeaderMulti } from '../../utils';
 import type {
   AuthCache,
   AuthenticateRequestAsync,
@@ -96,7 +97,7 @@ export class DigestHandler implements ISecurityHandler {
   public authenticate: AuthenticateRequestAsync = async (
     parameters: RequestParameters
   ) => {
-    const headers: Record<string, string> = parameters.headers || {};
+    const headers: HttpMultiMap = parameters.headers ?? {};
 
     const credentials = await this.fetchInstance.digest.getCached(
       hashDigestConfiguration(this.configuration, this.crypto),
@@ -116,9 +117,13 @@ export class DigestHandler implements ISecurityHandler {
           throw new Error('Response is undefined');
         }
 
+        const challengeHeader = getHeaderMulti(
+          response.headers,
+          this.challengeHeader
+        );
         if (
           response.statusCode !== this.statusCode ||
-          !response.headers[this.challengeHeader]
+          challengeHeader === undefined
         ) {
           throw digestHeaderNotFound(
             this.challengeHeader,
@@ -131,7 +136,7 @@ export class DigestHandler implements ISecurityHandler {
           // We need actual resolved url
           response.debug.request.url,
           parameters.method,
-          this.extractDigestValues(response.headers[this.challengeHeader])
+          this.extractDigestValues(challengeHeader)
         );
 
         return credentials;
@@ -153,7 +158,12 @@ export class DigestHandler implements ISecurityHandler {
     resourceRequestParameters: RequestParameters
   ) => {
     if (response.statusCode === this.statusCode) {
-      if (!response.headers[this.challengeHeader]) {
+      const challengeHeader = getHeaderMulti(
+        response.headers,
+        this.challengeHeader
+      );
+
+      if (challengeHeader === undefined) {
         throw digestHeaderNotFound(
           this.challengeHeader,
           Object.keys(response.headers)
@@ -173,7 +183,7 @@ export class DigestHandler implements ISecurityHandler {
             // We need actual resolved url
             response.debug.request.url,
             resourceRequestParameters.method,
-            this.extractDigestValues(response.headers[this.challengeHeader])
+            this.extractDigestValues(challengeHeader)
           );
         }
       );
@@ -273,10 +283,17 @@ export class DigestHandler implements ISecurityHandler {
       .join(',');
   }
 
-  private extractDigestValues(header: string): DigestAuthValues {
+  private extractDigestValues(headerValues: string[]): DigestAuthValues {
     this.logSensitive?.(
-      `Extracting digest authentication values from: ${header}`
+      `Extracting digest authentication values from: ${headerValues.join(', ')}`
     );
+
+    if (headerValues.length != 1) {
+      // TODO: the RFC does seem to allow multiple challenges:
+      // https://www.rfc-editor.org/rfc/rfc2617#section-1.2
+      // here we just pick the first one
+    }
+    const header = headerValues[0];
 
     const scheme = header.split(/\s/)[0];
     if (!scheme) {

@@ -5,9 +5,10 @@ import type {
 import { ApiKeyPlacement } from '@superfaceai/ast';
 
 import type { ILogger, LogFunction } from '../../../../../interfaces';
-import { isBinaryData } from '../../../../../interfaces';
 import type { Variables } from '../../../../../lib';
+import { isPrimitive } from '../../../../../lib';
 import { apiKeyInBodyError } from '../../../../errors';
+import type { HttpMultiMap } from '../../interfaces';
 import type {
   AuthenticateRequestAsync,
   ISecurityHandler,
@@ -32,7 +33,7 @@ export class ApiKeyHandler implements ISecurityHandler {
     parameters: RequestParameters
   ) => {
     let body: Variables | undefined = parameters.body;
-    const headers: Record<string, string> = parameters.headers ?? {};
+    const headers: HttpMultiMap = parameters.headers ?? {};
     const pathParameters = parameters.pathParameters ?? {};
     const queryParameters = parameters.queryParameters ?? {};
 
@@ -80,12 +81,7 @@ function applyApiKeyAuthInBody(
   apikey: string,
   visitedReferenceTokens: string[] = []
 ): Variables {
-  if (
-    typeof requestBody !== 'object' ||
-    Array.isArray(requestBody) ||
-    Buffer.isBuffer(requestBody) ||
-    isBinaryData(requestBody)
-  ) {
+  if (isPrimitive(requestBody)) {
     const valueLocation = visitedReferenceTokens.length
       ? `value at /${visitedReferenceTokens.join('/')}`
       : 'body';

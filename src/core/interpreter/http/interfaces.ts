@@ -42,18 +42,20 @@ export type FetchBody =
   | URLSearchParamsBody
   | BinaryBody;
 
+export type HttpMultiMap = Record<string, string | string[]>;
+
 export type FetchParameters = {
-  headers?: Record<string, string | string[]>;
+  headers?: HttpMultiMap;
   method: string;
   body?: FetchBody;
-  queryParameters?: Record<string, string>;
+  queryParameters?: HttpMultiMap;
   timeout?: number;
 };
 
 export type FetchResponse = {
   status: number;
   statusText: string;
-  headers: Record<string, string>;
+  headers: HttpMultiMap;
   body?: unknown;
 };
 

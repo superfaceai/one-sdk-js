@@ -1,4 +1,4 @@
-import type { IBinaryData, ILogger} from '../../../interfaces';
+import type { IBinaryData, ILogger } from '../../../interfaces';
 import { isBinaryData } from '../../../interfaces';
 import type { MaybePromise } from '../../../lib';
 import {
@@ -9,7 +9,7 @@ import {
 } from '../../../lib';
 import { USER_AGENT } from '../../../user-agent';
 import { unsupportedContentType } from '../../errors';
-import type { FetchBody, IFetch } from './interfaces';
+import type { FetchBody, HttpMultiMap, IFetch } from './interfaces';
 import {
   BINARY_CONTENT_REGEXP,
   BINARY_CONTENT_TYPES,
@@ -182,12 +182,11 @@ export const bodyFilter: Filter = ({
     if (parameters.contentType === JSON_CONTENT) {
       finalBody = stringBody(JSON.stringify(parameters.body));
     } else if (parameters.contentType === URLENCODED_CONTENT) {
-      finalBody = urlSearchParamsBody(variablesToStrings(parameters.body));
+      finalBody = urlSearchParamsBody(
+        variablesToStrings(castToNonPrimitive(parameters.body))
+      );
     } else if (parameters.contentType === FORMDATA_CONTENT) {
-      const body = castToNonPrimitive(parameters.body);
-      if (body) {
-        finalBody = formDataBody(body);
-      }
+      finalBody = formDataBody(castToNonPrimitive(parameters.body));
     } else if (
       parameters.contentType !== undefined &&
       BINARY_CONTENT_REGEXP.test(parameters.contentType)
@@ -232,7 +231,7 @@ export const queryParametersFilter: Filter = ({
 }: FilterInputOutput) => {
   const queryParameters = {
     ...request?.queryParameters,
-    ...variablesToStrings(parameters.queryParameters),
+    ...(parameters.queryParameters ?? {}),
   };
 
   return {
@@ -267,7 +266,7 @@ export const headersFilter: Filter = ({
   request,
   response,
 }: FilterInputOutput) => {
-  const headers: Record<string, string> = parameters.headers ?? {};
+  const headers: HttpMultiMap = parameters.headers ?? {};
 
   setHeader(headers, 'user-agent', USER_AGENT);
   setHeader(headers, 'accept', parameters.accept ?? '*/*');
@@ -363,7 +362,7 @@ export function isCompleteHttpRequest(
 
     if (
       !Object.values(input.queryParameters).every(
-        value => typeof value === 'string'
+        value => typeof value === 'string' || Array.isArray(value)
       )
     ) {
       return false;

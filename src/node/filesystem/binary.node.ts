@@ -12,7 +12,8 @@ import type {
   IBinaryDataMeta,
   IDataContainer,
   IDestructible,
-  IInitializable} from '../../interfaces';
+  IInitializable,
+} from '../../interfaces';
 import {
   isBinaryDataMeta,
   isDestructible,
@@ -26,7 +27,7 @@ export class StreamReader {
   private buffer: Buffer;
   private ended = false;
 
-  private pendingReadResolve: (() => void) | undefined
+  private pendingReadResolve: (() => void) | undefined;
 
   private dataCallback: (chunk: Buffer) => void;
   private endCallback: (this: () => void) => void;
@@ -64,17 +65,23 @@ export class StreamReader {
   // assumption: this function is never called twice without awaiting its promise in between
   private async waitForData(): Promise<void> {
     if (this.stream === undefined) {
-      throw new UnexpectedError('Stream ejected', { reason: 'Stream moved by calling toStream()' });
+      throw new UnexpectedError('Stream ejected', {
+        reason: 'Stream moved by calling toStream()',
+      });
     }
 
     this.stream.resume();
 
     return new Promise((resolve, reject) => {
       if (this.pendingReadResolve !== undefined) {
-        reject(new UnexpectedError('Waiting for data failed. Unable to resolve pending read'));
+        reject(
+          new UnexpectedError(
+            'Waiting for data failed. Unable to resolve pending read'
+          )
+        );
       }
       this.pendingReadResolve = resolve;
-    })
+    });
   }
 
   private notifyData() {
@@ -109,7 +116,9 @@ export class StreamReader {
 
   public toStream(): Readable {
     if (this.stream === undefined) {
-      throw new UnexpectedError('Stream ejected', { reason: 'Stream moved by calling toStream()' });
+      throw new UnexpectedError('Stream ejected', {
+        reason: 'Stream moved by calling toStream()',
+      });
     }
 
     this.unhook();
@@ -122,7 +131,7 @@ export class StreamReader {
     if (buffer.length > 0) {
       pass.push(buffer);
     }
-    
+
     this.stream.pipe(pass);
     this.stream = undefined;
 
@@ -130,7 +139,9 @@ export class StreamReader {
   }
 }
 
-export class FileContainer implements IDataContainer, IBinaryDataMeta, IInitializable, IDestructible {
+export class FileContainer
+  implements IDataContainer, IBinaryDataMeta, IInitializable, IDestructible
+{
   private handle: FileHandle | undefined;
   private streamReader: StreamReader | undefined;
   private _size = Infinity;
@@ -225,28 +236,33 @@ export type BinaryDataOptions = {
   /** filename for files or URL for sockets */
   name?: string;
   mimetype?: string;
-}
+};
 
 export class BinaryData
-  implements
-    IBinaryData,
-    IBinaryDataMeta,
-    IDestructible,
-    IInitializable
+  implements IBinaryData, IBinaryDataMeta, IDestructible, IInitializable
 {
   private buffer: Buffer;
   private _name: string | undefined;
   private _mimetype: string | undefined;
-   
-  public static fromPath(path: string, options: BinaryDataOptions = {}): BinaryData {
+
+  public static fromPath(
+    path: string,
+    options: BinaryDataOptions = {}
+  ): BinaryData {
     return new BinaryData(new FileContainer(path), options);
   }
 
-  public static fromStream(stream: NodeJS.ReadableStream, options: BinaryDataOptions = {}): BinaryData {
+  public static fromStream(
+    stream: NodeJS.ReadableStream,
+    options: BinaryDataOptions = {}
+  ): BinaryData {
     return new BinaryData(new StreamContainer(stream), options);
   }
 
-  private constructor(private dataContainer: IDataContainer, options: BinaryDataOptions) {
+  private constructor(
+    private dataContainer: IDataContainer,
+    options: BinaryDataOptions
+  ) {
     this._name = options.name;
     this._mimetype = options.mimetype;
     this.buffer = Buffer.alloc(0);
@@ -320,7 +336,9 @@ export class BinaryData
 
   private async fillBuffer(sizeAtLeast: number): Promise<void> {
     if (this.buffer.length < sizeAtLeast) {
-      const read = await this.dataContainer.read(sizeAtLeast - this.buffer.length);
+      const read = await this.dataContainer.read(
+        sizeAtLeast - this.buffer.length
+      );
       if (read.length > 0) {
         this.buffer = Buffer.concat([this.buffer, read]);
       }
@@ -343,7 +361,7 @@ export class BinaryData
 
   /**
    * Reads data and stores them in internal buffer for later consumption
-   * 
+   *
    * @param [size=1] Specifies how much data to peek
    * @returns Peeked data as Buffer
    */
@@ -366,7 +384,7 @@ export class BinaryData
 
   /**
    * Reads data from stream and returns chunk once filled with requested size
-   * 
+   *
    * @param chunkSize Specifies how many bytes should be in one chunk, except last which can be smaller
    * @returns Async interable returning one chunk
    */
@@ -386,7 +404,7 @@ export class BinaryData
 
     return {
       [Symbol.asyncIterator]: () => ({
-        async next() {          
+        async next() {
           await self.fillBuffer(chunkSize);
           const data = self.consumeBuffer(chunkSize);
 
@@ -402,7 +420,7 @@ export class BinaryData
 
   /**
    * Reads data from Stream until the stream is closed
-   * 
+   *
    * @param [chunkSize=16000] specifies how much data in bytes to read in one chunk
    * @returns Read data as Buffer
    */
@@ -419,7 +437,7 @@ export class BinaryData
 
   /**
    * Returns stream to read BinaryData
-   * 
+   *
    * @returns Readable instance
    */
   public toStream(): NodeJS.ReadableStream {

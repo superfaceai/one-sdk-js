@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## Changed
+- Handle `None` (js `null` and `undefined`) - [#314](https://github.com/superfaceai/one-sdk-js/pull/314)
+- [Required field](https://superface.ai/docs/comlink/profile#sec-Required-field) validation uses `Object.hasOwn` to check field presence - [#318](https://github.com/superfaceai/one-sdk-js/pull/318)
+- Header and query parameters must be `string` or `string[]` - [#324](https://github.com/superfaceai/one-sdk-js/pull/324)
+- If profile doesn't have input defined, input isn't added to interpreter stack (input can't be access from Comlink Map) - [#323](https://github.com/superfaceai/one-sdk-js/pull/323)
+
+### Fixed
+- Trailing comments in comlink script expressions broke sandbox evaluation - [#327](https://github.com/superfaceai/one-sdk-js/pull/327)
+- Ignore response body if status 204 received - [#332](https://github.com/superfaceai/one-sdk-js/pull/332)
+
 ## [2.2.0] - 2023-01-02
 ### Added
 - `BinaryData` type, not surfaced in Comlink Profile - [#296](https://github.com/superfaceai/one-sdk-js/pull/296), [#304](https://github.com/superfaceai/one-sdk-js/pull/304)
@@ -22,10 +32,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - `multipart/form-data` supports array values to define duplicate fields
 
+### Changed
+- Reworked map interpreter into an asynchronous generator. It should be 1:1 replacement of the original interpreter, but opens up the road to expose streaming perform later.
+
 ### Fixed
 - Do not set `Accept` and `Content-Type` header when defined in [HTTP request headers](https://spec.superface.dev/latest/map-spec.html#HTTPHeaders) - [#264](https://github.com/superfaceai/one-sdk-js/issues/264)
 - Replaced `isomorphic-form-data` with `form-data` package to fix `FormData` serialization - [#291](https://github.com/superfaceai/one-sdk-js/issues/291)
 - Create valid `headersInit` shape in `NodeFetch.fetch`
+- Added `UnexpectedError` and `SDKExecutionError` to MapInterpreter and BoundProfileProvider return signatures.
 - An http call to `/` url returning an error about it being an absolute url
 
 ## [2.0.0] - 2022-08-15

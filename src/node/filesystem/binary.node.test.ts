@@ -5,7 +5,12 @@ import { Readable } from 'stream';
 
 import { NotFoundError } from '../../core';
 import { UnexpectedError } from '../../lib';
-import { BinaryData, FileContainer, StreamContainer, StreamReader } from './binary.node';
+import {
+  BinaryData,
+  FileContainer,
+  StreamContainer,
+  StreamReader,
+} from './binary.node';
 
 const fixturePath = joinPath('fixtures', 'binary.txt');
 
@@ -38,7 +43,7 @@ class MockStream extends Readable {
 
     if (i >= this.max) {
       this.push(null);
-    } 
+    }
   }
 }
 
@@ -69,15 +74,15 @@ describe('Node Binary', () => {
 
     it('pauses stream after readding byte', async () => {
       const pauseSpy = jest.spyOn(stream, 'pause');
-  
+
       await reader.read();
-      expect(pauseSpy).toHaveBeenCalledTimes(1)  
+      expect(pauseSpy).toHaveBeenCalledTimes(1);
     });
 
     describe('toStream', () => {
       // add own hook to read all data
       let hooked: string[];
-      const testHook = (x?: Buffer) => { 
+      const testHook = (x?: Buffer) => {
         if (x !== undefined) hooked.push(x.toString('utf8'));
       };
 
@@ -225,14 +230,17 @@ describe('Node Binary', () => {
   describe('BinaryData class', () => {
     let binaryData: BinaryData;
 
-    describe('fromPath', () => {      
+    describe('fromPath', () => {
       it('returns BinaryData instance', () => {
         binaryData = BinaryData.fromPath(fixturePath);
         expect(binaryData).toBeInstanceOf(BinaryData);
       });
 
       it('sets meta from options', () => {
-        binaryData = BinaryData.fromPath(fixturePath, { name: 'filename.txt', mimetype: 'text/plain' });
+        binaryData = BinaryData.fromPath(fixturePath, {
+          name: 'filename.txt',
+          mimetype: 'text/plain',
+        });
         expect(binaryData.name).toBe('filename.txt');
         expect(binaryData.mimetype).toBe('text/plain');
       });
@@ -240,11 +248,13 @@ describe('Node Binary', () => {
       it('uses name from file container if not passed as option', () => {
         binaryData = BinaryData.fromPath(fixturePath);
         expect(binaryData.name).toBe('binary.txt');
-      })
+      });
 
       it('throws an error if trying to read a file that is not initialized', async () => {
         binaryData = BinaryData.fromPath(fixturePath);
-        await expect(binaryData.read(10)).rejects.toBeInstanceOf(UnexpectedError);
+        await expect(binaryData.read(10)).rejects.toBeInstanceOf(
+          UnexpectedError
+        );
       });
     });
 
@@ -290,14 +300,18 @@ describe('Node Binary', () => {
       describe('peek 10', () => {
         it('peeks data correctly', async () => {
           const peekedData = await binaryData.peek(10);
-          expect(peekedData.toString('utf8')).toEqual(originalData.subarray(0, 10).toString());
+          expect(peekedData.toString('utf8')).toEqual(
+            originalData.subarray(0, 10).toString()
+          );
         });
       });
 
       describe('read 10', () => {
         it('reads data correctly', async () => {
           const readData = await binaryData.read(10);
-          expect(readData.toString('utf8')).toEqual(originalData.subarray(0, 10).toString());
+          expect(readData.toString('utf8')).toEqual(
+            originalData.subarray(0, 10).toString()
+          );
         });
       });
 
@@ -336,7 +350,7 @@ describe('Node Binary', () => {
             binaryData.chunkBy(Buffer.from('hello world!') as any)
           ).toThrow();
         });
-      });      
+      });
 
       describe('stream', () => {
         it('should stream data correctly', async () => {
@@ -355,7 +369,9 @@ describe('Node Binary', () => {
       describe('peek 10 then getAllData', () => {
         it('gets all data correctly', async () => {
           const peekedData = await binaryData.peek(10);
-          expect(peekedData?.toString('utf8')).toBe(originalData.subarray(0, 10).toString());
+          expect(peekedData?.toString('utf8')).toBe(
+            originalData.subarray(0, 10).toString()
+          );
 
           const data = await binaryData.getAllData();
           expect(data.toString('utf8')).toBe(originalData.toString('utf8'));
@@ -375,10 +391,14 @@ describe('Node Binary', () => {
       describe('peek 10 then chunkBy 10', () => {
         it('chunks data correctly', async () => {
           const peekedData = await binaryData.peek(10);
-          expect(peekedData.toString('utf8')).toEqual(originalData.subarray(0, 10).toString());
+          expect(peekedData.toString('utf8')).toEqual(
+            originalData.subarray(0, 10).toString()
+          );
 
           for await (const chunk of binaryData.chunkBy(10)) {
-            expect(chunk.toString('utf8')).toBe(originalData.subarray(0, 10).toString('utf8'));
+            expect(chunk.toString('utf8')).toBe(
+              originalData.subarray(0, 10).toString('utf8')
+            );
             break;
           }
         });
@@ -387,17 +407,21 @@ describe('Node Binary', () => {
       describe('chunkBy 10 then peek 10', () => {
         it('chunks data correctly', async () => {
           for await (const chunk of binaryData.chunkBy(10)) {
-            expect(chunk.toString('utf8')).toBe(originalData.subarray(0, 10).toString('utf8'));
+            expect(chunk.toString('utf8')).toBe(
+              originalData.subarray(0, 10).toString('utf8')
+            );
             break;
           }
 
           const peekedData = await binaryData.peek(10);
-          expect(peekedData.toString('utf8')).toEqual(originalData.subarray(10, 20).toString());
+          expect(peekedData.toString('utf8')).toEqual(
+            originalData.subarray(10, 20).toString()
+          );
         });
       });
 
       describe('peek 10 and read 10', () => {
-        it('reads same data as peek', async() => {
+        it('reads same data as peek', async () => {
           const peekedData = await binaryData.peek(10);
           const readData = await binaryData.read(10);
 
@@ -414,7 +438,9 @@ describe('Node Binary', () => {
             readData += chunk.toString('utf8');
           }
 
-          expect(readTenData.toString('utf8') + readData).toBe(originalData.toString('utf8'));
+          expect(readTenData.toString('utf8') + readData).toBe(
+            originalData.toString('utf8')
+          );
         });
       });
 
@@ -427,7 +453,9 @@ describe('Node Binary', () => {
             readData += chunk.toString('utf8');
           }
 
-          expect(peekedData.toString('utf8')).toBe(originalData.subarray(0, 10).toString('utf8'));
+          expect(peekedData.toString('utf8')).toBe(
+            originalData.subarray(0, 10).toString('utf8')
+          );
           expect(readData).toBe(originalData.toString('utf8'));
         });
       });

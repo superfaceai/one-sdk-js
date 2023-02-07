@@ -1,5 +1,6 @@
 import { UnexpectedError } from '../error';
-import { isClassInstance } from '../variables';
+import type { None } from '../variables';
+import { isClassInstance, isNone } from '../variables';
 
 /**
  * Creates a deep clone of the value.
@@ -50,17 +51,32 @@ export function isRecord(input: unknown): input is Record<string, unknown> {
   return true;
 }
 
+export function fromEntriesOptional<T extends Exclude<unknown, None>>(
+  ...entries: [key: string, value: T | None][]
+): Record<string, T> {
+  const base: Record<string, T> = {};
+
+  for (const [key, value] of entries) {
+    if (!isNone(value)) {
+      base[key] = value;
+    }
+  }
+
+  return base;
+}
+
 /**
  * Recursively descends the record and returns a list of enumerable keys
  */
 export function recursiveKeyList(
   record: Record<string, unknown>,
+  filter?: (value: unknown) => boolean,
   base?: string
 ): string[] {
   const keys: string[] = [];
 
   for (const [key, value] of Object.entries(record)) {
-    if (value === undefined) {
+    if (filter !== undefined && !filter(value)) {
       continue;
     }
 
@@ -72,7 +88,7 @@ export function recursiveKeyList(
 
     if (typeof value === 'object' && value !== null) {
       keys.push(
-        ...recursiveKeyList(value as Record<string, unknown>, basedKey)
+        ...recursiveKeyList(value as Record<string, unknown>, filter, basedKey)
       );
     }
   }
