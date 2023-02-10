@@ -1,5 +1,6 @@
 import type { NonPrimitive } from './variables';
 import {
+  isClassInstance,
   isEmptyRecord,
   isNone,
   isNonPrimitive,
@@ -10,6 +11,31 @@ import {
 } from './variables';
 
 describe('Variables', () => {
+  describe('isClassInstance', () => {
+    class C {
+      // empty
+    }
+
+    it.each([['new C()', new C()]])(
+      'returns true for %s',
+      (_strInput, input) => {
+        expect(isClassInstance(input)).toBeTruthy();
+      }
+    );
+
+    it.each([
+      ['{}', {}],
+      ['new Object()', new Object()],
+      ['[]', []],
+      ['null', null],
+      ['undefined', undefined],
+      ['{ __proto__: null }', { __proto__: null }],
+      ['Object.create(null)', Object.create(null)],
+    ])('returns false for %s', (_strInput, input) => {
+      expect(isClassInstance(input)).toBeFalsy();
+    });
+  });
+
   describe('isNone', () => {
     it.each([undefined, null])('returns true for %p', input => {
       expect(isNone(input)).toBe(true);

@@ -18,11 +18,25 @@ export type Variables = Primitive | NonPrimitive;
 
 // FIXME: This is temporary solution; find a better way to handle this
 export function isClassInstance(input: unknown): boolean {
-  return (
-    typeof input === 'object' &&
-    input !== null &&
-    input.constructor.name !== 'Object'
-  );
+  if (input === null || input === undefined) {
+    return false;
+  }
+
+  if (typeof input !== 'object') {
+    return false;
+  }
+
+  if (Array.isArray(input)) {
+    return false;
+  }
+
+  const proto = Object.getPrototypeOf(input) as object;
+
+  if (proto === null || proto === Object.prototype) {
+    return false;
+  }
+
+  return typeof proto.constructor === 'function';
 }
 
 export function isNone(input: unknown): input is None {
