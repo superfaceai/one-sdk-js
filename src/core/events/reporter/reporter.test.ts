@@ -335,7 +335,7 @@ describe('MetricReporter', () => {
 
     const profile = await client.getProfile('test-profile');
 
-    await profile.getUseCase('Test').perform({});
+    await profile.getUseCase('Test').perform(undefined);
     client.timers.tick(2000);
     while (await eventEndpoint.isPending()) {
       await new Promise(setImmediate);
@@ -382,7 +382,9 @@ describe('MetricReporter', () => {
 
     const profile = await client.getProfile('test-profile');
 
-    await expect(profile.getUseCase('Test').perform({})).rejects.toThrow();
+    await expect(
+      profile.getUseCase('Test').perform(undefined)
+    ).rejects.toThrow();
     client.timers.tick(2000);
     let requests = await eventEndpoint.getSeenRequests();
     while (requests.length < 2) {
@@ -460,7 +462,7 @@ describe('MetricReporter', () => {
 
     const profile = await client.getProfile('test-profile');
 
-    await profile.getUseCase('Test').perform({});
+    await profile.getUseCase('Test').perform(undefined);
     client.timers.tick(800);
     while (await eventEndpoint.isPending()) {
       await new Promise(setImmediate);
@@ -496,8 +498,8 @@ describe('MetricReporter', () => {
     );
     const profile = await client.getProfile('test-profile');
 
-    await profile.getUseCase('Test').perform({});
-    await profile.getUseCase('Test').perform({});
+    await profile.getUseCase('Test').perform(undefined);
+    await profile.getUseCase('Test').perform(undefined);
     client.timers.tick(2000);
     let requests = await eventEndpoint.getSeenRequests();
 
@@ -544,14 +546,14 @@ describe('MetricReporter', () => {
     );
     const profile = await client.getProfile('test-profile');
 
-    await profile.getUseCase('Test').perform({});
+    await profile.getUseCase('Test').perform(undefined);
     client.timers.tick(2000);
     let requests = await eventEndpoint.getSeenRequests();
     while (requests.length < 1) {
       await new Promise(setImmediate);
       requests = await eventEndpoint.getSeenRequests();
     }
-    await profile.getUseCase('Test').perform({});
+    await profile.getUseCase('Test').perform(undefined);
     client.timers.tick(1000);
     while (requests.length < 2) {
       await new Promise(setImmediate);
@@ -618,7 +620,7 @@ describe('MetricReporter', () => {
     const profile = await client.getProfile('test-profile');
 
     for (let i = 0; i < 100; i++) {
-      await profile.getUseCase('Test').perform({});
+      await profile.getUseCase('Test').perform(undefined);
       client.timers.tick(900);
       currentTime = currentTime.valueOf() + 900;
     }
@@ -696,7 +698,7 @@ describe('MetricReporter', () => {
     );
     const profile = await client.getProfile('test-profile');
 
-    void profile.getUseCase('Test').perform({});
+    void profile.getUseCase('Test').perform(undefined);
     let requests = await eventEndpoint.getSeenRequests();
     while (requests.length < 2) {
       currentTime += 0.1;

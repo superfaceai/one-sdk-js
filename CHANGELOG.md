@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Fixed
 - Correctly handle objects with `null` prototype in `isClassInstance` - [#333](https://github.com/superfaceai/one-sdk-js/pull/333)
+- Treat not defined input in profile as nullable data structure - [#334](https://github.com/superfaceai/one-sdk-js/pull/334)
 
 ## [2.3.0] - 2023-02-07
 ### Changed
