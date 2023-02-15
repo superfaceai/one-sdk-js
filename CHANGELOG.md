@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [2.3.1] - 2023-02-15
 ### Fixed
 - Correctly handle objects with `null` prototype in `isClassInstance` - [#333](https://github.com/superfaceai/one-sdk-js/pull/333)
 - Treat not defined input in profile as nullable data structure - [#334](https://github.com/superfaceai/one-sdk-js/pull/334)
@@ -380,7 +382,8 @@ This is a recovery release after introduction of compatibility-breaking changes 
 - Profile parameter validator
 - CI/CD workflows
 
-[Unreleased]: https://github.com/superfaceai/one-sdk-js/compare/v2.3.0...HEAD
+[Unreleased]: https://github.com/superfaceai/one-sdk-js/compare/v2.3.1...HEAD
+[2.3.1]: https://github.com/superfaceai/one-sdk-js/compare/v2.3.0...v2.3.1
 [2.3.0]: https://github.com/superfaceai/one-sdk-js/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/superfaceai/one-sdk-js/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/superfaceai/one-sdk-js/compare/v2.0.0...v2.1.0
