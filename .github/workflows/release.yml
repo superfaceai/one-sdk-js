@@ -25,12 +25,6 @@ jobs:
 
       - name: Branch check
         run: |
-          if [[ $RELEASE_LEVEL == pre* ]] && [[ $BRANCH == main ]]
-          then
-            echo "Pre-release on main branch is not allowed"
-            exit 1
-          fi
-
           if [[ $RELEASE_LEVEL != pre* ]] && [[ $BRANCH != main ]]
           then
             echo "Stable release on other then main branch is not allowed"
