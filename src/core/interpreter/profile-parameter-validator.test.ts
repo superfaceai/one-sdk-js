@@ -857,6 +857,7 @@ describe('ProfileParameterValidator', () => {
       });
 
       it('returns ok for valid input data', () => {
+        parameterValidator = new ProfileParameterValidator(ast);
         expect(
           parameterValidator
             .validate(
@@ -873,6 +874,55 @@ describe('ProfileParameterValidator', () => {
             )
             .isOk()
         ).toBeTruthy();
+      });
+
+      it("returns error if input isn't passed", () => {
+        expect(
+          parameterValidator.validate(null, 'input', 'Test').isErr()
+        ).toBeTruthy();
+      });
+
+      describe('profile without input defined', () => {
+        const astNoInput = parseProfileFromSource(`
+          usecase Test {
+          }
+        `);
+
+        beforeEach(() => {
+          parameterValidator = new ProfileParameterValidator(astNoInput);
+        });
+
+        it('returns ok if null passed', () => {
+          expect(
+            parameterValidator.validate(null, 'input', 'Test').isOk()
+          ).toBeTruthy();
+        });
+
+        it('returns ok if non primitive value without additional fields is passed', () => {
+          expect(
+            parameterValidator.validate({}, 'input', 'Test').isOk()
+          ).toBeTruthy();
+        });
+
+        it('returns error if non primitive value with additional fields is passed', () => {
+          expect(
+            parameterValidator
+              .validate(
+                {
+                  additionalField: 'value',
+                },
+                'input',
+                'Test'
+              )
+              .isErr()
+          ).toBeTruthy();
+        });
+
+        it('returns error if primitive value is passed', () => {
+          expect(
+            parameterValidator.validate('string', 'input', 'Test').isErr()
+          ).toBeTruthy();
+        });
       });
     });
 

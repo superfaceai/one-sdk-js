@@ -34,7 +34,7 @@ import type {
   ProfileParameterError,
 } from '../../interfaces';
 import type { Result } from '../../lib';
-import { err, isNone, ok, UnexpectedError } from '../../lib';
+import { err, isNone, isNonPrimitive, ok, UnexpectedError } from '../../lib';
 import type { ProfileVisitor } from './interfaces';
 import type { ValidationError } from './profile-parameter-validator.errors';
 import {
@@ -581,20 +581,31 @@ export class ProfileParameterValidator implements ProfileVisitor {
     kind: ProfileParameterKind,
     usecase: string
   ): ValidationFunction {
-    if (kind === 'input' && node.input) {
-      return addPath(this.visit(node.input.value, kind, usecase), 'input');
+    if (kind === 'input' && node.input !== undefined) {
+      return addPath((input): ValidationResult => {
+        if (isNone(input)) {
+          return [false, [{ kind: 'nullInNonNullable' }]];
+        }
+
+        if (node.input !== undefined) {
+          return this.visit(node.input.value, kind, usecase)(input);
+        }
+
+        return [true];
+      }, 'input');
     }
 
     if (kind === 'result' && node.result) {
       return addPath(this.visit(node.result.value, kind, usecase), 'result');
     }
 
+    // input or result isn't defined
     return (input: unknown): ValidationResult => {
-      if (
-        typeof input === 'undefined' ||
-        (typeof input === 'object' &&
-          (input === null || Object.keys(input).length === 0))
-      ) {
+      if (isNone(input)) {
+        return [true];
+      }
+
+      if (isNonPrimitive(input) && Object.keys(input).length === 0) {
         return [true];
       }
 
