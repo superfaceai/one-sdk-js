@@ -24,7 +24,9 @@ const STDLIB = (debugLog?: LogFunction) =>
     unstable: STDLIB_UNSTABLE(debugLog),
   });
 
-export function getStdlib(logger?: ILogger): ReturnType<typeof STDLIB> {
+export type Stdlib = ReturnType<typeof STDLIB>;
+
+export function getStdlib(logger?: ILogger): Stdlib {
   const debugLog = logger?.log(DEBUG_NAMESPACE);
 
   // TODO: This should later decide whether to return debug functions or just their stubs

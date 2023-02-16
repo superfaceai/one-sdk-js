@@ -10,6 +10,7 @@ import { getLocal } from 'mockttp';
 import { UnexpectedError } from '../../lib';
 import { MockTimers } from '../../mock';
 import { NodeCrypto, NodeFetch, NodeFileSystem, NodeLogger } from '../../node';
+import { NodeSandbox } from '../../node/sandbox/sandbox.node';
 import { Config } from '../config';
 import { ServiceSelector } from '../services';
 import { MapInterpreter } from './map-interpreter';
@@ -28,6 +29,7 @@ const interpreterDependencies = {
   config: new Config(NodeFileSystem),
   crypto: new NodeCrypto(),
   logger: new NodeLogger(),
+  sandbox: new NodeSandbox(),
 };
 const header: MapHeaderNode = {
   kind: 'MapHeader',

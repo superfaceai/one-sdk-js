@@ -13,6 +13,7 @@ import {
   NodeFileSystem,
   NodeLogger,
 } from '../../node';
+import { NodeSandbox } from '../../node/sandbox/sandbox.node';
 import { Config } from '../config';
 import { ServiceSelector } from '../services';
 import { MapInterpreter } from './map-interpreter';
@@ -21,6 +22,7 @@ import { JessieError } from './map-interpreter.errors';
 const mockServer = getLocal();
 const timers = new MockTimers();
 const interpreterDependencies = {
+  sandbox: new NodeSandbox(),
   fetchInstance: new NodeFetch(timers),
   config: new Config(NodeFileSystem),
   crypto: new NodeCrypto(),

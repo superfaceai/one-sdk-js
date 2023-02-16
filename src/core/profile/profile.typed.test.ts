@@ -6,6 +6,7 @@ import {
   MockTimers,
 } from '../../mock';
 import { NodeCrypto, NodeFetch, NodeFileSystem } from '../../node';
+import { NodeSandbox } from '../../node/sandbox/sandbox.node';
 import { normalizeSuperJsonDocument } from '../../schema-tools/superjson/normalize';
 import { Config } from '../config';
 import { Events } from '../events';
@@ -38,6 +39,7 @@ describe('TypedProfile', () => {
     expiresAt: number;
   }>();
   const config = new Config(NodeFileSystem);
+  const sandbox = new NodeSandbox();
   const fileSystem = MockFileSystem();
 
   describe('getUseCases', () => {
@@ -49,6 +51,7 @@ describe('TypedProfile', () => {
         mockSuperJson,
         cache,
         config,
+        sandbox,
         timers,
         fileSystem,
         crypto,
@@ -62,6 +65,7 @@ describe('TypedProfile', () => {
           'sayHello',
           events,
           config,
+          sandbox,
           mockSuperJson,
           timers,
           fileSystem,
@@ -80,6 +84,7 @@ describe('TypedProfile', () => {
         mockSuperJson,
         cache,
         config,
+        sandbox,
         timers,
         fileSystem,
         crypto,

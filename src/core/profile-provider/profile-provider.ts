@@ -14,6 +14,7 @@ import type {
   ITimers,
   LogFunction,
 } from '../../interfaces';
+import type { ISandbox } from '../../interfaces/sandbox';
 import { profileAstId, UnexpectedError } from '../../lib';
 import { mergeSecurity } from '../../schema-tools';
 import {
@@ -42,6 +43,7 @@ export async function bindProfileProvider(
   providerConfig: ProviderConfiguration,
   superJson: NormalizedSuperJsonDocument | undefined,
   config: IConfig,
+  sandbox: ISandbox,
   events: Events,
   timers: ITimers,
   fileSystem: IFileSystem,
@@ -55,6 +57,7 @@ export async function bindProfileProvider(
     providerConfig,
     profileProviderConfig,
     config,
+    sandbox,
     events,
     fileSystem,
     crypto,
@@ -87,6 +90,7 @@ export class ProfileProvider {
     private providerConfig: ProviderConfiguration,
     private profileProviderConfig: ProfileProviderConfiguration,
     private config: IConfig,
+    private sandbox: ISandbox,
     private events: Events,
     private readonly fileSystem: IFileSystem,
     private readonly crypto: ICrypto,
@@ -199,6 +203,7 @@ export class ProfileProvider {
       mapAst,
       providerInfo,
       this.config,
+      this.sandbox,
       {
         services: new ServiceSelector(
           providerInfo.services,

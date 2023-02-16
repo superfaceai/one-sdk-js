@@ -10,6 +10,7 @@ import { getLocal } from 'mockttp';
 import { err, UnexpectedError } from '../../lib';
 import { MockTimers } from '../../mock';
 import { NodeCrypto, NodeFetch, NodeFileSystem } from '../../node';
+import { NodeSandbox } from '../../node/sandbox/sandbox.node';
 import { Config } from '../config';
 import { BoundProfileProvider } from '../profile-provider';
 import { ServiceSelector } from '../services';
@@ -166,6 +167,7 @@ const mockProviderJson = (name: string): ProviderJson => ({
 
 const mockServer = getLocal();
 const config = new Config(NodeFileSystem);
+const sandbox = new NodeSandbox();
 const timers = new MockTimers();
 const crypto = new NodeCrypto();
 
@@ -187,6 +189,7 @@ describe('events', () => {
       mockMapDocument,
       mockProviderJson('provider'),
       config,
+      sandbox,
       {
         services: ServiceSelector.withDefaultUrl(mockServer.url),
         security: [],
@@ -231,6 +234,7 @@ describe('events', () => {
       mockMapDocument,
       mockProviderJson('someprovider'),
       config,
+      sandbox,
       {
         services: ServiceSelector.withDefaultUrl(
           'https://unreachable.localhost'
@@ -274,6 +278,7 @@ describe('events', () => {
       mockMapDocument,
       mockProviderJson('provider'),
       config,
+      sandbox,
       {
         services: ServiceSelector.withDefaultUrl(mockServer.url),
         security: [],
@@ -308,6 +313,7 @@ describe('events', () => {
       mockMapDocument,
       mockProviderJson('provider'),
       config,
+      sandbox,
       {
         services: ServiceSelector.withDefaultUrl(mockServer.url),
         security: [],
@@ -342,6 +348,7 @@ describe('events', () => {
       mockMapDocument,
       mockProviderJson('provider'),
       config,
+      sandbox,
       {
         services: ServiceSelector.withDefaultUrl(mockServer.url),
         security: [],

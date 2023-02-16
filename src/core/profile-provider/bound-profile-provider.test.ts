@@ -14,6 +14,7 @@ import {
 import { err, ok } from '../../lib';
 import { MockTimers } from '../../mock';
 import { NodeCrypto, NodeFetch, NodeFileSystem } from '../../node';
+import { NodeSandbox } from '../../node/sandbox/sandbox.node';
 import { Config } from '../config';
 import {
   InputValidationError,
@@ -128,6 +129,7 @@ describe('BoundProfileProvider', () => {
         mockMapDocument,
         mockProviderJson,
         mockConfig,
+        new NodeSandbox(),
         {
           services: ServiceSelector.withDefaultUrl('test/url'),
           security: [],
@@ -172,6 +174,7 @@ describe('BoundProfileProvider', () => {
         mockMapDocument,
         mockProviderJson,
         mockConfig,
+        new NodeSandbox(),
         {
           services: ServiceSelector.withDefaultUrl('test/url'),
           security: [
@@ -236,6 +239,7 @@ describe('BoundProfileProvider', () => {
         mockMapDocument,
         mockProviderJson,
         mockConfig,
+        new NodeSandbox(),
         {
           services: ServiceSelector.withDefaultUrl('test/url'),
           security: [],
@@ -272,6 +276,7 @@ describe('BoundProfileProvider', () => {
         mockMapDocument,
         mockProviderJson,
         mockConfig,
+        new NodeSandbox(),
         {
           services: ServiceSelector.withDefaultUrl('test/url'),
           security: [],
@@ -315,6 +320,7 @@ describe('BoundProfileProvider', () => {
         mockMapDocument,
         mockProviderJson,
         mockConfig,
+        new NodeSandbox(),
         {
           services: ServiceSelector.withDefaultUrl('test/url'),
           security: [],

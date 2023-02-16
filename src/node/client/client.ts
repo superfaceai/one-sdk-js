@@ -34,6 +34,7 @@ import {
   resolveSecurityValues,
   superJsonNotDefinedError,
 } from '../../core';
+import type { ISandbox } from '../../interfaces/sandbox';
 import { SuperCache } from '../../lib';
 import { loadSuperJsonSync } from '../../schema-tools';
 import { normalizeSuperJsonDocument } from '../../schema-tools/superjson/normalize';
@@ -42,6 +43,7 @@ import { NodeEnvironment } from '../environment';
 import { NodeFetch } from '../fetch';
 import { NodeFileSystem } from '../filesystem';
 import { NodeLogger } from '../logger';
+import { NodeSandbox } from '../sandbox/sandbox.node';
 import { NodeTimers } from '../timers';
 
 const resolveSuperJson = (
@@ -124,6 +126,7 @@ export abstract class SuperfaceClientBase {
   }>;
 
   protected readonly config: Config;
+  protected readonly sandbox: ISandbox;
   protected readonly timers: ITimers;
   protected readonly crypto: ICrypto;
   protected readonly fetchInstance: IFetch & Interceptable & AuthCache;
@@ -144,6 +147,7 @@ export abstract class SuperfaceClientBase {
     }
 
     const environment = new NodeEnvironment();
+    this.sandbox = new NodeSandbox();
     this.crypto = new NodeCrypto();
     this.timers = new NodeTimers();
     this.logger = new NodeLogger();
@@ -186,6 +190,7 @@ export abstract class SuperfaceClientBase {
       this.events,
       this.superJson,
       this.config,
+      this.sandbox,
       this.timers,
       NodeFileSystem,
       this.boundProfileProviderCache,

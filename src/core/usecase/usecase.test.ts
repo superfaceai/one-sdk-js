@@ -6,6 +6,7 @@ import {
   MockTimers,
 } from '../../mock';
 import { NodeCrypto, NodeFetch, NodeFileSystem } from '../../node';
+import { NodeSandbox } from '../../node/sandbox/sandbox.node';
 import { normalizeSuperJsonDocument } from '../../schema-tools/superjson/normalize';
 import { Config } from '../config';
 import { Events, registerHooks } from '../events';
@@ -69,12 +70,15 @@ function createUseCase(cacheExpire?: number, omitSuperJson?: boolean) {
 
   const config = new Config(NodeFileSystem);
 
+  const sandbox = new NodeSandbox();
+
   const profile: ProfileBase = new Profile(
     mockProfileConfiguration,
     mockProfileDocumentNode(),
     events,
     omitSuperJson === true ? undefined : mockSuperJson,
     config,
+    sandbox,
     timers,
     filesystem,
     cache,
@@ -102,6 +106,7 @@ function createUseCase(cacheExpire?: number, omitSuperJson?: boolean) {
     'test-usecase',
     events,
     config,
+    sandbox,
     omitSuperJson === true ? undefined : mockSuperJson,
     timers,
     filesystem,

@@ -5,6 +5,7 @@ import type {
 import { extractVersion, isValidDocumentName } from '@superfaceai/ast';
 
 import type { ICrypto, IFileSystem, ILogger, ITimers } from '../../interfaces';
+import type { ISandbox } from '../../interfaces/sandbox';
 import type { SuperCache } from '../../lib';
 import { profileAstId, versionToString } from '../../lib';
 import type { Config } from '../config';
@@ -24,6 +25,7 @@ export class InternalClient {
     private readonly events: Events,
     private readonly superJson: NormalizedSuperJsonDocument | undefined,
     private readonly config: Config,
+    private readonly sandbox: ISandbox,
     private readonly timers: ITimers,
     private readonly fileSystem: IFileSystem,
     private readonly boundProfileProviderCache: SuperCache<{
@@ -58,6 +60,7 @@ export class InternalClient {
       this.events,
       this.superJson,
       this.config,
+      this.sandbox,
       this.timers,
       this.fileSystem,
       this.boundProfileProviderCache,

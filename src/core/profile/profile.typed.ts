@@ -10,6 +10,7 @@ import type {
   ILogger,
   ITimers,
 } from '../../interfaces';
+import type { ISandbox } from '../../interfaces/sandbox';
 import type { NonPrimitive, SuperCache } from '../../lib';
 import { UnexpectedError } from '../../lib';
 import { usecaseNotFoundError } from '../errors';
@@ -51,6 +52,7 @@ export class TypedProfile<
       expiresAt: number;
     }>,
     protected override readonly config: IConfig,
+    protected override readonly sandbox: ISandbox,
     protected override readonly timers: ITimers,
     protected override readonly fileSystem: IFileSystem,
     protected override readonly crypto: ICrypto,
@@ -66,6 +68,7 @@ export class TypedProfile<
       events,
       superJson,
       config,
+      sandbox,
       timers,
       fileSystem,
       boundProfileProviderCache,
@@ -84,6 +87,7 @@ export class TypedProfile<
           usecase as string,
           events,
           config,
+          sandbox,
           superJson,
           timers,
           fileSystem,
