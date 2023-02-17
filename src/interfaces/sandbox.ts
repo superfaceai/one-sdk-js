@@ -1,4 +1,4 @@
-import type { Stdlib } from '../core/interpreter/sandbox/stdlib';
+import type { Stdlib } from '../core/interpreter/stdlib';
 import type { NonPrimitive } from '../lib';
 import type { IConfig } from './config';
 import type { ILogger } from './logger';

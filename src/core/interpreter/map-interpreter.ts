@@ -63,7 +63,7 @@ import {
   MappedError,
   MappedHTTPError,
 } from './map-interpreter.errors';
-import { getStdlib } from './sandbox/stdlib';
+import { getStdlib } from './stdlib';
 
 function assertUnreachable(_: never): never {
   throw 'unreachable';

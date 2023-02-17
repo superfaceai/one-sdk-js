@@ -1,6 +1,6 @@
 import { VM } from 'vm2';
 
-import type { Stdlib } from '../../core/interpreter/sandbox/stdlib';
+import type { Stdlib } from '../../core/interpreter/stdlib';
 import type { IConfig, ILogger } from '../../interfaces';
 import type { ISandbox } from '../../interfaces/sandbox';
 import type { NonPrimitive } from '../../lib';

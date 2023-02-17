@@ -1,7 +1,7 @@
 import type { IConfig, ILogger } from '../../interfaces';
 import type { ISandbox } from '../../interfaces/sandbox';
 import type { NonPrimitive } from '../../lib';
-import type { Stdlib } from '../interpreter/sandbox';
+import type { Stdlib } from '../interpreter/stdlib';
 
 /**
  * WARNING:

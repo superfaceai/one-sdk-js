@@ -1,5 +1,5 @@
 import { Config } from '../../core';
-import { getStdlib } from '../../core/interpreter/sandbox';
+import { getStdlib } from '../../core/interpreter/stdlib';
 import type { ISandbox } from '../../interfaces/sandbox';
 import { NodeFileSystem } from '../filesystem';
 import { NodeSandbox } from './sandbox.node';
