@@ -6,11 +6,11 @@ import {
   MockTimers,
 } from '../../mock';
 import { NodeCrypto, NodeFetch, NodeFileSystem } from '../../node';
-import { NodeSandbox } from '../../node/sandbox/sandbox.node';
 import { normalizeSuperJsonDocument } from '../../schema-tools/superjson/normalize';
 import { Config } from '../config';
 import { Events } from '../events';
 import type { IBoundProfileProvider } from '../profile-provider';
+import { PureJSSandbox } from '../sandbox';
 import { UseCase } from '../usecase';
 import { TypedProfile } from './profile.typed';
 import { ProfileConfiguration } from './profile-configuration';
@@ -39,7 +39,7 @@ describe('TypedProfile', () => {
     expiresAt: number;
   }>();
   const config = new Config(NodeFileSystem);
-  const sandbox = new NodeSandbox();
+  const sandbox = new PureJSSandbox();
   const fileSystem = MockFileSystem();
 
   describe('getUseCases', () => {

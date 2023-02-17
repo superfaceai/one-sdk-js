@@ -8,12 +8,12 @@ import {
   NodeFetch,
   NodeFileSystem,
 } from '../../node';
-import { NodeSandbox } from '../../node/sandbox/sandbox.node';
 import { normalizeSuperJsonDocument } from '../../schema-tools/superjson/normalize';
 import { Config } from '../config';
 import { usecaseNotFoundError } from '../errors';
 import { Events } from '../events';
 import type { IBoundProfileProvider } from '../profile-provider';
+import { PureJSSandbox } from '../sandbox';
 import { Profile } from './profile';
 import { ProfileConfiguration } from './profile-configuration';
 
@@ -27,7 +27,7 @@ function createProfile(superJson: SuperJsonDocument): Profile {
     expiresAt: number;
   }>();
   const config = new Config(NodeFileSystem);
-  const sandbox = new NodeSandbox();
+  const sandbox = new PureJSSandbox();
   const ast = mockProfileDocumentNode({ usecaseName: 'sayHello' });
   const configuration = new ProfileConfiguration('test', '1.0.0');
 

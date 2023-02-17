@@ -14,7 +14,6 @@ import {
 import { err, ok } from '../../lib';
 import { MockTimers } from '../../mock';
 import { NodeCrypto, NodeFetch, NodeFileSystem } from '../../node';
-import { NodeSandbox } from '../../node/sandbox/sandbox.node';
 import { Config } from '../config';
 import {
   InputValidationError,
@@ -23,6 +22,7 @@ import {
   ProfileParameterValidator,
   ResultValidationError,
 } from '../interpreter';
+import { PureJSSandbox } from '../sandbox';
 import { ServiceSelector } from '../services';
 import { BoundProfileProvider } from './bound-profile-provider';
 
@@ -110,6 +110,8 @@ const mockProviderJson: ProviderJson = {
   defaultService: 'test-service',
 };
 
+const sandbox = new PureJSSandbox();
+
 describe('BoundProfileProvider', () => {
   afterEach(() => {
     jest.clearAllMocks();
@@ -129,7 +131,7 @@ describe('BoundProfileProvider', () => {
         mockMapDocument,
         mockProviderJson,
         mockConfig,
-        new NodeSandbox(),
+        sandbox,
         {
           services: ServiceSelector.withDefaultUrl('test/url'),
           security: [],
@@ -174,7 +176,7 @@ describe('BoundProfileProvider', () => {
         mockMapDocument,
         mockProviderJson,
         mockConfig,
-        new NodeSandbox(),
+        sandbox,
         {
           services: ServiceSelector.withDefaultUrl('test/url'),
           security: [
@@ -239,7 +241,7 @@ describe('BoundProfileProvider', () => {
         mockMapDocument,
         mockProviderJson,
         mockConfig,
-        new NodeSandbox(),
+        sandbox,
         {
           services: ServiceSelector.withDefaultUrl('test/url'),
           security: [],
@@ -276,7 +278,7 @@ describe('BoundProfileProvider', () => {
         mockMapDocument,
         mockProviderJson,
         mockConfig,
-        new NodeSandbox(),
+        sandbox,
         {
           services: ServiceSelector.withDefaultUrl('test/url'),
           security: [],
@@ -320,7 +322,7 @@ describe('BoundProfileProvider', () => {
         mockMapDocument,
         mockProviderJson,
         mockConfig,
-        new NodeSandbox(),
+        sandbox,
         {
           services: ServiceSelector.withDefaultUrl('test/url'),
           security: [],

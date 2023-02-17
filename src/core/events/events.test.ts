@@ -10,9 +10,9 @@ import { getLocal } from 'mockttp';
 import { err, UnexpectedError } from '../../lib';
 import { MockTimers } from '../../mock';
 import { NodeCrypto, NodeFetch, NodeFileSystem } from '../../node';
-import { NodeSandbox } from '../../node/sandbox/sandbox.node';
 import { Config } from '../config';
 import { BoundProfileProvider } from '../profile-provider';
+import { PureJSSandbox } from '../sandbox';
 import { ServiceSelector } from '../services';
 import { Events } from './events';
 
@@ -167,7 +167,7 @@ const mockProviderJson = (name: string): ProviderJson => ({
 
 const mockServer = getLocal();
 const config = new Config(NodeFileSystem);
-const sandbox = new NodeSandbox();
+const sandbox = new PureJSSandbox();
 const timers = new MockTimers();
 const crypto = new NodeCrypto();
 
