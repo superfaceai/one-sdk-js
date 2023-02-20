@@ -7,8 +7,7 @@ export function ensureErrorSubclass(error: unknown): Error {
 
   return new Error(JSON.stringify(error));
 }
-
-export class ErrorBase extends Error {
+export abstract class ErrorBase extends Error {
   constructor(kind: string, message: string) {
     super(message);
     this.name = kind;

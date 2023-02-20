@@ -4,8 +4,10 @@ describe('errors', () => {
   describe('ErrorBase', () => {
     let error: ErrorBase;
 
+    class MyError extends ErrorBase {}
+
     beforeEach(() => {
-      error = new ErrorBase('MyKind', 'My message');
+      error = new MyError('MyKind', 'My message');
       console.log(error);
     });
 
