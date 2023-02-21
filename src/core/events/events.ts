@@ -38,7 +38,7 @@ export type Interceptable = {
   events?: Events;
 };
 
-type EventContextBase = {
+export type EventContextBase = {
   readonly time: Date;
   readonly usecase?: string;
   readonly profile?: string;
