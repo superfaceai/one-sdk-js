@@ -1081,8 +1081,8 @@ describe('ProfileParameterValidator', () => {
           expect(checkErrorKind(result)).toEqual(['wrongType']);
         });
 
-        it('returns errorPath = [input, foo]', () => {
-          expect(checkErrorPath(result)).toEqual([['input', 'foo']]);
+        it('returns errorPath = [foo]', () => {
+          expect(checkErrorPath(result)).toEqual([['foo']]);
         });
 
         it('returns context', () => {
