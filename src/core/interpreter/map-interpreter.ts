@@ -1162,9 +1162,10 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined> {
     const entry = ast.definitions
       .filter(isMapDefinitionNode)
       .find(definition => definition.usecaseName === usecaseName);
+
     if (entry === undefined) {
       return err(
-        new MapASTError(`Usecase not found: ${usecaseName ?? 'undefined'}!`, {
+        new MapASTError(`Usecase '${usecaseName ?? 'undefined'}' not found!`, {
           node: ast,
           ast,
         })
