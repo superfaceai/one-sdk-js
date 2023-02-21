@@ -149,8 +149,6 @@ export class JessieError extends MapInterpreterError {
 }
 
 export class MappedError<T> extends MapInterpreterError {
-  public override name = 'MappedError' as const;
-
   constructor(
     message: string,
     public override metadata?: { node?: MapASTNode; ast?: MapDocumentNode },
