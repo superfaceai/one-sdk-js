@@ -117,15 +117,3 @@ export class ResultValidationError extends ProfileParameterError {
     );
   }
 }
-
-export const isInputValidationError = (
-  err: unknown
-): err is InputValidationError => {
-  return err instanceof InputValidationError;
-};
-
-export const isResultValidationError = (
-  err: unknown
-): err is ResultValidationError => {
-  return err instanceof ResultValidationError;
-};

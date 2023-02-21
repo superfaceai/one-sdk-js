@@ -6,8 +6,6 @@ import { ProfileParameterValidator } from './profile-parameter-validator';
 import type { ProfileParameterError } from './profile-parameter-validator.errors';
 import {
   InputValidationError,
-  isInputValidationError,
-  isResultValidationError,
   ResultValidationError,
 } from './profile-parameter-validator.errors';
 
@@ -23,23 +21,23 @@ const parseProfileFromSource = (source: string) =>
 
 const checkErrorKind = (result: Result<unknown, unknown>) =>
   result.isErr() &&
-  (isInputValidationError(result.error)
+  (result.error instanceof InputValidationError
     ? result.error.errors?.map(error => error.kind)
-    : isResultValidationError(result.error) &&
+    : result.error instanceof ResultValidationError &&
       result.error.errors?.map(error => error.kind));
 
 const checkErrorPath = (result: Result<unknown, unknown>) =>
   result.isErr() &&
-  (isInputValidationError(result.error)
+  (result.error instanceof InputValidationError
     ? result.error.errors?.map(error => error.context?.path)
-    : isResultValidationError(result.error) &&
+    : result.error instanceof ResultValidationError &&
       result.error.errors?.map(error => error.context?.path));
 
 const checkErrorContext = (result: Result<unknown, unknown>) =>
   result.isErr() &&
-  (isInputValidationError(result.error)
+  (result.error instanceof InputValidationError
     ? result.error.errors?.map(error => error.context)
-    : isResultValidationError(result.error) &&
+    : result.error instanceof ResultValidationError &&
       result.error.errors?.map(error => error.context));
 
 describe('ProfileParameterValidator', () => {
