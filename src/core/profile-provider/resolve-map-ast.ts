@@ -52,6 +52,18 @@ export async function resolveMapAst({
 
   const log = logger?.log(DEBUG_NAMESPACE);
   if ('file' in profileProviderSettings) {
+    let json: unknown = null;
+
+    try {
+      json = JSON.parse(profileProviderSettings.file);
+    } catch (e) {
+      // nothing
+    }
+
+    if (json !== null) {
+      return assertMapDocumentNode(json);
+    }
+
     let path: string;
     if (profileProviderSettings.file.endsWith(EXTENSIONS.map.source)) {
       path = fileSystem.path.resolve(

@@ -87,10 +87,23 @@ export async function resolveProfileAst({
   // TODO: do we want to check `file` if we have version from getProfile?
   if (superJson !== undefined && profileSettings !== undefined) {
     if ('file' in profileSettings) {
+      let json: unknown = null;
+
+      try {
+        json = JSON.parse(profileSettings.file);
+      } catch (e) {
+        // nothing
+      }
+
+      if (json !== null) {
+        return assertProfileDocumentNode(json);
+      }
+
       filepath = fileSystem.path.resolve(
         fileSystem.path.dirname(config.superfacePath),
         profileSettings.file
       );
+
       // if we find source file we assume compiled file next to it
       if (filepath.endsWith(EXTENSIONS.profile.source)) {
         astPath = filepath.replace(

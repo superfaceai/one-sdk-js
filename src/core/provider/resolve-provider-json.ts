@@ -40,19 +40,33 @@ export async function resolveProviderJson({
   }
 
   const log = logger?.log(DEBUG_NAMESPACE);
-  const path = fileSystem.path.resolve(
-    fileSystem.path.dirname(config.superfacePath),
-    providerSettings.file
-  );
+  let providerJson: ProviderJson;
+  let json: unknown = null;
 
-  log?.(`Reading provider json from path: "${path}"`);
-  const contents = await fileSystem.readFile(path);
-
-  if (contents.isErr()) {
-    throw referencedFileNotFoundError(path, []);
+  try {
+    json = JSON.parse(providerSettings.file);
+  } catch (e) {
+    // nothing
   }
 
-  const providerJson = assertProviderJson(JSON.parse(contents.value));
+  if (json !== null) {
+    providerJson = assertProviderJson(json);
+  } else {
+    const path = fileSystem.path.resolve(
+      fileSystem.path.dirname(config.superfacePath),
+      providerSettings.file
+    );
+
+    log?.(`Reading provider json from path: "${path}"`);
+    const contents = await fileSystem.readFile(path);
+
+    if (contents.isErr()) {
+      throw referencedFileNotFoundError(path, []);
+    }
+
+    providerJson = assertProviderJson(JSON.parse(contents.value));
+  }
+
   // check if provider name match
   if (providerName !== providerJson.name) {
     throw providersDoNotMatchError(
