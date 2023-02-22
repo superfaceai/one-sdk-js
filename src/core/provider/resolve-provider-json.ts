@@ -5,6 +5,7 @@ import type {
 import { assertProviderJson } from '@superfaceai/ast';
 
 import type { IConfig, IFileSystem, ILogger } from '../../interfaces';
+import { isSettingsWithAst, UnexpectedError } from '../../lib';
 import {
   providersDoNotMatchError,
   referencedFileNotFoundError,
@@ -35,37 +36,38 @@ export async function resolveProviderJson({
     throw unconfiguredProviderError(providerName);
   }
 
+  if (isSettingsWithAst(providerSettings)) {
+    switch (typeof providerSettings.ast) {
+      case 'string':
+        return assertProviderJson(JSON.parse(String(providerSettings.ast)));
+      case 'object':
+        return assertProviderJson(providerSettings.ast);
+      default:
+        throw new UnexpectedError(
+          `Unsupported ast format ${typeof providerSettings.ast}`
+        );
+    }
+  }
+
   if (providerSettings.file === undefined) {
     return undefined;
   }
 
   const log = logger?.log(DEBUG_NAMESPACE);
-  let providerJson: ProviderJson;
-  let json: unknown = null;
 
-  try {
-    json = JSON.parse(providerSettings.file);
-  } catch (e) {
-    // nothing
+  const path = fileSystem.path.resolve(
+    fileSystem.path.dirname(config.superfacePath),
+    providerSettings.file
+  );
+
+  log?.(`Reading provider json from path: "${path}"`);
+  const contents = await fileSystem.readFile(path);
+
+  if (contents.isErr()) {
+    throw referencedFileNotFoundError(path, []);
   }
 
-  if (json !== null) {
-    providerJson = assertProviderJson(json);
-  } else {
-    const path = fileSystem.path.resolve(
-      fileSystem.path.dirname(config.superfacePath),
-      providerSettings.file
-    );
-
-    log?.(`Reading provider json from path: "${path}"`);
-    const contents = await fileSystem.readFile(path);
-
-    if (contents.isErr()) {
-      throw referencedFileNotFoundError(path, []);
-    }
-
-    providerJson = assertProviderJson(JSON.parse(contents.value));
-  }
+  const providerJson = assertProviderJson(JSON.parse(contents.value));
 
   // check if provider name match
   if (providerName !== providerJson.name) {

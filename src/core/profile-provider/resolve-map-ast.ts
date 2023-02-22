@@ -5,6 +5,7 @@ import type {
 import { assertMapDocumentNode, EXTENSIONS } from '@superfaceai/ast';
 
 import type { IConfig, IFileSystem, ILogger } from '../../interfaces';
+import { isSettingsWithAst, UnexpectedError } from '../../lib';
 import {
   profileIdsDoNotMatchError,
   profileNotFoundError,
@@ -51,19 +52,20 @@ export async function resolveMapAst({
   }
 
   const log = logger?.log(DEBUG_NAMESPACE);
-  if ('file' in profileProviderSettings) {
-    let json: unknown = null;
-
-    try {
-      json = JSON.parse(profileProviderSettings.file);
-    } catch (e) {
-      // nothing
+  if (isSettingsWithAst(profileProviderSettings)) {
+    switch (typeof profileProviderSettings.ast) {
+      case 'string':
+        return assertMapDocumentNode(
+          JSON.parse(String(profileProviderSettings.ast))
+        );
+      case 'object':
+        return assertMapDocumentNode(profileProviderSettings.ast);
+      default:
+        throw new UnexpectedError(
+          `Unsupported ast format ${typeof profileProviderSettings.ast}`
+        );
     }
-
-    if (json !== null) {
-      return assertMapDocumentNode(json);
-    }
-
+  } else if ('file' in profileProviderSettings) {
     let path: string;
     if (profileProviderSettings.file.endsWith(EXTENSIONS.map.source)) {
       path = fileSystem.path.resolve(

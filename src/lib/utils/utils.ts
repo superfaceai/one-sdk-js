@@ -22,3 +22,7 @@ export function versionToString(version: {
 }
 
 export function forceCast<T>(_: unknown): asserts _ is T {}
+
+export function isSettingsWithAst<T>(input: T): input is T & { ast: unknown } {
+  return typeof input === 'object' && input !== null && 'ast' in input;
+}

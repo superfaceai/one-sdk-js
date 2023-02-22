@@ -1,4 +1,7 @@
-import type { ProfileDocumentNode } from '@superfaceai/ast';
+import type {
+  NormalizedSuperJsonDocument,
+  ProfileDocumentNode,
+} from '@superfaceai/ast';
 import { EXTENSIONS } from '@superfaceai/ast';
 
 import type { IFileSystem } from '../../interfaces';
@@ -663,6 +666,97 @@ describe('resolveProfileAst', () => {
           logger,
         })
       ).rejects.toThrow();
+    });
+  });
+
+  describe('when using ast property', () => {
+    const profileId = 'scope/name';
+
+    let ast: ProfileDocumentNode;
+    let fileSystem: IFileSystem;
+
+    beforeEach(() => {
+      ast = mockProfileDocumentNode({
+        scope: 'scope',
+        name: 'name',
+        version: {
+          major: 1,
+          minor: 0,
+          patch: 0,
+        },
+        usecaseName: 'UseCase',
+      });
+
+      fileSystem = createMockFileSystem(
+        'profile',
+        'profile.supr.ast.json',
+        '',
+        mockProfileDocumentNode({ name: 'profile' })
+      );
+    });
+
+    it('prefers content in ast property over file property', async () => {
+      await expect(
+        resolveProfileAst({
+          profileId,
+          version: '1.0.0',
+          fileSystem,
+          config,
+          crypto,
+          fetchInstance,
+          superJson: {
+            profiles: {
+              [profileId]: {
+                file: 'profile.supr',
+                ast: JSON.stringify(ast),
+              },
+            },
+            providers: {},
+          } as unknown as NormalizedSuperJsonDocument, // intentional, Super.json does't have `ast` property defined now
+        })
+      ).resolves.toEqual(ast);
+    });
+
+    it('returns profile ast when passed as string', async () => {
+      await expect(
+        resolveProfileAst({
+          profileId,
+          version: '1.0.0',
+          fileSystem,
+          config,
+          crypto,
+          fetchInstance,
+          superJson: {
+            profiles: {
+              [profileId]: {
+                ast: JSON.stringify(ast),
+              },
+            },
+            providers: {},
+          } as unknown as NormalizedSuperJsonDocument, // intentional, Super.json does't have `ast` property defined now
+        })
+      ).resolves.toEqual(ast);
+    });
+
+    it('returns profile ast when passed as object', async () => {
+      await expect(
+        resolveProfileAst({
+          profileId,
+          version: '1.0.0',
+          fileSystem,
+          config,
+          crypto,
+          fetchInstance,
+          superJson: {
+            profiles: {
+              [profileId]: {
+                ast,
+              },
+            },
+            providers: {},
+          } as unknown as NormalizedSuperJsonDocument, // intentional, Super.json does't have `ast` property defined now
+        })
+      ).resolves.toEqual(ast);
     });
   });
 });
