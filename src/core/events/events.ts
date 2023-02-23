@@ -12,7 +12,7 @@ import type {
   ITimers,
   LogFunction,
 } from '../../interfaces';
-import { UnexpectedError } from '../../lib';
+import { UnexpectedError } from '../errors';
 import type { HttpResponse, IFetch, RequestParameters } from '../interpreter';
 import type { UseCase } from '../usecase';
 import type { HooksContext } from './failure/event-adapter';
@@ -38,7 +38,7 @@ export type Interceptable = {
   events?: Events;
 };
 
-type EventContextBase = {
+export type EventContextBase = {
   readonly time: Date;
   readonly usecase?: string;
   readonly profile?: string;

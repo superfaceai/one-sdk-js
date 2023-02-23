@@ -1,6 +1,6 @@
+import { UnexpectedError } from '../../core';
 import type { IBinaryData } from '../../interfaces';
 import { isBinaryData } from '../../interfaces';
-import { UnexpectedError } from '../error';
 
 export type None = undefined | null;
 export type Primitive =

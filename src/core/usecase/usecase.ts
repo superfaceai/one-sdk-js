@@ -19,11 +19,11 @@ import type {
   ITimers,
   IUseCase,
   LogFunction,
-  PerformError,
 } from '../../interfaces';
 import { PerformOptions } from '../../interfaces';
 import type { NonPrimitive, Result, SuperCache, Variables } from '../../lib';
-import { UnexpectedError } from '../../lib';
+import type { ErrorBase } from '../errors';
+import { UnexpectedError } from '../errors';
 import type {
   Events,
   FailurePolicy,
@@ -41,7 +41,13 @@ import {
   FailurePolicyRouter,
   RetryPolicy,
 } from '../events';
-import type { AuthCache, IFetch } from '../interpreter';
+import type {
+  AuthCache,
+  IFetch,
+  MapInterpreterError,
+  ProfileParameterError,
+} from '../interpreter';
+import { hasErrorMetadata } from '../interpreter';
 import type { ProfileBase } from '../profile';
 import type { IBoundProfileProvider } from '../profile-provider';
 import {
@@ -189,20 +195,26 @@ export abstract class UseCaseBase implements Interceptable {
     input?: TInput,
     parameters?: Record<string, string>,
     security?: SecurityValues[]
-  ): Promise<Result<TOutput, PerformError | UnexpectedError>> {
+  ): Promise<
+    Result<
+      TOutput,
+      ProfileParameterError | MapInterpreterError | UnexpectedError
+    >
+  > {
     if (this.boundProfileProvider === undefined) {
       throw new UnexpectedError(
         'Unreachable code reached: BoundProfileProvider is undefined.'
       );
     }
 
-    // TODO: rewrap the errors for public consumption?
-    return this.boundProfileProvider.perform<TInput, TOutput>(
+    const result = await this.boundProfileProvider.perform<TInput, TOutput>(
       this.name,
       input,
       parameters,
       security
     );
+
+    return this.rewrapResultForConsumption(result);
   }
 
   @eventInterceptor({ eventName: 'bind-and-perform', placement: 'around' })
@@ -215,7 +227,12 @@ export abstract class UseCaseBase implements Interceptable {
   >(
     input?: TInput,
     options?: PerformOptions
-  ): Promise<Result<TOutput, PerformError | UnexpectedError>> {
+  ): Promise<
+    Result<
+      TOutput,
+      ProfileParameterError | MapInterpreterError | UnexpectedError
+    >
+  > {
     await this.bind(options);
 
     this.log?.('Bound provider: %O', this.boundProfileProvider);
@@ -344,6 +361,22 @@ export abstract class UseCaseBase implements Interceptable {
 
     return policy;
   }
+
+  private rewrapResultForConsumption<T, E extends ErrorBase>(
+    result: Result<T, E>
+  ): Result<T, E> {
+    return result.mapErr(err => {
+      if (this.config.debug) {
+        return err; // keep arror as it is
+      }
+
+      if (hasErrorMetadata(err)) {
+        delete err.metadata;
+      }
+
+      return err;
+    });
+  }
 }
 
 export class UseCase extends UseCaseBase implements IUseCase {
@@ -356,7 +389,12 @@ export class UseCase extends UseCaseBase implements IUseCase {
   >(
     input?: TInput,
     options?: PerformOptions
-  ): Promise<Result<TOutput, PerformError | UnexpectedError>> {
+  ): Promise<
+    Result<
+      TOutput,
+      ProfileParameterError | MapInterpreterError | UnexpectedError
+    >
+  > {
     // Disable failover when user specified provider
     // needs to happen here because bindAndPerform is subject to retry from event hooks
     // including provider failover

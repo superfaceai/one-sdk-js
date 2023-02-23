@@ -1,4 +1,4 @@
-import { UnexpectedError } from '../../../lib';
+import { UnexpectedError } from '../../errors';
 import type { Backoff } from './backoff';
 import type {
   ExecutionFailure,

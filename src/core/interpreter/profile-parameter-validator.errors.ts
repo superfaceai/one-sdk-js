@@ -1,8 +1,4 @@
-import type {
-  IInputValidationError,
-  IResultValidationError,
-} from '../../interfaces';
-import { ErrorBase, UnexpectedError } from '../../lib';
+import { ErrorBase, UnexpectedError } from '../errors';
 
 export type ErrorContext = { path?: string[] };
 export type ValidationError =
@@ -59,41 +55,41 @@ export function formatErrors(errors?: ValidationError[]): string {
   return errors
     .map(err => {
       const prefix = err.context?.path
-        ? `Path: ${err.context.path.join('.')}\nError: `
-        : 'Error: ';
+        ? `  Field '${err.context.path.join('.')}'`
+        : '  Unknown field';
       switch (err.kind) {
         case 'wrongType':
-          return `${prefix}Wrong type: expected ${err.context.expected}, but got ${err.context.actual}`;
+          return `${prefix} has wrong type, expected '${err.context.expected}', actual '${err.context.actual}'`;
 
         case 'notArray':
-          return `${prefix}${JSON.stringify(
+          return `${prefix} ${JSON.stringify(
             err.context.input
           )} is not an array`;
 
         case 'missingRequired':
-          return `${prefix}Missing required field`;
+          return `${prefix} is missing`;
 
         case 'wrongUnion':
-          return `${prefix}Result does not satisfy union: expected one of: ${err.context.expected.join(
+          return `${prefix} does not satisfy union, expected one of: ${err.context.expected.join(
             ', '
           )}`;
 
         case 'elementsInArrayWrong':
-          return `${prefix}Some elements in array do not match criteria:\n${formatErrors(
+          return `${prefix} some elements in array do not match criteria:\n${formatErrors(
             err.context.suberrors
           )}`;
 
         case 'enumValue':
           return (
-            `${prefix}Invalid enum value` +
-            (err.context !== undefined ? `: ${err.context?.actual}` : '')
+            `${prefix} has invalid enum value` +
+            (err.context !== undefined ? ` ${err.context?.actual}` : '')
           );
 
-        case 'wrongInput':
-          return 'Wrong input';
-
         case 'nullInNonNullable':
-          return `${prefix}Null in non-nullable field`;
+          return `${prefix} is non-nullable`;
+
+        case 'wrongInput':
+          return 'has wrong input';
 
         default:
           throw new UnexpectedError('Invalid error!');
@@ -102,42 +98,16 @@ export function formatErrors(errors?: ValidationError[]): string {
     .join('\n');
 }
 
-export class InputValidationError
-  extends ErrorBase
-  implements IInputValidationError
-{
-  public name = 'InputValidationError' as const;
+export class ProfileParameterError extends ErrorBase {}
 
+export class InputValidationError extends ProfileParameterError {
   constructor(public errors?: ValidationError[]) {
-    super(
-      'InputValidationError',
-      'Input validation failed:' + '\n' + formatErrors(errors)
-    );
+    super(InputValidationError.name, '\n' + formatErrors(errors));
   }
 }
 
-export class ResultValidationError
-  extends ErrorBase
-  implements IResultValidationError
-{
-  public name = 'ResultValidationError' as const;
-
+export class ResultValidationError extends ProfileParameterError {
   constructor(public errors?: ValidationError[]) {
-    super(
-      'ResultValidationError',
-      'Result validation failed:' + '\n' + formatErrors(errors)
-    );
+    super(ResultValidationError.name, '\n' + formatErrors(errors));
   }
 }
-
-export const isInputValidationError = (
-  err: unknown
-): err is InputValidationError => {
-  return err instanceof InputValidationError;
-};
-
-export const isResultValidationError = (
-  err: unknown
-): err is ResultValidationError => {
-  return err instanceof ResultValidationError;
-};

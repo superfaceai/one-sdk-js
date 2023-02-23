@@ -1,62 +1,33 @@
-import type {
-  IFileExistsError,
-  INotEmptyError,
-  INotFoundError,
-  IPermissionDeniedError,
-  IUnknownFileSystemError,
-} from '../../interfaces';
+import { ErrorBase } from './errors';
 
-export class FileExistsError extends Error implements IFileExistsError {
-  public override name = 'FileExistsError' as const;
+export abstract class FileSystemError extends ErrorBase {}
 
+export class FileExistsError extends FileSystemError {
   constructor(message: string) {
-    super(message);
-    Object.setPrototypeOf(this, FileExistsError.prototype);
+    super(FileExistsError.name, message);
   }
 }
 
-export class PermissionDeniedError
-  extends Error
-  implements IPermissionDeniedError
-{
-  public override name = 'PermissionDeniedError' as const;
-
+export class PermissionDeniedError extends FileSystemError {
   constructor(message: string) {
-    super(message);
-    Object.setPrototypeOf(this, PermissionDeniedError.prototype);
+    super(PermissionDeniedError.name, message);
   }
 }
 
-export class NotEmptyError extends Error implements INotEmptyError {
-  public override name = 'NotEmptyError' as const;
+export class NotEmptyError extends FileSystemError {
   constructor(message: string) {
-    super(message);
-    Object.setPrototypeOf(this, NotEmptyError.prototype);
+    super(NotEmptyError.name, message);
   }
 }
 
-export class NotFoundError extends Error implements INotFoundError {
-  public override name = 'NotFoundError' as const;
+export class NotFoundError extends FileSystemError {
   constructor(message: string) {
-    super(message);
-    Object.setPrototypeOf(this, NotFoundError.prototype);
+    super(NotFoundError.name, message);
   }
 }
 
-export class UnknownFileSystemError
-  extends Error
-  implements IUnknownFileSystemError
-{
-  public override name = 'UnknownFileSystemError' as const;
+export class UnknownFileSystemError extends FileSystemError {
   constructor(message: string) {
-    super(message);
-    Object.setPrototypeOf(this, UnknownFileSystemError.prototype);
+    super(UnknownFileSystemError.name, message);
   }
 }
-
-export type FileSystemError =
-  | FileExistsError
-  | PermissionDeniedError
-  | NotEmptyError
-  | NotFoundError
-  | UnknownFileSystemError;

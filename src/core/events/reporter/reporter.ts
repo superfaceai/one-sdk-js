@@ -11,7 +11,7 @@ import type {
   ITimers,
   LogFunction,
 } from '../../../interfaces';
-import { UnexpectedError } from '../../../lib';
+import { UnexpectedError } from '../../errors';
 import type { IFetch } from '../../interpreter';
 import { JSON_CONTENT, stringBody } from '../../interpreter';
 import type { Events, FailureContext, SuccessContext } from '../events';

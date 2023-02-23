@@ -1,48 +1,27 @@
-import { ErrorBase } from '../../lib';
+import { ErrorBase } from './errors';
 
-interface NetworkError {
-  kind: 'network';
-  issue: 'unsigned-ssl' | 'dns' | 'timeout' | 'reject';
-}
+type NetworkErrorIssue = 'unsigned-ssl' | 'dns' | 'timeout' | 'reject';
+type RequestErrorIssue = 'abort' | 'timeout';
+type FetchErrorIssue = NetworkErrorIssue | RequestErrorIssue;
 
-interface RequestError {
-  kind: 'request';
-  issue: 'abort' | 'timeout';
-}
-
-export type FetchErrorIssue = NetworkError['issue'] | RequestError['issue'];
-
-export class FetchErrorBase extends ErrorBase {
-  constructor(public override kind: string, public issue: FetchErrorIssue) {
+export abstract class FetchError extends ErrorBase {
+  constructor(kind: string, public issue: FetchErrorIssue) {
     super(kind, `Fetch failed: ${issue} issue`);
   }
 }
 
-export class NetworkFetchError extends FetchErrorBase {
-  constructor(public override issue: NetworkError['issue']) {
-    super('NetworkError', issue);
-  }
-
-  public get normalized(): NetworkError {
-    return { kind: 'network', issue: this.issue };
+export class NetworkFetchError extends FetchError {
+  constructor(public override issue: NetworkErrorIssue) {
+    super(NetworkFetchError.name, issue);
   }
 }
 
-export class RequestFetchError extends FetchErrorBase {
-  constructor(public override issue: RequestError['issue']) {
-    super('RequestError', issue);
-  }
-
-  public get normalized(): RequestError {
-    return { kind: 'request', issue: this.issue };
+export class RequestFetchError extends FetchError {
+  constructor(public override issue: RequestErrorIssue) {
+    super(RequestFetchError.name, issue);
   }
 }
-
-export type FetchError = NetworkFetchError | RequestFetchError;
 
 export function isFetchError(input: unknown): input is FetchError {
-  return (
-    typeof input === 'object' &&
-    (input instanceof NetworkFetchError || input instanceof RequestFetchError)
-  );
+  return input instanceof FetchError;
 }

@@ -24,7 +24,7 @@
     "skipLibCheck": true,
     "strict": true,
     "strictPropertyInitialization": true,
-    "target": "ES5",
+    "target": "ES2015",
     "typeRoots": ["node_modules/@types"]
   },
   "include": ["src/**/*.ts"]

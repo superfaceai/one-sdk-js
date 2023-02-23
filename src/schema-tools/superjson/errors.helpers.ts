@@ -1,4 +1,4 @@
-import { SDKExecutionError } from '../../lib';
+import { SDKExecutionError } from '../../core';
 
 export function superJsonNotFoundError(
   path: string,

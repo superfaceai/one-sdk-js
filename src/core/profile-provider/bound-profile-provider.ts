@@ -6,20 +6,8 @@ import type {
   SecurityValues,
 } from '@superfaceai/ast';
 
-import type {
-  IConfig,
-  ICrypto,
-  ILogger,
-  LogFunction,
-  MapInterpreterError,
-  ProfileParameterError,
-} from '../../interfaces';
-import type {
-  NonPrimitive,
-  Result,
-  SDKExecutionError,
-  UnexpectedError,
-} from '../../lib';
+import type { IConfig, ICrypto, ILogger, LogFunction } from '../../interfaces';
+import type { NonPrimitive, Result } from '../../lib';
 import {
   castToNonPrimitive,
   err,
@@ -28,9 +16,16 @@ import {
   ok,
   profileAstId,
 } from '../../lib';
+import type { SDKExecutionError, UnexpectedError } from '../errors';
 import type { Events, Interceptable } from '../events';
 import { MapInterpreterEventAdapter } from '../events';
-import type { AuthCache, IFetch, SecurityConfiguration } from '../interpreter';
+import type {
+  AuthCache,
+  IFetch,
+  MapInterpreterError,
+  ProfileParameterError,
+  SecurityConfiguration,
+} from '../interpreter';
 import { MapInterpreter, ProfileParameterValidator } from '../interpreter';
 import type { IServiceSelector } from '../services';
 import { resolveIntegrationParameters } from './parameters';

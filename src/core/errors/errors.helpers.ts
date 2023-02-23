@@ -1,8 +1,8 @@
 import type { SecurityValues } from '@superfaceai/ast';
 import { AssertionError, BackoffKind } from '@superfaceai/ast';
 
-import { SDKBindError, SDKExecutionError } from '../../lib';
 import { isRegistryErrorBody } from '../registry';
+import { SDKBindError, SDKExecutionError } from './errors';
 
 export function superJsonNotDefinedError(
   callerName: string

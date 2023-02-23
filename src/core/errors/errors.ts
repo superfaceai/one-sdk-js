@@ -8,24 +8,28 @@ export function ensureErrorSubclass(error: unknown): Error {
   return new Error(JSON.stringify(error));
 }
 
-export class ErrorBase {
-  constructor(public kind: string, public message: string) {}
-
-  public get [Symbol.toStringTag](): string {
-    return this.kind;
+export abstract class ErrorBase extends Error {
+  constructor(kind: string, message: string) {
+    super(message);
+    this.name = kind;
   }
 
-  public toString(): string {
-    return `${this.kind}: ${this.message}`;
+  public get [Symbol.toStringTag](): string {
+    return this.name;
+  }
+
+  public get kind(): string {
+    return this.name;
+  }
+
+  public override toString(): string {
+    return `${this.name}: ${this.message}`;
   }
 }
 
 export class UnexpectedError extends ErrorBase {
-  constructor(
-    public override message: string,
-    public additionalContext?: unknown
-  ) {
-    super('UnexpectedError', message);
+  constructor(message: string, public additionalContext?: unknown) {
+    super(UnexpectedError.name, message);
   }
 }
 
@@ -34,19 +38,14 @@ export class UnexpectedError extends ErrorBase {
  *
  * These errors should be as descriptive as possible to explain the problem to the user.
  */
-export class SDKExecutionError extends Error {
+export class SDKExecutionError extends ErrorBase {
   constructor(
     private shortMessage: string,
     private longLines: string[],
     private hints: string[]
   ) {
-    super(shortMessage);
-
-    // https://github.com/Microsoft/TypeScript/wiki/Breaking-Changes#extending-built-ins-like-error-array-and-map-may-no-longer-work
-    Object.setPrototypeOf(this, SDKBindError.prototype);
-
+    super(SDKExecutionError.name, shortMessage);
     this.message = this.formatLong();
-    this.name = 'SDKExecutionError';
   }
 
   /**
@@ -79,10 +78,6 @@ export class SDKExecutionError extends Error {
     return result + '\n';
   }
 
-  public get [Symbol.toStringTag](): string {
-    return this.name;
-  }
-
   public override toString(): string {
     return this.formatLong();
   }
@@ -91,10 +86,6 @@ export class SDKExecutionError extends Error {
 export class SDKBindError extends SDKExecutionError {
   constructor(shortMessage: string, longLines: string[], hints: string[]) {
     super(shortMessage, longLines, hints);
-
-    // https://github.com/Microsoft/TypeScript/wiki/Breaking-Changes#extending-built-ins-like-error-array-and-map-may-no-longer-work
-    Object.setPrototypeOf(this, SDKBindError.prototype);
-
-    this.name = 'SDKBindError';
+    this.name = SDKBindError.name;
   }
 }

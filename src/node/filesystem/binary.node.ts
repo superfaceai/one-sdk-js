@@ -7,6 +7,7 @@ import { basename } from 'path';
 import type { Readable } from 'stream';
 import { PassThrough } from 'stream';
 
+import { UnexpectedError } from '../../core';
 import type {
   IBinaryData,
   IBinaryDataMeta,
@@ -19,7 +20,6 @@ import {
   isDestructible,
   isInitializable,
 } from '../../interfaces';
-import { UnexpectedError } from '../../lib';
 import { handleNodeError } from './filesystem.node';
 
 export class StreamReader {

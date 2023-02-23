@@ -4,7 +4,7 @@ import { readFile } from 'fs/promises';
 import { getLocal } from 'mockttp';
 import * as path from 'path';
 
-import { err, ok, SDKExecutionError, UnexpectedError } from '../../lib';
+import { err, ok } from '../../lib';
 import { MockTimers } from '../../mock';
 import {
   BinaryData,
@@ -14,6 +14,7 @@ import {
   NodeLogger,
 } from '../../node';
 import { Config } from '../config';
+import { SDKExecutionError, UnexpectedError } from '../errors';
 import { ServiceSelector } from '../services';
 import { MapInterpreter } from './map-interpreter';
 import { JessieError } from './map-interpreter.errors';

@@ -24,13 +24,7 @@ import {
   isOperationDefinitionNode,
 } from '@superfaceai/ast';
 
-import type {
-  IConfig,
-  ICrypto,
-  ILogger,
-  LogFunction,
-  MapInterpreterError,
-} from '../../interfaces';
+import type { IConfig, ICrypto, ILogger, LogFunction } from '../../interfaces';
 import {
   isBinaryData,
   isDestructible,
@@ -47,14 +41,14 @@ import {
   isPrimitive,
   mergeVariables,
   ok,
-  SDKExecutionError,
-  UnexpectedError,
 } from '../../lib';
+import { SDKExecutionError, UnexpectedError } from '../errors';
 import type { IServiceSelector } from '../services';
 import type { MapInterpreterExternalHandler } from './external-handler';
 import type { AuthCache, SecurityConfiguration } from './http';
 import { HttpClient } from './http';
 import type { IFetch } from './http/interfaces';
+import type { MapInterpreterError } from './map-interpreter.errors';
 import {
   HTTPError,
   JessieError,
@@ -1168,9 +1162,10 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined> {
     const entry = ast.definitions
       .filter(isMapDefinitionNode)
       .find(definition => definition.usecaseName === usecaseName);
+
     if (entry === undefined) {
       return err(
-        new MapASTError(`Usecase not found: ${usecaseName ?? 'undefined'}!`, {
+        new MapASTError(`Usecase '${usecaseName ?? 'undefined'}' not found!`, {
           node: ast,
           ast,
         })

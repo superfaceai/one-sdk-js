@@ -28,15 +28,15 @@ import {
   isNamedModelDefinitionNode,
 } from '@superfaceai/ast';
 
-import type {
-  ILogger,
-  LogFunction,
-  ProfileParameterError,
-} from '../../interfaces';
+import type { ILogger, LogFunction } from '../../interfaces';
 import type { Result } from '../../lib';
-import { err, isNone, isNonPrimitive, ok, UnexpectedError } from '../../lib';
+import { err, isNone, isNonPrimitive, ok } from '../../lib';
+import { UnexpectedError } from '../errors';
 import type { ProfileVisitor } from './interfaces';
-import type { ValidationError } from './profile-parameter-validator.errors';
+import type {
+  ProfileParameterError,
+  ValidationError,
+} from './profile-parameter-validator.errors';
 import {
   addFieldToErrors,
   formatErrors,
@@ -73,7 +73,7 @@ function objectHasKey<K extends string>(
 
 function addPath(
   validator: ValidationFunction,
-  path: string
+  path?: string
 ): ValidationFunction {
   return (input: unknown): ValidationResult => {
     const result = validator(input);
@@ -88,7 +88,10 @@ function addPath(
           ...err,
           context: {
             ...(err.context ?? {}),
-            path: [path, ...(err.context?.path ?? [])],
+            path:
+              path === undefined
+                ? err.context?.path ?? []
+                : [path, ...(err.context?.path ?? [])],
           },
         } as ValidationError;
       }),
@@ -592,11 +595,11 @@ export class ProfileParameterValidator implements ProfileVisitor {
         }
 
         return [true];
-      }, 'input');
+      });
     }
 
     if (kind === 'result' && node.result) {
-      return addPath(this.visit(node.result.value, kind, usecase), 'result');
+      return addPath(this.visit(node.result.value, kind, usecase));
     }
 
     // input or result isn't defined

@@ -1,11 +1,11 @@
 import { EXTENSIONS } from '@superfaceai/ast';
 
-import type { IFileSystemError } from '../../interfaces';
 import type { Result } from '../../lib';
 import { err, ok } from '../../lib';
 import { MockFileSystem, mockMapDocumentNode } from '../../mock';
 import { NodeFileSystem } from '../../node';
 import { Config } from '../config';
+import type { FileSystemError } from '../errors';
 import {
   NotFoundError,
   profileIdsDoNotMatchError,
@@ -20,7 +20,7 @@ import { resolveMapAst } from './resolve-map-ast';
 
 const mockFileSystem = (
   expectedPath: string,
-  result: Result<string, IFileSystemError>,
+  result: Result<string, FileSystemError>,
   exists?: boolean
 ) => {
   const realFileSystem = NodeFileSystem;

@@ -1,4 +1,4 @@
-import { SDKExecutionError } from '../../../lib';
+import { SDKExecutionError } from '../../errors';
 import type { HttpResponse } from '../../interpreter';
 import type {
   ExecutionResolution,

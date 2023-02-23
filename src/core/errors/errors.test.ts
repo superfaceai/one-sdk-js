@@ -1,8 +1,39 @@
-import { SDKExecutionError, UnexpectedError } from '../../lib';
+import { ErrorBase, SDKExecutionError, UnexpectedError } from './errors';
 
 describe('errors', () => {
+  describe('ErrorBase', () => {
+    let error: ErrorBase;
+
+    class MyError extends ErrorBase {}
+
+    beforeEach(() => {
+      error = new MyError('MyKind', 'My message');
+      console.log(error);
+    });
+
+    it('has kind', () => {
+      expect(error.kind).toBe('MyKind');
+    });
+
+    it('has name', () => {
+      expect(error.name).toBe('MyKind');
+    });
+
+    it('creates default string description', () => {
+      expect(Object.prototype.toString.call(error)).toBe('[object MyKind]');
+    });
+
+    it('strigifies kind and message', () => {
+      expect(error.toString()).toBe('MyKind: My message');
+    });
+  });
+
   describe('UnexpectedError', () => {
-    const error = new UnexpectedError('out of nowhere');
+    let error: UnexpectedError;
+
+    beforeEach(() => {
+      error = new UnexpectedError('out of nowhere');
+    });
 
     it('throws in correct format', () => {
       expect(() => {
@@ -16,11 +47,15 @@ describe('errors', () => {
   });
 
   describe('SDKExecutionError', () => {
-    const error = new SDKExecutionError(
-      'short',
-      ['long1', 'long2', 'long3'],
-      ['hint1', 'hint2', 'hint3']
-    );
+    let error: SDKExecutionError;
+
+    beforeEach(() => {
+      error = new SDKExecutionError(
+        'short',
+        ['long1', 'long2', 'long3'],
+        ['hint1', 'hint2', 'hint3']
+      );
+    });
 
     it('only returns the short message when short format is requested', () => {
       expect(error.formatShort()).toBe('short');

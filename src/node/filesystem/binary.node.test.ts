@@ -3,8 +3,7 @@ import { join as joinPath } from 'path';
 import type { ReadableOptions } from 'stream';
 import { Readable } from 'stream';
 
-import { NotFoundError } from '../../core';
-import { UnexpectedError } from '../../lib';
+import { NotFoundError, UnexpectedError } from '../../core';
 import {
   BinaryData,
   FileContainer,

@@ -1,6 +1,6 @@
 import { ApiKeyPlacement, SecurityType } from '@superfaceai/ast';
 
-import { SDKExecutionError } from '../../../../../lib';
+import { SDKExecutionError } from '../../../../errors';
 import {
   FORMDATA_CONTENT,
   JSON_CONTENT,

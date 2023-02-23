@@ -1,7 +1,13 @@
 import type { ILogger, ITimers } from '../../../interfaces';
-import { clone, SDKBindError, UnexpectedError } from '../../../lib';
-import { isFetchError } from '../../errors';
-import type { Events } from '../events';
+import { clone } from '../../../lib';
+import {
+  FetchError,
+  NetworkFetchError,
+  RequestFetchError,
+  SDKBindError,
+  UnexpectedError,
+} from '../../errors';
+import type { EventContextBase, Events } from '../events';
 import type { FailurePolicyRouter } from './policies';
 import type { ExecutionFailure, FailurePolicyReason } from './policy';
 import type {
@@ -362,12 +368,8 @@ function registerNetworkHooks(
 
     let failure: ExecutionFailure;
 
-    if (isFetchError(error)) {
-      failure = {
-        time: context.time.getTime(),
-        registryCacheAge: 0, // TODO,
-        ...error.normalized,
-      };
+    if (error instanceof FetchError) {
+      failure = fetchErrorToFailure(context, error);
     } else {
       failure = {
         kind: 'unknown',
@@ -444,4 +446,27 @@ function registerNetworkHooks(
         };
     }
   });
+}
+
+function fetchErrorToFailure(
+  context: EventContextBase,
+  err: FetchError
+): ExecutionFailure {
+  if (err instanceof NetworkFetchError) {
+    return {
+      time: context.time.getTime(),
+      registryCacheAge: 0, // TODO,
+      kind: 'network',
+      issue: err.issue,
+    };
+  } else if (err instanceof RequestFetchError) {
+    return {
+      time: context.time.getTime(),
+      registryCacheAge: 0, // TODO,
+      kind: 'request',
+      issue: err.issue,
+    };
+  } else {
+    throw 'cant reach';
+  }
 }

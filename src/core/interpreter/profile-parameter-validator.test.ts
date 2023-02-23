@@ -1,12 +1,11 @@
 import { parseProfile, Source } from '@superfaceai/parser';
 
-import type { ProfileParameterError } from '../../interfaces';
-import type { Result, UnexpectedError } from '../../lib';
+import type { Result } from '../../lib';
+import type { UnexpectedError } from '../errors';
 import { ProfileParameterValidator } from './profile-parameter-validator';
+import type { ProfileParameterError } from './profile-parameter-validator.errors';
 import {
   InputValidationError,
-  isInputValidationError,
-  isResultValidationError,
   ResultValidationError,
 } from './profile-parameter-validator.errors';
 
@@ -22,23 +21,23 @@ const parseProfileFromSource = (source: string) =>
 
 const checkErrorKind = (result: Result<unknown, unknown>) =>
   result.isErr() &&
-  (isInputValidationError(result.error)
+  (result.error instanceof InputValidationError
     ? result.error.errors?.map(error => error.kind)
-    : isResultValidationError(result.error) &&
+    : result.error instanceof ResultValidationError &&
       result.error.errors?.map(error => error.kind));
 
 const checkErrorPath = (result: Result<unknown, unknown>) =>
   result.isErr() &&
-  (isInputValidationError(result.error)
+  (result.error instanceof InputValidationError
     ? result.error.errors?.map(error => error.context?.path)
-    : isResultValidationError(result.error) &&
+    : result.error instanceof ResultValidationError &&
       result.error.errors?.map(error => error.context?.path));
 
 const checkErrorContext = (result: Result<unknown, unknown>) =>
   result.isErr() &&
-  (isInputValidationError(result.error)
+  (result.error instanceof InputValidationError
     ? result.error.errors?.map(error => error.context)
-    : isResultValidationError(result.error) &&
+    : result.error instanceof ResultValidationError &&
       result.error.errors?.map(error => error.context));
 
 describe('ProfileParameterValidator', () => {
@@ -1082,8 +1081,8 @@ describe('ProfileParameterValidator', () => {
           expect(checkErrorKind(result)).toEqual(['wrongType']);
         });
 
-        it('returns errorPath = [input, foo]', () => {
-          expect(checkErrorPath(result)).toEqual([['input', 'foo']]);
+        it('returns errorPath = [foo]', () => {
+          expect(checkErrorPath(result)).toEqual([['foo']]);
         });
 
         it('returns context', () => {
