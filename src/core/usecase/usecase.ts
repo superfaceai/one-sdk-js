@@ -22,6 +22,7 @@ import type {
 } from '../../interfaces';
 import { PerformOptions } from '../../interfaces';
 import type { NonPrimitive, Result, SuperCache, Variables } from '../../lib';
+import type { ErrorBase } from '../errors';
 import { UnexpectedError } from '../errors';
 import type {
   Events,
@@ -46,6 +47,7 @@ import type {
   MapInterpreterError,
   ProfileParameterError,
 } from '../interpreter';
+import { hasErrorMetadata } from '../interpreter';
 import type { ProfileBase } from '../profile';
 import type { IBoundProfileProvider } from '../profile-provider';
 import {
@@ -205,13 +207,14 @@ export abstract class UseCaseBase implements Interceptable {
       );
     }
 
-    // TODO: rewrap the errors for public consumption?
-    return this.boundProfileProvider.perform<TInput, TOutput>(
+    const result = await this.boundProfileProvider.perform<TInput, TOutput>(
       this.name,
       input,
       parameters,
       security
     );
+
+    return this.rewrapResultForConsumption(result);
   }
 
   @eventInterceptor({ eventName: 'bind-and-perform', placement: 'around' })
@@ -357,6 +360,22 @@ export abstract class UseCaseBase implements Interceptable {
     }
 
     return policy;
+  }
+
+  private rewrapResultForConsumption<T, E extends ErrorBase>(
+    result: Result<T, E>
+  ): Result<T, E> {
+    return result.mapErr(err => {
+      if (this.config.debug) {
+        return err; // keep arror as it is
+      }
+
+      if (hasErrorMetadata(err)) {
+        delete err.metadata;
+      }
+
+      return err;
+    });
   }
 }
 

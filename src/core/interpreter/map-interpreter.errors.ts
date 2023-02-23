@@ -8,6 +8,12 @@ export interface ErrorMetadata {
   ast?: MapDocumentNode;
 }
 
+export function hasErrorMetadata<T extends ErrorBase>(
+  error: T
+): error is T & { metadata?: ErrorMetadata } {
+  return 'metadata' in error;
+}
+
 export class MapInterpreterError extends ErrorBase {
   private path?: string[];
 
