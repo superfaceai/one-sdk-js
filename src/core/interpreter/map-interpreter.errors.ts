@@ -102,7 +102,7 @@ export class HTTPError extends MapInterpreterError {
 export class MappedHTTPError<T> extends MapInterpreterError {
   constructor(
     message: string,
-    public override metadata?: { node?: MapASTNode; ast?: MapDocumentNode },
+    metadata?: ErrorMetadata,
     public statusCode?: number,
     public properties?: T
   ) {
