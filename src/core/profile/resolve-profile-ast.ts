@@ -5,6 +5,7 @@ import type {
 import { assertProfileDocumentNode, EXTENSIONS } from '@superfaceai/ast';
 
 import type { IConfig, ICrypto, IFileSystem, ILogger } from '../../interfaces';
+import { isSettingsWithAst, UnexpectedError } from '../../lib';
 import {
   NotFoundError,
   profileFileNotFoundError,
@@ -84,13 +85,28 @@ export async function resolveProfileAst({
   let filepath: string, astPath: string;
 
   let resolvedVersion: string;
-  // TODO: do we want to check `file` if we have version from getProfile?
+
   if (superJson !== undefined && profileSettings !== undefined) {
-    if ('file' in profileSettings) {
+    if (isSettingsWithAst(profileSettings)) {
+      switch (typeof profileSettings.ast) {
+        case 'string':
+          return assertProfileDocumentNode(
+            JSON.parse(String(profileSettings.ast))
+          );
+        case 'object':
+          return assertProfileDocumentNode(profileSettings.ast);
+        default:
+          throw new UnexpectedError(
+            `Unsupported ast format ${typeof profileSettings.ast}`
+          );
+      }
+    } else if ('file' in profileSettings) {
+      // TODO: do we want to check `file` if we have version from getProfile?
       filepath = fileSystem.path.resolve(
         fileSystem.path.dirname(config.superfacePath),
         profileSettings.file
       );
+
       // if we find source file we assume compiled file next to it
       if (filepath.endsWith(EXTENSIONS.profile.source)) {
         astPath = filepath.replace(

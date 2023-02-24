@@ -1,3 +1,5 @@
+import type { NormalizedSuperJsonDocument } from '@superfaceai/ast';
+
 import type { IFileSystemError } from '../../interfaces';
 import type { Result } from '../../lib';
 import { err, ok } from '../../lib';
@@ -147,5 +149,71 @@ describe('resolve-provider-json', () => {
         config,
       })
     ).resolves.toEqual(providerJson);
+  });
+
+  describe('when using ast property', () => {
+    it('prefers content in ast property over file property', async () => {
+      await expect(
+        resolveProviderJson({
+          providerName,
+          fileSystem: mockFileSystem(
+            'path.json',
+            ok(JSON.stringify(mockProviderJson({ name: 'file_provider' })))
+          ),
+          superJson: {
+            profiles: {},
+            providers: {
+              [providerName]: {
+                file: 'path.json',
+                ast: providerJson,
+              },
+            },
+          } as unknown as NormalizedSuperJsonDocument,
+          config,
+        })
+      ).resolves.toEqual(providerJson);
+    });
+
+    it('returns provider json when passed as string', async () => {
+      await expect(
+        resolveProviderJson({
+          providerName,
+          fileSystem: mockFileSystem(
+            'path.json',
+            err(new NotFoundError('test'))
+          ),
+          superJson: {
+            profiles: {},
+            providers: {
+              [providerName]: {
+                ast: JSON.stringify(providerJson),
+              },
+            },
+          } as unknown as NormalizedSuperJsonDocument,
+          config,
+        })
+      ).resolves.toEqual(providerJson);
+    });
+
+    it('returns provider json when passed as object', async () => {
+      await expect(
+        resolveProviderJson({
+          providerName,
+          fileSystem: mockFileSystem(
+            'path.json',
+            err(new NotFoundError('test'))
+          ),
+          superJson: {
+            profiles: {},
+            providers: {
+              [providerName]: {
+                ast: providerJson,
+              },
+            },
+          } as unknown as NormalizedSuperJsonDocument,
+          config,
+        })
+      ).resolves.toEqual(providerJson);
+    });
   });
 });

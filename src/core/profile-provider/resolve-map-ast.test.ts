@@ -1,3 +1,4 @@
+import type { NormalizedSuperJsonDocument } from '@superfaceai/ast';
 import { EXTENSIONS } from '@superfaceai/ast';
 
 import type { IFileSystemError } from '../../interfaces';
@@ -418,5 +419,100 @@ describe('resolve-map-ast', () => {
         config,
       })
     ).resolves.toEqual(ast);
+  });
+
+  describe('when using ast property', () => {
+    it('prefers content in ast property over file property', async () => {
+      await expect(
+        resolveMapAst({
+          profileId,
+          providerName,
+          variant,
+          config,
+          fileSystem: mockFileSystem(
+            `path/to${EXTENSIONS.map.build}`,
+            ok('{}')
+          ),
+          superJson: {
+            profiles: {
+              [profileId]: {
+                version: '1.0.0',
+                providers: {
+                  [providerName]: {
+                    ast: JSON.stringify(ast),
+                    defaults: {},
+                  },
+                },
+                defaults: {},
+                priority: [providerName],
+              },
+            },
+            providers: {},
+          } as unknown as NormalizedSuperJsonDocument, // intentional, Super.json does't have `ast` property defined now
+        })
+      ).resolves.toEqual(ast);
+    });
+
+    it('returns map ast when passed as string', async () => {
+      await expect(
+        resolveMapAst({
+          profileId,
+          providerName,
+          variant,
+          config,
+          fileSystem: mockFileSystem(
+            `path/to${EXTENSIONS.map.build}`,
+            err(new NotFoundError('test'))
+          ),
+          superJson: {
+            profiles: {
+              [profileId]: {
+                version: '1.0.0',
+                providers: {
+                  [providerName]: {
+                    ast: JSON.stringify(ast),
+                    defaults: {},
+                  },
+                },
+                defaults: {},
+                priority: [providerName],
+              },
+            },
+            providers: {},
+          } as NormalizedSuperJsonDocument,
+        })
+      ).resolves.toEqual(ast);
+    });
+
+    it('returns map ast when passed as object', async () => {
+      await expect(
+        resolveMapAst({
+          profileId,
+          providerName,
+          variant,
+          fileSystem: mockFileSystem(
+            `path/to${EXTENSIONS.map.build}`,
+            err(new NotFoundError('test'))
+          ),
+          superJson: {
+            profiles: {
+              [profileId]: {
+                version: '1.0.0',
+                providers: {
+                  [providerName]: {
+                    ast,
+                    defaults: {},
+                  },
+                },
+                defaults: {},
+                priority: [providerName],
+              },
+            },
+            providers: {},
+          } as NormalizedSuperJsonDocument,
+          config,
+        })
+      ).resolves.toEqual(ast);
+    });
   });
 });
