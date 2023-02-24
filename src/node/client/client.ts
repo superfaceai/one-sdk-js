@@ -43,7 +43,7 @@ import { NodeEnvironment } from '../environment';
 import { NodeFetch } from '../fetch';
 import { NodeFileSystem } from '../filesystem';
 import { NodeLogger } from '../logger';
-import { NodeSandbox } from '../sandbox/sandbox.node';
+import { NodeSandbox } from '../sandbox';
 import { NodeTimers } from '../timers';
 
 const resolveSuperJson = (
