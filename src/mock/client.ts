@@ -34,8 +34,10 @@ import {
   ServiceSelector,
   superJsonNotDefinedError,
 } from '../core';
+import type { ISandbox } from '../interfaces/sandbox';
 import { SuperCache } from '../lib/cache';
 import { NodeCrypto, NodeFetch, NodeFileSystem, NodeLogger } from '../node';
+import { NodeSandbox } from '../node/sandbox/sandbox.node';
 import { MockEnvironment } from './environment';
 import type { IPartialFileSystem } from './filesystem';
 import { MockFileSystem } from './filesystem';
@@ -54,6 +56,7 @@ const mockProviderJson = (name: string): ProviderJson => ({
 
 export class MockClient implements ISuperfaceClient {
   public config: Config;
+  public sandbox: ISandbox;
   public events: Events;
   public environment: IEnvironment;
   public cache: SuperCache<{
@@ -80,6 +83,8 @@ export class MockClient implements ISuperfaceClient {
     this.crypto = new NodeCrypto();
     this.environment = new MockEnvironment();
     this.timers = new MockTimers();
+    // TODO: test sandbox?
+    this.sandbox = new NodeSandbox();
 
     this.config = new Config(NodeFileSystem, {
       disableReporting: true,
@@ -113,6 +118,7 @@ export class MockClient implements ISuperfaceClient {
       this.events,
       superJson,
       this.config,
+      this.sandbox,
       this.timers,
       fileSystem,
       this.cache,
@@ -141,6 +147,7 @@ export class MockClient implements ISuperfaceClient {
       map,
       providerJson,
       this.config,
+      this.sandbox,
       {
         services: ServiceSelector.withDefaultUrl(baseUrl),
         security: securityValues,

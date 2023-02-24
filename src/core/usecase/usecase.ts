@@ -22,6 +22,7 @@ import type {
   PerformError,
 } from '../../interfaces';
 import { PerformOptions } from '../../interfaces';
+import type { ISandbox } from '../../interfaces/sandbox';
 import type { NonPrimitive, Result, SuperCache, Variables } from '../../lib';
 import { UnexpectedError } from '../../lib';
 import type {
@@ -100,6 +101,7 @@ export abstract class UseCaseBase implements Interceptable {
     public readonly name: string,
     public readonly events: Events,
     private readonly config: IConfig,
+    private readonly sandbox: ISandbox,
     private readonly superJson: NormalizedSuperJsonDocument | undefined,
     private readonly timers: ITimers,
     private readonly fileSystem: IFileSystem,
@@ -161,6 +163,7 @@ export abstract class UseCaseBase implements Interceptable {
           providerConfig,
           this.superJson,
           this.config,
+          this.sandbox,
           this.events,
           this.timers,
           this.fileSystem,

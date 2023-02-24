@@ -11,6 +11,7 @@ import { UnexpectedError } from '../../lib';
 import { MockTimers } from '../../mock';
 import { NodeCrypto, NodeFetch, NodeFileSystem, NodeLogger } from '../../node';
 import { Config } from '../config';
+import { PureJSSandbox } from '../sandbox';
 import { ServiceSelector } from '../services';
 import { MapInterpreter } from './map-interpreter';
 import {
@@ -28,6 +29,7 @@ const interpreterDependencies = {
   config: new Config(NodeFileSystem),
   crypto: new NodeCrypto(),
   logger: new NodeLogger(),
+  sandbox: new PureJSSandbox(),
 };
 const header: MapHeaderNode = {
   kind: 'MapHeader',

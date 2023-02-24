@@ -53,6 +53,7 @@ export function createTypedClient<TProfiles extends ProfileUseCases<any, any>>(
         this.superJson,
         this.boundProfileProviderCache,
         this.config,
+        this.sandbox,
         this.timers,
         NodeFileSystem,
         this.crypto,

@@ -36,6 +36,7 @@ import {
   isDestructible,
   isInitializable,
 } from '../../interfaces';
+import type { ISandbox } from '../../interfaces/sandbox';
 import type { NonPrimitive, Result, Variables } from '../../lib';
 import {
   assertIsVariables,
@@ -62,7 +63,7 @@ import {
   MappedError,
   MappedHTTPError,
 } from './map-interpreter.errors';
-import { evalScript } from './sandbox';
+import { getStdlib } from './stdlib';
 
 function assertUnreachable(_: never): never {
   throw 'unreachable';
@@ -504,6 +505,7 @@ class JessieExpressionVisitor extends NodeVisitor<
     stack: NonPrimitive,
     childIdentifier: string,
     log: LogFunction | undefined,
+    private readonly sandbox: ISandbox,
     private readonly config: IConfig,
     private readonly logger: ILogger | undefined,
     private readonly inputParameters: NonPrimitive | undefined,
@@ -516,9 +518,10 @@ class JessieExpressionVisitor extends NodeVisitor<
   public override async *visit(): VisitorGenerator<Variables | undefined> {
     try {
       // this await resolves Promises coming out of jessie such as BinaryData.peek etc.
-      const result = await evalScript(
+      const result = await this.sandbox.evalScript(
         this.config,
         this.node.expression,
+        getStdlib(this.logger),
         this.logger,
         {
           ...this.stack,
@@ -1231,6 +1234,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined> {
 
   private readonly http: HttpClient;
   private readonly externalHandler: MapInterpreterExternalHandler;
+  private readonly sandbox: ISandbox;
   private readonly config: IConfig;
   private readonly logger?: ILogger;
   private readonly log: LogFunction | undefined;
@@ -1240,12 +1244,14 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined> {
     {
       fetchInstance,
       externalHandler,
+      sandbox,
       config,
       logger,
       crypto,
     }: {
       fetchInstance: IFetch & AuthCache;
       externalHandler?: MapInterpreterExternalHandler;
+      sandbox: ISandbox;
       config: IConfig;
       crypto: ICrypto;
       logger?: ILogger;
@@ -1253,6 +1259,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined> {
   ) {
     this.http = new HttpClient(fetchInstance, crypto, logger);
     this.externalHandler = externalHandler ?? {};
+    this.sandbox = sandbox;
     this.config = config;
     this.logger = logger;
     this.log = logger?.log(DEBUG_NAMESPACE);
@@ -1433,6 +1440,7 @@ export class MapInterpreter<TInput extends NonPrimitive | undefined> {
           stack,
           childIdentifier,
           this.log,
+          this.sandbox,
           this.config,
           this.logger,
           this.parameters.input,

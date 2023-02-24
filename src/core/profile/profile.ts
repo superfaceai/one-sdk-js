@@ -12,6 +12,7 @@ import type {
   IProfile,
   ITimers,
 } from '../../interfaces';
+import type { ISandbox } from '../../interfaces/sandbox';
 import type { SuperCache } from '../../lib';
 import { usecaseNotFoundError } from '../errors';
 import type { Events, Interceptable } from '../events';
@@ -27,6 +28,7 @@ export abstract class ProfileBase {
     protected readonly events: Events,
     protected readonly superJson: NormalizedSuperJsonDocument | undefined,
     protected readonly config: IConfig,
+    protected readonly sandbox: ISandbox,
     protected readonly timers: ITimers,
     protected readonly fileSystem: IFileSystem,
     protected readonly boundProfileProviderCache: SuperCache<{
@@ -59,6 +61,7 @@ export class Profile extends ProfileBase implements IProfile {
       name,
       this.events,
       this.config,
+      this.sandbox,
       this.superJson,
       this.timers,
       this.fileSystem,

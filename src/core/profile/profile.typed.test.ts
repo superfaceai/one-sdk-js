@@ -10,6 +10,7 @@ import { normalizeSuperJsonDocument } from '../../schema-tools/superjson/normali
 import { Config } from '../config';
 import { Events } from '../events';
 import type { IBoundProfileProvider } from '../profile-provider';
+import { PureJSSandbox } from '../sandbox';
 import { UseCase } from '../usecase';
 import { TypedProfile } from './profile.typed';
 import { ProfileConfiguration } from './profile-configuration';
@@ -38,6 +39,7 @@ describe('TypedProfile', () => {
     expiresAt: number;
   }>();
   const config = new Config(NodeFileSystem);
+  const sandbox = new PureJSSandbox();
   const fileSystem = MockFileSystem();
 
   describe('getUseCases', () => {
@@ -49,6 +51,7 @@ describe('TypedProfile', () => {
         mockSuperJson,
         cache,
         config,
+        sandbox,
         timers,
         fileSystem,
         crypto,
@@ -62,6 +65,7 @@ describe('TypedProfile', () => {
           'sayHello',
           events,
           config,
+          sandbox,
           mockSuperJson,
           timers,
           fileSystem,
@@ -80,6 +84,7 @@ describe('TypedProfile', () => {
         mockSuperJson,
         cache,
         config,
+        sandbox,
         timers,
         fileSystem,
         crypto,

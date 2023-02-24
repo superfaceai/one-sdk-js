@@ -22,6 +22,7 @@ import {
   ProfileParameterValidator,
   ResultValidationError,
 } from '../interpreter';
+import { PureJSSandbox } from '../sandbox';
 import { ServiceSelector } from '../services';
 import { BoundProfileProvider } from './bound-profile-provider';
 
@@ -109,6 +110,8 @@ const mockProviderJson: ProviderJson = {
   defaultService: 'test-service',
 };
 
+const sandbox = new PureJSSandbox();
+
 describe('BoundProfileProvider', () => {
   afterEach(() => {
     jest.clearAllMocks();
@@ -128,6 +131,7 @@ describe('BoundProfileProvider', () => {
         mockMapDocument,
         mockProviderJson,
         mockConfig,
+        sandbox,
         {
           services: ServiceSelector.withDefaultUrl('test/url'),
           security: [],
@@ -172,6 +176,7 @@ describe('BoundProfileProvider', () => {
         mockMapDocument,
         mockProviderJson,
         mockConfig,
+        sandbox,
         {
           services: ServiceSelector.withDefaultUrl('test/url'),
           security: [
@@ -236,6 +241,7 @@ describe('BoundProfileProvider', () => {
         mockMapDocument,
         mockProviderJson,
         mockConfig,
+        sandbox,
         {
           services: ServiceSelector.withDefaultUrl('test/url'),
           security: [],
@@ -272,6 +278,7 @@ describe('BoundProfileProvider', () => {
         mockMapDocument,
         mockProviderJson,
         mockConfig,
+        sandbox,
         {
           services: ServiceSelector.withDefaultUrl('test/url'),
           security: [],
@@ -315,6 +322,7 @@ describe('BoundProfileProvider', () => {
         mockMapDocument,
         mockProviderJson,
         mockConfig,
+        sandbox,
         {
           services: ServiceSelector.withDefaultUrl('test/url'),
           security: [],

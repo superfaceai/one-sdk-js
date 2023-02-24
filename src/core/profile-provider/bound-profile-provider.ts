@@ -14,6 +14,7 @@ import type {
   MapInterpreterError,
   ProfileParameterError,
 } from '../../interfaces';
+import type { ISandbox } from '../../interfaces/sandbox';
 import type {
   NonPrimitive,
   Result,
@@ -68,6 +69,7 @@ export class BoundProfileProvider implements IBoundProfileProvider {
     private readonly mapAst: MapDocumentNode,
     private readonly provider: ProviderJson,
     private readonly config: IConfig,
+    private readonly sandbox: ISandbox,
     public readonly configuration: {
       services: IServiceSelector;
       profileProviderSettings?: NormalizedProfileProviderSettings;
@@ -163,6 +165,7 @@ export class BoundProfileProvider implements IBoundProfileProvider {
         ),
         logger: this.logger,
         crypto: this.crypto,
+        sandbox: this.sandbox,
       }
     );
 

@@ -27,6 +27,7 @@ import {
 import { Events } from '../events';
 import { ProviderConfiguration } from '../provider';
 import { fetchBind, fetchProviderInfo } from '../registry';
+import { PureJSSandbox } from '../sandbox';
 import { ServiceSelector } from '../services';
 import { ProfileProvider } from './profile-provider';
 import { ProfileProviderConfiguration } from './profile-provider-configuration';
@@ -36,6 +37,7 @@ jest.mock('../registry/registry');
 const mockConfig = new Config(NodeFileSystem);
 const crypto = new NodeCrypto();
 const timers = new MockTimers();
+const sandbox = new PureJSSandbox();
 
 describe('profile provider', () => {
   const astMetadata: AstMetadata = {
@@ -185,6 +187,7 @@ describe('profile provider', () => {
           mockProviderConfiguration,
           mockProfileProviderConfiguration,
           mockConfig,
+          sandbox,
           new Events(timers),
           fileSystem,
           crypto,
@@ -237,9 +240,9 @@ describe('profile provider', () => {
             third: '$TEST_THIRD', // unset env value with default
             // fourth is missing - should be resolved to its default
           }),
-
           mockProfileProviderConfiguration,
           mockConfig,
+          sandbox,
           new Events(timers),
           fileSystem,
           crypto,
@@ -285,6 +288,7 @@ describe('profile provider', () => {
           mockProviderConfiguration,
           mockProfileProviderConfiguration,
           mockConfig,
+          sandbox,
           new Events(timers),
           fileSystem,
           crypto,
@@ -329,6 +333,7 @@ describe('profile provider', () => {
           mockProviderConfiguration,
           mockProfileProviderConfiguration,
           mockConfigWithDisabledCache,
+          sandbox,
           new Events(timers),
           fileSystem,
           crypto,
@@ -373,6 +378,7 @@ describe('profile provider', () => {
           mockProviderConfiguration,
           mockProfileProviderConfiguration,
           mockConfig,
+          sandbox,
           new Events(timers),
           fileSystem,
           crypto,
@@ -415,6 +421,7 @@ describe('profile provider', () => {
           mockProviderConfiguration,
           mockProfileProviderConfiguration,
           mockConfig,
+          sandbox,
           new Events(timers),
           fileSystem,
           crypto,
@@ -463,6 +470,7 @@ describe('profile provider', () => {
           mockProviderConfiguration,
           mockProfileProviderConfiguration,
           mockConfig,
+          sandbox,
           new Events(timers),
           fileSystem,
           crypto,
@@ -509,6 +517,7 @@ describe('profile provider', () => {
           mockProviderConfiguration,
           mockProfileProviderConfiguration,
           mockConfig,
+          sandbox,
           new Events(timers),
           fileSystem,
           crypto,
@@ -553,6 +562,7 @@ describe('profile provider', () => {
           mockProviderConfiguration,
           new ProfileProviderConfiguration('test-revision', 'test-variant'),
           mockConfig,
+          sandbox,
           new Events(timers),
           fileSystem,
           crypto,
@@ -612,6 +622,7 @@ describe('profile provider', () => {
           mockProviderConfiguration,
           mockProfileProviderConfiguration,
           mockConfig,
+          sandbox,
           new Events(timers),
           fileSystem,
           crypto,
@@ -665,6 +676,7 @@ describe('profile provider', () => {
           mockProviderConfiguration,
           mockProfileProviderConfiguration,
           mockConfig,
+          sandbox,
           new Events(timers),
           fileSystem,
           crypto,
@@ -715,6 +727,7 @@ describe('profile provider', () => {
           mockProviderConfiguration,
           mockProfileProviderConfiguration,
           mockConfig,
+          sandbox,
           new Events(timers),
           fileSystem,
           crypto,
@@ -758,6 +771,7 @@ describe('profile provider', () => {
           mockProviderConfiguration,
           mockProfileProviderConfiguration,
           mockConfig,
+          sandbox,
           new Events(timers),
           fileSystem,
           crypto,
@@ -805,6 +819,7 @@ describe('profile provider', () => {
           mockProviderConfiguration,
           mockProfileProviderConfiguration,
           mockConfig,
+          sandbox,
           new Events(timers),
           fileSystem,
           crypto,
@@ -852,6 +867,7 @@ describe('profile provider', () => {
           mockProviderConfiguration,
           mockProfileProviderConfiguration,
           mockConfig,
+          sandbox,
           new Events(timers),
           fileSystem,
           crypto,
@@ -911,6 +927,7 @@ describe('profile provider', () => {
           mockProviderConfiguration,
           mockProfileProviderConfiguration,
           mockConfig,
+          sandbox,
           new Events(timers),
           fileSystem,
           crypto,
@@ -957,6 +974,7 @@ describe('profile provider', () => {
           new ProviderConfiguration('test', []),
           mockProfileProviderConfiguration,
           mockConfig,
+          sandbox,
           new Events(timers),
           fileSystem,
           crypto,
@@ -1003,6 +1021,7 @@ but a secret value was provided for security scheme: made-up-id`
           new ProviderConfiguration('test', []),
           mockProfileProviderConfiguration,
           mockConfig,
+          sandbox,
           new Events(timers),
           fileSystem,
           crypto,
@@ -1049,6 +1068,7 @@ but apiKey scheme requires: apikey`
           new ProviderConfiguration('test', []),
           mockProfileProviderConfiguration,
           mockConfig,
+          sandbox,
           new Events(timers),
           fileSystem,
           crypto,
@@ -1095,6 +1115,7 @@ but http scheme requires: username, password`
           new ProviderConfiguration('test', []),
           mockProfileProviderConfiguration,
           mockConfig,
+          sandbox,
           new Events(timers),
           fileSystem,
           crypto,
@@ -1141,6 +1162,7 @@ but http scheme requires: token`
           new ProviderConfiguration('test', []),
           mockProfileProviderConfiguration,
           mockConfig,
+          sandbox,
           new Events(timers),
           fileSystem,
           crypto,
@@ -1195,6 +1217,7 @@ but http scheme requires: digest`
           providerConfiguration,
           mockProfileProviderConfiguration,
           mockConfig,
+          sandbox,
           new Events(timers),
           fileSystem,
           crypto,
@@ -1263,6 +1286,7 @@ but http scheme requires: digest`
           mockProviderConfiguration,
           mockProfileProviderConfiguration,
           mockConfig,
+          sandbox,
           new Events(timers),
           fileSystem,
           crypto,

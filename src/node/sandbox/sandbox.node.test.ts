@@ -1,10 +1,18 @@
-import { NodeFileSystem } from '../../../node';
-import { Config } from '../../config';
-import { evalScript } from './sandbox';
+import { Config } from '../../core';
+import { getStdlib } from '../../core/interpreter/stdlib';
+import type { ISandbox } from '../../interfaces/sandbox';
+import { NodeFileSystem } from '../filesystem';
+import { NodeSandbox } from './sandbox.node';
 
 const config = new Config(NodeFileSystem);
 
 describe('sandbox', () => {
+  let sandbox: ISandbox;
+
+  beforeEach(() => {
+    sandbox = new NodeSandbox();
+  });
+
   it('prevents string masking attack', () => {
     process.env.SECRET = 'MuchSecret';
 
@@ -32,11 +40,11 @@ describe('sandbox', () => {
     })()
     `;
 
-    expect(() => evalScript(config, js)).toThrow(
+    expect(() => sandbox.evalScript(config, js)).toThrow(
       'Code generation from strings disallowed for this context'
     );
     expect(() =>
-      evalScript(
+      sandbox.evalScript(
         config,
         '(() => {}).constructor("process.env.SECRET = \'overwrite\'")()'
       )
@@ -51,55 +59,58 @@ describe('sandbox', () => {
       console.log("I have been called!!!!");
       return "Modified!1!!!1!";
     };`;
-    evalScript(config, js);
+    sandbox.evalScript(config, js);
     expect([1, 2, 3].toString()).toEqual('1,2,3');
   });
 
   it('no io', async () => {
     expect(() =>
-      evalScript(config, '1; import fs; fs.readFileSync("secrets")')
+      sandbox.evalScript(config, '1; import fs; fs.readFileSync("secrets")')
     ).toThrow(
       /('import' and 'export' may appear only with 'sourceType: module')/
     );
 
-    expect(() => evalScript(config, 'console.log')).toThrow(
+    expect(() => sandbox.evalScript(config, 'console.log')).toThrow(
       'console is not defined'
     );
 
-    expect(() => evalScript(config, 'process.exit(1)')).toThrow(
+    expect(() => sandbox.evalScript(config, 'process.exit(1)')).toThrow(
       'process is not defined'
     );
   });
 
   it('Halting problem (Stalling the event loop)', () => {
     expect(() =>
-      evalScript(config, '(() => { while(true) { 1 + 1 } })()')
+      sandbox.evalScript(config, '(() => { while(true) { 1 + 1 } })()')
     ).toThrow('Script execution timed out');
   });
 
   it('no Promises or async', () => {
-    expect(() => evalScript(config, 'Promise.resolve().then(x => 1)')).toThrow(
-      'Async not available'
-    );
+    expect(() =>
+      sandbox.evalScript(config, 'Promise.resolve().then(x => 1)')
+    ).toThrow('Async not available');
 
-    expect(() => evalScript(config, 'new Promise.resolve(5)')).toThrow(
+    expect(() => sandbox.evalScript(config, 'new Promise.resolve(5)')).toThrow(
       'Promise.resolve is not a constructor'
     );
 
-    expect(() => evalScript(config, 'async () => 1')).toThrow();
+    expect(() => sandbox.evalScript(config, 'async () => 1')).toThrow();
   });
 
   it('no eval or Function constructor', () => {
-    expect(() => evalScript(config, 'eval("1")')).toThrow(
+    expect(() => sandbox.evalScript(config, 'eval("1")')).toThrow(
       'eval is not defined'
     );
 
     expect(() =>
-      evalScript(config, 'Function.call(undefined, "return 1").call(undefined)')
+      sandbox.evalScript(
+        config,
+        'Function.call(undefined, "return 1").call(undefined)'
+      )
     ).toThrow('Function is not defined');
 
     expect(() =>
-      evalScript(
+      sandbox.evalScript(
         config,
         '(() => {}).constructor.call(undefined, "return 1").call(undefined)'
       )
@@ -108,27 +119,27 @@ describe('sandbox', () => {
 
   it('isolation', () => {
     expect(
-      evalScript(config, 'global["prop"] = 0; global["prop"]')
+      sandbox.evalScript(config, 'global["prop"] = 0; global["prop"]')
     ).toStrictEqual(0);
 
-    expect(evalScript(config, 'global["prop"]')).not.toBeDefined();
+    expect(sandbox.evalScript(config, 'global["prop"]')).not.toBeDefined();
   });
 
   it('correctly evaluates object literal', () => {
-    expect(evalScript(config, '{ foo: 1, bar: 2 }')).toStrictEqual({
+    expect(sandbox.evalScript(config, '{ foo: 1, bar: 2 }')).toStrictEqual({
       foo: 1,
       bar: 2,
     });
   });
 
   it('correctly evaluates array literal', () => {
-    const v = evalScript(config, '[1, 2, 3]');
+    const v = sandbox.evalScript(config, '[1, 2, 3]');
     expect(v).toStrictEqual([1, 2, 3]);
     expect(Array.isArray(v)).toBe(true);
   });
 
   it('correctly evaluates array literal inside object literal', () => {
-    const v = evalScript(
+    const v = sandbox.evalScript(
       config,
       '{ a: 1, b: [1, 2, 3, { x: Buffer.from("hello"), y: [1, 2, 3] }] }'
     );
@@ -140,32 +151,36 @@ describe('sandbox', () => {
   });
 
   it('correctly works with line comment', () => {
-    expect(evalScript(config, '34; // this is number 34')).toStrictEqual(34);
+    expect(
+      sandbox.evalScript(config, '34; // this is number 34')
+    ).toStrictEqual(34);
   });
 
   it('errors with unclosed block comment', () => {
-    expect(() => evalScript(config, '34; /* this is number 34')).toThrow(
-      'Invalid or unexpected token'
-    );
+    expect(() =>
+      sandbox.evalScript(config, '34; /* this is number 34')
+    ).toThrow('Invalid or unexpected token');
   });
 
   it('correctly works without semicolon', () => {
-    expect(evalScript(config, '34')).toStrictEqual(34);
+    expect(sandbox.evalScript(config, '34')).toStrictEqual(34);
   });
 
   describe('stdlib', () => {
-    it('provides unstable stdlib', () => {
+    it('uses unstable stdlib if passed', () => {
       expect(
-        evalScript(
+        sandbox.evalScript(
           config,
-          'std.unstable.time.isoDateToUnixTimestamp("2022-01-01T00:11:00.123Z")'
+          'std.unstable.time.isoDateToUnixTimestamp("2022-01-01T00:11:00.123Z")',
+          getStdlib()
         )
       ).toStrictEqual(1640995860123);
 
       expect(
-        evalScript(
+        sandbox.evalScript(
           config,
-          '(std.unstable.debug.log(1123), std.unstable.time.unixTimestampToIsoDate(1640995860123))'
+          '(std.unstable.debug.log(1123), std.unstable.time.unixTimestampToIsoDate(1640995860123))',
+          getStdlib()
         )
       ).toStrictEqual('2022-01-01T00:11:00.123Z');
     });

@@ -14,6 +14,7 @@ import { Profile, ProfileConfiguration } from '../profile';
 import type { IBoundProfileProvider } from '../profile-provider';
 import { ProfileProviderConfiguration } from '../profile-provider';
 import { ProviderConfiguration } from '../provider';
+import { PureJSSandbox } from '../sandbox';
 import { UseCase } from './usecase';
 
 const mockSuperJson = normalizeSuperJsonDocument(
@@ -69,12 +70,15 @@ function createUseCase(cacheExpire?: number, omitSuperJson?: boolean) {
 
   const config = new Config(NodeFileSystem);
 
+  const sandbox = new PureJSSandbox();
+
   const profile: ProfileBase = new Profile(
     mockProfileConfiguration,
     mockProfileDocumentNode(),
     events,
     omitSuperJson === true ? undefined : mockSuperJson,
     config,
+    sandbox,
     timers,
     filesystem,
     cache,
@@ -102,6 +106,7 @@ function createUseCase(cacheExpire?: number, omitSuperJson?: boolean) {
     'test-usecase',
     events,
     config,
+    sandbox,
     omitSuperJson === true ? undefined : mockSuperJson,
     timers,
     filesystem,
