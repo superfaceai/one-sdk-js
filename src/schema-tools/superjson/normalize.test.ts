@@ -1,5 +1,6 @@
 import type {
   NormalizedUsecaseDefaults,
+  ProfileEntry,
   ProfileProviderEntry,
 } from '@superfaceai/ast';
 import {
@@ -87,6 +88,48 @@ describe('SuperJson normalization', () => {
         defaults: {},
       });
     });
+
+    it('returns correct object when entry contains ast', async () => {
+      const mockProfileProviderEntry: ProfileProviderEntry = {
+        ast: {
+          kind: 'MapDocument',
+          header: {
+            kind: 'MapHeader',
+            scope: 'scope',
+            name: 'name',
+            version: {
+              major: 1,
+              minor: 0,
+              patch: 0,
+            },
+            provider: 'provider',
+          },
+          definitions: [],
+        },
+      } as unknown as ProfileProviderEntry;
+      const mockDefaults: NormalizedUsecaseDefaults = {};
+
+      expect(
+        normalizeProfileProviderSettings(mockProfileProviderEntry, mockDefaults)
+      ).toEqual({
+        ast: {
+          kind: 'MapDocument',
+          header: {
+            kind: 'MapHeader',
+            scope: 'scope',
+            name: 'name',
+            version: {
+              major: 1,
+              minor: 0,
+              patch: 0,
+            },
+            provider: 'provider',
+          },
+          definitions: [],
+        },
+        defaults: {},
+      });
+    });
   });
 
   describe('when normalizing profile settings', () => {
@@ -126,6 +169,43 @@ describe('SuperJson normalization', () => {
 
       expect(normalizeProfileSettings(mockProfileEntry, [])).toEqual({
         file: 'some/path',
+        priority: [],
+        defaults: {},
+        providers: {},
+      });
+    });
+
+    it('returns correct object when entry contains ast', async () => {
+      const mockProfileEntry: ProfileEntry = {
+        ast: {
+          kind: 'ProfileDocument',
+          header: {
+            kind: 'ProfileHeader',
+            scope: 'scope',
+            name: 'name',
+            version: {
+              major: 1,
+              minor: 0,
+              patch: 0,
+            },
+          },
+        },
+      } as unknown as ProfileEntry;
+
+      expect(normalizeProfileSettings(mockProfileEntry, [])).toEqual({
+        ast: {
+          kind: 'ProfileDocument',
+          header: {
+            kind: 'ProfileHeader',
+            scope: 'scope',
+            name: 'name',
+            version: {
+              major: 1,
+              minor: 0,
+              patch: 0,
+            },
+          },
+        },
         priority: [],
         defaults: {},
         providers: {},
@@ -190,6 +270,41 @@ describe('SuperJson normalization', () => {
       expect(normalizeProviderSettings(mockProviderEntry, environment)).toEqual(
         {
           file: 'some/path',
+          security: [],
+          parameters: {},
+        }
+      );
+    });
+
+    it('returns correct object when entry is a object with ast', async () => {
+      const environment = new MockEnvironment();
+      const mockProviderEntry = {
+        ast: {
+          name: 'swapi',
+          services: [
+            {
+              id: 'default',
+              baseUrl: 'https://swapi.dev/api',
+            },
+          ],
+          defaultService: 'default',
+        },
+        security: [],
+        parameters: {},
+      };
+
+      expect(normalizeProviderSettings(mockProviderEntry, environment)).toEqual(
+        {
+          ast: {
+            name: 'swapi',
+            services: [
+              {
+                id: 'default',
+                baseUrl: 'https://swapi.dev/api',
+              },
+            ],
+            defaultService: 'default',
+          },
           security: [],
           parameters: {},
         }
