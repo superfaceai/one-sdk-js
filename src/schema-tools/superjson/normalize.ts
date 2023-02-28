@@ -28,6 +28,7 @@ import type { IEnvironment, ILogger } from '../../interfaces';
 import {
   castToNonPrimitive,
   clone,
+  isSettingsWithAst,
   mergeVariables,
   resolveEnvRecord,
   UnexpectedError,
@@ -58,7 +59,12 @@ export function normalizeProfileProviderSettings(
   }
 
   let normalizedSettings: NormalizedProfileProviderSettings;
-  if ('file' in profileProviderSettings) {
+  if (isSettingsWithAst(profileProviderSettings)) {
+    normalizedSettings = {
+      ast: profileProviderSettings.ast,
+      defaults: {},
+    } as unknown as NormalizedProfileProviderSettings;
+  } else if ('file' in profileProviderSettings) {
     normalizedSettings = {
       file: profileProviderSettings.file,
       defaults: {},
@@ -266,7 +272,14 @@ export function normalizeProfileSettings(
   }
 
   let normalizedSettings: NormalizedProfileSettings;
-  if ('file' in profileEntry) {
+  if (isSettingsWithAst(profileEntry)) {
+    normalizedSettings = {
+      ast: profileEntry.ast,
+      priority: profileEntry.priority || [],
+      defaults: {},
+      providers: {},
+    } as unknown as NormalizedProfileSettings;
+  } else if ('file' in profileEntry) {
     normalizedSettings = {
       file: profileEntry.file,
       priority: profileEntry.priority || [],
@@ -332,24 +345,37 @@ export function normalizeProviderSettings(
     );
   }
 
-  if (environment !== undefined) {
-    return {
+  let normalizedSettings: NormalizedProviderSettings;
+
+  if (isSettingsWithAst(providerEntry)) {
+    normalizedSettings = {
+      ast: providerEntry.ast,
+      security: providerEntry.security ?? [],
+      parameters: providerEntry.parameters ?? {},
+    } as unknown as NormalizedProviderSettings;
+  } else {
+    normalizedSettings = {
       file: providerEntry.file,
-      security:
-        providerEntry.security?.map(entry =>
-          resolveEnvRecord(entry, environment, logger)
-        ) ?? [],
-      parameters: providerEntry.parameters
-        ? resolveEnvRecord(providerEntry.parameters, environment, logger)
-        : {},
+      security: providerEntry.security ?? [],
+      parameters: providerEntry.parameters ?? {},
     };
   }
 
-  return {
-    file: providerEntry.file,
-    security: providerEntry.security ?? [],
-    parameters: providerEntry.parameters ?? {},
-  };
+  if (environment !== undefined) {
+    return {
+      ...normalizedSettings,
+      security: normalizedSettings.security.map(entry =>
+        resolveEnvRecord(entry, environment, logger)
+      ),
+      parameters: resolveEnvRecord(
+        normalizedSettings.parameters,
+        environment,
+        logger
+      ),
+    };
+  }
+
+  return normalizedSettings;
 }
 
 /** Returns a cached normalized clone of the document. */
