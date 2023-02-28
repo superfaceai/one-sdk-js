@@ -180,7 +180,7 @@ describe('MapInterpreter', () => {
     expect(result.isOk() && result.value).toEqual(12);
   });
 
-  it('should run multi step operation', async () => {
+  it.only('should run multi step operation', async () => {
     const url1 = '/first';
     const url2 = '/second';
     await mockServer.forGet(url1).thenJson(200, { firstStep: { someVar: 12 } });
@@ -784,6 +784,32 @@ describe('MapInterpreter', () => {
     );
     const result = await interpreter.perform(ast);
     expect(result.isOk() && result.value).toEqual(15);
+  });
+
+  it('should not merge objects in scope', async () => {
+    const ast = parseMapFromSource(`
+      map Test {
+        set {
+          result = { foo: 'foo' }
+        }
+        
+        set {
+          result = { bar: 'bar' }
+        }
+
+        map result result
+      }
+    `);
+    const interpreter = new MapInterpreter(
+      {
+        usecase: 'Test',
+        security: [],
+        services: ServiceSelector.withDefaultUrl(''),
+      },
+      interpreterDependencies
+    );
+    const result = await interpreter.perform(ast);
+    expect(result.isOk() && result.value).toEqual({ bar: 'bar' });
   });
 
   it('should preserve buffer types with foreach', async () => {

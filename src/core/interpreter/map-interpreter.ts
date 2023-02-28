@@ -386,7 +386,14 @@ class SetStatementVisitor extends NodeVisitor<SetStatementNode> {
 
       // TODO: this is different from before - it allows consecutive assignments to see values from previous ones
       // TODO: assert result.value is NonPrimitive
-      this.stack = mergeVariables(this.stack, result.value as NonPrimitive);
+      // this.stack = mergeVariables(this.stack, result.value as NonPrimitive);
+
+      console.log('stack', this.stack);
+      console.log('result', result.value);
+
+      this.stack = { ...this.stack, ...(result.value as NonPrimitive) };
+
+      console.log('stack after', this.stack);
     }
 
     return this.prepareResultDone(undefined);
