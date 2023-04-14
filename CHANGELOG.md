@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Fixed
+- Do not set form-data field if value is `null` or `undefined` - [#342](https://github.com/superfaceai/one-sdk-js/pull/342)
+
 ### Changed
 - Updated vm2 to 3.9.16 - [#341](https://github.com/superfaceai/one-sdk-js/pull/341)
 

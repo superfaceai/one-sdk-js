@@ -268,7 +268,9 @@ export class NodeFetch implements IFetch, Interceptable, AuthCache {
 
     if (data) {
       Object.entries(data).forEach(([key, value]) => {
-        if (Array.isArray(value)) {
+        if (value === undefined || value === null) {
+          return;
+        } else if (Array.isArray(value)) {
           value.forEach(item => formData.append(key, item));
         } else if (isBinaryData(value)) {
           if (isBinaryDataMeta(value)) {
