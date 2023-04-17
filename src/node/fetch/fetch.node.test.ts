@@ -399,6 +399,38 @@ describe('NodeFetch', () => {
           ).toBe(2);
         });
       });
+
+      describe('field value is undefined', () => {
+        it('does not add field to FormData', async () => {
+          await fetchInstance.fetch(`${mockServer.url}/test`, {
+            method: 'POST',
+            body: { _type: 'formdata', data: { undefinedField: undefined } },
+          });
+
+          expect(
+            (jest.mocked(fetch).mock.calls[0][1]?.body as unknown as FormData)
+              .getBuffer()
+              .toString()
+              .match(/undefinedField/g)
+          ).toBeNull();
+        });
+      });
+
+      describe('field value is null', () => {
+        it('does not add field to FormData', async () => {
+          await fetchInstance.fetch(`${mockServer.url}/test`, {
+            method: 'POST',
+            body: { _type: 'formdata', data: { nullField: null } },
+          });
+
+          expect(
+            (jest.mocked(fetch).mock.calls[0][1]?.body as unknown as FormData)
+              .getBuffer()
+              .toString()
+              .match(/nullField/g)
+          ).toBeNull();
+        });
+      });
     });
 
     // this test works under the assumption that node-fetch returns multi-valued headers as arrays
