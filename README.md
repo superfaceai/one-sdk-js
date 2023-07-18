@@ -1,4 +1,4 @@
-[Website](https://superface.ai) | [Get Started](https://superface.ai/docs/getting-started) | [Documentation](https://superface.ai/docs) | [Discord](https://sfc.is/discord) | [Twitter](https://twitter.com/superfaceai) | [Support](https://superface.ai/support)
+[Website](https://superface.ai) | [Get Started](https://superface.ai/docs/getting-started) | [Documentation](https://superface.ai/docs) | [GitHub Discussions](https://sfc.is/discussions) | [Twitter](https://twitter.com/superfaceai) | [Support](https://superface.ai/support)
 
 <img src="https://github.com/superfaceai/one-sdk-js/raw/main/docs/LogoGreen.png" alt="Superface" width="100" height="100">
 
@@ -10,7 +10,7 @@
 [![npm](https://img.shields.io/npm/v/@superfaceai/one-sdk)](https://www.npmjs.com/package/@superfaceai/one-sdk)
 [![license](https://img.shields.io/npm/l/@superfaceai/one-sdk)](LICENSE)
 ![TypeScript](https://img.shields.io/static/v1?message=TypeScript&&logoColor=ffffff&color=007acc&labelColor=5c5c5c&label=built%20with)
-[![Discord](https://img.shields.io/discord/819563244418105354?logo=discord&logoColor=fff)](https://sfc.is/discord)
+[![GitHub Discussions](https://img.shields.io/github/discussions/superfaceai/.github?logo=github&logoColor=fff)](https://github.com/orgs/superfaceai/discussions)
 
 OneSDK is a universal API client which provides an unparalleled developer experience for every HTTP API. It enhances resiliency to API changes, and comes with built-in integration monitoring and provider failover.
 
@@ -21,7 +21,6 @@ For more details about Superface, visit [How it Works](https://superface.ai/how-
 - [Superface website](https://superface.ai)
 - [Get Started](https://superface.ai/docs/getting-started)
 - [Documentation](https://superface.ai/docs)
-- [Discord](https://sfc.is/discord)
 
 ## Install
 
@@ -127,9 +126,7 @@ For metrics to be successfuly sent, the application needs to exit properly, i.e.
 
 ## Support
 
-If you have any questions, want to report a bug, request a feature or you just want to talk, feel free to [open an issue](https://github.com/superfaceai/one-sdk-js/issues/new/choose) or hop on our [Discord server](https://sfc.is/discord).
-
-You can find more options for reaching us on the [Support page](https://superface.ai/support).
+If you have any questions, want to report a bug, request a feature or you just want to talk, feel free to [open an issue](https://github.com/superfaceai/one-sdk-js/issues/new/choose) or reach us in other ways through the [Support page](https://superface.ai/support).
 
 ## Public API
 
@@ -153,6 +150,4 @@ We welcome all kinds of contributions! Please see the [Contribution Guide](CONTR
 
 OneSDK is licensed under the [MIT License](LICENSE).
 
-© 2022 Superface s.r.o.
-
-<!-- TODO: allcontributors -->
+© 2023 Superface s.r.o.
