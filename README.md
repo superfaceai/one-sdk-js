@@ -21,6 +21,7 @@ For more details about Superface, visit [How it Works](https://superface.ai/how-
 - [Superface website](https://superface.ai)
 - [Get Started](https://superface.ai/docs/getting-started)
 - [Documentation](https://superface.ai/docs)
+- [Support](https://superface.ai/support)
 
 ## Install
 
@@ -45,12 +46,13 @@ yarn add @superfaceai/one-sdk
 Superface is all about use cases. You can start with one of the publically available use cases from the [Superface Catalog](https://superface.ai/catalog).
 
 Once you've got your use case, you need to provide OneSDK with:
-* profile name and version
-* use case name
-* provider name
-* input parameters
-* (if necessary) provider-specific integration parameters
-* (if necessary) provider-specific security values
+
+- profile name and version
+- use case name
+- provider name
+- input parameters
+- (if necessary) provider-specific integration parameters
+- (if necessary) provider-specific security values
 
 These can be found on the profile page (e.g. [vcs/user-repos](https://superface.ai/vcs/user-repos)). Security values need to be obtained through the relevant provider (e.g. on their website, in your account settings, by contacting them, etc.).
 
@@ -60,25 +62,30 @@ const { SuperfaceClient } = require('@superfaceai/one-sdk');
 const sdk = new SuperfaceClient();
 
 async function run() {
-  const profile = await sdk.getProfile({ id: '<profileName>', version: '<profileVersion>'});
-
-  const result = await profile.getUseCase('<usecaseName>').perform({
-    // Input parameters in format:
-    '<key>': '<value>'
-  },
-  {
-    provider: '<providerName>',
-    parameters: {
-      // Provider specific integration parameters in format:
-      '<integrationParameterName>': '<integrationParameterValue>'
-    },
-    security: {
-      // Provider specific security values in format:
-      '<securityValueId>': {
-        // Security values as described on profile page
-      }
-    }
+  const profile = await sdk.getProfile({
+    id: '<profileName>',
+    version: '<profileVersion>',
   });
+
+  const result = await profile.getUseCase('<usecaseName>').perform(
+    {
+      // Input parameters in format:
+      '<key>': '<value>',
+    },
+    {
+      provider: '<providerName>',
+      parameters: {
+        // Provider specific integration parameters in format:
+        '<integrationParameterName>': '<integrationParameterValue>',
+      },
+      security: {
+        // Provider specific security values in format:
+        '<securityValueId>': {
+          // Security values as described on profile page
+        },
+      },
+    }
+  );
 
   console.log(result.unwrap());
 }
@@ -89,11 +96,13 @@ run();
 If you are missing a use case, [let us know](#support)! You can also always [add your own use-case or API provider](https://superface.ai/docs/guides/how-to-create).
 
 ### Advanced usage
-As your project grows in size and complexity, you may find it useful to have a central location for configuring details concerning your API integrations. There are also some features that cannot be used with the simple approach described above, namely:
-  - Using [locally stored profiles, maps and providers](https://superface.ai/docs/advanced-usage#local); e.g. (yet) unpublished integrations, or integrations with APIs internal to your organization. 
-  - Configuring [provider failover](https://superface.ai/docs/guides/using-multiple-providers#failover).
 
-For these cases, there's Superface configuration. 
+As your project grows in size and complexity, you may find it useful to have a central location for configuring details concerning your API integrations. There are also some features that cannot be used with the simple approach described above, namely:
+
+- Using [locally stored profiles, maps and providers](https://superface.ai/docs/advanced-usage#local); e.g. (yet) unpublished integrations, or integrations with APIs internal to your organization.
+- Configuring [provider failover](https://superface.ai/docs/guides/using-multiple-providers#failover).
+
+For these cases, there's Superface configuration.
 To find out more, visit [Advanced Usage](https://superface.ai/docs/advanced-usage).
 
 ## Security
@@ -134,11 +143,11 @@ Only functions and APIs of entities below are a part of the public API, and can 
 
 Using other parts of this package is at your own risk.
 
-* SuperfaceClient API
-* Profile API
-* UseCase API
-* SuperJsonDocument Object
-* Result API
+- SuperfaceClient API
+- Profile API
+- UseCase API
+- SuperJsonDocument Object
+- Result API
 
 Use of public APIs is described in the [reference](https://superface.ai/docs/reference/one-sdk).
 
