@@ -1,4 +1,4 @@
-[Website](https://superface.ai) | [Get Started](https://superface.ai/docs/getting-started) | [Documentation](https://superface.ai/docs) | [Discord](https://sfc.is/discord) | [Twitter](https://twitter.com/superfaceai) | [Support](https://superface.ai/support)
+[Website](https://superface.ai) | [Get Started](https://superface.ai/docs/getting-started) | [Documentation](https://superface.ai/docs) | [GitHub Discussions](https://sfc.is/discussions) | [Twitter](https://twitter.com/superfaceai) | [Support](https://superface.ai/support)
 
 <img src="https://github.com/superfaceai/one-sdk-js/raw/main/docs/LogoGreen.png" alt="Superface" width="100" height="100">
 
@@ -10,7 +10,7 @@
 [![npm](https://img.shields.io/npm/v/@superfaceai/one-sdk)](https://www.npmjs.com/package/@superfaceai/one-sdk)
 [![license](https://img.shields.io/npm/l/@superfaceai/one-sdk)](LICENSE)
 ![TypeScript](https://img.shields.io/static/v1?message=TypeScript&&logoColor=ffffff&color=007acc&labelColor=5c5c5c&label=built%20with)
-[![Discord](https://img.shields.io/discord/819563244418105354?logo=discord&logoColor=fff)](https://sfc.is/discord)
+[![GitHub Discussions](https://img.shields.io/github/discussions/superfaceai/.github?logo=github&logoColor=fff)](https://github.com/orgs/superfaceai/discussions)
 
 OneSDK is a universal API client which provides an unparalleled developer experience for every HTTP API. It enhances resiliency to API changes, and comes with built-in integration monitoring and provider failover.
 
@@ -21,7 +21,7 @@ For more details about Superface, visit [How it Works](https://superface.ai/how-
 - [Superface website](https://superface.ai)
 - [Get Started](https://superface.ai/docs/getting-started)
 - [Documentation](https://superface.ai/docs)
-- [Discord](https://sfc.is/discord)
+- [Support](https://superface.ai/support)
 
 ## Install
 
@@ -46,12 +46,13 @@ yarn add @superfaceai/one-sdk
 Superface is all about use cases. You can start with one of the publically available use cases from the [Superface Catalog](https://superface.ai/catalog).
 
 Once you've got your use case, you need to provide OneSDK with:
-* profile name and version
-* use case name
-* provider name
-* input parameters
-* (if necessary) provider-specific integration parameters
-* (if necessary) provider-specific security values
+
+- profile name and version
+- use case name
+- provider name
+- input parameters
+- (if necessary) provider-specific integration parameters
+- (if necessary) provider-specific security values
 
 These can be found on the profile page (e.g. [vcs/user-repos](https://superface.ai/vcs/user-repos)). Security values need to be obtained through the relevant provider (e.g. on their website, in your account settings, by contacting them, etc.).
 
@@ -61,25 +62,30 @@ const { SuperfaceClient } = require('@superfaceai/one-sdk');
 const sdk = new SuperfaceClient();
 
 async function run() {
-  const profile = await sdk.getProfile({ id: '<profileName>', version: '<profileVersion>'});
-
-  const result = await profile.getUseCase('<usecaseName>').perform({
-    // Input parameters in format:
-    '<key>': '<value>'
-  },
-  {
-    provider: '<providerName>',
-    parameters: {
-      // Provider specific integration parameters in format:
-      '<integrationParameterName>': '<integrationParameterValue>'
-    },
-    security: {
-      // Provider specific security values in format:
-      '<securityValueId>': {
-        // Security values as described on profile page
-      }
-    }
+  const profile = await sdk.getProfile({
+    id: '<profileName>',
+    version: '<profileVersion>',
   });
+
+  const result = await profile.getUseCase('<usecaseName>').perform(
+    {
+      // Input parameters in format:
+      '<key>': '<value>',
+    },
+    {
+      provider: '<providerName>',
+      parameters: {
+        // Provider specific integration parameters in format:
+        '<integrationParameterName>': '<integrationParameterValue>',
+      },
+      security: {
+        // Provider specific security values in format:
+        '<securityValueId>': {
+          // Security values as described on profile page
+        },
+      },
+    }
+  );
 
   console.log(result.unwrap());
 }
@@ -90,11 +96,13 @@ run();
 If you are missing a use case, [let us know](#support)! You can also always [add your own use-case or API provider](https://superface.ai/docs/guides/how-to-create).
 
 ### Advanced usage
-As your project grows in size and complexity, you may find it useful to have a central location for configuring details concerning your API integrations. There are also some features that cannot be used with the simple approach described above, namely:
-  - Using [locally stored profiles, maps and providers](https://superface.ai/docs/advanced-usage#local); e.g. (yet) unpublished integrations, or integrations with APIs internal to your organization. 
-  - Configuring [provider failover](https://superface.ai/docs/guides/using-multiple-providers#failover).
 
-For these cases, there's Superface configuration. 
+As your project grows in size and complexity, you may find it useful to have a central location for configuring details concerning your API integrations. There are also some features that cannot be used with the simple approach described above, namely:
+
+- Using [locally stored profiles, maps and providers](https://superface.ai/docs/advanced-usage#local); e.g. (yet) unpublished integrations, or integrations with APIs internal to your organization.
+- Configuring [provider failover](https://superface.ai/docs/guides/using-multiple-providers#failover).
+
+For these cases, there's Superface configuration.
 To find out more, visit [Advanced Usage](https://superface.ai/docs/advanced-usage).
 
 ## Security
@@ -127,9 +135,7 @@ For metrics to be successfuly sent, the application needs to exit properly, i.e.
 
 ## Support
 
-If you have any questions, want to report a bug, request a feature or you just want to talk, feel free to [open an issue](https://github.com/superfaceai/one-sdk-js/issues/new/choose) or hop on our [Discord server](https://sfc.is/discord).
-
-You can find more options for reaching us on the [Support page](https://superface.ai/support).
+If you have any questions, want to report a bug, request a feature or you just want to talk, feel free to [open an issue](https://github.com/superfaceai/one-sdk-js/issues/new/choose) or reach us in other ways through the [Support page](https://superface.ai/support).
 
 ## Public API
 
@@ -137,11 +143,11 @@ Only functions and APIs of entities below are a part of the public API, and can 
 
 Using other parts of this package is at your own risk.
 
-* SuperfaceClient API
-* Profile API
-* UseCase API
-* SuperJsonDocument Object
-* Result API
+- SuperfaceClient API
+- Profile API
+- UseCase API
+- SuperJsonDocument Object
+- Result API
 
 Use of public APIs is described in the [reference](https://superface.ai/docs/reference/one-sdk).
 
@@ -153,6 +159,4 @@ We welcome all kinds of contributions! Please see the [Contribution Guide](CONTR
 
 OneSDK is licensed under the [MIT License](LICENSE).
 
-© 2022 Superface s.r.o.
-
-<!-- TODO: allcontributors -->
+© 2023 Superface s.r.o.
