@@ -179,7 +179,7 @@ describe('Config', () => {
     it('replaces invalid values with defaults', async () => {
       const customConfig = loadConfigFromCode(
         {
-          disableReporting: false,
+          disableReporting: true,
           metricDebounceTimeMax: -1,
           metricDebounceTimeMin: -10,
           sandboxTimeout: 0,

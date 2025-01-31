@@ -255,7 +255,7 @@ describe('superface client', () => {
     });
 
     it('skips SDKInit reporting', async () => {
-      new SuperfaceClient({ superJson: undefined });
+      new SuperfaceClient({ superJson: undefined, disableReporting: false });
 
       // Metric Reporter is setted up
       expect(MetricReporter).toHaveBeenCalled();
