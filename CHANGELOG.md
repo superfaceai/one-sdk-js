@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.5.0] - 2025-01-31
+
 ## [2.4.2] - 2023-04-17
 ### Changed
 - Updated vm2 to 3.9.16 - [#341](https://github.com/superfaceai/one-sdk-js/pull/341)
@@ -395,7 +397,8 @@ This is a recovery release after introduction of compatibility-breaking changes 
 - Profile parameter validator
 - CI/CD workflows
 
-[Unreleased]: https://github.com/superfaceai/one-sdk-js/compare/v2.4.2...HEAD
+[Unreleased]: https://github.com/superfaceai/one-sdk-js/compare/v2.5.0...HEAD
+[2.5.0]: https://github.com/superfaceai/one-sdk-js/compare/v2.4.2...v2.5.0
 [2.4.2]: https://github.com/superfaceai/one-sdk-js/compare/v2.4.1...v2.4.2
 [2.4.1]: https://github.com/superfaceai/one-sdk-js/compare/v2.4.0...v2.4.1
 [2.4.0]: https://github.com/superfaceai/one-sdk-js/compare/v2.3.1...v2.4.0
